@@ -95,11 +95,12 @@ body {
 
 /* ====== Calendar ====== */
 .cal-day {
-  width: 42px; height: 52px; border-radius: 10px;
+  width: 42px; height: 58px; border-radius: 10px;
   flex-shrink: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; cursor: pointer; transition: all .2s;
+  gap: 3px; cursor: pointer; transition: all .2s;
   position: relative;
+  overflow: visible;
 }
 .cal-day:hover { background: rgba(120,120,128,0.08); }
 .cal-day.past .cal-weekday, .cal-day.past .cal-date { opacity: 0.4; }
@@ -109,7 +110,7 @@ body {
 }
 .cal-day.today .cal-weekday { opacity: 0.85; color: #fff; }
 .cal-day.today .cal-date { color: #fff; }
-.cal-weekday { font-size: 10px; opacity: 0.6; font-weight: 500; }
+.cal-weekday { font-size: 10px; line-height: 12px; opacity: 0.6; font-weight: 500; padding-top: 2px; }
 .cal-date { font-size: 14px; font-weight: 600; }
 .cal-dots { display: flex; gap: 2px; margin-top: 1px; min-height: 4px; }
 .cal-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }

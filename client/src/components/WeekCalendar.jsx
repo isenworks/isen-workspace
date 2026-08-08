@@ -95,7 +95,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
         key={day}
         className={`cal-day ${todayClass} ${pastClass} ${selectedClass}`}
         onClick={() => onSelectDate(toISODate(d))}
-        style={isSelected && !isToday ? { background: 'rgba(0,122,255,0.08)', outline: '2px solid rgba(0,122,255,0.4)' } : undefined}
+        style={isSelected && !isToday ? { background: 'rgba(0,122,255,0.08)', boxShadow: 'inset 0 0 0 2px rgba(0,122,255,0.45)' } : undefined}
       >
         <div className="cal-weekday">{weekLabels[w]}</div>
         <div className="cal-date">{day}</div>
@@ -120,7 +120,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
           </button>
         </div>
 
-        <div className="flex-1 overflow-x-auto pb-2" ref={scrollRef}>
+        <div className="flex-1 overflow-x-auto pb-2 py-1" ref={scrollRef}>
           <div className="flex items-center gap-1 px-2">{days}</div>
         </div>
       </div>

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class=""><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>总结功能 Demo · Daily Review</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 600px at -10% -20%, rgba(64,156,255,0.10), transparent 60%),
+      radial-gradient(900px 500px at 110% -10%, rgba(175,82,222,0.08), transparent 60%),
+      linear-gradient(180deg, #f7f8fb 0%, #eef1f7 100%);
+    color: #1d1d1f;
+    min-height: 100vh;
+    padding: 32px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 860px) {
+    .container { grid-template-columns: 1fr; }
+  }
+
+  /* ===== 卡片基础 ===== */
+  .glass {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    padding: 20px;
+  }
+
+  .title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 600; color: #1c1c1e;
+    margin-bottom: 14px;
+  }
+  .title .dot {
+    width: 4px; height: 14px; border-radius: 2px; background: #007aff;
+  }
+
+  /* ===== 日历 ===== */
+  .cal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .cal-head .ym { font-weight: 600; font-size: 14px; }
+  .cal-head .nav {
+    display: flex; gap: 4px;
+  }
+  .cal-head button {
+    width: 24px; height: 24px; border: none; background: rgba(120,120,128,0.12);
+    border-radius: 6px; cursor: pointer; color: #1c1c1e; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .cal-head button:hover { background: rgba(0,122,255,0.12); }
+
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  }
+  .cal-wd {
+    text-align: center; font-size: 11px; color: #8e8e93;
+    padding: 4px 0; font-weight: 500;
+  }
+  .cal-day {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #3c3c43; cursor: pointer;
+    user-select: none;
+    transition: background .15s, color .15s;
+  }
+  .cal-day:hover { background: rgba(120,120,128,0.12); }
+  .cal-day.other { color: #c7c7cc; }
+  .cal-day.today {
+    background: #ff3b3010; color: #ff3b30; font-weight: 700;
+  }
+  .cal-day.selected {
+    background: #007aff; color: #fff; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+  }
+  .cal-day .mark {
+    position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%;
+  }
+  .cal-day.written .mark { background: #34c759; }
+  .cal-day.external .mark { background: #5856d6; }
+  .cal-day.selected .mark { background: #fff; }
+
+  .cal-legend {
+    display: flex; gap: 12px; margin-top: 14px; font-size: 11px; color: #8e8e93;
+  }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .cal-legend span::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+  }
+  .cal-legend .l-written::before { background: #34c759; }
+  .cal-legend .l-external::before { background: #5856d6; }
+  .cal-legend .l-today::before { background: #ff3b3030; border: 1px solid #ff3b30; }
+
+  .streak-card {
+    margin-top: 16px; padding: 12px; border-radius: 12px;
+    background: linear-gradient(135deg, #e3f2ff 0%, #f2e9ff 100%);
+  }
+  .streak-card .k { font-size: 11px; color: #575f6a; margin-bottom: 2px; }
+  .streak-card .v { font-size: 24px; font-weight: 700; color: #1c1c1e; }
+  .streak-card .v em { font-size: 12px; color: #575f6a; font-weight: 500; font-style: normal; margin-left: 2px; }
+  .streak-card .s { font-size: 11px; color: #575f6a; margin-top: 3px; }
+
+  /* ===== 主内容 ===== */
+  .summary-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .summary-date {
+    font-size: 20px; font-weight: 700; color: #1c1c1e; line-height: 1.2;
+  }
+  .summary-date .sub {
+    display: block; margin-top: 4px; font-size: 12px; color: #8e8e93; font-weight: 500;
+  }
+  .summary-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* 新建下拉按钮（复现 StatsBar 交互） */
+  .newwrap { position: relative; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: rgba(120,120,128,0.12); color: #1c1c1e;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+  }
+  .btn:hover { background: rgba(0,122,255,0.12); color: #007aff; }
+  .btn.primary {
+    background: #007aff; color: #fff; border-color: transparent;
+  }
+  .btn.primary:hover { background: #0069d6; color: #fff; }
+  .btn.ghost { background: transparent; }
+  .btn svg { width: 14px; height: 14px; }
+  .newmenu {
+    position: absolute; top: calc(100% + 6px); right: 0;
+    min-width: 210px; background: #fff;
+    border-radius: 10px; padding: 6px; z-index: 200;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
+    display: none;
+  }
+  .newmenu.show { display: flex; flex-direction: column; gap: 2px; }
+  .newmenu .item {
+    padding: 10px 12px; border-radius: 6px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; font-size: 13px; color: #1c1c1e;
+  }
+  .newmenu .item:hover { background: rgba(0,122,255,0.08); }
+  .newmenu .item .icon { font-size: 16px; }
+  .newmenu .item .t { flex: 1; }
+  .newmenu .item .d { font-size: 11px; color: #8e8e93; }
+  .newmenu hr { border: none; height: 1px; background: #e5e5ea; margin: 4px 2px; }
+
+  /* 模式 Tab */
+  .modetab {
+    display: inline-flex; padding: 3px; background: rgba(120,120,128,0.12);
+    border-radius: 10px; margin-bottom: 16px;
+  }
+  .modetab button {
+    border: none; background: transparent; padding: 6px 12px;
+    border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; color: #3c3c43;
+  }
+  .modetab button.active {
+    background: #fff; color: #007aff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  /* ===== 内置总结 ===== */
+  .mood-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 14px; border-radius: 12px; background: rgba(120,120,128,0.06);
+    margin-bottom: 14px;
+  }
+  .mood-row .lab { font-size: 12px; color: #8e8e93; font-weight: 500; margin-right: 4px; }
+  .mood {
+    font-size: 20px; cursor: pointer; opacity: 0.45;
+    padding: 4px 6px; border-radius: 6px; transition: all .15s;
+  }
+  .mood:hover { opacity: 0.8; transform: scale(1.15); }
+  .mood.on { opacity: 1; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+
+  .field { margin-bottom: 22px; }
+  .field .lab {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: #3c3c43; font-weight: 600; margin-bottom: 10px;
+  }
+  .field .lab .count { font-size: 11px; color: #8e8e93; font-weight: 500; }
+  .chip {
+    font-size: 10.5px; padding: 2px 7px; border-radius: 20px;
+    background: rgba(0,122,255,0.1); color: #007aff; font-weight: 600;
+  }
+  textarea.field-input, .field-input {
+    width: 100%; min-height: 240px; padding: 14px 16px;
+    border: 1px solid #d1d1d6; border-radius: 12px;
+    font-size: 14px; line-height: 1.75; font-family: inherit;
+    background: #fff; resize: vertical; color: #1c1c1e;
+    outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  textarea.field-input:focus, .field-input:focus {
+    border-color: #007aff;
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+  }
+  textarea.field-input.hr { min-height: 160px; }
+
+  .tpl-row { margin-bottom: 14px; }
+  .tpl-row .lab {
+    font-size: 12px; color: #3c3c43; font-weight: 600; margin-bottom: 6px;
+  }
+  .tpls { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tpl {
+    padding: 6px 10px; border-radius: 8px; font-size: 12px;
+    background: rgba(120,120,128,0.08); color: #1c1c1e; cursor: pointer;
+    border: 1px solid transparent; transition: all .15s;
+  }
+  .tpl:hover { background: rgba(0,122,255,0.1); border-color: rgba(0,122,255,0.3); color: #007aff; }
+
+  /* ===== 外链在线文档模式 ===== */
+  .ext-card {
+    padding: 16px; border-radius: 14px;
+    background: linear-gradient(135deg, #3370ff 0%, #5856d6 100%);
+    color: #fff; margin-bottom: 14px;
+  }
+  .ext-card .label { font-size: 11px; opacity: 0.75; margin-bottom: 4px; }
+  .ext-card .title { color: #fff; font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+  .ext-card .title .emoji { margin-right: 6px; }
+  .ext-card .href {
+    font-size: 12px; opacity: 0.8; margin: 6px 0 14px;
+    word-break: break-all;
+  }
+  .ext-card .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ext-card .btns button {
+    padding: 8px 12px; border: none; border-radius: 10px;
+    background: rgba(255,255,255,0.18); color: #fff; font-weight: 600;
+    font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    backdrop-filter: blur(6px);
+  }
+  .ext-card .btns button.primary {
+    background: #fff; color: #3370ff;
+  }
+  .ext-card .btns button:hover { opacity: 0.9; }
+
+  .bind-form label {
+    display: block; font-size: 12px; color: #3c3c43; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .bind-form .h { font-size: 11px; color: #8e8e93; margin-top: 4px; line-height: 1.5; }
+  .bind-form .input-wrap { display: flex; gap: 8px; }
+
+  /* 空状态 */
+  .empty {
+    text-align: center; padding: 40px 20px; color: #8e8e93;
+  }
+  .empty .e { font-size: 40px; margin-bottom: 10px; }
+  .empty .t { font-size: 14px; font-weight: 600; color: #3c3c43; margin-bottom: 4px; }
+  .empty .d { font-size: 12px; line-height: 1.6; }
+
+  /* 保存提示条 */
+  .savedbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid #e5e5ea;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .savedbar .stat { font-size: 12px; color: #8e8e93; }
+  .savedbar .stat .c { color: #34c759; font-weight: 600; }
+  .savedbar .btns { display: flex; gap: 8px; }
+
+  /* 标签徽章 */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 10.5px; font-weight: 600; margin-right: 6px;
+  }
+  .badge.built { background: #34c75922; color: #34c759; }
+  .badge.ext { background: #5856d622; color: #5856d6; }
+
+  /* 滚动时页面 toast 位置（只是视觉 demo，没加真 toast） */
+  .hint {
+    max-width: 1080px; margin: 0 auto 16px;
+    padding: 10px 14px; border-radius: 12px;
+    background: #fff3cd; color: #7a6200; font-size: 12px;
+    border: 1px solid #ffe89a;
+  }
+  .hint b { color: #a58200; }
+</style>
+<style id="trae-panel-enter-style">
+        @keyframes trae-panel-enter {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      </style><script src="https://unpkg.byted-static.com/html2canvas/1.4.1/dist/html2canvas.min.js"></script></head>
+<body>
+
+<div class="hint">
+  🎨 <b>这是一个独立 Demo 页面，没有修改工作台现有代码。</b>
+  支持两种总结模式切换：<b>① 工作台内直接写</b>（结构化模板+心情+字数统计+本地保存）
+  和 <b>② 跳转到在线文档写</b>（绑定链接+一键打开+换绑）。
+  左侧小日历有历史记录高亮（绿色=内置，紫色=外链），连续天数卡片展示 streak。
+  日期切换与新建按钮交互，都是可点击的。
+</div>
+
+<div class="container">
+
+  <!-- 左侧：30天日历 + streak -->
+  <aside class="glass">
+    <div class="title"><span class="dot"></span>历史总结</div>
+
+    <div class="cal-head">
+      <div class="ym" id="calYM">2026 年 8 月</div>
+      <div class="nav">
+        <button id="prevMonth">‹</button>
+        <button id="todayBtn">今</button>
+        <button id="nextMonth">›</button>
+      </div>
+    </div>
+
+    <div class="cal-grid" id="calWd">
+      <div class="cal-wd">一</div><div class="cal-wd">二</div><div class="cal-wd">三</div>
+      <div class="cal-wd">四</div><div class="cal-wd">五</div><div class="cal-wd">六</div>
+      <div class="cal-wd">日</div>
+    </div>
+    <div class="cal-grid" id="calDays"><div class="cal-day other"><span class="mark"></span><span>27</span></div><div class="cal-day other"><span class="mark"></span><span>28</span></div><div class="cal-day other"><span class="mark"></span><span>29</span></div><div class="cal-day other written"><span class="mark"></span><span>30</span></div><div class="cal-day other written"><span class="mark"></span><span>31</span></div><div class="cal-day written"><span class="mark"></span><span>1</span></div><div class="cal-day external"><span class="mark"></span><span>2</span></div><div class="cal-day written"><span class="mark"></span><span>3</span></div><div class="cal-day written"><span class="mark"></span><span>4</span></div><div class="cal-day written"><span class="mark"></span><span>5</span></div><div class="cal-day written"><span class="mark"></span><span>6</span></div><div class="cal-day written"><span class="mark"></span><span>7</span></div><div class="cal-day today selected written"><span class="mark"></span><span>8</span></div><div class="cal-day"><span class="mark"></span><span>9</span></div><div class="cal-day"><span class="mark"></span><span>10</span></div><div class="cal-day"><span class="mark"></span><span>11</span></div><div class="cal-day"><span class="mark"></span><span>12</span></div><div class="cal-day"><span class="mark"></span><span>13</span></div><div class="cal-day"><span class="mark"></span><span>14</span></div><div class="cal-day"><span class="mark"></span><span>15</span></div><div class="cal-day"><span class="mark"></span><span>16</span></div><div class="cal-day"><span class="mark"></span><span>17</span></div><div class="cal-day"><span class="mark"></span><span>18</span></div><div class="cal-day"><span class="mark"></span><span>19</span></div><div class="cal-day"><span class="mark"></span><span>20</span></div><div class="cal-day"><span class="mark"></span><span>21</span></div><div class="cal-day"><span class="mark"></span><span>22</span></div><div class="cal-day"><span class="mark"></span><span>23</span></div><div class="cal-day"><span class="mark"></span><span>24</span></div><div class="cal-day"><span class="mark"></span><span>25</span></div><div class="cal-day"><span class="mark"></span><span>26</span></div><div class="cal-day"><span class="mark"></span><span>27</span></div><div class="cal-day"><span class="mark"></span><span>28</span></div><div class="cal-day"><span class="mark"></span><span>29</span></div><div class="cal-day"><span class="mark"></span><span>30</span></div><div class="cal-day"><span class="mark"></span><span>31</span></div><div class="cal-day other"><span class="mark"></span><span>1</span></div><div class="cal-day other"><span class="mark"></span><span>2</span></div><div class="cal-day other"><span class="mark"></span><span>3</span></div><div class="cal-day other"><span class="mark"></span><span>4</span></div><div class="cal-day other"><span class="mark"></span><span>5</span></div><div class="cal-day other"><span class="mark"></span><span>6</span></div></div>
+
+    <div class="cal-legend">
+      <span class="l-written">内置总结</span>
+      <span class="l-external">在线文档外链</span>
+      <span class="l-today">今天</span>
+    </div>
+
+    <div class="streak-card">
+      <div class="k">连续写总结</div>
+      <div class="v"><span id="streakDays">10</span><em>天</em></div>
+      <div class="s" id="streakSub">已写 8 / 本月 31 天 (26%)</div>
+    </div>
+  </aside>
+
+  <!-- 右侧：总结主体 -->
+  <main class="glass">
+    <div class="summary-head">
+      <div>
+        <div class="summary-date">
+          <span id="dateBig">8 月 8 日 · 周六  ·  今天</span>
+        </div>
+      </div>
+      <div class="summary-actions">
+        <!-- 在线文档开关图标：默认不激活（内置）；点一次→切在线文档，再点→切回内置 -->
+        <button class="icon-btn" id="extToggle" title="切换到在线文档 / 返回内置编辑">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"></path>
+            <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"></path>
+          </svg>
+        </button>
+
+        <div class="newwrap">
+          <button class="btn primary" id="newBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"></path></svg>
+            新建
+          </button>
+          <div class="newmenu" id="newMenu">
+            <div class="item" data-act="built">
+              <span class="icon">✍️</span>
+              <div style="flex:1">
+                <div class="t">在工作台写总结</div>
+                <div class="d">结构化模板 · 心情 · 字数统计</div>
+              </div>
+            </div>
+            <hr>
+            <div class="item" data-act="external">
+              <span class="icon">🔗</span>
+              <div style="flex:1">
+                <div class="t">跳转到在线文档写</div>
+                <div class="d">绑定/更换链接 · 一键打开</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== 内置模式 ============== -->
+    <section id="builtMode" style="display: block;">
+      <div class="mood-row">
+        <span class="lab">今日心情</span>
+        <span class="mood" data-mood="great">😊</span>
+        <span class="mood on" data-mood="good">🙂</span>
+        <span class="mood" data-mood="soso">😐</span>
+        <span class="mood" data-mood="tired">😮‍💨</span>
+        <span class="mood" data-mood="sad">😔</span>
+        <span class="mood" data-mood="angry">😠</span>
+        <span class="mood" data-mood="excited">🤩</span>
+        <span style="flex:1"></span>
+        <span class="chip" id="moodLabel">🙂 不错</span>
+      </div>
+
+      <div class="tpl-row">
+        <div class="lab">快速套用模板（可叠加）</div>
+        <div class="tpls">
+          <span class="tpl" data-tpl="kpt">KPT 法 · 保持/问题/尝试</span>
+          <span class="tpl" data-tpl="daily">通用复盘 · 亮点/不足/明日</span>
+          <span class="tpl" data-tpl="gratitude">感恩日记 · 3 件小确幸</span>
+          <span class="tpl" data-tpl="gtd">GTD 清空大脑 · 明日清单</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="lab"><span>🎯 今日亮点 / 重要成果</span><span class="count" id="winsC" style="color: rgb(142, 142, 147);">0 / 150</span></div>
+        <textarea class="field-input hr" placeholder="1. xxx 项目推进了 30%
+2. 完成了 xx 终稿
+3. 与 xx 聊清楚了需求…" style="height: 42px; overflow-y: hidden;"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="lab"><span>🐢 今日不足 / 可改进</span><span class="count" id="badC" style="color: rgb(142, 142, 147);">0 / 150</span></div>
+        <textarea class="field-input hr" placeholder="1. 被消息打断，专注时间少了
+2. 下午 xx 任务拖了 2 小时…" style="height: 42px; overflow-y: hidden;"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="lab"><span>🚀 明日计划（Top 3 + 其他）<span class="chip">建议 ≤ 3 件重点</span></span><span class="count" id="planC" style="color: rgb(142, 142, 147);">0 / 200</span></div>
+        <textarea class="field-input hr" placeholder="1. [高优] 完成 xx 文档
+2. [习惯] 早上 7 点起床
+3. [社交] 下午 3 点和 xx 对齐…" style="height: 42px; overflow-y: hidden;"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="lab"><span>🌸 小确幸 / 感悟 / 碎碎念</span><span class="count" id="noteC">0 / 不限</span></div>
+        <textarea class="field-input" placeholder="今天 7-11 的冰美式很正；晚霞很漂亮；妈妈提醒我要好好吃饭…" style="height: 42px; overflow-y: hidden;"></textarea>
+      </div>
+
+      <div class="savedbar">
+        <div class="stat" id="saveStat">
+          ✅ <span class="c">已自动保存</span> · 草稿于 09:12 写入本地
+        </div>
+        <div class="btns">
+          <button class="btn ghost">🗑️ 清空</button>
+          <button class="btn">📤 导出为 Markdown</button>
+          <button class="btn primary">💾 保存总结</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 外链（在线文档）模式 ============== -->
+    <section id="externalMode" style="display: none;">
+      <!-- 已绑定卡片（默认显示，点"换绑"切到表单） -->
+      <div id="extBound" style="display: block;">
+        <div class="ext-card">
+          <div class="label">在线文档 · 已绑定</div>
+          <div class="title"><span class="emoji">📄</span>2026 · 每日复盘总表（按月 Tab 归档）</div>
+          <div class="href" id="extHref">https://ethan.feishu.cn/wiki/wikcnXxXxXxXxXxXxXxXxXxX#8月8日复盘</div>
+          <div class="btns">
+            <button class="primary" id="openFeishu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path>
+              </svg>
+              打开在线文档写总结
+            </button>
+            <button id="changeBind">⚙️ 换绑文档链接</button>
+          </div>
+        </div>
+
+        <div style="padding:14px; border:1px dashed #d1d1d6; border-radius:12px; background:#fafafa;">
+          <div style="font-size:13px; font-weight:600; color:#1c1c1e; margin-bottom:6px;">
+            📌 设计说明（可按需调整绑定粒度）
+          </div>
+          <div style="font-size:12px; color:#575f6a; line-height:1.7;">
+            ① 单链接模式：所有天都指向同一份总文档（如在线文档按月分 Tab，当前默认）——
+            好处是不用每天新建，只要打开定位到当天 Tab 即可；<br>
+            ② 日模板模式：每天自动生成"当天日期"的新在线文档（通过对应开放接口创建，需要 API 凭证）——
+            适合真正独立每日复盘；<br>
+            ③ 双写模式：工作日用在线文档、周末用内置短复盘；或先在工作台写短的，再点"同步到在线文档"自动追加。
+          </div>
+        </div>
+
+        <div class="savedbar">
+          <div class="stat">🔗 文档绑定更新于 2026-08-06 14:30 · 本月已跳转 17 次</div>
+          <div class="btns">
+            <button class="btn primary">✅ 我写完了 · 标记今日已总结</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 绑定表单（点"换绑"/未绑定时显示） -->
+      <div id="extBindForm" style="display: none;">
+        <div class="empty" style="padding:16px 10px 8px; text-align:left">
+          <div style="display:flex; gap:12px; align-items:flex-start">
+            <div style="font-size:32px;">🔗</div>
+            <div style="flex:1">
+              <div style="font-size:15px; font-weight:600; color:#1c1c1e; margin-bottom:4px">把在线文档链接贴进来</div>
+              <div style="font-size:12px; color:#575f6a; line-height:1.6">
+                支持 <b>飞书文档 / 飞书知识库 Wiki / 多维表格视图 / Notion / 语雀</b>。绑定后点"打开在线文档写总结"将在新标签页直接跳转。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bind-form" style="margin-top:12px;">
+          <label>文档链接</label>
+          <div class="input-wrap">
+            <input class="field-input" style="min-height:0; height:36px; font-size:12.5px" value="https://ethan.feishu.cn/wiki/wikcnXxXxXxXxXxXxXxXxXxX" placeholder="https://xxx.feishu.cn/docx/... 或 wiki / sheet">
+          </div>
+          <div class="h">
+            💡 建议链接里直接加上定位锚点（如在线文档中 8 月 Tab 的带锚分享链接），这样点击能直接跳到当月位置。
+          </div>
+
+          <div style="margin-top:14px">
+            <label>显示标题（可选）</label>
+            <div class="input-wrap">
+              <input class="field-input" style="min-height:0; height:36px; font-size:12.5px" value="2026 · 每日复盘总表（按月 Tab 归档）" placeholder="用于卡片上的显示名，例如「2026 每日复盘」">
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <label>绑定范围</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px">
+              <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:10px; background:rgba(120,120,128,0.08); cursor:pointer; font-size:12.5px">
+                <input type="radio" name="bindScope" checked="">
+                全局绑定（每天都打开这份）
+              </label>
+              <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:10px; background:rgba(120,120,128,0.08); cursor:pointer; font-size:12.5px">
+                <input type="radio" name="bindScope">
+                仅绑定今日（今天用这一份）
+              </label>
+              <label style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:10px; background:rgba(120,120,128,0.08); cursor:pointer; font-size:12.5px">
+                <input type="radio" name="bindScope">
+                按月自动切换（按月份 Tab 路由）
+              </label>
+            </div>
+          </div>
+
+          <div class="savedbar">
+            <div class="stat">🔐 链接仅保存在当前用户配置中，不对外可见</div>
+            <div class="btns">
+              <button class="btn ghost" id="cancelBind">取消</button>
+              <button class="btn primary" id="saveBind">保存绑定</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 未写总结的空状态（今日还没选模式） -->
+    <section id="emptyMode" style="display:none">
+      <div class="empty">
+        <div class="e">🌙</div>
+        <div class="t">今天还没写总结呢</div>
+        <div class="d">点击右上角「<b>新建</b>」开始今天的复盘<br>
+          📝 工作台内直接写 · 结构化模板自动归档<br>
+          🔗 或跳转到在线文档写 · 绑定链接一键直达
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   纯前端交互逻辑（不依赖工作台任何代码，仅是 demo）
+   ============================================================ */
+(() => {
+  // ---------- 1. 模拟每日历史数据（根据 2026-08 真实周几） ----------
+  const today = new Date(2026, 7, 8); // 今天：2026-08-08 周六
+  const fmt = d => {
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${dd}`;
+  };
+  const parseFmt = s => {
+    const [y,m,d] = s.split('-').map(Number);
+    return new Date(y, m-1, d);
+  };
+
+  // 已写总结的数据：date -> { mode: 'built'|'external' }
+  const records = {};
+  // 本月内每隔几天造一个：
+  const builtDays = [1,3,4,5,6,7,8];   // 内置
+  const extDays   = [2];               // 外链
+  builtDays.forEach(day => { records[fmt(new Date(2026,7,day))] = { mode: 'built' }; });
+  extDays.forEach(day =>   { records[fmt(new Date(2026,7,day))] = { mode: 'external' }; });
+  // 上月底补几天，算 streak：7/30、7/31
+  records[fmt(new Date(2026,6,30))] = { mode: 'built' };
+  records[fmt(new Date(2026,6,31))] = { mode: 'built' };
+
+  // ---------- 2. 当前选中日期（也是主状态） ----------
+  let curDate = new Date(today);
+  let calViewY = today.getFullYear();
+  let calViewM = today.getMonth();
+  // 模拟当前选中日期的模式：默认 built（因为 8 日是 built 日）
+  // 在这个 demo 里，日期对应的模式固定按 records；但"切换模式"会临时改当日 records。
+  const getMode = dateStr => (records[dateStr] || {}).mode || null;
+  const setMode = (dateStr, mode) => {
+    if (!records[dateStr]) records[dateStr] = {};
+    records[dateStr].mode = mode;
+  };
+
+  // ---------- 3. 日历渲染（周一起始） ----------
+  const weekdays = ['日','一','二','三','四','五','六'];
+  function renderCal() {
+    const titleEl = document.getElementById('calYM');
+    titleEl.textContent = `${calViewY} 年 ${calViewM+1} 月`;
+    const box = document.getElementById('calDays');
+    box.innerHTML = '';
+    const first = new Date(calViewY, calViewM, 1);
+    // 周一起始：周一=0  ... 周日=6
+    const startOffset = (first.getDay() + 6) % 7;
+    for (let i = 0; i < startOffset; i++) {
+      const d = new Date(calViewY, calViewM, 1 - (startOffset - i));
+      box.appendChild(makeDayEl(d, true));
+    }
+    const daysInMonth = new Date(calViewY, calViewM+1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      box.appendChild(makeDayEl(new Date(calViewY, calViewM, d), false));
+    }
+    const filled = startOffset + daysInMonth;
+    const rest = (Math.ceil(filled/7)*7) - filled;
+    for (let i = 1; i <= rest; i++) {
+      box.appendChild(makeDayEl(new Date(calViewY, calViewM+1, i), true));
+    }
+  }
+  function makeDayEl(d, otherMonth) {
+    const el = document.createElement('div');
+    el.className = 'cal-day' + (otherMonth ? ' other' : '');
+    const ds = fmt(d);
+    if (fmt(d) === fmt(today)) el.classList.add('today');
+    if (ds === fmt(curDate)) el.classList.add('selected');
+    const r = records[ds];
+    if (r?.mode === 'built')    el.classList.add('written');
+    if (r?.mode === 'external') el.classList.add('external');
+    const mark = document.createElement('span');
+    mark.className = 'mark';
+    el.appendChild(mark);
+    const txt = document.createElement('span');
+    txt.textContent = d.getDate();
+    el.appendChild(txt);
+    el.addEventListener('click', () => {
+      curDate = d;
+      if (otherMonth) { calViewY = d.getFullYear(); calViewM = d.getMonth(); }
+      renderCal();
+      renderMain();
+    });
+    return el;
+  }
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    calViewM--;
+    if (calViewM < 0) { calViewM = 11; calViewY--; }
+    renderCal();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    calViewM++;
+    if (calViewM > 11) { calViewM = 0; calViewY++; }
+    renderCal();
+  });
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    curDate = new Date(today);
+    calViewY = today.getFullYear();
+    calViewM = today.getMonth();
+    renderCal();
+    renderMain();
+  });
+
+  // ---------- 4. 主内容渲染 ----------
+  const weekdayName = ['周日','周一','周二','周三','周四','周五','周六'];
+  const moodMap = { great:'😊 超棒', good:'🙂 不错', soso:'😐 一般',
+    tired:'😮‍💨 有点累', sad:'😔 低落', angry:'😠 有点烦', excited:'🤩 兴奋' };
+  function calcStreak() {
+    let s = 0, d = new Date(today);
+    while (records[fmt(d)]) { s++; d.setDate(d.getDate()-1); }
+    return s;
+  }
+  function monthWritten() {
+    const y = today.getFullYear(), m = today.getMonth();
+    const n = new Date(y, m+1, 0).getDate();
+    let c = 0;
+    for (let i = 1; i <= n; i++) if (records[fmt(new Date(y,m,i))]) c++;
+    return [c, n];
+  }
+  function renderStreak() {
+    document.getElementById('streakDays').textContent = calcStreak();
+    const [c, n] = monthWritten();
+    const pct = Math.round(c/n*100);
+    document.getElementById('streakSub').textContent = `已写 ${c} / 本月 ${n} 天 (${pct}%)`;
+  }
+
+  function renderMain() {
+    const ds = fmt(curDate);
+    const isToday = ds === fmt(today);
+    document.getElementById('dateBig').textContent =
+      `${curDate.getMonth()+1} 月 ${curDate.getDate()} 日 · ${weekdayName[curDate.getDay()]}` +
+      (isToday ? '  ·  今天' : '');
+
+    const mode = getMode(ds);
+    const tab = document.getElementById('modeTab');
+    const builtS = document.getElementById('builtMode');
+    const extS   = document.getElementById('externalMode');
+    const emptyS = document.getElementById('emptyMode');
+
+    if (!mode) {
+      tab.style.display = 'none';
+      builtS.style.display = 'none'; extS.style.display = 'none'; emptyS.style.display = 'block';
+    } else if (mode === 'built') {
+      tab.style.display = 'inline-flex';
+      builtS.style.display = 'block'; extS.style.display = 'none'; emptyS.style.display = 'none';
+      activateTab('built');
+    } else {
+      tab.style.display = 'inline-flex';
+      builtS.style.display = 'none'; extS.style.display = 'block'; emptyS.style.display = 'none';
+      activateTab('external');
+      document.getElementById('extBound').style.display = 'block';
+      document.getElementById('extBindForm').style.display = 'none';
+    }
+    renderStreak();
+  }
+  function activateTab(name) {
+    document.querySelectorAll('#modeTab button').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === name);
+    });
+  }
+  document.querySelectorAll('#modeTab button').forEach(b => {
+    b.addEventListener('click', () => {
+      const m = b.dataset.mode;
+      const ds = fmt(curDate);
+      setMode(ds, m);
+      renderCal(); renderMain();
+    });
+  });
+
+  // ---------- 5. 新建/切换下拉 ----------
+  const newBtn = document.getElementById('newBtn');
+  const newMenu = document.getElementById('newMenu');
+  function toggleMenu(force) {
+    newMenu.classList.toggle('show', force === undefined ? !newMenu.classList.contains('show') : force);
+    document.getElementById('chevron').style.transform =
+      newMenu.classList.contains('show') ? 'rotate(180deg)' : 'none';
+  }
+  newBtn.addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
+  document.addEventListener('click', e => {
+    if (!newMenu.contains(e.target) && e.target !== newBtn) toggleMenu(false);
+  });
+  document.querySelectorAll('#newMenu .item').forEach(el => {
+    el.addEventListener('click', () => {
+      const act = el.dataset.act;
+      const ds = fmt(curDate);
+      setMode(ds, act);
+      toggleMenu(false);
+      renderCal(); renderMain();
+    });
+  });
+
+  // ---------- 6. 心情 + 字数统计 ----------
+  let curMood = 'good';
+  function renderMood() {
+    document.querySelectorAll('.mood').forEach(el => {
+      el.classList.toggle('on', el.dataset.mood === curMood);
+    });
+    document.getElementById('moodLabel').textContent = moodMap[curMood] || '未选择';
+  }
+  document.querySelectorAll('.mood').forEach(el => {
+    el.addEventListener('click', () => { curMood = el.dataset.mood; renderMood(); });
+  });
+  renderMood();
+
+  // 简单字数 + 动态高度
+  function resizeTa(t) {
+    t.style.height = 'auto';
+    const h = Math.max(42, Math.min(600, t.scrollHeight));
+    t.style.height = h + 'px';
+    t.style.overflowY = t.scrollHeight > 600 ? 'auto' : 'hidden';
+  }
+  function hookCount(id, areaSel, max, idx) {
+    const t = document.querySelectorAll('textarea.field-input')[idx];
+    if (!t) return;
+    const lab = document.getElementById(id);
+    const update = () => {
+      const n = t.value.length;
+      const txt = max ? `${n} / ${max}` : `${n} / 不限`;
+      lab.textContent = txt;
+      if (max) lab.style.color = n > max ? '#ff3b30' : '#8e8e93';
+      resizeTa(t);
+    };
+    t.addEventListener('input', update);
+    t.addEventListener('focus', () => { if (t.value) resizeTa(t); });
+    update();
+  }
+  hookCount('winsC',  'textarea', 150, 0);
+  hookCount('badC',   'textarea', 150, 1);
+  hookCount('planC',  'textarea', 200, 2);
+  hookCount('noteC',  'textarea', null, 3);
+
+  // 模板（点击往 textarea 填入示例）
+  const tplMap = {
+    daily: {
+      wins: '1. 【高优】简历投递 10 家 + 3 家完成测评\n2. 完成 xxx 报告终稿并发出\n3. 健身 40 分钟（椭圆机+肩）',
+      bad:  '1. 下午被群消息打断 3 次，深度工作时间不足\n2. 原定整理知识点拖到晚饭后，状态下滑',
+      plan: '1. [Top1] 投递 xxx/yyy 公司\n2. [Top2] 整理面试题库 2 章\n3. [习惯] 早上 7 点起 + 15 分钟晨读',
+      note: '早餐楼下便利店的饭团居然还不错；晚上看星星很清楚 ☆；\n爸爸发了一段旅行照片，要找个空给家里打个电话。',
+      mood: 'great'
+    },
+    kpt: {
+      wins: '【Keep】早上先开番茄钟，进入节奏很快\n【Problem】中午吃完饭刷手机浪费 40 分钟\n【Try】明天饭后立刻散步 10 分钟，然后回工位开始第一段',
+      bad:  '',
+      plan: '1. 中午饭后散步 10 分钟（新增实验）\n2. 下午 14:00-16:00 关通知深度工作',
+      note: '',
+      mood: 'good'
+    },
+    gratitude: {
+      wins: '1. xx 主动帮我看了一下简历\n2. 奶茶店小姐姐给我多放了半勺料\n3. 通勤路上听到《晴天》',
+      bad:  '', plan: '',
+      note: '要把这三件事写在感恩小本本里，年底翻一翻会很暖～',
+      mood: 'great'
+    },
+    gtd: {
+      plan: '1. 回 x 邮件\n2. 预约下周体检\n3. 买 xx 礼物寄回家\n4. 晚上和 A 对齐时间\n5. 清理收件箱',
+      wins: '', bad: '',
+      note: '按 4D 法：Do / Delegate / Defer / Delete 快速过一遍。',
+      mood: 'soso'
+    }
+  };
+  document.querySelectorAll('.tpl').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = tplMap[el.dataset.tpl]; if (!t) return;
+      const tas = document.querySelectorAll('textarea.field-input');
+      if (t.wins && !tas[0].value) tas[0].value = t.wins;
+      if (t.bad  && !tas[1].value) tas[1].value = t.bad;
+      if (t.plan && !tas[2].value) tas[2].value = t.plan;
+      if (t.note && !tas[3].value) tas[3].value = t.note;
+      if (t.mood) curMood = t.mood;
+      renderMood();
+      ['winsC','badC','planC','noteC'].forEach((id,i)=>{
+        const lab = document.getElementById(id);
+        const n = tas[i].value.length;
+        const maxs = [150,150,200,null];
+        if (maxs[i]) { lab.textContent = `${n} / ${maxs[i]}`; lab.style.color = n > maxs[i] ? '#ff3b30' : '#8e8e93'; }
+        else lab.textContent = `${n} / 不限`;
+      });
+      tas.forEach(resizeTa);
+    });
+  });
+
+  // ---------- 7. 外链模式交互 ----------
+  document.getElementById('openFeishu').addEventListener('click', () => {
+    // 真实环境里：window.open(绑定链接)
+    alert('（Demo）打开新标签页跳转：\n' + document.getElementById('extHref').textContent);
+  });
+  document.getElementById('changeBind').addEventListener('click', () => {
+    document.getElementById('extBound').style.display = 'none';
+    document.getElementById('extBindForm').style.display = 'block';
+  });
+  document.getElementById('cancelBind').addEventListener('click', () => {
+    document.getElementById('extBound').style.display = 'block';
+    document.getElementById('extBindForm').style.display = 'none';
+  });
+  document.getElementById('saveBind').addEventListener('click', () => {
+    document.getElementById('extBound').style.display = 'block';
+    document.getElementById('extBindForm').style.display = 'none';
+    const s = document.getElementById('saveStat') || document.querySelector('.savedbar .stat');
+    if (s) s.innerHTML = '✅ <span class="c">已换绑</span> · 下次点「打开在线文档」走新链接';
+  });
+
+  // 保存按钮（演示）
+  document.querySelectorAll('.btn.primary').forEach(b => {
+    if (!['💾 保存总结','✅ 我写完了 · 标记今日已总结','保存绑定'].includes(b.textContent.trim())) return;
+    b.addEventListener('click', () => {
+      const ds = fmt(curDate);
+      setMode(ds, document.getElementById('builtMode').style.display !== 'none' ? 'built' : 'external');
+      renderCal();
+      renderMain();
+      const tip = b.textContent.includes('绑定') ? '🔗 已保存绑定' : '✅ 已保存今日总结';
+      const stat = document.querySelector('#builtMode .savedbar .stat') || document.querySelector('.savedbar .stat');
+      if (stat && !b.textContent.includes('绑定')) {
+        stat.innerHTML = `✅ <span class="c">${tip}</span> · 最后更新 ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
+      }
+    });
+  });
+
+  // ---------- 首次渲染 ----------
+  renderCal();
+  renderMain();
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body></html>

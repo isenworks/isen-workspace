@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI 规范 Demo · 复选框 &amp; 分类色</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(135deg, #f5f5f7 0%, #e8eaed 100%);
+    min-height: 100vh;
+    padding: 40px 20px;
+    color: #1c1c1e;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  .hero { text-align: center; margin-bottom: 48px; }
+  .hero h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .hero p { font-size: 15px; color: #8e8e93; max-width: 640px; margin: 0 auto; line-height: 1.6; }
+  .hero .pill {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 16px;
+    padding: 6px 14px; background: rgba(0, 122, 255, 0.08); color: #007aff;
+    border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 10px 30px rgba(0,0,0,0.06);
+    padding: 24px;
+  }
+  .card h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .card .sub { font-size: 12px; color: #8e8e93; margin-bottom: 20px; }
+
+  .row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 12px; margin-bottom: 8px;
+    transition: background 0.15s; cursor: pointer;
+  }
+  .row:hover { background: rgba(0,0,0,0.02); }
+
+  .row.cat-red    { background: linear-gradient(90deg, #ffe8e8 0%, transparent 70%); }
+  .row.cat-amber  { background: linear-gradient(90deg, #fff4d8 0%, transparent 70%); }
+  .row.cat-gray   { background: linear-gradient(90deg, #f2f2f7 0%, transparent 70%); }
+  .row.cat-energy { background: linear-gradient(90deg, #e5f6ea 0%, transparent 70%); }
+  .row.cat-mind   { background: linear-gradient(90deg, #e0ecff 0%, transparent 70%); }
+  .row.cat-skill  { background: linear-gradient(90deg, #fbf3d8 0%, transparent 70%); }
+
+  .row.done { background: linear-gradient(90deg, #f2f2f7 0%, transparent 70%) !important; }
+  .row.done .title { color: #8e8e93; text-decoration: line-through; }
+  .row.done .meta { color: #aeaeae; }
+
+  .cb {
+    appearance: none; -webkit-appearance: none;
+    width: 22px; height: 22px; border: 2px solid #d1d1d6; background: #fff;
+    cursor: pointer; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+  }
+  .cb.square { border-radius: 6px; }
+  .cb.round  { border-radius: 50%; }
+
+  .row.cat-red   .cb { border-color: #ff9999; }
+  .row.cat-amber .cb { border-color: #ffd699; }
+  .row.cat-gray  .cb { border-color: #d1d1d6; }
+  .row.cat-energy .cb { border-color: #8ee4a7; }
+  .row.cat-mind   .cb { border-color: #8ab8ff; }
+  .row.cat-skill  .cb { border-color: #e6c873; }
+
+  .row.cat-red.done .cb    { background: #ff5e54; border-color: #ff5e54; }
+  .row.cat-amber.done .cb  { background: #ffa635; border-color: #ffa635; }
+  .row.cat-gray.done .cb   { background: #aeaeae; border-color: #aeaeae; }
+  .row.cat-energy.done .cb { background: #5dd57a; border-color: #5dd57a; }
+  .row.cat-mind.done .cb   { background: #4a9bff; border-color: #4a9bff; }
+  .row.cat-skill.done .cb  { background: #e0b94a; border-color: #e0b94a; }
+
+  .cb:checked::after {
+    content: ""; width: 5px; height: 10px;
+    border: solid #fff; border-width: 0 2.5px 2.5px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+
+  .body { flex: 1; min-width: 0; }
+  .title { font-size: 15px; font-weight: 500; color: #1c1c1e; line-height: 1.3; }
+  .meta  { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+
+  .dot { width: 8px; height: 8px; flex-shrink: 0; }
+  .dot.square { border-radius: 2px; }
+  .dot.round  { border-radius: 50%; }
+  .dot.red    { background: #ff3b30; }
+  .dot.amber  { background: #ff9500; }
+  .dot.gray   { background: #8e8e93; }
+  .dot.energy { background: #34c759; }
+  .dot.mind   { background: #007aff; }
+  .dot.skill  { background: #d4a017; }
+
+  .progress-wrap { display: flex; align-items: center; gap: 8px; position: relative; width: 28px; height: 28px; }
+  .progress-ring { transform: rotate(-90deg); }
+  .progress-bg { stroke: #e5e5ea; }
+  .progress-fg { stroke: #007aff; transition: stroke-dashoffset 0.5s ease; }
+  .progress-num {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #1c1c1e;
+  }
+
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+  }
+  .section-head h2 { margin: 0; }
+  .section-head .right { display: flex; align-items: center; gap: 8px; }
+  .section-head .count { font-size: 12px; font-weight: 500; color: #1c1c1e; }
+
+  .divider { height: 1px; background: rgba(60,60,67,0.12); margin: 12px 0; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; padding: 16px; background: rgba(0,0,0,0.02); border-radius: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1c1c1e; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 4px; }
+
+  .note {
+    margin-top: 16px; padding: 12px 14px;
+    background: rgba(0, 122, 255, 0.06); border-left: 3px solid #007aff;
+    border-radius: 0 8px 8px 0; font-size: 12px; color: #1c1c1e; line-height: 1.6;
+  }
+  .note strong { color: #007aff; }
+
+  /* ===== 时间线三栏布局 ===== */
+  .tl { display: flex; flex-direction: column; }
+  .tl-row {
+    display: grid; grid-template-columns: 44px 3px 1fr;
+    align-items: center; gap: 10px; padding: 2px 0;
+  }
+  .tl-time {
+    font-size: 11px; font-weight: 600; color: #8e8e93; text-align: right; padding-right: 2px;
+  }
+  .tl-line { width: 3px; border-radius: 2px; align-self: stretch; min-height: 16px; }
+  .tl-content {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px; border-radius: 12px; min-height: 32px; transition: background 0.15s;
+  }
+  .tl-body { flex: 1; min-width: 0; }
+  .tl-body .title { font-size: 14px; font-weight: 500; color: #1c1c1e; line-height: 1.3; }
+  .tl-body .meta  { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+
+  .tl-row-red    .tl-content { background: linear-gradient(90deg, #ffe8e8 0%, transparent 70%); }
+  .tl-row-amber  .tl-content { background: linear-gradient(90deg, #fff4d8 0%, transparent 70%); }
+  .tl-row-gray   .tl-content { background: linear-gradient(90deg, #f2f2f7 0%, transparent 70%); }
+  .tl-row-energy .tl-content { background: linear-gradient(90deg, #e5f6ea 0%, transparent 70%); }
+  .tl-row-mind   .tl-content { background: linear-gradient(90deg, #e0ecff 0%, transparent 70%); }
+  .tl-row-skill  .tl-content { background: linear-gradient(90deg, #fbf3d8 0%, transparent 70%); }
+
+  .tl-row.done .tl-content { background: linear-gradient(90deg, #f2f2f7 0%, transparent 70%) !important; }
+  .tl-row.done .tl-body .title { color: #8e8e93; text-decoration: line-through; }
+  .tl-row.done .tl-body .meta  { color: #aeaeae; }
+  .tl-row.done .tl-time { color: #aeaeae; }
+
+  .tl-row-red    .cb { border-color: #ff9999; }
+  .tl-row-amber  .cb { border-color: #ffd699; }
+  .tl-row-gray   .cb { border-color: #d1d1d6; }
+  .tl-row-energy .cb { border-color: #8ee4a7; }
+  .tl-row-mind   .cb { border-color: #8ab8ff; }
+  .tl-row-skill  .cb { border-color: #e6c873; }
+
+  .tl-row-red.done    .cb { background: #ff5e54; border-color: #ff5e54; }
+  .tl-row-amber.done  .cb { background: #ffa635; border-color: #ffa635; }
+  .tl-row-gray.done   .cb { background: #aeaeae; border-color: #aeaeae; }
+  .tl-row-energy.done .cb { background: #5dd57a; border-color: #5dd57a; }
+  .tl-row-mind.done   .cb { background: #4a9bff; border-color: #4a9bff; }
+  .tl-row-skill.done  .cb { background: #e0b94a; border-color: #e0b94a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>UI 规范 Demo</h1>
+    <p>事项按紧急度分色（红/琥珀/灰）· 习惯按成长类型分色（精力/知力/能力）· 小圆点保留原色 · 进度环统一蓝色。点击复选框切换状态查看效果。</p>
+    <div class="pill">✦ 顶尖 UI 设计规范</div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ===== 左卡：重点事项 ===== -->
+    <div class="card">
+      <div class="section-head">
+        <h2>📋 重点事项</h2>
+        <div class="right">
+          <div class="progress-wrap">
+            <svg class="progress-ring" width="28" height="28" viewBox="0 0 28 28">
+              <circle class="progress-bg" cx="14" cy="14" r="11" fill="none" stroke-width="3"></circle>
+              <circle class="progress-fg" cx="14" cy="14" r="11" fill="none" stroke-width="3" stroke-dasharray="69.12" stroke-dashoffset="34.56" stroke-linecap="round"></circle>
+            </svg>
+            <span class="progress-num">2/4</span>
+          </div>
+          <span class="count">2 / 4</span>
+        </div>
+      </div>
+      <div class="sub">重要紧急 + 重要不紧急</div>
+
+      <div class="row cat-red">
+        <input type="checkbox" class="cb square">
+        <div class="body">
+          <div class="title">准备季度汇报材料</div>
+          <div class="meta">09:00 – 11:00 · 2 小时</div>
+        </div>
+        <span class="dot square red"></span>
+      </div>
+
+      <div class="row cat-amber">
+        <input type="checkbox" class="cb square">
+        <div class="body">
+          <div class="title">回复客户邮件</div>
+          <div class="meta">14:00 – 14:30 · 30 分钟</div>
+        </div>
+        <span class="dot square amber"></span>
+      </div>
+
+      <div class="row cat-red done">
+        <input type="checkbox" class="cb square" checked="">
+        <div class="body">
+          <div class="title">完成季度目标</div>
+          <div class="meta">08:00 – 09:00 · 1 小时</div>
+        </div>
+        <span class="dot square red"></span>
+      </div>
+
+      <div class="row cat-amber done">
+        <input type="checkbox" class="cb square" checked="">
+        <div class="body">
+          <div class="title">整理会议纪要</div>
+          <div class="meta">10:00 – 10:15 · 15 分钟</div>
+        </div>
+        <span class="dot square amber"></span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sub" style="margin-bottom:12px;">常规事项</div>
+
+      <div class="row cat-gray">
+        <input type="checkbox" class="cb square">
+        <div class="body">
+          <div class="title">清理邮箱</div>
+          <div class="meta">17:00 – 17:30 · 30 分钟</div>
+        </div>
+        <span class="dot square gray"></span>
+      </div>
+
+      <div class="row cat-gray done">
+        <input type="checkbox" class="cb square" checked="">
+        <div class="body">
+          <div class="title">每日站会</div>
+          <div class="meta">09:30 – 09:45 · 15 分钟</div>
+        </div>
+        <span class="dot square gray"></span>
+      </div>
+
+      <div class="note">
+        <strong>规则：</strong>未完成 = 浅彩色背景 + 白复选框带分类色边框；已完成 = 灰色背景 + 复选框填分类色（饱和度降20%）+ 文字灰删除线。<strong>小圆点始终保留分类色</strong>，已完成不褪色。
+      </div>
+    </div>
+
+    <!-- ===== 右卡：习惯 + 时间线 ===== -->
+    <div class="card">
+      <div class="section-head">
+        <h2>🎯 习惯</h2>
+        <div class="right">
+          <div class="progress-wrap">
+            <svg class="progress-ring" width="28" height="28" viewBox="0 0 28 28">
+              <circle class="progress-bg" cx="14" cy="14" r="11" fill="none" stroke-width="3"></circle>
+              <circle class="progress-fg" cx="14" cy="14" r="11" fill="none" stroke-width="3" stroke-dasharray="69.12" stroke-dashoffset="46.08" stroke-linecap="round"></circle>
+            </svg>
+            <span class="progress-num">2/6</span>
+          </div>
+          <span class="count">2 / 6</span>
+        </div>
+      </div>
+      <div class="sub">圆形复选框 · 按成长类型分色（精力/知力/能力）</div>
+
+      <!-- 精力型 -->
+      <div class="row cat-energy">
+        <input type="checkbox" class="cb round">
+        <div class="body">
+          <div class="title">😴 睡眠</div>
+          <div class="meta">23:00 – 06:30 · 7 小时 30 分钟</div>
+        </div>
+        <span class="dot round energy"></span>
+      </div>
+
+      <div class="row cat-energy">
+        <input type="checkbox" class="cb round">
+        <div class="body">
+          <div class="title">🏃 每日运动</div>
+          <div class="meta">06:00 – 07:00 · 1 小时</div>
+        </div>
+        <span class="dot round energy"></span>
+      </div>
+
+      <div class="row cat-energy done">
+        <input type="checkbox" class="cb round" checked="">
+        <div class="body">
+          <div class="title">💧 喝够 2L 水</div>
+          <div class="meta">全天</div>
+        </div>
+        <span class="dot round energy"></span>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 知力型 -->
+      <div class="row cat-mind done">
+        <input type="checkbox" class="cb round" checked="">
+        <div class="body">
+          <div class="title">📖 看书半小时</div>
+          <div class="meta">07:30 – 08:00 · 30 分钟</div>
+        </div>
+        <span class="dot round mind"></span>
+      </div>
+
+      <div class="row cat-mind">
+        <input type="checkbox" class="cb round">
+        <div class="body">
+          <div class="title">🧠 深度思考 15 分钟</div>
+          <div class="meta">21:00 – 21:15 · 15 分钟</div>
+        </div>
+        <span class="dot round mind"></span>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 能力型 -->
+      <div class="row cat-skill">
+        <input type="checkbox" class="cb round">
+        <div class="body">
+          <div class="title">🗣️ 英语口语练习</div>
+          <div class="meta">20:00 – 20:30 · 30 分钟</div>
+        </div>
+        <span class="dot round skill"></span>
+      </div>
+
+      <div class="row cat-skill">
+        <input type="checkbox" class="cb round">
+        <div class="body">
+          <div class="title">🎤 即兴表达训练</div>
+          <div class="meta">20:30 – 20:45 · 15 分钟</div>
+        </div>
+        <span class="dot round skill"></span>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 时间线示例（三栏布局 + 所有时间点） -->
+      <div class="section-head" style="margin-top:8px;">
+        <h2>🕐 时间线（工作台版设计）</h2>
+      </div>
+      <div class="sub">三栏：时间标签 · 彩色竖线 · 内容行 · 06:00–23:00 全展示 · 习惯按成长类型上色</div>
+
+      <div class="tl" style="margin-top:8px;">
+        <!-- 06:00 空 -->
+        <div class="tl-row"><div class="tl-time">06:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+
+        <!-- 07:00 知力型习惯（看书）已完成 -->
+        <div class="tl-row tl-row-mind done">
+          <div class="tl-time">07:00</div>
+          <div class="tl-line" style="background:#c7c7cc;height:32px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb round" checked="">
+            <div class="tl-body">
+              <div class="title">📖 看书半小时</div>
+              <div class="meta">07:30 – 08:00 · 30 分钟</div>
+            </div>
+            <span class="dot round mind"></span>
+          </div>
+        </div>
+
+        <!-- 08:00 红色事项 -->
+        <div class="tl-row tl-row-red">
+          <div class="tl-time">08:00</div>
+          <div class="tl-line" style="background:#ff9999;height:32px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb square">
+            <div class="tl-body">
+              <div class="title">早会</div>
+              <div class="meta">08:00 – 08:30</div>
+            </div>
+            <span class="dot square red"></span>
+          </div>
+        </div>
+
+        <div class="tl-row tl-row-red done">
+          <div class="tl-time"></div>
+          <div class="tl-line" style="background:#c7c7cc;height:64px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb square" checked="">
+            <div class="tl-body">
+              <div class="title">完成季度目标</div>
+              <div class="meta">08:00 – 09:00 · 1 小时</div>
+            </div>
+            <span class="dot square red"></span>
+          </div>
+        </div>
+
+        <!-- 09:00 灰色常规 -->
+        <div class="tl-row tl-row-gray">
+          <div class="tl-time">09:00</div>
+          <div class="tl-line" style="background:#d1d1d6;height:32px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb square">
+            <div class="tl-body">
+              <div class="title">每日站会</div>
+              <div class="meta">09:30 – 09:45 · 15 分钟</div>
+            </div>
+            <span class="dot square gray"></span>
+          </div>
+        </div>
+
+        <!-- 10:00 琥珀已完成 -->
+        <div class="tl-row tl-row-amber done">
+          <div class="tl-time">10:00</div>
+          <div class="tl-line" style="background:#c7c7cc;height:32px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb square" checked="">
+            <div class="tl-body">
+              <div class="title">整理会议纪要</div>
+              <div class="meta">10:00 – 10:15 · 15 分钟</div>
+            </div>
+            <span class="dot square amber"></span>
+          </div>
+        </div>
+
+        <!-- 11:00-19:00 空时间点 -->
+        <div class="tl-row"><div class="tl-time">11:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">12:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">13:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">14:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">15:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">16:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">17:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">18:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+        <div class="tl-row"><div class="tl-time">19:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+
+        <!-- 20:00 能力型习惯 -->
+        <div class="tl-row tl-row-skill">
+          <div class="tl-time">20:00</div>
+          <div class="tl-line" style="background:#e6c873;height:32px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb round">
+            <div class="tl-body">
+              <div class="title">🗣️ 英语口语练习</div>
+              <div class="meta">20:00 – 20:30 · 30 分钟</div>
+            </div>
+            <span class="dot round skill"></span>
+          </div>
+        </div>
+
+        <!-- 21:00 精力型习惯 -->
+        <div class="tl-row tl-row-energy done">
+          <div class="tl-time">21:00</div>
+          <div class="tl-line" style="background:#c7c7cc;height:20px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb round" checked="">
+            <div class="tl-body">
+              <div class="title">💧 喝够 2L 水</div>
+              <div class="meta">21:00 · 全天收尾</div>
+            </div>
+            <span class="dot round energy"></span>
+          </div>
+        </div>
+
+        <!-- 22:00 空 -->
+        <div class="tl-row"><div class="tl-time">22:00</div><div class="tl-line" style="background:#e5e5ea;height:16px;"></div><div class="tl-content"></div></div>
+
+        <!-- 23:00 精力型习惯（睡眠）-->
+        <div class="tl-row tl-row-energy">
+          <div class="tl-time">23:00</div>
+          <div class="tl-line" style="background:#8ee4a7;height:32px;"></div>
+          <div class="tl-content">
+            <input type="checkbox" class="cb round">
+            <div class="tl-body">
+              <div class="title">😴 睡眠</div>
+              <div class="meta">23:00 – 06:30 · 7 小时 30 分钟</div>
+            </div>
+            <span class="dot round energy"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>设计要点：</strong>三栏布局（时间标签 · 彩色竖线 · 内容行），06:00–23:00 所有时间点都展示（空时间点用灰色细线）。习惯卡片按成长类型上色：精力型绿 / 知力型蓝 / 能力型金，事项按紧急度上色（红/琥珀/灰）。竖线颜色 = 该行类型色，已完成后变灰。
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 图例 ===== -->
+  <div class="card" style="margin-top:24px;">
+    <h2>🎨 分类色规范</h2>
+    <div class="sub">贯穿全应用：背景、边框、复选框、小圆点</div>
+
+    <div style="font-size:11px;font-weight:600;color:#8e8e93;letter-spacing:0.04em;margin:8px 0 6px;">事项 · 紧急度维度</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#ff3b30;"></div><span>重要紧急 #ff3b30</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#ff9500;"></div><span>重要不紧急 #ff9500</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#8e8e93;"></div><span>常规 #8e8e93</span></div>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;color:#8e8e93;letter-spacing:0.04em;margin:16px 0 6px;">习惯 · 成长维度</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#34c759;"></div><span>精力型 #34c759（睡眠/运动/饮食）</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#007aff;"></div><span>知力型 #007aff（看书/思考）</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#d4a017;"></div><span>能力型 #d4a017（英语/表达）</span></div>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;color:#8e8e93;letter-spacing:0.04em;margin:16px 0 6px;">通用 · 完成度</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#007aff;"></div><span>进度环 #007aff（统一）</span></div>
+    </div>
+
+    <div class="note" style="margin-top:16px;">
+      <strong>核心原则：</strong><br>
+      1. <strong>颜色 = 身份</strong>：事项按"紧急度"分色（红/琥珀/灰），习惯按"成长类型"分色（精力/知力/能力），两套维度互不干扰<br>
+      2. <strong>习惯面板 + 时间线</strong>：都按成长类型分色，习惯卡片颜色一致表达身份<br>
+      3. <strong>时间线设计</strong>：三栏布局（时间标签 · 彩色竖线 · 内容行），06:00–23:00 所有时间点都展示，空时间点用灰色细线<br>
+      4. <strong>褪色 = 状态</strong>：已完成时文字变灰 + 行背景变灰 + 复选框填分类色（饱和度降 20%）+ 竖线变灰，表达"完成但仍保留身份"<br>
+      5. <strong>小圆点始终保留原色</strong>：无论完成与否，事项/习惯右侧小圆点都保留分类色，不褪灰<br>
+      6. <strong>进度环统一蓝色</strong>：表达"完成度"，不与任何分类色混淆
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 习惯面板行切换
+  document.querySelectorAll('.card .row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.classList.contains('cb')) return;
+      const cb = row.querySelector('.cb');
+      if (cb) { cb.checked = !cb.checked; row.classList.toggle('done', cb.checked); }
+    });
+  });
+  document.querySelectorAll('.card .cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const row = cb.closest('.row');
+      if (row) row.classList.toggle('done', cb.checked);
+    });
+  });
+
+  // 时间线行切换
+  document.querySelectorAll('.tl-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.classList.contains('cb')) return;
+      const cb = row.querySelector('.cb');
+      if (cb) {
+        cb.checked = !cb.checked;
+        row.classList.toggle('done', cb.checked);
+      }
+    });
+  });
+  document.querySelectorAll('.tl-row .cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const row = cb.closest('.tl-row');
+      if (row) row.classList.toggle('done', cb.checked);
+    });
+  });
+</script>
+
+
+</body></html>

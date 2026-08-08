@@ -1,0 +1,17 @@
+{
+  "name": "personal-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "个人工作台 - 全栈日程/任务/习惯/复盘管理系统",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n server,client -c green,blue \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

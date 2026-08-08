@@ -1,0 +1,472 @@
+import { useState, useEffect } from 'react';
+import { API } from '../api/client.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
+
+const ADMIN_EMAIL = '1429000825@qq.com';
+
+function friendlyError(msg) {
+  if (!msg) return '操作失败，请重试';
+  if (msg.includes('无权')) return msg;
+  if (msg.includes('not found') || msg.includes('does not exist')) return '数据不存在，请先在 SQL Editor 执行初始化脚本';
+  if (msg.includes('structure of query')) return '数据库函数需要更新，请执行 SQL 修复脚本';
+  if (msg.includes('policy') && msg.includes('already exists')) return '';
+  if (msg.length > 80) return '操作失败，请检查数据库配置';
+  return msg;
+}
+
+export default function SettingsModal({ open, onClose, user: propUser }) {
+  const toast = useToast();
+  const { user: authUser } = useAuth();
+  const user = propUser || authUser;
+  const [tab, setTab] = useState('invites');
+  const [invites, setInvites] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [newCode, setNewCode] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [confirmBan, setConfirmBan] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
+  useEffect(() => {
+    if (open && isAdmin) {
+      loadInvites();
+      loadUsers();
+    }
+  }, [open, isAdmin]);
+
+  async function loadInvites() {
+    try {
+      const r = await API.inviteCodes.list();
+      setInvites(r.codes || []);
+    } catch (e) { setErr(friendlyError(e.message)); }
+  }
+
+  async function loadUsers() {
+    try {
+      const r = await API.users.list();
+      setUsers(r.users || []);
+    } catch (e) { setErr(friendlyError(e.message)); }
+  }
+
+  async function handleCreateCode() {
+    setErr('');
+    try {
+      setBusy(true);
+      const r = await API.inviteCodes.create();
+      setNewCode(r.code);
+      loadInvites();
+    } catch (e) { setErr(friendlyError(e.message)); }
+    finally { setBusy(false); }
+  }
+
+  async function handleDisableCode(id) {
+    setErr('');
+    try {
+      const ok = await API.inviteCodes.disable(id);
+      if (ok) loadInvites();
+      else setErr('操作失败');
+    } catch (e) { setErr(friendlyError(e.message)); }
+  }
+
+  async function handleBanUser(userId) {
+    try {
+      setBusy(true);
+      const ok = await API.users.ban(userId);
+      if (ok) { loadUsers(); setConfirmBan(null); }
+      else setErr('操作失败');
+    } catch (e) { setErr(friendlyError(e.message)); }
+    finally { setBusy(false); }
+  }
+
+  async function handleUnbanUser(userId) {
+    try {
+      setBusy(true);
+      const ok = await API.users.unban(userId);
+      if (ok) loadUsers();
+      else setErr('操作失败');
+    } catch (e) { setErr(friendlyError(e.message)); }
+    finally { setBusy(false); }
+  }
+
+  function copyCode(code) {
+    const doCopy = (text) => {
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(
+          () => { setCopied(code); setTimeout(() => setCopied(null), 1500); },
+          () => fallbackCopy(text)
+        );
+      } else {
+        fallbackCopy(text);
+      }
+    };
+    function fallbackCopy(text) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        setCopied(code);
+        setTimeout(() => setCopied(null), 1500);
+      } catch {
+        toast.info('复制失败,请手动复制: ' + text);
+      }
+    }
+    doCopy(code);
+  }
+
+  if (!open) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'rgba(0,0,0,0.35)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 10002
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff', borderRadius: '14px', width: '680px', maxWidth: '94vw',
+        maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
+      }} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{
+          padding: '18px 20px', borderBottom: '1px solid #e5e5ea',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c1c1e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>
+            </svg>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1c1c1e' }}>
+              系统设置
+            </h3>
+          </div>
+          <button onClick={onClose} style={{
+            width: '28px', height: '28px', borderRadius: '50%', border: 'none',
+            background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
+            fontSize: '16px', color: '#8e8e93', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s'
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        {!isAdmin && (
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: '#8e8e93' }}>
+            <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔒</div>
+            <div style={{ fontSize: '14px' }}>仅管理员可访问此页面</div>
+          </div>
+        )}
+
+        {isAdmin && (
+          <>
+            {/* Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
+              {[
+                { key: 'invites', label: '邀请码管理' },
+                { key: 'users', label: '用户管理' }
+              ].map(t => (
+                <button key={t.key} onClick={() => { setTab(t.key); setNewCode(null); setErr(''); }} style={{
+                  flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
+                  cursor: 'pointer', fontSize: '14px',
+                  fontWeight: tab === t.key ? '600' : '400',
+                  color: tab === t.key ? '#007aff' : '#8e8e93',
+                  borderBottom: tab === t.key ? '2px solid #007aff' : '2px solid transparent',
+                  transition: 'all 0.15s'
+                }}>{t.label}</button>
+              ))}
+            </div>
+
+            {/* Error */}
+            {err && (
+              <div style={{ 
+                margin: '12px 20px 0', 
+                padding: '10px 14px', 
+                fontSize: '13px', 
+                color: '#ff3b30', 
+                background: '#fff2f2',
+                borderRadius: '8px',
+                border: '1px solid #ffc9c9',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '16px' }}>⚠️</span>
+                <span>{err}</span>
+              </div>
+            )}
+
+            {/* Tab content */}
+            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+              {tab === 'invites' ? (
+                <InviteCodesTab
+                  invites={invites}
+                  newCode={newCode}
+                  busy={busy}
+                  copied={copied}
+                  onCreate={handleCreateCode}
+                  onDisable={handleDisableCode}
+                  onCopy={copyCode}
+                />
+              ) : (
+                <UsersTab
+                  users={users}
+                  busy={busy}
+                  onBan={(uid) => setConfirmBan({ userId: uid })}
+                  onUnban={handleUnbanUser}
+                />
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Ban confirm dialog */}
+        {confirmBan && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10, borderRadius: '14px'
+          }} onClick={() => setConfirmBan(null)}>
+            <div style={{
+              background: '#fff', borderRadius: '16px', width: '340px', padding: '28px 24px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ 
+                textAlign: 'center', 
+                marginBottom: '16px',
+                width: '48px', height: '48px', borderRadius: '50%',
+                background: '#fff2f2', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div style={{ fontSize: '17px', fontWeight: '600', textAlign: 'center', marginBottom: '8px' }}>
+                禁用该用户？
+              </div>
+              <div style={{ fontSize: '13px', color: '#8e8e93', textAlign: 'center', marginBottom: '24px', lineHeight: 1.5 }}>
+                禁用后该用户将无法登录工作台。<br/>此操作可随时恢复。
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setConfirmBan(null)} style={{
+                  flex: 1, padding: '11px', borderRadius: '10px',
+                  background: '#f5f5f7', color: '#1c1c1e',
+                  border: 'none', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}>取消</button>
+                <button onClick={() => handleBanUser(confirmBan.userId)} disabled={busy} style={{
+                  flex: 1, padding: '11px', borderRadius: '10px',
+                  background: busy ? '#ccc' : '#ff3b30', color: '#fff',
+                  border: 'none', fontWeight: '600', fontSize: '14px', cursor: busy ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s'
+                }}>{busy ? '处理中...' : '确认禁用'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, onCopy }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Generate button */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '16px', borderRadius: '12px', background: '#f5f5f7'
+      }}>
+        <div style={{ fontSize: '13px', color: '#1c1c1e' }}>
+          生成新的一次性邀请码，分享给朋友注册
+        </div>
+        <button onClick={onCreate} disabled={busy} style={{
+          padding: '9px 18px', borderRadius: '8px', background: busy ? '#ccc' : '#007aff',
+          color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px',
+          cursor: busy ? 'not-allowed' : 'pointer',
+          boxShadow: busy ? 'none' : '0 1px 3px rgba(0,122,255,0.3)',
+          transition: 'all 0.15s'
+        }}>{busy ? '生成中...' : '+ 生成邀请码'}</button>
+      </div>
+
+      {/* New code display */}
+      {newCode && (
+        <div style={{
+          padding: '18px', borderRadius: '12px', background: '#f0fdf4',
+          border: '1.5px solid #34c759'
+        }}>
+          <div style={{ fontSize: '12px', color: '#34c759', fontWeight: '600', marginBottom: '10px' }}>
+            ✨ 新邀请码（仅一次有效）
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <code style={{
+              fontSize: '24px', fontWeight: '700', color: '#1c1c1e',
+              letterSpacing: '4px', fontFamily: 'SF Mono, Menlo, monospace'
+            }}>{newCode}</code>
+            <button onClick={() => onCopy(newCode)} style={{
+              padding: '6px 14px', borderRadius: '8px', background: '#fff',
+              border: '1px solid #34c759', color: '#34c759',
+              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}>{copied === newCode ? '✓ 已复制' : '复制'}</button>
+          </div>
+        </div>
+      )}
+
+      {/* History list */}
+      <div>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '12px' }}>
+          邀请码历史（{invites.length}）
+        </div>
+        {invites.length === 0 ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '40px 20px', 
+            color: '#8e8e93', 
+            fontSize: '13px',
+            background: '#f5f5f7',
+            borderRadius: '10px'
+          }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📋</div>
+            暂无邀请码记录
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {invites.map(c => {
+              const isUsed = c.is_used;
+              const isDisabled = c.is_disabled;
+              const statusLabel = isDisabled ? '已禁用' : isUsed ? '已使用' : '未使用';
+              const statusColor = isDisabled ? '#8e8e93' : isUsed ? '#007aff' : '#34c759';
+              return (
+                <div key={c.id} style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '12px 14px', borderRadius: '10px', background: '#f5f5f7',
+                  fontSize: '13px',
+                  transition: 'background 0.15s'
+                }}>
+                  <code style={{
+                    fontFamily: 'SF Mono, Menlo, monospace', fontWeight: '600', color: '#1c1c1e',
+                    minWidth: '100px', fontSize: '13px'
+                  }}>{c.code}</code>
+                  <span style={{
+                    fontSize: '11px', color: '#fff', padding: '3px 10px',
+                    borderRadius: '10px', background: statusColor,
+                    fontWeight: '500'
+                  }}>{statusLabel}</span>
+                  {c.used_by_email && (
+                    <span style={{ fontSize: '12px', color: '#8e8e93', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      → {c.used_by_email}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '12px', color: '#8e8e93' }}>
+                    {new Date(c.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {!isUsed && !isDisabled && (
+                    <button onClick={() => onDisable(c.id)} style={{
+                      padding: '5px 12px', borderRadius: '7px', border: 'none',
+                      background: 'rgba(255,59,48,0.1)', color: '#ff3b30',
+                      fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}>禁用</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UsersTab({ users, busy, onBan, onUnban }) {
+  return (
+    <div>
+      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '12px' }}>
+        注册用户列表（{users.length}）
+      </div>
+      {users.length === 0 ? (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px 20px', 
+          color: '#8e8e93', 
+          fontSize: '13px',
+          background: '#f5f5f7',
+          borderRadius: '10px'
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '8px' }}>👥</div>
+          暂无注册用户
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {users.map(u => (
+            <div key={u.user_id} style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '12px 14px', borderRadius: '10px',
+              background: u.is_banned ? '#fff2f2' : '#f5f5f7',
+              fontSize: '13px',
+              transition: 'background 0.15s'
+            }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: u.is_banned ? '#8e8e93' : '#007aff', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '13px', fontWeight: '600', flexShrink: 0
+              }}>{(u.username || u.email || '?')[0].toUpperCase()}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: '500', color: '#1c1c1e' }}>{u.email}</div>
+                <div style={{ fontSize: '12px', color: '#8e8e93' }}>
+                  {u.username || '无昵称'} · 注册于 {new Date(u.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </div>
+              </div>
+              {u.is_banned ? (
+                <>
+                  <span style={{
+                    fontSize: '11px', color: '#fff', padding: '3px 10px',
+                    borderRadius: '10px', background: '#ff3b30', fontWeight: '500'
+                  }}>已禁用</span>
+                  <button onClick={() => onUnban(u.user_id)} disabled={busy} style={{
+                    padding: '5px 12px', borderRadius: '7px', border: 'none',
+                    background: 'rgba(52,199,89,0.1)', color: '#34c759',
+                    fontSize: '12px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s'
+                  }}>解禁</button>
+                </>
+              ) : (
+                <>
+                  <span style={{
+                    fontSize: '11px', color: '#fff', padding: '3px 10px',
+                    borderRadius: '10px', background: '#34c759', fontWeight: '500'
+                  }}>正常</span>
+                  <button onClick={() => onBan(u.user_id)} disabled={busy} style={{
+                    padding: '5px 12px', borderRadius: '7px', border: 'none',
+                    background: 'rgba(255,59,48,0.1)', color: '#ff3b30',
+                    fontSize: '12px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s'
+                  }}>禁用</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

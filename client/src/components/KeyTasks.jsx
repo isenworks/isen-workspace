@@ -303,18 +303,18 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
           <button
             onClick={() => setSortBy(sortBy === 'priority' ? 'time' : 'priority')}
-            className="w-6 h-6 flex items-center justify-center rounded-[9px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
             title={sortBy === 'priority' ? '按重要性排序（点击切换为按时间）' : '按时间排序（点击切换为按重要性）'}
             aria-label={sortBy === 'priority' ? '按重要性排序' : '按时间排序'}
           >
             {sortBy === 'priority' ? (
-              <svg className="w-3 h-3" viewBox="0 0 14 14" fill="none">
+              <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
                 <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#ff3b30"/>
                 <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#ff9500"/>
                 <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
               </svg>
             ) : (
-              <svg className="w-3 h-3" viewBox="0 0 14 14" fill="none">
+              <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
                 <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
                   <line x1="1.5" y1="3" x2="12.5" y2="3"/>
                   <line x1="1.5" y1="7" x2="9.5" y2="7"/>

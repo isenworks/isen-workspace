@@ -300,11 +300,12 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         <div className="flex items-center gap-2">
           <span className="section-accent" style={{background:'#007aff'}}></span>
           <h3 className="section-title">{titleText}</h3>
-          {/* 排序切换按钮：重要性(三色横线) / 时间(有序列表)，样式与+按钮一致 */}
+          {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
           <button
             onClick={() => setSortBy(sortBy === 'priority' ? 'time' : 'priority')}
-            className="btn-secondary text-xs px-2 py-1"
+            className="w-6 h-6 flex items-center justify-center rounded-[9px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
             title={sortBy === 'priority' ? '按重要性排序（点击切换为按时间）' : '按时间排序（点击切换为按重要性）'}
+            aria-label={sortBy === 'priority' ? '按重要性排序' : '按时间排序'}
           >
             {sortBy === 'priority' ? (
               <svg className="w-3 h-3" viewBox="0 0 14 14" fill="none">
@@ -314,15 +315,10 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
               </svg>
             ) : (
               <svg className="w-3 h-3" viewBox="0 0 14 14" fill="none">
-                <g stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none">
-                  <line x1="4" y1="3.3" x2="12.5" y2="3.3"/>
-                  <line x1="4" y1="7" x2="12.5" y2="7"/>
-                  <line x1="4" y1="10.7" x2="12.5" y2="10.7"/>
-                </g>
-                <g fill="currentColor" fontWeight="700" fontSize="3.8">
-                  <text x="0.4" y="4.6">1</text>
-                  <text x="0.2" y="8.3">2</text>
-                  <text x="0.2" y="12">3</text>
+                <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
+                  <line x1="1.5" y1="3" x2="12.5" y2="3"/>
+                  <line x1="1.5" y1="7" x2="9.5" y2="7"/>
+                  <line x1="1.5" y1="11" x2="6.5" y2="11"/>
                 </g>
               </svg>
             )}

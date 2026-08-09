@@ -234,14 +234,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     return Math.max(20, Math.min(Math.round(px), 180));
   }
 
-  // 整行 min-height：根据时长线性设置
-  function getRowMinHeight(item) {
-    const dur = getEffectiveDur(item);
-    if (!dur) return undefined;
-    const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
-    if (isSleep) return undefined;
-    if (dur >= 120) return 112; // 2h+ 用较高行
-    if (dur >= 60) return 72;   // 1h+ 给足空间
+  // 整行 min-height：不单独拉高，完全由竖线高度 + 固定 padding 自然决定（线性对应时长）
+  function getRowMinHeight(_item) {
     return undefined;
   }
 
@@ -423,16 +417,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       const px = mins * (56 / 60);
       return Math.max(20, Math.min(Math.round(px), 180));
     }
-    function slotRowMinHeight(slot) {
-      const item = slot.item;
-      const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
-      if (isSleep) return undefined;
-      const mins = slot.minsInHour;
-      if (mins == null) return getRowMinHeight(item);
-      if (mins >= 50) return 64;
-      if (mins >= 30) return 48;
-      return undefined;
-    }
+  // 行 min-height：完全不设档位，让行高由竖线高度 + 固定 padding 自然决定（线性对应时长）
+  // CSS 已提供 min-height: 48px 兜底，短时长(15/30min)不会被压缩得太扁
+  function slotRowMinHeight(_slot) {
+    return undefined;
+  }
     // 续段用的"与首段一致的浅色背景"，但去掉已完成的灰底替换（保持色调连续），这里复用 getRowBg 即可（它已考虑 is_done）
     // 续段：隐藏复选框/文字 → timeline-content 区域留空占位（只显示小圆点保证右对齐）
 

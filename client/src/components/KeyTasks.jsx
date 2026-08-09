@@ -105,8 +105,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const ta = a.start_time || '99:99';
       const tb = b.start_time || '99:99';
       if (ta !== tb) return ta.localeCompare(tb);
-      // 3) 稳定兜底：ID 排序
-      return (a.id || '').localeCompare(b.id || '');
+      // 3) 稳定兜底：ID 排序（id 可能是数字或字符串，统一转字符串）
+      return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
   }
   function sortByTime(items) {
@@ -117,7 +117,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const catA = catOf(a);
       const catB = catOf(b);
       if (catA !== catB) return catA - catB;
-      return (a.id || '').localeCompare(b.id || '');
+      return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
   }
   function applySort(items) {

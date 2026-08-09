@@ -36,6 +36,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const toast = useToast();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  // sortBy: priority(按重要性) | time(按时间顺序)。默认按重要性
+  const [sortBy, setSortBy] = useState('priority');
 
   async function load() {
     setLoading(true);
@@ -87,6 +89,40 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   }
 
   const done = list.filter(s => s.is_done).length;
+
+  // ====== 排序函数 ======
+  function sortByPriority(items) {
+    return [...items].sort((a, b) => {
+      // 1) 重要性：1(重要紧急) < 2(重要不紧急) < 3(常规)
+      //    未完成优先，已完成排后面
+      const doneA = a.is_done ? 1 : 0;
+      const doneB = b.is_done ? 1 : 0;
+      if (doneA !== doneB) return doneA - doneB;
+      const catA = catOf(a);
+      const catB = catOf(b);
+      if (catA !== catB) return catA - catB;
+      // 2) 同重要性：按 start_time 升序(无时间排后面)
+      const ta = a.start_time || '99:99';
+      const tb = b.start_time || '99:99';
+      if (ta !== tb) return ta.localeCompare(tb);
+      // 3) 稳定兜底：ID 排序
+      return (a.id || '').localeCompare(b.id || '');
+    });
+  }
+  function sortByTime(items) {
+    return [...items].sort((a, b) => {
+      const ta = a.start_time || '99:99';
+      const tb = b.start_time || '99:99';
+      if (ta !== tb) return ta.localeCompare(tb);
+      const catA = catOf(a);
+      const catB = catOf(b);
+      if (catA !== catB) return catA - catB;
+      return (a.id || '').localeCompare(b.id || '');
+    });
+  }
+  function applySort(items) {
+    return sortBy === 'priority' ? sortByPriority(items) : sortByTime(items);
+  }
 
   // 圆环进度
   const radius = 10;
@@ -198,7 +234,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     ? '重点事项 · 本周'
     : '重点事项 · 本月';
 
-  // === Week/Month 视图：按日期分组，每组内按时间排序 ===
+  // === Week/Month 视图：按日期分组，每组内按 sortBy 控制排序 ===
   function renderGroupedView() {
     const groups = {};
     list.forEach(s => {
@@ -221,11 +257,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         {dates.map(d => {
           const items = groups[d];
           const dDone = items.filter(s => s.is_done).length;
-          const sorted = [...items].sort((a, b) => {
-            const ta = a.start_time || '99:99';
-            const tb = b.start_time || '99:99';
-            return ta.localeCompare(tb);
-          });
+          const sorted = applySort(items);
           return (
             <div key={d}>
               <div className="flex items-center gap-2 mb-1.5 px-1">
@@ -243,7 +275,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     );
   }
 
-  // === Today 视图：所有事项按时间顺序展示，用颜色区分分组 ===
+  // === Today 视图：所有事项按 sortBy 控制排序，默认按重要性(重要紧急→重要不紧急→常规) ===
   function renderTodayView() {
     const todayList = list.filter(s => s.date === date);
     if (todayList.length === 0) {
@@ -254,12 +286,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         </div>
       );
     }
-    // 按 start_time 排序，无时间的放后面
-    const sorted = [...todayList].sort((a, b) => {
-      const ta = a.start_time || '99:99';
-      const tb = b.start_time || '99:99';
-      return ta.localeCompare(tb);
-    });
+    const sorted = applySort(todayList);
     return (
       <div className="space-y-1.5">
         {sorted.map(renderItem)}
@@ -275,6 +302,24 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           <h3 className="section-title">{titleText}</h3>
         </div>
         <div className="flex items-center gap-2">
+          {/* 排序切换按钮：重要性 / 时间 */}
+          <div className="tab-group mr-1" title={sortBy === 'priority' ? '按重要性排序(默认)' : '按时间顺序排序'}>
+            <button
+              className={sortBy === 'priority' ? 'active' : ''}
+              onClick={() => setSortBy('priority')}
+              style={{ fontSize: '11px', padding: '3px 9px' }}
+            >
+              按重要性
+            </button>
+            <button
+              className={sortBy === 'time' ? 'active' : ''}
+              onClick={() => setSortBy('time')}
+              style={{ fontSize: '11px', padding: '3px 9px' }}
+            >
+              按时间
+            </button>
+          </div>
+
           <div className="relative w-6 h-6">
             <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
               <circle cx="12" cy="12" r={radius} fill="none" stroke="#e5e5ea" strokeWidth="3"></circle>

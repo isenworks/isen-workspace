@@ -165,23 +165,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function getLineColor(item) {
-    if (item.isHabit) {
-      if (item.done_today) return '#c7c7cc';
-      const theme = getItemTheme(item);
-      return theme.lineColor;
-    }
-    if (item.is_done) return '#c7c7cc';
+    // 竖线颜色始终保留原色（勾选后仅文字变灰，背景/竖线不变）
     const theme = getItemTheme(item);
     return theme.lineColor;
   }
 
   function getRowBg(item) {
-    if (item.isHabit) {
-      if (item.done_today) return 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)';
-      const theme = getItemTheme(item);
-      return `linear-gradient(90deg,${lighten(theme.color)} 0%,transparent 70%)`;
-    }
-    if (item.is_done) return 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)';
+    // 背景渐变始终保留原色（勾选后仅文字变灰+删除线，渐变不变）
     const theme = getItemTheme(item);
     return `linear-gradient(90deg,${lighten(theme.color)} 0%,transparent 70%)`;
   }
@@ -489,7 +479,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             const borderColor = getBorderColor(item);
             const key = `${h}-${item.isHabit ? 'h' : 's'}-${item.id}-${slot.slotIdx}`;
 
-            // === 续段渲染：只有背景色、竖线、最右侧小圆点占位；内容区空 ===
+            // === 续段渲染：背景色 + 竖线 + 半透明标题（归属标识）+ 小圆点 ===
             if (!isFirst) {
               return (
                 <div
@@ -510,10 +500,23 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   <div className="time-label" style={{color: timeColor, visibility:'hidden'}}>{showLabel ? timeStr : ''}</div>
                   <div className="timeline-line" style={{background: lineColor, height: `${lineHeight}px`}}></div>
                   <div className="timeline-content">
-                    {/* 续段不显示复选框和文字，保留右侧小圆点位置使视觉左右对称 */}
+                    {/* 续段显示半透明截断标题（归属标识），不显示复选框和完整时间 */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[14px] font-medium truncate"
+                        style={{
+                          color: done ? '#aeaeae' : '#1c1c1e',
+                          opacity: 0.5,
+                          textDecoration: done ? 'line-through' : 'none',
+                        }}
+                      >
+                        {item.emoji ? item.emoji + ' ' : ''}{item.title}
+                      </p>
+                    </div>
                     <span
-                      className={`w-2 h-2 flex-shrink-0 self-center ml-auto ${isSquareCheckbox ? 'rounded-[2px]' : 'rounded-full'}`}
-                      style={{background: color, visibility:'visible'}}
+                      className={`w-2 h-2 flex-shrink-0 self-center ${isSquareCheckbox ? 'rounded-[2px]' : 'rounded-full'}`}
+                      style={{background: color}}
+                      onClick={(e) => e.stopPropagation()}
                     ></span>
                   </div>
                 </div>

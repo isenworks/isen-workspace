@@ -79,13 +79,13 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
 
   function getBg(h) {
-    if (h.done_today) return 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)';
+    // 勾选后背景保留原色，仅文字变灰+删除线
     const gt = getHabitGrowthType(h);
     return `linear-gradient(90deg,${GROWTH_TYPES[gt]?.bg || '#e5f6ea'} 0%,transparent 70%)`;
   }
 
   function getBorderColor(h) {
-    if (h.done_today) return '#c7c7cc';
+    // 勾选后边框保留原色
     const gt = getHabitGrowthType(h);
     return GROWTH_TYPES[gt]?.borderColor || '#8ee4a7';
   }

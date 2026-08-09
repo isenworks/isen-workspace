@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { formatChineseDate, formatGreeting } from '../utils/date.js';
+import { API } from '../api/client.js';
+import { useToast } from '../context/ToastContext.jsx';
 
 const ICONS = {
   plan:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><path d="M9 12l2 2 4-4"></path></svg>),
@@ -30,13 +32,48 @@ const NAV_OTHER = [
   { key: 'settings', label: '设置' }
 ];
 
-export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onBeforeLogout, onSync, syncSignal = 0 }) {
-  const avatar = user?.avatar || (user?.username?.[0] || 'U').toUpperCase();
+export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onBeforeLogout, onSync, syncSignal = 0, onUserUpdate }) {
+  const toast = useToast();
+  const isImageAvatar = user?.avatar && /^https?:/.test(user.avatar);
+  const avatar = isImageAvatar
+    ? user.avatar
+    : (user?.avatar || user?.username?.[0] || 'U').toUpperCase();
   const now = new Date();
   const [syncState, setSyncState] = useState('synced'); // syncing | synced | error
   const [syncMsg, setSyncMsg] = useState('');
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const lastSignalRef = useRef(0);
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const r = await API.auth.uploadAvatar(file);
+      toast.success('头像更新成功');
+      onUserUpdate?.({ ...user, avatar: r.avatar });
+      setShowAvatarMenu(false);
+    } catch (err) {
+      toast.error(err.message || '上传失败');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleResetAvatar() {
+    setShowAvatarMenu(false);
+    const defaultAvatar = (user?.username?.[0] || 'U').toUpperCase();
+    API.auth.updateMe({ avatar: defaultAvatar })
+      .then(() => {
+        onUserUpdate?.({ ...user, avatar: defaultAvatar });
+        toast.success('已恢复默认头像');
+      })
+      .catch(err => toast.error(err.message || '操作失败'));
+  }
 
   // 格式化"最近同步"时间（相对时间）
   function formatLastSync(ts) {
@@ -96,7 +133,79 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
       {/* 用户 + 日期问候 + 搜索 */}
       <div className="sb-user-card">
         <div className="sb-user-row">
-          <div className="sb-avatar">{avatar}</div>
+          <div
+            className="sb-avatar"
+            style={{ cursor: 'pointer', position: 'relative', overflow: 'visible' }}
+            onClick={() => setShowAvatarMenu(v => !v)}
+            title="点击更换头像"
+          >
+            {isImageAvatar ? (
+              <img
+                src={avatar}
+                alt="头像"
+                style={{
+                  width: '100%', height: '100%', borderRadius: '50%',
+                  objectFit: 'cover', display: 'block'
+                }}
+                referrerPolicy="no-referrer"
+              />
+            ) : avatar}
+            {uploading && (
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: 'rgba(0,0,0,0.5)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: '12px', fontWeight: '600'
+              }}>上传中</div>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleAvatarChange}
+          />
+          {showAvatarMenu && (
+            <div style={{
+              position: 'absolute', left: '0', top: '52px',
+              background: '#fff', borderRadius: '12px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              padding: '6px', minWidth: '140px', zIndex: 200,
+              border: '1px solid rgba(0,0,0,0.06)'
+            }} onClick={e => e.stopPropagation()}>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  padding: '9px 12px', borderRadius: '8px', cursor: 'pointer',
+                  fontSize: '13px', color: '#1c1c1e', fontWeight: '500',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  transition: 'background .15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(120,120,128,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                上传新头像
+              </div>
+              {isImageAvatar && (
+                <div
+                  onClick={handleResetAvatar}
+                  style={{
+                    padding: '9px 12px', borderRadius: '8px', cursor: 'pointer',
+                    fontSize: '13px', color: '#ff3b30', fontWeight: '500',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    transition: 'background .15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,59,48,0.1)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 105.64-11.36L1 10"></path></svg>
+                  恢复默认
+                </div>
+              )}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="sb-date truncate">{formatChineseDate(now)}</div>
             <div className="sb-greet truncate">

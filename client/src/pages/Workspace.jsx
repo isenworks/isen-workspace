@@ -292,6 +292,10 @@ export default function Workspace({ user: propUser }) {
           lastSyncRef.current = Date.now();
           refresh();
         }}
+        onUserUpdate={(updatedUser) => {
+          setUser(updatedUser);
+          localStorage.setItem('pw_user', JSON.stringify(updatedUser));
+        }}
         onBeforeLogout={() => {
           setConfirm({
             title: '退出登录？',

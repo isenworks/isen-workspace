@@ -123,6 +123,48 @@ export const API = {
       return { user: { id: user.id, avatar } };
     },
 
+    // 上传头像到 Storage 并返回 URL
+    async uploadAvatar(file) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('未登录');
+
+      // 校验文件类型和大小
+      if (!file.type.startsWith('image/')) throw new Error('请选择图片文件');
+      if (file.size > 2 * 1024 * 1024) throw new Error('图片不能超过 2MB');
+
+      const ext = file.name.split('.').pop() || 'png';
+      const path = `${user.id}/avatar.${ext}`;
+
+      // 删除旧头像（如果有）
+      const { data: oldFiles } = await supabase.storage
+        .from('avatars')
+        .list(user.id, { prefix: 'avatar.' });
+
+      if (oldFiles && oldFiles.length > 0) {
+        await supabase.storage.from('avatars').remove(oldFiles.map(f => `${user.id}/${f.name}`));
+      }
+
+      // 上传新头像
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+
+      if (error) throw new Error(error.message);
+
+      // 获取公开 URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(path);
+
+      // 更新 profile 表中的 avatar 字段
+      await supabase
+        .from('ethan_profiles')
+        .update({ avatar: publicUrl })
+        .eq('id', user.id);
+
+      return { avatar: publicUrl };
+    },
+
     // 登出
     async logout() {
       await supabase.auth.signOut();

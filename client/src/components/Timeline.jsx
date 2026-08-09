@@ -327,6 +327,23 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007aff]">本周</span></>
     : <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007aff]">本月</span></>;
 
+  // 计算事项在 [hHour:00, hHour+1:00) 半开区间内占用的分钟数（用于分段行高）
+  function minutesInHour(item, hHour) {
+    if (!item.start_time) return null;
+    const [sh, sm] = item.start_time.split(':').map(Number);
+    const totalDur = getEffectiveDur(item);
+    if (totalDur == null) return null; // 没确定时长：按 0 分钟处理
+    const startMin = sh * 60 + sm;
+    const endMin = startMin + totalDur; // 注意这里不做跨天 wrap，允许 >1440，便于比较
+
+    const hourBegin = hHour * 60;
+    const hourEnd = (hHour + 1) * 60;
+    const overlapBegin = Math.max(startMin, hourBegin);
+    const overlapEnd = Math.min(endMin, hourEnd);
+    if (overlapEnd <= overlapBegin) return null;
+    return overlapEnd - overlapBegin;
+  }
+
   // === Today 视图：按小时时间轴 ===
   function renderTodayView() {
     const todaySchedules = schedules.filter(s => s.date === date).map(s => ({ ...s, isHabit: false, isTask: false }));
@@ -346,30 +363,96 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
     const HOURS = [];
     for (let h = 6; h <= 23; h++) HOURS.push(h);
+    // byHour[h] = [{item, slotKind: 'first'|'continue', minsInHour}]
     const byHour = {};
+    const FINAL_SLICE_THRESHOLD = 15; // 末段占用 < 15 分钟时合并到前一段（避免 19:02 单独占一格）
     allItems.forEach(item => {
       if (!item.start_time) return;
-      const h = Number(item.start_time.split(':')[0]);
-      if (h >= 6 && h <= 23) {
-        (byHour[h] = byHour[h] || []).push(item);
+      const [sh, sm] = item.start_time.split(':').map(Number);
+      if (Number.isNaN(sh) || Number.isNaN(sm)) return;
+      const totalDur = getEffectiveDur(item);
+      if (totalDur == null) {
+        // 无法确定时长：只按 start_time 挂一段，不跨段续行
+        if (sh >= 6 && sh <= 23) {
+          (byHour[sh] = byHour[sh] || []).push({
+            item, slotKind: 'first', minsInHour: null, slotIdx: 0
+          });
+        }
+        return;
       }
-    });
-    // 同小时内按分钟排序
-    Object.keys(byHour).forEach(h => {
-      byHour[h].sort((a, b) => {
-        const ma = Number((a.start_time || '00:00').split(':')[1]);
-        const mb = Number((b.start_time || '00:00').split(':')[1]);
-        return ma - mb;
+      const startMin = sh * 60 + sm;
+      const endMin = startMin + totalDur;
+      // 先求所有有交集的小时段（6..23）
+      const firstH = Math.max(6, Math.floor(startMin / 60));
+      const lastH = Math.min(23, Math.floor((endMin - 0.001) / 60));
+      const slots = [];
+      for (let hh = firstH; hh <= lastH; hh++) {
+        const mins = minutesInHour(item, hh);
+        if (mins == null || mins <= 0) continue;
+        slots.push({ h: hh, mins });
+      }
+      // 若最后一段 < 阈值，将 mins 合并到前一段，删除最后一段（符合"16/17/18 三段"预期）
+      if (slots.length >= 2) {
+        const last = slots[slots.length - 1];
+        if (last.mins < FINAL_SLICE_THRESHOLD) {
+          slots[slots.length - 2].mins += last.mins;
+          slots.pop();
+        }
+      }
+      slots.forEach((slot, i) => {
+        (byHour[slot.h] = byHour[slot.h] || []).push({
+          item,
+          slotKind: i === 0 ? 'first' : 'continue',
+          minsInHour: slot.mins,
+          slotIdx: i,
+          slotTotal: slots.length
+        });
       });
     });
+    // 同小时内排序：先按首段/续段的 start_time 升序（续段跟随它的 item start 位置，保持稳定）
+    Object.keys(byHour).forEach(h => {
+      byHour[h].sort((a, b) => {
+        const ma = Number((a.item.start_time || '00:00').split(':')[1]);
+        const mb = Number((b.item.start_time || '00:00').split(':')[1]);
+        if (ma !== mb) return ma - mb;
+        // 同 start_min，先排首段，再排续段（首段更重要）
+        const ka = a.slotKind === 'first' ? 0 : 1;
+        const kb = b.slotKind === 'first' ? 0 : 1;
+        if (ka !== kb) return ka - kb;
+        return String(a.item.id ?? '').localeCompare(String(b.item.id ?? ''));
+      });
+    });
+
+    // 基于「该段占用分钟数」计算该行的 lineHeight：线性 1h=56px，首段/续段各自按比例
+    function slotLineHeight(slot) {
+      const item = slot.item;
+      const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
+      if (isSleep) return 32;
+      const mins = slot.minsInHour;
+      if (mins == null) return getLineHeight(item); // 退化到旧逻辑
+      const px = mins * (56 / 60);
+      return Math.max(20, Math.min(Math.round(px), 180));
+    }
+    function slotRowMinHeight(slot) {
+      const item = slot.item;
+      const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
+      if (isSleep) return undefined;
+      const mins = slot.minsInHour;
+      if (mins == null) return getRowMinHeight(item);
+      if (mins >= 50) return 64;
+      if (mins >= 30) return 48;
+      return undefined;
+    }
+    // 续段用的"与首段一致的浅色背景"，但去掉已完成的灰底替换（保持色调连续），这里复用 getRowBg 即可（它已考虑 is_done）
+    // 续段：隐藏复选框/文字 → timeline-content 区域留空占位（只显示小圆点保证右对齐）
 
     return (
       <>
         {HOURS.map(h => {
-          const items = byHour[h] || [];
+          const slots = byHour[h] || [];
           const timeStr = `${String(h).padStart(2, '0')}:00`;
 
-          if (items.length === 0) {
+          if (slots.length === 0) {
             return (
               <div key={h} className="timeline-row">
                 <div className="time-label">{timeStr}</div>
@@ -379,23 +462,68 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             );
           }
 
-          return items.map((item, idx) => {
+          // 小时标签显示规则：该小时第一段的首段显示；或者该小时存在任意 slotIdx=0 的首段显示
+          const hasFirstInHour = slots.some(s => s.slotKind === 'first');
+
+          return slots.map((slot, idx) => {
+            const item = slot.item;
+            const isFirst = slot.slotKind === 'first';
             const color = getColor(item);
             const lineColor = getLineColor(item);
-            const lineHeight = getLineHeight(item);
-            const rowMinHeight = getRowMinHeight(item);
+            const lineHeight = slotLineHeight(slot);
+            const rowMinHeight = slotRowMinHeight(slot);
             const isSquareCheckbox = useSquareCheckbox(item);
             const rowBg = getRowBg(item);
-            const showLabel = idx === 0;
+            // 时间标签：若该小时有首段，则第一个首段（idx最小且first）显示；否则第一个续段显示或不显示
+            let showLabel = false;
+            if (hasFirstInHour && isFirst) {
+              const firstFirstIdx = slots.findIndex(s => s.slotKind === 'first');
+              showLabel = firstFirstIdx === idx;
+            } else if (!hasFirstInHour) {
+              showLabel = idx === 0;
+            }
             const done = item.isHabit ? !!item.done_today : !!item.is_done;
             const isCat4 = !item.isHabit && getCat(item) === 4;
             const timeColor = getTimeColor(item);
             const doneColor = getDoneColor(item);
             const borderColor = getBorderColor(item);
+            const key = `${h}-${item.isHabit ? 'h' : 's'}-${item.id}-${slot.slotIdx}`;
 
+            // === 续段渲染：只有背景色、竖线、最右侧小圆点占位；内容区空 ===
+            if (!isFirst) {
+              return (
+                <div
+                  key={key}
+                  className={`timeline-row rounded-xl ${isSquareCheckbox ? 'task-row' : 'habit-row'}`}
+                  style={{background: rowBg, ...(rowMinHeight ? {minHeight: `${rowMinHeight}px`} : {})}}
+                  onClick={(e) => {
+                    if (item.isHabit || isCat4) return;
+                    onEdit?.(item);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (item.isHabit || isCat4) window.__showContextMenu?.(e.clientX, e.clientY, 'habit', item.id);
+                    else window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
+                  }}
+                >
+                  <div className="time-label" style={{color: timeColor, visibility:'hidden'}}>{showLabel ? timeStr : ''}</div>
+                  <div className="timeline-line" style={{background: lineColor, height: `${lineHeight}px`}}></div>
+                  <div className="timeline-content">
+                    {/* 续段不显示复选框和文字，保留右侧小圆点位置使视觉左右对称 */}
+                    <span
+                      className={`w-2 h-2 flex-shrink-0 self-center ml-auto ${isSquareCheckbox ? 'rounded-[2px]' : 'rounded-full'}`}
+                      style={{background: color, visibility:'visible'}}
+                    ></span>
+                  </div>
+                </div>
+              );
+            }
+
+            // === 首段渲染：完整 UI ===
             return (
               <div
-                key={`${h}-${item.isHabit ? 'h' : 's'}-${item.id}`}
+                key={key}
                 className={`timeline-row rounded-xl ${isSquareCheckbox ? 'task-row' : 'habit-row'}`}
                 style={{background: rowBg, ...(rowMinHeight ? {minHeight: `${rowMinHeight}px`} : {})}}
                 onClick={(e) => {

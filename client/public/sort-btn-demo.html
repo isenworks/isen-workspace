@@ -152,7 +152,7 @@
           <div class="plan-badge">推荐</div>
         </div>
         <div class="plan-desc">
-          左图 = 红 / 橙 / 灰 三段竖条,直接呼应任务卡片颜色,自解释程度极高。<br>
+          左图 = 红 / 琥珀 / 灰 <strong>三色横线</strong>(从上到下),直接呼应任务卡片颜色,自解释程度极高。<br>
           右图 = 有序列表(1·2·3 + 横线),通用 iOS 惯例表示时间线性顺序。
         </div>
 
@@ -164,11 +164,11 @@
           <div class="kt-header-right">
             <!-- 排序按钮 -->
             <button class="icon-btn a-sort-btn active" data-planA role="switch" aria-checked="true" title="按重要性排序">
-              <!-- 按重要性：三根竖条 上红 中橙 下灰 上粗下细 -->
+              <!-- 按重要性：三色横线 红上 琥珀中 灰下 -->
               <svg viewBox="0 0 16 16" fill="none" class="svg-pri">
-                <rect x="3.5" y="2"  width="2.5" height="4" rx="1.1" fill="#ff3b30"/>
-                <rect x="6.8" y="4.5"  width="2.5" height="5" rx="1.1" fill="#ff9500"/>
-                <rect x="10.1" y="7.5" width="2.5" height="6.5" rx="1.1" fill="#c7c7cc"/>
+                <rect x="2"  y="3"    width="12" height="2.4" rx="1.2" fill="#ff3b30"/>
+                <rect x="2"  y="6.8"  width="12" height="2.4" rx="1.2" fill="#ff9500"/>
+                <rect x="2"  y="10.6" width="12" height="2.4" rx="1.2" fill="#c7c7cc"/>
               </svg>
               <!-- 按时间：有序列表 1/2/3 + 三条横线 -->
               <svg viewBox="0 0 16 16" fill="none" class="svg-time" style="display:none">
@@ -215,7 +215,7 @@
 
         <div class="foot-note">
           按钮尺寸 <code>28×28</code>,激活态 <code>rgba(0,122,255,0.1) 蓝底 + 蓝图标</code>,未激活为灰色。<br>
-          视觉要点：三色条的<strong>粗度/长度 递减</strong>(红最粗最短、灰最细最长),强化「上面更重要」的暗示。
+          视觉要点：三色横线<strong>从上到下 红 → 琥珀 → 灰</strong>,与任务卡片背景色一一对应,扫一眼即知当前按重要性排序。
         </div>
       </div>
 

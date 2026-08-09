@@ -23,7 +23,7 @@ const VIEW_RANGES = {
 };
 
 export default function Workspace({ user: propUser }) {
-  const { user: authUser, logout: authLogout } = useAuth();
+  const { user: authUser, logout: authLogout, updateUser } = useAuth();
   const toast = useToast();
   const user = propUser || authUser;
   const logout = authLogout || (() => {});
@@ -293,8 +293,7 @@ export default function Workspace({ user: propUser }) {
           refresh();
         }}
         onUserUpdate={(updatedUser) => {
-          setUser(updatedUser);
-          localStorage.setItem('pw_user', JSON.stringify(updatedUser));
+          updateUser({ avatar: updatedUser.avatar });
         }}
         onBeforeLogout={() => {
           setConfirm({

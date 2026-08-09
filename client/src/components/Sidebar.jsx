@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { formatChineseDate, formatGreeting } from '../utils/date.js';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
+import AvatarCropModal from './AvatarCropModal.jsx';
 
 const ICONS = {
   plan:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><path d="M9 12l2 2 4-4"></path></svg>),
@@ -46,17 +47,27 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [cropFile, setCropFile] = useState(null); // 选中待裁剪的原文件
 
-  async function handleAvatarChange(e) {
+  function handleAvatarChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    if (!file.type.startsWith('image/')) { toast.error('请选择图片文件'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error('图片不能超过 8MB'); return; }
+    setCropFile(file);
+    setShowAvatarMenu(false);
+  }
+
+  async function handleCropConfirm(blob) {
+    setCropFile(null);
     setUploading(true);
     try {
-      const r = await API.auth.uploadAvatar(file);
+      // 包装裁剪好的 Blob 为 File（带文件名），便于上传 API 使用
+      const croppedFile = new File([blob], 'avatar.png', { type: 'image/png' });
+      const r = await API.auth.uploadAvatar(croppedFile);
       toast.success('头像更新成功');
       onUserUpdate?.({ ...user, avatar: r.avatar });
-      setShowAvatarMenu(false);
     } catch (err) {
       toast.error(err.message || '上传失败');
     } finally {
@@ -326,5 +337,12 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
         </div>
       </div>
     </aside>
+
+    <AvatarCropModal
+      open={!!cropFile}
+      file={cropFile}
+      onClose={() => setCropFile(null)}
+      onConfirm={handleCropConfirm}
+    />
   );
 }

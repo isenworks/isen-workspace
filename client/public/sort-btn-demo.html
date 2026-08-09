@@ -133,9 +133,17 @@
   .c-pri-bar span { width: 3px; border-radius: 2px; display:block; }
   .c-time-bar { width: 3px; height: 14px; background: var(--blue); border-radius: 2px; display:inline-block; }
 
-  /* 方案 A 激活态：浅灰底（替代默认浅蓝） */
-  .a-sort-btn.active { background: rgba(120,120,128,0.12); color: var(--ink-2); }
-  .a-sort-btn.active:hover { background: rgba(120,120,128,0.18); }
+  /* 方案 A 激活态：浅灰底（与 + 按钮一致的灰色 + 尺寸 + 圆角） */
+  .a-sort-btn {
+    width: 24px; height: 24px;
+    border-radius: 9px;
+    background: rgba(120,120,128,0.12);
+    color: var(--ink);
+  }
+  .a-sort-btn:hover { background: rgba(120,120,128,0.20); }
+  .a-sort-btn.active { background: rgba(120,120,128,0.12); color: var(--ink); }
+  .a-sort-btn.active:hover { background: rgba(120,120,128,0.20); }
+  .a-sort-btn svg { width: 12px; height: 12px; }
 </style>
 </head>
 <body>
@@ -166,23 +174,23 @@
             <h3 class="kt-title">重点事项</h3>
             <!-- 排序按钮：紧挨标题右侧 -->
             <button class="icon-btn a-sort-btn active" data-planA role="switch" aria-checked="true" title="按重要性排序">
-              <!-- 按重要性：三色横线 红上 琥珀中 灰下 -->
-              <svg viewBox="0 0 16 16" fill="none" class="svg-pri">
-                <rect x="2"  y="3"    width="12" height="2.4" rx="1.2" fill="#ff3b30"/>
-                <rect x="2"  y="6.8"  width="12" height="2.4" rx="1.2" fill="#ff9500"/>
-                <rect x="2"  y="10.6" width="12" height="2.4" rx="1.2" fill="#c7c7cc"/>
+              <!-- 按重要性：三色横线 红上 琥珀中 灰下 (viewBox 14x14 适配小尺寸) -->
+              <svg viewBox="0 0 14 14" fill="none" class="svg-pri">
+                <rect x="1.5" y="2"    width="11" height="2.2" rx="1.1" fill="#ff3b30"/>
+                <rect x="1.5" y="5.9"  width="11" height="2.2" rx="1.1" fill="#ff9500"/>
+                <rect x="1.5" y="9.8"  width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
               </svg>
               <!-- 按时间：有序列表 1/2/3 + 三条横线 -->
-              <svg viewBox="0 0 16 16" fill="none" class="svg-time" style="display:none">
-                <g stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none">
-                  <line x1="4.5" y1="3.8" x2="14" y2="3.8"/>
-                  <line x1="4.5" y1="8"   x2="14" y2="8"/>
-                  <line x1="4.5" y1="12.2" x2="14" y2="12.2"/>
+              <svg viewBox="0 0 14 14" fill="none" class="svg-time" style="display:none">
+                <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none">
+                  <line x1="4" y1="3.3" x2="12.5" y2="3.3"/>
+                  <line x1="4" y1="7"   x2="12.5" y2="7"/>
+                  <line x1="4" y1="10.7" x2="12.5" y2="10.7"/>
                 </g>
-                <g fill="currentColor" font-family="inherit" font-weight="700" font-size="4.2">
-                  <text x="0.6" y="5.2">1</text>
-                  <text x="0.3" y="9.4">2</text>
-                  <text x="0.3" y="13.6">3</text>
+                <g fill="currentColor" font-family="inherit" font-weight="700" font-size="3.8">
+                  <text x="0.4" y="4.6">1</text>
+                  <text x="0.2" y="8.3">2</text>
+                  <text x="0.2" y="12">3</text>
                 </g>
               </svg>
             </button>
@@ -217,7 +225,7 @@
         </div>
 
         <div class="foot-note">
-          按钮尺寸 <code>28×28</code>,位置紧挨「重点事项」标题右侧;激活态为 <code>rgba(120,120,128,0.12) 浅灰底</code>。<br>
+          按钮尺寸 <code>24×24</code>,圆角 <code>9px</code>,位置紧挨「重点事项」标题右侧;填充灰色 <code>rgba(120,120,128,0.12)</code> 与 + 按钮完全一致。<br>
           视觉要点：三色横线<strong>从上到下 红 → 琥珀 → 灰</strong>,与任务卡片背景色一一对应,扫一眼即知当前按重要性排序。
         </div>
       </div>

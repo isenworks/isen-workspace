@@ -300,26 +300,35 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         <div className="flex items-center gap-2">
           <span className="section-accent" style={{background:'#007aff'}}></span>
           <h3 className="section-title">{titleText}</h3>
+          {/* 排序切换按钮：重要性(三色横线) / 时间(有序列表)，样式与+按钮一致 */}
+          <button
+            onClick={() => setSortBy(sortBy === 'priority' ? 'time' : 'priority')}
+            className="btn-secondary text-xs px-2 py-1"
+            title={sortBy === 'priority' ? '按重要性排序（点击切换为按时间）' : '按时间排序（点击切换为按重要性）'}
+          >
+            {sortBy === 'priority' ? (
+              <svg className="w-3 h-3" viewBox="0 0 14 14" fill="none">
+                <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#ff3b30"/>
+                <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#ff9500"/>
+                <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
+              </svg>
+            ) : (
+              <svg className="w-3 h-3" viewBox="0 0 14 14" fill="none">
+                <g stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none">
+                  <line x1="4" y1="3.3" x2="12.5" y2="3.3"/>
+                  <line x1="4" y1="7" x2="12.5" y2="7"/>
+                  <line x1="4" y1="10.7" x2="12.5" y2="10.7"/>
+                </g>
+                <g fill="currentColor" fontWeight="700" fontSize="3.8">
+                  <text x="0.4" y="4.6">1</text>
+                  <text x="0.2" y="8.3">2</text>
+                  <text x="0.2" y="12">3</text>
+                </g>
+              </svg>
+            )}
+          </button>
         </div>
         <div className="flex items-center gap-2">
-          {/* 排序切换按钮：重要性 / 时间 */}
-          <div className="tab-group mr-1" title={sortBy === 'priority' ? '按重要性排序(默认)' : '按时间顺序排序'}>
-            <button
-              className={sortBy === 'priority' ? 'active' : ''}
-              onClick={() => setSortBy('priority')}
-              style={{ fontSize: '11px', padding: '3px 9px' }}
-            >
-              按重要性
-            </button>
-            <button
-              className={sortBy === 'time' ? 'active' : ''}
-              onClick={() => setSortBy('time')}
-              style={{ fontSize: '11px', padding: '3px 9px' }}
-            >
-              按时间
-            </button>
-          </div>
-
           <div className="relative w-6 h-6">
             <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
               <circle cx="12" cy="12" r={radius} fill="none" stroke="#e5e5ea" strokeWidth="3"></circle>

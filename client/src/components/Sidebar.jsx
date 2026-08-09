@@ -140,6 +140,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
   }
 
   return (
+    <>
     <aside className="sidebar-b">
       {/* 用户 + 日期问候 + 搜索 */}
       <div className="sb-user-card">
@@ -344,5 +345,6 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
       onClose={() => setCropFile(null)}
       onConfirm={handleCropConfirm}
     />
+    </>
   );
 }

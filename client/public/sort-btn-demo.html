@@ -132,6 +132,10 @@
   .c-pri-bar { display:flex; flex-direction: column; gap: 1px; }
   .c-pri-bar span { width: 3px; border-radius: 2px; display:block; }
   .c-time-bar { width: 3px; height: 14px; background: var(--blue); border-radius: 2px; display:inline-block; }
+
+  /* 方案 A 激活态：浅灰底（替代默认浅蓝） */
+  .a-sort-btn.active { background: rgba(120,120,128,0.12); color: var(--ink-2); }
+  .a-sort-btn.active:hover { background: rgba(120,120,128,0.18); }
 </style>
 </head>
 <body>
@@ -160,9 +164,7 @@
           <div class="kt-header-left">
             <span class="kt-accent"></span>
             <h3 class="kt-title">重点事项</h3>
-          </div>
-          <div class="kt-header-right">
-            <!-- 排序按钮 -->
+            <!-- 排序按钮：紧挨标题右侧 -->
             <button class="icon-btn a-sort-btn active" data-planA role="switch" aria-checked="true" title="按重要性排序">
               <!-- 按重要性：三色横线 红上 琥珀中 灰下 -->
               <svg viewBox="0 0 16 16" fill="none" class="svg-pri">
@@ -184,7 +186,8 @@
                 </g>
               </svg>
             </button>
-
+          </div>
+          <div class="kt-header-right">
             <!-- 进度环 -->
             <span class="count-pill">
               <svg class="ring" viewBox="0 0 24 24">
@@ -214,7 +217,7 @@
         </div>
 
         <div class="foot-note">
-          按钮尺寸 <code>28×28</code>,激活态 <code>rgba(0,122,255,0.1) 蓝底 + 蓝图标</code>,未激活为灰色。<br>
+          按钮尺寸 <code>28×28</code>,位置紧挨「重点事项」标题右侧;激活态为 <code>rgba(120,120,128,0.12) 浅灰底</code>。<br>
           视觉要点：三色横线<strong>从上到下 红 → 琥珀 → 灰</strong>,与任务卡片背景色一一对应,扫一眼即知当前按重要性排序。
         </div>
       </div>

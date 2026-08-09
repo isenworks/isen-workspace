@@ -12,6 +12,7 @@ import Modal from '../components/Modal.jsx';
 import ScheduleForm from '../components/forms/ScheduleForm.jsx';
 import TaskForm from '../components/forms/TaskForm.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
+import SummaryPanel from '../components/SummaryPanel.jsx';
 import { API } from '../api/client.js';
 import SettingsModal from '../components/SettingsModal.jsx';
 import { store } from '../utils/store.js';
@@ -432,6 +433,7 @@ export default function Workspace({ user: propUser }) {
         onClose={() => setModal(null)}
         title={
           !modal ? '新建'
+          : modal.type === 'summary' ? '每日总结'
           : modal.type === 'schedule' ? (modal.data ? '编辑事项' : '新建事项')
           : modal.type === 'habit' ? (modal.data ? '编辑习惯' : '新建习惯')
           : (modal.data ? '编辑待办' : '新建待办')
@@ -458,6 +460,14 @@ export default function Workspace({ user: propUser }) {
             initial={modal?.data}
             onSaved={() => { setModal(null); refresh(); }}
             onCancel={() => setModal(null)}
+          />
+        )}
+
+        {modal?.type === 'summary' && (
+          <SummaryPanel
+            userId={user?.id}
+            date={selectedDate}
+            onClose={() => setModal(null)}
           />
         )}
       </Modal>

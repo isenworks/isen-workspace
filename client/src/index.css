@@ -121,9 +121,9 @@ body {
   display: flex;
   align-items: center;
   position: relative;
-  min-height: 36px;
-  padding: 4px 0;
-  margin: 2px 0;
+  min-height: 40px;
+  padding: 5px 0;
+  margin: 3px 0;
 }
 .time-label {
   width: 50px; flex-shrink: 0;
@@ -145,7 +145,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 4px 0 4px 16px;
+  padding: 5px 0 5px 16px;
   min-width: 0;
 }
 .timeline-row:hover { background: rgba(0,0,0,0.015); border-radius: 12px; }

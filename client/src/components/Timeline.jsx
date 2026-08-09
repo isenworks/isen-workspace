@@ -220,9 +220,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     return Number.isFinite(d) && d > 0 ? d : null;
   }
 
-  // 行高逻辑：统一竖线高度 16px，与 36px 行高比例协调
+  // 行高逻辑：统一竖线高度 20px，与 40px 行高比例协调
   function getLineHeight(_item) {
-    return 16;
+    return 20;
   }
 
   // 整行 min-height：不单独拉高，完全由竖线高度 + 固定 padding 自然决定（线性对应时长）
@@ -399,8 +399,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     });
 
     function slotLineHeight(_slot) {
-      // 统一竖线高度 16px
-      return 16;
+      // 统一竖线高度 20px
+      return 20;
     }
   // 行 min-height：完全不设档位，让行高由竖线高度 + 固定 padding 自然决定（线性对应时长）
   // CSS 已提供 min-height: 48px 兜底，短时长(15/30min)不会被压缩得太扁
@@ -420,7 +420,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             return (
               <div key={h} className="timeline-row">
                 <div className="time-label">{timeStr}</div>
-                <div className="timeline-line" style={{background:'#e5e5ea', height:'16px'}}></div>
+                <div className="timeline-line" style={{background:'#e5e5ea', height:'20px'}}></div>
                 <div className="timeline-content"></div>
               </div>
             );
@@ -539,7 +539,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       {item.emoji ? item.emoji + ' ' : ''}{item.title}
                     </p>
                     <p
-                      className={`text-[12px] mt-0.5 ${done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}
+                      className={`text-[12px] mt-0 ${done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}
                       onClick={(e) => {
                         e.stopPropagation();
                       }}

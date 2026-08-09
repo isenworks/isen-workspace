@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>排序按钮设计 Demo · A / B / C 三方案对比</title>
+<style>
+  :root {
+    --ink: #1c1c1e;
+    --ink-2: #3c3c43;
+    --muted: #8e8e93;
+    --line: rgba(60,60,67,0.12);
+    --blue: #007aff;
+    --blue-bg: rgba(0,122,255,0.10);
+    --red: #ff3b30;
+    --orange: #ff9500;
+    --gray: #c7c7cc;
+    --page-bg: linear-gradient(180deg,#f5f5f7 0%, #e8e8ed 100%);
+    --card-bg: rgba(255,255,255,0.72);
+    --card-border: rgba(255,255,255,0.6);
+    --shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    --radius: 18px;
+    font-family: -apple-system, "SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html,body { margin:0; padding:0; background: var(--page-bg); min-height:100vh; color: var(--ink); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 24px 80px; }
+  .hero { margin-bottom: 36px; }
+  .hero h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .hero p  { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 20px;
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px 20px 22px;
+    display: flex; flex-direction: column;
+  }
+  .plan-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 2px; }
+  .plan-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .plan-badge {
+    font-size: 11px; font-weight: 600; color: var(--blue);
+    background: var(--blue-bg); padding: 2px 8px; border-radius: 999px;
+  }
+  .plan-desc { color: var(--muted); font-size: 12.5px; line-height: 1.55; min-height: 40px; margin: 4px 0 16px; }
+
+  /* ========= 仿真 KeyTasks header ========= */
+  .kt-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
+  .kt-header-left { display:flex; align-items:center; gap: 8px; }
+  .kt-accent { width: 5px; height: 18px; border-radius: 3px; background: var(--blue); }
+  .kt-title { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
+  .kt-header-right { display:flex; align-items:center; gap: 8px; }
+  .count-pill {
+    display:inline-flex; align-items:center; gap: 8px;
+    font-size: 12px; font-weight: 500; color: var(--ink);
+  }
+
+  /* 进度圆环 SVG 尺寸统一 20 占位感 */
+  .ring { width: 20px; height: 20px; display:inline-block; }
+
+  /* 通用 icon button 容器 */
+  .icon-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: none; cursor: pointer;
+    transition: all .18s ease;
+    color: var(--muted);
+  }
+  .icon-btn:hover   { background: rgba(120,120,128,0.08); }
+  .icon-btn.active  { background: var(--blue-bg); color: var(--blue); }
+  .icon-btn.active:hover { background: rgba(0,122,255,0.16); }
+  .icon-btn svg { width: 16px; height: 16px; display:block; }
+
+  .add-btn {
+    width: 24px; height: 24px;
+    background: rgba(120,120,128,0.12); color: var(--ink);
+    border: none; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .15s;
+  }
+  .add-btn:hover { background: rgba(120,120,128,0.20); }
+  .add-btn svg { width: 12px; height: 12px; }
+
+  /* ========== 仿真 Tasks 预览 ========== */
+  .tasks { display:flex; flex-direction: column; gap: 6px; }
+  .task {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 12px;
+    border: 1px solid transparent;
+    transition: background .2s, border-color .2s;
+  }
+  .task .dot { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
+  .task .t-main { flex:1; min-width: 0; }
+  .task .t-name { font-size: 13px; font-weight: 500; }
+  .task .t-time { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .task.p1 { background: linear-gradient(90deg,#ffe8e8 0%,transparent 70%); border-color: #ffd4d4; }
+  .task.p1 .dot { background: var(--red); }
+  .task.p2 { background: linear-gradient(90deg,#fff4d8 0%,transparent 70%); border-color: #ffe3bb; }
+  .task.p2 .dot { background: var(--orange); }
+  .task.p3 { background: linear-gradient(90deg,#f2f2f7 0%,transparent 70%); border-color: #e5e5ea; }
+  .task.p3 .dot { background: var(--gray); }
+
+  /* 底部说明 */
+  .foot-note {
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.65;
+  }
+  .foot-note code {
+    background: rgba(120,120,128,0.12);
+    padding: 1px 5px; border-radius: 5px; font-size: 11px;
+    color: var(--ink-2);
+  }
+
+  /* 方案 C 的竖条色块 */
+  .c-indicator { display:inline-flex; align-items: center; gap: 2px; margin-right: 2px; }
+  .c-pri-bar { display:flex; flex-direction: column; gap: 1px; }
+  .c-pri-bar span { width: 3px; border-radius: 2px; display:block; }
+  .c-time-bar { width: 3px; height: 14px; background: var(--blue); border-radius: 2px; display:inline-block; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>重点事项 · 排序切换控件 · 三方案并排 Demo</h1>
+      <p>点击按钮切换「按重要性 / 按时间」观察视觉差异与下方任务列表的联动</p>
+    </div>
+
+    <div class="grid">
+
+      <!-- ============================================================ -->
+      <!--                      方案 A · 三色信号条                    -->
+      <!-- ============================================================ -->
+      <div class="card" data-plan="A">
+        <div class="plan-head">
+          <div class="plan-title">方案 A · 三色信号条 ⭐</div>
+          <div class="plan-badge">推荐</div>
+        </div>
+        <div class="plan-desc">
+          左图 = 红 / 橙 / 灰 三段竖条,直接呼应任务卡片颜色,自解释程度极高。<br>
+          右图 = 有序列表(1·2·3 + 横线),通用 iOS 惯例表示时间线性顺序。
+        </div>
+
+        <div class="kt-header">
+          <div class="kt-header-left">
+            <span class="kt-accent"></span>
+            <h3 class="kt-title">重点事项</h3>
+          </div>
+          <div class="kt-header-right">
+            <!-- 排序按钮 -->
+            <button class="icon-btn a-sort-btn active" data-planA role="switch" aria-checked="true" title="按重要性排序">
+              <!-- 按重要性：三根竖条 上红 中橙 下灰 上粗下细 -->
+              <svg viewBox="0 0 16 16" fill="none" class="svg-pri">
+                <rect x="3.5" y="2"  width="2.5" height="4" rx="1.1" fill="#ff3b30"/>
+                <rect x="6.8" y="4.5"  width="2.5" height="5" rx="1.1" fill="#ff9500"/>
+                <rect x="10.1" y="7.5" width="2.5" height="6.5" rx="1.1" fill="#c7c7cc"/>
+              </svg>
+              <!-- 按时间：有序列表 1/2/3 + 三条横线 -->
+              <svg viewBox="0 0 16 16" fill="none" class="svg-time" style="display:none">
+                <g stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none">
+                  <line x1="4.5" y1="3.8" x2="14" y2="3.8"/>
+                  <line x1="4.5" y1="8"   x2="14" y2="8"/>
+                  <line x1="4.5" y1="12.2" x2="14" y2="12.2"/>
+                </g>
+                <g fill="currentColor" font-family="inherit" font-weight="700" font-size="4.2">
+                  <text x="0.6" y="5.2">1</text>
+                  <text x="0.3" y="9.4">2</text>
+                  <text x="0.3" y="13.6">3</text>
+                </g>
+              </svg>
+            </button>
+
+            <!-- 进度环 -->
+            <span class="count-pill">
+              <svg class="ring" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"/>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5"
+                        stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"/>
+              </svg>
+              0 / 6
+            </span>
+
+            <!-- 加号 -->
+            <button class="add-btn" title="添加">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M12 5v14M19 12H5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="tasks" data-tasksA>
+          <div class="task p1"><span class="dot"></span><div class="t-main"><div class="t-name">背熟高频面试问题*5</div><div class="t-time">今日内完成 · 高优</div></div></div>
+          <div class="task p2"><span class="dot"></span><div class="t-main"><div class="t-name">学习SQL：完成阶段1单表查询</div><div class="t-time">13:00 – 14:30</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">拖地</div><div class="t-time">12:30 – 13:00</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">看电影《奥德赛》</div><div class="t-time">14:10 – 19:02</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">给家树买生日礼物</div><div class="t-time">全天</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">完成个人工作台终版</div><div class="t-time">全天</div></div></div>
+        </div>
+
+        <div class="foot-note">
+          按钮尺寸 <code>28×28</code>,激活态 <code>rgba(0,122,255,0.1) 蓝底 + 蓝图标</code>,未激活为灰色。<br>
+          视觉要点：三色条的<strong>粗度/长度 递减</strong>(红最粗最短、灰最细最长),强化「上面更重要」的暗示。
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!--                    方案 B · 旗帜 + 时钟                      -->
+      <!-- ============================================================ -->
+      <div class="card" data-plan="B">
+        <div class="plan-head">
+          <div class="plan-title">方案 B · 旗帜 & 时钟</div>
+          <div class="plan-badge" style="background:rgba(120,120,128,0.12);color:var(--ink-2);">通用</div>
+        </div>
+        <div class="plan-desc">
+          旗帜 = 优先级标记(常见于 Linear / 邮箱类产品)。<br>
+          时钟 = 时间维度(常见日历应用)。图标语义最常见,学习成本最低。
+        </div>
+
+        <div class="kt-header">
+          <div class="kt-header-left">
+            <span class="kt-accent"></span>
+            <h3 class="kt-title">重点事项</h3>
+          </div>
+          <div class="kt-header-right">
+            <button class="icon-btn b-sort-btn active" data-planB title="按重要性排序">
+              <!-- 旗帜：红三角旗 + 三条线 -->
+              <svg viewBox="0 0 16 16" fill="none" class="svg-pri">
+                <path d="M3 2.5 L3 14.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M3.6 3.2 L13 5.2 L10.2 7.2 L13 9.2 L3.6 11.2 Z" fill="#ff3b30"/>
+              </svg>
+              <!-- 时钟：3点 指针位置经典 -->
+              <svg viewBox="0 0 16 16" fill="none" class="svg-time" style="display:none">
+                <circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                <path d="M8 3.5 L8 8 L11.3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+              </svg>
+            </button>
+
+            <span class="count-pill">
+              <svg class="ring" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"/>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5"
+                        stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"/>
+              </svg>
+              0 / 6
+            </span>
+
+            <button class="add-btn" title="添加">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M12 5v14M19 12H5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="tasks" data-tasksB>
+          <div class="task p1"><span class="dot"></span><div class="t-main"><div class="t-name">背熟高频面试问题*5</div><div class="t-time">今日内完成 · 高优</div></div></div>
+          <div class="task p2"><span class="dot"></span><div class="t-main"><div class="t-name">学习SQL：完成阶段1单表查询</div><div class="t-time">13:00 – 14:30</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">拖地</div><div class="t-time">12:30 – 13:00</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">看电影《奥德赛》</div><div class="t-time">14:10 – 19:02</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">给家树买生日礼物</div><div class="t-time">全天</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">完成个人工作台终版</div><div class="t-time">全天</div></div></div>
+        </div>
+
+        <div class="foot-note">
+          旗帜的<strong>三角形旗面用红色</strong>(与重要紧急任务同色),形成跨视觉元素的一致性。<br>
+          时钟用<strong>3 点指针</strong>(非 12 点),避免看起来像「闹钟」。
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!--                  方案 C · 双向箭头 + 状态色条                -->
+      <!-- ============================================================ -->
+      <div class="card" data-plan="C">
+        <div class="plan-head">
+          <div class="plan-title">方案 C · 箭头 + 状态色条</div>
+          <div class="plan-badge" style="background:rgba(120,120,128,0.12);color:var(--ink-2);">极简</div>
+        </div>
+        <div class="plan-desc">
+          图标本体始终为上下箭头 ↕ 不变,<strong>左侧 3px 指示条</strong>切换颜色/结构表示不同模式。<br>
+          控件最小(约 <code>28×24</code>),适合更小屏幕。
+        </div>
+
+        <div class="kt-header">
+          <div class="kt-header-left">
+            <span class="kt-accent"></span>
+            <h3 class="kt-title">重点事项</h3>
+          </div>
+          <div class="kt-header-right">
+            <button class="icon-btn c-sort-btn active" data-planC title="按重要性排序">
+              <span style="display:inline-flex; align-items:center; gap:3px;">
+                <!-- 状态指示条 -->
+                <span class="c-ind c-ind-pri">
+                  <span class="c-pri-bar">
+                    <span style="height:3px;background:#ff3b30;width:3px;"></span>
+                    <span style="height:4px;background:#ff9500;width:3px;"></span>
+                    <span style="height:5px;background:#c7c7cc;width:3px;"></span>
+                  </span>
+                </span>
+                <span class="c-ind c-ind-time" style="display:none;">
+                  <span class="c-time-bar"></span>
+                </span>
+                <!-- 上下箭头本体 -->
+                <svg viewBox="0 0 12 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:16px;">
+                  <polyline points="6 2 10 6 2 6"></polyline>
+                  <polyline points="6 14 10 10 2 10"></polyline>
+                </svg>
+              </span>
+            </button>
+
+            <span class="count-pill">
+              <svg class="ring" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"/>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5"
+                        stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"/>
+              </svg>
+              0 / 6
+            </span>
+
+            <button class="add-btn" title="添加">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M12 5v14M19 12H5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="tasks" data-tasksC>
+          <div class="task p1"><span class="dot"></span><div class="t-main"><div class="t-name">背熟高频面试问题*5</div><div class="t-time">今日内完成 · 高优</div></div></div>
+          <div class="task p2"><span class="dot"></span><div class="t-main"><div class="t-name">学习SQL：完成阶段1单表查询</div><div class="t-time">13:00 – 14:30</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">拖地</div><div class="t-time">12:30 – 13:00</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">看电影《奥德赛》</div><div class="t-time">14:10 – 19:02</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">给家树买生日礼物</div><div class="t-time">全天</div></div></div>
+          <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">完成个人工作台终版</div><div class="t-time">全天</div></div></div>
+        </div>
+
+        <div class="foot-note">
+          指示条含义:重要性模式 = <strong>红上 橙中 灰下</strong>三段式叠加,<br>
+          时间模式 = <strong>纯蓝色单段竖条</strong>(代表线性时间流)。
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 方案横向对比（时间模式）按钮说明 -->
+    <div style="margin-top:28px; padding:16px 18px; background:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.7); border-radius:14px; font-size:12.5px; color:var(--ink-2); line-height:1.7;">
+      💡 <strong style="color:var(--ink);">交互说明：</strong>
+      点击任一方块右上角的排序按钮,三种方案会同时在「按重要性」与「按时间」两个状态间切换,便于直观对比。
+      「按时间」模式下,下方任务列表也会切换为时间顺序(拖地 12:30 → SQL 13:00 → 看电影 14:10 …)。
+    </div>
+  </div>
+
+<script>
+  // ======= 数据模板 =======
+  const PRIORITY_ORDER = [
+    { name: '背熟高频面试问题*5', time: '今日内完成 · 高优', cls: 'p1' },
+    { name: '学习SQL：完成阶段1单表查询', time: '13:00 – 14:30', cls: 'p2' },
+    { name: '拖地', time: '12:30 – 13:00', cls: 'p3' },
+    { name: '看电影《奥德赛》', time: '14:10 – 19:02', cls: 'p3' },
+    { name: '给家树买生日礼物', time: '全天', cls: 'p3' },
+    { name: '完成个人工作台终版', time: '全天', cls: 'p3' },
+  ];
+  // 按 start_time 排序
+  const TIME_ORDER = [
+    { name: '拖地', time: '12:30 – 13:00', cls: 'p3' },
+    { name: '学习SQL：完成阶段1单表查询', time: '13:00 – 14:30', cls: 'p2' },
+    { name: '看电影《奥德赛》', time: '14:10 – 19:02', cls: 'p3' },
+    { name: '背熟高频面试问题*5', time: '今日内完成 · 高优', cls: 'p1' },
+    { name: '给家树买生日礼物', time: '全天', cls: 'p3' },
+    { name: '完成个人工作台终版', time: '全天', cls: 'p3' },
+  ];
+
+  function renderTasks(container, list) {
+    container.innerHTML = list.map(t => `
+      <div class="task ${t.cls}">
+        <span class="dot"></span>
+        <div class="t-main">
+          <div class="t-name">${t.name}</div>
+          <div class="t-time">${t.time}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 通用：切换 A/B 按钮的 svg 可见性 + 激活状态 + 列表排序
+  function setupToggle(btn, svgPriSel, svgTimeSel, taskContainer, planId) {
+    // svgPriSel / svgTimeSel 可传 '.svg-pri' / '.svg-time' 这种在 btn 内 querySelector
+    let isPriority = true;
+    const priIcon = btn.querySelector(svgPriSel);
+    const timeIcon = btn.querySelector(svgTimeSel);
+
+    btn.addEventListener('click', () => {
+      isPriority = !isPriority;
+      btn.classList.toggle('active', isPriority);
+      btn.setAttribute('aria-checked', String(isPriority));
+      btn.title = isPriority ? '按重要性排序' : '按时间顺序排序';
+
+      // 方案 A/B: 切换两个 svg 的 display
+      // 方案 C: 切换指示条 display（由外部自定义）
+      if (planId === 'C') {
+        const indPri = btn.querySelector('.c-ind-pri');
+        const indTime = btn.querySelector('.c-ind-time');
+        indPri.style.display = isPriority ? 'inline-flex' : 'none';
+        indTime.style.display = isPriority ? 'none' : 'inline-flex';
+      } else {
+        if (priIcon) priIcon.style.display = isPriority ? 'block' : 'none';
+        if (timeIcon) timeIcon.style.display = isPriority ? 'none' : 'block';
+      }
+
+      // 列表联动
+      renderTasks(taskContainer, isPriority ? PRIORITY_ORDER : TIME_ORDER);
+    });
+  }
+
+  setupToggle(
+    document.querySelector('[data-planA]'),
+    '.svg-pri', '.svg-time',
+    document.querySelector('[data-tasksA]'),
+    'A'
+  );
+  setupToggle(
+    document.querySelector('[data-planB]'),
+    '.svg-pri', '.svg-time',
+    document.querySelector('[data-tasksB]'),
+    'B'
+  );
+  setupToggle(
+    document.querySelector('[data-planC]'),
+    null, null, // 方案 C 不用 SVG 切换
+    document.querySelector('[data-tasksC]'),
+    'C'
+  );
+</script>
+</body>
+</html>

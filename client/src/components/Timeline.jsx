@@ -154,12 +154,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function getColor(item) {
-    if (item.isHabit) {
-      if (item.done_today) return '#8e8e93';
-      const theme = getItemTheme(item);
-      return theme.color;
-    }
-    if (item.is_done) return '#8e8e93';
+    // 小圆点始终保留原色（即使勾选完成也不变灰，与习惯版面对齐）
     const theme = getItemTheme(item);
     return theme.color;
   }

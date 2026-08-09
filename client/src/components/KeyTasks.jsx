@@ -131,11 +131,40 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   function getStyle(s) {
     if (s.is_done) {
+      // 行背景/边框保持灰色（表示已完成），但复选框填充和小圆点保留重要性原色
+      const cat = catOf(s);
+      if (cat === 1) {
+        return {
+          bg: 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)',
+          borderColor: '#c7c7cc',
+          dotColor: '#ff3b30',
+          doneColor: '#ff6b64'
+        };
+      }
+      if (cat === 2) {
+        return {
+          bg: 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)',
+          borderColor: '#c7c7cc',
+          dotColor: '#ff9500',
+          doneColor: '#ffa635'
+        };
+      }
+      if (cat === 4) {
+        const gt = inferGrowthType(s);
+        const def = GROWTH_TYPES[gt] || GROWTH_TYPES.energy;
+        return {
+          bg: 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)',
+          borderColor: '#c7c7cc',
+          dotColor: def.color || '#34c759',
+          doneColor: def.borderColor || '#5dd57a'
+        };
+      }
+      // 常规(p3)保持灰
       return {
         bg: 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)',
         borderColor: '#c7c7cc',
         dotColor: '#8e8e93',
-        doneColor: '#8e8e93'
+        doneColor: '#a6a6ad'
       };
     }
     const cat = catOf(s);

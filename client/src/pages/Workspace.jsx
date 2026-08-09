@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import { today as getToday, toISODate, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from '../utils/date.js';
+import { today as getToday, toISODate, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDaysISO, calcDurationMin } from '../utils/date.js';
 import Sidebar from '../components/Sidebar.jsx';
 import WeekCalendar from '../components/WeekCalendar.jsx';
 import StatsBar from '../components/StatsBar.jsx';
@@ -80,6 +80,64 @@ export default function Workspace({ user: propUser }) {
     }, 120000);
     return () => clearInterval(timer);
   }, [doAutoSync]);
+
+  // ===== 问题3a-3：历史脏数据一次性修复 =====
+  // 遍历 schedules，按 start_time + end_time 重算 duration_min，与存储值不一致则写回
+  // 用 localStorage + 用户 ID 做 flag 防止重复跑
+  const repairRanRef = useRef(false);
+  useEffect(() => {
+    if (repairRanRef.current) return;
+    const uid = user?.id || 'anon';
+    const FLAG_KEY = `sched_duration_repaired:${uid}`;
+    try {
+      if (localStorage.getItem(FLAG_KEY) === '1') { repairRanRef.current = true; return; }
+    } catch (_) {}
+    repairRanRef.current = true;
+
+    (async () => {
+      try {
+        const todayStr = getToday();
+        // 扫描范围：过去 365 天 ~ 未来 365 天（足够覆盖绝大多数据）
+        const from = addDaysISO(todayStr, -365);
+        const to = addDaysISO(todayStr, 365);
+        const r = await API.schedules.list({ from, to });
+        const all = r?.schedules || [];
+        const toFix = [];
+        for (const s of all) {
+          if (!s.start_time || !s.end_time) continue;
+          const calc = calcDurationMin(s.start_time, s.end_time);
+          if (calc == null) continue;
+          const stored = Number(s.duration_min);
+          if (!Number.isFinite(stored) || Math.abs(stored - calc) >= 1) {
+            toFix.push({ id: s.id, title: s.title, stored, calc });
+          }
+        }
+        if (toFix.length === 0) {
+          try { localStorage.setItem(FLAG_KEY, '1'); } catch (_) {}
+          return;
+        }
+        // 串行写回，避免并发打爆接口
+        let ok = 0;
+        for (const f of toFix) {
+          try {
+            await API.schedules.update(f.id, { duration_min: f.calc });
+            ok++;
+          } catch (e) {
+            console.warn('[repair] update fail', f, e?.message || e);
+          }
+        }
+        try { localStorage.setItem(FLAG_KEY, '1'); } catch (_) {}
+        if (ok > 0) {
+          console.info(`[repair] 修复历史 duration_min 脏数据：共 ${toFix.length} 条，成功 ${ok} 条`);
+          // 触发一次全局 reload 让 UI 拿最新
+          store.broadcast({ type: 'reload' });
+          refresh();
+        }
+      } catch (e) {
+        console.warn('[repair] 修复脚本出错，不影响主流程：', e?.message || e);
+      }
+    })();
+  }, [user, refresh]);
 
   // 挂载时把显示菜单/习惯弹窗方法暴露给子组件调用
   useEffect(() => {

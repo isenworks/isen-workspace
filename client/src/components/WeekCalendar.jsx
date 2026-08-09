@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { toISODate, today as getToday, fromISODate } from '../utils/date.js';
+import { toISODate, today as getToday, fromISODate, cachedLoad } from '../utils/date.js';
 import { API } from '../api/client.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
@@ -16,13 +16,16 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
   const [dots, setDots] = useState({}); // key: "month-day" -> {hasPriority, hasNormal}
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
+  const inFlightRef = useRef(null);
+  const cacheRef = useRef(new Map());
 
-  async function loadDots() {
-    setLoading(true);
+  function loadDots() {
     const daysInMonth = new Date(year, month, 0).getDate();
     const from = toISODate(new Date(year, month - 1, 1));
     const to = toISODate(new Date(year, month - 1, daysInMonth));
-    try {
+    const cacheKey = `wc:${from}:${to}:${refreshSignal}`;
+    setLoading(true);
+    cachedLoad(cacheKey, async () => {
       const r = await API.schedules.list({ from, to });
       const map = {};
       for (const s of r.schedules) {
@@ -32,9 +35,11 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
         if (s.is_key) map[key].hasPriority = true;
         else map[key].hasNormal = true;
       }
+      return map;
+    }, inFlightRef, cacheRef, 3000).then(map => {
       setDots(map);
-    } catch (e) { console.error(e); }
-    setLoading(false);
+      setLoading(false);
+    }).catch(e => { console.error(e); setLoading(false); });
   }
 
   useEffect(() => { loadDots(); }, [year, month, refreshSignal]);

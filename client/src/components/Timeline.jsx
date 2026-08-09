@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, today as getToday, fromISODate } from '../utils/date.js';
+import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -62,20 +62,25 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const [tasks, setTasks] = useState([]);
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const inFlightRef = useRef(null);
+  const cacheRef = useRef(new Map());
 
-  async function load() {
+  function load() {
+    const cacheKey = `tl:${range.from}:${range.to}:${date}:${refreshSignal}`;
     setLoading(true);
-    try {
+    cachedLoad(cacheKey, async () => {
       const [s, t, h] = await Promise.all([
         API.schedules.list({ from: range.from, to: range.to }),
         API.tasks.list({ from: range.from, to: range.to }),
         API.habits.list({ date })
       ]);
-      setSchedules(s.schedules);
-      setTasks(t.tasks);
-      setHabits(h.habits);
-    } catch (e) { console.error(e); }
-    setLoading(false);
+      return { sched: s.schedules, tasks: t.tasks, habits: h.habits };
+    }, inFlightRef, cacheRef, 3000).then(r => {
+      setSchedules(r.sched);
+      setTasks(r.tasks);
+      setHabits(r.habits);
+      setLoading(false);
+    }).catch(e => { console.error(e); setLoading(false); });
   }
 
   useEffect(() => { load(); }, [range.from, range.to, date, refreshSignal]);
@@ -217,28 +222,36 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     return cat !== 4;
   }
 
-  // 行高逻辑（完全复刻 demo 分档）
+  // 取可靠时长：优先按 start/end 实时计算，duration_min 作为回退（兜底脏数据）
+  function getEffectiveDur(item) {
+    const calc = calcDurationMin(item.start_time, item.end_time);
+    if (calc != null) return calc;
+    const d = Number(item.duration_min);
+    return Number.isFinite(d) && d > 0 ? d : null;
+  }
+
+  // 行高逻辑：线性映射，1 小时 = 56px（替代分档截断）
   function getLineHeight(item) {
-    const dur = item.duration_min;
+    const dur = getEffectiveDur(item);
     if (!dur) return 16; // 空行/无时长
 
-    // 跨天习惯（如睡眠 7h）固定 32px
+    // 跨天习惯（如睡眠 7h）保持较低但合理的高度
     const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
     if (isSleep) return 32;
 
-    if (dur <= 15) return 20;
-    if (dur <= 60) return 32;
-    if (dur <= 120) return 64;
-    return 64; // 上限
+    // 线性映射：1h = 56px，设上下限避免极端
+    const px = dur * (56 / 60);
+    return Math.max(20, Math.min(Math.round(px), 180));
   }
 
-  // 整行 min-height：仅 2h+ 事项设 96px（对齐 demo）
+  // 整行 min-height：根据时长线性设置
   function getRowMinHeight(item) {
-    const dur = item.duration_min;
+    const dur = getEffectiveDur(item);
     if (!dur) return undefined;
     const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
     if (isSleep) return undefined;
-    if (dur > 60) return 96;
+    if (dur >= 120) return 112; // 2h+ 用较高行
+    if (dur >= 60) return 72;   // 1h+ 给足空间
     return undefined;
   }
 
@@ -247,26 +260,18 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       // 优先使用 start_time / end_time（新字段），回退到 target_time
       const st = item.start_time || item.target_time;
       const et = item.end_time;
-      const dur = item.duration_min;
+      // 兜底：按 start/end 实时计算，避免 duration_min 脏数据
+      const displayDur = getEffectiveDur(item);
 
-      // 跨天习惯（如睡眠 7h）特殊处理
+      // 跨天习惯（如睡眠 7h）特殊处理：用 start + dur 推 end
       const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
-      if (isSleep && st && dur) {
+      if (isSleep && st && displayDur) {
         const [h, m] = st.split(':').map(Number);
         const startMin = h * 60 + m;
-        const endMin = (startMin + dur) % (24 * 60);
+        const endMin = (startMin + displayDur) % (24 * 60);
         const endH = Math.floor(endMin / 60);
         const endM = endMin % 60;
-        return `${st} – ${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')} · ${formatDuration(dur)}`;
-      }
-
-      // 自动计算时长（无 duration_min 但有 start/end）
-      let displayDur = dur;
-      if (!displayDur && st && et) {
-        const [h1, m1] = st.split(':').map(Number);
-        const [h2, m2] = et.split(':').map(Number);
-        const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (diff > 0) displayDur = diff;
+        return `${st} – ${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')} · ${formatDuration(displayDur)}`;
       }
 
       let txt = '';
@@ -284,11 +289,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     if (!item.start_time) return '';
     let txt = item.start_time;
     if (item.end_time) txt += ' – ' + item.end_time;
-    if (item.duration_min) {
-      const hours = item.duration_min / 60;
+    const displayDur = getEffectiveDur(item);
+    if (displayDur) {
+      const hours = displayDur / 60;
       if (hours === 1) txt += ' · 1 小时';
       else if (Number.isInteger(hours)) txt += ` · ${hours} 小时`;
-      else txt += ` · ${formatDuration(item.duration_min)}`;
+      else txt += ` · ${formatDuration(displayDur)}`;
     }
     return txt;
   }
@@ -297,15 +303,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     if (item.isHabit) {
       const st = item.start_time || item.target_time;
       const et = item.end_time;
-      const dur = item.duration_min;
-      // 计算时长（如果没有 duration_min 但有 start/end，自动算）
-      let displayDur = dur;
-      if (!displayDur && st && et) {
-        const [h1, m1] = st.split(':').map(Number);
-        const [h2, m2] = et.split(':').map(Number);
-        const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (diff > 0) displayDur = diff;
-      }
+      const displayDur = getEffectiveDur(item);
       if (st && et) {
         return displayDur ? `${st} – ${et} · ${formatDuration(displayDur)}` : `${st} – ${et}`;
       }
@@ -315,11 +313,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       if (displayDur) return formatDuration(displayDur);
       return '';
     }
-    if (!item.duration_min) return '';
-    const hours = item.duration_min / 60;
+    const displayDur = getEffectiveDur(item);
+    if (!displayDur) return '';
+    const hours = displayDur / 60;
     if (hours === 1) return '1 小时';
     if (Number.isInteger(hours)) return `${hours} 小时`;
-    return formatDuration(item.duration_min);
+    return formatDuration(displayDur);
   }
 
   const titleText = view === 'today'

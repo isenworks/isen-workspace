@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { API } from '../../api/client.js';
-import { formatDuration } from '../../utils/date.js';
+import { formatDuration, calcDurationMin } from '../../utils/date.js';
 import FriendlyTimeInput from '../FriendlyTimeInput.jsx';
 import { store } from '../../utils/store.js';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -92,41 +92,59 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
-  // 双向自动计算（ref 记录上一次输入，避免 React 异步 state 误判）
-  const lastStartRef = useRef('');
-  const lastEndRef = useRef('');
-  const lastDurRef = useRef('');
+  // 双向自动计算（无条件重算，不依赖 duration_min 是否缺失）
+  // ref 记录"由程序写入"的字段值，避免程序写入再次触发 effect 造成死循环
+  const programmaticRef = useRef({ start: '', end: '', dur: '' });
 
   useEffect(() => {
     const start = form.start_time || '';
     const end = form.end_time || '';
-    const dur = form.duration_min;
+    const durVal = form.duration_min;
+    const dur = durVal === '' || durVal == null || Number.isNaN(Number(durVal)) ? null : Number(durVal);
 
-    // 1) start + end 已填，duration 缺失且用户未手动改 duration => 自动填 duration
-    if (start && end) {
-      const durEmpty = dur === '' || dur == null || Number.isNaN(Number(dur));
-      if (durEmpty && (start !== lastStartRef.current || end !== lastEndRef.current)) {
-        const [sh, sm] = start.split(':').map(Number);
-        const [eh, em] = end.split(':').map(Number);
-        let d = (eh * 60 + em) - (sh * 60 + sm);
-        if (d <= 0) d += 1440;
-        set('duration_min', d);
+    // 判断哪些字段是用户刚刚手动改的（程序写入的字段跳过）
+    const startChangedByUser = start !== programmaticRef.current.start;
+    const endChangedByUser = end !== programmaticRef.current.end;
+    const durChangedByUser = String(durVal ?? '') !== String(programmaticRef.current.dur ?? '');
+
+    let nextStart = start;
+    let nextEnd = end;
+    let nextDur = durVal;
+    let wroteSomething = false;
+
+    // 1) start 或 end 有改动（用户手动） => 无条件重算 duration_min
+    if (start && end && (startChangedByUser || endChangedByUser)) {
+      const d = calcDurationMin(start, end);
+      if (d != null && String(d) !== String(durVal)) {
+        nextDur = d;
+        wroteSomething = true;
       }
     }
-    // 2) start + duration 已填，end 缺失且用户未手动改 end => 自动填 end
-    if (start && dur !== '' && dur != null && !Number.isNaN(Number(dur)) && !end) {
-      if (start !== lastStartRef.current || String(dur) !== String(lastDurRef.current)) {
-        const [sh, sm] = start.split(':').map(Number);
-        const endMin = (sh * 60 + sm + Number(dur)) % 1440;
+
+    // 2) start 或 duration 有改动（用户手动），且 end 未被用户手动单独改动 => 无条件重算 end_time
+    if (start && dur != null && start && !endChangedByUser && (startChangedByUser || durChangedByUser)) {
+      const [sh, sm] = start.split(':').map(Number);
+      if (!Number.isNaN(sh) && !Number.isNaN(sm)) {
+        const endMin = (sh * 60 + sm + dur) % 1440;
         const eh = String(Math.floor(endMin / 60)).padStart(2, '0');
         const em = String(endMin % 60).padStart(2, '0');
-        set('end_time', `${eh}:${em}`);
+        const newEnd = `${eh}:${em}`;
+        if (newEnd !== end) {
+          nextEnd = newEnd;
+          wroteSomething = true;
+        }
       }
     }
 
-    lastStartRef.current = start;
-    lastEndRef.current = end;
-    lastDurRef.current = dur;
+    if (wroteSomething) {
+      // 记录"即将由程序写入"的值，下次 effect 触发时识别出来避免死循环
+      programmaticRef.current = { start: nextStart, end: nextEnd, dur: nextDur };
+      if (nextDur !== durVal) setForm(f => ({ ...f, duration_min: nextDur }));
+      if (nextEnd !== end) setForm(f => ({ ...f, end_time: nextEnd }));
+    } else {
+      // 纯用户输入，同步记录基线
+      programmaticRef.current = { start, end, dur: durVal };
+    }
   }, [form.start_time, form.end_time, form.duration_min]);
 
   function autoDuration() {

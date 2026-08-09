@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
+import { cachedLoad } from '../utils/date.js';
 import { store } from '../utils/store.js';
 
 export default function StatsBar({ date, range, view, refreshSignal, onViewChange, onNew, onSummary }) {
@@ -10,6 +11,8 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const anchorRef = useRef(null);    // "新建"按钮容器,用于定位
   const portalRef = useRef(null);    // Portal 中下拉菜单的根节点,用于点击外部判定
+  const inFlightRef = useRef(null);
+  const cacheRef = useRef(new Map());
 
   // 按按钮位置刷新 Portal 下拉的 fixed 坐标
   const recalcPos = useCallback(() => {
@@ -32,22 +35,19 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
   }, [menuOpen, recalcPos]);
 
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      try {
-        const [sched, tasks, habits] = await Promise.all([
-          API.schedules.list({ from: range.from, to: range.to }),
-          API.tasks.list({ from: range.from, to: range.to }),
-          API.habits.list({ date })
-        ]);
-        if (cancelled) return;
-        setRawData({ schedules: sched.schedules, tasks: tasks.tasks, habits: habits.habits });
-      } catch (e) { console.error(e); }
+    const cacheKey = `sb:${range.from}:${range.to}:${date}:${refreshSignal}`;
+    setLoading(true);
+    cachedLoad(cacheKey, async () => {
+      const [sched, tasks, habits] = await Promise.all([
+        API.schedules.list({ from: range.from, to: range.to }),
+        API.tasks.list({ from: range.from, to: range.to }),
+        API.habits.list({ date })
+      ]);
+      return { schedules: sched.schedules, tasks: tasks.tasks, habits: habits.habits };
+    }, inFlightRef, cacheRef, 3000).then(data => {
+      setRawData(data);
       setLoading(false);
-    }
-    load();
-    return () => { cancelled = true };
+    }).catch(e => { console.error(e); setLoading(false); });
   }, [date, range.from, range.to, view, refreshSignal]);
 
   // 订阅 patch：其他面板 toggle 时即时更新本地数据，无需重新 load

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration } from '../utils/date.js';
+import { formatDuration, calcDurationMin, cachedLoad } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -20,14 +20,19 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState(null);       // 正在拖拽的 habit id
   const [overId, setOverId] = useState(null);       // 拖拽悬停的目标 habit id
+  const inFlightRef = useRef(null);
+  const cacheRef = useRef(new Map());
 
-  async function load() {
+  function load() {
+    const cacheKey = `hp:${date}:${refreshSignal}`;
     setLoading(true);
-    try {
+    cachedLoad(cacheKey, async () => {
       const r = await API.habits.list({ date });
-      setHabits(r.habits);
-    } catch (e) { console.error(e); }
-    setLoading(false);
+      return r.habits;
+    }, inFlightRef, cacheRef, 3000).then(hs => {
+      setHabits(hs);
+      setLoading(false);
+    }).catch(e => { console.error(e); setLoading(false); });
   }
 
   useEffect(() => { load(); }, [date, refreshSignal]);
@@ -93,12 +98,14 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   function formatTime(h) {
     const st = h.start_time || h.target_time;
     const et = h.end_time;
-    const dur = h.duration_min;
-    if (!st && !et && !dur) return '全天';
+    // 兜底：优先按 start/end 实时计算，避免 duration_min 脏数据
+    const calcDur = calcDurationMin(st, et);
+    const displayDur = calcDur != null ? calcDur : h.duration_min;
+    if (!st && !et && !displayDur) return '全天';
     let txt = '';
     if (st && et) txt = `${st} – ${et}`;
     else if (st) txt = st;
-    if (dur) txt += (txt ? ' · ' : '') + formatDuration(dur);
+    if (displayDur) txt += (txt ? ' · ' : '') + formatDuration(displayDur);
     else {
       const calc = minutesBetween(st, et);
       if (calc) txt += (txt ? ' · ' : '') + formatDuration(calc);

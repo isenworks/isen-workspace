@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, fromISODate } from '../utils/date.js';
+import { formatDuration, fromISODate, calcDurationMin, cachedLoad } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { inferGrowthType, GROWTH_TYPES } from '../utils/uiConstants.js';
@@ -38,21 +38,25 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const [loading, setLoading] = useState(true);
   // sortBy: priority(按重要性) | time(按时间顺序)。默认按重要性
   const [sortBy, setSortBy] = useState('priority');
+  const inFlightRef = useRef(null);
+  const cacheRef = useRef(new Map());
 
-  async function load() {
+  function load() {
+    const cacheKey = `kt:${range.from}:${range.to}:${refreshSignal}`;
     setLoading(true);
-    try {
+    cachedLoad(cacheKey, async () => {
       const r = await API.schedules.list({ from: range.from, to: range.to });
-      // 重点事项面板：除 category=4（习惯独立面板）之外的全部日程，按日期+时间排序
       const key = r.schedules
         .filter(s => isDisplayInKeyTasks(s))
         .sort((a, b) => {
           if (a.date !== b.date) return a.date.localeCompare(b.date);
           return (a.start_time || '99').localeCompare(b.start_time || '99');
         });
+      return key;
+    }, inFlightRef, cacheRef, 3000).then(key => {
       setList(key);
-    } catch (e) { console.error(e); }
-    setLoading(false);
+      setLoading(false);
+    }).catch(e => { console.error(e); setLoading(false); });
   }
 
   useEffect(() => { load(); }, [range.from, range.to, refreshSignal]);
@@ -94,10 +98,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   function sortByPriority(items) {
     return [...items].sort((a, b) => {
       // 1) 重要性：1(重要紧急) < 2(重要不紧急) < 3(常规)
-      //    未完成优先，已完成排后面
-      const doneA = a.is_done ? 1 : 0;
-      const doneB = b.is_done ? 1 : 0;
-      if (doneA !== doneB) return doneA - doneB;
+      //    注意：is_done 放在最后，勾选后不跨分类挪动位置
       const catA = catOf(a);
       const catB = catOf(b);
       if (catA !== catB) return catA - catB;
@@ -105,7 +106,11 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const ta = a.start_time || '99:99';
       const tb = b.start_time || '99:99';
       if (ta !== tb) return ta.localeCompare(tb);
-      // 3) 稳定兜底：ID 排序（id 可能是数字或字符串，统一转字符串）
+      // 3) 同分类同时间：未完成在前、已完成在后（视觉感受"位置不动"）
+      const doneA = a.is_done ? 1 : 0;
+      const doneB = b.is_done ? 1 : 0;
+      if (doneA !== doneB) return doneA - doneB;
+      // 4) 稳定兜底：ID 排序
       return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
   }
@@ -117,6 +122,10 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const catA = catOf(a);
       const catB = catOf(b);
       if (catA !== catB) return catA - catB;
+      // 同时间同分类：未完成在前
+      const doneA = a.is_done ? 1 : 0;
+      const doneB = b.is_done ? 1 : 0;
+      if (doneA !== doneB) return doneA - doneB;
       return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
   }
@@ -208,7 +217,10 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     if (!s.start_time) return '';
     let txt = s.start_time;
     if (s.end_time) txt += ' – ' + s.end_time;
-    if (s.duration_min) txt += ' · ' + formatDuration(s.duration_min);
+    // 兜底：优先按 start/end 实时计算，避免 duration_min 脏数据
+    const calcDur = calcDurationMin(s.start_time, s.end_time);
+    const displayDur = calcDur != null ? calcDur : s.duration_min;
+    if (displayDur) txt += ' · ' + formatDuration(displayDur);
     return txt;
   }
 

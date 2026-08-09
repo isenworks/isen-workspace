@@ -124,3 +124,35 @@ export function formatDuration(min) {
   const m = min % 60;
   return m ? `${h} 小时 ${m} 分钟` : `${h} 小时`;
 }
+
+// 通过 start/end 时间字符串计算时长分钟（兜底，不依赖 duration_min 字段）
+export function calcDurationMin(start, end) {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  if ([sh, sm, eh, em].some(v => Number.isNaN(v))) return null;
+  let d = (eh * 60 + em) - (sh * 60 + sm);
+  if (d <= 0) d += 1440; // 跨天补偿
+  return d;
+}
+
+// 带缓存+去重的 loader 工厂：用于 React StrictMode 下避免 effect 重复触发查库
+// - inFlightRef: useRef(null)，用于记录当前飞行中的 Promise
+// - cacheRef:    useRef(new Map())，缓存结果，key=cacheKey
+// - cacheTTL:    缓存有效期(ms)，默认 3000ms
+export function cachedLoad(cacheKey, loader, inFlightRef, cacheRef, cacheTTL = 3000) {
+  const now = Date.now();
+  const cached = cacheRef.current.get(cacheKey);
+  if (cached && now - cached.ts < cacheTTL) return Promise.resolve(cached.value);
+  if (inFlightRef.current && inFlightRef.current.key === cacheKey) return inFlightRef.current.promise;
+  const p = Promise.resolve()
+    .then(() => loader())
+    .then(value => {
+      cacheRef.current.set(cacheKey, { ts: Date.now(), value });
+      inFlightRef.current = null;
+      return value;
+    })
+    .catch(err => { inFlightRef.current = null; throw err; });
+  inFlightRef.current = { key: cacheKey, promise: p };
+  return p;
+}

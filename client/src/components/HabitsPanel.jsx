@@ -175,7 +175,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     return (
       <div
         key={h.id}
-        className="habit-row px-3 py-2.5 flex items-center gap-3 group"
+        className="habit-row px-3 py-2 flex items-center gap-3 group"
         style={{
           background: getBg(h),
           opacity: isDragging ? 0.4 : 1,

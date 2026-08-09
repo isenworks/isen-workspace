@@ -222,16 +222,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   // 行高逻辑：线性映射，1 小时 = 56px（替代分档截断）
   function getLineHeight(item) {
-    const dur = getEffectiveDur(item);
-    if (!dur) return 16; // 空行/无时长
-
-    // 跨天习惯（如睡眠 7h）保持较低但合理的高度
-    const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
-    if (isSleep) return 32;
-
-    // 线性映射：1h = 56px，设上下限避免极端
-    const px = dur * (56 / 60);
-    return Math.max(20, Math.min(Math.round(px), 180));
+    // 统一行高：竖线固定 20px，不按时长变化
+    return 20;
   }
 
   // 整行 min-height：不单独拉高，完全由竖线高度 + 固定 padding 自然决定（线性对应时长）
@@ -408,14 +400,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     });
 
     // 基于「该段占用分钟数」计算该行的 lineHeight：线性 1h=56px，首段/续段各自按比例
-    function slotLineHeight(slot) {
-      const item = slot.item;
-      const isSleep = item.emoji === '😴' || (item.name && item.name.includes('睡眠'));
-      if (isSleep) return 32;
-      const mins = slot.minsInHour;
-      if (mins == null) return getLineHeight(item); // 退化到旧逻辑
-      const px = mins * (56 / 60);
-      return Math.max(20, Math.min(Math.round(px), 180));
+    function slotLineHeight(_slot) {
+      // 统一竖线高度 20px，不按段内分钟数变化
+      return 20;
     }
   // 行 min-height：完全不设档位，让行高由竖线高度 + 固定 padding 自然决定（线性对应时长）
   // CSS 已提供 min-height: 48px 兜底，短时长(15/30min)不会被压缩得太扁

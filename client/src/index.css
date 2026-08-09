@@ -119,11 +119,11 @@ body {
 /* ====== Timeline ====== */
 .timeline-row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   position: relative;
-  min-height: 44px;
-  padding: 6px 0;
-  margin: 4px 0;
+  min-height: 36px;
+  padding: 4px 0;
+  margin: 2px 0;
 }
 .time-label {
   width: 50px; flex-shrink: 0;
@@ -135,17 +135,17 @@ body {
 }
 .timeline-line {
   width: 3px; flex-shrink: 0;
+  align-self: center;
   background: #e5e5ea;
-  position: relative;
   border-radius: 3px;
-  margin: 8px 0;
+  margin: 0;
 }
 .timeline-content {
   flex: 1;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 0 6px 16px;
+  padding: 4px 0 4px 16px;
   min-width: 0;
 }
 .timeline-row:hover { background: rgba(0,0,0,0.015); border-radius: 12px; }

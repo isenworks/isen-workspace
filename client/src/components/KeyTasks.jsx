@@ -197,7 +197,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     return (
       <div
         key={s.id}
-        className={`task-row rounded-xl px-3 py-2 flex items-center gap-3 group ${isHabitSchedule ? 'habit-row' : ''}`}
+        className={`task-row rounded-xl px-3 py-1.5 flex items-center gap-3 group ${isHabitSchedule ? 'habit-row' : ''}`}
         style={{background: st.bg}}
         onClick={() => {
           if (isHabitSchedule) return;

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据看板 · Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 600px at -10% -20%, rgba(64,156,255,0.10), transparent 60%),
+      radial-gradient(900px 500px at 110% -10%, rgba(175,82,222,0.08), transparent 60%),
+      linear-gradient(180deg, #f7f8fb 0%, #eef1f7 100%);
+    color: #1d1d1f;
+    min-height: 100vh;
+    padding: 36px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  .glass {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+  }
+
+  .page-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 22px;
+  }
+  .page-head .title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 20px; font-weight: 700; color: #1c1c1e;
+  }
+  .page-head .title .icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: linear-gradient(135deg, #5ac8fa, #007aff);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white;
+  }
+
+  .range-tabs { display: flex; background: rgba(120,120,128,0.08); padding: 3px; border-radius: 10px; }
+  .range-tabs button {
+    padding: 6px 14px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; color: #8e8e93;
+    border-radius: 7px; cursor: pointer; transition: all .15s;
+  }
+  .range-tabs button.active {
+    background: white; color: #1c1c1e;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  /* ===== KPI Cards ===== */
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px; margin-bottom: 18px;
+  }
+  @media (max-width: 760px) {
+    .kpi-row { grid-template-columns: 1fr; }
+  }
+  .kpi { padding: 18px 20px; }
+  .kpi-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .kpi-title { font-size: 13px; font-weight: 600; color: #8e8e93; }
+  .kpi-badge {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .kpi-badge.blue { background: rgba(0,122,255,0.12); }
+  .kpi-badge.green { background: rgba(52,199,89,0.12); }
+  .kpi-badge.orange { background: rgba(255,149,0,0.12); }
+  .kpi-main { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .kpi-num { font-size: 30px; font-weight: 700; color: #1c1c1e; line-height: 1; }
+  .kpi-sub { font-size: 13px; color: #8e8e93; font-weight: 500; }
+  .kpi-num.blue { color: #007aff; }
+  .kpi-num.green { color: #34c759; }
+  .kpi-num.orange { color: #ff9500; }
+
+  .bar-track {
+    height: 7px; border-radius: 4px;
+    background: rgba(120,120,128,0.1);
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width .6s ease;
+  }
+  .bar-fill.blue { background: linear-gradient(90deg, #007aff, #5ac8fa); }
+  .bar-fill.green { background: linear-gradient(90deg, #34c759, #30d158); }
+  .bar-fill.orange { background: linear-gradient(90deg, #ff9500, #ffcc00); }
+
+  .kpi-delta {
+    margin-top: 8px; font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .kpi-delta.up { color: #34c759; }
+  .kpi-delta.down { color: #ff3b30; }
+
+  /* ===== Charts grid ===== */
+  .charts-grid {
+    display: grid; grid-template-columns: 1.3fr 1fr;
+    gap: 14px; margin-bottom: 18px;
+  }
+  @media (max-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+  .chart-card { padding: 20px 22px; }
+  .chart-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .chart-title {
+    font-size: 14px; font-weight: 600; color: #1c1c1e;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chart-title::before {
+    content: '';
+    width: 4px; height: 14px; border-radius: 2px;
+    background: linear-gradient(180deg, #007aff, #5ac8fa);
+  }
+  .chart-hint { font-size: 12px; color: #8e8e93; }
+
+  /* ===== Bar Chart ===== */
+  .bar-chart {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    height: 180px;
+    padding: 0 8px 26px;
+    position: relative;
+    border-bottom: 1px solid rgba(60,60,67,0.08);
+  }
+  .bar-col {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center;
+    position: relative; height: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .bar {
+    width: 32px; max-width: 70%;
+    background: linear-gradient(180deg, #5ac8fa, #007aff);
+    border-radius: 8px 8px 4px 4px;
+    position: relative;
+    transition: height .6s cubic-bezier(.2,.8,.2,1);
+    cursor: pointer;
+  }
+  .bar:hover {
+    background: linear-gradient(180deg, #30b6e6, #0055cc);
+  }
+  .bar::before {
+    content: attr(data-v);
+    position: absolute;
+    top: -20px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; font-weight: 600; color: #1c1c1e;
+    opacity: 0; transition: opacity .2s;
+  }
+  .bar:hover::before { opacity: 1; }
+  .bar.done { opacity: 1; }
+  .bar.today {
+    background: linear-gradient(180deg, #ffcc00, #ff9500);
+    box-shadow: 0 0 0 2px rgba(255,149,0,0.2);
+  }
+  .bar-col .lbl {
+    position: absolute; bottom: -22px;
+    font-size: 11px; font-weight: 600; color: #8e8e93;
+  }
+  .bar-col .num {
+    position: absolute; bottom: -42px;
+    font-size: 10px; font-weight: 500; color: #aeaeb2;
+  }
+
+  .chart-legend {
+    display: flex; align-items: center; gap: 16px;
+    padding-top: 30px;
+  }
+  .chart-legend .l {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #8e8e93; font-weight: 500;
+  }
+  .chart-legend .l i {
+    width: 10px; height: 10px; border-radius: 3px;
+  }
+
+  /* ===== Donut Chart (conic-gradient) ===== */
+  .donut-wrap {
+    display: grid; grid-template-columns: 130px 1fr;
+    gap: 24px; align-items: center;
+  }
+  .donut {
+    width: 130px; height: 130px; border-radius: 50%;
+    background: conic-gradient(
+      #5ac8fa 0 30%,
+      #ff9500 30% 55%,
+      #34c759 55% 75%,
+      #af52de 75% 90%,
+      #c7c7cc 90% 100%
+    );
+    position: relative;
+    margin: 0 auto;
+  }
+  .donut::after {
+    content: '';
+    position: absolute;
+    inset: 18px;
+    background: white;
+    border-radius: 50%;
+  }
+  .donut .donut-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .donut .d-num {
+    font-size: 20px; font-weight: 700; color: #1c1c1e;
+    line-height: 1;
+  }
+  .donut .d-lbl {
+    font-size: 10px; color: #8e8e93; margin-top: 3px;
+    font-weight: 500;
+  }
+
+  .donut-list { display: flex; flex-direction: column; gap: 10px; }
+  .donut-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .donut-item .left {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #1c1c1e; font-weight: 500;
+    min-width: 0;
+  }
+  .donut-item .sw {
+    width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  }
+  .donut-item .right {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .donut-item .pct {
+    font-size: 13px; font-weight: 700; color: #1c1c1e;
+  }
+  .donut-item .tbar {
+    width: 50px; height: 5px; border-radius: 3px;
+    background: rgba(120,120,128,0.1);
+    overflow: hidden;
+  }
+  .donut-item .tbar > i {
+    display: block; height: 100%; border-radius: 3px;
+  }
+
+  /* ===== Habits + Milestones ===== */
+  .bottom-grid {
+    display: grid; grid-template-columns: 1fr 1.1fr;
+    gap: 14px;
+  }
+  @media (max-width: 900px) {
+    .bottom-grid { grid-template-columns: 1fr; }
+  }
+
+  .habit-card, .mile-card { padding: 20px 22px; }
+
+  .habit-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(60,60,67,0.1);
+  }
+  .habit-item:last-child { border-bottom: none; }
+  .habit-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .habit-icon.g1 { background: rgba(52,199,89,0.12); }
+  .habit-icon.g2 { background: rgba(255,149,0,0.12); }
+  .habit-icon.g3 { background: rgba(0,122,255,0.12); }
+  .habit-icon.g4 { background: rgba(175,82,222,0.12); }
+
+  .habit-info { flex: 1; min-width: 0; }
+  .habit-name {
+    font-size: 14px; font-weight: 600; color: #1c1c1e;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .habit-name .streak {
+    font-size: 11px; font-weight: 700;
+    color: #ff9500;
+    background: rgba(255,149,0,0.12);
+    padding: 2px 6px; border-radius: 5px;
+  }
+  .habit-sub {
+    font-size: 12px; color: #8e8e93; margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .habit-sub .dots {
+    display: inline-flex; gap: 3px;
+  }
+  .habit-sub .dots i {
+    width: 7px; height: 7px; border-radius: 2px;
+  }
+  .habit-sub .dots i.on { background: #34c759; }
+  .habit-sub .dots i.off { background: #e5e5ea; }
+  .habit-progress {
+    width: 90px; height: 5px; border-radius: 3px;
+    background: rgba(120,120,128,0.1);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .habit-progress > i {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, #34c759, #30d158);
+    border-radius: 3px;
+  }
+  .habit-pct {
+    font-size: 12px; font-weight: 700; color: #1c1c1e;
+    flex-shrink: 0; width: 36px; text-align: right;
+  }
+
+  /* ===== Milestones ===== */
+  .mile-item {
+    display: flex; gap: 12px;
+    padding: 12px 0;
+    position: relative;
+  }
+  .mile-item:not(:last-child)::after {
+    content: '';
+    position: absolute; left: 11px; top: 30px; bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, rgba(0,122,255,0.3), rgba(60,60,67,0.08));
+  }
+  .mile-dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; z-index: 1;
+    font-size: 11px; font-weight: 700; color: white;
+  }
+  .mile-dot.done { background: linear-gradient(135deg, #34c759, #30d158); }
+  .mile-dot.doing { background: linear-gradient(135deg, #007aff, #5ac8fa); }
+  .mile-dot.plan { background: white; color: #8e8e93; border: 2px solid #c7c7cc; }
+  .mile-body { flex: 1; min-width: 0; }
+  .mile-title {
+    font-size: 14px; font-weight: 600; color: #1c1c1e;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .mile-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 5px;
+    font-weight: 600;
+  }
+  .mile-tag.g1 { background: rgba(52,199,89,0.12); color: #34c759; }
+  .mile-tag.g2 { background: rgba(0,122,255,0.12); color: #007aff; }
+  .mile-tag.g3 { background: rgba(120,120,128,0.12); color: #8e8e93; }
+  .mile-sub {
+    font-size: 12px; color: #8e8e93; margin-top: 4px;
+    line-height: 1.5;
+  }
+  .mile-bar {
+    margin-top: 6px; height: 5px; border-radius: 3px;
+    background: rgba(120,120,128,0.1);
+    overflow: hidden;
+  }
+  .mile-bar > i {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, #007aff, #5ac8fa);
+    border-radius: 3px;
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-head">
+    <div class="title">
+      <span class="icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      </span>
+      数据看板
+    </div>
+    <div class="range-tabs">
+      <button>今日</button>
+      <button class="active">本周</button>
+      <button>本月</button>
+      <button>全年</button>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="glass kpi">
+      <div class="kpi-head">
+        <div class="kpi-title">事项完成率</div>
+        <div class="kpi-badge blue">✓</div>
+      </div>
+      <div class="kpi-main">
+        <div class="kpi-num blue">78%</div>
+        <div class="kpi-sub">32 / 41 项</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill blue" style="width:78%"></div></div>
+      <div class="kpi-delta up">▲ 12% 较上周</div>
+    </div>
+
+    <div class="glass kpi">
+      <div class="kpi-head">
+        <div class="kpi-title">习惯达标</div>
+        <div class="kpi-badge green">🔥</div>
+      </div>
+      <div class="kpi-main">
+        <div class="kpi-num green">5 / 7</div>
+        <div class="kpi-sub">平均 71%</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill green" style="width:71%"></div></div>
+      <div class="kpi-delta up">▲ 连续 12 天坚持运动</div>
+    </div>
+
+    <div class="glass kpi">
+      <div class="kpi-head">
+        <div class="kpi-title">重点事项完成</div>
+        <div class="kpi-badge orange">★</div>
+      </div>
+      <div class="kpi-main">
+        <div class="kpi-num orange">3 / 4</div>
+        <div class="kpi-sub">完成率 75%</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill orange" style="width:75%"></div></div>
+      <div class="kpi-delta down">▼ 1 项重点事延期</div>
+    </div>
+  </div>
+
+  <!-- Charts: Bar + Donut -->
+  <div class="charts-grid">
+    <div class="glass chart-card">
+      <div class="chart-head">
+        <div class="chart-title">本周完成趋势</div>
+        <div class="chart-hint">单位：项 / 天</div>
+      </div>
+
+      <div class="bar-chart">
+        <div class="bar-col">
+          <div class="bar done" data-v="8" style="height:calc(8/12*100%)"></div>
+          <div class="lbl">一</div>
+          <div class="num">8.3</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar done" data-v="5" style="height:calc(5/12*100%)"></div>
+          <div class="lbl">二</div>
+          <div class="num">5</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar done" data-v="7" style="height:calc(7/12*100%)"></div>
+          <div class="lbl">三</div>
+          <div class="num">7</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar done" data-v="4" style="height:calc(4/12*100%)"></div>
+          <div class="lbl">四</div>
+          <div class="num">4</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar today" data-v="4" style="height:calc(4/12*100%)"></div>
+          <div class="lbl">五</div>
+          <div class="num">今日</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" data-v="3" style="height:calc(3/12*100%);opacity:0.4"></div>
+          <div class="lbl">六</div>
+          <div class="num">3 计划</div>
+        </div>
+        <div class="bar-col">
+          <div class="bar" data-v="4" style="height:calc(4/12*100%);opacity:0.4"></div>
+          <div class="lbl">日</div>
+          <div class="num">4 计划</div>
+        </div>
+      </div>
+
+      <div class="chart-legend">
+        <div class="l"><i style="background:#007aff"></i>已完成</div>
+        <div class="l"><i style="background:#ff9500"></i>今天</div>
+        <div class="l"><i style="background:#c7c7cc"></i>未开始</div>
+      </div>
+    </div>
+
+    <div class="glass chart-card">
+      <div class="chart-head">
+        <div class="chart-title">本周时间分配</div>
+        <div class="chart-hint">45 小时总投入</div>
+      </div>
+
+      <div class="donut-wrap">
+        <div class="donut">
+          <div class="donut-center">
+            <div class="d-num">45h</div>
+            <div class="d-lbl">累计投入</div>
+          </div>
+        </div>
+        <div class="donut-list">
+          <div class="donut-item">
+            <div class="left"><i class="sw" style="background:#5ac8fa"></i>学习成长</div>
+            <div class="right">
+              <div class="tbar"><i style="width:30%;background:#5ac8fa"></i></div>
+              <div class="pct">30%</div>
+            </div>
+          </div>
+          <div class="donut-item">
+            <div class="left"><i class="sw" style="background:#ff9500"></i>工作产出</div>
+            <div class="right">
+              <div class="tbar"><i style="width:25%;background:#ff9500"></i></div>
+              <div class="pct">25%</div>
+            </div>
+          </div>
+          <div class="donut-item">
+            <div class="left"><i class="sw" style="background:#34c759"></i>运动休息</div>
+            <div class="right">
+              <div class="tbar"><i style="width:20%;background:#34c759"></i></div>
+              <div class="pct">20%</div>
+            </div>
+          </div>
+          <div class="donut-item">
+            <div class="left"><i class="sw" style="background:#af52de"></i>习惯养成</div>
+            <div class="right">
+              <div class="tbar"><i style="width:15%;background:#af52de"></i></div>
+              <div class="pct">15%</div>
+            </div>
+          </div>
+          <div class="donut-item">
+            <div class="left"><i class="sw" style="background:#c7c7cc"></i>其他杂项</div>
+            <div class="right">
+              <div class="tbar"><i style="width:10%;background:#c7c7cc"></i></div>
+              <div class="pct">10%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: Habits + Milestones -->
+  <div class="bottom-grid">
+    <div class="glass habit-card">
+      <div class="chart-head" style="margin-bottom:4px">
+        <div class="chart-title">习惯追踪</div>
+      </div>
+
+      <div class="habit-item">
+        <div class="habit-icon g1">🏃</div>
+        <div class="habit-info">
+          <div class="habit-name">每日运动 <span class="streak">🔥 12 天</span></div>
+          <div class="habit-sub">
+            <span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+            <span>最近 7 天完成率 100%</span>
+          </div>
+        </div>
+        <div class="habit-progress"><i style="width:100%"></i></div>
+        <div class="habit-pct">100%</div>
+      </div>
+
+      <div class="habit-item">
+        <div class="habit-icon g2">🎤</div>
+        <div class="habit-info">
+          <div class="habit-name">即兴表达 <span class="streak">🔥 5 天</span></div>
+          <div class="habit-sub">
+            <span class="dots"><i class="on"></i><i class="off"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+            <span>最近 7 天完成率 86%</span>
+          </div>
+        </div>
+        <div class="habit-progress"><i style="width:86%;background:linear-gradient(90deg,#ff9500,#ffcc00)"></i></div>
+        <div class="habit-pct">86%</div>
+      </div>
+
+      <div class="habit-item">
+        <div class="habit-icon g3">🔠</div>
+        <div class="habit-info">
+          <div class="habit-name">英语口语 <span class="streak">🔥 8 天</span></div>
+          <div class="habit-sub">
+            <span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="off"></i><i class="on"></i></span>
+            <span>最近 7 天完成率 86%</span>
+          </div>
+        </div>
+        <div class="habit-progress"><i style="width:86%;background:linear-gradient(90deg,#007aff,#5ac8fa)"></i></div>
+        <div class="habit-pct">86%</div>
+      </div>
+
+      <div class="habit-item">
+        <div class="habit-icon g4">📖</div>
+        <div class="habit-info">
+          <div class="habit-name">每日阅读 <span class="streak">🔥 3 天</span></div>
+          <div class="habit-sub">
+            <span class="dots"><i class="off"></i><i class="off"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+            <span>最近 7 天完成率 71%</span>
+          </div>
+        </div>
+        <div class="habit-progress"><i style="width:71%;background:linear-gradient(90deg,#af52de,#da8fff)"></i></div>
+        <div class="habit-pct">71%</div>
+      </div>
+    </div>
+
+    <div class="glass mile-card">
+      <div class="chart-head" style="margin-bottom:4px">
+        <div class="chart-title">里程碑进度 · 2026</div>
+      </div>
+
+      <div class="mile-item">
+        <div class="mile-dot done">✓</div>
+        <div class="mile-body">
+          <div class="mile-title">建立 SOP 工作流 <span class="mile-tag g1">已完成</span></div>
+          <div class="mile-sub">已整理 Daily/Weekly/Monthly 复盘模板 · 7月15日</div>
+          <div class="mile-bar"><i style="width:100%;background:linear-gradient(90deg,#34c759,#30d158)"></i></div>
+        </div>
+      </div>
+
+      <div class="mile-item">
+        <div class="mile-dot doing">1</div>
+        <div class="mile-body">
+          <div class="mile-title">年度读书目标 <span class="mile-tag g2">进行中 25%</span></div>
+          <div class="mile-sub">当前 3 / 12 本 · 在读《深度工作》《奥德赛》</div>
+          <div class="mile-bar"><i style="width:25%"></i></div>
+        </div>
+      </div>
+
+      <div class="mile-item">
+        <div class="mile-dot doing">2</div>
+        <div class="mile-body">
+          <div class="mile-title">数据分析能力跃迁 <span class="mile-tag g2">进行中 33%</span></div>
+          <div class="mile-sub">课程 8 / 24 节 · 已掌握 Pandas 基础</div>
+          <div class="mile-bar"><i style="width:33%"></i></div>
+        </div>
+      </div>
+
+      <div class="mile-item">
+        <div class="mile-dot plan">3</div>
+        <div class="mile-body">
+          <div class="mile-title">换工作 · 目标 20k+ <span class="mile-tag g3">筹备中</span></div>
+          <div class="mile-sub">预计 Q4 启动 · 当前在优化简历与作品集</div>
+          <div class="mile-bar"><i style="width:5%;background:linear-gradient(90deg,#c7c7cc,#aeaeb2)"></i></div>
+        </div>
+      </div>
+
+      <div class="mile-item">
+        <div class="mile-dot plan">4</div>
+        <div class="mile-body">
+          <div class="mile-title">2026 一次长途旅行 <span class="mile-tag g3">规划中</span></div>
+          <div class="mile-sub">候选：日本 · 预算 1.2w · 时间 10月底</div>
+          <div class="mile-bar"><i style="width:20%;background:linear-gradient(90deg,#c7c7cc,#aeaeb2)"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

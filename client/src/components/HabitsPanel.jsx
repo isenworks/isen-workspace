@@ -382,25 +382,17 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         </div>
       )}
 
-      {/* 睡眠记录 Popover */}
+      {/* 睡眠记录 Popover - 居中显示 */}
       {sleepPopover && (
         <div
           ref={popoverRef}
-          className="absolute z-40 bg-white rounded-xl shadow-lg p-4 w-[320px] border border-[#e5e5ea] popover-enter"
+          className="fixed z-50 bg-white rounded-xl shadow-lg p-4 w-[340px] border border-[#e5e5ea] popover-enter"
           style={{
-            left: Math.min(sleepPopover.anchorLeft, 360),
-            top: sleepPopover.anchorTop,
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
           }}
         >
-          {/* 小三角指向按钮 */}
-          <div
-            className="absolute w-2 h-2 bg-white border-l border-t border-[#e5e5ea]"
-            style={{
-              left: -5,
-              top: 12,
-              transform: 'rotate(-45deg)',
-            }}
-          ></div>
 
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[14px] font-semibold text-[#1c1c1e]">😴 {sleepPopover.habitName}记录</h3>

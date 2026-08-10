@@ -24,7 +24,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
     const from = toISODate(new Date(year, month - 1, 1));
     const to = toISODate(new Date(year, month - 1, daysInMonth));
     const cacheKey = `wc:${from}:${to}:${refreshSignal}`;
-    const CACHE_TTL = 3000;
+    const CACHE_TTL = 1000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       setDots(peeked.value);

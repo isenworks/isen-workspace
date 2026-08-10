@@ -67,7 +67,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   function load() {
     const cacheKey = `tl:${range.from}:${range.to}:${date}:${refreshSignal}`;
-    const CACHE_TTL = 3000;
+    const CACHE_TTL = 1000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       const r = peeked.value;

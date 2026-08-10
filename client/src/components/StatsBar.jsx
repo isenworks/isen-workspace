@@ -36,7 +36,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
 
   useEffect(() => {
     const cacheKey = `sb:${range.from}:${range.to}:${date}:${refreshSignal}`;
-    const CACHE_TTL = 3000;
+    const CACHE_TTL = 1000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       setRawData(peeked.value);

@@ -25,7 +25,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   function load() {
     const cacheKey = `hp:${date}:${refreshSignal}`;
-    const CACHE_TTL = 3000;
+    const CACHE_TTL = 1000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       setHabits(peeked.value);

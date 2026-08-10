@@ -43,7 +43,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   function load() {
     const cacheKey = `kt:${range.from}:${range.to}:${refreshSignal}`;
-    const CACHE_TTL = 3000;
+    const CACHE_TTL = 1000;
     // ① 同步预查缓存：命中直接用，不闪骨架
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {

@@ -334,7 +334,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
 
   return (
-    <div className="glass-card p-5 flex-1">
+    <>
+      <div className="glass-card p-5 flex-1">
       <div className="flex items-center justify-between section-header">
         <div className="flex items-center gap-2">
           <span className="section-accent" style={{background:'#007aff'}}></span>
@@ -514,5 +515,6 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       </div>,
       document.body
     )}
+    </>
   );
 }

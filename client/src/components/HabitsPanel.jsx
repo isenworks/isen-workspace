@@ -173,18 +173,16 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
 
   function formatTime(h) {
-    // 睡眠习惯且有实际记录：展示实际睡眠数据
+    // 睡眠习惯且有实际记录 → 返回第一行（时间+目标），醒后状态放第三行独立渲染
     if (isSleepHabit(h) && h.sleep_start && h.sleep_end) {
-      const dur = calcDurationMin(h.sleep_start, h.sleep_end);
+      const st = h.start_time || h.target_time;
+      const et = h.end_time;
+      let txt = '';
+      if (st && et) txt = `${st} – ${et}`;
+      else if (st) txt = st;
       const target = h.duration_min || 420;
-      const ws = WAKE_STATES.find(w => w.value === h.wake_state);
-      let txt = `${h.sleep_start} – ${h.sleep_end}`;
-      if (dur != null) {
-        txt += ' · ' + formatDuration(dur);
-        if (dur >= target) txt += ' ✅';
-        else txt += ` · 差${formatDuration(target - dur)}`;
-      }
-      if (ws) txt += ` · ${ws.emoji}${ws.label}`;
+      if (txt) txt += ' · ';
+      txt += `目标${formatDuration(target)}`;
       return txt;
     }
     // 睡眠习惯无记录：展示目标
@@ -209,6 +207,22 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     else if (st) txt = st;
     if (displayDur) txt += (txt ? ' · ' : '') + formatDuration(displayDur);
     return txt;
+  }
+
+  // 睡眠习惯：第三行信息（实际睡眠时长 + 达标情况 + 醒后状态）
+  function sleepThirdLine(h) {
+    if (!isSleepHabit(h) || !h.sleep_start || !h.sleep_end) return null;
+    const dur = calcDurationMin(h.sleep_start, h.sleep_end);
+    const target = h.duration_min || 420;
+    const ws = WAKE_STATES.find(w => w.value === h.wake_state);
+    let leftTxt = `${h.sleep_start} – ${h.sleep_end}`;
+    let rightTxt = '';
+    if (dur != null) {
+      leftTxt += ' · ' + formatDuration(dur);
+      if (dur >= target) rightTxt = '✅ 达标';
+      else rightTxt = `差${formatDuration(target - dur)}`;
+    }
+    return { leftTxt, rightTxt, ws, dur, target };
   }
 
   // 按成长类型分组习惯（保持 API sort_order 顺序，不再按时间排序）
@@ -275,7 +289,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     return (
       <div
         key={h.id}
-        className="habit-row px-3 py-1.5 flex items-center gap-3 group"
+        className={`habit-row px-3 flex items-center gap-3 group ${isSleep && hasSleepData ? 'py-2.5' : 'py-1.5'}`}
         style={{
           background: getBg(h),
           opacity: isDragging ? 0.4 : 1,
@@ -302,22 +316,89 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           style={{ '--cb-color': getDoneColor(h), '--cb-border': h.done_today ? getDoneColor(h) : getBorderColor(h) }}
           onClick={(e) => { e.stopPropagation(); toggle(h); }}
         />
+
+        {/* 左侧文本：睡眠三行 / 其他两行 */}
         <div className="flex-1 min-w-0">
-          <p className={`text-[14px] font-medium ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>{h.emoji} {h.name}</p>
-          <p className={`text-[12px] mt-0.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>{formatTime(h)}</p>
+          <p className={`text-[14px] font-medium ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+            {h.emoji} {h.name}
+          </p>
+          <p className={`text-[12px] mt-0.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
+            {formatTime(h)}
+          </p>
+          {/* 第三行：实际睡眠 + 达标 + 醒后状态（只有睡眠且有数据显示） */}
+          {isSleep && sleepThirdLine(h) && (() => {
+            const t = sleepThirdLine(h);
+            const met = t.dur != null && t.dur >= t.target;
+            return (
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="text-[12px]"
+                  style={{ color: met ? '#34c759' : '#ff9500' }}
+                >
+                  💤 {t.leftTxt} · <b style={{ color: met ? '#34c759' : '#ff9500' }}>{t.rightTxt}</b>
+                </span>
+                {t.ws && (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium"
+                    style={{
+                      background: `${t.ws.color}18`,
+                      color: t.ws.color,
+                      border: `1px solid ${t.ws.color}35`,
+                    }}
+                  >
+                    {t.ws.emoji} {t.ws.label}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
+
+        {/* 右侧：醒后状态大彩条（睡眠有数据时） or 记录按钮 or 空 */}
         {isSleep && (
           <button
             onClick={(e) => { e.stopPropagation(); openSleepPopover(h, e.currentTarget); }}
-            className="text-[11px] px-2 py-0.5 rounded-md flex-shrink-0 self-center transition-all"
-            style={{
-              background: hasSleepData ? 'transparent' : '#f0f0f5',
-              color: hasSleepData ? (WAKE_STATES.find(w => w.value === h.wake_state)?.color || '#8e8e93') : '#8e8e93',
-              border: hasSleepData ? `1px solid ${WAKE_STATES.find(w => w.value === h.wake_state)?.color || '#d0d0d5'}40` : '1px solid transparent',
-            }}
-            title="记录睡眠"
+            className="flex-shrink-0 self-center transition-all"
+            title={hasSleepData ? '编辑睡眠记录' : '记录睡眠'}
           >
-            {hasSleepData ? (WAKE_STATES.find(w => w.value === h.wake_state)?.emoji || '🌙') : '🌙 记录'}
+            {hasSleepData ? (() => {
+              const ws = WAKE_STATES.find(w => w.value === h.wake_state) || WAKE_STATES[1];
+              const t = sleepThirdLine(h);
+              const met = t && t.dur != null && t.dur >= t.target;
+              return (
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border shadow-sm"
+                  style={{
+                    background: `linear-gradient(135deg, ${ws.color}20, ${ws.color}08)`,
+                    borderColor: `${ws.color}55`,
+                    minWidth: '96px',
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: ws.color }}
+                  ></span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[13px] font-semibold" style={{ color: ws.color }}>
+                      {ws.emoji} {ws.label}
+                    </span>
+                    <span
+                      className="text-[10px]"
+                      style={{ color: met ? '#34c759' : '#ff9500' }}
+                    >
+                      {met ? '已达标 ✅' : (t ? `差${formatDuration(t.target - t.dur)}` : '')}
+                    </span>
+                  </div>
+                </div>
+              );
+            })() : (
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border transition-all hover:border-[#007aff] hover:bg-[#007aff]08"
+                style={{ background: '#f7f7fa', borderColor: '#e5e5ea' }}
+              >
+                <span className="text-[14px]">🌙</span>
+                <span className="text-[12px] text-[#8e8e93] font-medium">记录</span>
+              </div>
+            )}
           </button>
         )}
         <span

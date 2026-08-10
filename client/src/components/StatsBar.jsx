@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
-import { cachedLoad } from '../utils/date.js';
+import { cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 
 export default function StatsBar({ date, range, view, refreshSignal, onViewChange, onNew, onSummary }) {
@@ -36,7 +36,18 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
 
   useEffect(() => {
     const cacheKey = `sb:${range.from}:${range.to}:${date}:${refreshSignal}`;
-    setLoading(true);
+    const CACHE_TTL = 3000;
+    const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
+    if (peeked) {
+      setRawData(peeked.value);
+      setLoading(false);
+      return;
+    }
+    const hasData = rawData.schedules.length > 0 || rawData.tasks.length > 0 || rawData.habits.length > 0;
+    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
+    const gate = loadingGate(setLoading, 80);
+    if (!hasData && !inFlight) gate.require();
+
     cachedLoad(cacheKey, async () => {
       const [sched, tasks, habits] = await Promise.all([
         API.schedules.list({ from: range.from, to: range.to }),
@@ -44,10 +55,10 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
         API.habits.list({ date })
       ]);
       return { schedules: sched.schedules, tasks: tasks.tasks, habits: habits.habits };
-    }, inFlightRef, cacheRef, 3000).then(data => {
+    }, inFlightRef, cacheRef, CACHE_TTL).then(data => {
       setRawData(data);
-      setLoading(false);
-    }).catch(e => { console.error(e); setLoading(false); });
+      gate.done();
+    }).catch(e => { console.error(e); gate.done(); });
   }, [date, range.from, range.to, view, refreshSignal]);
 
   // 订阅 patch：其他面板 toggle 时即时更新本地数据，无需重新 load

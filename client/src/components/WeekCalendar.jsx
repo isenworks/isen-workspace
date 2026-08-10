@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { toISODate, today as getToday, fromISODate, cachedLoad } from '../utils/date.js';
+import { toISODate, today as getToday, fromISODate, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
 import { API } from '../api/client.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
@@ -24,7 +24,18 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
     const from = toISODate(new Date(year, month - 1, 1));
     const to = toISODate(new Date(year, month - 1, daysInMonth));
     const cacheKey = `wc:${from}:${to}:${refreshSignal}`;
-    setLoading(true);
+    const CACHE_TTL = 3000;
+    const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
+    if (peeked) {
+      setDots(peeked.value);
+      setLoading(false);
+      return;
+    }
+    const hasData = Object.keys(dots).length > 0;
+    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
+    const gate = loadingGate(setLoading, 80);
+    if (!hasData && !inFlight) gate.require();
+
     cachedLoad(cacheKey, async () => {
       const r = await API.schedules.list({ from, to });
       const map = {};
@@ -36,10 +47,10 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
         else map[key].hasNormal = true;
       }
       return map;
-    }, inFlightRef, cacheRef, 3000).then(map => {
+    }, inFlightRef, cacheRef, CACHE_TTL).then(map => {
       setDots(map);
-      setLoading(false);
-    }).catch(e => { console.error(e); setLoading(false); });
+      gate.done();
+    }).catch(e => { console.error(e); gate.done(); });
   }
 
   useEffect(() => { loadDots(); }, [year, month, refreshSignal]);

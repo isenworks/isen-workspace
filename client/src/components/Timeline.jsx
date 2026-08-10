@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad } from '../utils/date.js';
+import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -67,7 +67,21 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   function load() {
     const cacheKey = `tl:${range.from}:${range.to}:${date}:${refreshSignal}`;
-    setLoading(true);
+    const CACHE_TTL = 3000;
+    const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
+    if (peeked) {
+      const r = peeked.value;
+      setSchedules(r.sched);
+      setTasks(r.tasks);
+      setHabits(r.habits);
+      setLoading(false);
+      return;
+    }
+    const hasData = schedules.length > 0 || tasks.length > 0 || habits.length > 0;
+    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
+    const gate = loadingGate(setLoading, 80);
+    if (!hasData && !inFlight) gate.require();
+
     cachedLoad(cacheKey, async () => {
       const [s, t, h] = await Promise.all([
         API.schedules.list({ from: range.from, to: range.to }),
@@ -75,12 +89,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         API.habits.list({ date })
       ]);
       return { sched: s.schedules, tasks: t.tasks, habits: h.habits };
-    }, inFlightRef, cacheRef, 3000).then(r => {
+    }, inFlightRef, cacheRef, CACHE_TTL).then(r => {
       setSchedules(r.sched);
       setTasks(r.tasks);
       setHabits(r.habits);
-      setLoading(false);
-    }).catch(e => { console.error(e); setLoading(false); });
+      gate.done();
+    }).catch(e => { console.error(e); gate.done(); });
   }
 
   useEffect(() => { load(); }, [range.from, range.to, date, refreshSignal]);

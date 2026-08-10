@@ -136,14 +136,41 @@ export function calcDurationMin(start, end) {
   return d;
 }
 
+// 同步预查缓存：命中返回 {value, ts}，否则 null
+// 用于调用 setLoading(true) 之前先判断是否真的需要显示骨架屏
+export function cachePeek(cacheKey, cacheRef, cacheTTL = 3000) {
+  const cached = cacheRef.current.get(cacheKey);
+  if (!cached) return null;
+  if (Date.now() - cached.ts >= cacheTTL) return null;
+  return cached;
+}
+
+// Loading Gate：首屏/空数据加载时开启 80ms 延迟门
+// 若请求在 80ms 内返回 -> 根本不显示骨架屏（消除微秒级缓存/快请求的闪屏）
+// 用法：const gate = loadingGate(setLoading, 80); gate.require(); ... finally { gate.done(); }
+export function loadingGate(setLoadingFn, delayMs = 80) {
+  let t = null;
+  let fired = false;
+  return {
+    require() {
+      t = setTimeout(() => { fired = true; setLoadingFn(true); }, delayMs);
+    },
+    done() {
+      if (t) clearTimeout(t);
+      if (fired) setLoadingFn(false);
+    },
+    // 如果判断根本不需要 loading（缓存命中 / 已有旧数据），可直接 cancel 避免任何状态切换
+    cancel() { if (t) clearTimeout(t); }
+  };
+}
+
 // 带缓存+去重的 loader 工厂：用于 React StrictMode 下避免 effect 重复触发查库
 // - inFlightRef: useRef(null)，用于记录当前飞行中的 Promise
 // - cacheRef:    useRef(new Map())，缓存结果，key=cacheKey
 // - cacheTTL:    缓存有效期(ms)，默认 3000ms
 export function cachedLoad(cacheKey, loader, inFlightRef, cacheRef, cacheTTL = 3000) {
-  const now = Date.now();
-  const cached = cacheRef.current.get(cacheKey);
-  if (cached && now - cached.ts < cacheTTL) return Promise.resolve(cached.value);
+  const peeked = cachePeek(cacheKey, cacheRef, cacheTTL);
+  if (peeked) return Promise.resolve(peeked.value);
   if (inFlightRef.current && inFlightRef.current.key === cacheKey) return inFlightRef.current.promise;
   const p = Promise.resolve()
     .then(() => loader())

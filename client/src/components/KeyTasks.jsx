@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, fromISODate, calcDurationMin, cachedLoad } from '../utils/date.js';
+import { formatDuration, fromISODate, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { inferGrowthType, GROWTH_TYPES } from '../utils/uiConstants.js';
@@ -43,7 +43,20 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   function load() {
     const cacheKey = `kt:${range.from}:${range.to}:${refreshSignal}`;
-    setLoading(true);
+    const CACHE_TTL = 3000;
+    // ① 同步预查缓存：命中直接用，不闪骨架
+    const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
+    if (peeked) {
+      setList(peeked.value);
+      setLoading(false);
+      return;
+    }
+    // ② 已有旧数据 or StrictMode in-flight：静默更新，不显示骨架
+    const hasData = list.length > 0;
+    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
+    const gate = loadingGate(setLoading, 80);
+    if (!hasData && !inFlight) gate.require(); // ③ 仅真·首屏空加载才开 LoadingGate（80ms 延迟门）
+
     cachedLoad(cacheKey, async () => {
       const r = await API.schedules.list({ from: range.from, to: range.to });
       const key = r.schedules
@@ -53,10 +66,10 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           return (a.start_time || '99').localeCompare(b.start_time || '99');
         });
       return key;
-    }, inFlightRef, cacheRef, 3000).then(key => {
+    }, inFlightRef, cacheRef, CACHE_TTL).then(key => {
       setList(key);
-      setLoading(false);
-    }).catch(e => { console.error(e); setLoading(false); });
+      gate.done();
+    }).catch(e => { console.error(e); gate.done(); });
   }
 
   useEffect(() => { load(); }, [range.from, range.to, refreshSignal]);

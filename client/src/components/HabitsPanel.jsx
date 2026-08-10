@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, calcDurationMin, cachedLoad } from '../utils/date.js';
+import { formatDuration, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -25,14 +25,25 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   function load() {
     const cacheKey = `hp:${date}:${refreshSignal}`;
-    setLoading(true);
+    const CACHE_TTL = 3000;
+    const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
+    if (peeked) {
+      setHabits(peeked.value);
+      setLoading(false);
+      return;
+    }
+    const hasData = habits.length > 0;
+    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
+    const gate = loadingGate(setLoading, 80);
+    if (!hasData && !inFlight) gate.require();
+
     cachedLoad(cacheKey, async () => {
       const r = await API.habits.list({ date });
       return r.habits;
-    }, inFlightRef, cacheRef, 3000).then(hs => {
+    }, inFlightRef, cacheRef, CACHE_TTL).then(hs => {
       setHabits(hs);
-      setLoading(false);
-    }).catch(e => { console.error(e); setLoading(false); });
+      gate.done();
+    }).catch(e => { console.error(e); gate.done(); });
   }
 
   useEffect(() => { load(); }, [date, refreshSignal]);

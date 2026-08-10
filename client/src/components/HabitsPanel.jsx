@@ -355,25 +355,25 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           {isSleep && hasSleepData && thirdLine && (
             <>
               <div className="my-2 h-px bg-[#e5e5ea]" style={{ opacity: 0.8 }}></div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] text-[#4a4a4f] min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-[#4a4a4f]">
+                <span className="inline-flex items-center gap-1.5">
                   <Clock size={13} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
-                  <span className="truncate">
+                  <span className="whitespace-nowrap">
                     {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
                   </span>
                   {thirdLine.dur >= thirdLine.target ? (
-                    <span className="inline-flex items-center text-[#34c759] font-medium flex-shrink-0">· 达成目标</span>
+                    <span className="text-[#34c759] font-semibold whitespace-nowrap">· 达成目标</span>
                   ) : (
-                    <span className="inline-flex items-center text-[#ff9500] font-medium flex-shrink-0">
+                    <span className="text-[#ff9500] font-semibold whitespace-nowrap">
                       · 差{formatDuration(thirdLine.target - thirdLine.dur)}
                     </span>
                   )}
                 </span>
-                <span className="inline-flex items-center gap-2 flex-shrink-0">
+                <span className="inline-flex items-center gap-2 flex-shrink-0 ml-auto">
                   {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}
                   {moodMeta && (
                     <>
-                      {energyMeta && <span className="text-[#e5e5ea]">|</span>}
+                      {energyMeta && <span className="text-[#e5e5ea]">·</span>}
                       <StateChip icon={Heart} label={moodMeta.label} color={moodMeta.color} />
                     </>
                   )}

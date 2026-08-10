@@ -1,18 +1,44 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  Clock, Pencil, X, Zap, Heart, Moon,
+} from 'lucide-react';
 import { API } from '../api/client.js';
 import { formatDuration, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
 
-// 醒后状态选项
-const WAKE_STATES = [
-  { value: 'energized',  label: '精神饱满', emoji: '😊', color: '#34c759' },
-  { value: 'okay',       label: '状态一般', emoji: '😐', color: '#007aff' },
-  { value: 'drowsy',     label: '有些犯困', emoji: '😴', color: '#ffcc00' },
-  { value: 'exhausted',  label: '非常疲惫', emoji: '😵', color: '#ff3b30' },
+// 精力状态（3档）
+const ENERGY_STATES = [
+  { value: 'energized', label: '充沛', color: '#34c759' },
+  { value: 'normal',    label: '一般', color: '#007aff' },
+  { value: 'poor',      label: '疲惫', color: '#ff3b30' },
 ];
+
+// 心情状态（3档）
+const MOOD_STATES = [
+  { value: 'positive', label: '积极', color: '#34c759' },
+  { value: 'neutral',  label: '平淡', color: '#007aff' },
+  { value: 'negative', label: '消极', color: '#ff3b30' },
+];
+
+// 兼容旧 wake_state 的映射（数据迁移期间）
+const LEGACY_WAKE_TO_ENERGY = {
+  energized: 'energized',
+  okay: 'normal',
+  drowsy: 'poor',
+  exhausted: 'poor',
+};
+
+function getEnergyMeta(v) {
+  if (!v) return null;
+  return ENERGY_STATES.find(s => s.value === v) || null;
+}
+function getMoodMeta(v) {
+  if (!v) return null;
+  return MOOD_STATES.find(s => s.value === v) || null;
+}
 
 // 判断是否为睡眠类习惯
 function isSleepHabit(h) {
@@ -23,14 +49,13 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const toast = useToast();
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dragId, setDragId] = useState(null);       // 正在拖拽的 habit id
-  const [overId, setOverId] = useState(null);       // 拖拽悬停的目标 habit id
-  const [sleepPopover, setSleepPopover] = useState(null); // { habitId, habitName, sleepStart, sleepEnd, wakeState, sleepNote, targetMin, rect }
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);
+  const [sleepPopover, setSleepPopover] = useState(null);
   const popoverRef = useRef(null);
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
 
-  // 点击外部关闭 popover
   useEffect(() => {
     if (!sleepPopover) return;
     function handleClick(e) {
@@ -88,42 +113,41 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     }
   }
 
-  // 打开睡眠记录 popover
-  function openSleepPopover(h, anchorEl) {
-    const rect = anchorEl.getBoundingClientRect();
-    const containerRect = anchorEl.closest('.glass-card')?.getBoundingClientRect() || { left: 0, top: 0 };
+  // 打开睡眠记录弹窗（居中）
+  function openSleepPopover(h) {
     setSleepPopover({
       habitId: h.id,
       habitName: h.name,
+      emoji: h.emoji,
       sleepStart: h.sleep_start || '',
       sleepEnd: h.sleep_end || '',
-      wakeState: h.wake_state || '',
+      energyState: h.energy_state || (h.wake_state ? LEGACY_WAKE_TO_ENERGY[h.wake_state] || '' : ''),
+      moodState: h.mood_state || '',
       sleepNote: h.sleep_note || '',
       targetMin: h.duration_min || 420,
-      // popover 定位：相对 container 的位置
-      anchorLeft: rect.left - containerRect.left + rect.width + 8,
-      anchorTop: rect.top - containerRect.top,
     });
   }
 
   // 保存睡眠记录
   async function saveSleepLog() {
     if (!sleepPopover) return;
-    const { habitId, sleepStart, sleepEnd, wakeState, sleepNote } = sleepPopover;
+    const { habitId, sleepStart, sleepEnd, energyState, moodState, sleepNote } = sleepPopover;
     try {
       const r = await API.habits.logSleep(habitId, date, {
         sleep_start: sleepStart || null,
         sleep_end: sleepEnd || null,
-        wake_state: wakeState || null,
+        energy_state: energyState || null,
+        mood_state: moodState || null,
         sleep_note: sleepNote || null,
       });
-      // 更新本地状态
       setHabits(hs => hs.map(x => x.id === habitId ? {
         ...x,
         done_today: r.done,
         sleep_start: sleepStart || null,
         sleep_end: sleepEnd || null,
-        wake_state: wakeState || null,
+        energy_state: energyState || null,
+        mood_state: moodState || null,
+        wake_state: null,
         sleep_note: sleepNote || null,
         data_source: 'manual',
       } : x));
@@ -156,13 +180,11 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
 
   function getBg(h) {
-    // 勾选后背景保留原色，仅文字变灰+删除线
     const gt = getHabitGrowthType(h);
     return `linear-gradient(90deg,${GROWTH_TYPES[gt]?.bg || '#e5f6ea'} 0%,transparent 70%)`;
   }
 
   function getBorderColor(h) {
-    // 勾选后边框保留原色
     const gt = getHabitGrowthType(h);
     return GROWTH_TYPES[gt]?.borderColor || '#8ee4a7';
   }
@@ -173,8 +195,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
 
   function formatTime(h) {
-    // 睡眠习惯且有实际记录 → 返回第一行（时间+目标），醒后状态放第三行独立渲染
-    if (isSleepHabit(h) && h.sleep_start && h.sleep_end) {
+    if (isSleepHabit(h)) {
       const st = h.start_time || h.target_time;
       const et = h.end_time;
       let txt = '';
@@ -182,21 +203,9 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       else if (st) txt = st;
       const target = h.duration_min || 420;
       if (txt) txt += ' · ';
-      txt += `目标${formatDuration(target)}`;
+      txt += `目标 ${formatDuration(target)}`;
       return txt;
     }
-    // 睡眠习惯无记录：展示目标
-    if (isSleepHabit(h) && h.duration_min) {
-      const st = h.start_time || h.target_time;
-      const et = h.end_time;
-      let txt = '';
-      if (st && et) txt = `${st} – ${et}`;
-      else if (st) txt = st;
-      if (txt) txt += ' · ';
-      txt += `目标${formatDuration(h.duration_min)}`;
-      return txt;
-    }
-    // 其他习惯：原逻辑
     const st = h.start_time || h.target_time;
     const et = h.end_time;
     const calcDur = calcDurationMin(st, et);
@@ -209,30 +218,20 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     return txt;
   }
 
-  // 睡眠习惯：第三行信息（实际睡眠时长 + 达标情况 + 醒后状态）
+  // 睡眠第三行信息
   function sleepThirdLine(h) {
     if (!isSleepHabit(h) || !h.sleep_start || !h.sleep_end) return null;
     const dur = calcDurationMin(h.sleep_start, h.sleep_end);
     const target = h.duration_min || 420;
-    const ws = WAKE_STATES.find(w => w.value === h.wake_state);
-    let leftTxt = `${h.sleep_start} – ${h.sleep_end}`;
-    let rightTxt = '';
-    if (dur != null) {
-      leftTxt += ' · ' + formatDuration(dur);
-      if (dur >= target) rightTxt = '✅ 达标';
-      else rightTxt = `差${formatDuration(target - dur)}`;
-    }
-    return { leftTxt, rightTxt, ws, dur, target };
+    return { dur, target };
   }
 
-  // 按成长类型分组习惯（保持 API sort_order 顺序，不再按时间排序）
   const groupedHabits = { energy: [], mind: [], skill: [] };
   habits.forEach(h => {
     const gt = getHabitGrowthType(h);
     if (groupedHabits[gt]) groupedHabits[gt].push(h);
   });
 
-  // 拖拽排序：组内拖拽，重排后全局持久化 sort_order
   function handleDragStart(e, h) {
     setDragId(h.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -241,7 +240,6 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   function handleDragOver(e, overH) {
     if (!dragId) return;
-    // 仅允许同组内拖拽
     const dragHabit = habits.find(h => h.id === dragId);
     if (!dragHabit || getHabitGrowthType(dragHabit) !== getHabitGrowthType(overH)) return;
     e.preventDefault();
@@ -255,7 +253,6 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     if (!dragHabit || getHabitGrowthType(dragHabit) !== getHabitGrowthType(overH)) {
       setDragId(null); setOverId(null); return;
     }
-    // 前端乐观重排
     const next = [...habits];
     const fromIdx = next.findIndex(h => h.id === dragId);
     const toIdx = next.findIndex(h => h.id === overH.id);
@@ -265,7 +262,6 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     setHabits(next);
     setDragId(null);
     setOverId(null);
-    // 全局重算 sort_order：按 energy → mind → skill 拼接
     const grouped = { energy: [], mind: [], skill: [] };
     next.forEach(h => { const gt = getHabitGrowthType(h); if (grouped[gt]) grouped[gt].push(h); });
     const orderedIds = [...grouped.energy, ...grouped.mind, ...grouped.skill].map(h => h.id);
@@ -279,17 +275,45 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     setOverId(null);
   }
 
-  // 渲染习惯行
+  // 状态 Chip：只显示文字+图标（无线圈/背景填充）
+  function StateChip({ icon, label, color }) {
+    const Icon = icon;
+    return (
+      <span className="inline-flex items-center gap-1 text-[12px] font-medium" style={{ color }}>
+        <Icon size={13} strokeWidth={2} />
+        <span>{label}</span>
+      </span>
+    );
+  }
+
+  // 右侧统一按钮（记录/编辑样式一致）
+  function RightActionButton({ hasSleepData, onClick }) {
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#f2f2f7] border border-[#e5e5ea] hover:bg-[#e9e9ef] text-[11.5px] text-[#4a4a4f] font-medium transition-colors"
+        title={hasSleepData ? '编辑睡眠记录' : '记录睡眠'}
+      >
+        <Pencil size={12} strokeWidth={2} />
+        <span>{hasSleepData ? '编辑' : '记录'}</span>
+      </button>
+    );
+  }
+
   function renderHabitRow(h) {
     const gt = getHabitGrowthType(h);
     const isDragging = dragId === h.id;
     const isDragOver = overId === h.id && dragId && dragId !== h.id;
     const isSleep = isSleepHabit(h);
-    const hasSleepData = isSleep && h.sleep_start && h.sleep_end;
+    const hasSleepData = !!(isSleep && h.sleep_start && h.sleep_end);
+    const energyMeta = getEnergyMeta(h.energy_state);
+    const moodMeta = getMoodMeta(h.mood_state);
+    const thirdLine = isSleep ? sleepThirdLine(h) : null;
+
     return (
       <div
         key={h.id}
-        className={`habit-row px-3 flex items-center gap-3 group ${isSleep && hasSleepData ? 'py-2.5' : 'py-1.5'}`}
+        className="habit-row px-3 flex items-start gap-3 group py-2.5"
         style={{
           background: getBg(h),
           opacity: isDragging ? 0.4 : 1,
@@ -310,104 +334,74 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       >
         <input
           type="checkbox"
-          className="cb-round"
+          className="cb-round mt-0.5"
           checked={!!h.done_today}
           onChange={() => {}}
           style={{ '--cb-color': getDoneColor(h), '--cb-border': h.done_today ? getDoneColor(h) : getBorderColor(h) }}
           onClick={(e) => { e.stopPropagation(); toggle(h); }}
         />
 
-        {/* 左侧文本：睡眠三行 / 其他两行 */}
+        {/* 文本区 */}
         <div className="flex-1 min-w-0">
-          <p className={`text-[14px] font-medium ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+          {/* 第一行：标题 */}
+          <p className={`text-[14px] font-medium leading-tight ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
             {h.emoji} {h.name}
           </p>
+          {/* 第二行：预设时间/目标 */}
           <p className={`text-[12px] mt-0.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
             {formatTime(h)}
           </p>
-          {/* 第三行：实际睡眠 + 达标 + 醒后状态（只有睡眠且有数据显示） */}
-          {isSleep && sleepThirdLine(h) && (() => {
-            const t = sleepThirdLine(h);
-            const met = t.dur != null && t.dur >= t.target;
-            return (
-              <div className="flex items-center gap-2 mt-1">
-                <span
-                  className="text-[12px]"
-                  style={{ color: met ? '#34c759' : '#ff9500' }}
-                >
-                  💤 {t.leftTxt} · <b style={{ color: met ? '#34c759' : '#ff9500' }}>{t.rightTxt}</b>
-                </span>
-                {t.ws && (
-                  <span
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium"
-                    style={{
-                      background: `${t.ws.color}18`,
-                      color: t.ws.color,
-                      border: `1px solid ${t.ws.color}35`,
-                    }}
-                  >
-                    {t.ws.emoji} {t.ws.label}
+          {/* 第三行：仅睡眠习惯且有实际数据 */}
+          {isSleep && hasSleepData && thirdLine && (
+            <>
+              <div className="my-2 h-px bg-[#e5e5ea]" style={{ opacity: 0.8 }}></div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[12.5px] text-[#4a4a4f] min-w-0">
+                  <Clock size={13} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
+                  <span className="truncate">
+                    {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
                   </span>
-                )}
+                  {thirdLine.dur >= thirdLine.target ? (
+                    <span className="inline-flex items-center text-[#34c759] font-medium flex-shrink-0">· 达成目标</span>
+                  ) : (
+                    <span className="inline-flex items-center text-[#ff9500] font-medium flex-shrink-0">
+                      · 差{formatDuration(thirdLine.target - thirdLine.dur)}
+                    </span>
+                  )}
+                </span>
+                <span className="inline-flex items-center gap-2 flex-shrink-0">
+                  {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}
+                  {moodMeta && (
+                    <>
+                      {energyMeta && <span className="text-[#e5e5ea]">|</span>}
+                      <StateChip icon={Heart} label={moodMeta.label} color={moodMeta.color} />
+                    </>
+                  )}
+                </span>
               </div>
-            );
-          })()}
+            </>
+          )}
         </div>
 
-        {/* 右侧：醒后状态大彩条（睡眠有数据时） or 记录按钮 or 空 */}
+        {/* 右侧操作 */}
         {isSleep && (
-          <button
-            onClick={(e) => { e.stopPropagation(); openSleepPopover(h, e.currentTarget); }}
-            className="flex-shrink-0 self-center transition-all"
-            title={hasSleepData ? '编辑睡眠记录' : '记录睡眠'}
-          >
-            {hasSleepData ? (() => {
-              const ws = WAKE_STATES.find(w => w.value === h.wake_state) || WAKE_STATES[1];
-              const t = sleepThirdLine(h);
-              const met = t && t.dur != null && t.dur >= t.target;
-              return (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border shadow-sm"
-                  style={{
-                    background: `linear-gradient(135deg, ${ws.color}20, ${ws.color}08)`,
-                    borderColor: `${ws.color}55`,
-                    minWidth: '96px',
-                  }}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: ws.color }}
-                  ></span>
-                  <div className="flex flex-col leading-tight">
-                    <span className="text-[13px] font-semibold" style={{ color: ws.color }}>
-                      {ws.emoji} {ws.label}
-                    </span>
-                    <span
-                      className="text-[10px]"
-                      style={{ color: met ? '#34c759' : '#ff9500' }}
-                    >
-                      {met ? '已达标 ✅' : (t ? `差${formatDuration(t.target - t.dur)}` : '')}
-                    </span>
-                  </div>
-                </div>
-              );
-            })() : (
-              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border transition-all hover:border-[#007aff] hover:bg-[#007aff]08"
-                style={{ background: '#f7f7fa', borderColor: '#e5e5ea' }}
-              >
-                <span className="text-[14px]">🌙</span>
-                <span className="text-[12px] text-[#8e8e93] font-medium">记录</span>
-              </div>
-            )}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0 self-center">
+            <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
+            <span
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ background: getDotColor(h) }}
+            ></span>
+          </div>
         )}
-        <span
-          className="w-2 h-2 rounded-full flex-shrink-0 self-center"
-          style={{ background: getDotColor(h) }}
-        ></span>
+        {!isSleep && (
+          <span
+            className="w-2 h-2 rounded-full flex-shrink-0 self-center"
+            style={{ background: getDotColor(h) }}
+          ></span>
+        )}
         <button
           onClick={(e) => { e.stopPropagation(); remove(h); }}
-          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#ff3b30] text-xs px-1"
+          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#ff3b30] text-xs px-1 flex-shrink-0"
           title="删除"
         >×</button>
       </div>
@@ -467,7 +461,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
     </div>
 
-    {/* 睡眠记录 Modal - 用 Portal 挂到 document.body，避免被 glass-card backdrop-filter 困住 fixed 定位 */}
+    {/* 睡眠记录 Modal - 居中全屏 overlay */}
     {sleepPopover && typeof document !== 'undefined' && createPortal(
       <div
         className="fixed inset-0 z-[9999] flex items-center justify-center sleep-modal-overlay"
@@ -476,7 +470,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       >
         <div
           ref={popoverRef}
-          className="bg-white rounded-2xl shadow-xl p-5 w-[420px] max-w-[90vw] popover-enter sleep-modal-dialog"
+          className="bg-white rounded-2xl shadow-xl p-5 w-[440px] max-w-[92vw] popover-enter sleep-modal-dialog"
           onClick={(e) => e.stopPropagation()}
           style={{
             background: 'rgba(250,250,252,0.96)',
@@ -484,22 +478,23 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           }}
         >
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-[16px] font-semibold text-[#1c1c1e]">{sleepPopover.habitName}记录</h3>
+            <h3 className="text-[16px] font-semibold text-[#1c1c1e] flex items-center gap-2">
+              <Moon size={18} strokeWidth={1.75} className="text-[#007aff]" />
+              <span>{sleepPopover.habitName} · 睡眠记录</span>
+            </h3>
             <button
               onClick={() => setSleepPopover(null)}
               className="text-[#8e8e93] hover:text-[#1c1c1e] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
               title="关闭"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M18 6L6 18M6 6l12 12"></path>
-              </svg>
+              <X size={16} strokeWidth={2} />
             </button>
           </div>
 
-          {/* 入睡 / 起床时间 / 日期 */}
-          <div className="grid grid-cols-3 gap-3 mb-4 items-end">
+          {/* 入睡 / 起床时间 */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">🛏 入睡</label>
+              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">入睡时间</label>
               <input
                 type="time"
                 value={sleepPopover.sleepStart}
@@ -508,19 +503,13 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               />
             </div>
             <div>
-              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">⏰ 起床</label>
+              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">起床时间</label>
               <input
                 type="time"
                 value={sleepPopover.sleepEnd}
                 onChange={(e) => setSleepPopover(s => ({ ...s, sleepEnd: e.target.value }))}
                 className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff] bg-white"
               />
-            </div>
-            <div>
-              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">📅 日期</label>
-              <div className="border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] bg-white">
-                {date}
-              </div>
             </div>
           </div>
 
@@ -533,32 +522,62 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                 const target = sleepPopover.targetMin;
                 const met = dur >= target;
                 return (
-                  <p className="text-[13px]" style={{ color: met ? '#34c759' : '#ff9500' }}>
-                    📊 实际睡眠 {formatDuration(dur)}
-                    {met ? ' ✅ 达标' : ` · 差${formatDuration(target - dur)}`}
+                  <p className="text-[13px] inline-flex items-center gap-1.5" style={{ color: met ? '#34c759' : '#ff9500' }}>
+                    <Clock size={13} />
+                    <span>实际睡眠 {formatDuration(dur)}</span>
+                    {met ? <span>· 达标 ✅</span> : <span> · 差{formatDuration(target - dur)}</span>}
                   </p>
                 );
               })()}
             </div>
           )}
 
-          {/* 醒后状态 */}
-          <div className="mb-4">
-            <label className="text-[13px] text-[#8e8e93] mb-2 block">醒后状态</label>
-            <div className="grid grid-cols-2 gap-2">
-              {WAKE_STATES.map(ws => (
+          {/* 精力状态 */}
+          <div className="mb-3">
+            <label className="text-[13px] text-[#8e8e93] mb-2 block flex items-center gap-1.5">
+              <Zap size={13} strokeWidth={2} className="text-[#ffcc00]" />
+              醒后精力状态
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {ENERGY_STATES.map(opt => (
                 <button
-                  key={ws.value}
-                  onClick={() => setSleepPopover(s => ({ ...s, wakeState: s.wakeState === ws.value ? '' : ws.value }))}
-                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-all border"
+                  key={opt.value}
+                  onClick={() => setSleepPopover(sp => ({ ...sp, energyState: sp.energyState === opt.value ? '' : opt.value }))}
+                  data-energy={opt.value}
+                  className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[13px] font-medium border transition-all"
                   style={{
-                    background: sleepPopover.wakeState === ws.value ? `${ws.color}15` : '#fff',
-                    borderColor: sleepPopover.wakeState === ws.value ? ws.color : '#e5e5ea',
-                    color: sleepPopover.wakeState === ws.value ? ws.color : '#1c1c1e',
+                    background: sleepPopover.energyState === opt.value ? `${opt.color}14` : '#fff',
+                    borderColor: sleepPopover.energyState === opt.value ? opt.color : '#e5e5ea',
+                    color: sleepPopover.energyState === opt.value ? opt.color : '#1c1c1e',
                   }}
                 >
-                  <span className="text-[15px]">{ws.emoji}</span>
-                  <span>{ws.label}</span>
+                  <Zap size={14} strokeWidth={2} />
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 心情状态 */}
+          <div className="mb-4">
+            <label className="text-[13px] text-[#8e8e93] mb-2 block flex items-center gap-1.5">
+              <Heart size={13} strokeWidth={2} className="text-[#ff3b30]" />
+              醒后心情状态
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {MOOD_STATES.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => setSleepPopover(sp => ({ ...sp, moodState: sp.moodState === s.value ? '' : s.value }))}
+                  className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[13px] font-medium border transition-all"
+                  style={{
+                    background: sleepPopover.moodState === s.value ? `${s.color}14` : '#fff',
+                    borderColor: sleepPopover.moodState === s.value ? s.color : '#e5e5ea',
+                    color: sleepPopover.moodState === s.value ? s.color : '#1c1c1e',
+                  }}
+                >
+                  <Heart size={14} strokeWidth={2} />
+                  <span>{s.label}</span>
                 </button>
               ))}
             </div>
@@ -566,7 +585,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
           {/* 备注 */}
           <div className="mb-5">
-            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">备注</label>
+            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">备注（可选）</label>
             <textarea
               value={sleepPopover.sleepNote}
               onChange={(e) => setSleepPopover(s => ({ ...s, sleepNote: e.target.value }))}

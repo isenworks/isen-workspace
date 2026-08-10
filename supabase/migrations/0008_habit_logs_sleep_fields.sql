@@ -1,10 +1,12 @@
--- 睡眠习惯增强：扩展 habit_logs 表，支持记录实际睡眠时间、醒后状态
--- 适用于所有习惯，sleep_* 字段为 NULL 时不影响其他习惯
+-- 睡眠习惯增强：扩展 habit_logs 表，支持记录实际睡眠时间、醒后精力状态、心情状态
+-- 适用于所有习惯，字段为 NULL 时不影响其他习惯
 
 ALTER TABLE public.ethan_habit_logs
   ADD COLUMN IF NOT EXISTS sleep_start   text,       -- 入睡时间 '23:30'
   ADD COLUMN IF NOT EXISTS sleep_end     text,       -- 起床时间 '07:15'
-  ADD COLUMN IF NOT EXISTS wake_state    text,       -- 醒后状态: 'energized'|'okay'|'drowsy'|'exhausted'
+  ADD COLUMN IF NOT EXISTS wake_state    text,       -- (兼容旧字段)醒后状态: 'energized'|'okay'|'drowsy'|'exhausted'
+  ADD COLUMN IF NOT EXISTS energy_state  text,       -- 精力状态: 'energized'|'normal'|'poor'
+  ADD COLUMN IF NOT EXISTS mood_state    text,       -- 心情状态: 'positive'|'neutral'|'negative'
   ADD COLUMN IF NOT EXISTS sleep_note    text,       -- 备注
   ADD COLUMN IF NOT EXISTS data_source   text;       -- 数据来源: 'manual' | 'huawei'
 

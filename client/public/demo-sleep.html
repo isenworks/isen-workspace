@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>睡眠习惯 UI Demo</title>
+<style>
+  :root {
+    --green: #34c759;
+    --blue:  #007aff;
+    --yellow:#ffcc00;
+    --red:   #ff3b30;
+    --gray:  #8e8e93;
+    --gray2: #aeaeae;
+    --bg1:   #1c1c1e;
+    --bg-card:rgba(255,255,255,0.72);
+    --border:rgba(255,255,255,0.6);
+    --divide:#e5e5ea;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    min-height:100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1200px 600px at 0% -10%, #e7f0ff 0%, transparent 55%),
+      radial-gradient(900px 500px at 100% 10%, #eef8f0 0%, transparent 55%),
+      linear-gradient(180deg, #f7f7fb, #eef0f6);
+    padding: 40px 24px 80px;
+    color: var(--bg1);
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 {
+    font-size: 22px; font-weight: 600; letter-spacing: 0.2px;
+    margin-bottom: 6px; color: var(--bg1);
+  }
+  .sub { color: var(--gray); font-size: 13px; margin-bottom: 28px; }
+  .card {
+    background: var(--bg-card);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    padding: 20px 20px 18px;
+  }
+  .card-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    display:flex; align-items:center; gap:8px;
+  }
+  .accent {
+    width:3px; height:16px; border-radius:1.5px;
+    background: var(--blue);
+  }
+  .card-title h2 {
+    font-size: 15px; font-weight: 600;
+  }
+  .score {
+    display:flex; align-items:center; gap:6px;
+    font-size: 12px; color: var(--gray);
+  }
+  .score-cb {
+    width:16px; height:16px; border-radius:50%;
+    border:1.5px solid #d0d0d5;
+  }
+  .divider {
+    height:1px; background: var(--divide);
+    margin: 16px -20px;
+    opacity: 0.6;
+  }
+  .demo-tag {
+    font-size: 11px; color: var(--gray);
+    margin: 14px 2px 6px;
+    letter-spacing: 0.3px;
+  }
+  .demo-tag:first-of-type { margin-top: 0; }
+
+  /* ====== 习惯行通用 ====== */
+  .habits { display:flex; flex-direction: column; gap: 2px; }
+  .habit-row {
+    position: relative;
+    display:flex; align-items:center; gap: 12px;
+    padding: 6px 12px;
+    border-radius: 14px;
+    transition: background .15s;
+  }
+  .habit-row:hover { background: #f7f7fa; }
+  .habit-row.bg-green { background: #eef8f0; }
+  .habit-row.bg-blue  { background: #eef4ff; }
+  .habit-row.bg-yellow{ background: #fff8e5; }
+  .habit-row.bg-red   { background: #ffecec; }
+
+  /* 左侧状态色竖条（只有睡眠有实际记录才出现） */
+  .wake-bar {
+    position: absolute;
+    left: 2px;
+    top: 8px; bottom: 8px;
+    width: 3px;
+    border-radius: 1.5px;
+    opacity: 0.85;
+  }
+  .wake-bar.green  { background: var(--green); }
+  .wake-bar.blue   { background: var(--blue); }
+  .wake-bar.yellow { background: var(--yellow); }
+  .wake-bar.red    { background: var(--red); }
+
+  /* checkbox */
+  .cb {
+    margin-left: 6px;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid #c7c7cc;
+    background: #fff;
+    flex-shrink: 0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cb.checked {
+    background: #34c759;
+    border-color: #34c759;
+    color: #fff;
+  }
+  .cb::after {
+    content: '';
+    width: 10px; height: 5px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+    display: none;
+  }
+  .cb.checked::after { display:block; }
+
+  /* 中间文本 */
+  .text-col {
+    flex: 1; min-width: 0;
+    padding: 2px 0;
+  }
+  .line1 {
+    font-size: 14px; font-weight: 500; color: var(--bg1);
+    display:flex; align-items:center; gap:4px;
+  }
+  .line1.done { color: var(--gray); text-decoration: line-through; }
+  .line2 {
+    margin-top: 3px;
+    font-size: 12px; color: var(--gray);
+  }
+  .line2.done { color: var(--gray2); }
+  .line3 {
+    margin-top: 4px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size: 12px; color: var(--gray);
+  }
+  .result-tag {
+    display:inline-flex; align-items:center; gap:4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 500;
+  }
+  .result-tag.ok   { background: #e7f6eb; color: #248a3e; }
+  .result-tag.warn { background: #fff1dc; color: #a06700; }
+
+  /* 右侧圆形状态徽章（操作入口） */
+  .badge {
+    flex-shrink: 0;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 14px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    background: #f2f2f7;
+  }
+  .badge:hover { transform: translateY(-0.5px) scale(1.03); box-shadow: 0 3px 10px rgba(0,0,0,0.06); }
+  .badge.record  { background: #f2f2f7; border-color: #e5e5ea; }
+  .badge.record:hover  { border-color: #c3d8ff; background: #eef4ff; }
+  .badge.green   { background: linear-gradient(135deg, #34c7592a, #34c7590a); border-color: #34c75966; }
+  .badge.blue    { background: linear-gradient(135deg, #007aff26, #007aff0a); border-color: #007aff66; }
+  .badge.yellow  { background: linear-gradient(135deg, #ffcc0028, #ffcc000a); border-color: #ffcc0066; }
+  .badge.red     { background: linear-gradient(135deg, #ff3b3028, #ff3b300a); border-color: #ff3b3066; }
+
+  /* 状态点 */
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #34c759;
+    flex-shrink: 0;
+  }
+
+  /* ========= 注释区 ========= */
+  .legend {
+    display:grid; grid-template-columns: 1fr 1fr; gap: 14px 24px;
+    margin-top: 24px;
+    padding: 18px 20px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .legend h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--bg1); }
+  .legend-item {
+    display:flex; align-items:center; gap: 10px;
+    font-size: 12px; color: #444;
+    padding: 6px 0;
+  }
+  .legend-item .sample {
+    width: 100px; flex-shrink: 0;
+    display:flex; justify-content:center;
+  }
+
+  /* demo 页脚：vs 旧设计 */
+  .vs-wrap {
+    margin-top: 30px;
+    display:grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  @media (max-width: 820px) {
+    .vs-wrap { grid-template-columns: 1fr; }
+    .legend { grid-template-columns: 1fr; }
+  }
+  .vs-card {
+    padding: 18px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--border);
+  }
+  .vs-card.bad { border-top: 3px solid #ff3b30; }
+  .vs-card.good { border-top: 3px solid var(--green); }
+  .vs-card h4 { font-size: 13px; margin-bottom: 10px; font-weight: 600; }
+  .vs-card h4.bad { color: var(--red); }
+  .vs-card h4.good { color: var(--green); }
+  .vs-card ul { padding-left: 18px; font-size: 12.5px; line-height: 1.8; color: #444; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🌙 睡眠习惯 UI · 优化方案 Demo</h1>
+    <p class="sub">设计语言：iOS 玻璃感 · 极简克制 · 信息唯一 · 状态一眼识别</p>
+
+    <!-- ============ 主卡片 ============ -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <span class="accent"></span>
+          <h2>习惯</h2>
+        </div>
+        <div class="score">
+          <div class="score-cb"></div>
+          <span>0 / 6</span>
+          <span style="margin: 0 8px; opacity:.4;">|</span>
+          <span style="background:#f2f2f7; border-radius:6px; padding:2px 8px;">+</span>
+        </div>
+      </div>
+
+      <div class="habits">
+
+        <!-- Demo 1: 睡眠 - 未记录（两行，和其他习惯完全一致） -->
+        <p class="demo-tag">CASE 01 · 未记录 — 两行，与其他习惯等高、视觉不突兀</p>
+
+        <div class="habit-row">
+          <div class="cb"></div>
+          <div class="text-col">
+            <div class="line1">😴 睡眠7小时</div>
+            <div class="line2">23:00 – 06:00 · 目标 7 小时</div>
+          </div>
+          <div class="badge record" title="记录睡眠">🌙</div>
+          <div class="dot"></div>
+        </div>
+
+        <div class="divider" style="margin: 6px -12px"></div>
+
+        <!-- Demo 2: 睡眠 - 已达标 + 精神饱满（绿） -->
+        <p class="demo-tag">CASE 02 · 已记录 · 达标 · 😊 精神饱满（绿竖条 + 绿徽章）</p>
+
+        <div class="habit-row bg-green">
+          <span class="wake-bar green"></span>
+          <div class="cb checked"></div>
+          <div class="text-col">
+            <div class="line1 done">😴 睡眠7小时</div>
+            <div class="line2 done">23:00 – 06:00 · 目标 7 小时</div>
+            <div class="line3">
+              <span>💤 23:20 – 07:10 · 7小时50分钟</span>
+              <span class="result-tag ok">✅ 达标</span>
+            </div>
+          </div>
+          <div class="badge green" title="编辑睡眠记录">😊</div>
+          <div class="dot" style="background: var(--green);"></div>
+        </div>
+
+        <div class="divider" style="margin: 6px -12px"></div>
+
+        <!-- Demo 3: 状态一般（蓝）· 差 12 分钟 -->
+        <p class="demo-tag">CASE 03 · 已记录 · 差12分钟 · 😐 状态一般（蓝竖条 + 蓝徽章）</p>
+
+        <div class="habit-row bg-blue">
+          <span class="wake-bar blue"></span>
+          <div class="cb"></div>
+          <div class="text-col">
+            <div class="line1">😴 睡眠7小时</div>
+            <div class="line2">23:00 – 06:00 · 目标 7 小时</div>
+            <div class="line3">
+              <span>💤 00:14 – 07:02 · 6小时48分钟</span>
+              <span class="result-tag warn">⚠ 差 12 分钟</span>
+            </div>
+          </div>
+          <div class="badge blue" title="编辑睡眠记录">😐</div>
+          <div class="dot" style="background: var(--blue);"></div>
+        </div>
+
+        <div class="divider" style="margin: 6px -12px"></div>
+
+        <!-- Demo 4: 有些犯困（黄）· 刚好达标 -->
+        <p class="demo-tag">CASE 04 · 已记录 · 刚好达标 · 😴 有些犯困（黄竖条 + 黄徽章）</p>
+
+        <div class="habit-row bg-yellow">
+          <span class="wake-bar yellow"></span>
+          <div class="cb checked"></div>
+          <div class="text-col">
+            <div class="line1 done">😴 睡眠7小时</div>
+            <div class="line2 done">23:00 – 06:00 · 目标 7 小时</div>
+            <div class="line3">
+              <span>💤 23:00 – 06:00 · 7小时00分钟</span>
+              <span class="result-tag ok">✅ 达标</span>
+            </div>
+          </div>
+          <div class="badge yellow" title="编辑睡眠记录">😴</div>
+          <div class="dot" style="background: var(--yellow);"></div>
+        </div>
+
+        <div class="divider" style="margin: 6px -12px"></div>
+
+        <!-- Demo 5: 非常疲惫（红）· 严重不足 -->
+        <p class="demo-tag">CASE 05 · 已记录 · 严重不足 · 😵 非常疲惫（红竖条 + 红徽章）</p>
+
+        <div class="habit-row bg-red">
+          <span class="wake-bar red"></span>
+          <div class="cb"></div>
+          <div class="text-col">
+            <div class="line1">😴 睡眠7小时</div>
+            <div class="line2">23:00 – 06:00 · 目标 7 小时</div>
+            <div class="line3">
+              <span>💤 02:10 – 06:30 · 4小时20分钟</span>
+              <span class="result-tag warn">⚠ 差 2小时40分钟</span>
+            </div>
+          </div>
+          <div class="badge red" title="编辑睡眠记录">😵</div>
+          <div class="dot" style="background: var(--red);"></div>
+        </div>
+
+        <div class="divider" style="margin: 10px -12px"></div>
+
+        <!-- Demo 6~7: 其他习惯（对比） -->
+        <p class="demo-tag">CASE 06 · 其他习惯对照（验证风格统一性）</p>
+
+        <div class="habit-row">
+          <div class="cb checked"></div>
+          <div class="text-col">
+            <div class="line1 done">🏃 每日运动</div>
+            <div class="line2 done">06:00 – 07:00 · 1 小时</div>
+          </div>
+          <div class="dot" style="background: var(--green);"></div>
+        </div>
+
+        <div class="habit-row">
+          <div class="cb"></div>
+          <div class="text-col">
+            <div class="line1">💧 喝够 2L 水</div>
+            <div class="line2">全天</div>
+          </div>
+          <div class="dot" style="background: var(--green);"></div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ============ 图例 ============ -->
+    <div class="legend">
+      <div>
+        <h3>① 左侧状态色竖条 · 一眼识别醒后状态</h3>
+        <div class="legend-item">
+          <div class="sample"><span class="wake-bar green" style="position:static;"></span></div>
+          <span><b style="color: var(--green)">绿</b> —— 😊 精神饱满，状态极佳</span>
+        </div>
+        <div class="legend-item">
+          <div class="sample"><span class="wake-bar blue" style="position:static;"></span></div>
+          <span><b style="color: var(--blue)">蓝</b> —— 😐 状态一般，正常水平</span>
+        </div>
+        <div class="legend-item">
+          <div class="sample"><span class="wake-bar yellow" style="position:static;"></span></div>
+          <span><b style="color: #c59e00;">黄</b> —— 😴 有些犯困，需要提神</span>
+        </div>
+        <div class="legend-item">
+          <div class="sample"><span class="wake-bar red" style="position:static;"></span></div>
+          <span><b style="color: var(--red)">红</b> —— 😵 非常疲惫，严重不足</span>
+        </div>
+      </div>
+      <div>
+        <h3>② 右侧圆形状态徽章 · 轻操作入口</h3>
+        <div class="legend-item">
+          <div class="sample"><div class="badge record">🌙</div></div>
+          <span>未记录 — 轻灰底，悬停蓝边，提示操作</span>
+        </div>
+        <div class="legend-item">
+          <div class="sample"><div class="badge green">😊</div></div>
+          <span>有状态 — 微渐变底 + 色描边，颜色统一语义</span>
+        </div>
+        <div class="legend-item">
+          <div class="sample"></div>
+          <span>尺寸 <b>30×30px 圆形</b>，与 checkbox、状态圆点同源</span>
+        </div>
+        <div class="legend-item">
+          <div class="sample"></div>
+          <span>悬停微放大 1.03× + 浅阴影，反馈克制</span>
+        </div>
+      </div>
+      <div>
+        <h3>③ 三行信息结构（仅睡眠有记录时）</h3>
+        <div class="legend-item"><span>第 1 行 主标题：</span><b>😴 睡眠7小时</b>（14px，与其他习惯一致）</div>
+        <div class="legend-item"><span>第 2 行 目标信息：</span><b>23:00 – 06:00 · 目标 7h</b>（12px，浅灰）</div>
+        <div class="legend-item"><span>第 3 行 实际结果：</span><b>💤 实际时段+时长</b> + <b>✅ 达标 / ⚠ 差XX</b>胶囊</div>
+        <div class="legend-item"><span>★ 信息唯一：</span>醒后状态<b>不在第三行重复</b>，只在竖条+徽章体现</div>
+      </div>
+      <div>
+        <h3>④ 与工作台全局风格的一致性</h3>
+        <div class="legend-item"><span>✅ 玻璃卡 18px 圆角、半透明白、backdrop-filter</span></div>
+        <div class="legend-item"><span>✅ 圆形 checkbox、右侧 8px 状态小点（同源视觉）</span></div>
+        <div class="legend-item"><span>✅ 统一字号：14px 主 / 12px 辅，色彩语义一致</span></div>
+        <div class="legend-item"><span>✅ 装饰克制：无渐变广告卡、无阴影大盒子、信息零重复</span></div>
+      </div>
+    </div>
+
+    <!-- ============ 新旧对比 ============ -->
+    <div class="vs-wrap">
+      <div class="vs-card bad">
+        <h4 class="bad">❌ 旧版（当前线上）— 问题清单</h4>
+        <ul>
+          <li><b>信息严重重复：</b>醒后状态同屏出现 3 次（第三行胶囊 + 下方断行 + 右侧彩卡）</li>
+          <li><b>排版崩坏：</b>「· 7 小时 · ✅ 达标」中间断行，视觉断裂</li>
+          <li><b>装饰过重：</b>渐变卡片 + 两行字 + 阴影，像广告贴纸贴在玻璃卡上</li>
+          <li><b>风格不统一：</b>工作台是极简 iOS 风，睡眠行是"电商促销风"</li>
+          <li><b>状态识别慢：</b>满屏都是字，扫一眼抓不住"今天醒后怎么样"</li>
+          <li><b>行高错乱：</b>睡眠行比其他行高 2 倍多，列表视觉断层</li>
+        </ul>
+      </div>
+      <div class="vs-card good">
+        <h4 class="good">✅ 新版（本 Demo）— 优化点</h4>
+        <ul>
+          <li><b>信息唯一：</b>醒后状态 = 竖条颜色 + 徽章，三行不重复</li>
+          <li><b>排版严谨：</b>三行严格对齐，结果标签贴右端，无断行错位</li>
+          <li><b>极简克制：</b>取消一切重装饰，状态用"颜色 + emoji"两元素</li>
+          <li><b>全局统一：</b>徽章 30px 圆形，和 checkbox / 点同圆系</li>
+          <li><b>一眼识别：</b>左侧 3px 色条（左边缘视觉黄金区），0.1 秒感知状态</li>
+          <li><b>高度自适应：</b>未记录 = 两行（同其他习惯）；有记录 = 三行（自然升高）</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

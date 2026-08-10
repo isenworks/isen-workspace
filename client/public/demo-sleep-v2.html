@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>睡眠习惯 UI Demo V2</title>
+<style>
+  :root {
+    --gray-900:#1c1c1e;
+    --gray-700:#4a4a4f;
+    --gray-500:#8e8e93;
+    --gray-400:#aeaeae;
+    --gray-200:#e5e5ea;
+    --gray-100:#f2f2f7;
+    --gray-50:#f7f7fa;
+    --accent:#007aff;
+    --done:#34c759;
+    --warn:#ff9500;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    min-height:100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1200px 600px at 0% -10%, #e7f0ff 0%, transparent 55%),
+      radial-gradient(900px 500px at 100% 10%, #eef8f0 0%, transparent 55%),
+      linear-gradient(180deg, #f7f7fb, #eef0f6);
+    padding: 40px 24px 80px;
+    color: var(--gray-900);
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+  .sub { color: var(--gray-500); font-size: 13px; margin-bottom: 28px; }
+
+  .card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    padding: 20px 20px 18px;
+  }
+  .card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .card-title { display:flex; align-items:center; gap:8px; }
+  .accent { width:3px; height:16px; border-radius:1.5px; background: var(--accent); }
+  .card-title h2 { font-size: 15px; font-weight: 600; }
+  .score { display:flex; align-items:center; gap:6px; font-size: 12px; color: var(--gray-500); }
+  .score-cb { width:16px; height:16px; border-radius:50%; border:1.5px solid #d0d0d5; }
+  .score .plus { background: var(--gray-100); border-radius:6px; padding:2px 8px; }
+
+  .demo-tag { font-size: 11px; color: var(--gray-500); margin: 14px 2px 6px; letter-spacing: 0.3px; }
+  .demo-tag:first-of-type { margin-top: 0; }
+
+  /* ===== 习惯行 ===== */
+  .habits { display:flex; flex-direction: column; gap: 4px; }
+  .habit-row {
+    display:flex; align-items:flex-start; gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    transition: background .15s;
+    position: relative;
+  }
+  .habit-row:hover { background: var(--gray-50); }
+
+  /* checkbox */
+  .cb {
+    margin-top: 2px;
+    margin-left: 2px;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid #c7c7cc;
+    background: #fff;
+    flex-shrink: 0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cb.checked { background: var(--done); border-color: var(--done); }
+  .cb.checked::after {
+    content: ''; width: 10px; height: 5px;
+    border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
+
+  /* 中间文本区 */
+  .text-col { flex: 1; min-width: 0; }
+
+  .line1 { font-size: 14px; font-weight: 500; color: var(--gray-900); display:flex; align-items:center; gap:4px; }
+  .line1.done { color: var(--gray-400); text-decoration: line-through; }
+
+  .line2 { margin-top: 3px; font-size: 12px; color: var(--gray-500); }
+  .line2.done { color: var(--gray-400); }
+
+  .divider-line {
+    margin: 8px 0 6px;
+    height: 1px;
+    background: var(--gray-200);
+    opacity: 0.7;
+  }
+
+  .line3 {
+    display:flex; align-items:center; justify-content:space-between; gap: 10px;
+    font-size: 12.5px; color: var(--gray-700);
+  }
+  .line3 .actual { display:flex; align-items:center; gap: 4px; min-width: 0; }
+  .line3 .actual .icon { font-size: 13px; }
+  .line3 .result { display:inline-flex; align-items:center; gap: 4px; font-weight: 500; }
+  .line3 .result.ok { color: var(--done); }
+  .line3 .result.warn { color: var(--warn); }
+
+  .line3-right { display:flex; align-items:center; gap: 8px; flex-shrink: 0; }
+  .state-chip {
+    display:inline-flex; align-items:center; gap: 3px;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 500;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    white-space: nowrap;
+  }
+  .state-chip .ico { font-size: 12px; }
+  .state-sep { color: var(--gray-200); font-size: 12px; }
+
+  /* 未记录状态 */
+  .not-recorded .line3 { color: var(--gray-400); font-style: italic; }
+
+  /* 右侧操作区 */
+  .right-col { display:flex; align-items:center; gap: 8px; flex-shrink: 0; }
+  .record-btn {
+    display:flex; align-items:center; gap: 4px;
+    padding: 5px 12px; border-radius: 10px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    font-size: 12px; color: var(--gray-500); font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .record-btn:hover { border-color: var(--accent); color: var(--accent); background: #eef4ff; }
+  .record-btn .emoji { font-size: 13px; }
+
+  .edit-btn {
+    display:flex; align-items:center; gap: 4px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    font-size: 11.5px; color: var(--gray-700); font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .edit-btn:hover { background: #e9e9ef; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--done); flex-shrink: 0; }
+
+  /* ===== 图例 ===== */
+  .legend {
+    display:grid; grid-template-columns: 1fr 1fr; gap: 14px 24px;
+    margin-top: 24px; padding: 18px 20px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .legend h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .legend-item { display:flex; align-items:center; gap: 10px; font-size: 12px; color: #444; padding: 4px 0; }
+  .legend-item .sample { width: 140px; flex-shrink: 0; display:flex; justify-content:center; }
+
+  .section-label {
+    margin-top: 24px;
+    font-size: 13px; font-weight: 600; color: var(--gray-700);
+  }
+  .section-label span { color: var(--accent); }
+
+  @media (max-width: 820px) {
+    .legend { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🌙 睡眠习惯 UI · V2</h1>
+  <p class="sub">三行结构 + 分割线 + 精力/心情双状态（中性无彩）</p>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">
+        <span class="accent"></span>
+        <h2>习惯</h2>
+      </div>
+      <div class="score">
+        <div class="score-cb"></div>
+        <span>0 / 6</span>
+        <span style="margin: 0 8px; opacity:.4;">|</span>
+        <span class="plus">+</span>
+      </div>
+    </div>
+
+    <div class="habits">
+
+      <!-- CASE 01: 未记录 -->
+      <p class="demo-tag">CASE 01 · 未记录 — 两行 + 记录按钮</p>
+      <div class="habit-row">
+        <div class="cb"></div>
+        <div class="text-col">
+          <div class="line1">😴 睡眠7小时</div>
+          <div class="line2">23:00 – 06:00 · 目标 7小时</div>
+        </div>
+        <div class="right-col">
+          <div class="record-btn" title="记录睡眠">
+            <span class="emoji">🌙</span>
+            <span>记录</span>
+          </div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <!-- CASE 02: 已记录 · 达标 · 充沛 · 积极 -->
+      <p class="demo-tag">CASE 02 · 达标 7h50m · 充沛 · 积极</p>
+      <div class="habit-row">
+        <div class="cb checked"></div>
+        <div class="text-col">
+          <div class="line1 done">😴 睡眠7小时</div>
+          <div class="line2 done">23:00 – 06:00 · 目标 7小时</div>
+          <div class="divider-line"></div>
+          <div class="line3">
+            <span class="actual">
+              <span class="icon">⏰</span>
+              <span>23:20 – 07:10 · 7小时50分钟</span>
+              <span class="result ok">· 达成目标</span>
+            </span>
+            <span class="line3-right">
+              <span class="state-chip"><span class="ico">🔋</span>充沛</span>
+              <span class="state-sep">|</span>
+              <span class="state-chip"><span class="ico">❤️</span>积极</span>
+            </span>
+          </div>
+        </div>
+        <div class="right-col">
+          <div class="edit-btn" title="编辑睡眠">记录</div>
+          <div class="dot" style="background: var(--done);"></div>
+        </div>
+      </div>
+
+      <!-- CASE 03: 已记录 · 差12分钟 · 一般 · 平淡 -->
+      <p class="demo-tag">CASE 03 · 差12分钟 · 一般 · 平淡</p>
+      <div class="habit-row">
+        <div class="cb"></div>
+        <div class="text-col">
+          <div class="line1">😴 睡眠7小时</div>
+          <div class="line2">23:00 – 06:00 · 目标 7小时</div>
+          <div class="divider-line"></div>
+          <div class="line3">
+            <span class="actual">
+              <span class="icon">⏰</span>
+              <span>00:14 – 07:02 · 6小时48分钟</span>
+              <span class="result warn">· 差12分钟</span>
+            </span>
+            <span class="line3-right">
+              <span class="state-chip"><span class="ico">🔋</span>一般</span>
+              <span class="state-sep">|</span>
+              <span class="state-chip"><span class="ico">❤️</span>平淡</span>
+            </span>
+          </div>
+        </div>
+        <div class="right-col">
+          <div class="edit-btn" title="编辑睡眠">记录</div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <!-- CASE 04: 已记录 · 达标 · 疲惫 · 消极 -->
+      <p class="demo-tag">CASE 04 · 达标 7h00m · 疲惫 · 消极</p>
+      <div class="habit-row">
+        <div class="cb checked"></div>
+        <div class="text-col">
+          <div class="line1 done">😴 睡眠7小时</div>
+          <div class="line2 done">23:00 – 06:00 · 目标 7小时</div>
+          <div class="divider-line"></div>
+          <div class="line3">
+            <span class="actual">
+              <span class="icon">⏰</span>
+              <span>23:00 – 06:00 · 7小时00分钟</span>
+              <span class="result ok">· 达成目标</span>
+            </span>
+            <span class="line3-right">
+              <span class="state-chip"><span class="ico">🔋</span>疲惫</span>
+              <span class="state-sep">|</span>
+              <span class="state-chip"><span class="ico">❤️</span>消极</span>
+            </span>
+          </div>
+        </div>
+        <div class="right-col">
+          <div class="edit-btn" title="编辑睡眠">记录</div>
+          <div class="dot" style="background: var(--done);"></div>
+        </div>
+      </div>
+
+      <!-- CASE 05: 已记录 · 差2h40m · 疲惫 · 平淡 -->
+      <p class="demo-tag">CASE 05 · 差2h40m · 疲惫 · 平淡</p>
+      <div class="habit-row">
+        <div class="cb"></div>
+        <div class="text-col">
+          <div class="line1">😴 睡眠7小时</div>
+          <div class="line2">23:00 – 06:00 · 目标 7小时</div>
+          <div class="divider-line"></div>
+          <div class="line3">
+            <span class="actual">
+              <span class="icon">⏰</span>
+              <span>02:10 – 06:30 · 4小时20分钟</span>
+              <span class="result warn">· 差2小时40分钟</span>
+            </span>
+            <span class="line3-right">
+              <span class="state-chip"><span class="ico">🔋</span>疲惫</span>
+              <span class="state-sep">|</span>
+              <span class="state-chip"><span class="ico">❤️</span>平淡</span>
+            </span>
+          </div>
+        </div>
+        <div class="right-col">
+          <div class="edit-btn" title="编辑睡眠">记录</div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <!-- 其他习惯对照 -->
+      <p class="demo-tag">对照 · 其他习惯（保持原有风格）</p>
+      <div class="habit-row">
+        <div class="cb checked"></div>
+        <div class="text-col">
+          <div class="line1 done">🏃 每日运动</div>
+          <div class="line2 done">06:00 – 07:00 · 1小时</div>
+        </div>
+        <div class="right-col"><div class="dot" style="background: var(--done);"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 图例 -->
+  <div class="section-label"><span>①</span> 行结构（从上到下）</div>
+  <div class="legend">
+    <div>
+      <h3>第一行 · 主标题</h3>
+      <div class="legend-item">→ 😴 睡眠7小时（14px，与其他习惯一致）</div>
+      <h3>第二行 · 预设信息</h3>
+      <div class="legend-item">→ 23:00 – 06:00 · 目标 7小时（12px，浅灰）</div>
+      <h3>分割线</h3>
+      <div class="legend-item">→ 1px 浅灰线，区分"预设"与"实际"</div>
+      <h3>第三行 · 实际数据 + 双状态</h3>
+      <div class="legend-item">→ ⏰ 实际时段 · 时长 · 达成/差XX（左）</div>
+      <div class="legend-item">→ 🔋精力 | ❤️心情（右，灰色胶囊）</div>
+    </div>
+    <div>
+      <h3>精力状态（3档）</h3>
+      <div class="legend-item"><div class="sample"><span class="state-chip"><span class="ico">🔋</span>充沛</span></div><span>状态极佳，充满活力</span></div>
+      <div class="legend-item"><div class="sample"><span class="state-chip"><span class="ico">🔋</span>一般</span></div><span>正常水平，无特殊感觉</span></div>
+      <div class="legend-item"><div class="sample"><span class="state-chip"><span class="ico">🔋</span>疲惫</span></div><span>需要休息，精神不足</span></div>
+
+      <h3>心情状态（3档）</h3>
+      <div class="legend-item"><div class="sample"><span class="state-chip"><span class="ico">❤️</span>积极</span></div><span>愉悦兴奋，充满期待</span></div>
+      <div class="legend-item"><div class="sample"><span class="state-chip"><span class="ico">❤️</span>平淡</span></div><span>平静安稳，无明显波动</span></div>
+      <div class="legend-item"><div class="sample"><span class="state-chip"><span class="ico">❤️</span>消极</span></div><span>低落焦虑，需要调整</span></div>
+    </div>
+    <div>
+      <h3>右侧操作</h3>
+      <div class="legend-item"><div class="sample"><div class="record-btn"><span class="emoji">🌙</span><span>记录</span></div></div><span>未记录时：提示按钮</span></div>
+      <div class="legend-item"><div class="sample"><div class="edit-btn">记录</div></div><span>已记录时：紧凑编辑按钮</span></div>
+
+      <h3>设计原则</h3>
+      <div class="legend-item">✅ 无彩条/彩卡，状态中性呈现</div>
+      <div class="legend-item">✅ 信息只出一次，零重复</div>
+      <div class="legend-item">✅ 精力/心情独立两维度</div>
+      <div class="legend-item">✅ 与工作台其他习惯完全对齐</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

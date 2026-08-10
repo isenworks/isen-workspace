@@ -310,7 +310,7 @@ export const API = {
       if (date) {
         const { data: dayLogs } = await supabase
           .from('ethan_habit_logs')
-          .select('habit_id, done, sleep_start, sleep_end, wake_state, sleep_note, data_source')
+          .select('habit_id, done, sleep_start, sleep_end, wake_state, energy_state, mood_state, sleep_note, data_source')
           .eq('user_id', user.id)
           .eq('date', date);
         (dayLogs || []).forEach(l => { logsByHabit[l.habit_id] = l; });
@@ -338,6 +338,8 @@ export const API = {
               sleep_start: dayLog.sleep_start,
               sleep_end: dayLog.sleep_end,
               wake_state: dayLog.wake_state,
+              energy_state: dayLog.energy_state,
+              mood_state: dayLog.mood_state,
               sleep_note: dayLog.sleep_note,
               data_source: dayLog.data_source,
             } : {}),
@@ -423,8 +425,8 @@ export const API = {
       }
     },
 
-    // 睡眠记录：记录实际入睡/起床时间 + 醒后状态，自动判定 done
-    async logSleep(habitId, date, { sleep_start, sleep_end, wake_state, sleep_note }) {
+    // 睡眠记录：记录实际入睡/起床时间 + 精力状态 + 心情状态，自动判定 done
+    async logSleep(habitId, date, { sleep_start, sleep_end, energy_state, mood_state, sleep_note }) {
       const userId = await uid();
       const today = date || new Date().toISOString().slice(0, 10);
 
@@ -466,7 +468,9 @@ export const API = {
         done,
         sleep_start: sleep_start || null,
         sleep_end: sleep_end || null,
-        wake_state: wake_state || null,
+        wake_state: null,  // 新接口不再写 wake_state（保留字段用于兼容）
+        energy_state: energy_state || null,
+        mood_state: mood_state || null,
         sleep_note: sleep_note || null,
         data_source: 'manual',
       };

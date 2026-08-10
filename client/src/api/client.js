@@ -310,10 +310,10 @@ export const API = {
       if (date) {
         const { data: dayLogs } = await supabase
           .from('ethan_habit_logs')
-          .select('habit_id, done')
+          .select('habit_id, done, sleep_start, sleep_end, wake_state, sleep_note, data_source')
           .eq('user_id', user.id)
           .eq('date', date);
-        (dayLogs || []).forEach(l => { logsByHabit[l.habit_id] = l.done; });
+        (dayLogs || []).forEach(l => { logsByHabit[l.habit_id] = l; });
       }
 
       // 查所有打卡记录用于计算 streak
@@ -329,11 +329,21 @@ export const API = {
       });
 
       return {
-        habits: habits.map(h => ({
-          ...h,
-          done_today: date ? (logsByHabit[h.id] === 1) : null,
-          streak: calcStreak(logsByHabitFull[h.id] || []),
-        })),
+        habits: habits.map(h => {
+          const dayLog = date ? logsByHabit[h.id] : null;
+          return {
+            ...h,
+            done_today: dayLog ? dayLog.done === 1 : null,
+            ...(dayLog ? {
+              sleep_start: dayLog.sleep_start,
+              sleep_end: dayLog.sleep_end,
+              wake_state: dayLog.wake_state,
+              sleep_note: dayLog.sleep_note,
+              data_source: dayLog.data_source,
+            } : {}),
+            streak: calcStreak(logsByHabitFull[h.id] || []),
+          };
+        }),
       };
     },
 
@@ -411,6 +421,63 @@ export const API = {
         }));
         return { habit_id: id, date: today, done: true };
       }
+    },
+
+    // 睡眠记录：记录实际入睡/起床时间 + 醒后状态，自动判定 done
+    async logSleep(habitId, date, { sleep_start, sleep_end, wake_state, sleep_note }) {
+      const userId = await uid();
+      const today = date || new Date().toISOString().slice(0, 10);
+
+      // 查 habit 的目标时长
+      const { data: habit } = await supabase
+        .from('ethan_habits')
+        .select('duration_min')
+        .eq('id', habitId)
+        .single();
+
+      // 计算实际睡眠时长（跨午夜补偿）
+      let actualMin = null;
+      if (sleep_start && sleep_end) {
+        const [sh, sm] = sleep_start.split(':').map(Number);
+        const [eh, em] = sleep_end.split(':').map(Number);
+        if (![sh, sm, eh, em].some(v => Number.isNaN(v))) {
+          let d = (eh * 60 + em) - (sh * 60 + sm);
+          if (d <= 0) d += 1440;
+          actualMin = d;
+        }
+      }
+
+      // 自动判定 done：达到目标时长则打勾
+      const targetMin = habit?.duration_min || 420;
+      const done = actualMin != null && actualMin >= targetMin ? 1 : 0;
+
+      // Upsert
+      const { data: existing } = await supabase
+        .from('ethan_habit_logs')
+        .select('id')
+        .eq('habit_id', habitId)
+        .eq('date', today)
+        .single();
+
+      const payload = {
+        habit_id: habitId,
+        user_id: userId,
+        date: today,
+        done,
+        sleep_start: sleep_start || null,
+        sleep_end: sleep_end || null,
+        wake_state: wake_state || null,
+        sleep_note: sleep_note || null,
+        data_source: 'manual',
+      };
+
+      if (existing) {
+        await wrap(supabase.from('ethan_habit_logs').update(payload).eq('id', existing.id));
+      } else {
+        await wrap(supabase.from('ethan_habit_logs').insert(payload));
+      }
+
+      return { habit_id: habitId, date: today, done: !!done, actual_min: actualMin };
     },
 
     // 月度统计

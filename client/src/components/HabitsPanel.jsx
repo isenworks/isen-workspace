@@ -5,13 +5,17 @@ import { store } from '../utils/store.js';
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
 
-function minutesBetween(t1, t2) {
-  if (!t1 || !t2) return null;
-  const [h1, m1] = t1.split(':').map(Number);
-  const [h2, m2] = t2.split(':').map(Number);
-  if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return null;
-  const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-  return diff > 0 ? diff : null;
+// 醒后状态选项
+const WAKE_STATES = [
+  { value: 'energized',  label: '精神饱满', emoji: '😊', color: '#34c759' },
+  { value: 'okay',       label: '状态一般', emoji: '😐', color: '#007aff' },
+  { value: 'drowsy',     label: '有些犯困', emoji: '😴', color: '#ffcc00' },
+  { value: 'exhausted',  label: '非常疲惫', emoji: '😵', color: '#ff3b30' },
+];
+
+// 判断是否为睡眠类习惯
+function isSleepHabit(h) {
+  return /睡/.test(h.name);
 }
 
 export default function HabitsPanel({ date, refreshSignal, onChange }) {
@@ -20,6 +24,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState(null);       // 正在拖拽的 habit id
   const [overId, setOverId] = useState(null);       // 拖拽悬停的目标 habit id
+  const [sleepModal, setSleepModal] = useState(null); // { habitId, habitName, sleepStart, sleepEnd, wakeState, sleepNote, targetMin }
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
 
@@ -69,6 +74,48 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     }
   }
 
+  // 打开睡眠记录弹窗
+  function openSleepModal(h) {
+    setSleepModal({
+      habitId: h.id,
+      habitName: h.name,
+      sleepStart: h.sleep_start || '',
+      sleepEnd: h.sleep_end || '',
+      wakeState: h.wake_state || '',
+      sleepNote: h.sleep_note || '',
+      targetMin: h.duration_min || 420,
+    });
+  }
+
+  // 保存睡眠记录
+  async function saveSleepLog() {
+    if (!sleepModal) return;
+    const { habitId, sleepStart, sleepEnd, wakeState, sleepNote } = sleepModal;
+    try {
+      const r = await API.habits.logSleep(habitId, date, {
+        sleep_start: sleepStart || null,
+        sleep_end: sleepEnd || null,
+        wake_state: wakeState || null,
+        sleep_note: sleepNote || null,
+      });
+      // 更新本地状态
+      setHabits(hs => hs.map(x => x.id === habitId ? {
+        ...x,
+        done_today: r.done,
+        sleep_start: sleepStart || null,
+        sleep_end: sleepEnd || null,
+        wake_state: wakeState || null,
+        sleep_note: sleepNote || null,
+        data_source: 'manual',
+      } : x));
+      store.broadcast({ type: 'habit', id: habitId, done_today: r.done ? 1 : 0 });
+      setSleepModal(null);
+      toast.success(r.done ? '睡眠达标，已自动打勾' : '已记录睡眠');
+    } catch (e) {
+      toast.error(e.message);
+    }
+  }
+
   function remove(h) {
     if (window.__archiveHabitConfirm) {
       window.__archiveHabitConfirm(h.id, h.name);
@@ -107,9 +154,34 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
 
   function formatTime(h) {
+    // 睡眠习惯且有实际记录：展示实际睡眠数据
+    if (isSleepHabit(h) && h.sleep_start && h.sleep_end) {
+      const dur = calcDurationMin(h.sleep_start, h.sleep_end);
+      const target = h.duration_min || 420;
+      const ws = WAKE_STATES.find(w => w.value === h.wake_state);
+      let txt = `${h.sleep_start} – ${h.sleep_end}`;
+      if (dur != null) {
+        txt += ' · ' + formatDuration(dur);
+        if (dur >= target) txt += ' ✅';
+        else txt += ` · 差${formatDuration(target - dur)}`;
+      }
+      if (ws) txt += ` · ${ws.emoji}${ws.label}`;
+      return txt;
+    }
+    // 睡眠习惯无记录：展示目标
+    if (isSleepHabit(h) && h.duration_min) {
+      const st = h.start_time || h.target_time;
+      const et = h.end_time;
+      let txt = '';
+      if (st && et) txt = `${st} – ${et}`;
+      else if (st) txt = st;
+      if (txt) txt += ' · ';
+      txt += `目标${formatDuration(h.duration_min)}`;
+      return txt;
+    }
+    // 其他习惯：原逻辑
     const st = h.start_time || h.target_time;
     const et = h.end_time;
-    // 兜底：优先按 start/end 实时计算，避免 duration_min 脏数据
     const calcDur = calcDurationMin(st, et);
     const displayDur = calcDur != null ? calcDur : h.duration_min;
     if (!st && !et && !displayDur) return '全天';
@@ -117,10 +189,6 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     if (st && et) txt = `${st} – ${et}`;
     else if (st) txt = st;
     if (displayDur) txt += (txt ? ' · ' : '') + formatDuration(displayDur);
-    else {
-      const calc = minutesBetween(st, et);
-      if (calc) txt += (txt ? ' · ' : '') + formatDuration(calc);
-    }
     return txt;
   }
 
@@ -183,6 +251,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     const gt = getHabitGrowthType(h);
     const isDragging = dragId === h.id;
     const isDragOver = overId === h.id && dragId && dragId !== h.id;
+    const isSleep = isSleepHabit(h);
+    const hasSleepData = isSleep && h.sleep_start && h.sleep_end;
     return (
       <div
         key={h.id}
@@ -217,6 +287,20 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           <p className={`text-[14px] font-medium ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>{h.emoji} {h.name}</p>
           <p className={`text-[12px] mt-0.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>{formatTime(h)}</p>
         </div>
+        {isSleep && (
+          <button
+            onClick={(e) => { e.stopPropagation(); openSleepModal(h); }}
+            className="text-[11px] px-2 py-0.5 rounded-md flex-shrink-0 self-center transition-all"
+            style={{
+              background: hasSleepData ? 'transparent' : '#f0f0f5',
+              color: hasSleepData ? (WAKE_STATES.find(w => w.value === h.wake_state)?.color || '#8e8e93') : '#8e8e93',
+              border: hasSleepData ? `1px solid ${WAKE_STATES.find(w => w.value === h.wake_state)?.color || '#d0d0d5'}40` : '1px solid transparent',
+            }}
+            title="记录睡眠"
+          >
+            {hasSleepData ? (WAKE_STATES.find(w => w.value === h.wake_state)?.emoji || '🌙') : '🌙 记录'}
+          </button>
+        )}
         <span
           className="w-2 h-2 rounded-full flex-shrink-0 self-center"
           style={{ background: getDotColor(h) }}
@@ -277,6 +361,116 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           {groupedHabits.energy.map(renderHabitRow)}
           {groupedHabits.mind.map(renderHabitRow)}
           {groupedHabits.skill.map(renderHabitRow)}
+        </div>
+      )}
+
+      {/* 睡眠记录弹窗 */}
+      {sleepModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.35)' }}
+          onClick={() => setSleepModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl p-5 w-[340px] max-w-[90vw]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[16px] font-semibold text-[#1c1c1e]">😴 {sleepModal.habitName}记录</h3>
+              <span className="text-[12px] text-[#8e8e93]">{date}</span>
+            </div>
+
+            {/* 入睡/起床时间 */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-[12px] text-[#8e8e93] mb-1 block">🛏 入睡时间</label>
+                <input
+                  type="time"
+                  value={sleepModal.sleepStart}
+                  onChange={(e) => setSleepModal(s => ({ ...s, sleepStart: e.target.value }))}
+                  className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff]"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-[#8e8e93] mb-1 block">⏰ 起床时间</label>
+                <input
+                  type="time"
+                  value={sleepModal.sleepEnd}
+                  onChange={(e) => setSleepModal(s => ({ ...s, sleepEnd: e.target.value }))}
+                  className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff]"
+                />
+              </div>
+            </div>
+
+            {/* 实际睡眠时长预览 */}
+            {sleepModal.sleepStart && sleepModal.sleepEnd && (
+              <div className="mb-4 px-3 py-2 rounded-lg" style={{ background: '#f8f9fa' }}>
+                {(() => {
+                  const dur = calcDurationMin(sleepModal.sleepStart, sleepModal.sleepEnd);
+                  if (dur == null) return null;
+                  const target = sleepModal.targetMin;
+                  const met = dur >= target;
+                  return (
+                    <p className="text-[13px]" style={{ color: met ? '#34c759' : '#ff9500' }}>
+                      📊 实际睡眠 {formatDuration(dur)}
+                      {met ? ' ✅ 达标' : ` · 差${formatDuration(target - dur)}`}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* 醒后状态 */}
+            <div className="mb-4">
+              <label className="text-[12px] text-[#8e8e93] mb-2 block">醒后状态</label>
+              <div className="grid grid-cols-2 gap-2">
+                {WAKE_STATES.map(ws => (
+                  <button
+                    key={ws.value}
+                    onClick={() => setSleepModal(s => ({ ...s, wakeState: s.wakeState === ws.value ? '' : ws.value }))}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-all"
+                    style={{
+                      background: sleepModal.wakeState === ws.value ? `${ws.color}15` : '#f8f9fa',
+                      border: sleepModal.wakeState === ws.value ? `1.5px solid ${ws.color}` : '1.5px solid transparent',
+                      color: sleepModal.wakeState === ws.value ? ws.color : '#1c1c1e',
+                    }}
+                  >
+                    <span className="text-[16px]">{ws.emoji}</span>
+                    <span>{ws.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 备注 */}
+            <div className="mb-4">
+              <label className="text-[12px] text-[#8e8e93] mb-1 block">备注</label>
+              <textarea
+                value={sleepModal.sleepNote}
+                onChange={(e) => setSleepModal(s => ({ ...s, sleepNote: e.target.value }))}
+                placeholder="昨晚做梦了，中间醒了一次..."
+                rows={2}
+                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff] resize-none"
+              />
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setSleepModal(null)}
+                className="px-4 py-2 rounded-lg text-[14px] text-[#8e8e93] hover:bg-[#f0f0f5]"
+              >
+                取消
+              </button>
+              <button
+                onClick={saveSleepLog}
+                className="px-4 py-2 rounded-lg text-[14px] text-white font-medium"
+                style={{ background: '#007aff' }}
+              >
+                保存
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

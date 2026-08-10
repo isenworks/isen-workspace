@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
 import { formatDuration, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
@@ -382,134 +383,136 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         </div>
       )}
 
-      {/* 睡眠记录 Modal - 与新建事项统一的标准样式 */}
-      {sleepPopover && (
+    </div>
+
+    {/* 睡眠记录 Modal - 用 Portal 挂到 document.body，避免被 glass-card backdrop-filter 困住 fixed 定位 */}
+    {sleepPopover && typeof document !== 'undefined' && createPortal(
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center sleep-modal-overlay"
+        style={{ background: 'rgba(0,0,0,0.35)' }}
+        onClick={() => setSleepPopover(null)}
+      >
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.35)' }}
-          onClick={() => setSleepPopover(null)}
+          ref={popoverRef}
+          className="bg-white rounded-2xl shadow-xl p-5 w-[420px] max-w-[90vw] popover-enter sleep-modal-dialog"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: 'rgba(250,250,252,0.96)',
+            backdropFilter: 'saturate(180%) blur(20px)',
+          }}
         >
-          <div
-            ref={popoverRef}
-            className="bg-white rounded-2xl shadow-xl p-5 w-[380px] max-w-[90vw] popover-enter"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: 'rgba(250,250,252,0.95)',
-              backdropFilter: 'saturate(180%) blur(20px)',
-            }}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[16px] font-semibold text-[#1c1c1e]">{sleepPopover.habitName}记录</h3>
-              <button
-                onClick={() => setSleepPopover(null)}
-                className="text-[#8e8e93] hover:text-[#1c1c1e] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
-                title="关闭"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M18 6L6 18M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-[16px] font-semibold text-[#1c1c1e]">{sleepPopover.habitName}记录</h3>
+            <button
+              onClick={() => setSleepPopover(null)}
+              className="text-[#8e8e93] hover:text-[#1c1c1e] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
+              title="关闭"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M18 6L6 18M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
 
-            {/* 入睡 / 起床时间 */}
-            <div className="grid grid-cols-[1fr_1fr_1fr] gap-3 mb-4 items-end">
-              <div>
-                <label className="text-[13px] text-[#8e8e93] mb-1.5 block">🛏 入睡</label>
-                <input
-                  type="time"
-                  value={sleepPopover.sleepStart}
-                  onChange={(e) => setSleepPopover(s => ({ ...s, sleepStart: e.target.value }))}
-                  className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff]"
-                />
-              </div>
-              <div>
-                <label className="text-[13px] text-[#8e8e93] mb-1.5 block">⏰ 起床</label>
-                <input
-                  type="time"
-                  value={sleepPopover.sleepEnd}
-                  onChange={(e) => setSleepPopover(s => ({ ...s, sleepEnd: e.target.value }))}
-                  className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff]"
-                />
-              </div>
-              <div>
-                <label className="text-[13px] text-[#8e8e93] mb-1.5 block">📅 日期</label>
-                <div className="border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] bg-white">
-                  {date}
-                </div>
-              </div>
-            </div>
-
-            {/* 实际睡眠时长预览 */}
-            {sleepPopover.sleepStart && sleepPopover.sleepEnd && (
-              <div className="mb-4 px-3 py-2 rounded-lg" style={{ background: '#f8f9fa' }}>
-                {(() => {
-                  const dur = calcDurationMin(sleepPopover.sleepStart, sleepPopover.sleepEnd);
-                  if (dur == null) return null;
-                  const target = sleepPopover.targetMin;
-                  const met = dur >= target;
-                  return (
-                    <p className="text-[13px]" style={{ color: met ? '#34c759' : '#ff9500' }}>
-                      📊 实际睡眠 {formatDuration(dur)}
-                      {met ? ' ✅ 达标' : ` · 差${formatDuration(target - dur)}`}
-                    </p>
-                  );
-                })()}
-              </div>
-            )}
-
-            {/* 醒后状态 */}
-            <div className="mb-4">
-              <label className="text-[13px] text-[#8e8e93] mb-2 block">醒后状态</label>
-              <div className="grid grid-cols-2 gap-2">
-                {WAKE_STATES.map(ws => (
-                  <button
-                    key={ws.value}
-                    onClick={() => setSleepPopover(s => ({ ...s, wakeState: s.wakeState === ws.value ? '' : ws.value }))}
-                    className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-all border"
-                    style={{
-                      background: sleepPopover.wakeState === ws.value ? `${ws.color}15` : '#fff',
-                      borderColor: sleepPopover.wakeState === ws.value ? ws.color : '#e5e5ea',
-                      color: sleepPopover.wakeState === ws.value ? ws.color : '#1c1c1e',
-                    }}
-                  >
-                    <span className="text-[15px]">{ws.emoji}</span>
-                    <span>{ws.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 备注 */}
-            <div className="mb-5">
-              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">备注</label>
-              <textarea
-                value={sleepPopover.sleepNote}
-                onChange={(e) => setSleepPopover(s => ({ ...s, sleepNote: e.target.value }))}
-                placeholder="例如：昨晚做梦了，中间醒了一次..."
-                rows={2}
-                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff] resize-none bg-white"
+          {/* 入睡 / 起床时间 / 日期 */}
+          <div className="grid grid-cols-3 gap-3 mb-4 items-end">
+            <div>
+              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">🛏 入睡</label>
+              <input
+                type="time"
+                value={sleepPopover.sleepStart}
+                onChange={(e) => setSleepPopover(s => ({ ...s, sleepStart: e.target.value }))}
+                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff] bg-white"
               />
             </div>
-
-            {/* 操作按钮 */}
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setSleepPopover(null)}
-                className="px-4 py-2 rounded-lg text-[14px] text-[#8e8e93] hover:bg-[#e5e5ea] bg-[#f0f0f5]"
-              >
-                取消
-              </button>
-              <button
-                onClick={saveSleepLog}
-                className="px-4 py-2 rounded-lg text-[14px] text-white font-medium"
-                style={{ background: '#007aff' }}
-              >
-                保存
-              </button>
+            <div>
+              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">⏰ 起床</label>
+              <input
+                type="time"
+                value={sleepPopover.sleepEnd}
+                onChange={(e) => setSleepPopover(s => ({ ...s, sleepEnd: e.target.value }))}
+                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff] bg-white"
+              />
+            </div>
+            <div>
+              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">📅 日期</label>
+              <div className="border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] bg-white">
+                {date}
+              </div>
             </div>
           </div>
+
+          {/* 实际睡眠时长预览 */}
+          {sleepPopover.sleepStart && sleepPopover.sleepEnd && (
+            <div className="mb-4 px-3 py-2 rounded-lg" style={{ background: '#f8f9fa' }}>
+              {(() => {
+                const dur = calcDurationMin(sleepPopover.sleepStart, sleepPopover.sleepEnd);
+                if (dur == null) return null;
+                const target = sleepPopover.targetMin;
+                const met = dur >= target;
+                return (
+                  <p className="text-[13px]" style={{ color: met ? '#34c759' : '#ff9500' }}>
+                    📊 实际睡眠 {formatDuration(dur)}
+                    {met ? ' ✅ 达标' : ` · 差${formatDuration(target - dur)}`}
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* 醒后状态 */}
+          <div className="mb-4">
+            <label className="text-[13px] text-[#8e8e93] mb-2 block">醒后状态</label>
+            <div className="grid grid-cols-2 gap-2">
+              {WAKE_STATES.map(ws => (
+                <button
+                  key={ws.value}
+                  onClick={() => setSleepPopover(s => ({ ...s, wakeState: s.wakeState === ws.value ? '' : ws.value }))}
+                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-all border"
+                  style={{
+                    background: sleepPopover.wakeState === ws.value ? `${ws.color}15` : '#fff',
+                    borderColor: sleepPopover.wakeState === ws.value ? ws.color : '#e5e5ea',
+                    color: sleepPopover.wakeState === ws.value ? ws.color : '#1c1c1e',
+                  }}
+                >
+                  <span className="text-[15px]">{ws.emoji}</span>
+                  <span>{ws.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 备注 */}
+          <div className="mb-5">
+            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">备注</label>
+            <textarea
+              value={sleepPopover.sleepNote}
+              onChange={(e) => setSleepPopover(s => ({ ...s, sleepNote: e.target.value }))}
+              placeholder="例如：昨晚做梦了，中间醒了一次..."
+              rows={2}
+              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff] resize-none bg-white"
+            />
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setSleepPopover(null)}
+              className="px-4 py-2 rounded-lg text-[14px] text-[#8e8e93] hover:bg-[#e5e5ea] bg-[#f0f0f5]"
+            >
+              取消
+            </button>
+            <button
+              onClick={saveSleepLog}
+              className="px-4 py-2 rounded-lg text-[14px] text-white font-medium"
+              style={{ background: '#007aff' }}
+            >
+              保存
+            </button>
+          </div>
         </div>
-      )}
-    </div>
+      </div>,
+      document.body
+    )}
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Clock, Pencil, X, Zap, Heart, Moon,
+  Clock, Pencil, X, Zap, Heart, Moon, Target,
 } from 'lucide-react';
 import { API } from '../api/client.js';
 import { formatDuration, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
@@ -198,13 +198,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     if (isSleepHabit(h)) {
       const st = h.start_time || h.target_time;
       const et = h.end_time;
-      let txt = '';
-      if (st && et) txt = `${st} – ${et}`;
-      else if (st) txt = st;
-      const target = h.duration_min || 420;
-      if (txt) txt += ' · ';
-      txt += `目标 ${formatDuration(target)}`;
-      return txt;
+      if (st && et) return `${st} – ${et}`;
+      return st || '';
     }
     const st = h.start_time || h.target_time;
     const et = h.end_time;
@@ -286,16 +281,15 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     );
   }
 
-  // 右侧统一按钮（记录/编辑样式一致）
+  // 右侧统一按钮（只保留图标，无文字）
   function RightActionButton({ hasSleepData, onClick }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); onClick(); }}
-        className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#f2f2f7] border border-[#e5e5ea] hover:bg-[#e9e9ef] text-[11.5px] text-[#4a4a4f] font-medium transition-colors"
+        className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#f2f2f7] border border-[#e5e5ea] hover:bg-[#e9e9ef] text-[#4a4a4f] transition-colors"
         title={hasSleepData ? '编辑睡眠记录' : '记录睡眠'}
       >
-        <Pencil size={12} strokeWidth={2} />
-        <span>{hasSleepData ? '编辑' : '记录'}</span>
+        <Pencil size={12.5} strokeWidth={2} />
       </button>
     );
   }
@@ -313,7 +307,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     return (
       <div
         key={h.id}
-        className="habit-row px-3 flex items-start gap-3 group py-2.5"
+        className="habit-row px-3 flex items-center gap-3 group py-2.5"
         style={{
           background: getBg(h),
           opacity: isDragging ? 0.4 : 1,
@@ -334,7 +328,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       >
         <input
           type="checkbox"
-          className="cb-round mt-0.5"
+          className="cb-round"
           checked={!!h.done_today}
           onChange={() => {}}
           style={{ '--cb-color': getDoneColor(h), '--cb-border': h.done_today ? getDoneColor(h) : getBorderColor(h) }}
@@ -343,24 +337,20 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
         {/* 文本区 */}
         <div className="flex-1 min-w-0">
-          {/* 第一行：标题 + 编辑按钮/指示点（对齐在最右侧） */}
-          <div className="flex items-center w-full gap-2">
-            <p className={`text-[14px] font-medium leading-tight flex-1 min-w-0 ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
-              {h.emoji} {h.name}
-            </p>
-            <span className="inline-flex items-center gap-2 flex-shrink-0">
-              {isSleep && (
-                <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
-              )}
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: getDotColor(h) }}
-              ></span>
-            </span>
-          </div>
+          {/* 第一行：标题 */}
+          <p className={`text-[14px] font-medium leading-tight ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+            {h.emoji} {h.name}
+          </p>
           {/* 第二行：预设时间/目标 */}
-          <p className={`text-[12px] mt-0.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
-            {formatTime(h)}
+          <p className={`text-[12px] mt-0.5 flex items-center gap-1 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
+            {isSleep ? (
+              <>
+                <Target size={12.5} strokeWidth={2} className="flex-shrink-0" />
+                <span className="whitespace-nowrap">
+                  {h.start_time || h.target_time} – {h.end_time} · {formatDuration(h.duration_min || 420)}
+                </span>
+              </>
+            ) : formatTime(h)}
           </p>
           {/* 第三行：仅睡眠习惯且有实际数据 */}
           {isSleep && hasSleepData && thirdLine && (
@@ -372,9 +362,9 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
                 </span>
                 {thirdLine.dur >= thirdLine.target ? (
-                  <span className="text-[#34c759] font-semibold whitespace-nowrap flex-shrink-0">· 达成目标</span>
+                  <span className="text-[#34c759] whitespace-nowrap flex-shrink-0">· 达成目标</span>
                 ) : (
-                  <span className="text-[#ff9500] font-semibold whitespace-nowrap flex-shrink-0">
+                  <span className="text-[#ff9500] whitespace-nowrap flex-shrink-0">
                     · 差{formatDuration(thirdLine.target - thirdLine.dur)}
                   </span>
                 )}
@@ -393,12 +383,21 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           )}
         </div>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); remove(h); }}
-          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#ff3b30] text-xs px-1 flex-shrink-0 self-start"
-          title="删除"
-          style={{ marginTop: 2 }}
-        >×</button>
+        {/* 右侧操作：编辑按钮 + 小圆点 + 删除按钮 */}
+        <span className="inline-flex items-center gap-2 flex-shrink-0 self-center">
+          {isSleep && (
+            <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
+          )}
+          <span
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ background: getDotColor(h) }}
+          ></span>
+          <button
+            onClick={(e) => { e.stopPropagation(); remove(h); }}
+            className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#ff3b30] text-xs px-1 flex-shrink-0"
+            title="删除"
+          >×</button>
+        </span>
       </div>
     );
   }

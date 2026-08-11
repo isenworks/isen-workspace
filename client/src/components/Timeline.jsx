@@ -561,6 +561,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       className={`text-[14px] font-medium ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (item.isHabit || isCat4) return;
+                        onEdit?.(item);
                       }}
                     >
                       {item.emoji ? item.emoji + ' ' : ''}{item.title}
@@ -569,6 +571,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       className={`text-[12px] mt-0 ${done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (item.isHabit || isCat4) return;
+                        onEdit?.(item);
                       }}
                     >
                       {item.isHabit ? formatTimeLabel(item) : (isSquareCheckbox ? formatTimeLabel(item) : formatShort(item))}

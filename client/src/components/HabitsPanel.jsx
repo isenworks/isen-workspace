@@ -274,8 +274,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   function StateChip({ icon, label, color }) {
     const Icon = icon;
     return (
-      <span className="inline-flex items-center gap-1 text-[12.5px] font-medium" style={{ color }}>
-        <Icon size={13} strokeWidth={2} />
+      <span className="inline-flex items-center gap-1 text-[12px] font-medium" style={{ color }}>
+        <Icon size={12.5} strokeWidth={2} />
         <span>{label}</span>
       </span>
     );
@@ -342,10 +342,10 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
             {h.emoji} {h.name}
           </p>
           {/* 第二行：预设时间/目标 */}
-          <p className={`text-[12.5px] mt-0.5 flex items-center gap-1.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
+          <p className={`text-[12px] mt-0.5 flex items-center gap-1 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
             {isSleep ? (
               <>
-                <Target size={13} strokeWidth={2} className="flex-shrink-0" />
+                <Target size={12.5} strokeWidth={2} className="flex-shrink-0" />
                 <span className="whitespace-nowrap">
                   {h.start_time || h.target_time} – {h.end_time} · {formatDuration(h.duration_min || 420)}
                 </span>
@@ -356,8 +356,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           {isSleep && hasSleepData && thirdLine && (
             <>
               <div className="my-2 h-px bg-[#e5e5ea]" style={{ opacity: 0.8 }}></div>
-              <div className="flex items-center gap-1.5 text-[12.5px] text-[#4a4a4f] w-full">
-                <Clock size={13} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
+              <div className="flex items-center gap-1 text-[12px] text-[#4a4a4f] w-full">
+                <Clock size={12.5} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
                 <span className="whitespace-nowrap flex-shrink-0">
                   {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
                 </span>
@@ -370,7 +370,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   </span>
                 )}
                 <span className="flex-1"></span>
-                <span className="inline-flex items-center gap-1.5 flex-shrink-0">
+                <span className="inline-flex items-center gap-1 flex-shrink-0">
                   {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}
                   {moodMeta && (
                     <>

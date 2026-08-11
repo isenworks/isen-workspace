@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日总结面板 v2 · Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "SF Pro Text", "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: #1c1c1e;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    padding: 0;
+  }
+
+  .ws-shell { display: flex; min-height: 100vh; }
+
+  .ws-sidebar {
+    width: 220px; flex-shrink: 0;
+    padding: 20px 12px;
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(0,0,0,0.04);
+  }
+  .sb-logo { display: flex; align-items: center; gap: 10px; padding: 6px 8px 16px; }
+  .sb-logo .av {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #007aff, #5856d6);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700;
+  }
+  .sb-logo .nm { font-size: 13px; font-weight: 700; }
+  .sb-logo .dt { font-size: 11px; color: #8e8e93; margin-top: 1px; }
+  .sb-nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 10px;
+    font-size: 13px; color: #3c3c43; cursor: pointer;
+    font-weight: 500; margin-bottom: 2px;
+  }
+  .sb-nav-item.on { background: rgba(0,122,255,0.10); color: #007aff; font-weight: 600; }
+  .sb-nav-item svg { width: 16px; height: 16px; opacity: 0.8; }
+  .sb-nav-section {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #8e8e93;
+    padding: 14px 10px 4px;
+  }
+
+  .ws-main {
+    flex: 1; min-width: 0;
+    padding: 20px 24px 80px;
+    display: flex; flex-direction: column; gap: 16px;
+    max-width: 1180px;
+  }
+
+  .glass-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+  }
+
+  .week-cal { display: flex; gap: 4px; padding: 12px 16px; overflow-x: auto; }
+  .week-cal .day {
+    width: 44px; height: 56px; border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; cursor: pointer; transition: all .2s; flex-shrink: 0;
+  }
+  .week-cal .day:hover { background: rgba(120,120,128,0.08); }
+  .week-cal .day.today {
+    background: #007aff; color: #fff;
+    box-shadow: 0 2px 8px rgba(0,122,255,0.35);
+  }
+  .week-cal .day .wd { font-size: 10px; opacity: 0.6; }
+  .week-cal .day.today .wd { opacity: 0.85; }
+  .week-cal .day .dn { font-size: 15px; font-weight: 600; }
+  .week-cal .day .dots { display: flex; gap: 2px; }
+  .week-cal .day .dots .d { width: 4px; height: 4px; border-radius: 50%; }
+
+  .stats-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; flex-wrap: wrap; gap: 8px;
+  }
+  .sb-left { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .stat-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 999px;
+    background: rgba(255,255,255,0.8); border: 1px solid rgba(0,0,0,0.05);
+    font-size: 12px; font-weight: 600; color: #1c1c1e;
+    cursor: pointer; transition: all .15s;
+  }
+  .stat-chip:hover { border-color: rgba(0,122,255,0.2); background: rgba(0,122,255,0.04); }
+  .stat-chip .em { font-size: 13px; }
+  .stat-chip .n { color: #8e8e93; font-weight: 500; }
+  .stat-chip.primary { background: #007aff; color: #fff; border-color: transparent; }
+  .stat-chip.primary .n { color: rgba(255,255,255,0.75); }
+  .stat-chip.primary:hover { background: #0069d6; }
+
+  .tab-group {
+    display: inline-flex; background: rgba(120,120,128,0.12); border-radius: 9px; padding: 2px;
+  }
+  .tab-group button {
+    padding: 4px 13px; font-size: 13px; font-weight: 500;
+    color: #3c3c43; border-radius: 7px; transition: all .2s;
+    border: none; background: transparent; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .tab-group button.active {
+    background: #007aff; color: #fff; font-weight: 600;
+    box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
+  }
+
+  .sb-right { display: flex; gap: 6px; align-items: center; }
+  .new-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 12px; border-radius: 999px;
+    background: rgba(120,120,128,0.12); font-size: 12px; font-weight: 600;
+    color: #3c3c43; border: none; cursor: pointer;
+  }
+
+  .main-grid {
+    display: grid; grid-template-columns: 5fr 7fr; gap: 16px;
+  }
+  @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+  .panel { padding: 14px 16px; }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  }
+  .panel-head .t {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 700;
+  }
+  .panel-head .bar { width: 3px; height: 14px; border-radius: 2px; background: #007aff; }
+
+  .task-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 12px; margin-bottom: 4px;
+  }
+  .task-row:hover { background: rgba(0,0,0,0.02); }
+  .task-row .cat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .task-row .tt { font-size: 13.5px; font-weight: 500; flex: 1; min-width: 0; }
+  .task-row .tt.done { color: #aeaeae; text-decoration: line-through; }
+  .task-row .tm { font-size: 11px; color: #8e8e93; font-weight: 500; }
+  .cb-sm {
+    width: 18px; height: 18px; border-radius: 5px;
+    border: 1.5px solid #d1d1d6; background: #fff;
+    cursor: pointer; flex-shrink: 0; appearance: none; -webkit-appearance: none;
+  }
+  .cb-sm:checked { background: #007aff; border-color: #007aff; }
+  .cb-sm:checked::after {
+    content: ""; width: 4px; height: 8px;
+    border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px,-1px);
+    display: block;
+  }
+
+  /* ============ 总结面板 ============ */
+  .summary-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .summary-head .l {
+    font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .summary-head .l .date-tag {
+    font-size: 12px; font-weight: 500; color: #8e8e93;
+    background: rgba(120,120,128,0.10); padding: 2px 10px; border-radius: 999px;
+  }
+
+  .data-strip {
+    display: flex; align-items: stretch; gap: 0;
+    padding: 6px 2px; margin-bottom: 12px;
+    background: rgba(0,122,255,0.025);
+    border-radius: 10px;
+    border: 1px solid rgba(0,122,255,0.06);
+  }
+  .data-strip .item {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 2px;
+    align-items: center; justify-content: center;
+    padding: 8px 4px;
+  }
+  .data-strip .item + .item {
+    border-left: 1px solid rgba(0,122,255,0.08);
+  }
+  .data-strip .k {
+    font-size: 10px; color: #8e8e93; font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .data-strip .v {
+    font-size: 14px; font-weight: 700; color: #1c1c1e;
+    display: flex; align-items: baseline; gap: 2px;
+  }
+  .data-strip .v .sub { font-size: 11px; font-weight: 500; color: #8e8e93; }
+  .data-strip .v.bad { color: #ff3b30; }
+
+  .editor-card {
+    background: rgba(255,255,255,0.55);
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .section-block {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+  }
+  .section-block:last-child { border-bottom: none; }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .section-head .l {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 600; color: #1c1c1e;
+  }
+  .section-head .idx {
+    width: 18px; height: 18px; border-radius: 5px;
+    color: #fff; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-head .hint {
+    font-size: 11px; color: #aeaeb2; font-weight: 400;
+  }
+  .section-head .wc {
+    font-size: 10px; font-weight: 600; color: #c7c7cc;
+  }
+  .section-ta {
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px; line-height: 1.7;
+    font-family: inherit; color: #1c1c1e;
+    background: rgba(0,0,0,0.015);
+    outline: none; resize: vertical;
+    min-height: 60px;
+    transition: all .15s;
+  }
+  .section-ta:focus {
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(0,122,255,0.12);
+  }
+  .section-ta::placeholder { color: #c7c7cc; }
+
+  .footer-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 12px; padding: 10px 14px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.04);
+    flex-wrap: wrap; gap: 8px;
+  }
+  .footer-left { font-size: 11px; color:#8e8e93; display:flex; gap: 8px; align-items:center; }
+  .footer-left .saved { color: #34c759; font-weight: 600; }
+  .footer-right { display:flex; gap: 6px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; transition: all .15s;
+  }
+  .btn.ghost { background: rgba(120,120,128,0.10); color:#3c3c43; }
+  .btn.ghost:hover { background: rgba(120,120,128,0.18); }
+  .btn.blue { background: #007aff; color: #fff; }
+  .btn.blue:hover { background: #0069d6; }
+  .btn.green { background: #34c759; color: #fff; }
+  .btn.green:hover { background: #2db24f; }
+
+  /* ============ Markdown 弹窗 ============ */
+  .md-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px); z-index: 999;
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .md-overlay.show { display: flex; }
+  .md-dialog {
+    width: min(860px, 100%); max-height: 85vh;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    overflow: hidden;
+    display: grid; grid-template-rows: auto 1fr auto;
+  }
+  .md-head {
+    display:flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .md-head .l { font-size: 14px; font-weight: 700; display:flex; align-items:center; gap: 6px; }
+  .md-head .l .pill {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: rgba(0,122,255,0.10); color: #007aff;
+  }
+  .md-head .x {
+    width: 28px; height: 28px; border-radius: 8px; background: rgba(120,120,128,0.10);
+    display:flex; align-items: center; justify-content: center; cursor:pointer;
+    color:#575f6a; font-size: 16px; font-weight: 500; border: none;
+  }
+  .md-head .x:hover { background: rgba(255,59,48,0.10); color:#ff3b30; }
+  .md-body {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    overflow: hidden;
+  }
+  @media (max-width: 700px) { .md-body { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
+  .md-pane { overflow-y: auto; padding: 16px; }
+  .md-pane.left { border-right: 1px solid rgba(0,0,0,0.05); background: #0d1117; }
+  .md-pane.left .label { color:#7d8590; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 8px; text-transform: uppercase; }
+  .md-pane.left pre {
+    margin: 0; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.7; color: #e6edf3;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .md-pane.right .label { color:#8e8e93; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 8px; text-transform: uppercase; }
+  .md-pane.right .content { font-size: 13px; line-height: 1.7; color:#1c1c1e; }
+  .md-pane.right h1 { font-size: 16px; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 2px solid rgba(0,0,0,0.06); }
+  .md-pane.right h2 { font-size: 13.5px; margin: 14px 0 6px; color: #007aff; display: flex; align-items: center; gap: 6px; }
+  .md-pane.right h2::before { content: ""; width: 3px; height: 12px; border-radius: 2px; background: #007aff; }
+  .md-pane.right ul { padding-left: 18px; margin: 4px 0; }
+  .md-pane.right li { margin: 2px 0; }
+  .md-pane.right table { border-collapse: collapse; width: 100%; font-size: 12px; margin: 6px 0; }
+  .md-pane.right th, .md-pane.right td { border: 1px solid rgba(0,0,0,0.08); padding: 4px 8px; text-align: left; }
+  .md-pane.right th { background: rgba(0,0,0,0.02); font-weight: 600; }
+  .md-pane.right blockquote {
+    border-left: 3px solid #007aff; background: rgba(0,122,255,0.04);
+    padding: 6px 10px; margin: 6px 0; border-radius: 0 8px 8px 0; color: #3c3c43;
+    font-size: 12px;
+  }
+  .md-pane.right .tg { color: #34c759; font-weight: 600; }
+  .md-pane.right .tr { color: #ff3b30; font-weight: 600; }
+  .md-pane.right .muted { color: #8e8e93; }
+  .md-foot {
+    padding: 10px 16px; border-top: 1px solid rgba(0,0,0,0.05);
+    display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .md-foot .l { font-size: 11px; color:#8e8e93; }
+  .md-foot .r { display:flex; gap: 6px; }
+</style>
+</head>
+<body>
+
+<div class="ws-shell">
+
+  <aside class="ws-sidebar">
+    <div class="sb-logo">
+      <div class="av">E</div>
+      <div>
+        <div class="nm">Ethan</div>
+        <div class="dt">8月11日 周二</div>
+      </div>
+    </div>
+    <div class="sb-nav-section">主要功能</div>
+    <div class="sb-nav-item on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2h-4"></path><path d="M9 11V5a2 2 0 012-2h2a2 2 0 012 2v6"></path></svg>
+      计划总结
+    </div>
+    <div class="sb-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      日历
+    </div>
+    <div class="sb-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>
+      目标
+    </div>
+    <div class="sb-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      数据看板
+    </div>
+    <div class="sb-nav-section">其他</div>
+    <div class="sb-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"></path></svg>
+      习惯追踪
+    </div>
+    <div class="sb-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+      设置
+    </div>
+  </aside>
+
+  <main class="ws-main">
+
+    <!-- 周日历条 -->
+    <div class="glass-card week-cal">
+      <div class="day"><span class="wd">日</span><span class="dn">9</span><div class="dots"><span class="d" style="background:#ff3b30"></span><span class="d" style="background:#34c759"></span></div></div>
+      <div class="day"><span class="wd">一</span><span class="dn">10</span><div class="dots"><span class="d" style="background:#007aff"></span><span class="d" style="background:#ff9500"></span></div></div>
+      <div class="day today"><span class="wd">二</span><span class="dn">11</span><div class="dots"><span class="d" style="background:#fff;opacity:0.85"></span></div></div>
+      <div class="day"><span class="wd">三</span><span class="dn">12</span></div>
+      <div class="day"><span class="wd">四</span><span class="dn">13</span></div>
+      <div class="day"><span class="wd">五</span><span class="dn">14</span></div>
+      <div class="day"><span class="wd">六</span><span class="dn">15</span></div>
+    </div>
+
+    <!-- StatsBar -->
+    <div class="glass-card stats-bar">
+      <div class="sb-left">
+        <div class="stat-chip"><span class="em">🎯</span><span>重点</span><span class="n">2/4</span></div>
+        <div class="stat-chip"><span class="em">✅</span><span>待办</span><span class="n">3/7</span></div>
+        <div class="stat-chip"><span class="em">💧</span><span>习惯</span><span class="n">2/4</span></div>
+        <div class="stat-chip primary" id="summaryBtn">
+          <span class="em">📝</span>
+          <span>今日总结</span>
+        </div>
+      </div>
+      <div class="sb-right">
+        <div class="tab-group">
+          <button>今日</button>
+          <button class="active">本周</button>
+          <button>本月</button>
+        </div>
+        <button class="new-btn">+ 新建</button>
+      </div>
+    </div>
+
+    <!-- 主体 5/7 网格 -->
+    <div class="main-grid">
+
+      <!-- ===== 左栏：重点事项 + 习惯 ===== -->
+      <div class="glass-card panel">
+        <div class="panel-head">
+          <div class="t"><span class="bar"></span>重点事项</div>
+          <span style="font-size:11px;color:#8e8e93;font-weight:500">2 / 4 完成</span>
+        </div>
+
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm" checked="">
+          <span class="cat-dot" style="background:#ff3b30"></span>
+          <span class="tt done">投简历</span>
+          <span class="tm">14:00</span>
+        </div>
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm" checked="">
+          <span class="cat-dot" style="background:#ff3b30"></span>
+          <span class="tt done">优化简历</span>
+          <span class="tm">09:00</span>
+        </div>
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm">
+          <span class="cat-dot" style="background:#ff9500"></span>
+          <span class="tt">数据分析练习</span>
+          <span class="tm">20:00</span>
+        </div>
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm">
+          <span class="cat-dot" style="background:#ff9500"></span>
+          <span class="tt">英语口语练习</span>
+          <span class="tm">07:15</span>
+        </div>
+
+        <div style="height:1px;background:rgba(0,0,0,0.04);margin:10px -4px 8px"></div>
+
+        <div class="panel-head" style="margin-bottom:6px">
+          <div class="t" style="font-size:13px"><span class="bar" style="background:#34c759"></span>今日习惯</div>
+          <span style="font-size:11px;color:#8e8e93;font-weight:500">2 / 4 达成</span>
+        </div>
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm" checked="">
+          <span style="font-size:14px">😴</span>
+          <span class="tt done">睡眠7小时</span>
+          <span class="tm">7h50m</span>
+        </div>
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm" checked="">
+          <span style="font-size:14px">📖</span>
+          <span class="tt done">看书30m</span>
+          <span class="tm">36m</span>
+        </div>
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm">
+          <span style="font-size:14px">🗣️</span>
+          <span class="tt">即兴表达</span>
+          <span class="tm">—</span>
+        </div>
+        <div class="task-row">
+          <input type="checkbox" class="cb-sm">
+          <span style="font-size:14px">🎤</span>
+          <span class="tt">英语口语</span>
+          <span class="tm">—</span>
+        </div>
+      </div>
+
+      <!-- ===== 右栏：总结面板 ===== -->
+      <div class="glass-card panel">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="tab-group">
+            <button id="tabTL">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+              时间线
+            </button>
+            <button class="active" id="tabSum">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              每日总结
+            </button>
+          </div>
+          <span style="font-size:11px;color:#8e8e93">✓ 已保存 · 20:47</span>
+        </div>
+
+        <div id="summaryPane">
+
+          <!-- 5 列紧凑数据条 -->
+          <div class="data-strip">
+            <div class="item">
+              <span class="k">重点事项</span>
+              <span class="v">2<span class="sub">/4</span></span>
+            </div>
+            <div class="item">
+              <span class="k">习惯打卡</span>
+              <span class="v">2<span class="sub">/4</span></span>
+            </div>
+            <div class="item">
+              <span class="k">专注时长</span>
+              <span class="v">5.6<span class="sub">h</span></span>
+            </div>
+            <div class="item">
+              <span class="k">睡眠</span>
+              <span class="v">7h50m</span>
+            </div>
+            <div class="item">
+              <span class="k">精力</span>
+              <span class="v bad">疲惫</span>
+            </div>
+          </div>
+
+          <!-- 4 段编辑区 -->
+          <div class="editor-card">
+
+            <div class="section-block">
+              <div class="section-head">
+                <div class="l">
+                  <span class="idx" style="background:#ff3b30">1</span>
+                  今日成果 / 亮点
+                </div>
+                <span class="wc">36字</span>
+              </div>
+              <textarea class="section-ta" placeholder="今天完成了什么重要的事？">1. 完成简历投递 8 家 · 3 家秒回测评
+2. 优化工作台睡眠记录面板
+3. 晨读《深度工作》第 3 章</textarea>
+            </div>
+
+            <div class="section-block">
+              <div class="section-head">
+                <div class="l">
+                  <span class="idx" style="background:#ff9500">2</span>
+                  今日不足 / 改进
+                </div>
+                <span class="wc">48字</span>
+              </div>
+              <textarea class="section-ta" placeholder="哪些事没做好？哪里可以改进？">1. 下午 14:00-16:00 看消息太多，深度工作只完成 50%
+2. 原定 16 点做英语口语，拖到晚上 10 点状态已经差了</textarea>
+            </div>
+
+            <div class="section-block">
+              <div class="section-head">
+                <div class="l">
+                  <span class="idx" style="background:#007aff">3</span>
+                  今日收获 <span class="hint">可复利的新知 / 动作</span>
+                </div>
+                <span class="wc">52字</span>
+              </div>
+              <textarea class="section-ta" placeholder="学到了什么新知识？有什么可以复用的经验？">1. 深度工作需要把手机放另一个房间，光静音没用
+2. 简历投递黄金时段是 9:00-10:30，回复率最高
+3. 英语口语放在早晨比晚上效果好 2 倍</textarea>
+            </div>
+
+            <div class="section-block">
+              <div class="section-head">
+                <div class="l">
+                  <span class="idx" style="background:#34c759">4</span>
+                  明日计划 / 验证清单
+                </div>
+                <span class="wc">62字</span>
+              </div>
+              <textarea class="section-ta" placeholder="明天最重要的 3 件事？">1. [Top1] 上午 9-11 点做两家公司测评 + 投 5 家
+2. [Top2] 下午 2-4 点深度刷算法 20 题
+3. [习惯] 早上 7 点起床 + 晨读 15 分钟
+4. [验证] 早上 7 点 vs 晚上 10 点做英语口语</textarea>
+            </div>
+
+          </div>
+
+          <!-- 底部操作栏 -->
+          <div class="footer-bar">
+            <div class="footer-left">
+              <span class="saved">✓ 已保存</span>
+              <span>· 8月11日 20:47</span>
+            </div>
+            <div class="footer-right">
+              <button class="btn ghost" id="openMdBtn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                预览 Markdown
+              </button>
+              <button class="btn blue" id="copyMdBtn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                复制 Markdown
+              </button>
+              <button class="btn green">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                保存
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="timelinePane" style="display:none;padding:40px 0;text-align:center;color:#8e8e93;font-size:13px">
+          时间线视图（点击"时间线"tab 可见）
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Markdown 预览弹窗 ===== -->
+<div class="md-overlay" id="mdOverlay">
+  <div class="md-dialog">
+    <div class="md-head">
+      <div class="l">
+        Markdown 预览
+        <span class="pill">可粘贴到飞书 / Notion</span>
+      </div>
+      <button class="x" id="mdClose">×</button>
+    </div>
+    <div class="md-body">
+      <div class="md-pane left">
+        <div class="label">原始 Markdown</div>
+        <pre id="rawMd"># 8月11日 · 周二 · 每日总结
+
+&gt; 📅 2026-08-11 · 第32周
+&gt; 📊 重点 2/4 · 习惯 2/4 · 专注 5.6h
+
+---
+
+## ✅ 今日重点事项
+
+| 事项 | 时间段 | 时长 | 状态 |
+|---|---|---|---|
+| 🎯 优化简历 | 09:00 – 11:30 | 2.5h | ✅ 完成 |
+| 📨 投简历 | 14:00 – 19:00 | 5h | ✅ 完成 |
+| 💻 数据分析练习 | 20:00 – 22:00 | 2h | ❌ 未完成 |
+| 🎤 英语口语练习 | 07:15 – 07:30 | 15m | ❌ 未完成 |
+
+&gt; 完成率 50%
+
+---
+
+## 💧 习惯打卡
+
+| 习惯 | 目标 | 实际 | 状态 |
+|---|---|---|---|
+| 😴 睡眠7小时 | 23:00-06:00 · 7h | 00:00-07:00 · **7h50m** | ✅ 达成 |
+| 📖 看书30m | 07:30-08:00 · 30m | 07:32-08:08 · **36m** | ✅ 达成 |
+| 🗣️ 即兴表达 | 07:00-07:15 · 15m | – | ❌ 未开始 |
+| 🎤 英语口语 | 07:15-07:30 · 15m | – | ❌ 未开始 |
+
+**精力**：⚡疲惫 · **心情**：♡消极
+
+---
+
+## 1. 今日成果 / 亮点
+
+1. 完成简历投递 8 家 · 3 家秒回测评
+2. 优化工作台睡眠记录面板
+3. 晨读《深度工作》第 3 章
+
+## 2. 今日不足 / 改进
+
+1. 下午 14:00-16:00 看消息太多，深度工作只完成 50%
+2. 原定 16 点做英语口语，拖到晚上 10 点状态已经差了
+
+## 3. 今日收获（可复利的新知 / 动作）
+
+1. 深度工作需要把手机放另一个房间，光静音没用
+2. 简历投递黄金时段是 9:00-10:30，回复率最高
+3. 英语口语放在早晨比晚上效果好 2 倍
+
+## 4. 明日计划 / 验证清单
+
+1. **[Top1]** 上午 9-11 点做两家公司测评 + 投 5 家
+2. **[Top2]** 下午 2-4 点深度刷算法 20 题
+3. **[习惯]** 早上 7 点起床 + 晨读 15 分钟
+4. **[验证]** 早上 7 点 vs 晚上 10 点做英语口语
+
+---
+
+_由 Ethan 工作台生成 · 2026-08-11 20:47_</pre>
+      </div>
+      <div class="md-pane right">
+        <div class="label">渲染预览</div>
+        <div class="content">
+          <h1>8月11日 · 周二 · 每日总结</h1>
+          <blockquote>
+            📅 2026-08-11 · 第32周<br>
+            📊 重点 2/4 · 习惯 2/4 · 专注 5.6h
+          </blockquote>
+
+          <h2>今日重点事项</h2>
+          <table>
+            <thead><tr><th>事项</th><th>时间段</th><th>时长</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>🎯 优化简历</td><td>09:00 – 11:30</td><td>2.5h</td><td><span class="tg">✅ 完成</span></td></tr>
+              <tr><td>📨 投简历</td><td>14:00 – 19:00</td><td>5h</td><td><span class="tg">✅ 完成</span></td></tr>
+              <tr><td>💻 数据分析</td><td>20:00 – 22:00</td><td>2h</td><td><span class="tr">❌ 未完成</span></td></tr>
+              <tr><td>🎤 英语口语</td><td>07:15 – 07:30</td><td>15m</td><td><span class="tr">❌ 未完成</span></td></tr>
+            </tbody>
+          </table>
+          <p class="muted">完成率 50%</p>
+
+          <h2>习惯打卡</h2>
+          <table>
+            <thead><tr><th>习惯</th><th>目标</th><th>实际</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>😴 睡眠7小时</td><td>23:00-06:00 · 7h</td><td>00:00-07:00 · <b>7h50m</b></td><td><span class="tg">✅ 达成</span></td></tr>
+              <tr><td>📖 看书30m</td><td>07:30-08:00 · 30m</td><td>07:32-08:08 · <b>36m</b></td><td><span class="tg">✅ 达成</span></td></tr>
+              <tr><td>🗣️ 即兴表达</td><td>07:00-07:15 · 15m</td><td>–</td><td><span class="tr">❌ 未开始</span></td></tr>
+              <tr><td>🎤 英语口语</td><td>07:15-07:30 · 15m</td><td>–</td><td><span class="tr">❌ 未开始</span></td></tr>
+            </tbody>
+          </table>
+          <p>精力 <span class="tr">⚡疲惫</span> · 心情 <span class="tr">♡消极</span></p>
+
+          <h2>1. 今日成果 / 亮点</h2>
+          <ul>
+            <li>完成简历投递 8 家 · 3 家秒回测评</li>
+            <li>优化工作台睡眠记录面板</li>
+            <li>晨读《深度工作》第 3 章</li>
+          </ul>
+
+          <h2>2. 今日不足 / 改进</h2>
+          <ul>
+            <li>下午看消息太多，深度工作只完成 50%</li>
+            <li>英语口语拖到晚上 10 点状态差</li>
+          </ul>
+
+          <h2>3. 今日收获</h2>
+          <ul>
+            <li>深度工作需要把手机放另一个房间</li>
+            <li>简历投递黄金时段 9:00-10:30</li>
+            <li>英语口语早晨比晚上效果好 2 倍</li>
+          </ul>
+
+          <h2>4. 明日计划</h2>
+          <ul>
+            <li><b>[Top1]</b> 上午 9-11 点测评 + 投 5 家</li>
+            <li><b>[Top2]</b> 下午 2-4 点刷算法 20 题</li>
+            <li><b>[习惯]</b> 早上 7 点起床 + 晨读</li>
+            <li><b>[验证]</b> 早上 7 点 vs 晚上 10 点英语口语</li>
+          </ul>
+
+          <p class="muted" style="margin-top:16px;font-size:11px"><em>由 Ethan 工作台生成 · 2026-08-11 20:47</em></p>
+        </div>
+      </div>
+    </div>
+    <div class="md-foot">
+      <div class="l" id="copyStatus">点击复制即可粘贴到飞书 / Notion</div>
+      <div class="r">
+        <button class="btn ghost" id="mdClose2">取消</button>
+        <button class="btn blue" id="doCopyBtn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+          一键复制
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const tabTL = document.getElementById('tabTL');
+const tabSum = document.getElementById('tabSum');
+const tlPane = document.getElementById('timelinePane');
+const sumPane = document.getElementById('summaryPane');
+tabTL.addEventListener('click', () => {
+  tabTL.classList.add('active'); tabSum.classList.remove('active');
+  tlPane.style.display = 'block'; sumPane.style.display = 'none';
+});
+tabSum.addEventListener('click', () => {
+  tabSum.classList.add('active'); tabTL.classList.remove('active');
+  sumPane.style.display = 'block'; tlPane.style.display = 'none';
+});
+document.getElementById('summaryBtn').addEventListener('click', () => tabSum.click());
+
+function openMd() { document.getElementById('mdOverlay').classList.add('show'); }
+function closeMd() { document.getElementById('mdOverlay').classList.remove('show'); }
+document.getElementById('openMdBtn').addEventListener('click', openMd);
+document.getElementById('mdClose').addEventListener('click', closeMd);
+document.getElementById('mdClose2').addEventListener('click', closeMd);
+document.getElementById('mdOverlay').addEventListener('click', e => {
+  if (e.target.id === 'mdOverlay') closeMd();
+});
+
+const copyBtn = document.getElementById('doCopyBtn');
+const copyStatus = document.getElementById('copyStatus');
+function doCopy() {
+  const text = document.getElementById('rawMd').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    copyStatus.innerHTML = '<span style="color:#34c759;font-weight:600">✓ 已复制到剪贴板</span>';
+    copyBtn.style.background = '#34c759';
+    setTimeout(() => { copyBtn.style.background = ''; }, 1200);
+  }).catch(() => {});
+}
+copyBtn.addEventListener('click', doCopy);
+document.getElementById('copyMdBtn').addEventListener('click', () => { openMd(); setTimeout(doCopy, 200); });
+</script>
+
+
+
+
+
+
+
+
+
+</body></html>

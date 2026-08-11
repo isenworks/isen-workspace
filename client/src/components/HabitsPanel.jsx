@@ -343,10 +343,21 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
         {/* 文本区 */}
         <div className="flex-1 min-w-0">
-          {/* 第一行：标题 */}
-          <p className={`text-[14px] font-medium leading-tight ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
-            {h.emoji} {h.name}
-          </p>
+          {/* 第一行：标题 + 编辑按钮/指示点（对齐在最右侧） */}
+          <div className="flex items-center w-full gap-2">
+            <p className={`text-[14px] font-medium leading-tight flex-1 min-w-0 ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+              {h.emoji} {h.name}
+            </p>
+            <span className="inline-flex items-center gap-2 flex-shrink-0">
+              {isSleep && (
+                <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
+              )}
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: getDotColor(h) }}
+              ></span>
+            </span>
+          </div>
           {/* 第二行：预设时间/目标 */}
           <p className={`text-[12px] mt-0.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
             {formatTime(h)}
@@ -382,26 +393,11 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           )}
         </div>
 
-        {/* 右侧操作 */}
-        {isSleep && (
-          <div className="flex items-center gap-2 flex-shrink-0 self-center">
-            <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
-            <span
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ background: getDotColor(h) }}
-            ></span>
-          </div>
-        )}
-        {!isSleep && (
-          <span
-            className="w-2 h-2 rounded-full flex-shrink-0 self-center"
-            style={{ background: getDotColor(h) }}
-          ></span>
-        )}
         <button
           onClick={(e) => { e.stopPropagation(); remove(h); }}
-          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#ff3b30] text-xs px-1 flex-shrink-0"
+          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#ff3b30] text-xs px-1 flex-shrink-0 self-start"
           title="删除"
+          style={{ marginTop: 2 }}
         >×</button>
       </div>
     );

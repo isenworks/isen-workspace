@@ -61,6 +61,8 @@ const DEFAULT_TEMPLATES = [
 ];
 
 const TEMPLATES_KEY = (uid) => `summary_templates:${uid || 'anon'}`;
+const PRESET_OVERRIDES_KEY = (uid) => `summary_preset_overrides:${uid || 'anon'}`;
+const PRESET_DELETED_KEY = (uid) => `summary_preset_deleted:${uid || 'anon'}`;
 const CUSTOM_TPL_LIMIT = 8;
 
 function loadCustomTemplates(uid) {
@@ -78,6 +80,32 @@ function saveCustomTemplates(uid, list) {
   try {
     localStorage.setItem(TEMPLATES_KEY(uid), JSON.stringify(list || []));
   } catch {}
+}
+
+function loadPresetOverrides(uid) {
+  try {
+    const raw = localStorage.getItem(PRESET_OVERRIDES_KEY(uid));
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === 'object') ? obj : {};
+  } catch { return {}; }
+}
+
+function savePresetOverrides(uid, obj) {
+  try { localStorage.setItem(PRESET_OVERRIDES_KEY(uid), JSON.stringify(obj || {})); } catch {}
+}
+
+function loadDeletedPresets(uid) {
+  try {
+    const raw = localStorage.getItem(PRESET_DELETED_KEY(uid));
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+
+function saveDeletedPresets(uid, arr) {
+  try { localStorage.setItem(PRESET_DELETED_KEY(uid), JSON.stringify(arr || [])); } catch {}
 }
 
 // ===== 工具函数 =====
@@ -341,6 +369,8 @@ export default function SummaryPanel({
   const [templateId, setTemplateId] = useState('daily');
   const [sectionsText, setSectionsText] = useState({ highlights: '', improvements: '', learnings: '', tomorrow: '' });
   const [customTpls, setCustomTpls] = useState([]);
+  const [presetOverrides, setPresetOverrides] = useState({});
+  const [deletedPresets, setDeletedPresets] = useState([]);
   const [savedTime, setSavedTime] = useState(null); // 最后保存时间 Date
   const [saving, setSaving] = useState(false);
   const [schedules, setSchedules] = useState(propSchedules || []);
@@ -348,16 +378,27 @@ export default function SummaryPanel({
   const [mdOpen, setMdOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showTplEditor, setShowTplEditor] = useState(false);
-  const [editingTplId, setEditingTplId] = useState(null); // null 表示新建，否则为编辑自定义模板 id
+  const [editingTplId, setEditingTplId] = useState(null); // null 表示新建，否则为编辑模板 id
   const [newTplDraft, setNewTplDraft] = useState({ name: '', s1: '', s2: '', s3: '', s4: '' });
   const autoSaveTimer = useRef(null);
 
-  const allTemplates = useMemo(() => [...DEFAULT_TEMPLATES, ...customTpls], [customTpls]);
+  // 合并模板：预设（应用 overrides、过滤 deleted）+ 自定义
+  const allTemplates = useMemo(() => {
+    const base = DEFAULT_TEMPLATES
+      .filter(t => !deletedPresets.includes(t.id))
+      .map(t => presetOverrides[t.id] ? { ...t, ...presetOverrides[t.id] } : t);
+    return [...base, ...customTpls];
+  }, [customTpls, presetOverrides, deletedPresets]);
   const currentTpl = allTemplates.find(t => t.id === templateId) || DEFAULT_TEMPLATES[0];
 
-  // ===== 初始化：加载已保存总结 + 自定义模板 + 数据 =====
+  // 判断是否为预设模板 id
+  const isPresetId = (id) => DEFAULT_TEMPLATES.some(t => t.id === id);
+
+  // ===== 初始化：加载已保存总结 + 自定义模板 + 预设修改/删除 + 数据 =====
   useEffect(() => {
     setCustomTpls(loadCustomTemplates(userId));
+    setPresetOverrides(loadPresetOverrides(userId));
+    setDeletedPresets(loadDeletedPresets(userId));
   }, [userId]);
 
   const loadData = async () => {
@@ -449,17 +490,29 @@ export default function SummaryPanel({
     const colors = ['#ff3b30', '#ff9500', '#007aff', '#34c759'];
 
     if (editingTplId) {
-      // 修改已有自定义模板
-      const next = customTpls.map(t => {
-        if (t.id !== editingTplId) return t;
-        return {
-          ...t,
+      if (isPresetId(editingTplId)) {
+        // 编辑预设模板 → 保存 override
+        const preset = DEFAULT_TEMPLATES.find(t => t.id === editingTplId);
+        const override = {
           name,
           sections: names.map((n, i) => ({ idx: i + 1, title: n, color: colors[i], placeholder: '写点什么…' })),
         };
-      });
-      setCustomTpls(next);
-      saveCustomTemplates(userId, next);
+        const next = { ...presetOverrides, [editingTplId]: { ...preset, ...override } };
+        setPresetOverrides(next);
+        savePresetOverrides(userId, next);
+      } else {
+        // 编辑自定义模板
+        const next = customTpls.map(t => {
+          if (t.id !== editingTplId) return t;
+          return {
+            ...t,
+            name,
+            sections: names.map((n, i) => ({ idx: i + 1, title: n, color: colors[i], placeholder: '写点什么…' })),
+          };
+        });
+        setCustomTpls(next);
+        saveCustomTemplates(userId, next);
+      }
     } else {
       if (customTpls.length >= CUSTOM_TPL_LIMIT) return;
       const newTpl = {
@@ -481,12 +534,23 @@ export default function SummaryPanel({
 
   const handleAddCustomTpl = handleSaveTplEditor; // 兼容旧命名引用
 
-  const handleDelCustomTpl = (id) => {
-    const next = customTpls.filter(t => t.id !== id);
-    setCustomTpls(next);
-    saveCustomTemplates(userId, next);
-    if (templateId === id) setTemplateId('daily');
+  const handleDelTemplate = (id) => {
+    if (isPresetId(id)) {
+      // 删除预设模板 → 加入 deleted 列表
+      const next = [...new Set([...deletedPresets, id])];
+      setDeletedPresets(next);
+      saveDeletedPresets(userId, next);
+      if (templateId === id) setTemplateId('daily');
+    } else {
+      // 删除自定义模板
+      const next = customTpls.filter(t => t.id !== id);
+      setCustomTpls(next);
+      saveCustomTemplates(userId, next);
+      if (templateId === id) setTemplateId('daily');
+    }
   };
+
+  const handleDelCustomTpl = handleDelTemplate; // 兼容旧命名引用
 
   const handleSectionChange = (idx, value) => {
     const keys = getSectionKeys(templateId);
@@ -563,49 +627,48 @@ export default function SummaryPanel({
                   border: templateId === t.id ? '1px solid transparent' : '1px solid rgba(0,0,0,0.05)',
                   whiteSpace: 'nowrap',
                 }}
-                title={t.custom ? '自定义模板' : ''}
+                title={t.custom ? '自定义模板' : '预设模板'}
               >
                 <span style={{ fontSize: '12px' }}>{t.emoji}</span>
                 <span>{t.name}</span>
               </button>
-              {t.custom && (
-                <div style={{ marginLeft: '-6px', display: 'inline-flex', alignItems: 'center', gap: '0px' }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openTplEditorForEdit(t); }}
-                    style={{
-                      width: '16px', height: '16px',
-                      borderRadius: '50%',
-                      border: 'none',
-                      background: 'transparent',
-                      color: '#c7c7cc',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      lineHeight: 1,
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                    title="编辑该模板"
-                    onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
-                  >✎</button>
-                  <button
-                    onClick={() => handleDelCustomTpl(t.id)}
-                    style={{
-                      width: '16px', height: '16px',
-                      borderRadius: '50%',
-                      border: 'none',
-                      background: 'transparent',
-                      color: '#c7c7cc',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      lineHeight: 1,
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                    title="删除该模板"
-                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
-                  >×</button>
-                </div>
-              )}
+              {/* 所有模板支持编辑与删除 */}
+              <div style={{ marginLeft: '-6px', display: 'inline-flex', alignItems: 'center', gap: '0px' }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); openTplEditorForEdit(t); }}
+                  style={{
+                    width: '16px', height: '16px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#c7c7cc',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    lineHeight: 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  title="编辑该模板"
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+                >✎</button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelTemplate(t.id); }}
+                  style={{
+                    width: '16px', height: '16px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#c7c7cc',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    lineHeight: 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  title={t.custom ? '删除该模板' : '删除（可在设置恢复默认）'}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+                >×</button>
+              </div>
             </div>
           ))}
           {customTpls.length < CUSTOM_TPL_LIMIT && (
@@ -639,7 +702,9 @@ export default function SummaryPanel({
           background: 'rgba(0,122,255,0.03)',
           display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#007aff' }}>{editingTplId ? '编辑自定义模板' : '新建自定义模板'}</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#007aff' }}>
+            {editingTplId ? (isPresetId(editingTplId) ? '编辑预设模板' : '编辑自定义模板') : '新建自定义模板'}
+          </div>
           <input
             value={newTplDraft.name}
             onChange={(e) => setNewTplDraft(d => ({ ...d, name: e.target.value }))}
@@ -734,14 +799,14 @@ export default function SummaryPanel({
                 value={val}
                 onChange={(e) => handleSectionChange(sec.idx, e.target.value)}
                 placeholder={sec.placeholder}
-                rows={3}
+                rows={5}
                 style={{
                   width: '100%', border: 'none', borderRadius: '8px',
                   padding: '8px 10px', fontSize: '13px', lineHeight: '1.7',
                   fontFamily: 'inherit', color: '#1c1c1e',
                   background: 'rgba(0,0,0,0.015)',
                   outline: 'none', resize: 'none',
-                  minHeight: '66px', maxHeight: '66px',
+                  minHeight: '94px', maxHeight: '94px',
                   transition: 'all .15s',
                 }}
               />

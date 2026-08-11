@@ -105,11 +105,6 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
     const allSched = rawData.schedules;
     const allTasks = rawData.tasks;
 
-    const schedDone = allSched.filter(s => s.is_done).length;
-    const taskDone = allTasks.filter(t => t.is_done).length;
-    const done = schedDone + taskDone;
-    const total = allSched.length + allTasks.length;
-
     const focusSched = view === 'today'
       ? allSched.filter(s => s.date === date)
       : allSched;
@@ -130,28 +125,31 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
     const keyTotal = focusSched.filter(s => isKeySched(s)).length;
     const keyDone = focusSched.filter(s => isKeySched(s) && s.is_done).length;
 
+    // 核心进度 = 重点事项 + 习惯打卡
+    const coreDone = keyDone + habitDone;
+    const coreTotal = keyTotal + habitTotal;
+
+    // 重点的紧急/重要未完成数
+    const urgent = catCount(focusSched, 1) - catDone(focusSched, 1);
+    const high = catCount(focusSched, 2) - catDone(focusSched, 2);
+
+    // 普通待办数（灰色）：非重点、非紧急、非重要
     const todayTasks = view === 'today'
       ? allTasks.filter(t => t.date === date)
       : allTasks;
-    const taskTotal = todayTasks.length;
-    const taskDoneCount = todayTasks.filter(t => t.is_done).length;
-
-    const urgentTodo = catCount(focusSched, 1) - catDone(focusSched, 1);
-    const highTodo = catCount(focusSched, 2) - catDone(focusSched, 2);
-    const normalTodo = (catCount(focusSched, 3) - catDone(focusSched, 3)) + (taskTotal - taskDoneCount);
+    const normalSched = catCount(focusSched, 3) - catDone(focusSched, 3);
+    const normalTasks = todayTasks.length - todayTasks.filter(t => t.is_done).length;
+    const normal = normalSched + normalTasks;
 
     return {
-      done, total,
+      coreDone, coreTotal,
       keyDone, keyTotal,
       habitDone, habitTotal,
-      taskDone: taskDoneCount, taskTotal,
-      urgent: urgentTodo,
-      high: highTodo,
-      normal: normalTodo
+      urgent, high, normal
     };
   })();
 
-  const pct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+  const pct = stats.coreTotal > 0 ? Math.round((stats.coreDone / stats.coreTotal) * 100) : 0;
 
   const MENU_ITEMS = [
     { k: 'schedule', label: '新建事项', icon: '📅' },
@@ -204,15 +202,17 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
       ) : (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-4 px-3 py-1.5 rounded-full" style={{background:'rgba(120,120,128,0.08)'}}>
+            {/* 核心进度 */}
             <div className="flex items-center gap-1.5">
-              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.done}</span>
+              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.coreDone}</span>
               <span className="text-[12px] font-medium text-[#1c1c1e]">/</span>
-              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.total}</span>
+              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.coreTotal}</span>
               <div className="w-20 h-1.5 rounded-full ml-1" style={{background:'#e5e5ea'}}>
                 <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:'#007aff'}}></div>
               </div>
             </div>
             <div className="w-0.5 h-4 rounded-full" style={{background:'rgba(120,120,128,0.2)'}}></div>
+            {/* 重点分类未完成 */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#ff3b30'}}></span>
@@ -222,14 +222,17 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#ff9500'}}></span>
                 <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.high}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full" style={{background:'#34c759'}}></span>
-                <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.habitDone} /{stats.habitTotal}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#8e8e93'}}></span>
-                <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.normal}</span>
-              </div>
+            </div>
+            <div className="w-0.5 h-4 rounded-full" style={{background:'rgba(120,120,128,0.2)'}}></div>
+            {/* 习惯打卡（蓝色） */}
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#007aff'}}></span>
+              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.habitDone} /{stats.habitTotal}</span>
+            </div>
+            {/* 普通待办（灰色） */}
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#8e8e93'}}></span>
+              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.normal}</span>
             </div>
           </div>
         </div>

@@ -33,13 +33,8 @@ export default function Workspace({ user: propUser }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // 右栏 Tab：timeline / summary
-  const [rightTab, setRightTab] = useState('timeline');
-  // 点击总结按钮时：既打开弹窗（兼容旧入口），也把右栏切到总结 Tab
-  const onSummaryClick = useCallback(() => {
-    setRightTab('summary');
-    setModal({ type: 'summary' });
-  }, []);
+  // 右栏显示总结面板状态：默认显示时间线
+  const [showSummary, setShowSummary] = useState(false);
 
   // ===== 右键上下文菜单 =====
   const [ctxMenu, setCtxMenu] = useState(null); // {x, y, type, id}
@@ -398,7 +393,8 @@ export default function Workspace({ user: propUser }) {
           refreshSignal={refreshKey}
           onViewChange={handleViewChange}
           onNew={(type) => setModal({ type: type || 'schedule' })}
-          onSummary={onSummaryClick}
+          onSummaryToggle={() => setShowSummary(v => !v)}
+          showSummary={showSummary}
         />
 
         {/* 主体：12 列网格（左 5 + 右 7） */}
@@ -422,54 +418,19 @@ export default function Workspace({ user: propUser }) {
           </div>
 
           {/* 右栏：时间轴 / 总结面板 */}
-          <div className="col-span-7 flex flex-col gap-4">
-            {/* Tab 切换头部 */}
-            <div className="glass-card p-3 flex items-center justify-between gap-3">
-              <div
-                className="inline-flex rounded-[9px] p-[2px]"
-                style={{ background: 'rgba(120,120,128,0.12)' }}
-              >
-                <button
-                  onClick={() => setRightTab('timeline')}
-                  className={`px-[13px] py-[4px] text-[13px] rounded-[7px] transition inline-flex items-center gap-4px border-none cursor-pointer font-[500]`}
-                  style={{
-                    background: rightTab === 'timeline' ? '#007aff' : 'transparent',
-                    color: rightTab === 'timeline' ? '#fff' : '#3c3c43',
-                    fontWeight: rightTab === 'timeline' ? 600 : 500,
-                    boxShadow: rightTab === 'timeline' ? '0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04)' : 'none',
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: 4}}>
-                    <line x1="12" y1="20" x2="12" y2="10"></line>
-                    <line x1="18" y1="20" x2="18" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="16"></line>
-                  </svg>
-                  时间线
-                </button>
-                <button
-                  onClick={() => setRightTab('summary')}
-                  className={`px-[13px] py-[4px] text-[13px] rounded-[7px] transition inline-flex items-center border-none cursor-pointer font-[500]`}
-                  style={{
-                    background: rightTab === 'summary' ? '#007aff' : 'transparent',
-                    color: rightTab === 'summary' ? '#fff' : '#3c3c43',
-                    fontWeight: rightTab === 'summary' ? 600 : 500,
-                    boxShadow: rightTab === 'summary' ? '0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04)' : 'none',
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: 4}}>
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                  每日总结
-                </button>
+          <div className="col-span-7">
+            {showSummary ? (
+              <div className="glass-card p-5 h-full flex flex-col">
+                <SummaryPanel
+                  embed
+                  userId={user?.id}
+                  date={selectedDate}
+                  refreshSignal={refreshKey}
+                  onChange={refresh}
+                  onBack={() => setShowSummary(false)}
+                />
               </div>
-              <div className="text-[11px] text-[#8e8e93]">
-                {rightTab === 'timeline' ? '点击空白时间段可快速新建事项' : '支持自定义模板 · 一键导出 Markdown'}
-              </div>
-            </div>
-
-            {/* 内容区 */}
-            {rightTab === 'timeline' ? (
+            ) : (
               <Timeline
                 date={selectedDate}
                 view={view}
@@ -479,16 +440,6 @@ export default function Workspace({ user: propUser }) {
                 onAdd={(info) => setModal({ type: 'schedule', data: { start_time: info.start_time } })}
                 onChange={refresh}
               />
-            ) : (
-              <div className="glass-card p-5 h-full">
-                <SummaryPanel
-                  embed
-                  userId={user?.id}
-                  date={selectedDate}
-                  refreshSignal={refreshKey}
-                  onChange={refresh}
-                />
-              </div>
             )}
           </div>
         </div>

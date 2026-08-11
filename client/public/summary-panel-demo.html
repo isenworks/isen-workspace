@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日总结面板 · Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 600px at -10% -20%, rgba(64,156,255,0.10), transparent 60%),
+      radial-gradient(900px 500px at 110% -10%, rgba(175,82,222,0.08), transparent 60%),
+      linear-gradient(180deg, #f7f8fb 0%, #eef1f7 100%);
+    color: #1d1d1f;
+    min-height: 100vh;
+    padding: 24px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== 全局布局：侧边栏 + 左列（习惯+） + 右列（总结 or 时间线） ===== */
+  .app {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 1fr; }
+  }
+
+  /* ===== 左侧边栏（迷你版：只显示计划总结高亮） ===== */
+  .sidebar {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.6);
+    padding: 18px 14px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.05);
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+  }
+  .sb-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 6px 14px;
+    border-bottom: 1px solid #eef0f4;
+  }
+  .sb-user .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg,#4a9bff,#9a6bff);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px; font-weight: 700;
+  }
+  .sb-user .u1 { font-size: 13px; font-weight: 700; color:#1c1c1e; }
+  .sb-user .u2 { font-size: 11px; color:#8e8e93; margin-top: 2px; }
+  .sb-nav { margin-top: 10px; }
+  .sb-nav .item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 10px;
+    font-size: 13px; color: #3c3c43; cursor: pointer;
+    font-weight: 500;
+  }
+  .sb-nav .item.on { background: rgba(0,122,255,0.12); color: #007aff; font-weight: 600; }
+  .sb-nav .item .ico { width:18px; height:18px; opacity: 0.85; }
+  .sb-section {
+    margin: 14px 8px 6px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #8e8e93;
+  }
+  .sb-bottom {
+    margin-top: 20px; padding-top: 12px; border-top: 1px solid #eef0f4;
+    display: flex; gap: 12px; padding-left: 10px;
+  }
+  .sb-bottom .dot { width: 20px; height: 20px; display:flex; align-items:center; justify-content:center; color:#575f6a; cursor:pointer; }
+
+  /* ===== 主区域：左列（习惯面板） + 右列（总结面板/时间线） ===== */
+  .main { display: grid; grid-template-columns: 420px 1fr; gap: 16px; }
+  @media (max-width: 920px) { .main { grid-template-columns: 1fr; } }
+  .col-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,0.6);
+    padding: 14px 16px 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.05);
+    min-height: 600px;
+  }
+
+  /* ===== StatsBar（顶部小工具条，包含总结按钮下拉） ===== */
+  .statsbar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    padding: 10px 16px 14px;
+  }
+  .sb-left { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px; border-radius: 999px;
+    background: #fff; border: 1px solid rgba(0,0,0,0.06);
+    font-size: 12px; font-weight: 600; color:#1c1c1e;
+    cursor: pointer; transition: all .15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    position: relative;
+  }
+  .chip-btn:hover { border-color: #c7e0ff; background: #f2f8ff; }
+  .chip-btn.primary { background:#007aff; color:#fff; border-color:transparent; }
+  .chip-btn.primary:hover { background:#0069d6; color:#fff; }
+  .chip-btn .emoji { font-size: 14px; }
+  .chip-btn .n { color: #8e8e93; font-weight: 500; margin-left: 2px; }
+  .chip-btn.primary .n { color: rgba(255,255,255,0.8); }
+  .chip-btn .caret { width:10px; height:10px; opacity:0.7; }
+
+  .sb-right { display:flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .date-chip {
+    font-size: 12px; font-weight: 600; color: #3c3c43;
+    background: #fff; padding: 7px 12px; border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* 下拉菜单（总结按钮） */
+  .summary-wrap { position: relative; }
+  .summary-menu {
+    position: absolute; top: calc(100% + 8px); left: 0;
+    min-width: 260px; background: #fff;
+    border-radius: 14px; padding: 8px; z-index: 200;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
+    display: none;
+  }
+  .summary-menu.show { display: block; animation: pop .12s ease; }
+  @keyframes pop { from { opacity:0; transform: translateY(-4px);} to {opacity:1; transform: translateY(0);} }
+  .sm-tip {
+    font-size: 11px; font-weight: 600; color: #8e8e93;
+    padding: 6px 10px 4px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .sm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 10px; border-radius: 10px; cursor: pointer;
+    font-size: 13px; color: #1c1c1e;
+  }
+  .sm-item:hover { background: rgba(0,122,255,0.08); }
+  .sm-item .ic {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,122,255,0.10); color:#007aff; flex-shrink: 0;
+  }
+  .sm-item.purple .ic { background: rgba(88,86,214,0.10); color:#5856d6; }
+  .sm-item.green .ic { background: rgba(52,199,89,0.10); color:#34c759; }
+  .sm-item .t { font-weight: 600; }
+  .sm-item .d { font-size: 11px; color:#8e8e93; margin-top:2px; }
+  .sm-hr { height: 1px; background:#eef0f4; margin: 4px; }
+
+  /* ===== 左列：习惯面板（占位示意，只放 2 条） ===== */
+  .panel-title {
+    display:flex; align-items: center; justify-content: space-between;
+    margin: 4px 2px 12px;
+  }
+  .panel-title .t {
+    display:flex; align-items:center; gap:8px;
+    font-size: 14px; font-weight: 700; color: #1c1c1e;
+  }
+  .panel-title .t .bar { width:4px; height: 14px; border-radius: 2px; background:#007aff; }
+  .habit-row {
+    display: grid;
+    grid-template-columns: 30px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, #e5f6ea 0%, transparent 70%);
+    position: relative;
+  }
+  .habit-row.blue { background: linear-gradient(90deg, #e0ecff 0%, transparent 70%); }
+  .habit-row.yellow { background: linear-gradient(90deg, #fbf3d8 0%, transparent 70%); }
+  .cb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; border: 2px solid #5dd57a;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cb.checked { background: #34c759; border-color: #34c759; }
+  .cb.checked::after { content: "✓"; color:#fff; font-size: 13px; font-weight: 700; margin-top:-1px; }
+  .h-line1 { font-size: 15px; font-weight: 600; color: #1c1c1e; }
+  .h-line2 { font-size: 12px; color: #8e8e93; margin-top: 2px; display:flex; gap:6px; align-items:center; flex-wrap: wrap; }
+  .target-ic { display:inline-flex; align-items:center; gap:4px; }
+  .divider-inline { width:1px; height:10px; background:#e5e5ea; margin: 0 2px; }
+  .h-line3 { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(0,0,0,0.06);
+    display:flex; align-items:center; justify-content: space-between; gap: 8px;
+    font-size: 12px; color: #575f6a;
+  }
+  .chips-r { display:flex; align-items:center; gap:6px; color:#575f6a; }
+  .chip-s { display:inline-flex; align-items:center; gap:4px; padding: 2px 0; }
+  .chip-s.good { color:#34c759; }
+  .chip-s.bad  { color:#ff3b30; }
+  .chip-s.norm { color:#007aff; }
+  .edit-btn {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: rgba(120,120,128,0.12); display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .right-col { display: flex; align-items: center; gap: 8px; align-self: center; }
+  .sdot { width: 8px; height: 8px; border-radius: 50%; background: #34c759; }
+
+  .section-hair {
+    height:1px; background: #eef0f4; margin: 14px -4px 10px;
+  }
+  .section-subtitle {
+    font-size: 11px; font-weight: 700; color: #8e8e93;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 0 4px 8px;
+  }
+
+  /* ===== 右列 Tab 切换（时间线 / 总结面板） ===== */
+  .tabbar {
+    display: inline-flex; padding: 3px; background: rgba(120,120,128,0.10);
+    border-radius: 11px; margin-bottom: 14px;
+  }
+  .tabbar button {
+    border: none; background: transparent;
+    padding: 6px 12px; border-radius: 9px;
+    font-size: 12px; font-weight: 600; color: #575f6a; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .tabbar button.on { background: #fff; color: #007aff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  /* 时间线占位：只画 4 行意思意思 */
+  .tl-placeholder {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .tl-row {
+    display: grid; grid-template-columns: 50px 3px 1fr; align-items: center;
+    gap: 12px; padding: 6px 4px; border-radius: 10px;
+  }
+  .tl-row:hover { background: rgba(0,0,0,0.02); }
+  .tl-t { font-size: 12px; color:#8e8e93; font-weight: 600; text-align: right; padding-right: 10px; }
+  .tl-l { width: 3px; height: 20px; border-radius: 3px; }
+  .tl-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 6px 0 6px 4px;
+  }
+  .tl-item .em { font-size: 15px; }
+  .tl-item .ti { font-size: 14px; font-weight: 600; color: #1c1c1e; }
+  .tl-item .du { font-size: 11px; color:#8e8e93; margin-left: 6px; font-weight: 500; }
+
+  /* ====================== 总结面板主体 ====================== */
+
+  .summary-panel { display: none; }
+  .summary-panel.show { display: block; }
+
+  /* 顶部：今日数据卡片 + 心情 */
+  .sp-head {
+    display: grid; grid-template-columns: 1fr 260px; gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 900px) { .sp-head { grid-template-columns: 1fr; } }
+  .sp-card {
+    padding: 14px 16px; border-radius: 16px;
+    background: linear-gradient(135deg, #3370ff 0%, #5856d6 100%);
+    color: #fff; position: relative; overflow: hidden;
+  }
+  .sp-card::after {
+    content: ""; position: absolute; right: -20px; top: -20px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .sp-card .date {
+    font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+  }
+  .sp-card .date .week { font-size: 12px; font-weight: 500; opacity: 0.75;
+    background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 999px;
+  }
+  .sp-card .sub { font-size: 12px; opacity: 0.75; margin-top: 6px; }
+  .sp-stats {
+    margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .sp-stats .s {
+    background: rgba(255,255,255,0.14); backdrop-filter: blur(6px);
+    border-radius: 12px; padding: 10px;
+  }
+  .sp-stats .k { font-size: 10px; opacity: 0.7; letter-spacing: 0.05em; font-weight: 600; }
+  .sp-stats .v { font-size: 18px; font-weight: 700; margin-top: 3px; }
+  .sp-stats .v em { font-size: 11px; font-weight: 500; opacity: 0.7; font-style: normal; }
+
+  /* 心情 + 天气 + 状态侧卡 */
+  .mood-card {
+    border-radius: 16px; padding: 14px 14px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .mc-row { margin-bottom: 12px; }
+  .mc-row:last-child { margin-bottom: 0; }
+  .mc-lab { font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .mc-list { display: flex; gap: 3px; flex-wrap: wrap; }
+  .mc-em {
+    font-size: 22px; cursor: pointer; opacity: 0.45; padding: 4px 6px;
+    border-radius: 8px; transition: all .15s; user-select: none;
+  }
+  .mc-em:hover { transform: scale(1.1); opacity: 0.9; }
+  .mc-em.on { opacity: 1; background: rgba(0,122,255,0.10); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  .mc-weather .mc-em { font-size: 20px; }
+
+  /* ============ 模板选择器 ============ */
+  .tpl-block {
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px;
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 14px;
+  }
+  .tpl-head {
+    display:flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .tpl-head .l {
+    font-size: 12px; font-weight: 700; color: #1c1c1e;
+    display:flex; align-items: center; gap: 6px;
+  }
+  .tpl-head .r { display:flex; gap: 6px; align-items:center; }
+  .mini-btn {
+    padding: 5px 10px; border-radius: 8px;
+    background: rgba(120,120,128,0.10);
+    font-size: 11px; font-weight: 600; color: #3c3c43; cursor: pointer;
+    border: none;
+  }
+  .mini-btn:hover { background: rgba(0,122,255,0.10); color: #007aff; }
+  .mini-btn.blue { background: #007aff; color: #fff; }
+  .mini-btn.blue:hover { background: #0069d6; color: #fff; }
+
+  .tpl-list {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  }
+  @media (max-width: 1100px) { .tpl-list { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 720px) { .tpl-list { grid-template-columns: repeat(2, 1fr); } }
+  .tpl-card {
+    border-radius: 12px; padding: 12px;
+    border: 1.5px solid #eef0f4;
+    cursor: pointer; transition: all .15s;
+    background: #fafbfd;
+    position: relative;
+  }
+  .tpl-card:hover { border-color: #007aff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,122,255,0.08); }
+  .tpl-card.on {
+    border-color: #007aff; background: linear-gradient(180deg, #f2f8ff 0%, #ffffff 100%);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+  }
+  .tpl-card .icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: #fff; display:flex; align-items:center; justify-content:center;
+    margin-bottom: 8px; font-size: 15px;
+    border: 1px solid #eef0f4;
+  }
+  .tpl-card.c1 .icon { color:#ff3b30; background: #ffe8e8; border-color: #ffd5d5; }
+  .tpl-card.c2 .icon { color:#ff9500; background: #fff4d8; border-color: #ffe2b8; }
+  .tpl-card.c3 .icon { color:#34c759; background: #e5f6ea; border-color: #c9efd5; }
+  .tpl-card.c4 .icon { color:#007aff; background: #e0ecff; border-color: #c6ddff; }
+  .tpl-card.c5 .icon { color:#5856d6; background: #ede7ff; border-color: #d8d1ff; }
+  .tpl-card.on .icon { box-shadow: 0 0 0 2px #fff inset; }
+  .tpl-card .name { font-size: 13px; font-weight: 700; color: #1c1c1e; }
+  .tpl-card .desc { font-size: 11px; color: #8e8e93; margin-top: 3px; line-height: 1.5; }
+  .tpl-card .blocks { margin-top: 8px; display:flex; gap: 3px; flex-wrap: wrap; }
+  .tpl-card .blocks span {
+    font-size: 9.5px; font-weight: 600; padding: 2px 6px; border-radius: 999px;
+    background: rgba(120,120,128,0.10); color: #575f6a;
+  }
+  .tpl-card .star {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 11px; color: #ff9500;
+  }
+  .tpl-card.new .icon {
+    border-style: dashed; border-color: #c7e0ff; color: #007aff; background: #f2f8ff;
+    font-size: 18px; font-weight: 300;
+  }
+  .tpl-card.new { border-style: dashed; }
+
+  /* ============ 总结编辑区 ============ */
+  .field-card {
+    background: #fff; border-radius: 16px;
+    padding: 14px 16px 16px; border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 10px;
+  }
+  .field-head {
+    display:flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .field-head .t {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700; color: #1c1c1e;
+  }
+  .field-head .t .idx {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: #007aff; color: #fff; font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .field-head .t .hint {
+    font-size: 11px; color: #8e8e93; font-weight: 500;
+  }
+  .field-head .c {
+    font-size: 11px; font-weight: 600; color: #8e8e93;
+  }
+  .field-head .c.warn { color: #ff3b30; }
+
+  .field-ta {
+    width: 100%;
+    border: 1px solid #e5e5ea;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 14px; line-height: 1.75;
+    font-family: inherit; color: #1c1c1e;
+    background: #fcfcfd;
+    outline: none; resize: vertical;
+    min-height: 84px;
+    transition: all .15s;
+  }
+  .field-ta:focus {
+    border-color: #007aff;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+  }
+  .field-ta.short { min-height: 64px; }
+
+  /* 自动从事项/习惯汇总的"插入提示卡" */
+  .auto-card {
+    background: linear-gradient(135deg, #fbf8ff 0%, #f4f9ff 100%);
+    border: 1px dashed #d8d1ff;
+    border-radius: 12px; padding: 10px 12px;
+    margin-bottom: 10px;
+    display:flex; align-items:flex-start; gap: 10px;
+  }
+  .auto-card .auto-ic {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    background: #fff; border: 1px solid #e5e5ea;
+    display:flex; align-items:center; justify-content: center; color:#5856d6;
+  }
+  .auto-card .auto-t {
+    font-size: 12px; color: #575f6a; line-height: 1.65;
+    flex: 1;
+  }
+  .auto-card .auto-t b { color: #1c1c1e; font-weight: 600; }
+  .auto-card .auto-btns { display:flex; gap: 6px; }
+
+  /* 底部操作栏 */
+  .sp-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 16px; padding: 14px 16px;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.05);
+    flex-wrap: wrap; gap: 10px;
+  }
+  .footer-left { font-size: 12px; color:#8e8e93; display:flex; gap: 10px; align-items:center; flex-wrap:wrap; }
+  .footer-left .s { display: inline-flex; align-items: center; gap: 4px; }
+  .footer-left .s.on { color:#34c759; font-weight: 600; }
+  .footer-right { display:flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 10px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; transition: all .15s;
+  }
+  .btn.ghost { background: rgba(120,120,128,0.10); color:#1c1c1e; }
+  .btn.ghost:hover { background: rgba(120,120,128,0.18); }
+  .btn.purple { background: #5856d6; color: #fff; }
+  .btn.purple:hover { background: #4a48c4; }
+  .btn.blue { background: #007aff; color: #fff; }
+  .btn.blue:hover { background: #0069d6; }
+  .btn.green { background: #34c759; color: #fff; }
+  .btn.green:hover { background: #2db24f; }
+
+  /* ============== Markdown 预览浮层 ============== */
+  .md-overlay {
+    position: fixed; inset: 0; background: rgba(17,24,39,0.42);
+    backdrop-filter: blur(4px); z-index: 999;
+    display: none; align-items: center; justify-content: center; padding: 32px;
+  }
+  .md-overlay.show { display: flex; }
+  .md-dialog {
+    width: min(900px, 100%); max-height: 86vh;
+    background: #fff; border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    display: grid; grid-template-rows: auto 1fr auto;
+  }
+  .md-head {
+    display:flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid #eef0f4;
+  }
+  .md-head .l { font-size: 15px; font-weight: 700; color: #1c1c1e; display:flex; align-items:center; gap: 8px; }
+  .md-head .l .pill {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: #e0ecff; color: #007aff;
+  }
+  .md-head .x {
+    width: 30px; height: 30px; border-radius: 8px; background: rgba(120,120,128,0.10);
+    display:flex; align-items: center; justify-content: center; cursor:pointer;
+    color:#575f6a; font-size: 18px; font-weight: 500;
+  }
+  .md-head .x:hover { background: rgba(255,59,48,0.10); color:#ff3b30; }
+  .md-body {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    overflow: hidden;
+  }
+  @media (max-width: 760px) {
+    .md-body { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  }
+  .md-pane {
+    overflow-y: auto; padding: 18px;
+    display: flex; flex-direction: column;
+  }
+  .md-pane.left {
+    border-right: 1px solid #eef0f4;
+    background: #0d1117;
+  }
+  .md-pane.left .label { color:#7d8590; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 10px; text-transform: uppercase; }
+  .md-pane.left pre {
+    flex: 1; margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; line-height: 1.75; color: #e6edf3;
+    white-space: pre-wrap; word-break: break-word;
+    background: transparent;
+  }
+  .md-pane.right .label { color:#8e8e93; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 10px; text-transform: uppercase; }
+  .md-pane.right .content {
+    flex: 1; font-size: 13.5px; line-height: 1.75; color:#1c1c1e;
+  }
+  .md-pane.right h1 { font-size: 18px; margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid #eef0f4; }
+  .md-pane.right h2 { font-size: 15px; margin: 18px 0 8px; color: #007aff; }
+  .md-pane.right h2::before { content: ""; display: inline-block; width: 4px; height: 14px; border-radius: 2px; background: #007aff; margin-right: 8px; vertical-align: -1px; }
+  .md-pane.right h3 { font-size: 13px; margin: 12px 0 6px; color: #3c3c43; }
+  .md-pane.right ul { padding-left: 20px; margin: 6px 0; }
+  .md-pane.right li { margin: 3px 0; }
+  .md-pane.right table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 8px 0; }
+  .md-pane.right th, .md-pane.right td { border: 1px solid #e5e5ea; padding: 5px 10px; text-align: left; }
+  .md-pane.right th { background: #fafbfd; font-weight: 600; }
+  .md-pane.right blockquote {
+    border-left: 3px solid #007aff;
+    background: #f2f8ff; padding: 8px 12px; margin: 8px 0; border-radius: 0 8px 8px 0; color: #3c3c43;
+  }
+  .md-pane.right .tag-green { color: #34c759; font-weight: 600; }
+  .md-pane.right .tag-red { color: #ff3b30; font-weight: 600; }
+  .md-pane.right .tag-blue { color: #007aff; font-weight: 600; }
+  .md-pane.right .muted { color: #8e8e93; }
+
+  .md-foot {
+    padding: 12px 18px; border-top: 1px solid #eef0f4;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .md-foot .l { font-size: 12px; color:#8e8e93; }
+  .md-foot .copied { color: #34c759; font-weight: 600; }
+  .md-foot .r { display:flex; gap: 8px; }
+
+  /* 页脚说明 */
+  .explain {
+    max-width: 1440px; margin: 20px auto 0;
+    padding: 14px 18px; border-radius: 14px;
+    background: #fff; border: 1px dashed #c7e0ff;
+    color: #3c3c43; font-size: 12.5px; line-height: 1.75;
+  }
+  .explain b { color: #007aff; }
+  .explain li { margin: 2px 0; }
+
+  /* 新增模板对话框：极简示意 */
+  .tpl-new-box {
+    padding: 10px 12px; border-radius: 10px; background: #fafbfd; border: 1px solid #eef0f4;
+    margin-top: 10px; display: none;
+  }
+  .tpl-new-box.show { display: block; }
+  .tpl-new-box .lb { font-size: 11px; font-weight: 700; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .tpl-new-box input {
+    width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid #e5e5ea;
+    font-size: 13px; font-family: inherit; outline: none; background: #fff;
+  }
+  .tpl-new-box input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+  .tpl-new-box .tag {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 8px;
+    background: #e0ecff; color: #007aff; font-size: 11px; font-weight: 600; margin-right: 6px; margin-bottom: 5px;
+  }
+  .tpl-new-box .tag .x { cursor: pointer; opacity: 0.7; }
+  .tpl-new-box .add-block-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 8px;
+    background: rgba(0,122,255,0.08); color: #007aff;
+    font-size: 11px; font-weight: 600; cursor: pointer; margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ========= 说明条（开发态） ========= -->
+<div class="explain" style="margin-bottom: 16px;">
+  🎨 <b>这是一个「每日总结面板」独立 Demo，未改动工作台代码。</b>
+  <ul style="margin: 6px 0 0; padding-left: 20px;">
+    <li>① <b>StatsBar 总结按钮下拉：</b> 现在有 3 个动作 —— 在工作台面板总结 / 复制 Markdown / 打开在线文档（支持换绑）</li>
+    <li>② <b>右列 Tab：</b> 「时间线」/「总结面板」切换（与时间线同尺寸、同位置，不挤压左侧习惯面板）</li>
+    <li>③ <b>模板系统：</b> 5 个预设模板 + 新建自定义模板，点击任意模板 → 自动套用 block 结构到下方编辑区</li>
+    <li>④ <b>自动汇总卡片：</b> 每天的重点事项完成情况 + 习惯打卡会自动生成，支持一键插入到任意模板段</li>
+    <li>⑤ <b>导出 Markdown：</b> 左码右预览，一键复制，格式包含事项（✅/❌）+ 习惯打卡表 + 自由模板内容，可直接粘到飞书/Notion</li>
+  </ul>
+</div>
+
+<div class="app">
+
+  <!-- ========= 左侧边栏（简版） ========= -->
+  <aside class="sidebar">
+    <div class="sb-user">
+      <div class="avatar">E</div>
+      <div>
+        <div class="u1">Ethan</div>
+        <div class="u2">2026年8月11日 · 周二</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section">主要功能</div>
+      <div class="item on">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2h-4"></path><path d="M9 11V5a2 2 0 012-2h2a2 2 0 012 2v6"></path><path d="M9 11h6"></path></svg>
+        计划总结
+      </div>
+      <div class="item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        日历
+      </div>
+      <div class="item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><circle cx="12" cy="12" r="1"></circle></svg>
+        目标
+      </div>
+      <div class="item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        数据看板
+      </div>
+      <div class="item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+        日记/复盘
+      </div>
+      <div class="sb-section">其他</div>
+      <div class="item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"></path></svg>
+        习惯追踪
+      </div>
+      <div class="item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"></path></svg>
+        项目管理
+      </div>
+      <div class="item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+        设置
+      </div>
+    </div>
+    <div class="sb-bottom">
+      <div class="dot">🔔</div>
+      <div class="dot">💬</div>
+      <div class="dot">✅</div>
+      <div class="dot">↪️</div>
+    </div>
+  </aside>
+
+  <!-- ========= 主列 ========= -->
+  <div>
+
+    <!-- ===== StatsBar：总结按钮组 ===== -->
+    <div class="statsbar">
+      <div class="sb-left">
+        <div class="chip-btn">
+          <span class="emoji">🎯</span><span>重点</span><span class="n">2/4</span>
+        </div>
+        <div class="chip-btn">
+          <span class="emoji">✅</span><span>待办</span><span class="n">3/7</span>
+        </div>
+        <div class="chip-btn">
+          <span class="emoji">💧</span><span>习惯</span><span class="n">2/4</span>
+        </div>
+
+        <!-- 总结按钮（下拉） -->
+        <div class="summary-wrap">
+          <div class="chip-btn primary" id="summaryBtn">
+            <span class="emoji">📝</span>
+            <span>今日总结</span>
+            <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+          <div class="summary-menu" id="summaryMenu">
+            <div class="sm-tip">今日总结 · 8月11日</div>
+            <div class="sm-item green" id="sm-panel">
+              <div class="ic">📋</div>
+              <div style="flex:1"><div class="t">打开总结面板</div><div class="d">在工作台内套用模板，直接写</div></div>
+            </div>
+            <div class="sm-item purple" id="sm-copy">
+              <div class="ic">🔄</div>
+              <div style="flex:1"><div class="t">一键复制 Markdown</div><div class="d">事项+习惯自动汇总，粘到飞书</div></div>
+            </div>
+            <div class="sm-hr"></div>
+            <div class="sm-item">
+              <div class="ic">🔗</div>
+              <div style="flex:1"><div class="t">跳转到在线文档</div><div class="d">已绑定：2026每日复盘总表</div></div>
+            </div>
+            <div class="sm-item">
+              <div class="ic">⚙️</div>
+              <div style="flex:1"><div class="t">换绑在线文档链接</div><div class="d">支持飞书 / Notion / 语雀</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="sb-right">
+        <div class="date-chip">👋 晚上好</div>
+        <div class="chip-btn">
+          <span>8月11日</span>
+          <span class="n">周二</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 左+右 双列 ===== -->
+    <div class="main">
+
+      <!-- ===== 左列：习惯面板占位（保持原样） ===== -->
+      <section class="col-card">
+        <div class="panel-title">
+          <div class="t"><span class="bar"></span>今日习惯</div>
+          <div class="mini-btn blue">+ 新习惯</div>
+        </div>
+
+        <!-- 睡眠习惯（沿用之前的设计） -->
+        <div class="habit-row green">
+          <div class="cb checked"></div>
+          <div>
+            <div class="h-line1">😴 睡眠7小时</div>
+            <div class="h-line2">
+              <span class="target-ic">🎯 23:00 – 06:00 · 7小时</span>
+            </div>
+            <div class="h-line3">
+              <span>⏱ 00:00 – 07:00 · 7小时 · 达成目标</span>
+              <span class="chips-r">
+                <span class="chip-s bad"><span>⚡</span><span>疲惫</span></span>
+                <span style="color:#e5e5ea">·</span>
+                <span class="chip-s bad"><span>♡</span><span>消极</span></span>
+              </span>
+            </div>
+          </div>
+          <div class="right-col">
+            <div class="edit-btn" title="编辑">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+            </div>
+            <span class="sdot"></span>
+          </div>
+        </div>
+
+        <!-- 看书30m -->
+        <div class="habit-row blue">
+          <div class="cb checked"></div>
+          <div>
+            <div class="h-line1">📖 看书30m</div>
+            <div class="h-line2">
+              <span class="target-ic">🎯 07:30 – 08:00 · 30分钟</span>
+            </div>
+            <div class="h-line3">
+              <span>⏱ 07:32 – 08:08 · 36分钟 · 超出 6分钟</span>
+              <span class="chips-r"></span>
+            </div>
+          </div>
+          <div class="right-col">
+            <div class="edit-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+            </div>
+            <span class="sdot" style="background:#007aff"></span>
+          </div>
+        </div>
+
+        <!-- 即兴表达（未开始） -->
+        <div class="habit-row yellow">
+          <div class="cb"></div>
+          <div>
+            <div class="h-line1">🗣️ 即兴表达练习</div>
+            <div class="h-line2"><span class="target-ic">🎯 07:00 – 07:15 · 15分钟</span></div>
+          </div>
+          <div class="right-col">
+            <div class="edit-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+            </div>
+            <span class="sdot" style="background:#d4a017; opacity:0.5"></span>
+          </div>
+        </div>
+
+        <!-- 英语口语（未开始） -->
+        <div class="habit-row yellow">
+          <div class="cb"></div>
+          <div>
+            <div class="h-line1">🎤 英语口语练习</div>
+            <div class="h-line2"><span class="target-ic">🎯 07:15 – 07:30 · 15分钟</span></div>
+          </div>
+          <div class="right-col">
+            <div class="edit-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+            </div>
+            <span class="sdot" style="background:#d4a017; opacity:0.5"></span>
+          </div>
+        </div>
+
+        <div class="section-hair"></div>
+        <div class="section-subtitle">全天习惯</div>
+
+        <div class="habit-row" style="background: linear-gradient(90deg, #e5f6ea 0%, transparent 70%);">
+          <div class="cb"></div>
+          <div>
+            <div class="h-line1">💧 喝够2L水</div>
+            <div class="h-line2" style="color:#8e8e93"><span>全天 · 0.5L / 2L</span></div>
+          </div>
+          <div class="right-col">
+            <span class="sdot" style="background:#34c759"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 右列：时间线 / 总结面板 Tab ===== -->
+      <section class="col-card">
+        <div class="tabbar">
+          <button id="tabTimeline">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+            时间线
+          </button>
+          <button id="tabSummary" class="on">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            总结面板
+          </button>
+        </div>
+
+        <!-- ===== 时间线：极简占位 ===== -->
+        <div id="timelinePane" style="display: none;">
+          <div class="tl-placeholder">
+            <div class="tl-row">
+              <div class="tl-t">07:00</div><div class="tl-l" style="background:#007aff"></div>
+              <div class="tl-item"><span class="em">📖</span><span class="ti">看书30m</span><span class="du">07:30 – 08:00 · 30分钟</span></div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-t">14:00</div><div class="tl-l" style="background:#ff3b30"></div>
+              <div class="tl-item"><span class="em">✅</span><span class="ti" style="text-decoration:line-through;color:#aeaeae">投简历</span><span class="du">14:00 – 19:00 · 5小时</span></div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-t">23:00</div><div class="tl-l" style="background:#34c759"></div>
+              <div class="tl-item"><span class="em">✅</span><span class="ti" style="text-decoration:line-through;color:#aeaeae">睡眠7小时</span><span class="du">23:00 – 06:00 · 7小时</span></div>
+            </div>
+            <!-- 空白槽示意 -->
+            <div class="tl-row" style="background: rgba(0,122,255,0.06); border: 1px dashed rgba(0,122,255,0.3); border-radius: 10px;">
+              <div class="tl-t">20:00</div><div class="tl-l" style="background: rgba(0,122,255,0.4)"></div>
+              <div class="tl-item"><span style="color:#007aff; font-size:12px; font-weight:500;">+ 新增事项</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====================== 总结面板 ====================== -->
+        <div id="summaryPane" class="summary-panel show">
+
+          <!-- 顶部卡片 -->
+          <div class="sp-head">
+            <div class="sp-card">
+              <div class="date">
+                8月11日·复盘
+                <span class="week">周二 · 第32周</span>
+              </div>
+              <div class="sub">离 2026 结束还剩 142 天 · 今天是今年最年轻的一天 ☀️</div>
+              <div class="sp-stats">
+                <div class="s">
+                  <div class="k">重点事项</div>
+                  <div class="v">2<em> / 4 完成</em></div>
+                </div>
+                <div class="s">
+                  <div class="k">习惯打卡</div>
+                  <div class="v">2<em> / 4 达成</em></div>
+                </div>
+                <div class="s">
+                  <div class="k">专注时长</div>
+                  <div class="v">5.6<em> 小时</em></div>
+                </div>
+              </div>
+            </div>
+            <div class="mood-card">
+              <div class="mc-row">
+                <div class="mc-lab">今日心情</div>
+                <div class="mc-list">
+                  <div class="mc-em" title="超棒">😊</div>
+                  <div class="mc-em" title="不错">🙂</div>
+                  <div class="mc-em on" title="一般">😐</div>
+                  <div class="mc-em" title="有点累">😮‍💨</div>
+                  <div class="mc-em" title="低落">😔</div>
+                  <div class="mc-em" title="有点烦">😠</div>
+                  <div class="mc-em" title="兴奋">🤩</div>
+                </div>
+              </div>
+              <div class="mc-row">
+                <div class="mc-lab">醒后精力</div>
+                <div class="mc-list">
+                  <div class="mc-em on" style="font-size: 15px; font-weight:700;">⚡充沛</div>
+                  <div class="mc-em" style="font-size: 15px; font-weight:700;">🔵一般</div>
+                  <div class="mc-em" style="font-size: 15px; font-weight:700;">🔴疲惫</div>
+                </div>
+              </div>
+              <div class="mc-row">
+                <div class="mc-lab">天气</div>
+                <div class="mc-list mc-weather">
+                  <div class="mc-em on">☀️</div><div class="mc-em">⛅</div><div class="mc-em">☁️</div><div class="mc-em">🌧️</div><div class="mc-em">🌤️</div><div class="mc-em">❄️</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 模板选择器 -->
+          <div class="tpl-block">
+            <div class="tpl-head">
+              <div class="l">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                选择一个模板开始写
+              </div>
+              <div class="r">
+                <button class="mini-btn" id="tplManageBtn">🗂 管理模板</button>
+                <button class="mini-btn blue" id="tplNewBtn">+ 新建模板</button>
+              </div>
+            </div>
+
+            <div class="tpl-list" id="tplList">
+              <!-- 1. KPT -->
+              <div class="tpl-card c1 on" data-tpl="kpt">
+                <span class="star">⭐</span>
+                <div class="icon">🔁</div>
+                <div class="name">KPT 复盘</div>
+                <div class="desc">保持/问题/尝试</div>
+                <div class="blocks"><span>保持</span><span>问题</span><span>尝试</span></div>
+              </div>
+              <!-- 2. 通用每日 -->
+              <div class="tpl-card c2" data-tpl="daily">
+                <div class="icon">📋</div>
+                <div class="name">通用每日</div>
+                <div class="desc">亮点 / 不足 / 明日 / 小确幸</div>
+                <div class="blocks"><span>亮点</span><span>不足</span><span>明日</span><span>小确幸</span></div>
+              </div>
+              <!-- 3. 感恩日记 -->
+              <div class="tpl-card c3" data-tpl="gratitude">
+                <div class="icon">🌸</div>
+                <div class="name">感恩日记</div>
+                <div class="desc">3件小确幸 + 1个感谢</div>
+                <div class="blocks"><span>3幸事</span><span>感谢</span><span>感悟</span></div>
+              </div>
+              <!-- 4. GTD 清空 -->
+              <div class="tpl-card c4" data-tpl="gtd">
+                <div class="icon">🧠</div>
+                <div class="name">GTD 清空大脑</div>
+                <div class="desc">待办整理 + 4D 决策</div>
+                <div class="blocks"><span>待办</span><span>4D</span></div>
+              </div>
+              <!-- 5. 工作专项 -->
+              <div class="tpl-card c5" data-tpl="work">
+                <div class="icon">💼</div>
+                <div class="name">求职专项</div>
+                <div class="desc">投几份/测评/面试复盘</div>
+                <div class="blocks"><span>投递</span><span>测评</span><span>面试复盘</span><span>明日</span></div>
+              </div>
+              <!-- 新建 -->
+              <div class="tpl-card new" id="tplNewCard">
+                <div class="icon">+</div>
+                <div class="name">自定义模板</div>
+                <div class="desc">设计属于自己的结构</div>
+              </div>
+            </div>
+
+            <!-- 新建模板简易表单 -->
+            <div class="tpl-new-box" id="tplNewBox">
+              <div class="lb">模板名称</div>
+              <input placeholder="例如：周末慢复盘 / 晨间日记 / 面试后复盘" value="周末慢复盘">
+              <div class="lb" style="margin-top:10px;">包含模块</div>
+              <div>
+                <span class="tag">本周回顾 <span class="x">×</span></span>
+                <span class="tag">下周规划 <span class="x">×</span></span>
+                <span class="tag">照片/灵感 <span class="x">×</span></span>
+                <span class="add-block-btn">+ 添加模块</span>
+              </div>
+              <div style="display:flex; justify-content: flex-end; gap:6px; margin-top: 10px;">
+                <button class="mini-btn">取消</button>
+                <button class="mini-btn blue">保存模板</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 自动汇总卡片：从当天数据生成 -->
+          <div class="auto-card">
+            <div class="auto-ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="M7 14l4-4 4 4 5-5"></path></svg>
+            </div>
+            <div class="auto-t">
+              <b>📊 今日数据自动汇总已就绪：</b>重点事项 2/4 完成 · 习惯 2/4 达成 · 睡眠 7h50m · 精力疲惫 · 心情消极<br>
+              点击右侧按钮可以 <b>把「事项清单」和「习惯打卡表」</b>插入到编辑区，也可以导出 Markdown 时自动带上。
+            </div>
+            <div class="auto-btns">
+              <button class="mini-btn">插入事项</button>
+              <button class="mini-btn">插入习惯</button>
+            </div>
+          </div>
+
+          <!-- ===== 4 个模板字段（通用每日模板示例） ===== -->
+          <div class="field-card">
+            <div class="field-head">
+              <div class="t"><span class="idx" style="background:#ff3b30">1</span>🎯 今日亮点 / 重要成果 <span class="hint">（建议 ≤ 3 条）</span></div>
+              <div class="c">36 / 150</div>
+            </div>
+            <textarea class="field-ta short" placeholder="1. xxx 项目推进了 30%
+2. 完成了 xx 终稿
+3. 与 xx 聊清楚了需求…">1. 完成简历投递 8 家 · 3 家秒回测评
+2. 优化工作台睡眠记录面板 + 自定义模板设计
+3. 晨读《深度工作》第 3 章</textarea>
+          </div>
+
+          <div class="field-card">
+            <div class="field-head">
+              <div class="t"><span class="idx" style="background:#ff9500">2</span>🐢 今日不足 / 可改进</div>
+              <div class="c">48 / 150</div>
+            </div>
+            <textarea class="field-ta short" placeholder="1. 下午被群消息打断 3 次，深度工作时间不足
+2. xx 任务拖了 2 小时…">1. 下午 14:00-16:00 看消息太多，深度工作只完成 50%
+2. 原定 16 点做英语口语，拖到晚上 10 点状态已经差了</textarea>
+          </div>
+
+          <div class="field-card">
+            <div class="field-head">
+              <div class="t"><span class="idx" style="background:#007aff">3</span>🚀 明日计划 Top3 <span class="hint">（不超过 5 条）</span></div>
+              <div class="c">62 / 200</div>
+            </div>
+            <textarea class="field-ta short" placeholder="1. [高优] 完成 xx 文档
+2. [习惯] 早上 7 点起床…">1. [Top1] 上午 9-11 点做两家公司测评 + 投 5 家
+2. [Top2] 下午 2-4 点深度刷算法 20 题（链表+二叉树）
+3. [习惯] 早上 7 点起床（比今天早 1 小时）+ 晨读 15 分钟</textarea>
+          </div>
+
+          <div class="field-card">
+            <div class="field-head">
+              <div class="t"><span class="idx" style="background:#34c759">4</span>🌸 小确幸 / 感悟 / 碎碎念 <span class="hint">（不限字数）</span></div>
+              <div class="c">42 / 不限</div>
+            </div>
+            <textarea class="field-ta" placeholder="今天 7-11 的冰美式很正；晚霞很漂亮；妈妈提醒我要好好吃饭…">早餐楼下便利店的豆浆意外的好喝；下午 5 点抬头看到窗外的火烧云；妈妈发消息说给我寄了一箱桃子 🍑
+今天虽然没完成所有事，但感觉节奏在往好的方向走。</textarea>
+          </div>
+
+          <!-- 底部操作栏 -->
+          <div class="sp-footer">
+            <div class="footer-left">
+              <span class="s on">✅ 已自动保存草稿</span>
+              <span class="s">最后更新 20:47</span>
+              <span style="margin-left:8px;color:#8e8e93">· 预计 8 秒生成完整 Markdown</span>
+            </div>
+            <div class="footer-right">
+              <button class="btn ghost">🗑 清空</button>
+              <button class="btn purple" id="openMdBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                预览 Markdown
+              </button>
+              <button class="btn blue" id="copyMdBtn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                复制 Markdown
+              </button>
+              <button class="btn green">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                保存总结
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ============== Markdown 预览弹窗 ============== -->
+<div class="md-overlay" id="mdOverlay">
+  <div class="md-dialog">
+    <div class="md-head">
+      <div class="l">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5856d6" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        Markdown 预览 &amp; 复制
+        <span class="pill">支持粘贴到飞书 / Notion / 语雀</span>
+      </div>
+      <div class="x" id="mdClose">×</div>
+    </div>
+    <div class="md-body">
+      <div class="md-pane left">
+        <div class="label">📄 原始 Markdown</div>
+        <pre id="rawMd"># 8月11日 · 周二 · 每日复盘
+
+&gt; 📅 2026-08-11 · 第32周
+&gt; 😐 心情：一般 · ⚡ 精力：充沛 · ☀️ 天气：晴
+&gt; 📊 重点事项：2/4 · 习惯打卡：2/4 · 专注：5.6h
+
+---
+
+## ✅ 今日重点事项
+
+| 事项 | 时间段 | 时长 | 状态 |
+|---|---|---|---|
+| 📖 看书30m | 07:32 – 08:08 | 36分钟 | <span class="tag-green">✅ 完成</span> |
+| 🎯 优化简历 | 09:00 – 11:30 | 2.5小时 | <span class="tag-green">✅ 完成</span> |
+| 📨 投简历 | 14:00 – 19:00 | 5小时 | <span class="tag-red">❌ 未完成</span> |
+| 💻 数据分析练习 | 20:00 – 22:00 | 2小时 | <span class="tag-red">❌ 未完成</span> |
+
+&gt; 完成率 50% · 比昨天 (-10%)
+
+---
+
+## 💧 习惯打卡
+
+| 习惯 | 目标 | 实际 | 状态 |
+|---|---|---|---|
+| 😴 睡眠7小时 | 23:00-06:00 · 7h | 00:00-07:00 · **7h50m** | <span class="tag-green">✅ 达成</span> |
+| 📖 看书30m | 07:30-08:00 · 30m | 07:32-08:08 · **36m** | <span class="tag-green">✅ 达成</span> |
+| 🗣️ 即兴表达15m | 07:00-07:15 · 15m | – | <span class="tag-red">❌ 未开始</span> |
+| 🎤 英语口语15m | 07:15-07:30 · 15m | – | <span class="tag-red">❌ 未开始</span> |
+
+**额外状态**：精力 <span class="tag-red">疲惫</span> · 心情 <span class="tag-red">消极</span>
+
+---
+
+## 🎯 今日亮点 / 重要成果
+
+1. 完成简历投递 8 家 · 3 家秒回测评
+2. 优化工作台睡眠记录面板 + 自定义模板设计
+3. 晨读《深度工作》第 3 章
+
+## 🐢 今日不足 / 可改进
+
+1. 下午 14:00-16:00 看消息太多，深度工作只完成 50%
+2. 原定 16 点做英语口语，拖到晚上 10 点状态已经差了
+
+## 🚀 明日计划 Top3
+
+1. **[Top1]** 上午 9-11 点做两家公司测评 + 投 5 家
+2. **[Top2]** 下午 2-4 点深度刷算法 20 题（链表+二叉树）
+3. **[习惯]** 早上 7 点起床（比今天早 1 小时）+ 晨读 15 分钟
+
+## 🌸 小确幸 / 感悟 / 碎碎念
+
+&gt; 早餐楼下便利店的豆浆意外的好喝；下午 5 点抬头看到窗外的火烧云；妈妈发消息说给我寄了一箱桃子 🍑
+&gt;
+&gt; 今天虽然没完成所有事，但感觉节奏在往好的方向走。
+
+---
+
+<p class="muted">_由 Ethan 工作台自动生成于 2026-08-11 20:47 · 使用「通用每日」模板_</p></pre>
+      </div>
+      <div class="md-pane right">
+        <div class="label">👀 渲染预览</div>
+        <div class="content">
+          <h1>8月11日 · 周二 · 每日复盘</h1>
+          <blockquote>
+            📅 2026-08-11 · 第32周<br>
+            😐 心情：一般 · ⚡ 精力：充沛 · ☀️ 天气：晴<br>
+            📊 重点事项：2/4 · 习惯打卡：2/4 · 专注：5.6h
+          </blockquote>
+
+          <h2>今日重点事项</h2>
+          <table>
+            <thead><tr><th>事项</th><th>时间段</th><th>时长</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>📖 看书30m</td><td>07:32 – 08:08</td><td>36分钟</td><td><span class="tag-green">✅ 完成</span></td></tr>
+              <tr><td>🎯 优化简历</td><td>09:00 – 11:30</td><td>2.5小时</td><td><span class="tag-green">✅ 完成</span></td></tr>
+              <tr><td>📨 投简历</td><td>14:00 – 19:00</td><td>5小时</td><td><span class="tag-red">❌ 未完成</span></td></tr>
+              <tr><td>💻 数据分析练习</td><td>20:00 – 22:00</td><td>2小时</td><td><span class="tag-red">❌ 未完成</span></td></tr>
+            </tbody>
+          </table>
+          <p class="muted">完成率 50% · 比昨天 (-10%)</p>
+
+          <h2>习惯打卡</h2>
+          <table>
+            <thead><tr><th>习惯</th><th>目标</th><th>实际</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>😴 睡眠7小时</td><td>23:00-06:00 · 7h</td><td>00:00-07:00 · <b>7h50m</b></td><td><span class="tag-green">✅ 达成</span></td></tr>
+              <tr><td>📖 看书30m</td><td>07:30-08:00 · 30m</td><td>07:32-08:08 · <b>36m</b></td><td><span class="tag-green">✅ 达成</span></td></tr>
+              <tr><td>🗣️ 即兴表达</td><td>07:00-07:15 · 15m</td><td>–</td><td><span class="tag-red">❌ 未开始</span></td></tr>
+              <tr><td>🎤 英语口语</td><td>07:15-07:30 · 15m</td><td>–</td><td><span class="tag-red">❌ 未开始</span></td></tr>
+            </tbody>
+          </table>
+          <p>额外状态：精力 <span class="tag-red">疲惫</span> · 心情 <span class="tag-red">消极</span></p>
+
+          <h2>今日亮点</h2>
+          <ul>
+            <li>完成简历投递 8 家 · 3 家秒回测评</li>
+            <li>优化工作台睡眠记录面板 + 自定义模板设计</li>
+            <li>晨读《深度工作》第 3 章</li>
+          </ul>
+
+          <h2>今日不足</h2>
+          <ul>
+            <li>下午 14:00-16:00 看消息太多，深度工作只完成 50%</li>
+            <li>原定 16 点做英语口语，拖到晚上 10 点状态已经差了</li>
+          </ul>
+
+          <h2>明日计划 Top3</h2>
+          <ul>
+            <li><b>[Top1]</b> 上午 9-11 点做两家公司测评 + 投 5 家</li>
+            <li><b>[Top2]</b> 下午 2-4 点深度刷算法 20 题（链表+二叉树）</li>
+            <li><b>[习惯]</b> 早上 7 点起床（比今天早 1 小时）+ 晨读 15 分钟</li>
+          </ul>
+
+          <h2>小确幸 / 感悟 / 碎碎念</h2>
+          <blockquote>
+            早餐楼下便利店的豆浆意外的好喝；下午 5 点抬头看到窗外的火烧云；妈妈发消息说给我寄了一箱桃子 🍑<br><br>
+            今天虽然没完成所有事，但感觉节奏在往好的方向走。
+          </blockquote>
+
+          <p class="muted" style="margin-top: 20px; font-size: 11px;"><em>由 Ethan 工作台自动生成于 2026-08-11 20:47 · 使用「通用每日」模板</em></p>
+        </div>
+      </div>
+    </div>
+    <div class="md-foot">
+      <div class="l" id="copyStatus">📋 点击右上角「一键复制」即可到剪贴板 · 已准备好 1862 字符</div>
+      <div class="r">
+        <button class="btn ghost" id="mdClose2">取消</button>
+        <button class="btn blue" id="doCopyBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+          一键复制 Markdown
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============= 纯前端交互 Demo ============= */
+
+// 1. 总结按钮下拉
+const summaryBtn = document.getElementById('summaryBtn');
+const summaryMenu = document.getElementById('summaryMenu');
+summaryBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  summaryMenu.classList.toggle('show');
+});
+document.addEventListener('click', () => summaryMenu.classList.remove('show'));
+
+document.getElementById('sm-panel').addEventListener('click', () => {
+  switchTab('summary');
+  summaryMenu.classList.remove('show');
+});
+document.getElementById('sm-copy').addEventListener('click', () => {
+  openMd();
+  summaryMenu.classList.remove('show');
+});
+
+// 2. Tab 切换
+const tabT = document.getElementById('tabTimeline');
+const tabS = document.getElementById('tabSummary');
+const paneT = document.getElementById('timelinePane');
+const paneS = document.getElementById('summaryPane');
+function switchTab(which) {
+  if (which === 'timeline') {
+    tabT.classList.add('on'); tabS.classList.remove('on');
+    paneT.style.display = 'block'; paneS.classList.remove('show');
+  } else {
+    tabS.classList.add('on'); tabT.classList.remove('on');
+    paneS.classList.add('show'); paneT.style.display = 'none';
+  }
+}
+tabT.addEventListener('click', () => switchTab('timeline'));
+tabS.addEventListener('click', () => switchTab('summary'));
+
+// 3. 模板选择
+const tplCards = document.querySelectorAll('.tpl-card[data-tpl]');
+tplCards.forEach(c => {
+  c.addEventListener('click', () => {
+    tplCards.forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    // 这里只是视觉切换，真正代码实现时会把模板的结构块填充到下方 field-card
+  });
+});
+document.getElementById('tplNewCard').addEventListener('click', () => {
+  document.getElementById('tplNewBox').classList.toggle('show');
+});
+document.getElementById('tplNewBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('tplNewBox').classList.toggle('show');
+});
+
+// 4. Markdown 预览 + 复制
+function openMd() { document.getElementById('mdOverlay').classList.add('show'); switchTab('summary'); }
+function closeMd() { document.getElementById('mdOverlay').classList.remove('show'); }
+document.getElementById('openMdBtn').addEventListener('click', openMd);
+document.getElementById('mdClose').addEventListener('click', closeMd);
+document.getElementById('mdClose2').addEventListener('click', closeMd);
+document.getElementById('mdOverlay').addEventListener('click', e => {
+  if (e.target.id === 'mdOverlay') closeMd();
+});
+
+const copyBtn = document.getElementById('doCopyBtn');
+const copyStatus = document.getElementById('copyStatus');
+function doCopy() {
+  const text = document.getElementById('rawMd').textContent;
+  try {
+    navigator.clipboard.writeText(text).then(() => {
+      copyStatus.innerHTML = '✅ <span style="color:#34c759;font-weight:600">已复制 1862 字符到剪贴板</span> · 现在可以直接粘贴到飞书/Notion';
+      copyBtn.style.background = '#34c759';
+      setTimeout(() => { copyBtn.style.background = ''; }, 1200);
+    }).catch(() => {});
+  } catch (e) {}
+}
+copyBtn.addEventListener('click', doCopy);
+document.getElementById('copyMdBtn').addEventListener('click', () => { openMd(); setTimeout(doCopy, 200); });
+
+// 5. 心情 / 天气 / 精力 点击切换
+document.querySelectorAll('.mc-list').forEach(list => {
+  list.addEventListener('click', e => {
+    if (!e.target.classList.contains('mc-em')) return;
+    list.querySelectorAll('.mc-em').forEach(x => x.classList.remove('on'));
+    e.target.classList.add('on');
+  });
+});
+</script>
+
+
+
+
+
+
+
+</body></html>

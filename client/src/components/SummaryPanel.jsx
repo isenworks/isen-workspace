@@ -868,7 +868,7 @@ export default function SummaryPanel({
   // ===== embed 模式：独立卡片 + 日期头 =====
   if (embed) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%' }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
@@ -882,8 +882,31 @@ export default function SummaryPanel({
               background: 'rgba(120,120,128,0.10)', padding: '2px 10px', borderRadius: '999px',
             }}>{toDisplayDate(date)}</span>
           </div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                padding: '4px 10px', borderRadius: '8px',
+                border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: '500',
+                color: '#007aff',
+                background: 'rgba(0,122,255,0.08)',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.15)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.08)'}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              返回时间线
+            </button>
+          )}
         </div>
-        {panelInner}
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {panelInner}
+        </div>
         {mdDialog}
       </div>
     );

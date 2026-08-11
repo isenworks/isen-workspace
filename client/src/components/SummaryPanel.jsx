@@ -336,7 +336,7 @@ export default function SummaryPanel({
   habits: propHabits,
   refreshSignal,
   onChange,
-  // 用于 embed 模式下的 Tab 切换（由父组件控制 Timeline/Summary）
+  onBack, // embed 模式下"返回时间线"按钮
 }) {
   const [templateId, setTemplateId] = useState('daily');
   const [sectionsText, setSectionsText] = useState({ highlights: '', improvements: '', learnings: '', tomorrow: '' });
@@ -348,6 +348,7 @@ export default function SummaryPanel({
   const [mdOpen, setMdOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showTplEditor, setShowTplEditor] = useState(false);
+  const [editingTplId, setEditingTplId] = useState(null); // null 表示新建，否则为编辑自定义模板 id
   const [newTplDraft, setNewTplDraft] = useState({ name: '', s1: '', s2: '', s3: '', s4: '' });
   const autoSaveTimer = useRef(null);
 
@@ -422,27 +423,63 @@ export default function SummaryPanel({
   }, [sectionsText, templateId]);
 
   // ===== 操作：模板、编辑、Markdown =====
-  const handleAddCustomTpl = () => {
+  const openTplEditorForNew = () => {
+    setEditingTplId(null);
+    setNewTplDraft({ name: '', s1: '', s2: '', s3: '', s4: '' });
+    setShowTplEditor(true);
+  };
+
+  const openTplEditorForEdit = (t) => {
+    setEditingTplId(t.id);
+    setNewTplDraft({
+      name: t.name,
+      s1: t.sections[0]?.title || '',
+      s2: t.sections[1]?.title || '',
+      s3: t.sections[2]?.title || '',
+      s4: t.sections[3]?.title || '',
+    });
+    setShowTplEditor(true);
+  };
+
+  const handleSaveTplEditor = () => {
     const name = (newTplDraft.name || '').trim();
     const names = [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].map(s => s.trim());
     if (!name) return;
     if (names.some(n => !n)) return;
-    if (customTpls.length >= CUSTOM_TPL_LIMIT) return;
     const colors = ['#ff3b30', '#ff9500', '#007aff', '#34c759'];
-    const newTpl = {
-      id: 'custom_' + Date.now(),
-      name,
-      emoji: '✨',
-      sections: names.map((n, i) => ({ idx: i + 1, title: n, color: colors[i], placeholder: '写点什么…' })),
-      custom: true,
-    };
-    const next = [...customTpls, newTpl];
-    setCustomTpls(next);
-    saveCustomTemplates(userId, next);
-    setTemplateId(newTpl.id);
+
+    if (editingTplId) {
+      // 修改已有自定义模板
+      const next = customTpls.map(t => {
+        if (t.id !== editingTplId) return t;
+        return {
+          ...t,
+          name,
+          sections: names.map((n, i) => ({ idx: i + 1, title: n, color: colors[i], placeholder: '写点什么…' })),
+        };
+      });
+      setCustomTpls(next);
+      saveCustomTemplates(userId, next);
+    } else {
+      if (customTpls.length >= CUSTOM_TPL_LIMIT) return;
+      const newTpl = {
+        id: 'custom_' + Date.now(),
+        name,
+        emoji: '✨',
+        sections: names.map((n, i) => ({ idx: i + 1, title: n, color: colors[i], placeholder: '写点什么…' })),
+        custom: true,
+      };
+      const next = [...customTpls, newTpl];
+      setCustomTpls(next);
+      saveCustomTemplates(userId, next);
+      setTemplateId(newTpl.id);
+    }
     setShowTplEditor(false);
+    setEditingTplId(null);
     setNewTplDraft({ name: '', s1: '', s2: '', s3: '', s4: '' });
   };
+
+  const handleAddCustomTpl = handleSaveTplEditor; // 兼容旧命名引用
 
   const handleDelCustomTpl = (id) => {
     const next = customTpls.filter(t => t.id !== id);
@@ -532,30 +569,48 @@ export default function SummaryPanel({
                 <span>{t.name}</span>
               </button>
               {t.custom && (
-                <button
-                  onClick={() => handleDelCustomTpl(t.id)}
-                  style={{
-                    marginLeft: '-4px',
-                    width: '16px', height: '16px',
-                    borderRadius: '50%',
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#c7c7cc',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    lineHeight: 1,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                  title="删除该模板"
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
-                >×</button>
+                <div style={{ marginLeft: '-6px', display: 'inline-flex', alignItems: 'center', gap: '0px' }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openTplEditorForEdit(t); }}
+                    style={{
+                      width: '16px', height: '16px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#c7c7cc',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      lineHeight: 1,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    title="编辑该模板"
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+                  >✎</button>
+                  <button
+                    onClick={() => handleDelCustomTpl(t.id)}
+                    style={{
+                      width: '16px', height: '16px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#c7c7cc',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      lineHeight: 1,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    title="删除该模板"
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+                  >×</button>
+                </div>
               )}
             </div>
           ))}
           {customTpls.length < CUSTOM_TPL_LIMIT && (
             <button
-              onClick={() => setShowTplEditor(v => !v)}
+              onClick={openTplEditorForNew}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '4px',
                 padding: '4px 10px', borderRadius: '999px',
@@ -584,7 +639,7 @@ export default function SummaryPanel({
           background: 'rgba(0,122,255,0.03)',
           display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#007aff' }}>新建自定义模板</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#007aff' }}>{editingTplId ? '编辑自定义模板' : '新建自定义模板'}</div>
           <input
             value={newTplDraft.name}
             onChange={(e) => setNewTplDraft(d => ({ ...d, name: e.target.value }))}
@@ -619,7 +674,7 @@ export default function SummaryPanel({
           ))}
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
             <button
-              onClick={() => { setShowTplEditor(false); setNewTplDraft({ name: '', s1: '', s2: '', s3: '', s4: '' }); }}
+              onClick={() => { setShowTplEditor(false); setEditingTplId(null); setNewTplDraft({ name: '', s1: '', s2: '', s3: '', s4: '' }); }}
               style={{
                 padding: '5px 12px', borderRadius: '8px', border: 'none',
                 background: 'rgba(120,120,128,0.10)', color: '#3c3c43',
@@ -627,7 +682,7 @@ export default function SummaryPanel({
               }}
             >取消</button>
             <button
-              onClick={handleAddCustomTpl}
+              onClick={handleSaveTplEditor}
               disabled={!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())}
               style={{
                 padding: '5px 12px', borderRadius: '8px', border: 'none',
@@ -635,7 +690,7 @@ export default function SummaryPanel({
                 fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                 opacity: (!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())) ? 0.5 : 1,
               }}
-            >创建</button>
+            >{editingTplId ? '保存' : '创建'}</button>
           </div>
         </div>
       )}
@@ -679,13 +734,15 @@ export default function SummaryPanel({
                 value={val}
                 onChange={(e) => handleSectionChange(sec.idx, e.target.value)}
                 placeholder={sec.placeholder}
+                rows={3}
                 style={{
                   width: '100%', border: 'none', borderRadius: '8px',
                   padding: '8px 10px', fontSize: '13px', lineHeight: '1.7',
                   fontFamily: 'inherit', color: '#1c1c1e',
                   background: 'rgba(0,0,0,0.015)',
-                  outline: 'none', resize: 'vertical',
-                  minHeight: '60px', transition: 'all .15s',
+                  outline: 'none', resize: 'none',
+                  minHeight: '66px', maxHeight: '66px',
+                  transition: 'all .15s',
                 }}
               />
             </div>

@@ -180,27 +180,19 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             </button>
           </div>
           <button
-            className="font-semibold flex items-center gap-1"
+            className="btn-secondary font-semibold flex items-center gap-1"
             onClick={onSummaryToggle}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              background: showSummary ? '#007aff' : 'rgba(120,120,128,0.10)',
-              color: showSummary ? '#fff' : '#1c1c1e',
-              boxShadow: showSummary ? '0 2px 8px rgba(0,122,255,0.3)' : 'none',
-            }}
+            style={showSummary ? {
+              background: '#007aff',
+              color: '#fff',
+              border: '1px solid #007aff',
+              boxShadow: '0 2px 6px rgba(0,122,255,0.25)',
+            } : undefined}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              {showSummary ? (
-                <polyline points="15 18 9 12 15 6"></polyline>
-              ) : (
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
-              )}
+              <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
             </svg>
-            {showSummary ? '返回时间线' : '总结'}
+            总结
           </button>
         </div>
       </div>

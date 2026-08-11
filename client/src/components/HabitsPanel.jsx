@@ -373,8 +373,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                 <span
                   className="inline-flex items-center gap-1 flex-shrink-0"
                   style={{
-                    marginRight: isSleep ? -44 : 0,
-                    paddingRight: 0,
+                    marginRight: isSleep ? -56 : 0,
                   }}
                 >
                   {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}

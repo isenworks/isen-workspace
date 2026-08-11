@@ -342,10 +342,10 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
             {h.emoji} {h.name}
           </p>
           {/* 第二行：预设时间/目标 */}
-          <p className={`text-[12px] mt-0.5 flex items-center gap-1 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
+          <p className={`text-[12.5px] mt-0.5 flex items-center gap-1.5 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
             {isSleep ? (
               <>
-                <Target size={12.5} strokeWidth={2} className="flex-shrink-0" />
+                <Target size={13} strokeWidth={2} className="flex-shrink-0" />
                 <span className="whitespace-nowrap">
                   {h.start_time || h.target_time} – {h.end_time} · {formatDuration(h.duration_min || 420)}
                 </span>

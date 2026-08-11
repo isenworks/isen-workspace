@@ -1,8 +1,7 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>排序按钮设计 Demo · A / B / C 三方案对比</title>
 <style>
   :root {
@@ -173,19 +172,19 @@
             <span class="kt-accent"></span>
             <h3 class="kt-title">重点事项</h3>
             <!-- 排序按钮：紧挨标题右侧 -->
-            <button class="icon-btn a-sort-btn active" data-planA role="switch" aria-checked="true" title="按重要性排序">
+            <button class="icon-btn a-sort-btn active" data-plana="" role="switch" aria-checked="true" title="按重要性排序">
               <!-- 按重要性：三色横线 红上 琥珀中 灰下 (viewBox 14x14 适配小尺寸) -->
               <svg viewBox="0 0 14 14" fill="none" class="svg-pri">
-                <rect x="1.5" y="2"    width="11" height="2.2" rx="1.1" fill="#ff3b30"/>
-                <rect x="1.5" y="5.9"  width="11" height="2.2" rx="1.1" fill="#ff9500"/>
-                <rect x="1.5" y="9.8"  width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
+                <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#ff3b30"></rect>
+                <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#ff9500"></rect>
+                <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="#c7c7cc"></rect>
               </svg>
               <!-- 按时间：有序列表 1/2/3 + 三条横线 -->
               <svg viewBox="0 0 14 14" fill="none" class="svg-time" style="display:none">
                 <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none">
-                  <line x1="4" y1="3.3" x2="12.5" y2="3.3"/>
-                  <line x1="4" y1="7"   x2="12.5" y2="7"/>
-                  <line x1="4" y1="10.7" x2="12.5" y2="10.7"/>
+                  <line x1="4" y1="3.3" x2="12.5" y2="3.3"></line>
+                  <line x1="4" y1="7" x2="12.5" y2="7"></line>
+                  <line x1="4" y1="10.7" x2="12.5" y2="10.7"></line>
                 </g>
                 <g fill="currentColor" font-family="inherit" font-weight="700" font-size="3.8">
                   <text x="0.4" y="4.6">1</text>
@@ -199,9 +198,8 @@
             <!-- 进度环 -->
             <span class="count-pill">
               <svg class="ring" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"/>
-                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5"
-                        stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"/>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"></circle>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"></circle>
               </svg>
               0 / 6
             </span>
@@ -209,13 +207,13 @@
             <!-- 加号 -->
             <button class="add-btn" title="添加">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <path d="M12 5v14M19 12H5"/>
+                <path d="M12 5v14M19 12H5"></path>
               </svg>
             </button>
           </div>
         </div>
 
-        <div class="tasks" data-tasksA>
+        <div class="tasks" data-tasksa="">
           <div class="task p1"><span class="dot"></span><div class="t-main"><div class="t-name">背熟高频面试问题*5</div><div class="t-time">今日内完成 · 高优</div></div></div>
           <div class="task p2"><span class="dot"></span><div class="t-main"><div class="t-name">学习SQL：完成阶段1单表查询</div><div class="t-time">13:00 – 14:30</div></div></div>
           <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">拖地</div><div class="t-time">12:30 – 13:00</div></div></div>
@@ -235,7 +233,7 @@
       <!-- ============================================================ -->
       <div class="card" data-plan="B">
         <div class="plan-head">
-          <div class="plan-title">方案 B · 旗帜 & 时钟</div>
+          <div class="plan-title">方案 B · 旗帜 &amp; 时钟</div>
           <div class="plan-badge" style="background:rgba(120,120,128,0.12);color:var(--ink-2);">通用</div>
         </div>
         <div class="plan-desc">
@@ -249,37 +247,36 @@
             <h3 class="kt-title">重点事项</h3>
           </div>
           <div class="kt-header-right">
-            <button class="icon-btn b-sort-btn active" data-planB title="按重要性排序">
+            <button class="icon-btn b-sort-btn active" data-planb="" title="按重要性排序">
               <!-- 旗帜：红三角旗 + 三条线 -->
               <svg viewBox="0 0 16 16" fill="none" class="svg-pri">
-                <path d="M3 2.5 L3 14.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                <path d="M3.6 3.2 L13 5.2 L10.2 7.2 L13 9.2 L3.6 11.2 Z" fill="#ff3b30"/>
+                <path d="M3 2.5 L3 14.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+                <path d="M3.6 3.2 L13 5.2 L10.2 7.2 L13 9.2 L3.6 11.2 Z" fill="#ff3b30"></path>
               </svg>
               <!-- 时钟：3点 指针位置经典 -->
               <svg viewBox="0 0 16 16" fill="none" class="svg-time" style="display:none">
-                <circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4" fill="none"/>
-                <path d="M8 3.5 L8 8 L11.3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                <circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4" fill="none"></circle>
+                <path d="M8 3.5 L8 8 L11.3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"></path>
               </svg>
             </button>
 
             <span class="count-pill">
               <svg class="ring" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"/>
-                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5"
-                        stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"/>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"></circle>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"></circle>
               </svg>
               0 / 6
             </span>
 
             <button class="add-btn" title="添加">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <path d="M12 5v14M19 12H5"/>
+                <path d="M12 5v14M19 12H5"></path>
               </svg>
             </button>
           </div>
         </div>
 
-        <div class="tasks" data-tasksB>
+        <div class="tasks" data-tasksb="">
           <div class="task p1"><span class="dot"></span><div class="t-main"><div class="t-name">背熟高频面试问题*5</div><div class="t-time">今日内完成 · 高优</div></div></div>
           <div class="task p2"><span class="dot"></span><div class="t-main"><div class="t-name">学习SQL：完成阶段1单表查询</div><div class="t-time">13:00 – 14:30</div></div></div>
           <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">拖地</div><div class="t-time">12:30 – 13:00</div></div></div>
@@ -313,7 +310,7 @@
             <h3 class="kt-title">重点事项</h3>
           </div>
           <div class="kt-header-right">
-            <button class="icon-btn c-sort-btn active" data-planC title="按重要性排序">
+            <button class="icon-btn c-sort-btn active" data-planc="" title="按重要性排序">
               <span style="display:inline-flex; align-items:center; gap:3px;">
                 <!-- 状态指示条 -->
                 <span class="c-ind c-ind-pri">
@@ -336,22 +333,21 @@
 
             <span class="count-pill">
               <svg class="ring" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"/>
-                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5"
-                        stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"/>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" stroke-width="2.5"></circle>
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#007aff" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="40"></circle>
               </svg>
               0 / 6
             </span>
 
             <button class="add-btn" title="添加">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <path d="M12 5v14M19 12H5"/>
+                <path d="M12 5v14M19 12H5"></path>
               </svg>
             </button>
           </div>
         </div>
 
-        <div class="tasks" data-tasksC>
+        <div class="tasks" data-tasksc="">
           <div class="task p1"><span class="dot"></span><div class="t-main"><div class="t-name">背熟高频面试问题*5</div><div class="t-time">今日内完成 · 高优</div></div></div>
           <div class="task p2"><span class="dot"></span><div class="t-main"><div class="t-name">学习SQL：完成阶段1单表查询</div><div class="t-time">13:00 – 14:30</div></div></div>
           <div class="task p3"><span class="dot"></span><div class="t-main"><div class="t-name">拖地</div><div class="t-time">12:30 – 13:00</div></div></div>
@@ -457,5 +453,6 @@
     'C'
   );
 </script>
-</body>
-</html>
+
+
+</body></html>

@@ -422,6 +422,7 @@ export default function Workspace({ user: propUser }) {
               range={range}
               refreshSignal={refreshKey}
               onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
+              onAdd={(info) => setModal({ type: 'schedule', data: { start_time: info.start_time } })}
               onChange={refresh}
             />
           </div>
@@ -434,9 +435,9 @@ export default function Workspace({ user: propUser }) {
         title={
           !modal ? '新建'
           : modal.type === 'summary' ? '每日总结'
-          : modal.type === 'schedule' ? (modal.data ? '编辑事项' : '新建事项')
-          : modal.type === 'habit' ? (modal.data ? '编辑习惯' : '新建习惯')
-          : (modal.data ? '编辑待办' : '新建待办')
+          : modal.type === 'schedule' ? (modal.data?.id ? '编辑事项' : '新建事项')
+          : modal.type === 'habit' ? (modal.data?.id ? '编辑习惯' : '新建习惯')
+          : (modal.data?.id ? '编辑待办' : '新建待办')
         }
       >
         {modal?.type === 'schedule' && (

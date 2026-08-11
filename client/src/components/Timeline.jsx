@@ -56,7 +56,7 @@ function isToday(dateStr) {
   return dateStr === getToday();
 }
 
-export default function Timeline({ date, view, range, refreshSignal, onEdit, onChange }) {
+export default function Timeline({ date, view, range, refreshSignal, onEdit, onChange, onAdd }) {
   const toast = useToast();
   const [schedules, setSchedules] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -432,10 +432,23 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
           if (slots.length === 0) {
             return (
-              <div key={h} className="timeline-row">
+              <div
+                key={h}
+                className="timeline-row timeline-empty-row"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAdd?.({ start_time: timeStr });
+                }}
+                title={`点击在 ${timeStr} 新增事项`}
+              >
                 <div className="time-label">{timeStr}</div>
                 <div className="timeline-line" style={{background:'#e5e5ea', height:'20px'}}></div>
-                <div className="timeline-content"></div>
+                <div className="timeline-content timeline-empty-content">
+                  <span className="timeline-empty-hint">
+                    <span className="timeline-empty-plus">+</span>
+                    <span>新增事项</span>
+                  </span>
+                </div>
               </div>
             );
           }

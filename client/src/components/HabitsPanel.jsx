@@ -274,7 +274,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   function StateChip({ icon, label, color }) {
     const Icon = icon;
     return (
-      <span className="inline-flex items-center gap-1 text-[12px] font-medium" style={{ color }}>
+      <span className="inline-flex items-center gap-1 text-[12.5px] font-medium" style={{ color }}>
         <Icon size={13} strokeWidth={2} />
         <span>{label}</span>
       </span>
@@ -356,24 +356,25 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           {isSleep && hasSleepData && thirdLine && (
             <>
               <div className="my-2 h-px bg-[#e5e5ea]" style={{ opacity: 0.8 }}></div>
-              <div className="flex items-center gap-2 text-[12.5px] text-[#4a4a4f] w-full">
+              <div className="flex items-center gap-1.5 text-[12.5px] text-[#4a4a4f] w-full">
                 <Clock size={13} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
                 <span className="whitespace-nowrap flex-shrink-0">
                   {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
                 </span>
+                <span className="flex-shrink-0 text-[#c8c8cc]">·</span>
                 {thirdLine.dur >= thirdLine.target ? (
-                  <span className="text-[#34c759] whitespace-nowrap flex-shrink-0">· 达成目标</span>
+                  <span className="text-[#34c759] whitespace-nowrap flex-shrink-0">达成目标</span>
                 ) : (
                   <span className="text-[#ff9500] whitespace-nowrap flex-shrink-0">
-                    · 差{formatDuration(thirdLine.target - thirdLine.dur)}
+                    差{formatDuration(thirdLine.target - thirdLine.dur)}
                   </span>
                 )}
                 <span className="flex-1"></span>
-                <span className="inline-flex items-center gap-2 flex-shrink-0">
+                <span className="inline-flex items-center gap-1.5 flex-shrink-0">
                   {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}
                   {moodMeta && (
                     <>
-                      {energyMeta && <span className="text-[#e5e5ea]">·</span>}
+                      {energyMeta && <span className="text-[#ff3b30]">·</span>}
                       <StateChip icon={Heart} label={moodMeta.label} color={moodMeta.color} />
                     </>
                   )}

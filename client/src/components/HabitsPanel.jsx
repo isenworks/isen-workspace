@@ -370,14 +370,18 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   </span>
                 )}
                 <span className="flex-1"></span>
-                <span className="inline-flex items-center gap-1 flex-shrink-0">
+                <span
+                  className="inline-flex items-center gap-1 flex-shrink-0"
+                  style={{
+                    marginRight: isSleep ? -44 : 0,
+                    paddingRight: 0,
+                  }}
+                >
                   {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}
-                  {moodMeta && (
-                    <>
-                      {energyMeta && <span className="text-[#ff3b30]">·</span>}
-                      <StateChip icon={Heart} label={moodMeta.label} color={moodMeta.color} />
-                    </>
+                  {moodMeta && energyMeta && (
+                    <span style={{ color: moodMeta.color }}>·</span>
                   )}
+                  {moodMeta && <StateChip icon={Heart} label={moodMeta.label} color={moodMeta.color} />}
                 </span>
               </div>
             </>

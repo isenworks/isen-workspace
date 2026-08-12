@@ -269,8 +269,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
       if (displayDur) {
         const hours = displayDur / 60;
-        if (hours === 1) txt += (txt ? ' · ' : '') + '1 小时';
-        else if (Number.isInteger(hours)) txt += (txt ? ' · ' : '') + `${hours} 小时`;
+        if (hours === 1) txt += (txt ? ' · ' : '') + '1h';
+        else if (Number.isInteger(hours)) txt += (txt ? ' · ' : '') + `${hours}h`;
         else txt += (txt ? ' · ' : '') + formatDuration(displayDur);
       }
       return txt;
@@ -281,8 +281,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     const displayDur = getEffectiveDur(item);
     if (displayDur) {
       const hours = displayDur / 60;
-      if (hours === 1) txt += ' · 1 小时';
-      else if (Number.isInteger(hours)) txt += ` · ${hours} 小时`;
+      if (hours === 1) txt += ' · 1h';
+      else if (Number.isInteger(hours)) txt += ` · ${hours}h`;
       else txt += ` · ${formatDuration(displayDur)}`;
     }
     return txt;
@@ -305,8 +305,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     const displayDur = getEffectiveDur(item);
     if (!displayDur) return '';
     const hours = displayDur / 60;
-    if (hours === 1) return '1 小时';
-    if (Number.isInteger(hours)) return `${hours} 小时`;
+    if (hours === 1) return '1h';
+    if (Number.isInteger(hours)) return `${hours}h`;
     return formatDuration(displayDur);
   }
 

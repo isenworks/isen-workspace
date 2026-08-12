@@ -119,10 +119,10 @@ export function timeToMin(t) {
 // 时长格式化
 export function formatDuration(min) {
   if (!min) return '';
-  if (min < 60) return `${min} 分钟`;
+  if (min < 60) return `${min}m`;
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return m ? `${h} 小时 ${m} 分钟` : `${h} 小时`;
+  return m ? `${h}h${m}m` : `${h}h`;
 }
 
 // 通过 start/end 时间字符串计算时长分钟（兜底，不依赖 duration_min 字段）

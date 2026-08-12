@@ -656,7 +656,7 @@ export default function Workspace({ user: propUser }) {
                         <div style={{ fontSize: '14px', fontWeight: '500', color: '#1c1c1e' }}>{h.name}</div>
                         <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>
                           {h.target_time ? `${h.target_time} · ` : ''}
-                          {h.duration_min ? `${h.duration_min} 分钟` : '全天'}
+                          {h.duration_min ? `${h.duration_min}m` : '全天'}
                         </div>
                       </div>
                       <button

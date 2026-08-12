@@ -91,9 +91,9 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
     if (!ts) return '从未同步';
     const diff = Math.floor((Date.now() - ts) / 1000);
     if (diff < 5) return '刚刚同步';
-    if (diff < 60) return `${diff} 秒前同步`;
-    if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前同步`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前同步`;
+    if (diff < 60) return `${diff}s 前同步`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m 前同步`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h 前同步`;
     const d = new Date(ts);
     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 同步`;
   }

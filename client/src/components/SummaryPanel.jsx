@@ -383,6 +383,111 @@ export default function SummaryPanel({
   const [editingTplId, setEditingTplId] = useState(null); // null 表示新建，否则为编辑模板 id
   const [newTplDraft, setNewTplDraft] = useState({ name: '', s1: '', s2: '', s3: '', s4: '' });
   const autoSaveTimer = useRef(null);
+  // ==== 保存相关：dirty 标记 + latestRef 规避闭包 + localStorage 草稿兜底 ====
+  const dirtyRef = useRef(false);
+  const latestRef = useRef({ templateId: 'daily', sectionsText: { highlights: '', improvements: '', learnings: '', tomorrow: '' } });
+  const savingNowRef = useRef(false);
+  const loadedApiTextRef = useRef(null); // 记录本次从 API 加载的内容签名，用于判断是否走草稿
+
+  function getDraftKey() { return `summary_draft_${date}_${userId || 'anon'}`; }
+  function writeDraftToLS() {
+    try {
+      const payload = {
+        t: Date.now(),
+        templateId: latestRef.current.templateId,
+        sectionsText: latestRef.current.sectionsText,
+      };
+      localStorage.setItem(getDraftKey(), JSON.stringify(payload));
+    } catch (_) {}
+  }
+  function readDraftFromLS() {
+    try {
+      const raw = localStorage.getItem(getDraftKey());
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== 'object') return null;
+      return d;
+    } catch (_) { return null; }
+  }
+  function clearDraftLS() { try { localStorage.removeItem(getDraftKey()); } catch (_) {} }
+
+  useEffect(() => { latestRef.current.templateId = templateId; }, [templateId]);
+  useEffect(() => { latestRef.current.sectionsText = sectionsText; }, [sectionsText]);
+
+  // 内容变更：先写 localStorage 草稿（兜底，100% 无延迟），再走 debounce API 保存
+  useEffect(() => {
+    // 初次尚未 load 完成，或 loadData 刚 setSectionsText 时：不写入草稿、不立即标记脏
+    if (loadedApiTextRef.current == null) return;
+    writeDraftToLS();
+    dirtyRef.current = true;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => flushSave(true), 500);
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+    // eslint-disable-next-line
+  }, [sectionsText, templateId]);
+
+  // flushSave：执行真实保存（silent=true 自动保存不显示 saving 动画，但会更新 savedTime / 状态文案）
+  const flushSave = async (silent = false) => {
+    if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
+    if (savingNowRef.current) return; // 上一次还在飞：等下次触发
+    const snapshot = {
+      templateId: latestRef.current.templateId,
+      sectionsText: { ...latestRef.current.sectionsText },
+    };
+    try {
+      savingNowRef.current = true;
+      if (!silent) setSaving(true);
+      const content = JSON.stringify({
+        template: snapshot.templateId,
+        highlights: snapshot.sectionsText.highlights || '',
+        improvements: snapshot.sectionsText.improvements || '',
+        learnings: snapshot.sectionsText.learnings || '',
+        tomorrow: snapshot.sectionsText.tomorrow || '',
+      });
+      await API.summaries.upsert({ date, content });
+      const now = new Date();
+      setSavedTime(now);
+      dirtyRef.current = false;
+      clearDraftLS(); // 保存成功后清草稿，避免后续误导
+      onChange?.();
+    } catch (e) {
+      console.warn('[SummaryPanel] save fail', e?.message || e);
+    } finally {
+      savingNowRef.current = false;
+      if (!silent) setSaving(false);
+    }
+  };
+  // 保留原名调用点（旧底部按钮、其他位置）
+  const saveSummary = flushSave;
+
+  // 组件卸载 / 页签关闭 / 切路由：强制 flush 未保存内容 + beforeunload 同步写一次草稿（极端情况）
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      if (dirtyRef.current) writeDraftToLS();
+      try { flushSave(true); } catch (_) {}
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      // 卸载时 flush 一次（注意：async 未 await，但这里也没别的办法）
+      if (dirtyRef.current) {
+        writeDraftToLS();
+        try { flushSave(true); } catch (_) {}
+      }
+    };
+    // eslint-disable-next-line
+  }, [date, userId]);
+
+  // 包装 onBack：切回时间线前先 flush，避免切 Tab 丢最后一次输入
+  const handleBack = () => {
+    const run = () => { try { onBack?.(); } catch (_) {} };
+    if (!dirtyRef.current) { run(); return; }
+    // 1) 先写 LS 兜底
+    writeDraftToLS();
+    // 2) 发保存请求；保存无论成败，300ms 后返回时间线（不阻塞用户）
+    const timer = setTimeout(run, 300);
+    flushSave(true).then(() => { clearTimeout(timer); run(); }).catch(() => { clearTimeout(timer); run(); });
+  };
 
   // 点击外部关闭模板下拉
   useEffect(() => {
@@ -422,6 +527,9 @@ export default function SummaryPanel({
 
   const loadData = async () => {
     try {
+      // 在真正加载前，先把 loadedApiTextRef 置 null，避免加载过程中 draft debounce 写草稿被当成脏内容
+      loadedApiTextRef.current = null;
+
       if (!propSchedules) {
         const r = await API.schedules.list({ date });
         setSchedules(r?.schedules || []);
@@ -436,51 +544,47 @@ export default function SummaryPanel({
       }
       const s = await API.summaries.get(date);
       const parsed = parseContent(s?.summary?.content);
-      setTemplateId(parsed.template || 'daily');
-      setSectionsText({
+      const apiSections = {
         highlights: parsed.highlights || '',
         improvements: parsed.improvements || '',
         learnings: parsed.learnings || '',
         tomorrow: parsed.tomorrow || '',
-      });
-      if (s?.summary?.updated_at) setSavedTime(new Date(s.summary.updated_at));
+      };
+      const apiTemplate = parsed.template || 'daily';
+      const apiUpdated = s?.summary?.updated_at ? new Date(s.summary.updated_at).getTime() : 0;
+
+      // 本地草稿兜底：若草稿比 API 更新时间更新，或 API 为空但草稿有内容 → 以草稿为准
+      const draft = readDraftFromLS();
+      let finalSections = apiSections;
+      let finalTemplate = apiTemplate;
+      if (draft) {
+        const allApiEmpty = !apiSections.highlights && !apiSections.improvements && !apiSections.learnings && !apiSections.tomorrow;
+        const draftHasContent = !!(draft.sectionsText?.highlights || draft.sectionsText?.improvements || draft.sectionsText?.learnings || draft.sectionsText?.tomorrow);
+        const draftNewer = draft.t && (draft.t > apiUpdated);
+        if (draftHasContent && (allApiEmpty || draftNewer)) {
+          finalSections = {
+            highlights: draft.sectionsText?.highlights || '',
+            improvements: draft.sectionsText?.improvements || '',
+            learnings: draft.sectionsText?.learnings || '',
+            tomorrow: draft.sectionsText?.tomorrow || '',
+          };
+          finalTemplate = draft.templateId || apiTemplate;
+        }
+      }
+      setTemplateId(finalTemplate);
+      setSectionsText(finalSections);
+      if (apiUpdated) setSavedTime(new Date(apiUpdated));
+
+      // 内容签名：标记加载完成，之后的用户变更才走脏检测 + debounce
+      latestRef.current = { templateId: finalTemplate, sectionsText: finalSections };
+      loadedApiTextRef.current = JSON.stringify([finalTemplate, finalSections]);
+      dirtyRef.current = false;
     } catch (e) {
       console.warn('[SummaryPanel] load fail', e?.message || e);
     }
   };
 
   useEffect(() => { loadData(); /* eslint-disable-next-line */ }, [date, userId, refreshSignal]);
-
-  // ===== 内容变更：自动保存（500ms 防抖） =====
-  const saveSummary = async (silent = false) => {
-    try {
-      if (!silent) setSaving(true);
-      const content = JSON.stringify({
-        template: templateId,
-        highlights: sectionsText.highlights,
-        improvements: sectionsText.improvements,
-        learnings: sectionsText.learnings,
-        tomorrow: sectionsText.tomorrow,
-      });
-      await API.summaries.upsert({ date, content });
-      const now = new Date();
-      setSavedTime(now);
-      onChange?.();
-    } catch (e) {
-      console.warn('[SummaryPanel] save fail', e?.message || e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    // 忽略初始空值的第一次
-    if (!savedTime && !sectionsText.highlights && !sectionsText.improvements && !sectionsText.learnings && !sectionsText.tomorrow) return;
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => saveSummary(true), 500);
-    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-    // eslint-disable-next-line
-  }, [sectionsText, templateId]);
 
   // ===== 操作：模板、编辑、Markdown =====
   const openTplEditorForNew = () => {
@@ -579,7 +683,7 @@ export default function SummaryPanel({
   };
 
   const handleManualSave = async () => {
-    await saveSummary(false);
+    await flushSave(false);
   };
 
   const markdown = useMemo(() => {
@@ -1109,7 +1213,7 @@ export default function SummaryPanel({
             {templateHeaderBtn}
             {onBack && (
               <button
-                onClick={onBack}
+                onClick={handleBack}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   padding: '4px 10px', borderRadius: '8px',

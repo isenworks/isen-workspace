@@ -616,143 +616,183 @@ export default function SummaryPanel({
   // ===== 公共内部 UI =====
   const sectionKeys = getSectionKeys(templateId);
 
-  const panelInner = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {/* 模板选择器：下拉按钮 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <span style={{ fontSize: '12px', fontWeight: '600', color: '#8e8e93', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <span>📋</span>模板
-        </span>
-        <div ref={tplMenuRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => setTplMenuOpen(v => !v)}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '5px 12px', borderRadius: '8px',
-              fontSize: '12px', fontWeight: '600',
-              cursor: 'pointer', transition: 'all .15s',
-              background: tplMenuOpen ? 'rgba(0,122,255,0.10)' : 'rgba(120,120,128,0.10)',
-              color: '#1c1c1e',
-              border: tplMenuOpen ? '1px solid rgba(0,122,255,0.2)' : '1px solid transparent',
-            }}
-            onMouseEnter={(e) => { if (!tplMenuOpen) e.currentTarget.style.background = 'rgba(120,120,128,0.18)'; }}
-            onMouseLeave={(e) => { if (!tplMenuOpen) e.currentTarget.style.background = 'rgba(120,120,128,0.10)'; }}
-          >
-            <span style={{ fontSize: '12px' }}>{currentTpl.emoji}</span>
-            <span>{currentTpl.name}</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-              style={{ transition: 'transform .15s', transform: tplMenuOpen ? 'rotate(180deg)' : 'none' }}>
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          {tplMenuOpen && (
-            <div
-              style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                minWidth: '200px',
-                background: '#fff',
-                borderRadius: '12px',
-                padding: '6px',
-                boxShadow: '0 12px 36px rgba(0,0,0,0.18), 0 4px 10px rgba(0,0,0,0.06)',
-                border: '1px solid rgba(0,0,0,0.06)',
-                zIndex: 10002,
-                maxHeight: '320px',
-                overflowY: 'auto',
-              }}
-            >
-              {allTemplates.map(t => (
-                <div
-                  key={t.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: templateId === t.id ? 'rgba(0,122,255,0.08)' : 'transparent',
-                    color: templateId === t.id ? '#007aff' : '#1c1c1e',
-                    transition: 'background .1s',
-                    fontSize: '13px',
-                  }}
-                  onClick={() => { setTemplateId(t.id); setTplMenuOpen(false); }}
-                  onMouseEnter={(e) => { if (templateId !== t.id) e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
-                  onMouseLeave={(e) => { if (templateId !== t.id) e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <span style={{ fontSize: '14px', flexShrink: 0 }}>{t.emoji}</span>
-                  <span style={{ flex: 1, fontWeight: templateId === t.id ? '600' : '500', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {t.name}
-                  </span>
-                  {templateId === t.id && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  )}
-                  {templateId !== t.id && (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openTplEditorForEdit(t); setTplMenuOpen(false); }}
-                        style={{
-                          width: '20px', height: '20px',
-                          borderRadius: '50%',
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#c7c7cc',
-                          cursor: 'pointer',
-                          fontSize: '11px',
-                          lineHeight: 1,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                        title="编辑"
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
-                      >✎</button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelTemplate(t.id); }}
-                        style={{
-                          width: '20px', height: '20px',
-                          borderRadius: '50%',
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#c7c7cc',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          lineHeight: 1,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                        title="删除"
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
-                      >×</button>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {customTpls.length < CUSTOM_TPL_LIMIT && (
-                <>
-                  <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '4px 6px' }}></div>
-                  <div
-                    onClick={() => { openTplEditorForNew(); setTplMenuOpen(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      color: '#007aff',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      transition: 'background .1s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <span style={{ fontSize: '14px' }}>+</span>
-                    <span>新建模板</span>
-                  </div>
-                </>
-              )}
+  // --- 模板下拉弹出菜单内容（通用） ---
+  const tplMenuPopup = tplMenuOpen && (
+    <div
+      style={{
+        position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+        minWidth: '200px',
+        background: '#fff',
+        borderRadius: '12px',
+        padding: '6px',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.18), 0 4px 10px rgba(0,0,0,0.06)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        zIndex: 10002,
+        maxHeight: '320px',
+        overflowY: 'auto',
+      }}
+    >
+      {allTemplates.map(t => (
+        <div
+          key={t.id}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '6px 10px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            background: templateId === t.id ? 'rgba(0,122,255,0.08)' : 'transparent',
+            color: templateId === t.id ? '#007aff' : '#1c1c1e',
+            transition: 'background .1s',
+            fontSize: '13px',
+          }}
+          onClick={() => { setTemplateId(t.id); setTplMenuOpen(false); }}
+          onMouseEnter={(e) => { if (templateId !== t.id) e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
+          onMouseLeave={(e) => { if (templateId !== t.id) e.currentTarget.style.background = 'transparent'; }}
+        >
+          <span style={{ fontSize: '14px', flexShrink: 0 }}>{t.emoji}</span>
+          <span style={{ flex: 1, fontWeight: templateId === t.id ? '600' : '500', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t.name}
+          </span>
+          {templateId === t.id && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          )}
+          {templateId !== t.id && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); openTplEditorForEdit(t); setTplMenuOpen(false); }}
+                style={{
+                  width: '20px', height: '20px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#c7c7cc',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  lineHeight: 1,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                title="编辑"
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+              >✎</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDelTemplate(t.id); }}
+                style={{
+                  width: '20px', height: '20px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#c7c7cc',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  lineHeight: 1,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                title="删除"
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+              >×</button>
             </div>
           )}
         </div>
-      </div>
+      ))}
+      {customTpls.length < CUSTOM_TPL_LIMIT && (
+        <>
+          <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '4px 6px' }}></div>
+          <div
+            onClick={() => { openTplEditorForNew(); setTplMenuOpen(false); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              color: '#007aff',
+              fontSize: '13px',
+              fontWeight: '500',
+              transition: 'background .1s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <span style={{ fontSize: '14px' }}>+</span>
+            <span>新建模板</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // --- 模板按钮（header 风格，与「返回时间线」样式一致，embed 头部使用） ---
+  const tplBtnHeaderStyle = (hover) => ({
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    padding: '4px 10px', borderRadius: '8px',
+    border: 'none', cursor: 'pointer',
+    fontSize: '12px', fontWeight: '500',
+    color: '#007aff',
+    background: hover || tplMenuOpen ? 'rgba(0,122,255,0.15)' : 'rgba(0,122,255,0.08)',
+    transition: 'all 0.15s',
+  });
+
+  // --- 模板按钮（内部风格，modal 模式单独使用） ---
+  const tplBtnInnerStyle = () => ({
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    padding: '5px 12px', borderRadius: '8px',
+    fontSize: '12px', fontWeight: '600',
+    cursor: 'pointer', transition: 'all .15s',
+    background: tplMenuOpen ? 'rgba(0,122,255,0.10)' : 'rgba(120,120,128,0.10)',
+    color: '#1c1c1e',
+    border: tplMenuOpen ? '1px solid rgba(0,122,255,0.2)' : '1px solid transparent',
+  });
+
+  const tplArrow = (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+      style={{ transition: 'transform .15s', transform: tplMenuOpen ? 'rotate(180deg)' : 'none' }}>
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  );
+
+  // embed 头部的模板按钮（与返回时间线同一排，样式统一）
+  const templateHeaderBtn = (
+    <div ref={tplMenuRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setTplMenuOpen(v => !v)}
+        style={tplBtnHeaderStyle(false)}
+        onMouseEnter={(e) => Object.assign(e.currentTarget.style, tplBtnHeaderStyle(true))}
+        onMouseLeave={(e) => Object.assign(e.currentTarget.style, tplBtnHeaderStyle(false))}
+      >
+        <span style={{ fontSize: '12px' }}>{currentTpl.emoji}</span>
+        <span>{currentTpl.name}</span>
+        {tplArrow}
+      </button>
+      {tplMenuPopup}
+    </div>
+  );
+
+  // modal 内部的模板按钮（右对齐，去掉模板 label）
+  const templateInnerBtn = (
+    <div ref={tplMenuRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setTplMenuOpen(v => !v)}
+        style={tplBtnInnerStyle()}
+        onMouseEnter={(e) => { if (!tplMenuOpen) e.currentTarget.style.background = 'rgba(120,120,128,0.18)'; }}
+        onMouseLeave={(e) => { if (!tplMenuOpen) e.currentTarget.style.background = 'rgba(120,120,128,0.10)'; }}
+      >
+        <span style={{ fontSize: '12px' }}>{currentTpl.emoji}</span>
+        <span>{currentTpl.name}</span>
+        {tplArrow}
+      </button>
+      {tplMenuPopup}
+    </div>
+  );
+
+  const panelInner = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* 仅 modal 模式显示模板选择按钮（去掉「模板」文字，右对齐） */}
+      {!embed && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          {templateInnerBtn}
+        </div>
+      )}
 
       {/* 自定义模板编辑器 */}
       {showTplEditor && (
@@ -1065,27 +1105,30 @@ export default function SummaryPanel({
               background: 'rgba(120,120,128,0.10)', padding: '2px 10px', borderRadius: '999px',
             }}>{toDisplayDate(date)}</span>
           </div>
-          {onBack && (
-            <button
-              onClick={onBack}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '4px 10px', borderRadius: '8px',
-                border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: '500',
-                color: '#007aff',
-                background: 'rgba(0,122,255,0.08)',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.15)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.08)'}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              返回时间线
-            </button>
-          )}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            {templateHeaderBtn}
+            {onBack && (
+              <button
+                onClick={onBack}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  padding: '4px 10px', borderRadius: '8px',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: '500',
+                  color: '#007aff',
+                  background: 'rgba(0,122,255,0.08)',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.15)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.08)'}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                返回时间线
+              </button>
+            )}
+          </div>
         </div>
         <div style={{ overflowY: 'auto', flex: 1 }}>
           {panelInner}

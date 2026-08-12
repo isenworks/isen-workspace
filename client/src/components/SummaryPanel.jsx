@@ -1097,7 +1097,7 @@ export default function SummaryPanel({
         }}>
           <div style={{ fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
-              width: '3px', height: '14px', borderRadius: '2px', background: '#007aff',
+              width: '5px', height: '18px', borderRadius: '3px', background: '#007aff', flexShrink: 0,
             }}></span>
             每日总结
             <span style={{

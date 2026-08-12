@@ -212,7 +212,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
               </div>
             </div>
             <div className="w-0.5 h-4 rounded-full" style={{background:'rgba(120,120,128,0.2)'}}></div>
-            {/* 重点分类未完成 */}
+            {/* 重点分类未完成 + 常规 + 习惯（最右） */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#ff3b30'}}></span>
@@ -222,17 +222,15 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#ff9500'}}></span>
                 <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.high}</span>
               </div>
-            </div>
-            <div className="w-0.5 h-4 rounded-full" style={{background:'rgba(120,120,128,0.2)'}}></div>
-            {/* 习惯打卡（蓝色） */}
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#007aff'}}></span>
-              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.habitDone} /{stats.habitTotal}</span>
-            </div>
-            {/* 普通待办（灰色） */}
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#8e8e93'}}></span>
-              <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.normal}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#8e8e93'}}></span>
+                <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.normal}</span>
+              </div>
+              {/* 习惯在最右边：统一小圆点样式 */}
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full" style={{background:'#007aff'}}></span>
+                <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.habitDone} /{stats.habitTotal}</span>
+              </div>
             </div>
           </div>
         </div>

@@ -229,7 +229,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
               {/* 习惯在最右边：统一小圆点样式 */}
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full" style={{background:'#007aff'}}></span>
-                <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.habitDone} /{stats.habitTotal}</span>
+                <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.habitDone} / {stats.habitTotal}</span>
               </div>
             </div>
           </div>

@@ -388,6 +388,7 @@ export default function SummaryPanel({
   const latestRef = useRef({ templateId: 'daily', sectionsText: { highlights: '', improvements: '', learnings: '', tomorrow: '' } });
   const savingNowRef = useRef(false);
   const loadedApiTextRef = useRef(null); // 记录本次从 API 加载的内容签名，用于判断是否走草稿
+  const lastSaveTsRef = useRef(0); // 最近一次 flushSave 成功的本地时间戳（ms），优先级最高
 
   function getDraftKey() { return `summary_draft_${date}_${userId || 'anon'}`; }
   function writeDraftToLS() {
@@ -426,7 +427,7 @@ export default function SummaryPanel({
     // eslint-disable-next-line
   }, [sectionsText, templateId]);
 
-  // flushSave：执行真实保存（silent=true 自动保存不显示 saving 动画，但会更新 savedTime / 状态文案）
+  // flushSave：执行真实保存（silent=true 自动保存不展示 loading，但仍会 setSaving(true)/setSaving(false) 以触发重渲染，保证 savedTime 立刻显示）
   const flushSave = async (silent = false) => {
     if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
     if (savingNowRef.current) return; // 上一次还在飞：等下次触发
@@ -436,7 +437,7 @@ export default function SummaryPanel({
     };
     try {
       savingNowRef.current = true;
-      if (!silent) setSaving(true);
+      setSaving(true); // 强制触发一次重渲染，避免 state 更新不及时
       const content = JSON.stringify({
         template: snapshot.templateId,
         highlights: snapshot.sectionsText.highlights || '',
@@ -446,15 +447,19 @@ export default function SummaryPanel({
       });
       await API.summaries.upsert({ date, content });
       const now = new Date();
+      const nowTs = now.getTime();
+      lastSaveTsRef.current = nowTs; // 记录最近一次本地成功保存的时间戳（最高优先级）
       setSavedTime(now);
       dirtyRef.current = false;
       clearDraftLS(); // 保存成功后清草稿，避免后续误导
+      // localStorage 存时间戳兜底（防止 setState 在卸载后不生效、跨刷新/切Tab丢失）
+      try { localStorage.setItem(getDraftKey().replace('_draft_', '_savedAt_'), String(nowTs)); } catch (_) {}
       onChange?.();
     } catch (e) {
       console.warn('[SummaryPanel] save fail', e?.message || e);
     } finally {
       savingNowRef.current = false;
-      if (!silent) setSaving(false);
+      setSaving(false);
     }
   };
   // 保留原名调用点（旧底部按钮、其他位置）
@@ -573,7 +578,18 @@ export default function SummaryPanel({
       }
       setTemplateId(finalTemplate);
       setSectionsText(finalSections);
-      if (apiUpdated) setSavedTime(new Date(apiUpdated));
+      // savedTime：取「API updated_at」「localStorage 保存时间」「最近一次本地 flushSave 时间戳」三者中的最大值（最新）
+      // 解决：onChange 触发 reload 时 API 返回的 updated_at 可能滞后/时区转换，覆盖刚刚保存的时间
+      let savedAtFromLSTs = 0;
+      try {
+        const raw = localStorage.getItem(getDraftKey().replace('_draft_', '_savedAt_'));
+        if (raw) savedAtFromLSTs = parseInt(raw, 10) || 0;
+      } catch (_) {}
+      const candidates = [apiUpdated, savedAtFromLSTs, lastSaveTsRef.current].filter(t => t && !isNaN(t) && t > 0);
+      const finalSavedTs = candidates.length ? Math.max(...candidates) : 0;
+      if (finalSavedTs) {
+        setSavedTime(new Date(finalSavedTs));
+      }
 
       // 内容签名：标记加载完成，之后的用户变更才走脏检测 + debounce
       latestRef.current = { templateId: finalTemplate, sectionsText: finalSections };

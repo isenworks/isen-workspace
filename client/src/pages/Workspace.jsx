@@ -393,7 +393,20 @@ export default function Workspace({ user: propUser }) {
           refreshSignal={refreshKey}
           onViewChange={handleViewChange}
           onNew={(type) => setModal({ type: type || 'schedule' })}
-          onSummaryToggle={() => setShowSummary(v => !v)}
+          onSummaryToggle={() => {
+            const next = !showSummary;
+            setShowSummary(next);
+            // 打开总结面板时，同步打开已绑定的在线文档（方便写在线文档）
+            if (next) {
+              try {
+                const uid = user?.id || 'anon';
+                const url = localStorage.getItem(`summary_doc_url:${uid}`);
+                if (url && /^https?:\/\//i.test(url)) {
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }
+              } catch (_) {}
+            }
+          }}
           showSummary={showSummary}
         />
 

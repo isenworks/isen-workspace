@@ -169,8 +169,11 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
         <div className="flex items-center gap-2">
           <div ref={anchorRef}>
             <button
-              className="btn-secondary font-semibold flex items-center gap-1"
+              className="btn-secondary flex items-center gap-1"
               onClick={() => setMenuOpen(v => !v)}
+              style={{
+                padding: '4px 13px', fontSize: '13px', fontWeight: 500,
+              }}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
               新建
@@ -178,14 +181,19 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             </button>
           </div>
           <button
-            className="btn-secondary font-semibold flex items-center gap-1"
+            className="btn-secondary flex items-center gap-1"
             onClick={onSummaryToggle}
-            style={showSummary ? {
-              background: '#007aff',
-              color: '#fff',
-              border: '1px solid #007aff',
-              boxShadow: '0 2px 6px rgba(0,122,255,0.25)',
-            } : undefined}
+            style={{
+              padding: '4px 13px',
+              fontSize: '13px',
+              fontWeight: showSummary ? 600 : 500,
+              ...(showSummary ? {
+                background: '#007aff',
+                color: '#fff',
+                border: 'none',
+                boxShadow: '0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04)',
+              } : {}),
+            }}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>

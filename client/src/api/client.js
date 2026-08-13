@@ -310,7 +310,7 @@ export const API = {
       if (date) {
         const { data: dayLogs } = await supabase
           .from('ethan_habit_logs')
-          .select('habit_id, done, sleep_start, sleep_end, wake_state, energy_state, mood_state, sleep_note, data_source')
+          .select('habit_id, done, sleep_start, sleep_end, wake_state, energy_state, mood_state, sleep_note, data_source, actual_value, note')
           .eq('user_id', user.id)
           .eq('date', date);
         (dayLogs || []).forEach(l => { logsByHabit[l.habit_id] = l; });
@@ -342,6 +342,8 @@ export const API = {
               mood_state: dayLog.mood_state,
               sleep_note: dayLog.sleep_note,
               data_source: dayLog.data_source,
+              actual_value: dayLog.actual_value,
+              log_note: dayLog.note,
             } : {}),
             streak: calcStreak(logsByHabitFull[h.id] || []),
           };
@@ -360,6 +362,11 @@ export const API = {
         end_time: data.end_time || null,
         duration_min: data.duration_min ? Number(data.duration_min) : null,
         sort_order: data.sort_order || 0,
+        target_mode: data.target_mode || 'check',
+        target_value: data.target_value ? Number(data.target_value) : null,
+        target_unit: data.target_unit || null,
+        streak_goal: data.streak_goal !== undefined ? (data.streak_goal ? Number(data.streak_goal) : null) : null,
+        auto_log: data.auto_log !== undefined ? (data.auto_log ? 1 : 0) : 1,
       }).select().single());
       return { habit: row };
     },
@@ -374,6 +381,11 @@ export const API = {
       if (data.start_time !== undefined) update.start_time = data.start_time || null;
       if (data.end_time !== undefined) update.end_time = data.end_time || null;
       if (data.duration_min !== undefined) update.duration_min = data.duration_min || null;
+      if (data.target_mode !== undefined) update.target_mode = data.target_mode || 'check';
+      if (data.target_value !== undefined) update.target_value = data.target_value ? Number(data.target_value) : null;
+      if (data.target_unit !== undefined) update.target_unit = data.target_unit || null;
+      if (data.streak_goal !== undefined) update.streak_goal = data.streak_goal ? Number(data.streak_goal) : null;
+      if (data.auto_log !== undefined) update.auto_log = data.auto_log ? 1 : 0;
       if (data.sort_order !== undefined) update.sort_order = data.sort_order;
       if (data.archived !== undefined) {
         update.archived = data.archived ? 1 : 0;
@@ -482,6 +494,48 @@ export const API = {
       }
 
       return { habit_id: habitId, date: today, done: !!done, actual_min: actualMin };
+    },
+
+    // 量化打卡：记录本次打卡量 + 备注，累加 actual_value，达到目标自动 done
+    async logCount(habitId, date, { add_value, note }) {
+      const userId = await uid();
+      const today = date || new Date().toISOString().slice(0, 10);
+
+      const { data: habit } = await supabase
+        .from('ethan_habits')
+        .select('target_value, target_unit, target_mode')
+        .eq('id', habitId)
+        .single();
+
+      const { data: existing } = await supabase
+        .from('ethan_habit_logs')
+        .select('*')
+        .eq('habit_id', habitId)
+        .eq('date', today)
+        .single();
+
+      const prevValue = Number(existing?.actual_value) || 0;
+      const addVal = Number(add_value) || 0;
+      const newValue = prevValue + addVal;
+      const targetVal = Number(habit?.target_value) || 0;
+      const done = targetVal > 0 && newValue >= targetVal ? 1 : (existing?.done ? 1 : 0);
+
+      const payload = {
+        habit_id: habitId,
+        user_id: userId,
+        date: today,
+        done,
+        actual_value: newValue,
+        note: note || existing?.note || null,
+      };
+
+      if (existing) {
+        await wrap(supabase.from('ethan_habit_logs').update(payload).eq('id', existing.id));
+      } else {
+        await wrap(supabase.from('ethan_habit_logs').insert(payload));
+      }
+
+      return { habit_id: habitId, date: today, done: !!done, actual_value: newValue, target_value: targetVal, target_unit: habit?.target_unit };
     },
 
     // 月度统计

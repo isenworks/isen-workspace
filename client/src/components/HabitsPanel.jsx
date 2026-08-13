@@ -168,6 +168,84 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     }
   }
 
+  // ==== 量化打卡 ====
+  const [countLog, setCountLog] = useState(null); // { habitId, habitName, emoji, unit, addValue, note }
+  const countLogRef = useRef(null);
+
+  useEffect(() => {
+    if (!countLog) return;
+    function handleClick(e) {
+      if (countLogRef.current && !countLogRef.current.contains(e.target)) {
+        setCountLog(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [countLog]);
+
+  function isCountHabit(h) {
+    return h.target_mode === 'count' && h.target_value;
+  }
+
+  // 改造 toggle：count 模式走不同路径
+  async function handleCheckin(h) {
+    if (isCountHabit(h)) {
+      // 已完成时取消打卡
+      if (h.done_today) {
+        const nextDone = 0;
+        setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: nextDone, actual_value: 0 } : x));
+        store.broadcast({ type: 'habit', id: h.id, done_today: nextDone });
+        try {
+          await API.habits.toggle(h.id, date, nextDone);
+        } catch (e) {
+          setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: h.done_today, actual_value: h.actual_value } : x));
+          store.broadcast({ type: 'habit', id: h.id, done_today: h.done_today });
+          toast.error(e.message);
+        }
+        return;
+      }
+      // 未完成：根据 auto_log 决定弹窗或静默 +1
+      if (h.auto_log === false || h.auto_log === 0) {
+        // 静默 +1
+        try {
+          const r = await API.habits.logCount(h.id, date, { add_value: 1, note: '' });
+          setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: r.done ? 1 : 0, actual_value: r.actual_value } : x));
+          store.broadcast({ type: 'habit', id: h.id, done_today: r.done ? 1 : 0 });
+          if (r.done) toast.success('目标达成');
+        } catch (e) { toast.error(e.message); }
+      } else {
+        // 弹出打卡日志
+        setCountLog({
+          habitId: h.id,
+          habitName: h.name,
+          emoji: h.emoji,
+          unit: h.target_unit || '次',
+          targetValue: Number(h.target_value) || 0,
+          currentValue: Number(h.actual_value) || 0,
+          addValue: 1,
+          note: '',
+        });
+      }
+    } else {
+      // 普通 check 模式：沿用原逻辑
+      toggle(h);
+    }
+  }
+
+  async function saveCountLog() {
+    if (!countLog) return;
+    const { habitId, addValue, note } = countLog;
+    try {
+      const r = await API.habits.logCount(habitId, date, { add_value: addValue, note });
+      setHabits(hs => hs.map(x => x.id === habitId ? { ...x, done_today: r.done ? 1 : 0, actual_value: r.actual_value, log_note: note || null } : x));
+      store.broadcast({ type: 'habit', id: habitId, done_today: r.done ? 1 : 0 });
+      setCountLog(null);
+      if (r.done) toast.success('目标达成');
+    } catch (e) {
+      toast.error(e.message);
+    }
+  }
+
   const done = habits.filter(h => h.done_today).length;
 
   function getHabitGrowthType(h) {
@@ -332,7 +410,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           checked={!!h.done_today}
           onChange={() => {}}
           style={{ '--cb-color': getDoneColor(h), '--cb-border': h.done_today ? getDoneColor(h) : getBorderColor(h) }}
-          onClick={(e) => { e.stopPropagation(); toggle(h); }}
+          onClick={(e) => { e.stopPropagation(); handleCheckin(h); }}
         />
 
         {/* 文本区 */}
@@ -352,6 +430,31 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               </>
             ) : formatTime(h)}
           </p>
+          {/* 量化打卡进度条 */}
+          {isCountHabit(h) && (() => {
+            const cur = Number(h.actual_value) || 0;
+            const tgt = Number(h.target_value) || 1;
+            const pct = Math.min(100, Math.round((cur / tgt) * 100));
+            const unit = h.target_unit || '次';
+            return (
+              <div className="mt-1.5 flex items-center gap-2">
+                <div className="flex-1 h-1.5 rounded-full bg-[#e5e5ea] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${pct}%`,
+                      background: pct >= 100 ? '#34c759' : getDoneColor(h),
+                    }}
+                  />
+                </div>
+                <span className={`text-[11px] font-medium whitespace-nowrap flex-shrink-0 ${h.done_today ? 'text-[#aeaeae]' : ''}`}
+                  style={{ color: h.done_today ? undefined : (pct >= 100 ? '#34c759' : '#8e8e93') }}
+                >
+                  {cur} / {tgt}{unit}
+                </span>
+              </div>
+            );
+          })()}
           {/* 第三行：仅睡眠习惯且有实际数据 */}
           {isSleep && hasSleepData && thirdLine && (
             <>
@@ -387,8 +490,24 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           )}
         </div>
 
-        {/* 右侧操作：编辑按钮 + 小圆点 + 删除按钮 */}
+        {/* 右侧操作：坚持目标chip + 编辑按钮 + 小圆点 + 删除按钮 */}
         <span className="inline-flex items-center gap-2 flex-shrink-0 self-center">
+          {h.streak_goal && (() => {
+            const cur = h.streak || 0;
+            const goal = Number(h.streak_goal);
+            const achieved = cur >= goal;
+            return (
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                style={{
+                  background: achieved ? 'rgba(52,199,89,0.12)' : 'rgba(0,122,255,0.08)',
+                  color: achieved ? '#34c759' : '#007aff',
+                }}
+              >
+                {achieved ? '✓ ' : ''}{cur}/{goal}天
+              </span>
+            );
+          })()}
           {isSleep && (
             <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
           )}
@@ -607,6 +726,116 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               style={{ background: '#007aff' }}
             >
               保存
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {/* 量化打卡日志 Modal - 居中 */}
+    {countLog && typeof document !== 'undefined' && createPortal(
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center"
+        style={{ background: 'rgba(0,0,0,0.35)' }}
+        onClick={() => setCountLog(null)}
+      >
+        <div
+          ref={countLogRef}
+          className="bg-white rounded-2xl shadow-xl p-5 w-[380px] max-w-[92vw]"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: 'rgba(250,250,252,0.96)',
+            backdropFilter: 'saturate(180%) blur(20px)',
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[16px] font-semibold text-[#1c1c1e] flex items-center gap-2">
+              <span className="text-[18px]">{countLog.emoji}</span>
+              <span>{countLog.habitName}</span>
+            </h3>
+            <button
+              onClick={() => setCountLog(null)}
+              className="text-[#8e8e93] hover:text-[#1c1c1e] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
+            >
+              <X size={16} strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* 当前进度 */}
+          <div className="mb-4 px-3 py-2 rounded-lg" style={{ background: '#f8f9fa' }}>
+            {(() => {
+              const newVal = (countLog.currentValue || 0) + (Number(countLog.addValue) || 0);
+              const pct = Math.min(100, Math.round((newVal / (countLog.targetValue || 1)) * 100));
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[12px] text-[#8e8e93]">当前进度</span>
+                    <span className="text-[12px] font-medium" style={{ color: pct >= 100 ? '#34c759' : '#1c1c1e' }}>
+                      {countLog.currentValue} → {newVal} / {countLog.targetValue}{countLog.unit}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#e5e5ea] overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${pct}%`, background: pct >= 100 ? '#34c759' : '#007aff' }}
+                    />
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* 本次记录量 */}
+          <div className="mb-3">
+            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">
+              本次记录（{countLog.unit}）
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCountLog(s => ({ ...s, addValue: Math.max(0.5, (Number(s.addValue) || 1) - 1) }))}
+                className="w-9 h-9 rounded-lg border border-[#e5e5ea] bg-white text-[#1c1c1e] text-lg font-medium hover:bg-[#f0f0f5] transition-colors flex items-center justify-center"
+              >−</button>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={countLog.addValue}
+                onChange={(e) => setCountLog(s => ({ ...s, addValue: e.target.value }))}
+                className="flex-1 border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-center text-[#1c1c1e] focus:outline-none focus:border-[#007aff] bg-white"
+              />
+              <button
+                onClick={() => setCountLog(s => ({ ...s, addValue: (Number(s.addValue) || 0) + 1 }))}
+                className="w-9 h-9 rounded-lg border border-[#e5e5ea] bg-white text-[#1c1c1e] text-lg font-medium hover:bg-[#f0f0f5] transition-colors flex items-center justify-center"
+              >+</button>
+            </div>
+          </div>
+
+          {/* 打卡备注 */}
+          <div className="mb-5">
+            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">打卡备注（可选）</label>
+            <textarea
+              value={countLog.note}
+              onChange={(e) => setCountLog(s => ({ ...s, note: e.target.value }))}
+              placeholder="记录本次打卡的感受或细节..."
+              rows={3}
+              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[#007aff] resize-none bg-white"
+            />
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setCountLog(null)}
+              className="px-4 py-2 rounded-lg text-[14px] text-[#8e8e93] hover:bg-[#e5e5ea] bg-[#f0f0f5]"
+            >
+              取消
+            </button>
+            <button
+              onClick={saveCountLog}
+              className="px-4 py-2 rounded-lg text-[14px] text-white font-medium"
+              style={{ background: '#007aff' }}
+            >
+              保存记录
             </button>
           </div>
         </div>

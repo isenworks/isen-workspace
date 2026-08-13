@@ -103,6 +103,32 @@ body {
   box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
 }
 
+/* ====== Summary Menu: doc row hover ====== */
+.sum-doc-row:hover {
+  background: rgba(0,122,255,0.06);
+}
+.sum-doc-btn {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: none; background: transparent;
+  color: #c7c7cc; cursor: pointer;
+  font-size: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .12s, color .12s, background .12s;
+  padding: 0;
+}
+.sum-doc-btn.del { font-size: 13px; font-weight: 500; }
+.sum-doc-row:hover .sum-doc-btn { opacity: 1; }
+.sum-doc-btn:hover {
+  background: rgba(0,122,255,0.10);
+  color: #007aff;
+}
+.sum-doc-btn.del:hover {
+  background: rgba(255,59,48,0.10);
+  color: #ff3b30;
+}
+
 /* ====== Calendar ====== */
 .cal-day {
   width: 42px; height: 52px; border-radius: 10px;

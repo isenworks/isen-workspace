@@ -357,103 +357,168 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
           position: 'fixed',
           top: sumMenuPos.top,
           left: sumMenuPos.left,
-          minWidth: '220px',
-          background: '#fff',
-          borderRadius: '10px',
+          minWidth: '240px',
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+          borderRadius: '14px',
           padding: '6px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',
-          border: '1px solid rgba(0,0,0,0.06)',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.22), 0 3px 12px rgba(0,0,0,0.10)',
+          border: '1px solid rgba(255,255,255,0.8)',
           zIndex: 2147483647,
           display: 'flex',
           flexDirection: 'column',
           gap: '2px',
         }}
       >
-        {/* 总结面板 */}
+        {/* Group 1: 总结面板 */}
         <div
           onClick={() => { setSumMenuOpen(false); onSummaryToggle(); }}
           style={{
-            padding: '8px 12px', fontSize: '13px', color: '#1c1c1e',
-            cursor: 'pointer', borderRadius: '6px',
-            display: 'flex', alignItems: 'center', gap: '8px',
-            fontWeight: showSummary ? 600 : 400,
-            background: showSummary ? 'rgba(0,122,255,0.08)' : 'transparent',
+            padding: '7px 10px', fontSize: '13px',
+            cursor: 'pointer', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', gap: '10px',
+            fontWeight: showSummary ? 600 : 500,
+            color: showSummary ? '#007aff' : '#1c1c1e',
+            background: showSummary ? 'rgba(0,122,255,0.10)' : 'transparent',
+            minHeight: '34px',
+            transition: 'background .12s',
           }}
           onMouseEnter={(e) => { if (!showSummary) e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
           onMouseLeave={(e) => { if (!showSummary) e.currentTarget.style.background = 'transparent'; }}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0, color: showSummary ? '#007aff' : '#1c1c1e'}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{flexShrink:0}}>
             <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
           </svg>
-          总结面板
-          {showSummary && <span style={{marginLeft:'auto',fontSize:'11px',color:'#007aff',fontWeight:600}}>已打开</span>}
+          <span style={{flex:1}}>总结面板</span>
+          {showSummary && (
+            <span style={{
+              fontSize: '10px', fontWeight: 700,
+              padding: '2px 7px', borderRadius: '4px',
+              background: '#007aff', color: '#fff',
+              letterSpacing: '0.02em',
+            }}>已打开</span>
+          )}
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '4px 6px' }} />
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'rgba(60,60,67,0.12)', margin: '4px 8px' }} />
 
-        {/* 在线文档 section header */}
-        <div style={{ fontSize: '11px', fontWeight: 600, color: '#8e8e93', padding: '2px 12px 4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
+        {/* Group 2: 在线文档 */}
+        <div style={{
+          padding: '4px 10px 6px',
+          fontSize: '11px', fontWeight: 600,
+          color: '#8e8e93',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          display: 'flex', alignItems: 'center', gap: '6px',
+        }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
           在线文档
         </div>
 
-        {/* 文档列表 */}
+        {/* 空状态 */}
         {docLinks.length === 0 && !editingDoc && (
-          <div style={{ padding: '6px 12px', fontSize: '12px', color: '#c7c7cc' }}>暂无文档，点击下方添加</div>
+          <div style={{
+            padding: '10px 12px',
+            fontSize: '12px', color: '#c7c7cc',
+            textAlign: 'center',
+            lineHeight: 1.6,
+          }}>
+            暂无已绑定的在线文档
+          </div>
         )}
+
+        {/* 文档列表 - 交互优化：hover 显示操作按钮 */}
         {docLinks.map(doc => (
           <div
             key={doc.id}
+            className="sum-doc-row"
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 8px', borderRadius: '6px',
-              cursor: 'pointer', fontSize: '13px', color: '#1c1c1e',
+              padding: '6px 8px', borderRadius: '8px',
+              cursor: 'pointer', fontSize: '13px',
+              color: '#1c1c1e',
+              transition: 'background .12s',
+              minHeight: '32px',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.06)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" style={{flexShrink:0}}><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             <span
-              style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}
               onClick={() => { window.open(doc.url, '_blank', 'noopener,noreferrer'); setSumMenuOpen(false); }}
             >{doc.name}</span>
             <button
               onClick={(e) => { e.stopPropagation(); setEditingDoc({ ...doc }); }}
-              style={{ width: '20px', height: '20px', borderRadius: '50%', border: 'none', background: 'transparent', color: '#c7c7cc', cursor: 'pointer', fontSize: '11px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              className="sum-doc-btn"
               title="编辑"
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+              style={{}}
             >✎</button>
             <button
               onClick={(e) => { e.stopPropagation(); saveDocLinks(docLinks.filter(d => d.id !== doc.id)); }}
-              style={{ width: '20px', height: '20px', borderRadius: '50%', border: 'none', background: 'transparent', color: '#c7c7cc', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              className="sum-doc-btn del"
               title="删除"
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
             >×</button>
           </div>
         ))}
 
-        {/* 添加 / 编辑表单 */}
-        {editingDoc ? (
-          <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {/* 添加/编辑表单 */}
+        {editingDoc && (
+          <div style={{
+            padding: '8px 10px',
+            display: 'flex', flexDirection: 'column', gap: '7px',
+            background: 'rgba(0,122,255,0.04)',
+            borderRadius: '8px',
+            marginTop: '2px',
+          }}>
+            <div style={{
+              fontSize: '11px', fontWeight: 600,
+              color: '#007aff', textAlign: 'center',
+              padding: '2px 0 4px',
+            }}>{editingDoc.id === 'new' ? '添加新文档' : '编辑文档'}</div>
             <input
               value={editingDoc.name || ''}
               onChange={(e) => setEditingDoc(d => ({ ...d, name: e.target.value }))}
-              placeholder="文档名称（如：每日复盘）"
-              style={{ padding: '6px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #d1d1d6', background: '#fff', outline: 'none' }}
+              placeholder="文档名称"
+              style={{
+                padding: '7px 10px',
+                fontSize: '12.5px',
+                borderRadius: '8px',
+                border: '1px solid rgba(0,0,0,0.1)',
+                background: '#fff',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
               autoFocus
             />
             <input
               value={editingDoc.url || ''}
               onChange={(e) => setEditingDoc(d => ({ ...d, url: e.target.value }))}
-              placeholder="https://（文档链接）"
-              style={{ padding: '6px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #d1d1d6', background: '#fff', outline: 'none' }}
+              placeholder="https://..."
+              style={{
+                padding: '7px 10px',
+                fontSize: '12.5px',
+                borderRadius: '8px',
+                border: '1px solid rgba(0,0,0,0.1)',
+                background: '#fff',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
             />
             <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setEditingDoc(null)}
-                style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: 'rgba(120,120,128,0.10)', color: '#3c3c43', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                style={{
+                  padding: '5px 12px', borderRadius: '8px',
+                  border: 'none',
+                  background: 'rgba(120,120,128,0.12)', color: '#3c3c43',
+                  fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  transition: 'background .12s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.20)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.12)'}
               >取消</button>
               <button
                 onClick={() => {
@@ -469,27 +534,52 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 }}
                 disabled={!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')}
                 style={{
-                  padding: '4px 10px', borderRadius: '6px', border: 'none',
+                  padding: '5px 12px', borderRadius: '8px', border: 'none',
                   background: (!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')) ? '#a0c8ff' : '#007aff',
                   color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  transition: 'all .12s',
+                }}
+                onMouseEnter={(e) => {
+                  const disabled = !editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '');
+                  if (!disabled) e.currentTarget.style.background = '#0066dd';
+                }}
+                onMouseLeave={(e) => {
+                  const disabled = !editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '');
+                  if (!disabled) e.currentTarget.style.background = '#007aff';
                 }}
               >{editingDoc.id === 'new' ? '添加' : '保存'}</button>
             </div>
           </div>
-        ) : (
-          <div
-            onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
-            style={{
-              padding: '6px 12px', fontSize: '13px', color: '#007aff',
-              cursor: 'pointer', borderRadius: '6px',
-              display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"></path></svg>
-            添加文档
-          </div>
+        )}
+
+        {/* Group 3: 添加文档（与列表拉开距离） */}
+        {!editingDoc && (
+          <>
+            <div style={{ height: '1px', background: 'rgba(60,60,67,0.08)', margin: '4px 8px 2px' }} />
+            <div
+              onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
+              style={{
+                padding: '7px 10px', fontSize: '13px', color: '#007aff',
+                cursor: 'pointer', borderRadius: '8px',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                fontWeight: 500,
+                transition: 'background .12s',
+                minHeight: '34px',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '5px',
+                background: 'rgba(0,122,255,0.1)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3"><path d="M12 5v14m-7-7h14"></path></svg>
+              </div>
+              添加文档
+            </div>
+          </>
         )}
       </div>,
       document.body

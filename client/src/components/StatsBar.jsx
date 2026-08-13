@@ -404,32 +404,46 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
         {/* Divider */}
         <div style={{ height: '1px', background: 'rgba(60,60,67,0.12)', margin: '4px 8px' }} />
 
-        {/* Group 2: 在线文档 */}
-        <div style={{
-          padding: '4px 10px 6px',
-          fontSize: '11px', fontWeight: 600,
-          color: '#8e8e93',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-          display: 'flex', alignItems: 'center', gap: '6px',
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
-          在线文档
-        </div>
+        {/* Toolbar: 添加文档 */}
+        {!editingDoc && (
+          <div
+            onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
+            style={{
+              padding: '5px 8px', fontSize: '13px', color: '#007aff',
+              cursor: 'pointer', borderRadius: '8px',
+              display: 'flex', alignItems: 'center', gap: '7px',
+              fontWeight: 500,
+              transition: 'background .12s',
+              margin: '2px 4px',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <div style={{
+              width: '20px', height: '20px', borderRadius: '6px',
+              background: 'rgba(0,122,255,0.1)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3"><path d="M12 5v14m-7-7h14"></path></svg>
+            </div>
+            添加文档
+          </div>
+        )}
 
         {/* 空状态 */}
         {docLinks.length === 0 && !editingDoc && (
           <div style={{
-            padding: '10px 12px',
+            padding: '6px 12px 10px',
             fontSize: '12px', color: '#c7c7cc',
             textAlign: 'center',
             lineHeight: 1.6,
           }}>
-            暂无已绑定的在线文档
+            暂无已绑定的文档
           </div>
         )}
 
-        {/* 文档列表 - 交互优化：hover 显示操作按钮 */}
+        {/* 文档列表 */}
         {docLinks.map(doc => (
           <div
             key={doc.id}
@@ -441,6 +455,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
               color: '#1c1c1e',
               transition: 'background .12s',
               minHeight: '32px',
+              margin: '0 4px',
             }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -452,7 +467,6 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
               onClick={(e) => { e.stopPropagation(); setEditingDoc({ ...doc }); }}
               className="sum-doc-btn"
               title="编辑"
-              style={{}}
             >✎</button>
             <button
               onClick={(e) => { e.stopPropagation(); saveDocLinks(docLinks.filter(d => d.id !== doc.id)); }}
@@ -470,6 +484,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             background: 'rgba(0,122,255,0.04)',
             borderRadius: '8px',
             marginTop: '2px',
+            margin: '2px 4px',
           }}>
             <div style={{
               fontSize: '11px', fontWeight: 600,
@@ -550,36 +565,6 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
               >{editingDoc.id === 'new' ? '添加' : '保存'}</button>
             </div>
           </div>
-        )}
-
-        {/* Group 3: 添加文档（与列表拉开距离） */}
-        {!editingDoc && (
-          <>
-            <div style={{ height: '1px', background: 'rgba(60,60,67,0.08)', margin: '4px 8px 2px' }} />
-            <div
-              onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
-              style={{
-                padding: '7px 10px', fontSize: '13px', color: '#007aff',
-                cursor: 'pointer', borderRadius: '8px',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                fontWeight: 500,
-                transition: 'background .12s',
-                minHeight: '34px',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-            >
-              <div style={{
-                width: '18px', height: '18px', borderRadius: '5px',
-                background: 'rgba(0,122,255,0.1)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3"><path d="M12 5v14m-7-7h14"></path></svg>
-              </div>
-              添加文档
-            </div>
-          </>
         )}
       </div>,
       document.body

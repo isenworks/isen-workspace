@@ -379,17 +379,24 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             cursor: 'pointer', borderRadius: '8px',
             display: 'flex', alignItems: 'center', gap: '10px',
             fontWeight: showSummary ? 600 : 500,
-            color: showSummary ? '#007aff' : '#1c1c1e',
+            color: '#007aff',
             background: showSummary ? 'rgba(0,122,255,0.10)' : 'transparent',
             minHeight: '34px',
             transition: 'background .12s',
           }}
-          onMouseEnter={(e) => { if (!showSummary) e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-          onMouseLeave={(e) => { if (!showSummary) e.currentTarget.style.background = 'transparent'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = showSummary ? 'rgba(0,122,255,0.10)' : 'transparent'; }}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{flexShrink:0}}>
-            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-          </svg>
+          <div style={{
+            width: '15px', height: '15px', borderRadius: '4px',
+            background: 'rgba(0,122,255,0.12)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2.5">
+              <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </div>
           <span style={{flex:1}}>总结面板</span>
           {showSummary && (
             <span style={{

@@ -409,23 +409,23 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
           <div
             onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
             style={{
-              padding: '5px 8px', fontSize: '13px', color: '#007aff',
+              padding: '7px 10px', fontSize: '13px', color: '#007aff',
               cursor: 'pointer', borderRadius: '8px',
-              display: 'flex', alignItems: 'center', gap: '7px',
+              display: 'flex', alignItems: 'center', gap: '10px',
               fontWeight: 500,
               transition: 'background .12s',
-              margin: '2px 4px',
+              minHeight: '34px',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           >
             <div style={{
-              width: '20px', height: '20px', borderRadius: '6px',
-              background: 'rgba(0,122,255,0.1)',
+              width: '15px', height: '15px', borderRadius: '4px',
+              background: 'rgba(0,122,255,0.12)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3"><path d="M12 5v14m-7-7h14"></path></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3.5"><path d="M12 5v14m-7-7h14"></path></svg>
             </div>
             添加文档
           </div>
@@ -449,13 +449,12 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             key={doc.id}
             className="sum-doc-row"
             style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 8px', borderRadius: '8px',
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '7px 10px', borderRadius: '8px',
               cursor: 'pointer', fontSize: '13px',
               color: '#1c1c1e',
               transition: 'background .12s',
-              minHeight: '32px',
-              margin: '0 4px',
+              minHeight: '34px',
             }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -483,8 +482,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             display: 'flex', flexDirection: 'column', gap: '7px',
             background: 'rgba(0,122,255,0.04)',
             borderRadius: '8px',
-            marginTop: '2px',
-            margin: '2px 4px',
+            margin: '2px 0',
           }}>
             <div style={{
               fontSize: '11px', fontWeight: 600,

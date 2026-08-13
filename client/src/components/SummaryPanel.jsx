@@ -167,28 +167,28 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
     return dur ? formatDuration(dur) : '—';
   };
 
-  let md = `# ${displayDate} · 每日总结\n\n`;
+  let md = `# ${displayDate} · 每日总结\n`;
   md += `> 📅 ${dateStr} · 第${weekNum}周\n`;
-  md += `> 📊 重点 ${keyDone}/${keyTotal} · 习惯 ${habits?.filter(h => h.done_today).length || 0}/${habits?.length || 0}\n\n`;
-  md += `---\n\n`;
+  md += `> 📊 重点 ${keyDone}/${keyTotal} · 习惯 ${habits?.filter(h => h.done_today).length || 0}/${habits?.length || 0}\n`;
+  md += `---\n`;
 
-  md += `## ✅ 今日重点事项\n\n`;
+  md += `## ✅ 今日重点事项\n`;
   if (keySchedules.length === 0) {
-    md += `> 今日无重点事项\n\n`;
+    md += `> 今日无重点事项\n`;
   } else {
     md += `| 事项 | 时间段 | 时长 | 状态 |\n|---|---|---|---|\n`;
     keySchedules.forEach(s => {
       md += `| ${catLabel(s.category)} ${s.title.replace(/\|/g, '\\|')} | ${scheduleTime(s)} | ${scheduleDur(s)} | ${stateLabel(!!s.is_done)} |\n`;
     });
-    md += `\n> 完成率 ${keyRate}%\n\n`;
+    md += `> 完成率 ${keyRate}%\n`;
   }
 
-  md += `---\n\n`;
+  md += `---\n`;
 
   // === 习惯打卡 ===
-  md += `## 💧 习惯打卡\n\n`;
+  md += `## 💧 习惯打卡\n`;
   if (!habits || habits.length === 0) {
-    md += `> 今日无习惯\n\n`;
+    md += `> 今日无习惯\n`;
   } else {
     md += `| 习惯 | 目标 | 实际 | 状态 |\n|---|---|---|---|\n`;
     habits.forEach(h => {
@@ -215,10 +215,10 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
     const md_ = moodState || habits.find(h => h.mood_state)?.mood_state;
     const energyText = { energized: '⚡充沛', normal: '⚡一般', poor: '⚡疲惫' }[en] || '⚡—';
     const moodText = { positive: '❤️积极', neutral: '❤️平淡', negative: '❤️消极' }[md_] || '❤️—';
-    md += `\n**精力**：${energyText} · **心情**：${moodText}\n\n`;
+    md += `**精力**：${energyText} · **心情**：${moodText}\n`;
   }
 
-  md += `---\n\n`;
+  md += `---\n`;
 
   // === 4 段总结 ===
   const tpl = DEFAULT_TEMPLATES.find(t => t.id === template) || DEFAULT_TEMPLATES[0];
@@ -226,15 +226,15 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
   tpl.sections.forEach((sec, i) => {
     const key = keys[i];
     const content = sectionsText[key] || '';
-    md += `## ${sec.idx}. ${sec.title}\n\n`;
-    md += content ? `${content.trim()}\n\n` : '_\n\n';
+    md += `## ${sec.idx}. ${sec.title}\n`;
+    md += content ? `${content.trim()}\n` : '_\n';
   });
 
-  md += `---\n\n`;
+  md += `---\n`;
   const now = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const ts = `${dateStr} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  md += `_由 Ethan 工作台生成 · ${ts}_\n`;
+  md += `_由 Ethan 工作台生成 · ${ts}_`;
 
   return md;
 }

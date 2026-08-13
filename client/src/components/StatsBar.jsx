@@ -14,6 +14,14 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
 
+  // ==== 总结下拉菜单 ====
+  const [sumMenuOpen, setSumMenuOpen] = useState(false);
+  const [sumMenuPos, setSumMenuPos] = useState({ top: 0, left: 0 });
+  const sumAnchorRef = useRef(null);
+  const sumPortalRef = useRef(null);
+  const [docLinks, setDocLinks] = useState([]);
+  const [editingDoc, setEditingDoc] = useState(null); // null=未编辑, {id:'new',...}=新增, {id,...}=编辑
+
   // 按按钮位置刷新 Portal 下拉的 fixed 坐标
   const recalcPos = useCallback(() => {
     if (!anchorRef.current) return;
@@ -100,6 +108,58 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
     };
   }, [menuOpen]);
 
+  // ==== 在线文档链接管理（localStorage） ====
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('summary_doc_urls');
+      if (raw) setDocLinks(JSON.parse(raw));
+    } catch (_) {}
+  }, []);
+
+  const saveDocLinks = (links) => {
+    setDocLinks(links);
+    try { localStorage.setItem('summary_doc_urls', JSON.stringify(links)); } catch (_) {}
+  };
+
+  // ==== 总结下拉：定位 ====
+  const recalcSumPos = useCallback(() => {
+    if (!sumAnchorRef.current) return;
+    const r = sumAnchorRef.current.getBoundingClientRect();
+    setSumMenuPos({ top: r.bottom + 6, left: r.left });
+  }, []);
+
+  useEffect(() => {
+    if (!sumMenuOpen) return;
+    recalcSumPos();
+    const opts = { capture: true, passive: true };
+    window.addEventListener('scroll', recalcSumPos, opts);
+    window.addEventListener('resize', recalcSumPos);
+    return () => {
+      window.removeEventListener('scroll', recalcSumPos, opts);
+      window.removeEventListener('resize', recalcSumPos);
+    };
+  }, [sumMenuOpen, recalcSumPos]);
+
+  // ==== 总结下拉：点击外部关闭 ====
+  useEffect(() => {
+    if (!sumMenuOpen) return;
+    function onDocMouseDown(e) {
+      const anchor = sumAnchorRef.current;
+      const pop = sumPortalRef.current;
+      if (anchor && anchor.contains(e.target)) return;
+      if (pop && pop.contains(e.target)) return;
+      setSumMenuOpen(false);
+      setEditingDoc(null);
+    }
+    function onDocKey(e) { if (e.key === 'Escape') { setSumMenuOpen(false); setEditingDoc(null); } }
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onDocKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onDocKey);
+    };
+  }, [sumMenuOpen]);
+
   // 基于本地数据计算统计
   const stats = (() => {
     const allSched = rawData.schedules;
@@ -170,7 +230,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
           <div ref={anchorRef}>
             <button
               className="btn-secondary flex items-center gap-1"
-              onClick={() => setMenuOpen(v => !v)}
+              onClick={() => { setMenuOpen(v => !v); setSumMenuOpen(false); }}
               style={{
                 padding: '4px 13px', fontSize: '13px', fontWeight: 500,
               }}
@@ -180,26 +240,29 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{transition:'transform .15s', transform: menuOpen?'rotate(180deg)':'none'}}><path d="M6 9l6 6 6-6"></path></svg>
             </button>
           </div>
-          <button
-            className="btn-secondary flex items-center gap-1"
-            onClick={onSummaryToggle}
-            style={{
-              padding: '4px 13px',
-              fontSize: '13px',
-              fontWeight: showSummary ? 600 : 500,
-              ...(showSummary ? {
-                background: '#007aff',
-                color: '#fff',
-                border: 'none',
-                boxShadow: '0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04)',
-              } : {}),
-            }}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            总结
-          </button>
+          <div ref={sumAnchorRef}>
+            <button
+              className="btn-secondary flex items-center gap-1"
+              onClick={() => { setSumMenuOpen(v => !v); setMenuOpen(false); }}
+              style={{
+                padding: '4px 13px',
+                fontSize: '13px',
+                fontWeight: showSummary ? 600 : 500,
+                ...(showSummary ? {
+                  background: '#007aff',
+                  color: '#fff',
+                  border: 'none',
+                  boxShadow: '0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04)',
+                } : {}),
+              }}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+              总结
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{transition:'transform .15s', transform: sumMenuOpen?'rotate(180deg)':'none'}}><path d="M6 9l6 6 6-6"></path></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -284,6 +347,150 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             {opt.label}
           </div>
         ))}
+      </div>,
+      document.body
+    )}
+    {sumMenuOpen && typeof document !== 'undefined' && createPortal(
+      <div
+        ref={sumPortalRef}
+        style={{
+          position: 'fixed',
+          top: sumMenuPos.top,
+          left: sumMenuPos.left,
+          minWidth: '220px',
+          background: '#fff',
+          borderRadius: '10px',
+          padding: '6px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(0,0,0,0.06)',
+          zIndex: 2147483647,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+        }}
+      >
+        {/* 总结面板 */}
+        <div
+          onClick={() => { setSumMenuOpen(false); onSummaryToggle(); }}
+          style={{
+            padding: '8px 12px', fontSize: '13px', color: '#1c1c1e',
+            cursor: 'pointer', borderRadius: '6px',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            fontWeight: showSummary ? 600 : 400,
+            background: showSummary ? 'rgba(0,122,255,0.08)' : 'transparent',
+          }}
+          onMouseEnter={(e) => { if (!showSummary) e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+          onMouseLeave={(e) => { if (!showSummary) e.currentTarget.style.background = 'transparent'; }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0, color: showSummary ? '#007aff' : '#1c1c1e'}}>
+            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+          总结面板
+          {showSummary && <span style={{marginLeft:'auto',fontSize:'11px',color:'#007aff',fontWeight:600}}>已打开</span>}
+        </div>
+
+        <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '4px 6px' }} />
+
+        {/* 在线文档 section header */}
+        <div style={{ fontSize: '11px', fontWeight: 600, color: '#8e8e93', padding: '2px 12px 4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
+          在线文档
+        </div>
+
+        {/* 文档列表 */}
+        {docLinks.length === 0 && !editingDoc && (
+          <div style={{ padding: '6px 12px', fontSize: '12px', color: '#c7c7cc' }}>暂无文档，点击下方添加</div>
+        )}
+        {docLinks.map(doc => (
+          <div
+            key={doc.id}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 8px', borderRadius: '6px',
+              cursor: 'pointer', fontSize: '13px', color: '#1c1c1e',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.06)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" style={{flexShrink:0}}><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
+            <span
+              style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              onClick={() => { window.open(doc.url, '_blank', 'noopener,noreferrer'); setSumMenuOpen(false); }}
+            >{doc.name}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditingDoc({ ...doc }); }}
+              style={{ width: '20px', height: '20px', borderRadius: '50%', border: 'none', background: 'transparent', color: '#c7c7cc', cursor: 'pointer', fontSize: '11px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              title="编辑"
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+            >✎</button>
+            <button
+              onClick={(e) => { e.stopPropagation(); saveDocLinks(docLinks.filter(d => d.id !== doc.id)); }}
+              style={{ width: '20px', height: '20px', borderRadius: '50%', border: 'none', background: 'transparent', color: '#c7c7cc', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              title="删除"
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+            >×</button>
+          </div>
+        ))}
+
+        {/* 添加 / 编辑表单 */}
+        {editingDoc ? (
+          <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <input
+              value={editingDoc.name || ''}
+              onChange={(e) => setEditingDoc(d => ({ ...d, name: e.target.value }))}
+              placeholder="文档名称（如：每日复盘）"
+              style={{ padding: '6px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #d1d1d6', background: '#fff', outline: 'none' }}
+              autoFocus
+            />
+            <input
+              value={editingDoc.url || ''}
+              onChange={(e) => setEditingDoc(d => ({ ...d, url: e.target.value }))}
+              placeholder="https://（文档链接）"
+              style={{ padding: '6px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #d1d1d6', background: '#fff', outline: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setEditingDoc(null)}
+                style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: 'rgba(120,120,128,0.10)', color: '#3c3c43', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+              >取消</button>
+              <button
+                onClick={() => {
+                  const name = (editingDoc.name || '').trim();
+                  const url = (editingDoc.url || '').trim();
+                  if (!name || !url || !/^https?:\/\//i.test(url)) return;
+                  if (editingDoc.id === 'new') {
+                    saveDocLinks([...docLinks, { id: 'doc_' + Date.now(), name, url }]);
+                  } else {
+                    saveDocLinks(docLinks.map(d => d.id === editingDoc.id ? { ...d, name, url } : d));
+                  }
+                  setEditingDoc(null);
+                }}
+                disabled={!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')}
+                style={{
+                  padding: '4px 10px', borderRadius: '6px', border: 'none',
+                  background: (!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')) ? '#a0c8ff' : '#007aff',
+                  color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                }}
+              >{editingDoc.id === 'new' ? '添加' : '保存'}</button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
+            style={{
+              padding: '6px 12px', fontSize: '13px', color: '#007aff',
+              cursor: 'pointer', borderRadius: '6px',
+              display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"></path></svg>
+            添加文档
+          </div>
+        )}
       </div>,
       document.body
     )}

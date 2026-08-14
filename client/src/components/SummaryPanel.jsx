@@ -387,12 +387,13 @@ export default function SummaryPanel({
   const lastSaveTsRef = useRef(0); // 最近一次 flushSave 成功的本地时间戳（ms），优先级最高
 
   function getDraftKey() { return `summary_draft_${date}_${userId || 'anon'}`; }
-  function writeDraftToLS() {
+  function writeDraftToLS(savedAtMs) {
     try {
       const payload = {
         t: Date.now(),
         templateId: latestRef.current.templateId,
         sectionsText: latestRef.current.sectionsText,
+        ...(savedAtMs ? { savedAt: savedAtMs } : {}),
       };
       localStorage.setItem(getDraftKey(), JSON.stringify(payload));
     } catch (_) {}
@@ -406,7 +407,9 @@ export default function SummaryPanel({
       return d;
     } catch (_) { return null; }
   }
-  function clearDraftLS() { try { localStorage.removeItem(getDraftKey()); } catch (_) {} }
+  // 草稿保留策略：保存后不清空，作为"最后一次写入"的兜底，防止 API 竞态导致内容回滚
+  // 只在明确确认 API 内容与草稿一致时才清除（目前保持不清空，永久兜底）
+  function clearDraftLS() { try { /* 不再自动清除草稿，避免内容丢失 */ } catch (_) {} }
 
   useEffect(() => { latestRef.current.templateId = templateId; }, [templateId]);
   useEffect(() => { latestRef.current.sectionsText = sectionsText; }, [sectionsText]);
@@ -447,7 +450,8 @@ export default function SummaryPanel({
       lastSaveTsRef.current = nowTs; // 记录最近一次本地成功保存的时间戳（最高优先级）
       setSavedTime(now);
       dirtyRef.current = false;
-      clearDraftLS(); // 保存成功后清草稿，避免后续误导
+      // 保存成功后：把保存时间戳写进草稿（不清空草稿，作为永久兜底）
+      writeDraftToLS(nowTs);
       // localStorage 存时间戳兜底（防止 setState 在卸载后不生效、跨刷新/切Tab丢失）
       try { localStorage.setItem(getDraftKey().replace('_draft_', '_savedAt_'), String(nowTs)); } catch (_) {}
       onChange?.();
@@ -554,15 +558,15 @@ export default function SummaryPanel({
       const apiTemplate = parsed.template || 'daily';
       const apiUpdated = s?.summary?.updated_at ? new Date(s.summary.updated_at).getTime() : 0;
 
-      // 本地草稿兜底：若草稿比 API 更新时间更新，或 API 为空但草稿有内容 → 以草稿为准
+      // 本地草稿兜底：只要草稿时间戳更新（用户最后一次编辑的时间），就以草稿为准（即使内容全空，也是用户的真实意图）
+      // 这解决了 API 竞态（保存后立即 reload 返回旧数据）导致内容回滚的问题
       const draft = readDraftFromLS();
       let finalSections = apiSections;
       let finalTemplate = apiTemplate;
+      let savedAtFromDraft = 0;
       if (draft) {
-        const allApiEmpty = !apiSections.highlights && !apiSections.improvements && !apiSections.learnings && !apiSections.tomorrow;
-        const draftHasContent = !!(draft.sectionsText?.highlights || draft.sectionsText?.improvements || draft.sectionsText?.learnings || draft.sectionsText?.tomorrow);
         const draftNewer = draft.t && (draft.t > apiUpdated);
-        if (draftHasContent && (allApiEmpty || draftNewer)) {
+        if (draftNewer) {
           finalSections = {
             highlights: draft.sectionsText?.highlights || '',
             improvements: draft.sectionsText?.improvements || '',
@@ -571,17 +575,20 @@ export default function SummaryPanel({
           };
           finalTemplate = draft.templateId || apiTemplate;
         }
+        if (draft.savedAt && Number(draft.savedAt) > 0) {
+          savedAtFromDraft = Number(draft.savedAt);
+        }
       }
       setTemplateId(finalTemplate);
       setSectionsText(finalSections);
-      // savedTime：取「API updated_at」「localStorage 保存时间」「最近一次本地 flushSave 时间戳」三者中的最大值（最新）
-      // 解决：onChange 触发 reload 时 API 返回的 updated_at 可能滞后/时区转换，覆盖刚刚保存的时间
+
+      // savedTime：取「API updated_at」「localStorage savedAt 独立键」「草稿里的 savedAt」「最近一次本地 flushSave 时间戳」四者中的最大值
       let savedAtFromLSTs = 0;
       try {
         const raw = localStorage.getItem(getDraftKey().replace('_draft_', '_savedAt_'));
         if (raw) savedAtFromLSTs = parseInt(raw, 10) || 0;
       } catch (_) {}
-      const candidates = [apiUpdated, savedAtFromLSTs, lastSaveTsRef.current].filter(t => t && !isNaN(t) && t > 0);
+      const candidates = [apiUpdated, savedAtFromLSTs, savedAtFromDraft, lastSaveTsRef.current].filter(t => t && !isNaN(t) && t > 0);
       const finalSavedTs = candidates.length ? Math.max(...candidates) : 0;
       if (finalSavedTs) {
         setSavedTime(new Date(finalSavedTs));

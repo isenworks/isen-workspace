@@ -12,6 +12,22 @@ function getWeekNumber(dateStr) {
   return Math.ceil(((target - yearStart) / 86400000 + 1) / 7);
 }
 
+// 解析 SQLite datetime('now') 返回的时间戳（格式: YYYY-MM-DD HH:MM:SS，UTC）
+// 转换为本地时间的毫秒时间戳
+function parseSqliteTime(sqliteTime) {
+  if (!sqliteTime) return 0;
+  // 格式: 2026-08-14 08:49:00 (UTC)
+  const match = sqliteTime.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (match) {
+    // SQLite datetime('now') 返回的是 UTC 时间
+    const [, y, mo, d, h, mi, s] = match;
+    return Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s));
+  }
+  // 其他格式：尝试用浏览器默认解析
+  const ts = new Date(sqliteTime).getTime();
+  return isNaN(ts) ? 0 : ts;
+}
+
 // ===== 模板定义 =====
 const DEFAULT_TEMPLATES = [
   {
@@ -384,7 +400,7 @@ export default function SummaryPanel({
   const dirtyRef = useRef(false);
   const latestRef = useRef({ templateId: 'daily', sectionsText: { highlights: '', improvements: '', learnings: '', tomorrow: '' } });
   const savingNowRef = useRef(false);
-  const loadedApiTextRef = useRef(null);
+  const dataLoadedRef = useRef(false);
   const lastSaveTsRef = useRef(0);
   const activeDateRef = useRef(date); // 当前正在编辑/加载的日期，防止 flushSave/autoSave 写错日期
 
@@ -424,8 +440,8 @@ export default function SummaryPanel({
 
   // 内容变更：先写 localStorage 草稿（兜底），再走 debounce API 保存
   useEffect(() => {
-    if (loadedApiTextRef.current == null) return;
-    const saveDate = activeDateRef.current; // 捕获当前日期，防止写草稿时 date 已变
+    if (!dataLoadedRef.current) return;
+    const saveDate = activeDateRef.current;
     writeDraftToLS(null, saveDate);
     dirtyRef.current = true;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
@@ -542,15 +558,23 @@ export default function SummaryPanel({
 
   const loadData = async () => {
     const targetDate = activeDateRef.current;
+    dataLoadedRef.current = false;
     try {
-      // 关键修复：加载新日期前，立即清空 UI 状态 + 重置 refs
-      // 防止旧日期内容在新日期加载完成前泄漏到界面
-      loadedApiTextRef.current = null;
-      lastSaveTsRef.current = 0;
-      setSectionsText({ highlights: '', improvements: '', learnings: '', tomorrow: '' });
-      setTemplateId('daily');
+      // 先读取本地草稿作为即时显示（如果有）
+      const draft = readDraftFromLS(targetDate);
+      if (draft && (!draft.date || draft.date === targetDate)) {
+        setTemplateId(draft.templateId || 'daily');
+        setSectionsText({
+          highlights: draft.sectionsText?.highlights || '',
+          improvements: draft.sectionsText?.improvements || '',
+          learnings: draft.sectionsText?.learnings || '',
+          tomorrow: draft.sectionsText?.tomorrow || '',
+        });
+      } else {
+        setTemplateId('daily');
+        setSectionsText({ highlights: '', improvements: '', learnings: '', tomorrow: '' });
+      }
       setSavedTime(null);
-      dirtyRef.current = false;
 
       if (!propSchedules) {
         const r = await API.schedules.list({ date: targetDate });
@@ -573,13 +597,11 @@ export default function SummaryPanel({
         tomorrow: parsed.tomorrow || '',
       };
       const apiTemplate = parsed.template || 'daily';
-      const apiUpdated = s?.summary?.updated_at ? new Date(s.summary.updated_at).getTime() : 0;
+      const apiUpdated = parseSqliteTime(s?.summary?.updated_at);
 
       // 读取草稿：必须匹配当前日期才使用（draft.date 字段防跨日期污染）
-      const draft = readDraftFromLS(targetDate);
       let finalSections = apiSections;
       let finalTemplate = apiTemplate;
-      let savedAtFromDraft = 0;
       if (draft) {
         const draftMatchesDate = !draft.date || draft.date === targetDate;
         const draftNewer = draft.t && (draft.t > apiUpdated);
@@ -592,13 +614,16 @@ export default function SummaryPanel({
           };
           finalTemplate = draft.templateId || apiTemplate;
         }
-        if (draftMatchesDate && draft.savedAt && Number(draft.savedAt) > 0) {
-          savedAtFromDraft = Number(draft.savedAt);
-        }
       }
+      // 只有当内容变化时才更新 UI（避免不必要的重新渲染覆盖用户输入）
       setTemplateId(finalTemplate);
       setSectionsText(finalSections);
 
+      // 计算保存时间
+      let savedAtFromDraft = 0;
+      if (draft && draft.savedAt && Number(draft.savedAt) > 0) {
+        savedAtFromDraft = Number(draft.savedAt);
+      }
       let savedAtFromLSTs = 0;
       try {
         const raw = localStorage.getItem(getDraftKey(targetDate).replace('_draft_', '_savedAt_'));
@@ -611,10 +636,11 @@ export default function SummaryPanel({
       }
 
       latestRef.current = { templateId: finalTemplate, sectionsText: finalSections };
-      loadedApiTextRef.current = JSON.stringify([finalTemplate, finalSections]);
+      dataLoadedRef.current = true;
       dirtyRef.current = false;
     } catch (e) {
       console.warn('[SummaryPanel] load fail', e?.message || e);
+      dataLoadedRef.current = true;
     }
   };
 
@@ -1206,7 +1232,7 @@ export default function SummaryPanel({
                 清空每日总结？
               </div>
               <div style={{ fontSize: '12px', color: '#8e8e93', textAlign: 'center', lineHeight: '1.5' }}>
-                将删除今日所有总结内容<br>
+                将删除今日所有总结内容<br/>
                 此操作不可撤销
               </div>
             </div>

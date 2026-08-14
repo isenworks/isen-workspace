@@ -35,39 +35,45 @@ function catOf(s) {
 export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onNew, onChange }) {
   const toast = useToast();
   const [list, setList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasData, setHasData] = useState(false);
   // sortBy: priority(按重要性) | time(按时间顺序)。默认按重要性
   const [sortBy, setSortBy] = useState('priority');
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
 
   function load() {
-    const cacheKey = `kt:${range.from}:${range.to}:${refreshSignal}`;
-    const CACHE_TTL = 1000;
-    // ① 同步预查缓存：命中直接用，不闪骨架
+    const cacheKey = `kt:${range.from}:${range.to}`;
+    const CACHE_TTL = 120000; // 2分钟缓存，跨天切换零延迟
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       setList(peeked.value);
-      setLoading(false);
+      setHasData(true);
+      // 命中缓存立即返回，不再 setLoading(false) 避免骨架屏闪烁
+      // 后台静默刷新
+      cachedLoad(cacheKey, async () => {
+        const r = await API.schedules.list({ from: range.from, to: range.to });
+        return r.schedules.filter(s => isDisplayInKeyTasks(s));
+      }, inFlightRef, cacheRef, CACHE_TTL).then(key => {
+        setList(key);
+      }).catch(() => {});
       return;
     }
-    // ② 已有旧数据 or StrictMode in-flight：静默更新，不显示骨架
-    const hasData = list.length > 0;
-    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
-    const gate = loadingGate(setLoading, 80);
-    if (!hasData && !inFlight) gate.require(); // ③ 仅真·首屏空加载才开 LoadingGate（80ms 延迟门）
+    // 缓存未命中：已显示过旧数据则不闪骨架屏，否则 0ms 立即显示
+    const gate = loadingGate(setLoading, hasData ? 120 : 0);
+    gate.require();
 
     cachedLoad(cacheKey, async () => {
       const r = await API.schedules.list({ from: range.from, to: range.to });
-      const key = r.schedules
+      return r.schedules
         .filter(s => isDisplayInKeyTasks(s))
         .sort((a, b) => {
           if (a.date !== b.date) return a.date.localeCompare(b.date);
           return (a.start_time || '99').localeCompare(b.start_time || '99');
         });
-      return key;
     }, inFlightRef, cacheRef, CACHE_TTL).then(key => {
       setList(key);
+      setHasData(true);
       gate.done();
     }).catch(e => { console.error(e); gate.done(); });
   }
@@ -361,7 +367,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         </div>
       </div>
 
-      {loading ? (
+      {loading && !hasData ? (
         <div className="space-y-3 pt-3 px-1">
           <div className="sk-line" style={{width:'88%'}}></div>
           <div className="sk-line" style={{width:'72%'}}></div>

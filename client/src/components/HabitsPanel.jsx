@@ -48,7 +48,8 @@ function isSleepHabit(h) {
 export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const toast = useToast();
   const [habits, setHabits] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasData, setHasData] = useState(false);
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [sleepPopover, setSleepPopover] = useState(null);
@@ -68,24 +69,29 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }, [sleepPopover]);
 
   function load() {
-    const cacheKey = `hp:${date}:${refreshSignal}`;
-    const CACHE_TTL = 1000;
+    const cacheKey = `hp:${date}`;
+    const CACHE_TTL = 120000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       setHabits(peeked.value);
-      setLoading(false);
+      setHasData(true);
+      cachedLoad(cacheKey, async () => {
+        const r = await API.habits.list({ date });
+        return r.habits;
+      }, inFlightRef, cacheRef, CACHE_TTL).then(hs => {
+        setHabits(hs);
+      }).catch(() => {});
       return;
     }
-    const hasData = habits.length > 0;
-    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
-    const gate = loadingGate(setLoading, 80);
-    if (!hasData && !inFlight) gate.require();
+    const gate = loadingGate(setLoading, hasData ? 120 : 0);
+    gate.require();
 
     cachedLoad(cacheKey, async () => {
       const r = await API.habits.list({ date });
       return r.habits;
     }, inFlightRef, cacheRef, CACHE_TTL).then(hs => {
       setHabits(hs);
+      setHasData(true);
       gate.done();
     }).catch(e => { console.error(e); gate.done(); });
   }
@@ -556,7 +562,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         </div>
       </div>
 
-      {loading ? (
+      {loading && !hasData ? (
         <div className="space-y-3 pt-3 px-1">
           <div className="sk-line" style={{width:'85%'}}></div>
           <div className="sk-line" style={{width:'78%'}}></div>

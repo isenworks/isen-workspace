@@ -61,26 +61,25 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const [schedules, setSchedules] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [habits, setHabits] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasData, setHasData] = useState(false);
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
 
   function load() {
-    const cacheKey = `tl:${range.from}:${range.to}:${date}:${refreshSignal}`;
-    const CACHE_TTL = 1000;
+    const cacheKey = `tl:${range.from}:${range.to}:${date}`;
+    const CACHE_TTL = 120000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       const r = peeked.value;
       setSchedules(r.sched);
       setTasks(r.tasks);
       setHabits(r.habits);
-      setLoading(false);
+      setHasData(true);
       return;
     }
-    const hasData = schedules.length > 0 || tasks.length > 0 || habits.length > 0;
-    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
-    const gate = loadingGate(setLoading, 80);
-    if (!hasData && !inFlight) gate.require();
+    const gate = loadingGate(setLoading, hasData ? 120 : 0);
+    gate.require();
 
     cachedLoad(cacheKey, async () => {
       const [s, t, h] = await Promise.all([
@@ -93,6 +92,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       setSchedules(r.sched);
       setTasks(r.tasks);
       setHabits(r.habits);
+      setHasData(true);
       gate.done();
     }).catch(e => { console.error(e); gate.done(); });
   }
@@ -821,7 +821,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       </div>
 
       <div className="overflow-visible">
-        {loading ? (
+        {loading && !hasData ? (
           <div className="space-y-4 pt-3 px-1">
             <div className="flex items-start gap-3">
               <div className="sk-line w-12 mt-0.5" style={{height:'12px'}}></div>

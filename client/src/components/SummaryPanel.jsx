@@ -373,6 +373,7 @@ export default function SummaryPanel({
   const [habits, setHabits] = useState(propHabits || []);
   const [mdOpen, setMdOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [tplMenuOpen, setTplMenuOpen] = useState(false);
   const tplMenuRef = useRef(null);
   const [showTplEditor, setShowTplEditor] = useState(false);
@@ -718,6 +719,35 @@ export default function SummaryPanel({
   const handleManualSave = async () => {
     await flushSave(false);
   };
+
+  const clearConfirmRef = useRef(null);
+
+  const handleClearConfirm = async () => {
+    setShowClearConfirm(false);
+    const emptySections = { highlights: '', improvements: '', learnings: '', tomorrow: '' };
+    setSectionsText(emptySections);
+    latestRef.current = { templateId: templateId, sectionsText: emptySections };
+    dirtyRef.current = true;
+    // 立即 flush 一次空内容到 API
+    await flushSave(false);
+  };
+
+  // 点击弹窗外部关闭
+  useEffect(() => {
+    if (!showClearConfirm) return;
+    function onDocMouseDown(e) {
+      if (clearConfirmRef.current && !clearConfirmRef.current.contains(e.target)) {
+        setShowClearConfirm(false);
+      }
+    }
+    function onDocKey(e) { if (e.key === 'Escape') setShowClearConfirm(false); }
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onDocKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onDocKey);
+    };
+  }, [showClearConfirm]);
 
   const markdown = useMemo(() => {
     const keys = getSectionKeys(templateId);
@@ -1076,6 +1106,24 @@ export default function SummaryPanel({
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button
+            onClick={() => setShowClearConfirm(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+              padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              fontSize: '12px', fontWeight: '600', transition: 'all .15s',
+              background: 'rgba(255,59,48,0.08)', color: '#ff3b30',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,59,48,0.16)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255,59,48,0.08)';
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            清空
+          </button>
+          <button
             onClick={() => setMdOpen(true)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -1117,6 +1165,83 @@ export default function SummaryPanel({
           </button>
         </div>
       </div>
+
+      {/* 清空确认弹窗 */}
+      {showClearConfirm && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 10006,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+          }}
+          onClick={() => setShowClearConfirm(false)}
+        >
+          <div
+            ref={clearConfirmRef}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '300px',
+              background: 'rgba(255,255,255,0.98)',
+              backdropFilter: 'saturate(180%) blur(20px)',
+              borderRadius: '16px',
+              border: '1px solid rgba(0,0,0,0.06)',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '20px 20px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%',
+                background: 'rgba(255,59,48,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '12px',
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1c1c1e', marginBottom: '6px' }}>
+                清空每日总结？
+              </div>
+              <div style={{ fontSize: '12px', color: '#8e8e93', textAlign: 'center', lineHeight: '1.5' }}>
+                将删除今日所有总结内容<br>
+                此操作不可撤销
+              </div>
+            </div>
+            <div style={{
+              display: 'flex', borderTop: '1px solid rgba(0,0,0,0.06)',
+            }}>
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                style={{
+                  flex: 1, padding: '12px 0', border: 'none', background: 'transparent',
+                  fontSize: '14px', fontWeight: '600', color: '#3c3c43',
+                  cursor: 'pointer', borderRight: '1px solid rgba(0,0,0,0.06)',
+                  transition: 'background .15s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.08)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleClearConfirm}
+                style={{
+                  flex: 1, padding: '12px 0', border: 'none', background: 'transparent',
+                  fontSize: '14px', fontWeight: '600', color: '#ff3b30',
+                  cursor: 'pointer', transition: 'background .15s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,59,48,0.08)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                清空
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

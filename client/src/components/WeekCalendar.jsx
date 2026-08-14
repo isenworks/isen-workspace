@@ -14,7 +14,8 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
   const [year, setYear] = useState(todayYear);
   const [month, setMonth] = useState(todayMonth);
   const [dots, setDots] = useState({}); // key: "month-day" -> {hasPriority, hasNormal}
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasData, setHasData] = useState(false);
   const scrollRef = useRef(null);
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
@@ -23,18 +24,16 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
     const daysInMonth = new Date(year, month, 0).getDate();
     const from = toISODate(new Date(year, month - 1, 1));
     const to = toISODate(new Date(year, month - 1, daysInMonth));
-    const cacheKey = `wc:${from}:${to}:${refreshSignal}`;
-    const CACHE_TTL = 1000;
+    const cacheKey = `wc:${from}:${to}`;
+    const CACHE_TTL = 120000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
       setDots(peeked.value);
-      setLoading(false);
+      setHasData(true);
       return;
     }
-    const hasData = Object.keys(dots).length > 0;
-    const inFlight = inFlightRef.current && inFlightRef.current.key === cacheKey;
-    const gate = loadingGate(setLoading, 80);
-    if (!hasData && !inFlight) gate.require();
+    const gate = loadingGate(setLoading, hasData ? 120 : 0);
+    gate.require();
 
     cachedLoad(cacheKey, async () => {
       const r = await API.schedules.list({ from, to });
@@ -49,6 +48,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
       return map;
     }, inFlightRef, cacheRef, CACHE_TTL).then(map => {
       setDots(map);
+      setHasData(true);
       gate.done();
     }).catch(e => { console.error(e); gate.done(); });
   }
@@ -123,7 +123,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
   return (
     <div
       className="glass-card px-5 py-4"
-      style={{ opacity: loading ? 0.7 : 1, transition: 'opacity .2s ease' }}
+      style={{ opacity: loading && !hasData ? 0.7 : 1, transition: 'opacity .2s ease' }}
     >
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1">

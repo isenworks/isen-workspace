@@ -383,28 +383,35 @@ export default function SummaryPanel({
   const dirtyRef = useRef(false);
   const latestRef = useRef({ templateId: 'daily', sectionsText: { highlights: '', improvements: '', learnings: '', tomorrow: '' } });
   const savingNowRef = useRef(false);
-  const loadedApiTextRef = useRef(null); // 记录本次从 API 加载的内容签名，用于判断是否走草稿
-  const lastSaveTsRef = useRef(0); // 最近一次 flushSave 成功的本地时间戳（ms），优先级最高
+  const loadedApiTextRef = useRef(null);
+  const lastSaveTsRef = useRef(0);
+  const activeDateRef = useRef(date); // 当前正在编辑/加载的日期，防止 flushSave/autoSave 写错日期
 
-  function getDraftKey() { return `summary_draft_${date}_${userId || 'anon'}`; }
-  function writeDraftToLS(savedAtMs) {
+  useEffect(() => { activeDateRef.current = date; }, [date]);
+
+  function getDraftKey(d) {
+    const keyDate = d || activeDateRef.current || date;
+    return `summary_draft_${keyDate}_${userId || 'anon'}`;
+  }
+  function writeDraftToLS(savedAtMs, d) {
     try {
+      const keyDate = d || activeDateRef.current;
       const payload = {
         t: Date.now(),
         templateId: latestRef.current.templateId,
         sectionsText: latestRef.current.sectionsText,
-        ...(savedAtMs ? { savedAt: savedAtMs } : {}),
+        ...(savedAtMs ? { savedAt: savedAtMs, date: keyDate } : {}),
       };
-      localStorage.setItem(getDraftKey(), JSON.stringify(payload));
+      localStorage.setItem(getDraftKey(keyDate), JSON.stringify(payload));
     } catch (_) {}
   }
-  function readDraftFromLS() {
+  function readDraftFromLS(d) {
     try {
-      const raw = localStorage.getItem(getDraftKey());
+      const raw = localStorage.getItem(getDraftKey(d));
       if (!raw) return null;
-      const d = JSON.parse(raw);
-      if (!d || typeof d !== 'object') return null;
-      return d;
+      const d2 = JSON.parse(raw);
+      if (!d2 || typeof d2 !== 'object') return null;
+      return d2;
     } catch (_) { return null; }
   }
   // 草稿保留策略：保存后不清空，作为"最后一次写入"的兜底，防止 API 竞态导致内容回滚
@@ -414,11 +421,11 @@ export default function SummaryPanel({
   useEffect(() => { latestRef.current.templateId = templateId; }, [templateId]);
   useEffect(() => { latestRef.current.sectionsText = sectionsText; }, [sectionsText]);
 
-  // 内容变更：先写 localStorage 草稿（兜底，100% 无延迟），再走 debounce API 保存
+  // 内容变更：先写 localStorage 草稿（兜底），再走 debounce API 保存
   useEffect(() => {
-    // 初次尚未 load 完成，或 loadData 刚 setSectionsText 时：不写入草稿、不立即标记脏
     if (loadedApiTextRef.current == null) return;
-    writeDraftToLS();
+    const saveDate = activeDateRef.current; // 捕获当前日期，防止写草稿时 date 已变
+    writeDraftToLS(null, saveDate);
     dirtyRef.current = true;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => flushSave(true), 500);
@@ -426,17 +433,19 @@ export default function SummaryPanel({
     // eslint-disable-next-line
   }, [sectionsText, templateId]);
 
-  // flushSave：执行真实保存（silent=true 自动保存不展示 loading，但仍会 setSaving(true)/setSaving(false) 以触发重渲染，保证 savedTime 立刻显示）
+  // flushSave：执行真实保存
+  // 关键修复：调用时立即 capture date，防止异步过程中 date prop 变化导致写错日期
   const flushSave = async (silent = false) => {
     if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
-    if (savingNowRef.current) return; // 上一次还在飞：等下次触发
+    if (savingNowRef.current) return;
+    const saveDate = activeDateRef.current; // 捕获当前正在编辑的日期
     const snapshot = {
       templateId: latestRef.current.templateId,
       sectionsText: { ...latestRef.current.sectionsText },
     };
     try {
       savingNowRef.current = true;
-      setSaving(true); // 强制触发一次重渲染，避免 state 更新不及时
+      setSaving(true);
       const content = JSON.stringify({
         template: snapshot.templateId,
         highlights: snapshot.sectionsText.highlights || '',
@@ -444,16 +453,15 @@ export default function SummaryPanel({
         learnings: snapshot.sectionsText.learnings || '',
         tomorrow: snapshot.sectionsText.tomorrow || '',
       });
-      await API.summaries.upsert({ date, content });
+      await API.summaries.upsert({ date: saveDate, content });
       const now = new Date();
       const nowTs = now.getTime();
-      lastSaveTsRef.current = nowTs; // 记录最近一次本地成功保存的时间戳（最高优先级）
+      lastSaveTsRef.current = nowTs;
       setSavedTime(now);
       dirtyRef.current = false;
-      // 保存成功后：把保存时间戳写进草稿（不清空草稿，作为永久兜底）
-      writeDraftToLS(nowTs);
-      // localStorage 存时间戳兜底（防止 setState 在卸载后不生效、跨刷新/切Tab丢失）
-      try { localStorage.setItem(getDraftKey().replace('_draft_', '_savedAt_'), String(nowTs)); } catch (_) {}
+      // 关键修复：用捕获的 saveDate 写草稿，防止写到其他日期
+      writeDraftToLS(nowTs, saveDate);
+      try { localStorage.setItem(getDraftKey(saveDate).replace('_draft_', '_savedAt_'), String(nowTs)); } catch (_) {}
       onChange?.();
     } catch (e) {
       console.warn('[SummaryPanel] save fail', e?.message || e);
@@ -465,31 +473,32 @@ export default function SummaryPanel({
   // 保留原名调用点（旧底部按钮、其他位置）
   const saveSummary = flushSave;
 
-  // 组件卸载 / 页签关闭 / 切路由：强制 flush 未保存内容 + beforeunload 同步写一次草稿（极端情况）
+  // 组件卸载 / 日期切换 / 页签关闭：强制 flush 未保存内容
   useEffect(() => {
+    activeDateRef.current = date; // date 变化时立即同步 ref
     const onBeforeUnload = () => {
-      if (dirtyRef.current) writeDraftToLS();
-      try { flushSave(true); } catch (_) {}
+      if (dirtyRef.current) {
+        const saveDate = activeDateRef.current;
+        writeDraftToLS(null, saveDate);
+        try { flushSave(true); } catch (_) {}
+      }
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
-      // 卸载时 flush 一次（注意：async 未 await，但这里也没别的办法）
       if (dirtyRef.current) {
-        writeDraftToLS();
+        const saveDate = activeDateRef.current;
+        writeDraftToLS(null, saveDate);
         try { flushSave(true); } catch (_) {}
       }
     };
-    // eslint-disable-next-line
   }, [date, userId]);
 
-  // 包装 onBack：切回时间线前先 flush，避免切 Tab 丢最后一次输入
   const handleBack = () => {
     const run = () => { try { onBack?.(); } catch (_) {} };
     if (!dirtyRef.current) { run(); return; }
-    // 1) 先写 LS 兜底
-    writeDraftToLS();
-    // 2) 发保存请求；保存无论成败，300ms 后返回时间线（不阻塞用户）
+    const saveDate = activeDateRef.current;
+    writeDraftToLS(null, saveDate);
     const timer = setTimeout(run, 300);
     flushSave(true).then(() => { clearTimeout(timer); run(); }).catch(() => { clearTimeout(timer); run(); });
   };
@@ -531,23 +540,30 @@ export default function SummaryPanel({
   }, [userId]);
 
   const loadData = async () => {
+    const targetDate = activeDateRef.current;
     try {
-      // 在真正加载前，先把 loadedApiTextRef 置 null，避免加载过程中 draft debounce 写草稿被当成脏内容
+      // 关键修复：加载新日期前，立即清空 UI 状态 + 重置 refs
+      // 防止旧日期内容在新日期加载完成前泄漏到界面
       loadedApiTextRef.current = null;
+      lastSaveTsRef.current = 0;
+      setSectionsText({ highlights: '', improvements: '', learnings: '', tomorrow: '' });
+      setTemplateId('daily');
+      setSavedTime(null);
+      dirtyRef.current = false;
 
       if (!propSchedules) {
-        const r = await API.schedules.list({ date });
+        const r = await API.schedules.list({ date: targetDate });
         setSchedules(r?.schedules || []);
       } else {
         setSchedules(propSchedules);
       }
       if (!propHabits) {
-        const h = await API.habits.list({ date });
+        const h = await API.habits.list({ date: targetDate });
         setHabits(h?.habits || []);
       } else {
         setHabits(propHabits);
       }
-      const s = await API.summaries.get(date);
+      const s = await API.summaries.get(targetDate);
       const parsed = parseContent(s?.summary?.content);
       const apiSections = {
         highlights: parsed.highlights || '',
@@ -558,15 +574,15 @@ export default function SummaryPanel({
       const apiTemplate = parsed.template || 'daily';
       const apiUpdated = s?.summary?.updated_at ? new Date(s.summary.updated_at).getTime() : 0;
 
-      // 本地草稿兜底：只要草稿时间戳更新（用户最后一次编辑的时间），就以草稿为准（即使内容全空，也是用户的真实意图）
-      // 这解决了 API 竞态（保存后立即 reload 返回旧数据）导致内容回滚的问题
-      const draft = readDraftFromLS();
+      // 读取草稿：必须匹配当前日期才使用（draft.date 字段防跨日期污染）
+      const draft = readDraftFromLS(targetDate);
       let finalSections = apiSections;
       let finalTemplate = apiTemplate;
       let savedAtFromDraft = 0;
       if (draft) {
+        const draftMatchesDate = !draft.date || draft.date === targetDate;
         const draftNewer = draft.t && (draft.t > apiUpdated);
-        if (draftNewer) {
+        if (draftMatchesDate && draftNewer) {
           finalSections = {
             highlights: draft.sectionsText?.highlights || '',
             improvements: draft.sectionsText?.improvements || '',
@@ -575,17 +591,16 @@ export default function SummaryPanel({
           };
           finalTemplate = draft.templateId || apiTemplate;
         }
-        if (draft.savedAt && Number(draft.savedAt) > 0) {
+        if (draftMatchesDate && draft.savedAt && Number(draft.savedAt) > 0) {
           savedAtFromDraft = Number(draft.savedAt);
         }
       }
       setTemplateId(finalTemplate);
       setSectionsText(finalSections);
 
-      // savedTime：取「API updated_at」「localStorage savedAt 独立键」「草稿里的 savedAt」「最近一次本地 flushSave 时间戳」四者中的最大值
       let savedAtFromLSTs = 0;
       try {
-        const raw = localStorage.getItem(getDraftKey().replace('_draft_', '_savedAt_'));
+        const raw = localStorage.getItem(getDraftKey(targetDate).replace('_draft_', '_savedAt_'));
         if (raw) savedAtFromLSTs = parseInt(raw, 10) || 0;
       } catch (_) {}
       const candidates = [apiUpdated, savedAtFromLSTs, savedAtFromDraft, lastSaveTsRef.current].filter(t => t && !isNaN(t) && t > 0);
@@ -594,7 +609,6 @@ export default function SummaryPanel({
         setSavedTime(new Date(finalSavedTs));
       }
 
-      // 内容签名：标记加载完成，之后的用户变更才走脏检测 + debounce
       latestRef.current = { templateId: finalTemplate, sectionsText: finalSections };
       loadedApiTextRef.current = JSON.stringify([finalTemplate, finalSections]);
       dirtyRef.current = false;

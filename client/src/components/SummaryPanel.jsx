@@ -141,8 +141,11 @@ function getSectionKeys(templateId) {
 
 // ===== Markdown 生成 =====
 function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, template, sectionsText }) {
-  const weekNum = getWeekNumber(dateStr);
-  const displayDate = toDisplayDate(dateStr);
+  // === 日期标题：20260814周五 ===
+  const [yy, mm, dd] = dateStr.split('-').map(Number);
+  const dt = new Date(yy, mm - 1, dd);
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  const dateTitle = `${yy}${String(mm).padStart(2, '0')}${String(dd).padStart(2, '0')}${weekdays[dt.getDay()]}`;
 
   // === 重点事项 ===
   const keySchedules = (schedules || []).filter(s => s.is_key === 1 || s.category === 1 || s.category === 2);
@@ -157,7 +160,7 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
   };
   const stateLabel = (done) => done ? '✅ 完成' : '❌ 未完成';
   const scheduleTime = (s) => {
-    if (s.start_time && s.end_time) return `${s.start_time} – ${s.end_time}`;
+    if (s.start_time && s.end_time) return `${s.start_time}–${s.end_time}`;
     if (s.start_time) return s.start_time;
     return '—';
   };
@@ -167,12 +170,14 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
     return dur ? formatDuration(dur) : '—';
   };
 
-  let md = `# ${displayDate} · 每日总结\n`;
-  md += `> 📅 ${dateStr} · 第${weekNum}周\n`;
-  md += `> 📊 重点 ${keyDone}/${keyTotal} · 习惯 ${habits?.filter(h => h.done_today).length || 0}/${habits?.length || 0}\n`;
-  md += `---\n`;
+  let md = '';
+  md += `## **${dateTitle}**\n`;
 
-  md += `## ✅ 今日重点事项\n`;
+  // === 🎯今日计划 ===
+  md += `### **🎯今日计划**\n`;
+
+  // 重点事项
+  md += `重点事项：\n`;
   if (keySchedules.length === 0) {
     md += `> 今日无重点事项\n`;
   } else {
@@ -183,10 +188,8 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
     md += `> 完成率 ${keyRate}%\n`;
   }
 
-  md += `---\n`;
-
-  // === 习惯打卡 ===
-  md += `## 💧 习惯打卡\n`;
+  // 习惯打卡
+  md += `习惯打卡：\n`;
   if (!habits || habits.length === 0) {
     md += `> 今日无习惯\n`;
   } else {
@@ -201,7 +204,7 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
       const actualTxt = (() => {
         if (h.sleep_start && h.sleep_end) {
           const calc = calcDurationMin(h.sleep_start, h.sleep_end);
-          return `${h.sleep_start}-${h.sleep_end} · **${calc ? formatDuration(calc) : '—'}**`;
+          return `${h.sleep_start}-${h.sleep_end} · ${calc ? formatDuration(calc) : '—'}`;
         }
         if (h.done_today) return '✅ 已完成';
         return '–';
@@ -210,31 +213,24 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
       md += `| ${h.emoji || '✅'} ${h.name.replace(/\|/g, '\\|')} | ${targetTxt} | ${actualTxt} | ${state} |\n`;
     });
 
-    // 精力 + 心情（从睡眠记录取）
+    // 精力 + 心情
     const en = energyState || habits.find(h => h.energy_state)?.energy_state;
     const md_ = moodState || habits.find(h => h.mood_state)?.mood_state;
-    const energyText = { energized: '⚡充沛', normal: '⚡一般', poor: '⚡疲惫' }[en] || '⚡—';
-    const moodText = { positive: '❤️积极', neutral: '❤️平淡', negative: '❤️消极' }[md_] || '❤️—';
-    md += `**精力**：${energyText} · **心情**：${moodText}\n`;
+    const energyText = { energized: '⚡充沛', normal: '⚡一般', poor: '⚡疲惫' }[en] || '—';
+    const moodText = { positive: '❤️积极', neutral: '❤️平淡', negative: '❤️消极' }[md_] || '—';
+    md += `精力：${energyText} · 心情：${moodText}\n`;
   }
 
-  md += `---\n`;
-
-  // === 4 段总结 ===
+  // === ✍️今日总结 ===
+  md += `### **✍️今日总结**\n`;
   const tpl = DEFAULT_TEMPLATES.find(t => t.id === template) || DEFAULT_TEMPLATES[0];
   const keys = getSectionKeys(template);
   tpl.sections.forEach((sec, i) => {
     const key = keys[i];
     const content = sectionsText[key] || '';
-    md += `## ${sec.idx}. ${sec.title}\n`;
-    md += content ? `${content.trim()}\n` : '_\n';
+    md += `${sec.idx}.${sec.title}\n`;
+    md += content ? `${content.trim()}\n` : '\n';
   });
-
-  md += `---\n`;
-  const now = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  const ts = `${dateStr} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  md += `_由 Ethan 工作台生成 · ${ts}_`;
 
   return md;
 }

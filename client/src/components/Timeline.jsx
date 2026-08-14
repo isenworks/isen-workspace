@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
+import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 
@@ -108,6 +108,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     } else if (patch.type === 'task' && patch.id !== undefined) {
       setTasks(ts => ts.map(x => x.id === patch.id ? { ...x, is_done: patch.is_done } : x));
     } else if (patch.type === 'reload') {
+      cacheClear(cacheRef, 'tl:');
+      load();
       onChange?.();
     }
   }), []);

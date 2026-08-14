@@ -4,7 +4,7 @@ import {
   Clock, Pencil, X, Zap, Heart, Moon, Target,
 } from 'lucide-react';
 import { API } from '../api/client.js';
-import { formatDuration, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
+import { formatDuration, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
@@ -102,6 +102,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     if (patch.type === 'habit' && patch.id !== undefined) {
       setHabits(hs => hs.map(x => x.id === patch.id ? { ...x, done_today: patch.done_today } : x));
     } else if (patch.type === 'reload') {
+      cacheClear(cacheRef, 'hp:');
+      load();
       onChange?.();
     }
   }), []);
@@ -170,7 +172,12 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       window.__archiveHabitConfirm(h.id, h.name);
     } else {
       if (!confirm(`归档习惯「${h.name}」？`)) return;
-      API.habits.archive(h.id).then(() => { store.broadcast({ type: 'reload' }); onChange?.(); load(); }).catch(e => toast.error(e.message));
+      API.habits.archive(h.id).then(() => {
+        cacheClear(cacheRef, 'hp:');
+        store.broadcast({ type: 'reload' });
+        onChange?.();
+        load();
+      }).catch(e => toast.error(e.message));
     }
   }
 

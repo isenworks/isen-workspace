@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
-import { cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
+import { cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 
 export default function StatsBar({ date, range, view, refreshSignal, onViewChange, onNew, onSummaryToggle, showSummary }) {
@@ -86,6 +86,8 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
         ...prev,
         tasks: prev.tasks.map(t => t.id === patch.id ? { ...t, is_done: patch.is_done } : t)
       }));
+    } else if (patch.type === 'reload') {
+      cacheClear(cacheRef, 'sb:');
     }
   }), []);
 

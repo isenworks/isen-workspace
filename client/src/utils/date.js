@@ -144,6 +144,17 @@ export function cachePeek(cacheKey, cacheRef, cacheTTL = 3000) {
   if (Date.now() - cached.ts >= cacheTTL) return null;
   return cached;
 }
+// 清空缓存：用于 reload 广播 / 新增删除后强制重新拉取 API 数据
+export function cacheClear(cacheRef, prefix) {
+  if (!cacheRef?.current) return;
+  if (!prefix) {
+    cacheRef.current.clear();
+    return;
+  }
+  for (const k of [...cacheRef.current.keys()]) {
+    if (k.startsWith(prefix)) cacheRef.current.delete(k);
+  }
+}
 
 // Loading Gate：首屏/空数据加载时开启 80ms 延迟门
 // 若请求在 80ms 内返回 -> 根本不显示骨架屏（消除微秒级缓存/快请求的闪屏）

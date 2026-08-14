@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, fromISODate, calcDurationMin, cachedLoad, cachePeek, loadingGate } from '../utils/date.js';
+import { formatDuration, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { inferGrowthType, GROWTH_TYPES } from '../utils/uiConstants.js';
@@ -85,6 +85,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     if (patch.type === 'schedule' && patch.id !== undefined) {
       setList(ls => ls.map(x => x.id === patch.id ? { ...x, is_done: patch.is_done } : x));
     } else if (patch.type === 'reload') {
+      cacheClear(cacheRef, 'kt:');
+      load();
       onChange?.();
     }
   }), []);
@@ -107,7 +109,12 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       window.__deleteScheduleConfirm(s.id, s.title);
     } else {
       if (!confirm(`删除「${s.title}」？`)) return;
-      API.schedules.remove(s.id).then(() => { store.broadcast({ type: 'reload' }); onChange?.(); load(); }).catch(e => toast.error(e.message));
+      API.schedules.remove(s.id).then(() => {
+        cacheClear(cacheRef, 'kt:');
+        store.broadcast({ type: 'reload' });
+        onChange?.();
+        load();
+      }).catch(e => toast.error(e.message));
     }
   }
 

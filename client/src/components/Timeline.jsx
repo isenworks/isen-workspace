@@ -187,8 +187,21 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function getRowBg(item) {
-    // 背景渐变始终保留原色（勾选后仅文字变灰+删除线，渐变不变）
+    // 完成态背景：饱和度降低的褪色版渐变，保留色调方向
     const theme = getItemTheme(item);
+    if (item.is_done) {
+      // 根据 category 返回褪色版背景
+      const cat = getCat(item);
+      if (cat === 1) return 'linear-gradient(90deg,#f2e8e8 0%,transparent 70%)';
+      if (cat === 2) return 'linear-gradient(90deg,#f2eed8 0%,transparent 70%)';
+      if (cat === 4) {
+        const gt = inferGrowthType(item);
+        const fadedMap = { energy: '#e8f0ea', mind: '#e8ecf2', skill: '#f0ead8' };
+        return `linear-gradient(90deg,${fadedMap[gt] || '#e8f0ea'} 0%,transparent 70%)`;
+      }
+      // 常规完成态用更深冷灰
+      return 'linear-gradient(90deg,#e0e0e5 0%,transparent 70%)';
+    }
     return `linear-gradient(90deg,${lighten(theme.color)} 0%,transparent 70%)`;
   }
 
@@ -601,9 +614,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 const doneColor = t.priority === 1 ? '#ff6b64' : '#a6a6ad';
                 const borderColor = t.priority === 1 ? '#ff6b64' : '#a6a6ad';
                 const dotColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
-                const rowBg = t.priority === 1
-                  ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
-                  : 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)';
+                const rowBg = done
+                  ? (t.priority === 1
+                    ? 'linear-gradient(90deg,#f2e8e8 0%,transparent 70%)'
+                    : 'linear-gradient(90deg,#e0e0e5 0%,transparent 70%)')
+                  : (t.priority === 1
+                    ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
+                    : 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)');
                 return (
                   <div key={t.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row" style={{background: rowBg}}>
                     <input
@@ -669,8 +686,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 const color = getColor(h);
                 const doneColor = getDoneColor(h);
                 const borderColor = getBorderColor(h);
+                const rowBg = getRowBg(h);
                 return (
-                  <div key={`habit-allday-${h.id}`} className="flex items-center gap-3 py-2.5 px-3 rounded-xl habit-row" style={{background: 'linear-gradient(90deg,#e5f6ea 0%,transparent 70%)'}}>
+                  <div key={`habit-allday-${h.id}`} className="flex items-center gap-3 py-2.5 px-3 rounded-xl habit-row" style={{background: rowBg}}>
                     <input
                       type="checkbox"
                       className="cb-round"
@@ -752,10 +770,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   const color = isSched ? getColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
                   const lineColor = isSched ? getLineColor(item) : (item.priority === 1 ? '#ff9999' : '#c7c7cc');
                   const rowBg = isSched ? getRowBg(item) : (item.is_done
-                    ? 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)'
-                    : color === '#ff3b30'
-                    ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
-                    : 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)');
+                    ? (item.priority === 1
+                      ? 'linear-gradient(90deg,#f2e8e8 0%,transparent 70%)'
+                      : 'linear-gradient(90deg,#e0e0e5 0%,transparent 70%)')
+                    : (color === '#ff3b30'
+                      ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
+                      : 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)'));
                   const squareCb = isSched ? useSquareCheckbox(item) : true;
                   const cbType = squareCb ? 'cb-square' : 'cb-round';
                   const timeLabel = isSched ? formatTimeLabel(item) : (item.due_time || '');

@@ -165,11 +165,13 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const offset = list.length > 0 ? circumference * (1 - done / list.length) : circumference;
 
   function getStyle(s) {
-    // 勾选后背景/边框/小圆点保留原色，仅文字变灰+删除线
+    const isDone = !!s.is_done;
     const cat = catOf(s);
+    // 完成态褪色背景（饱和度降低，保留色调方向）
+    const doneBg = (fadeColor) => `linear-gradient(90deg,${fadeColor} 0%,transparent 70%)`;
     if (cat === 1) {
       return {
-        bg: 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)',
+        bg: isDone ? doneBg('#f2e8e8') : 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)',
         borderColor: '#ff6b64',
         dotColor: '#ff3b30',
         doneColor: '#ff6b64'
@@ -177,7 +179,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     }
     if (cat === 2) {
       return {
-        bg: 'linear-gradient(90deg,#fff4d8 0%,transparent 70%)',
+        bg: isDone ? doneBg('#f2eed8') : 'linear-gradient(90deg,#fff4d8 0%,transparent 70%)',
         borderColor: '#ffa635',
         dotColor: '#ff9500',
         doneColor: '#ffa635'
@@ -187,16 +189,23 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     if (cat === 4) {
       const gt = inferGrowthType(s);
       const def = GROWTH_TYPES[gt] || GROWTH_TYPES.energy;
+      // 完成态褪色版习惯背景
+      const fadedBgMap = {
+        energy: '#e8f0ea',
+        mind:   '#e8ecf2',
+        skill:  '#f0ead8'
+      };
+      const fadedBg = fadedBgMap[gt] || '#e8f0ea';
       return {
-        bg: `linear-gradient(90deg,${def.bg || '#e5f6ea'} 0%,transparent 70%)`,
+        bg: isDone ? doneBg(fadedBg) : `linear-gradient(90deg,${def.bg || '#e5f6ea'} 0%,transparent 70%)`,
         borderColor: def.borderColor || '#5dd57a',
         dotColor: def.color || '#34c759',
         doneColor: def.borderColor || '#5dd57a'
       };
     }
-    // 常规
+    // 常规：完成态用更深冷灰，与其他褪色形成对比
     return {
-      bg: 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)',
+      bg: isDone ? doneBg('#e0e0e5') : 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)',
       borderColor: '#a6a6ad',
       dotColor: '#8e8e93',
       doneColor: '#a6a6ad'

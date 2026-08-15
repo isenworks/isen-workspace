@@ -481,7 +481,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             const borderColor = getBorderColor(item);
             const key = `${h}-${item.isHabit ? 'h' : 's'}-${item.id}-${slot.slotIdx}`;
 
-            // === 续段渲染：背景色 + 竖线 + 半透明标题（归属标识）+ 小圆点 ===
+            // === 续段渲染：仅背景色延伸 + 竖线 + 右侧小圆点（不显示文字，避免视觉上像重复条目）===
             if (!isFirst) {
               return (
                 <div
@@ -499,25 +499,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     else window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
                   }}
                 >
-                  <div className="time-label" style={{color: timeColor, visibility:'hidden'}}>{showLabel ? timeStr : ''}</div>
+                  <div className="time-label" style={{visibility:'hidden'}}>{showLabel ? timeStr : ''}</div>
                   <div className="timeline-line" style={{background: lineColor, height: `${lineHeight}px`}}></div>
-                  <div className="timeline-content">
-                    {/* 续段显示半透明截断标题（归属标识），不显示复选框和完整时间 */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-[14px] font-medium truncate"
-                        style={{
-                          color: done ? '#aeaeae' : '#1c1c1e',
-                          opacity: 0.5,
-                          textDecoration: done ? 'line-through' : 'none',
-                        }}
-                      >
-                        {item.emoji ? item.emoji + ' ' : ''}{item.title}
-                      </p>
-                    </div>
+                  <div className="timeline-content justify-end">
                     <span
                       className={`w-2 h-2 flex-shrink-0 self-center ${isSquareCheckbox ? 'rounded-[2px]' : 'rounded-full'}`}
-                      style={{background: color}}
+                      style={{background: color, opacity: 0.6}}
                       onClick={(e) => e.stopPropagation()}
                     ></span>
                   </div>

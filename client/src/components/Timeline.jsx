@@ -399,16 +399,21 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         });
       });
     });
-    // 同小时内排序：先按首段/续段的 start_time 升序（续段跟随它的 item start 位置，保持稳定）
+    // 同小时内排序：按"该 slot 在本小时内的真实开始分钟"升序
+    // - continue 跨段续行一定从 h:00 开始 → startInHour = 0
+    // - first 首段从 item.start_time 的分钟开始 → startInHour = start_min
+    // 同一开始分钟内，再按 item 的原始 start_time 稳定排序（早开始的在前）
     Object.keys(byHour).forEach(h => {
       byHour[h].sort((a, b) => {
-        const ma = Number((a.item.start_time || '00:00').split(':')[1]);
-        const mb = Number((b.item.start_time || '00:00').split(':')[1]);
-        if (ma !== mb) return ma - mb;
-        // 同 start_min，先排首段，再排续段（首段更重要）
-        const ka = a.slotKind === 'first' ? 0 : 1;
-        const kb = b.slotKind === 'first' ? 0 : 1;
-        if (ka !== kb) return ka - kb;
+        const a_start_min = Number((a.item.start_time || '00:00').split(':')[1]) || 0;
+        const b_start_min = Number((b.item.start_time || '00:00').split(':')[1]) || 0;
+        const a_in_hour = a.slotKind === 'first' ? a_start_min : 0;
+        const b_in_hour = b.slotKind === 'first' ? b_start_min : 0;
+        if (a_in_hour !== b_in_hour) return a_in_hour - b_in_hour;
+        // 同分钟：按完整 start_time 比（早开始的排前面）
+        const a_time = a.item.start_time || '00:00';
+        const b_time = b.item.start_time || '00:00';
+        if (a_time !== b_time) return a_time.localeCompare(b_time);
         return String(a.item.id ?? '').localeCompare(String(b.item.id ?? ''));
       });
     });
@@ -481,7 +486,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             const borderColor = getBorderColor(item);
             const key = `${h}-${item.isHabit ? 'h' : 's'}-${item.id}-${slot.slotIdx}`;
 
-            // === 续段渲染：仅背景色延伸 + 竖线 + 右侧小圆点（不显示文字，避免视觉上像重复条目）===
+            // === 续段渲染：背景色延伸 + 竖线 + 半透明标题（归属标识）+ 小圆点 ===
             if (!isFirst) {
               return (
                 <div
@@ -499,12 +504,25 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     else window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
                   }}
                 >
-                  <div className="time-label" style={{visibility:'hidden'}}>{showLabel ? timeStr : ''}</div>
+                  <div className="time-label" style={{color: timeColor, visibility:'hidden'}}>{showLabel ? timeStr : ''}</div>
                   <div className="timeline-line" style={{background: lineColor, height: `${lineHeight}px`}}></div>
-                  <div className="timeline-content justify-end">
+                  <div className="timeline-content">
+                    {/* 续段显示半透明截断标题（归属标识），不显示复选框和完整时间 */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[14px] font-medium truncate"
+                        style={{
+                          color: done ? '#aeaeae' : '#1c1c1e',
+                          opacity: 0.5,
+                          textDecoration: done ? 'line-through' : 'none',
+                        }}
+                      >
+                        {item.emoji ? item.emoji + ' ' : ''}{item.title}
+                      </p>
+                    </div>
                     <span
                       className={`w-2 h-2 flex-shrink-0 self-center ${isSquareCheckbox ? 'rounded-[2px]' : 'rounded-full'}`}
-                      style={{background: color, opacity: 0.6}}
+                      style={{background: color}}
                       onClick={(e) => e.stopPropagation()}
                     ></span>
                   </div>

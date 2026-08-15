@@ -8,17 +8,17 @@ const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
 // 成长类型配置
 const GROWTH_TYPES = {
-  energy: { color: '#34c759', bg: '#e5f6ea', borderColor: '#5dd57a', doneColor: '#5dd57a', lineColor: '#34c759' },
-  mind:   { color: '#007aff', bg: '#e0ecff', borderColor: '#4a9bff', doneColor: '#4a9bff', lineColor: '#007aff' },
-  skill:  { color: '#d4a017', bg: '#fbf3d8', borderColor: '#e0b94a', doneColor: '#e0b94a', lineColor: '#d4a017' },
+  energy: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759' },
+  mind:   { color: '#007aff', bg: '#e0ecff', borderColor: '#007aff', doneColor: '#007aff', lineColor: '#007aff' },
+  skill:  { color: '#d4a017', bg: '#fbf3d8', borderColor: '#d4a017', doneColor: '#d4a017', lineColor: '#d4a017' },
 };
 
 // 事项分类颜色
 const CAT_COLORS = {
-  1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff6b64', doneColor: '#ff6b64', lineColor: '#ff3b30', timeColor: '#ff3b30' },
-  2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ffa635', doneColor: '#ffa635', lineColor: '#ff9500', timeColor: '#ff9500' },
-  3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#a6a6ad', doneColor: '#a6a6ad', lineColor: '#8e8e93', timeColor: '#8e8e93' },
-  4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#5dd57a', doneColor: '#5dd57a', lineColor: '#34c759', timeColor: '#34c759' },
+  1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30', doneColor: '#ff3b30', lineColor: '#ff3b30', timeColor: '#ff3b30' },
+  2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500', doneColor: '#ff9500', lineColor: '#ff9500', timeColor: '#ff9500' },
+  3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
+  4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759', timeColor: '#34c759' },
 };
 
 // 根据习惯名称/图标自动推断成长类型
@@ -598,8 +598,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             <div className="space-y-1.5 px-3">
               {todayTasks.map(t => {
                 const done = !!t.is_done;
-                const doneColor = t.priority === 1 ? '#ff6b64' : '#a6a6ad';
-                const borderColor = t.priority === 1 ? '#ff6b64' : '#a6a6ad';
+                const doneColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
+                const borderColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
                 const dotColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
                 const rowBg = t.priority === 1
                   ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
@@ -762,9 +762,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   const lineHeight = isSched ? getLineHeight(item) : 16;
                   const rowMinHeight = isSched ? getRowMinHeight(item) : undefined;
                   const done = !!item.is_done;
-                  const doneColor = isSched ? getDoneColor(item) : (item.priority === 1 ? '#ff5e54' : '#aeaeae');
-                  const borderColor = isSched ? getBorderColor(item) : (item.priority === 1 ? '#ff9999' : '#d1d1d6');
-                  const timeColor = isSched ? getTimeColor(item) : (done ? '#aeaeae' : color);
+                  const doneColor = isSched ? getDoneColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
+                  const borderColor = isSched ? getBorderColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
+                  const timeColor = isSched ? getTimeColor(item) : (done ? '#8e8e93' : color);
 
                   return (
                     <div

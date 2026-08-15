@@ -170,17 +170,17 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     if (cat === 1) {
       return {
         bg: 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)',
-        borderColor: '#ff6b64',
+        borderColor: '#ff3b30',
         dotColor: '#ff3b30',
-        doneColor: '#ff6b64'
+        doneColor: '#ff3b30'
       };
     }
     if (cat === 2) {
       return {
         bg: 'linear-gradient(90deg,#fff4d8 0%,transparent 70%)',
-        borderColor: '#ffa635',
+        borderColor: '#ff9500',
         dotColor: '#ff9500',
-        doneColor: '#ffa635'
+        doneColor: '#ff9500'
       };
     }
     // 习惯（cat=4）按成长类型分色
@@ -189,17 +189,17 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const def = GROWTH_TYPES[gt] || GROWTH_TYPES.energy;
       return {
         bg: `linear-gradient(90deg,${def.bg || '#e5f6ea'} 0%,transparent 70%)`,
-        borderColor: def.borderColor || '#5dd57a',
+        borderColor: def.color || '#34c759',
         dotColor: def.color || '#34c759',
-        doneColor: def.borderColor || '#5dd57a'
+        doneColor: def.color || '#34c759'
       };
     }
     // 常规
     return {
       bg: 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)',
-      borderColor: '#a6a6ad',
+      borderColor: '#8e8e93',
       dotColor: '#8e8e93',
-      doneColor: '#a6a6ad'
+      doneColor: '#8e8e93'
     };
   }
 

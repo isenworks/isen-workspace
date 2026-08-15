@@ -1,8 +1,8 @@
 // 成长类型配置：精力(绿) / 知力(蓝) / 能力(金)
 export const GROWTH_TYPES = {
-  energy: { label: '精力型', color: '#34c759', bg: '#e5f6ea', borderColor: '#5dd57a', doneColor: '#5dd57a', lineColor: '#34c759' },
-  mind:   { label: '知力型', color: '#007aff', bg: '#e0ecff', borderColor: '#4a9bff', doneColor: '#4a9bff', lineColor: '#007aff' },
-  skill:  { label: '能力型', color: '#d4a017', bg: '#fbf3d8', borderColor: '#e0b94a', doneColor: '#e0b94a', lineColor: '#d4a017' },
+  energy: { label: '精力型', color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759' },
+  mind:   { label: '知力型', color: '#007aff', bg: '#e0ecff', borderColor: '#007aff', doneColor: '#007aff', lineColor: '#007aff' },
+  skill:  { label: '能力型', color: '#d4a017', bg: '#fbf3d8', borderColor: '#d4a017', doneColor: '#d4a017', lineColor: '#d4a017' },
 };
 
 // 仅用于习惯分类色选择器（圆圈色块）
@@ -14,10 +14,10 @@ export const GROWTH_TYPE_COLORS = {
 
 // 事项分类颜色：紧急度 / 常规 / 习惯日程
 export const CATEGORY_COLORS = {
-  1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff6b64', doneColor: '#ff6b64', lineColor: '#ff3b30', timeColor: '#ff3b30' },
-  2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ffa635', doneColor: '#ffa635', lineColor: '#ff9500', timeColor: '#ff9500' },
-  3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#a6a6ad', doneColor: '#a6a6ad', lineColor: '#8e8e93', timeColor: '#8e8e93' },
-  4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#5dd57a', doneColor: '#5dd57a', lineColor: '#34c759', timeColor: '#34c759' },
+  1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30', doneColor: '#ff3b30', lineColor: '#ff3b30', timeColor: '#ff3b30' },
+  2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500', doneColor: '#ff9500', lineColor: '#ff9500', timeColor: '#ff9500' },
+  3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
+  4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759', timeColor: '#34c759' },
 };
 
 // 通用标签、输入框样式（供所有表单组件复用）

@@ -282,7 +282,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   function getDoneColor(h) {
     const gt = getHabitGrowthType(h);
-    return GROWTH_TYPES[gt]?.doneColor || '#5dd57a';
+    return GROWTH_TYPES[gt]?.doneColor || '#34c759';
   }
 
   function formatTime(h) {

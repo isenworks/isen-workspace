@@ -193,12 +193,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function getTimeColor(item) {
+    // 完成后时间色跟随复选框饱和度（统一用 theme.color / theme.doneColor = 同色饱和值）
     if (item.isHabit) {
-      if (item.done_today) return '#aeaeae';
       const theme = getItemTheme(item);
       return theme.color;
     }
-    if (item.is_done) return '#aeaeae';
     const theme = getItemTheme(item);
     return theme.color;
   }
@@ -764,7 +763,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   const done = !!item.is_done;
                   const doneColor = isSched ? getDoneColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
                   const borderColor = isSched ? getBorderColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
-                  const timeColor = isSched ? getTimeColor(item) : (done ? '#8e8e93' : color);
+                  const timeColor = isSched ? getTimeColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
 
                   return (
                     <div

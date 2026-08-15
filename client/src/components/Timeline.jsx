@@ -187,9 +187,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function getRowBg(item) {
-    // 背景渐变始终保留原色（勾选后仅文字变灰+删除线，渐变不变）
+    // 使用主题中预定义的 bg 色，确保与 KeyTasks 等其他面板渐变一致
     const theme = getItemTheme(item);
-    return `linear-gradient(90deg,${lighten(theme.color)} 0%,transparent 70%)`;
+    return `linear-gradient(90deg,${theme.bg} 0%,transparent 70%)`;
   }
 
   function getTimeColor(item) {

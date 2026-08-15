@@ -18,6 +18,7 @@ export const CATEGORY_COLORS = {
   2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500', doneColor: '#ff9500', lineColor: '#ff9500', timeColor: '#ff9500' },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
   4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759', timeColor: '#34c759' },
+  5: { color: '#af52de', bg: '#f3e8ff', borderColor: '#af52de', doneColor: '#af52de', lineColor: '#af52de', timeColor: '#af52de' },
 };
 
 // 通用标签、输入框样式（供所有表单组件复用）

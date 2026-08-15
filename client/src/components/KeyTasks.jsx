@@ -23,6 +23,7 @@ function catOf(s) {
   if (cat === 2) return 2;
   if (cat === 3) return 3;
   if (cat === 4) return 4;
+  if (cat === 5) return 5;
   // 旧数据兼容：无 category 按 is_key + 时间段推
   if (s.is_key) {
     const st = s.start_time;
@@ -194,7 +195,16 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         doneColor: def.color || '#34c759'
       };
     }
-    // 常规
+    // 生活体验（cat=5）紫色
+    if (cat === 5) {
+      return {
+        bg: 'linear-gradient(90deg,#f3e8ff 0%,transparent 70%)',
+        borderColor: '#af52de',
+        dotColor: '#af52de',
+        doneColor: '#af52de'
+      };
+    }
+    // 常规事项
     return {
       bg: 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)',
       borderColor: '#8e8e93',

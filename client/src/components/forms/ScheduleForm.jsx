@@ -9,7 +9,7 @@ import { useToast } from '../../context/ToastContext.jsx';
 const CATEGORIES = [
   { v: 1, label: '重要紧急', dot: '#ff3b30', bg: '#ffe8e8', border: '#ff9999', text: '#ff3b30', textActive: '#1c1c1e' },
   { v: 2, label: '重要不紧急', dot: '#ff9500', bg: '#fff4d8', border: '#ffd699', text: '#ff9500', textActive: '#1c1c1e' },
-  { v: 3, label: '常规',     dot: '#8e8e93', bg: '#f2f2f7', border: '#c7c7cc', text: '#8e8e93', textActive: '#1c1c1e' },
+  { v: 3, label: '常规',     dot: '#8e8e93', bg: '#e5e5ea', border: '#c7c7cc', text: '#8e8e93', textActive: '#1c1c1e' },
 ];
 
 function initialCategory(initial) {

@@ -196,7 +196,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     }
     // 常规
     return {
-      bg: 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)',
+      bg: 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)',
       borderColor: '#a6a6ad',
       dotColor: '#8e8e93',
       doneColor: '#a6a6ad'

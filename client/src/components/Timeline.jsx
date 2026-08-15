@@ -17,7 +17,7 @@ const GROWTH_TYPES = {
 const CAT_COLORS = {
   1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff6b64', doneColor: '#ff6b64', lineColor: '#ff3b30', timeColor: '#ff3b30' },
   2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ffa635', doneColor: '#ffa635', lineColor: '#ff9500', timeColor: '#ff9500' },
-  3: { color: '#8e8e93', bg: '#f2f2f7', borderColor: '#a6a6ad', doneColor: '#a6a6ad', lineColor: '#8e8e93', timeColor: '#8e8e93' },
+  3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#a6a6ad', doneColor: '#a6a6ad', lineColor: '#8e8e93', timeColor: '#8e8e93' },
   4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#5dd57a', doneColor: '#5dd57a', lineColor: '#34c759', timeColor: '#34c759' },
 };
 
@@ -36,7 +36,7 @@ function inferGrowthType(habit) {
 // 将 hex 颜色与白色混合，生成浅色背景
 function lighten(hex, whiteRatio = 0.82) {
   const h = (hex || '#34c759').replace('#', '');
-  if (h.length !== 6) return '#f2f2f7';
+  if (h.length !== 6) return '#e5e5ea';
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
@@ -603,7 +603,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 const dotColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
                 const rowBg = t.priority === 1
                   ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
-                  : 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)';
+                  : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)';
                 return (
                   <div key={t.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row" style={{background: rowBg}}>
                     <input
@@ -752,10 +752,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   const color = isSched ? getColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
                   const lineColor = isSched ? getLineColor(item) : (item.priority === 1 ? '#ff9999' : '#c7c7cc');
                   const rowBg = isSched ? getRowBg(item) : (item.is_done
-                    ? 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)'
+                    ? 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)'
                     : color === '#ff3b30'
                     ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
-                    : 'linear-gradient(90deg,#f2f2f7 0%,transparent 70%)');
+                    : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)');
                   const squareCb = isSched ? useSquareCheckbox(item) : true;
                   const cbType = squareCb ? 'cb-square' : 'cb-round';
                   const timeLabel = isSched ? formatTimeLabel(item) : (item.due_time || '');

@@ -429,7 +429,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         {/* 文本区 */}
         <div className="flex-1 min-w-0">
           {/* 第一行：标题 */}
-          <p className={`text-[14px] font-medium leading-tight ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+          <p className={`text-[14px] font-semibold leading-tight ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
             {h.emoji} {h.name}
           </p>
           {/* 第二行：预设时间/目标 */}

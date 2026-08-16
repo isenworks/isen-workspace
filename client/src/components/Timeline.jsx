@@ -673,7 +673,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
                       onClick={(e) => { e.stopPropagation(); toggleTask(t); }}
                     />
-                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e] font-medium'}`}>
+                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e] font-semibold'}`}>
                       {t.title}
                     </span>
                     <span className={`w-2 h-2 flex-shrink-0 rounded-[2px]`} style={{background: dotColor}}></span>
@@ -707,7 +707,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
                       onClick={(e) => { e.stopPropagation(); toggleSchedule(s); }}
                     />
-                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e] font-medium'}`}>
+                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e] font-semibold'}`}>
                       {s.title}
                     </span>
                     <span className={`w-2 h-2 flex-shrink-0 ${square ? 'rounded-[2px]' : 'rounded-full'}`} style={{background: color}}></span>
@@ -738,7 +738,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
                       onClick={(e) => { e.stopPropagation(); toggleHabit(h); }}
                     />
-                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e] font-medium'}`}>
+                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e] font-semibold'}`}>
                       {h.emoji} {h.name}
                     </span>
                     <span
@@ -849,7 +849,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                           }}
                         />
                         <div className="flex-1">
-                          <p className={`text-[14px] font-medium ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+                          <p className={`text-[14px] font-semibold ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
                             {item.emoji ? item.emoji + ' ' : ''}{item.title}
                           </p>
                           {timeLabel && (

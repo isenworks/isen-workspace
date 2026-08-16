@@ -367,20 +367,56 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     function toPx(min) { return (min - baseMin) * PX_PER_MIN; }
 
     // —— 事件准备：有 start_time 且能算入 06-24 区间的才挂时间轴 ——
+    function parseTimeRange(item) {
+      // 兼容两种格式：'06:00' (单点) 或 '06:00-07:00' (区间，旧 schedules.start_time 写法)
+      function pickFirst(t) {
+        if (!t) return null;
+        if (t.includes('-')) return t.split('-')[0];
+        return t;
+      }
+      function pickEnd(t) {
+        if (!t) return null;
+        if (t.includes('-')) { const [, e] = t.split('-'); return e; }
+        return null;
+      }
+      function toMin(t) {
+        if (!t) return null;
+        const [h, m] = t.split(':').map(Number);
+        if (Number.isNaN(h) || Number.isNaN(m)) return null;
+        return h * 60 + m;
+      }
+      let st = item.start_time;
+      let et = item.end_time;
+      // 习惯：优先 start_time，兜底 target_time
+      if (item.isHabit && !st) st = item.target_time;
+      // 从 start_time 中拆出 end（若是区间写法），仅在 end 缺失时填入
+      const startOnly = pickFirst(st);
+      const endFromStart = pickEnd(st);
+      if (startOnly) st = startOnly;
+      if (!et && endFromStart) et = endFromStart;
+      return { startMin: toMin(st), endMin: et ? toMin(et) : null };
+    }
+
     const timedItems = [...todaySchedules, ...todayHabits].filter(item => {
-      const s = parseStart(item);
-      if (s == null) return false;
+      const { startMin } = parseTimeRange(item);
+      if (startMin == null) return false;
       const dur = getEffectiveDur(item);
       // 无时长的兜底：默认 30 分钟（避免消失），并 clamp 在可视区内
-      if (dur == null) return s >= baseMin && s < 24 * 60;
-      const e = s + dur;
-      return !(e <= baseMin || s >= 24 * 60);
+      if (dur == null) return startMin >= baseMin && startMin < 24 * 60;
+      const e = startMin + dur;
+      return !(e <= baseMin || startMin >= 24 * 60);
     });
 
     // 解析每个事件的渲染几何，并按 end 截断到 24:00
     const events = timedItems.map(item => {
-      const startMinRaw = parseStart(item);
-      const durRaw = getEffectiveDur(item) ?? 30;
+      const { startMin: sMin, endMin: eMin } = parseTimeRange(item);
+      const startMinRaw = sMin;
+      let durRaw;
+      if (eMin != null && eMin > startMinRaw) {
+        durRaw = eMin - startMinRaw;
+      } else {
+        durRaw = getEffectiveDur(item) ?? 30;
+      }
       const startMin = Math.max(baseMin, startMinRaw);
       const endMin = Math.min(24 * 60, startMinRaw + durRaw);
       const top = toPx(startMin);

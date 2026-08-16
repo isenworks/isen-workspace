@@ -346,11 +346,9 @@ body {
 .tl-event-dot.r2 { border-radius: 2px; }
 .tl-event-dot.rfull { border-radius: 50%; }
 
-/* 紧凑模式：时长 < 48min 时隐藏副文本 */
+/* 紧凑模式：时长 < 48min 时隐藏副文本（padding/margin 与正常模式保持一致，确保圆角视觉统一） */
 .tl-event.compact .tl-event-sub { display: none; }
-.tl-event.compact { padding-right: 10px; }
-.tl-event.compact .tl-event-line { margin-left: 12px; }
-.tl-event.compact .tl-event-content { gap: 10px; padding-left: 10px; }
+.tl-event.compact .tl-event-content { gap: 10px; }
 
 /* 分类渐变背景（沿用工作台风格，与 HabitsPanel 保持一致：70% 淡出） */
 .tl-event.cat-1 { background-image: linear-gradient(90deg, #ffe8e8 0%, transparent 70%); }

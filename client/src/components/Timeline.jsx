@@ -247,10 +247,27 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function formatTimeLabel(item) {
+    function isZero(t) {
+      if (!t) return false;
+      const c = String(t).trim();
+      if (c === '00:00' || c === '0:00' || c === '0') return true;
+      const [h, m] = c.split(':').map(Number);
+      return Number(h) === 0 && Number(m) === 0;
+    }
     if (item.isHabit) {
       // 优先使用 start_time / end_time（新字段），回退到 target_time
-      const st = item.start_time || item.target_time;
-      const et = item.end_time;
+      let st = item.start_time || item.target_time;
+      let et = item.end_time;
+      // 兼容区间写法 'HH:MM-HH:MM'
+      if (st && st.includes('-')) {
+        const [s, e] = st.split('-');
+        if (!et) et = e;
+        st = s;
+      }
+      const stZero = isZero(st);
+      const etZero = !et || isZero(et);
+      if (stZero && etZero) { st = null; et = null; }
+      else if (stZero) { st = null; }
       // 兜底：按 start/end 实时计算，避免 duration_min 脏数据
       const displayDur = getEffectiveDur(item);
 
@@ -266,7 +283,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       }
 
       let txt = '';
-      if (st && et) txt = `${st} – ${et}`;
+      if (st && et && !isZero(et)) txt = `${st} – ${et}`;
       else if (st) txt = st;
 
       if (displayDur) {
@@ -278,8 +295,17 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       return txt;
     }
     if (!item.start_time) return '';
-    let txt = item.start_time;
-    if (item.end_time) txt += ' – ' + item.end_time;
+    let st = item.start_time;
+    let et = item.end_time;
+    // 兼容区间写法
+    if (st && st.includes('-')) {
+      const [s, e] = st.split('-');
+      if (!et) et = e;
+      st = s;
+    }
+    if (isZero(st) && (!et || isZero(et))) return '';
+    let txt = st;
+    if (et && !isZero(et)) txt += ' – ' + et;
     const displayDur = getEffectiveDur(item);
     if (displayDur) {
       const hours = displayDur / 60;
@@ -291,11 +317,26 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function formatShort(item) {
+    function isZero(t) {
+      if (!t) return false;
+      const c = String(t).trim();
+      if (c === '00:00' || c === '0:00' || c === '0') return true;
+      const [h, m] = c.split(':').map(Number);
+      return Number(h) === 0 && Number(m) === 0;
+    }
     if (item.isHabit) {
-      const st = item.start_time || item.target_time;
-      const et = item.end_time;
+      let st = item.start_time || item.target_time;
+      let et = item.end_time;
+      if (st && st.includes('-')) {
+        const [s, e] = st.split('-');
+        if (!et) et = e;
+        st = s;
+      }
+      const stZero = isZero(st);
+      const etZero = !et || isZero(et);
+      if (stZero && etZero) { st = null; et = null; }
       const displayDur = getEffectiveDur(item);
-      if (st && et) {
+      if (st && et && !etZero) {
         return displayDur ? `${st} – ${et} · ${formatDuration(displayDur)}` : `${st} – ${et}`;
       }
       if (st) {
@@ -367,6 +408,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     function toPx(min) { return (min - baseMin) * PX_PER_MIN; }
 
     // —— 事件准备：有 start_time 且能算入 06-24 区间的才挂时间轴 ——
+    function isZeroTime(t) {
+      // 00:00 / 0:00 / 带空格等变体均视为"未设置时间"
+      if (!t) return false;
+      const clean = t.trim();
+      if (clean === '00:00' || clean === '0:00' || clean === '0') return true;
+      const [h, m] = clean.split(':').map(Number);
+      return (Number(h) === 0 && Number(m) === 0);
+    }
     function parseTimeRange(item) {
       // 兼容两种格式：'06:00' (单点) 或 '06:00-07:00' (区间，旧 schedules.start_time 写法)
       function pickFirst(t) {
@@ -394,12 +443,18 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       const endFromStart = pickEnd(st);
       if (startOnly) st = startOnly;
       if (!et && endFromStart) et = endFromStart;
-      return { startMin: toMin(st), endMin: et ? toMin(et) : null };
+      // 无意义 00:00-00:00 区间 → 视为未设时间
+      const sZero = isZeroTime(st);
+      const eZero = !et || isZeroTime(et);
+      if (sZero && eZero) {
+        return { startMin: null, endMin: null, zeroRange: true };
+      }
+      return { startMin: toMin(st), endMin: et ? toMin(et) : null, zeroRange: false };
     }
 
     const timedItems = [...todaySchedules, ...todayHabits].filter(item => {
-      const { startMin } = parseTimeRange(item);
-      if (startMin == null) return false;
+      const { startMin, zeroRange } = parseTimeRange(item);
+      if (zeroRange || startMin == null) return false;
       const dur = getEffectiveDur(item);
       // 无时长的兜底：默认 30 分钟（避免消失），并 clamp 在可视区内
       if (dur == null) return startMin >= baseMin && startMin < 24 * 60;
@@ -463,9 +518,19 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     });
 
     // —— 底部"列表型"内容：待办 / 未定时 / 全天习惯 ——
-    const timedScheduleIds = new Set(todaySchedules.filter(s => s.start_time).map(s => s.id));
+    const timedScheduleIds = new Set(
+      todaySchedules.filter(s => {
+        const { zeroRange, startMin } = parseTimeRange({ ...s, isHabit: false });
+        return !zeroRange && startMin != null;
+      }).map(s => s.id)
+    );
     const untimedSchedules = todaySchedules.filter(s => !timedScheduleIds.has(s.id));
-    const alldayHabits = todayHabits.filter(h => !h.start_time && !h.target_time);
+    // 全天习惯：无 start/target，或 00:00-00:00 这类"未设时间"的习惯
+    const alldayHabits = todayHabits.filter(h => {
+      if (!h.start_time && !h.target_time) return true;
+      const { zeroRange } = parseTimeRange(h);
+      return zeroRange;
+    });
 
     return (
       <>

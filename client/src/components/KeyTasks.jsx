@@ -215,10 +215,28 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   function formatTime(s) {
     if (!s.start_time) return '';
-    let txt = s.start_time;
-    if (s.end_time) txt += ' – ' + s.end_time;
+    function isZero(t) {
+      if (!t) return false;
+      const c = String(t).trim();
+      if (c === '00:00' || c === '0:00' || c === '0') return true;
+      const [h, m] = c.split(':').map(Number);
+      return Number(h) === 0 && Number(m) === 0;
+    }
+    let st = s.start_time;
+    let et = s.end_time;
+    // 兼容区间写法 'HH:MM-HH:MM'
+    if (st && st.includes('-')) {
+      const [a, b] = st.split('-');
+      if (!et) et = b;
+      st = a;
+    }
+    const stZero = isZero(st);
+    const etZero = !et || isZero(et);
+    if (stZero && etZero) return '';
+    let txt = st;
+    if (et && !etZero) txt += ' – ' + et;
     // 兜底：优先按 start/end 实时计算，避免 duration_min 脏数据
-    const calcDur = calcDurationMin(s.start_time, s.end_time);
+    const calcDur = !stZero && !etZero ? calcDurationMin(st, et) : null;
     const displayDur = calcDur != null ? calcDur : s.duration_min;
     if (displayDur) txt += ' · ' + formatDuration(displayDur);
     return txt;

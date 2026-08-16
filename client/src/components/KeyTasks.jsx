@@ -21,11 +21,9 @@ function catOf(s) {
   const cat = Number(s.category);
   if (cat === 1) return 1;
   if (cat === 2) return 2;
-  if (cat === 6) return 6;
   if (cat === 3) return 3;
   if (cat === 4) return 4;
   if (cat === 5) return 5;
-  if (cat === 7) return 7;
   // 旧数据兼容：无 category 按 is_key + 时间段推
   if (s.is_key) {
     const st = s.start_time;
@@ -186,15 +184,6 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         doneColor: '#ff9500'
       };
     }
-    // 深度复盘 / 学习（cat=6）蓝色
-    if (cat === 6) {
-      return {
-        bg: 'linear-gradient(90deg,#e0ecff 0%,transparent 70%)',
-        borderColor: '#007aff',
-        dotColor: '#007aff',
-        doneColor: '#007aff'
-      };
-    }
     // 习惯（cat=4）按成长类型分色
     if (cat === 4) {
       const gt = inferGrowthType(s);
@@ -213,15 +202,6 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         borderColor: '#af52de',
         dotColor: '#af52de',
         doneColor: '#af52de'
-      };
-    }
-    // 能力型（cat=7）金色
-    if (cat === 7) {
-      return {
-        bg: 'linear-gradient(90deg,#fbf3d8 0%,transparent 70%)',
-        borderColor: '#d4a017',
-        dotColor: '#d4a017',
-        doneColor: '#d4a017'
       };
     }
     // 常规事项

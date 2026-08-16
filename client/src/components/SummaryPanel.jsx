@@ -193,7 +193,7 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
   md += `### **🎯今日计划**\n`;
 
   // 重点事项
-  md += `重点事项：\n`;
+  md += `**重点事项**：\n`;
   if (keySchedules.length === 0) {
     md += `> 今日无重点事项\n`;
   } else {
@@ -244,7 +244,7 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
   tpl.sections.forEach((sec, i) => {
     const key = keys[i];
     const content = sectionsText[key] || '';
-    md += `${sec.idx}.${sec.title}\n`;
+    md += `${sec.idx}.**${sec.title}**\n`;
     md += content ? `${content.trim()}\n` : '\n';
   });
 

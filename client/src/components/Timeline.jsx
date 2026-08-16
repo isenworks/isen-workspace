@@ -17,9 +17,11 @@ const GROWTH_TYPES = {
 const CAT_COLORS = {
   1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30', doneColor: '#ff3b30', lineColor: '#ff3b30', timeColor: '#ff3b30' },
   2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500', doneColor: '#ff9500', lineColor: '#ff9500', timeColor: '#ff9500' },
+  6: { color: '#007aff', bg: '#e0ecff', borderColor: '#007aff', doneColor: '#007aff', lineColor: '#007aff', timeColor: '#007aff' },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
   4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759', timeColor: '#34c759' },
   5: { color: '#af52de', bg: '#f3e8ff', borderColor: '#af52de', doneColor: '#af52de', lineColor: '#af52de', timeColor: '#af52de' },
+  7: { color: '#d4a017', bg: '#fbf3d8', borderColor: '#d4a017', doneColor: '#d4a017', lineColor: '#d4a017', timeColor: '#d4a017' },
 };
 
 // 根据习惯名称/图标自动推断成长类型
@@ -166,7 +168,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   function getCat(s) {
     if (s.isHabit) return 4;
     const cat = Number(s.category);
-    if (cat === 1 || cat === 2 || cat === 3 || cat === 4 || cat === 5) return cat;
+    if (cat === 1 || cat === 2 || cat === 3 || cat === 4 || cat === 5 || cat === 6 || cat === 7) return cat;
     if (s.is_key) {
       const st = s.start_time;
       if (st && Number(st.split(':')[0]) <= 12) return 1;

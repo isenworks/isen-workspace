@@ -5,11 +5,12 @@ import FriendlyTimeInput from '../FriendlyTimeInput.jsx';
 import { store } from '../../utils/store.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
-// category: 1=重要紧急, 2=重要不紧急, 3=常规事项, 5=生活体验
+// category: 1=重要紧急, 2=重要不紧急, 6=深度复盘(蓝), 3=常规事项, 5=生活体验
 // 注意：category=4 为旧数据"习惯"保留值（initialCategory 会降级为 3），不用于新 UI
 const CATEGORIES = [
   { v: 1, label: '重要紧急',   dot: '#ff3b30', bg: '#ffe8e8', border: '#ff9999', text: '#ff3b30', textActive: '#1c1c1e' },
   { v: 2, label: '重要不紧急', dot: '#ff9500', bg: '#fff4d8', border: '#ffd699', text: '#ff9500', textActive: '#1c1c1e' },
+  { v: 6, label: '深度复盘',   dot: '#007aff', bg: '#e0ecff', border: '#a3c9ff', text: '#007aff', textActive: '#1c1c1e' },
   { v: 3, label: '常规事项',   dot: '#8e8e93', bg: '#e5e5ea', border: '#c7c7cc', text: '#8e8e93', textActive: '#1c1c1e' },
   { v: 5, label: '生活体验',   dot: '#af52de', bg: '#f3e8ff', border: '#d8b3f0', text: '#af52de', textActive: '#1c1c1e' },
 ];
@@ -166,7 +167,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         end_time: form.end_time || null,
         duration_min: form.duration_min ? Number(form.duration_min) : null,
         category: cat,
-        is_key: (cat === 1 || cat === 2) ? 1 : 0,
+        is_key: (cat === 1 || cat === 2 || cat === 6) ? 1 : 0,
       };
       if (initial?.id) await API.schedules.update(initial.id, payload);
       else await API.schedules.create(payload);

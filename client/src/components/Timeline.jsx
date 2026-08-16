@@ -22,15 +22,14 @@ const CAT_COLORS = {
   5: { color: '#af52de', bg: '#f3e8ff', borderColor: '#af52de', doneColor: '#af52de', lineColor: '#af52de', timeColor: '#af52de' },
 };
 
-// 根据习惯名称/图标自动推断成长类型
+// 获取习惯的成长类型（优先级：用户显式选择 > 颜色分析 > 关键词推断 > 默认）
 function inferGrowthType(habit) {
-  const text = (habit.name + ' ' + (habit.emoji || '')).toLowerCase();
-  if (/睡眠|运动|喝水|饮食|健身|跑步|游泳|瑜伽|冥想|休息|😴|🏃|💧|🍎/.test(text)) return 'energy';
-  if (/看书|阅读|思考|学习|📖|🧠|📚/.test(text)) return 'mind';
-  if (/英语|口语|表达|演讲|沟通|写作|🗣️|🎤|✍️/.test(text)) return 'skill';
-  // 依据 accent_color 反推类型（应对历史数据或用户改色场景）
+  // 1. 用户在表单中显式选择的 growth_type（非默认 energy 即为显式设置）
+  if (habit.growth_type && habit.growth_type !== 'energy') return habit.growth_type;
+
+  // 2. 用户显式选择的 accent_color（非默认绿色 #34c759 即为显式设置）
   const c = (habit.accent_color || '').toLowerCase().replace('#', '');
-  if (c.length === 6) {
+  if (c.length === 6 && c !== '34c759') {
     const r = parseInt(c.slice(0, 2), 16);
     const g = parseInt(c.slice(2, 4), 16);
     const b = parseInt(c.slice(4, 6), 16);
@@ -38,8 +37,14 @@ function inferGrowthType(habit) {
     if (b > r && b > g && b > 150) return 'mind';
     if (g > r && g > b && g > 120) return 'energy';
   }
-  // 用户显式设置的类型优先（但默认值 energy 不算显式）
-  if (habit.growth_type && habit.growth_type !== 'energy') return habit.growth_type;
+
+  // 3. 关键词推断（仅对无显式类型/颜色的老数据兜底）
+  const text = (habit.name + ' ' + (habit.emoji || '')).toLowerCase();
+  if (/睡眠|运动|喝水|饮食|健身|跑步|游泳|瑜伽|冥想|休息|😴|🏃|💧|🍎/.test(text)) return 'energy';
+  if (/看书|阅读|思考|学习|📖|🧠|📚/.test(text)) return 'mind';
+  if (/英语|口语|表达|演讲|沟通|写作|🗣️|🎤|✍️/.test(text)) return 'skill';
+
+  // 4. 默认
   return 'energy';
 }
 

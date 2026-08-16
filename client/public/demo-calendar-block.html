@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日历时间线 Demo · 胶囊色块设计</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; }
+  body {
+    background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: #1c1c1e;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    font-family: -apple-system, "SF Pro Text", "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .page-title { font-size: 15px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 12px; color: #8e8e93; margin-bottom: 16px; }
+
+  /* ====== 玻璃卡片 ====== */
+  .glass-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    position: relative;
+    padding: 20px;
+  }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(60,60,67,0.1);
+    margin-bottom: 16px;
+  }
+  .section-title { font-size: 15px; font-weight: 800; color: #1c1c1e; letter-spacing: -0.02em; }
+  .section-accent { width: 5px; height: 18px; border-radius: 3px; flex-shrink: 0; background: #007aff; }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-dot { color: #c7c7cc; font-weight: 500; }
+  .header-today { color: #007aff; }
+
+  /* ====== 日历容器 ====== */
+  .cal-timeline { position: relative; display: flex; }
+
+  /* 时间刻度列（最左侧整点刻度）：已根据需求隐藏（竖线条左边的时间点不要了） */
+  .cal-time-col {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    flex: 0 !important;
+    flex-basis: 0 !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .cal-time-slot { height: 60px; position: relative; }
+  .cal-time-label {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  .cal-content-col { flex: 1; position: relative; min-height: 0; }
+  .cal-grid-line {
+    height: 60px;
+    border-top: 1px solid rgba(60,60,67,0.08);
+    position: relative;
+  }
+  .cal-grid-line:first-child { border-top: none; }
+  .cal-grid-line.half::after {
+    content: '';
+    position: absolute; top: 30px; left: 0; right: 0;
+    border-top: 1px dashed rgba(60,60,67,0.05);
+  }
+
+  /* ====== 胶囊色块（核心设计） ====== */
+  .cal-event {
+    position: absolute;
+    left: 0; right: 0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+    overflow: hidden;
+    z-index: 2;
+    padding: 0 12px 0 0;
+  }
+  .cal-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+
+  /* 色块内：时间标签（左，整合进色块，用分类主色） */
+  .cal-event-time-label {
+    width: 56px;
+    flex-shrink: 0;
+    text-align: right;
+    padding-right: 12px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  /* 色块内：3px 主色竖线 */
+  .cal-event-line {
+    width: 3px; flex-shrink: 0;
+    height: 60%;
+    align-self: center;
+    border-radius: 3px;
+  }
+
+  /* 复选框（原样搬） */
+  .cb-square {
+    --cb-border: #d1d1d6;
+    --cb-color: #007aff;
+    appearance: none; width: 18px; height: 18px; border-radius: 5px;
+    border: 1.5px solid var(--cb-border); background: #fff;
+    cursor: pointer; flex-shrink: 0; display: inline-flex;
+    align-items: center; justify-content: center; transition: all .2s;
+    margin: 0 12px 0 12px; outline: none;
+  }
+  .cb-square:checked { background: var(--cb-color); border-color: var(--cb-color); }
+  .cb-square:checked::after {
+    content: ""; width: 4px; height: 8px;
+    border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px,-1px);
+  }
+  .cb-round {
+    --cb-border: #d1d1d6;
+    --cb-color: #007aff;
+    appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--cb-border); background: #fff;
+    cursor: pointer; flex-shrink: 0; display: inline-flex;
+    align-items: center; justify-content: center; transition: all .2s;
+    margin: 0 12px 0 12px; outline: none;
+  }
+  .cb-round:checked { background: var(--cb-color); border-color: var(--cb-color); }
+  .cb-round:checked::after {
+    content: ""; width: 4px; height: 8px;
+    border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px,-1px);
+  }
+
+  /* 文本区 */
+  .cal-event-text { flex: 1; min-width: 0; padding: 4px 0; }
+  .cal-event-title {
+    font-size: 14px; font-weight: 700; color: #1c1c1e;
+    line-height: 1.3; letter-spacing: -0.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cal-event-sub {
+    font-size: 12px; font-weight: 500; color: #8e8e93;
+    letter-spacing: 0.01em; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* 右侧小圆点（原样搬 dot-sm） */
+  .dot-sm { width: 9px; height: 9px; flex-shrink: 0; align-self: center; margin-right: 4px; }
+  .r2 { border-radius: 2px; }
+  .rfull { border-radius: 50%; }
+
+  /* ====== 分类渐变配色（沿用工作台 linear-gradient(90deg, bg 0%, transparent 70%)） ====== */
+  .cal-event.cat-1 { background-image: linear-gradient(90deg, #ffe8e8 0%, transparent 78%); }
+  .cal-event.cat-1 .cal-event-time-label { color: #ff3b30; }
+  .cal-event.cat-1 .cal-event-line        { background: #ff3b30; }
+  .cal-event.cat-1 .dot-sm               { background: #ff3b30; }
+
+  .cal-event.cat-2 { background-image: linear-gradient(90deg, #fff4d8 0%, transparent 78%); }
+  .cal-event.cat-2 .cal-event-time-label { color: #ff9500; }
+  .cal-event.cat-2 .cal-event-line        { background: #ff9500; }
+  .cal-event.cat-2 .dot-sm               { background: #ff9500; }
+
+  .cal-event.cat-3 { background-image: linear-gradient(90deg, #e5e5ea 0%, transparent 78%); }
+  .cal-event.cat-3 .cal-event-time-label { color: #8e8e93; }
+  .cal-event.cat-3 .cal-event-line        { background: #8e8e93; }
+  .cal-event.cat-3 .dot-sm               { background: #8e8e93; }
+
+  .cal-event.cat-4 { background-image: linear-gradient(90deg, #e5f6ea 0%, transparent 78%); }
+  .cal-event.cat-4 .cal-event-time-label { color: #34c759; }
+  .cal-event.cat-4 .cal-event-line        { background: #34c759; }
+  .cal-event.cat-4 .dot-sm               { background: #34c759; }
+
+  .cal-event.cat-5 { background-image: linear-gradient(90deg, #f3e8ff 0%, transparent 78%); }
+  .cal-event.cat-5 .cal-event-time-label { color: #af52de; }
+  .cal-event.cat-5 .cal-event-line        { background: #af52de; }
+  .cal-event.cat-5 .dot-sm               { background: #af52de; }
+
+  .cal-event.cat-6 { background-image: linear-gradient(90deg, #e3f0ff 0%, transparent 78%); }
+  .cal-event.cat-6 .cal-event-time-label { color: #007aff; }
+  .cal-event.cat-6 .cal-event-line        { background: #007aff; }
+  .cal-event.cat-6 .dot-sm               { background: #007aff; }
+
+  /* 完成态（沿用工作台：文字灰化+删除线，其他保留原色） */
+  .cal-event.done .cal-event-title {
+    color: #8e8e93; text-decoration: line-through;
+  }
+  .cal-event.done .cal-event-sub { color: #aeaeae; }
+
+  /* 紧凑（矮色块）：隐藏副信息，压缩padding */
+  .cal-event.compact .cal-event-sub { display: none; }
+  .cal-event.compact { padding-right: 10px; }
+  .cal-event.compact .cal-event-line { margin-left: 12px; }
+  .cal-event.compact .cb-square,
+  .cal-event.compact .cb-round { margin: 0 10px 0 10px; }
+
+  /* ====== 图例 ====== */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 16px; padding: 14px;
+    background: rgba(0,0,0,0.02); border-radius: 12px;
+  }
+  .legend-title { width: 100%; font-size: 11px; font-weight: 600; color: #8e8e93; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1c1c1e; }
+  .legend-swatch {
+    width: 72px; height: 20px; border-radius: 8px; position: relative;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .sw-1 { background-image: linear-gradient(90deg, #ffe8e8, transparent 78%); }
+  .sw-2 { background-image: linear-gradient(90deg, #fff4d8, transparent 78%); }
+  .sw-3 { background-image: linear-gradient(90deg, #e5e5ea, transparent 78%); }
+  .sw-4 { background-image: linear-gradient(90deg, #e5f6ea, transparent 78%); }
+  .sw-5 { background-image: linear-gradient(90deg, #f3e8ff, transparent 78%); }
+  .sw-6 { background-image: linear-gradient(90deg, #e3f0ff, transparent 78%); }
+
+  .note {
+    margin-top: 14px; padding: 10px 12px;
+    background: rgba(0,122,255,0.05);
+    border: 1px solid rgba(0,122,255,0.1);
+    border-radius: 10px;
+    font-size: 11px; color: #4a4a4f; line-height: 1.6;
+  }
+  .note b { color: #007aff; }
+  .note code {
+    background: rgba(0,122,255,0.1); padding: 1px 5px; border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; color: #007aff;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="page-title">日历时间线 Demo</div>
+    <div class="page-sub">胶囊色块设计 · 时间整合进色块 · 工作台原有渐变</div>
+
+    <div class="glass-card">
+      <div class="section-header">
+        <div class="header-left">
+          <span class="section-accent"></span>
+          <h3 class="section-title">今日日程</h3>
+          <span class="header-dot">·</span>
+          <span class="header-today">8月15日 周五</span>
+        </div>
+      </div>
+
+      <div class="cal-timeline" id="calendar">
+        <div class="cal-time-col" id="timeCol" style="height: 1080px;"><div class="cal-time-slot"><span class="cal-time-label">06:00</span></div><div class="cal-time-slot"><span class="cal-time-label">07:00</span></div><div class="cal-time-slot"><span class="cal-time-label">08:00</span></div><div class="cal-time-slot"><span class="cal-time-label">09:00</span></div><div class="cal-time-slot"><span class="cal-time-label">10:00</span></div><div class="cal-time-slot"><span class="cal-time-label">11:00</span></div><div class="cal-time-slot"><span class="cal-time-label">12:00</span></div><div class="cal-time-slot"><span class="cal-time-label">13:00</span></div><div class="cal-time-slot"><span class="cal-time-label">14:00</span></div><div class="cal-time-slot"><span class="cal-time-label">15:00</span></div><div class="cal-time-slot"><span class="cal-time-label">16:00</span></div><div class="cal-time-slot"><span class="cal-time-label">17:00</span></div><div class="cal-time-slot"><span class="cal-time-label">18:00</span></div><div class="cal-time-slot"><span class="cal-time-label">19:00</span></div><div class="cal-time-slot"><span class="cal-time-label">20:00</span></div><div class="cal-time-slot"><span class="cal-time-label">21:00</span></div><div class="cal-time-slot"><span class="cal-time-label">22:00</span></div><div class="cal-time-slot"><span class="cal-time-label">23:00</span></div></div>
+        <div class="cal-content-col" id="contentCol" style="min-height: 1080px;"><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line half"></div><div class="cal-grid-line"></div><div class="cal-event cat-4 done compact" style="top: 0px; height: 36px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-round" checked="" style="--cb-color:#34c759; --cb-border:#34c759;" data-cb="1">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="color:#8e8e93;text-decoration:line-through;">🏃 每日运动</div>
+        <div class="cal-event-sub">06:00 – 06:30 · 30m</div>
+      </div>
+      <span class="dot-sm rfull"></span>
+    </div><div class="cal-event cat-5 compact" style="top: 30px; height: 45px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#af52de; --cb-border:#af52de;" data-cb="2">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">早餐 &amp; 晨间仪式</div>
+        <div class="cal-event-sub">06:30 – 07:15 · 45m</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-1" style="top: 90px; height: 150px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#ff3b30; --cb-border:#ff3b30;" data-cb="3">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">深度工作：产品方案</div>
+        <div class="cal-event-sub">07:30 – 10:00 · 150m</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-3 done compact" style="top: 240px; height: 36px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" checked="" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="4">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="color:#8e8e93;text-decoration:line-through;">站会 &amp; 邮件</div>
+        <div class="cal-event-sub">10:00 – 10:30 · 30m</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-2" style="top: 270px; height: 90px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#ff9500; --cb-border:#ff9500;" data-cb="5">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">阅读 · 深度工作续段</div>
+        <div class="cal-event-sub">10:30 – 12:00 · 90m</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-3" style="top: 360px; height: 60px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="6">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">午饭</div>
+        <div class="cal-event-sub">12:00 – 13:00 · 1h</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-1" style="top: 420px; height: 90px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#ff3b30; --cb-border:#ff3b30;" data-cb="7">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">项目评审</div>
+        <div class="cal-event-sub">13:00 – 14:30 · 90m</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-6 compact" style="top: 510px; height: 36px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-round" style="--cb-color:#007aff; --cb-border:#007aff;" data-cb="8">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">英语学习 🗣️</div>
+        <div class="cal-event-sub">14:30 – 15:00 · 30m</div>
+      </div>
+      <span class="dot-sm rfull"></span>
+    </div><div class="cal-event cat-2" style="top: 600px; height: 120px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#ff9500; --cb-border:#ff9500;" data-cb="10">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">设计评审 &amp; 复盘</div>
+        <div class="cal-event-sub">16:00 – 18:00 · 2h</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-3" style="top: 720px; height: 60px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="11">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">晚饭</div>
+        <div class="cal-event-sub">18:00 – 19:00 · 1h</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-5" style="top: 790px; height: 140px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#af52de; --cb-border:#af52de;" data-cb="12">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">🎬 看电影·欢迎来龙餐馆</div>
+        <div class="cal-event-sub">19:10 – 21:30 · 140m</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div><div class="cal-event cat-4 compact" style="top: 930px; height: 36px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-round" style="--cb-color:#34c759; --cb-border:#34c759;" data-cb="13">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">📖 睡前阅读</div>
+        <div class="cal-event-sub">21:30 – 22:00 · 30m</div>
+      </div>
+      <span class="dot-sm rfull"></span>
+    </div><div class="cal-event cat-3" style="top: 1020px; height: 60px; left: 0px; right: 0px;">
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="cb-square" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="14">
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="">睡眠准备</div>
+        <div class="cal-event-sub">23:00 – 24:00 · 1h</div>
+      </div>
+      <span class="dot-sm r2"></span>
+    </div></div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-title">事项 · 紧急度维度</div>
+        <div class="legend-item"><div class="legend-swatch sw-1"></div><span>重要紧急</span></div>
+        <div class="legend-item"><div class="legend-swatch sw-2"></div><span>重要不紧急</span></div>
+        <div class="legend-item"><div class="legend-swatch sw-3"></div><span>常规</span></div>
+        <div class="legend-title" style="margin-top:4px;">习惯 · 成长维度</div>
+        <div class="legend-item"><div class="legend-swatch sw-4"></div><span>精力型</span></div>
+        <div class="legend-item"><div class="legend-swatch sw-6"></div><span>知力型</span></div>
+        <div class="legend-item"><div class="legend-swatch sw-5"></div><span>能力型</span></div>
+      </div>
+
+      <div class="note">
+        <b>设计：</b>色块本身为圆角胶囊（<code>border-radius:12px</code>），渐变背景与工作台一致：<code>linear-gradient(90deg, bg 0%, transparent 78%)</code>。
+        色块内部整合了「3px竖线 | 复选框 | 标题+副时间 | 小圆点」，已去掉竖线条左侧的时间点。高度按时长（1min=1px）缩放。
+      </div>
+    </div>
+  </div>
+
+<script>
+const CAT = {
+  1: { color:'#ff3b30', doneColor:'#ff3b30', borderColor:'#ff3b30' },
+  2: { color:'#ff9500', doneColor:'#ff9500', borderColor:'#ff9500' },
+  3: { color:'#8e8e93', doneColor:'#8e8e93', borderColor:'#8e8e93' },
+  4: { color:'#34c759', doneColor:'#34c759', borderColor:'#34c759' },
+  5: { color:'#af52de', doneColor:'#af52de', borderColor:'#af52de' },
+  6: { color:'#007aff', doneColor:'#007aff', borderColor:'#007aff' },
+};
+
+const HOUR_START = 6;
+const HOUR_END = 23;
+const PX_PER_MIN = 1;
+const HOUR_HEIGHT = 60;
+
+let events = [
+  { id:1,  title:'🏃 每日运动',          cat:4, isHabit:true,  start:'06:00', end:'06:30', done:true  },
+  { id:2,  title:'早餐 & 晨间仪式',      cat:5, isHabit:false, start:'06:30', end:'07:15', done:false },
+  { id:3,  title:'深度工作：产品方案',    cat:1, isHabit:false, start:'07:30', end:'10:00', done:false },
+  { id:4,  title:'站会 & 邮件',          cat:3, isHabit:false, start:'10:00', end:'10:30', done:true  },
+  { id:5,  title:'阅读 · 深度工作续段',   cat:2, isHabit:false, start:'10:30', end:'12:00', done:false },
+  { id:6,  title:'午饭',                cat:3, isHabit:false, start:'12:00', end:'13:00', done:false },
+  { id:7,  title:'项目评审',             cat:1, isHabit:false, start:'13:00', end:'14:30', done:false },
+  { id:8,  title:'英语学习 🗣️',          cat:6, isHabit:true,  start:'14:30', end:'15:00', done:false },
+  { id:10, title:'设计评审 & 复盘',       cat:2, isHabit:false, start:'16:00', end:'18:00', done:false },
+  { id:11, title:'晚饭',                cat:3, isHabit:false, start:'18:00', end:'19:00', done:false },
+  { id:12, title:'🎬 看电影·欢迎来龙餐馆',cat:5, isHabit:false, start:'19:10', end:'21:30', done:false },
+  { id:13, title:'📖 睡前阅读',          cat:4, isHabit:true,  start:'21:30', end:'22:00', done:false },
+  { id:14, title:'睡眠准备',             cat:3, isHabit:false, start:'23:00', end:'24:00', done:false },
+];
+
+function t2m(t) { const [h,m]=t.split(':').map(Number); return h*60+m; }
+function calcTop(s) { return (t2m(s) - HOUR_START*60) * PX_PER_MIN; }
+function calcH(s,e) { return Math.max(36, (t2m(e)-t2m(s)) * PX_PER_MIN); }
+function fmtSub(ev) {
+  const dur = t2m(ev.end) - t2m(ev.start);
+  let d;
+  const h = dur/60;
+  if (h === 1) d = '1h';
+  else if (Number.isInteger(h)) d = `${h}h`;
+  else d = `${dur}m`;
+  return `${ev.start} – ${ev.end} · ${d}`;
+}
+
+function renderTimeCol() {
+  const col = document.getElementById('timeCol');
+  col.innerHTML = '';
+  for (let h = HOUR_START; h <= HOUR_END; h++) {
+    const slot = document.createElement('div');
+    slot.className = 'cal-time-slot';
+    slot.innerHTML = `<span class="cal-time-label">${String(h).padStart(2,'0')}:00</span>`;
+    col.appendChild(slot);
+  }
+  col.style.height = ((HOUR_END - HOUR_START) * HOUR_HEIGHT + HOUR_HEIGHT) + 'px';
+}
+function renderGrid() {
+  const col = document.getElementById('contentCol');
+  col.innerHTML = '';
+  for (let h = HOUR_START; h <= HOUR_END; h++) {
+    const line = document.createElement('div');
+    line.className = 'cal-grid-line' + (h < HOUR_END ? ' half' : '');
+    col.appendChild(line);
+  }
+  col.style.minHeight = ((HOUR_END - HOUR_START) * HOUR_HEIGHT + HOUR_HEIGHT) + 'px';
+}
+
+function renderEvents() {
+  const col = document.getElementById('contentCol');
+  col.querySelectorAll('.cal-event').forEach(e => e.remove());
+
+  const sorted = [...events].sort((a,b) => t2m(a.start) - t2m(b.start));
+  const placed = [];
+
+  sorted.forEach(ev => {
+    const theme = CAT[ev.cat] || CAT[3];
+    const top = calcTop(ev.start);
+    const height = calcH(ev.start, ev.end);
+    const done = !!ev.done;
+    const isHabit = !!ev.isHabit;
+
+    const es = t2m(ev.start), ee = t2m(ev.end);
+    const overlaps = placed.filter(p => {
+      const ps = t2m(p.start), pe = t2m(p.end);
+      return es < pe && ee > ps;
+    });
+    const rightPx = overlaps.length > 0 ? 14 * overlaps.length : 0;
+
+    const el = document.createElement('div');
+    el.className = `cal-event cat-${ev.cat}`;
+    if (done) el.classList.add('done');
+    if (height < 48) el.classList.add('compact');
+    el.style.top = `${top}px`;
+    el.style.height = `${height}px`;
+    el.style.left = '0px';
+    el.style.right = `${rightPx}px`;
+
+    const cbClass = isHabit ? 'cb-round' : 'cb-square';
+    const cbStyle = `--cb-color:${theme.doneColor}; --cb-border:${done ? theme.doneColor : theme.borderColor};`;
+    const dotClass = isHabit ? 'rfull' : 'r2';
+
+    el.innerHTML = `
+      <div class="cal-event-line"></div>
+      <input type="checkbox" class="${cbClass}" ${done ? 'checked' : ''} style="${cbStyle}" data-cb="${ev.id}" />
+      <div class="cal-event-text">
+        <div class="cal-event-title" style="${done ? 'color:#8e8e93;text-decoration:line-through;' : ''}">${ev.title}</div>
+        <div class="cal-event-sub">${fmtSub(ev)}</div>
+      </div>
+      <span class="dot-sm ${dotClass}"></span>
+    `;
+
+    const cb = el.querySelector('input[type=checkbox]');
+    cb.addEventListener('click', e => {
+      e.stopPropagation();
+      ev.done = !ev.done;
+      renderEvents();
+    });
+
+    col.appendChild(el);
+    placed.push(ev);
+  });
+}
+
+renderTimeCol();
+renderGrid();
+renderEvents();
+</script>
+
+
+
+
+
+
+
+
+
+
+</body></html>

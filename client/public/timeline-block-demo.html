@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>时间线 Demo · 色块高度=任务时长</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; }
+  body {
+    background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: #1c1c1e;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    font-family: -apple-system, "SF Pro Text", "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  .page-title { font-size: 15px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 12px; color: #8e8e93; margin-bottom: 16px; }
+
+  /* ====== 玻璃卡片（原样搬 index.css） ====== */
+  .glass-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    position: relative;
+    padding: 20px;
+  }
+
+  /* ====== Section header（原样搬） ====== */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(60,60,67,0.1);
+    margin-bottom: 12px;
+  }
+  .section-title { font-size: 15px; font-weight: 800; color: #1c1c1e; letter-spacing: -0.02em; }
+  .section-accent { width: 5px; height: 18px; border-radius: 3px; flex-shrink: 0; background: #007aff; }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-dot { color: #c7c7cc; font-weight: 500; }
+  .header-today { color: #007aff; }
+
+  /* ====== Timeline（原样搬 index.css） ====== */
+  .timeline-row {
+    display: flex;
+    align-items: center;
+    position: relative;
+    min-height: 40px;
+    padding: 5px 0;
+    margin: 3px 0;
+    border-radius: 12px;
+    transition: all .3s ease;
+  }
+  .timeline-row:hover { background: rgba(0,0,0,0.015); border-radius: 12px; }
+  .time-label {
+    width: 50px; flex-shrink: 0;
+    font-size: 12px; font-weight: 600;
+    color: #8e8e93;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 14px;
+    letter-spacing: -0.01em;
+  }
+  .timeline-line {
+    width: 3px; flex-shrink: 0;
+    align-self: center;
+    background: #e5e5ea;
+    border-radius: 3px;
+    margin: 0;
+  }
+  .timeline-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 5px 0 5px 16px;
+    min-width: 0;
+  }
+
+  /* ====== Empty row（原样搬） ====== */
+  .timeline-empty-row {
+    cursor: pointer;
+    transition: all .15s ease;
+    border-radius: 10px;
+    position: relative;
+  }
+  .timeline-empty-row:hover {
+    background: rgba(0,122,255,0.06);
+    border: 1px dashed rgba(0,122,255,0.35);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    margin: 2px 0;
+  }
+  .timeline-empty-row:hover .timeline-line {
+    background: rgba(0,122,255,0.4) !important;
+    height: 24px !important;
+  }
+  .timeline-empty-content { padding: 0 0 0 16px; min-height: 20px; }
+  .timeline-empty-hint {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #007aff;
+  }
+  .timeline-empty-row:hover .timeline-empty-hint { display: inline-flex; }
+  .timeline-empty-plus {
+    font-size: 14px; font-weight: 400; line-height: 1; color: #007aff; opacity: 0.7;
+  }
+
+  /* ====== Checkboxes（原样搬 index.css） ====== */
+  .cb-square {
+    --cb-border: #d1d1d6;
+    --cb-color: #007aff;
+    appearance: none; width: 18px; height: 18px; border-radius: 5px;
+    border: 1.5px solid var(--cb-border); background: #fff;
+    cursor: pointer; flex-shrink: 0; display: inline-flex;
+    align-items: center; justify-content: center; transition: all .2s;
+    margin: 0; outline: none;
+  }
+  .cb-square:checked { background: var(--cb-color); border-color: var(--cb-color); }
+  .cb-square:checked::after {
+    content: ""; width: 4px; height: 8px;
+    border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px,-1px);
+  }
+  .cb-round {
+    --cb-border: #d1d1d6;
+    --cb-color: #007aff;
+    appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--cb-border); background: #fff;
+    cursor: pointer; flex-shrink: 0; display: inline-flex;
+    align-items: center; justify-content: center; transition: all .2s;
+    margin: 0; outline: none;
+  }
+  .cb-round:checked { background: var(--cb-color); border-color: var(--cb-color); }
+  .cb-round:checked::after {
+    content: ""; width: 4px; height: 8px;
+    border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px,-1px);
+  }
+
+  /* ====== 通用工具类（替代 tailwind） ====== */
+  .t14 { font-size: 14px; }
+  .t12 { font-size: 12px; }
+  .fw500 { font-weight: 500; }
+  .fw600 { font-weight: 600; }
+  .c-900 { color: #1c1c1e; }
+  .c-500 { color: #8e8e93; }
+  .c-400 { color: #aeaeae; }
+  .flex1 { flex: 1; min-width: 0; }
+  .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ls { text-decoration: line-through; }
+  .mt0 { margin-top: 0; }
+  .dot-sm {
+    width: 8px; height: 8px; flex-shrink: 0; align-self: center;
+  }
+  .r2 { border-radius: 2px; }
+  .rfull { border-radius: 50%; }
+
+  /* 底部说明 */
+  .note {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: rgba(0,122,255,0.05);
+    border: 1px solid rgba(0,122,255,0.1);
+    border-radius: 10px;
+    font-size: 11px;
+    color: #4a4a4f;
+    line-height: 1.6;
+  }
+  .note b { color: #007aff; }
+  .note code {
+    background: rgba(0,122,255,0.1);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10px;
+    color: #007aff;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="page-title">时间线 Demo</div>
+    <div class="page-sub">色块高度 = 任务真实时长 · 其余样式完全沿用工作台</div>
+
+    <div class="glass-card">
+      <div class="section-header">
+        <div class="header-left">
+          <span class="section-accent"></span>
+          <h3 class="section-title">全部事项 <span class="header-dot">·</span> <span class="header-today">今日</span></h3>
+        </div>
+      </div>
+
+      <div id="timeline"><div class="timeline-row" data-id="1" style="background: linear-gradient(90deg, rgb(229, 246, 234) 0%, transparent 70%); min-height: 40px;">
+        <div class="time-label" style="color:#34c759;">06:00</div>
+        <div class="timeline-line" style="background:#34c759; height:30px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-round" checked="" style="--cb-color:#34c759; --cb-border:#34c759;" data-cb="1">
+          <div class="flex1">
+            <p class="t14 fw600 c-500 ls">早起锻炼 🏃</p>
+            <p class="t12 mt0" style="color:#aeaeae;">06:00 – 06:30 · 30分钟</p>
+          </div>
+          <span class="dot-sm rfull" style="background:#34c759;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="2" style="background: linear-gradient(90deg, rgb(243, 232, 255) 0%, transparent 70%); min-height: 40px;">
+        <div class="time-label" style="color:#af52de;"></div>
+        <div class="timeline-line" style="background:#af52de; height:30px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#af52de; --cb-border:#af52de;" data-cb="2">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">早餐 &amp; 晨间仪式</p>
+            <p class="t12 mt0" style="color:#8e8e93;">06:30 – 07:15 · 45分钟</p>
+          </div>
+          <span class="dot-sm r2" style="background:#af52de;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="2" style="background: linear-gradient(90deg, rgb(243, 232, 255) 0%, transparent 70%); min-height: 30px;">
+          <div class="time-label" style="color:#af52de; visibility:hidden;"></div>
+          <div class="timeline-line" style="background:#af52de; height:20px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                早餐 &amp; 晨间仪式
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#af52de;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="3" style="background: linear-gradient(90deg, rgb(255, 232, 232) 0%, transparent 70%); min-height: 40px;">
+        <div class="time-label" style="color:#ff3b30;">07:00</div>
+        <div class="timeline-line" style="background:#ff3b30; height:30px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#ff3b30; --cb-border:#ff3b30;" data-cb="3">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">深度工作：产品方案</p>
+            <p class="t12 mt0" style="color:#8e8e93;">07:30 – 10:00 · 150分钟</p>
+          </div>
+          <span class="dot-sm r2" style="background:#ff3b30;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="3" style="background: linear-gradient(90deg, rgb(255, 232, 232) 0%, transparent 70%); min-height: 70px;">
+          <div class="time-label" style="color:#ff3b30; visibility:hidden;">08:00</div>
+          <div class="timeline-line" style="background:#ff3b30; height:60px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                深度工作：产品方案
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#ff3b30;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="3" style="background: linear-gradient(90deg, rgb(255, 232, 232) 0%, transparent 70%); min-height: 70px;">
+          <div class="time-label" style="color:#ff3b30; visibility:hidden;">09:00</div>
+          <div class="timeline-line" style="background:#ff3b30; height:60px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                深度工作：产品方案
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#ff3b30;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="4" style="background: linear-gradient(90deg, rgb(229, 229, 234) 0%, transparent 70%); min-height: 40px;">
+        <div class="time-label" style="color:#8e8e93;">10:00</div>
+        <div class="timeline-line" style="background:#8e8e93; height:30px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" checked="" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="4">
+          <div class="flex1">
+            <p class="t14 fw600 c-500 ls">站会 &amp; 邮件</p>
+            <p class="t12 mt0" style="color:#aeaeae;">10:00 – 10:30 · 30分钟</p>
+          </div>
+          <span class="dot-sm r2" style="background:#8e8e93;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="5" style="background: linear-gradient(90deg, rgb(255, 244, 216) 0%, transparent 70%); min-height: 40px;">
+        <div class="time-label" style="color:#ff9500;"></div>
+        <div class="timeline-line" style="background:#ff9500; height:30px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#ff9500; --cb-border:#ff9500;" data-cb="5">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">阅读 · 深度工作续段</p>
+            <p class="t12 mt0" style="color:#8e8e93;">10:30 – 12:00 · 90分钟</p>
+          </div>
+          <span class="dot-sm r2" style="background:#ff9500;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="5" style="background: linear-gradient(90deg, rgb(255, 244, 216) 0%, transparent 70%); min-height: 70px;">
+          <div class="time-label" style="color:#ff9500; visibility:hidden;">11:00</div>
+          <div class="timeline-line" style="background:#ff9500; height:60px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                阅读 · 深度工作续段
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#ff9500;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="6" style="background: linear-gradient(90deg, rgb(229, 229, 234) 0%, transparent 70%); min-height: 70px;">
+        <div class="time-label" style="color:#8e8e93;">12:00</div>
+        <div class="timeline-line" style="background:#8e8e93; height:60px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="6">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">午饭</p>
+            <p class="t12 mt0" style="color:#8e8e93;">12:00 – 13:00 · 1h</p>
+          </div>
+          <span class="dot-sm r2" style="background:#8e8e93;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="7" style="background: linear-gradient(90deg, rgb(255, 232, 232) 0%, transparent 70%); min-height: 70px;">
+        <div class="time-label" style="color:#ff3b30;">13:00</div>
+        <div class="timeline-line" style="background:#ff3b30; height:60px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#ff3b30; --cb-border:#ff3b30;" data-cb="7">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">项目评审</p>
+            <p class="t12 mt0" style="color:#8e8e93;">13:00 – 14:30 · 90分钟</p>
+          </div>
+          <span class="dot-sm r2" style="background:#ff3b30;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="7" style="background: linear-gradient(90deg, rgb(255, 232, 232) 0%, transparent 70%); min-height: 40px;">
+          <div class="time-label" style="color:#ff3b30; visibility:hidden;"></div>
+          <div class="timeline-line" style="background:#ff3b30; height:30px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                项目评审
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#ff3b30;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="8" style="background: linear-gradient(90deg, rgb(229, 246, 234) 0%, transparent 70%); min-height: 40px;">
+        <div class="time-label" style="color:#34c759;">14:00</div>
+        <div class="timeline-line" style="background:#34c759; height:30px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-round" style="--cb-color:#34c759; --cb-border:#34c759;" data-cb="8">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">英语学习 🗣️</p>
+            <p class="t12 mt0" style="color:#8e8e93;">14:30 – 15:00 · 30分钟</p>
+          </div>
+          <span class="dot-sm rfull" style="background:#34c759;"></span>
+        </div>
+      </div><div class="timeline-row timeline-empty-row">
+        <div class="time-label">15:00</div>
+        <div class="timeline-line" style="background:#e5e5ea; height:20px;"></div>
+        <div class="timeline-content timeline-empty-content">
+          <span class="timeline-empty-hint">
+            <span class="timeline-empty-plus">+</span>
+            <span>新增事项</span>
+          </span>
+        </div>
+      </div><div class="timeline-row" data-id="10" style="background: linear-gradient(90deg, rgb(255, 244, 216) 0%, transparent 70%); min-height: 70px;">
+        <div class="time-label" style="color:#ff9500;">16:00</div>
+        <div class="timeline-line" style="background:#ff9500; height:60px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#ff9500; --cb-border:#ff9500;" data-cb="10">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">设计评审 &amp; 复盘</p>
+            <p class="t12 mt0" style="color:#8e8e93;">16:00 – 18:00 · 2h</p>
+          </div>
+          <span class="dot-sm r2" style="background:#ff9500;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="10" style="background: linear-gradient(90deg, rgb(255, 244, 216) 0%, transparent 70%); min-height: 70px;">
+          <div class="time-label" style="color:#ff9500; visibility:hidden;">17:00</div>
+          <div class="timeline-line" style="background:#ff9500; height:60px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                设计评审 &amp; 复盘
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#ff9500;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="11" style="background: linear-gradient(90deg, rgb(229, 229, 234) 0%, transparent 70%); min-height: 70px;">
+        <div class="time-label" style="color:#8e8e93;">18:00</div>
+        <div class="timeline-line" style="background:#8e8e93; height:60px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="11">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">晚饭</p>
+            <p class="t12 mt0" style="color:#8e8e93;">18:00 – 19:00 · 1h</p>
+          </div>
+          <span class="dot-sm r2" style="background:#8e8e93;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="12" style="background: linear-gradient(90deg, rgb(243, 232, 255) 0%, transparent 70%); min-height: 70px;">
+        <div class="time-label" style="color:#af52de;">19:00</div>
+        <div class="timeline-line" style="background:#af52de; height:60px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#af52de; --cb-border:#af52de;" data-cb="12">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">电影：欢迎来到酒馆</p>
+            <p class="t12 mt0" style="color:#8e8e93;">19:00 – 21:30 · 150分钟</p>
+          </div>
+          <span class="dot-sm r2" style="background:#af52de;"></span>
+        </div>
+      </div><div class="timeline-row" data-id="12" style="background: linear-gradient(90deg, rgb(243, 232, 255) 0%, transparent 70%); min-height: 70px;">
+          <div class="time-label" style="color:#af52de; visibility:hidden;">20:00</div>
+          <div class="timeline-line" style="background:#af52de; height:60px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                电影：欢迎来到酒馆
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#af52de;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="12" style="background: linear-gradient(90deg, rgb(243, 232, 255) 0%, transparent 70%); min-height: 40px;">
+          <div class="time-label" style="color:#af52de; visibility:hidden;"></div>
+          <div class="timeline-line" style="background:#af52de; height:30px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:#1c1c1e; opacity:0.5; ">
+                电影：欢迎来到酒馆
+              </p>
+            </div>
+            <span class="dot-sm r2" style="background:#af52de;"></span>
+          </div>
+        </div><div class="timeline-row" data-id="13" style="background: linear-gradient(90deg, rgb(229, 246, 234) 0%, transparent 70%); min-height: 40px;">
+        <div class="time-label" style="color:#34c759;">21:00</div>
+        <div class="timeline-line" style="background:#34c759; height:30px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-round" style="--cb-color:#34c759; --cb-border:#34c759;" data-cb="13">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">睡前阅读 📖</p>
+            <p class="t12 mt0" style="color:#8e8e93;">21:30 – 22:00 · 30分钟</p>
+          </div>
+          <span class="dot-sm rfull" style="background:#34c759;"></span>
+        </div>
+      </div><div class="timeline-row timeline-empty-row">
+        <div class="time-label">22:00</div>
+        <div class="timeline-line" style="background:#e5e5ea; height:20px;"></div>
+        <div class="timeline-content timeline-empty-content">
+          <span class="timeline-empty-hint">
+            <span class="timeline-empty-plus">+</span>
+            <span>新增事项</span>
+          </span>
+        </div>
+      </div><div class="timeline-row" data-id="14" style="background: linear-gradient(90deg, rgb(229, 229, 234) 0%, transparent 70%); min-height: 70px;">
+        <div class="time-label" style="color:#8e8e93;">23:00</div>
+        <div class="timeline-line" style="background:#8e8e93; height:60px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="cb-square" style="--cb-color:#8e8e93; --cb-border:#8e8e93;" data-cb="14">
+          <div class="flex1">
+            <p class="t14 fw600 c-900">睡眠准备</p>
+            <p class="t12 mt0" style="color:#8e8e93;">23:00 – 24:00 · 1h</p>
+          </div>
+          <span class="dot-sm r2" style="background:#8e8e93;"></span>
+        </div>
+      </div></div>
+
+      <div class="note">
+        <b>唯一改动点：</b>竖线高度 <code>timeline-line</code> 由固定 20px 改为 <code>max(20, 该段分钟数)px</code>，行高跟随竖线（<code>lineHeight + 10px</code>）。
+        30min→40px、60min→70px、90min→100px。空小时行保持 40px 不变。其余玻璃卡片、分类渐变、复选框、小圆点、首段/续段、排序、勾选态全部原样。
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ====== 颜色配置（原样搬 Timeline.jsx CAT_COLORS） ====== */
+const CAT_COLORS = {
+  1: { color:'#ff3b30', bg:'#ffe8e8', borderColor:'#ff3b30', doneColor:'#ff3b30', lineColor:'#ff3b30', timeColor:'#ff3b30' },
+  2: { color:'#ff9500', bg:'#fff4d8', borderColor:'#ff9500', doneColor:'#ff9500', lineColor:'#ff9500', timeColor:'#ff9500' },
+  3: { color:'#8e8e93', bg:'#e5e5ea', borderColor:'#8e8e93', doneColor:'#8e8e93', lineColor:'#8e8e93', timeColor:'#8e8e93' },
+  4: { color:'#34c759', bg:'#e5f6ea', borderColor:'#34c759', doneColor:'#34c759', lineColor:'#34c759', timeColor:'#34c759' },
+  5: { color:'#af52de', bg:'#f3e8ff', borderColor:'#af52de', doneColor:'#af52de', lineColor:'#af52de', timeColor:'#af52de' },
+};
+
+/* ====== 示例数据（覆盖各种时长 / 跨段 / 勾选态） ====== */
+let tasks = [
+  { id:1,  title:'早起锻炼 🏃',          cat:4, isHabit:true,  start:'06:00', end:'06:30', done:true  },
+  { id:2,  title:'早餐 & 晨间仪式',      cat:5, isHabit:false, start:'06:30', end:'07:15', done:false },
+  { id:3,  title:'深度工作：产品方案',    cat:1, isHabit:false, start:'07:30', end:'10:00', done:false },
+  { id:4,  title:'站会 & 邮件',          cat:3, isHabit:false, start:'10:00', end:'10:30', done:true  },
+  { id:5,  title:'阅读 · 深度工作续段',   cat:2, isHabit:false, start:'10:30', end:'12:00', done:false },
+  { id:6,  title:'午饭',                cat:3, isHabit:false, start:'12:00', end:'13:00', done:false },
+  { id:7,  title:'项目评审',             cat:1, isHabit:false, start:'13:00', end:'14:30', done:false },
+  { id:8,  title:'英语学习 🗣️',          cat:4, isHabit:true,  start:'14:30', end:'15:00', done:false },
+  // 15:00-16:00 空小时
+  { id:10, title:'设计评审 & 复盘',       cat:2, isHabit:false, start:'16:00', end:'18:00', done:false },
+  { id:11, title:'晚饭',                cat:3, isHabit:false, start:'18:00', end:'19:00', done:false },
+  { id:12, title:'电影：欢迎来到酒馆',    cat:5, isHabit:false, start:'19:00', end:'21:30', done:false },
+  { id:13, title:'睡前阅读 📖',          cat:4, isHabit:true,  start:'21:30', end:'22:00', done:false },
+  // 22:00-23:00 空小时
+  { id:14, title:'睡眠准备',             cat:3, isHabit:false, start:'23:00', end:'24:00', done:false },
+];
+
+const HOUR_START = 6;
+const HOUR_END = 23;
+const FINAL_SLICE_THRESHOLD = 15;
+
+/* ====== 工具（原样搬 Timeline.jsx） ====== */
+function getEffectiveDur(item) {
+  if (!item.start_time && item.start) {
+    const [sh, sm] = item.start.split(':').map(Number);
+    const [eh, em] = item.end.split(':').map(Number);
+    return (eh * 60 + em) - (sh * 60 + sm);
+  }
+  return null;
+}
+function calcDur(item) {
+  const s = item.start, e = item.end;
+  if (!s || !e) return null;
+  const [sh, sm] = s.split(':').map(Number);
+  const [eh, em] = e.split(':').map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm);
+}
+function minutesInHour(item, hHour) {
+  const dur = calcDur(item);
+  if (dur == null) return null;
+  const [sh, sm] = item.start.split(':').map(Number);
+  const startMin = sh * 60 + sm;
+  const endMin = startMin + dur;
+  const hourBegin = hHour * 60;
+  const hourEnd = (hHour + 1) * 60;
+  const overlapBegin = Math.max(startMin, hourBegin);
+  const overlapEnd = Math.min(endMin, hourEnd);
+  if (overlapEnd <= overlapBegin) return null;
+  return overlapEnd - overlapBegin;
+}
+function formatTimeLabel(item) {
+  let txt = item.start;
+  if (item.end) txt += ' – ' + item.end;
+  const dur = calcDur(item);
+  if (dur) {
+    const hours = dur / 60;
+    if (hours === 1) txt += ' · 1h';
+    else if (Number.isInteger(hours)) txt += ` · ${hours}h`;
+    else txt += ` · ${dur}分钟`;
+  }
+  return txt;
+}
+function formatShort(item) {
+  const dur = calcDur(item);
+  if (!dur) return '';
+  const hours = dur / 60;
+  if (hours === 1) return '1h';
+  if (Number.isInteger(hours)) return `${hours}h`;
+  return `${dur}分钟`;
+}
+function getTheme(item) {
+  return CAT_COLORS[item.cat] || CAT_COLORS[3];
+}
+function useSquareCheckbox(item) {
+  if (item.isHabit) return false;
+  return true;
+}
+
+/* ====== 核心：行高逻辑（唯一改动点） ====== */
+function slotLineHeight(minsInHour) {
+  // 原来固定 20px；现在 = max(20, 该段分钟数)，1px/分钟
+  return Math.max(20, minsInHour || 0);
+}
+function slotRowMinHeight(lineHeight) {
+  // 行高跟随竖线：lineHeight + 上下 padding(10px)
+  return lineHeight + 10;
+}
+
+/* ====== 渲染（复用 Timeline.jsx renderTodayView 的分段算法） ====== */
+function render() {
+  const root = document.getElementById('timeline');
+  root.innerHTML = '';
+
+  const HOURS = [];
+  for (let h = HOUR_START; h <= HOUR_END; h++) HOURS.push(h);
+
+  // byHour[h] = [{item, slotKind, minsInHour, slotIdx}]
+  const byHour = {};
+  tasks.forEach(item => {
+    if (!item.start) return;
+    const [sh, sm] = item.start.split(':').map(Number);
+    if (Number.isNaN(sh) || Number.isNaN(sm)) return;
+    const dur = calcDur(item);
+    if (dur == null) {
+      if (sh >= HOUR_START && sh <= HOUR_END) {
+        (byHour[sh] = byHour[sh] || []).push({ item, slotKind:'first', minsInHour:null, slotIdx:0 });
+      }
+      return;
+    }
+    const startMin = sh * 60 + sm;
+    const endMin = startMin + dur;
+    const firstH = Math.max(HOUR_START, Math.floor(startMin / 60));
+    const lastH = Math.min(HOUR_END, Math.floor((endMin - 0.001) / 60));
+    const slots = [];
+    for (let hh = firstH; hh <= lastH; hh++) {
+      const mins = minutesInHour(item, hh);
+      if (mins == null || mins <= 0) continue;
+      slots.push({ h: hh, mins });
+    }
+    // 末段 < 阈值合并到前一段
+    if (slots.length >= 2) {
+      const last = slots[slots.length - 1];
+      if (last.mins < FINAL_SLICE_THRESHOLD) {
+        slots[slots.length - 2].mins += last.mins;
+        slots.pop();
+      }
+    }
+    slots.forEach((slot, i) => {
+      (byHour[slot.h] = byHour[slot.h] || []).push({
+        item,
+        slotKind: i === 0 ? 'first' : 'continue',
+        minsInHour: slot.mins,
+        slotIdx: i,
+      });
+    });
+  });
+
+  // 同小时内排序（原样搬）
+  Object.keys(byHour).forEach(h => {
+    byHour[h].sort((a, b) => {
+      const a_start_min = Number((a.item.start || '00:00').split(':')[1]) || 0;
+      const b_start_min = Number((b.item.start || '00:00').split(':')[1]) || 0;
+      const a_in_hour = a.slotKind === 'first' ? a_start_min : 0;
+      const b_in_hour = b.slotKind === 'first' ? b_start_min : 0;
+      if (a_in_hour !== b_in_hour) return a_in_hour - b_in_hour;
+      const a_time = a.item.start || '00:00';
+      const b_time = b.item.start || '00:00';
+      if (a_time !== b_time) return a_time.localeCompare(b_time);
+      return String(a.item.id ?? '').localeCompare(String(b.item.id ?? ''));
+    });
+  });
+
+  const frag = document.createDocumentFragment();
+
+  HOURS.forEach(h => {
+    const slots = byHour[h] || [];
+    const timeStr = `${String(h).padStart(2, '0')}:00`;
+
+    // 空小时行：保持固定矮行（min-height 40px，灰线 20px）
+    if (slots.length === 0) {
+      const row = document.createElement('div');
+      row.className = 'timeline-row timeline-empty-row';
+      row.innerHTML = `
+        <div class="time-label">${timeStr}</div>
+        <div class="timeline-line" style="background:#e5e5ea; height:20px;"></div>
+        <div class="timeline-content timeline-empty-content">
+          <span class="timeline-empty-hint">
+            <span class="timeline-empty-plus">+</span>
+            <span>新增事项</span>
+          </span>
+        </div>
+      `;
+      frag.appendChild(row);
+      return;
+    }
+
+    const hasFirstInHour = slots.some(s => s.slotKind === 'first');
+
+    slots.forEach((slot, idx) => {
+      const item = slot.item;
+      const isFirst = slot.slotKind === 'first';
+      const theme = getTheme(item);
+      const color = theme.color;
+      const lineColor = theme.lineColor;
+      const rowBg = `linear-gradient(90deg,${theme.bg} 0%,transparent 70%)`;
+      const isSquare = useSquareCheckbox(item);
+      const done = !!item.done;
+
+      // === 唯一改动：高度按时长 ===
+      const lineHeight = slotLineHeight(slot.minsInHour);
+      const rowMinHeight = slotRowMinHeight(lineHeight);
+
+      let showLabel = false;
+      if (hasFirstInHour && isFirst) {
+        const firstFirstIdx = slots.findIndex(s => s.slotKind === 'first');
+        showLabel = firstFirstIdx === idx;
+      } else if (!hasFirstInHour) {
+        showLabel = idx === 0;
+      }
+
+      const key = `${h}-${item.isHabit ? 'h' : 's'}-${item.id}-${slot.slotIdx}`;
+      const row = document.createElement('div');
+      row.className = 'timeline-row';
+      row.style.background = rowBg;
+      row.style.minHeight = rowMinHeight + 'px';
+      row.dataset.id = item.id;
+
+      // 续段
+      if (!isFirst) {
+        row.innerHTML = `
+          <div class="time-label" style="color:${theme.timeColor}; visibility:hidden;">${showLabel ? timeStr : ''}</div>
+          <div class="timeline-line" style="background:${lineColor}; height:${lineHeight}px;"></div>
+          <div class="timeline-content">
+            <div class="flex1">
+              <p class="t14 fw600 truncate" style="color:${done ? '#aeaeae' : '#1c1c1e'}; opacity:0.5; ${done ? 'text-decoration:line-through;' : ''}">
+                ${item.title}
+              </p>
+            </div>
+            <span class="dot-sm ${isSquare ? 'r2' : 'rfull'}" style="background:${color};"></span>
+          </div>
+        `;
+        frag.appendChild(row);
+        return;
+      }
+
+      // 首段
+      const cbClass = isSquare ? 'cb-square' : 'cb-round';
+      const cbStyle = `--cb-color:${theme.doneColor}; --cb-border:${done ? theme.doneColor : theme.borderColor};`;
+      const titleColor = done ? '#8e8e93' : '#1c1c1e';
+      const titleClass = `t14 fw600 ${done ? 'c-500 ls' : 'c-900'}`;
+      const subColor = done ? '#aeaeae' : '#8e8e93';
+      const timeLabel = item.isHabit ? formatTimeLabel(item) : (isSquare ? formatTimeLabel(item) : formatShort(item));
+
+      row.innerHTML = `
+        <div class="time-label" style="color:${theme.timeColor};">${showLabel ? timeStr : ''}</div>
+        <div class="timeline-line" style="background:${lineColor}; height:${lineHeight}px;"></div>
+        <div class="timeline-content">
+          <input type="checkbox" class="${cbClass}" ${done ? 'checked' : ''} style="${cbStyle}" data-cb="${item.id}" />
+          <div class="flex1">
+            <p class="${titleClass}">${item.title}</p>
+            <p class="t12 mt0" style="color:${subColor};">${timeLabel}</p>
+          </div>
+          <span class="dot-sm ${isSquare ? 'r2' : 'rfull'}" style="background:${color};"></span>
+        </div>
+      `;
+      frag.appendChild(row);
+    });
+  });
+
+  root.appendChild(frag);
+
+  // 绑定勾选
+  root.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = Number(cb.dataset.cb);
+      const t = tasks.find(x => x.id === id);
+      if (t) { t.done = !t.done; render(); }
+    });
+  });
+}
+
+render();
+</script>
+
+
+
+
+</body></html>

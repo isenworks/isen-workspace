@@ -335,7 +335,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     return overlapEnd - overlapBegin;
   }
 
-  // === Today 视图：按小时时间轴 ===
+  // === Today 视图：绝对定位时间轴（1min=1px 精确映射） ===
   function renderTodayView() {
     const todaySchedules = schedules.filter(s => s.date === date).map(s => ({ ...s, isHabit: false, isTask: false }));
     const todayTasks = tasks.filter(t => t.date === date).map(t => ({ ...t, isHabit: false, isTask: true }));
@@ -350,154 +350,165 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       date: date
     }));
 
-    const allItems = [...todaySchedules, ...todayHabits];
+    // 基准参数：06:00 – 24:00（18小时），每小时 60px → 高 1080px
+    const HOUR_START = 6;
+    const HOUR_END = 23;      // 显示 6:00 到 23:00 的整点标签
+    const HOUR_HEIGHT = 60;
+    const PX_PER_MIN = 1;
+    const TOTAL_HEIGHT = (24 - HOUR_START) * HOUR_HEIGHT; // 1080
+    const baseMin = HOUR_START * 60; // 360
 
-    const HOURS = [];
-    for (let h = 6; h <= 23; h++) HOURS.push(h);
-    // byHour[h] = [{item, slotKind: 'first'|'continue', minsInHour}]
-    const byHour = {};
-    const FINAL_SLICE_THRESHOLD = 15; // 末段占用 < 15 分钟时合并到前一段（避免 19:02 单独占一格）
-    allItems.forEach(item => {
-      if (!item.start_time) return;
-      const [sh, sm] = item.start_time.split(':').map(Number);
-      if (Number.isNaN(sh) || Number.isNaN(sm)) return;
-      const totalDur = getEffectiveDur(item);
-      if (totalDur == null) {
-        // 无法确定时长：只按 start_time 挂一段，不跨段续行
-        if (sh >= 6 && sh <= 23) {
-          (byHour[sh] = byHour[sh] || []).push({
-            item, slotKind: 'first', minsInHour: null, slotIdx: 0
-          });
-        }
-        return;
-      }
-      const startMin = sh * 60 + sm;
-      const endMin = startMin + totalDur;
-      // 先求所有有交集的小时段（6..23）
-      const firstH = Math.max(6, Math.floor(startMin / 60));
-      const lastH = Math.min(23, Math.floor((endMin - 0.001) / 60));
-      const slots = [];
-      for (let hh = firstH; hh <= lastH; hh++) {
-        const mins = minutesInHour(item, hh);
-        if (mins == null || mins <= 0) continue;
-        slots.push({ h: hh, mins });
-      }
-      // 若最后一段 < 阈值，将 mins 合并到前一段，删除最后一段（符合"16/17/18 三段"预期）
-      if (slots.length >= 2) {
-        const last = slots[slots.length - 1];
-        if (last.mins < FINAL_SLICE_THRESHOLD) {
-          slots[slots.length - 2].mins += last.mins;
-          slots.pop();
-        }
-      }
-      slots.forEach((slot, i) => {
-        (byHour[slot.h] = byHour[slot.h] || []).push({
-          item,
-          slotKind: i === 0 ? 'first' : 'continue',
-          minsInHour: slot.mins,
-          slotIdx: i,
-          slotTotal: slots.length
-        });
-      });
-    });
-    // 同小时内排序：按"该 slot 在本小时内的真实开始分钟"升序
-    // - continue 跨段续行一定从 h:00 开始 → startInHour = 0
-    // - first 首段从 item.start_time 的分钟开始 → startInHour = start_min
-    // 同一开始分钟内，再按 item 的原始 start_time 稳定排序（早开始的在前）
-    Object.keys(byHour).forEach(h => {
-      byHour[h].sort((a, b) => {
-        const a_start_min = Number((a.item.start_time || '00:00').split(':')[1]) || 0;
-        const b_start_min = Number((b.item.start_time || '00:00').split(':')[1]) || 0;
-        const a_in_hour = a.slotKind === 'first' ? a_start_min : 0;
-        const b_in_hour = b.slotKind === 'first' ? b_start_min : 0;
-        if (a_in_hour !== b_in_hour) return a_in_hour - b_in_hour;
-        // 同分钟：按完整 start_time 比（早开始的排前面）
-        const a_time = a.item.start_time || '00:00';
-        const b_time = b.item.start_time || '00:00';
-        if (a_time !== b_time) return a_time.localeCompare(b_time);
-        return String(a.item.id ?? '').localeCompare(String(b.item.id ?? ''));
-      });
-    });
-
-    function slotLineHeight(_slot) {
-      // 统一竖线高度 20px
-      return 20;
+    function parseStart(item) {
+      if (!item.start_time) return null;
+      const [h, m] = item.start_time.split(':').map(Number);
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return h * 60 + m;
     }
-  // 行 min-height：完全不设档位，让行高由竖线高度 + 固定 padding 自然决定（线性对应时长）
-  // CSS 已提供 min-height: 48px 兜底，短时长(15/30min)不会被压缩得太扁
-  function slotRowMinHeight(_slot) {
-    return undefined;
-  }
-    // 续段用的"与首段一致的浅色背景"，但去掉已完成的灰底替换（保持色调连续），这里复用 getRowBg 即可（它已考虑 is_done）
-    // 续段：隐藏复选框/文字 → timeline-content 区域留空占位（只显示小圆点保证右对齐）
+    function toPx(min) { return (min - baseMin) * PX_PER_MIN; }
+
+    // —— 事件准备：有 start_time 且能算入 06-24 区间的才挂时间轴 ——
+    const timedItems = [...todaySchedules, ...todayHabits].filter(item => {
+      const s = parseStart(item);
+      if (s == null) return false;
+      const dur = getEffectiveDur(item);
+      // 无时长的兜底：默认 30 分钟（避免消失），并 clamp 在可视区内
+      if (dur == null) return s >= baseMin && s < 24 * 60;
+      const e = s + dur;
+      return !(e <= baseMin || s >= 24 * 60);
+    });
+
+    // 解析每个事件的渲染几何，并按 end 截断到 24:00
+    const events = timedItems.map(item => {
+      const startMinRaw = parseStart(item);
+      const durRaw = getEffectiveDur(item) ?? 30;
+      const startMin = Math.max(baseMin, startMinRaw);
+      const endMin = Math.min(24 * 60, startMinRaw + durRaw);
+      const top = toPx(startMin);
+      const hPx = Math.max(36, (endMin - startMin) * PX_PER_MIN); // 最短 36px
+      const done = item.isHabit ? !!item.done_today : !!item.is_done;
+      const theme = getItemTheme(item);
+      const isSquareCheckbox = useSquareCheckbox(item);
+      const cat = getCat(item);
+
+      // 习惯（cat=4）按成长类型：精力=绿(4)、知力=蓝(6)、能力=金/紫(5)
+      let clsCat = cat;
+      if (item.isHabit) {
+        const gt = inferGrowthType(item);
+        if (gt === 'mind') clsCat = 6;
+        else if (gt === 'skill') clsCat = 5;
+        else clsCat = 4;
+      }
+
+      // 时间区间副文本（Start – End · Duration）
+      const fmtH = (v) => String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+      const durMin = endMin - startMin;
+      let durTxt;
+      if (durMin === 60) durTxt = '1h';
+      else if (Number.isInteger(durMin / 60)) durTxt = `${durMin / 60}h`;
+      else durTxt = `${durMin}m`;
+      const subText = `${fmtH(startMin)} – ${fmtH(endMin)} · ${durTxt}`;
+
+      return {
+        item,
+        startMin, endMin, top, hPx, done,
+        theme, isSquareCheckbox, clsCat, subText,
+        id: (item.isHabit ? 'h' : 's') + '-' + item.id
+      };
+    });
+
+    // —— 重叠检测（简单版：相同时间范围的事件 right 偏移） ——
+    events.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+    const placed = [];
+    events.forEach(ev => {
+      const overlaps = placed.filter(p => ev.startMin < p.endMin && ev.endMin > p.startMin);
+      ev.overlapIndex = overlaps.length;
+      ev.rightOffsetPx = overlaps.length > 0 ? overlaps.length * 14 : 0;
+      placed.push(ev);
+    });
+
+    // —— 底部"列表型"内容：待办 / 未定时 / 全天习惯 ——
+    const timedScheduleIds = new Set(todaySchedules.filter(s => s.start_time).map(s => s.id));
+    const untimedSchedules = todaySchedules.filter(s => !timedScheduleIds.has(s.id));
+    const alldayHabits = todayHabits.filter(h => !h.start_time && !h.target_time);
 
     return (
       <>
-        {HOURS.map(h => {
-          const slots = byHour[h] || [];
-          const timeStr = `${String(h).padStart(2, '0')}:00`;
+        {/* ============ 绝对定位时间轴：刻度列 + 网格 + 事件 ============ */}
+        <div className="tl-grid-wrap" style={{ minHeight: `${TOTAL_HEIGHT}px` }}>
+          {/* —— 刻度列：06:00 到 23:00，最后一格底部显示 24:00 —— */}
+          <div className="tl-time-col" style={{ height: TOTAL_HEIGHT }}>
+            {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i).map((h) => (
+              <div key={h} className="tl-time-cell">
+                <span className="tl-time-cell-label">{String(h).padStart(2, '0')}:00</span>
+              </div>
+            ))}
+            {/* 底部追加一个 24:00 标签，贴到最后一格底 */}
+            <div className="tl-time-cell tl-time-cell--end" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 0 }}>
+              <span className="tl-time-cell-label">24:00</span>
+            </div>
+          </div>
 
-          if (slots.length === 0) {
-            return (
-              <div
-                key={h}
-                className="timeline-row timeline-empty-row"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAdd?.({ start_time: timeStr });
-                }}
-                title={`点击在 ${timeStr} 新增事项`}
-              >
-                <div className="time-label">{timeStr}</div>
-                <div className="timeline-line" style={{background:'#e5e5ea', height:'20px'}}></div>
-                <div className="timeline-content timeline-empty-content">
-                  <span className="timeline-empty-hint">
-                    <span className="timeline-empty-plus">+</span>
+          {/* —— 网格 + 事件列 —— */}
+          <div className="tl-content-col" style={{ minHeight: TOTAL_HEIGHT }}>
+            {/* 背景层：18 条 60px 小时分隔线 + 半小时虚线（第18条没有半小时线） */}
+            <div className="tl-content-col-grid" style={{ minHeight: TOTAL_HEIGHT }}>
+              {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => (
+                <div
+                  key={`grid-${i}`}
+                  className={`tl-grid-line ${i === HOUR_END - HOUR_START ? 'is-last' : ''}`}
+                />
+              ))}
+            </div>
+
+            {/* 点击空白新增层：18 个小时可点击区域（位于事件之下） */}
+            {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => {
+              const h = HOUR_START + i;
+              const timeStr = `${String(h).padStart(2, '0')}:00`;
+              return (
+                <div
+                  key={`empty-${h}`}
+                  className="tl-grid-empty-cell"
+                  style={{ top: `${i * HOUR_HEIGHT}px` }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAdd?.({ start_time: timeStr });
+                  }}
+                  title={`点击在 ${timeStr} 新增事项`}
+                >
+                  <span className="tl-grid-empty-cell-hint">
+                    <span>+</span>
                     <span>新增事项</span>
                   </span>
                 </div>
-              </div>
-            );
-          }
+              );
+            })}
 
-          // 小时标签显示规则：该小时第一段的首段显示；或者该小时存在任意 slotIdx=0 的首段显示
-          const hasFirstInHour = slots.some(s => s.slotKind === 'first');
+            {/* 事件色块（绝对定位） */}
+            {events.map(ev => {
+              const { item, done, theme, isSquareCheckbox, clsCat, subText, top, hPx, rightOffsetPx } = ev;
+              const cbClass = isSquareCheckbox ? 'cb-square' : 'cb-round';
+              const cbStyle = `--cb-color:${theme.doneColor}; --cb-border:${done ? theme.doneColor : theme.borderColor};`;
+              const dotClass = isSquareCheckbox ? 'r2' : 'rfull';
+              const dotColor = theme.color || theme.doneColor;
+              const lineColor = theme.lineColor || theme.color;
+              const isCat4 = !item.isHabit && getCat(item) === 4;
+              const handleEdit = (e) => {
+                e.stopPropagation();
+                if (item.isHabit || isCat4) return;
+                onEdit?.(item);
+              };
 
-          return slots.map((slot, idx) => {
-            const item = slot.item;
-            const isFirst = slot.slotKind === 'first';
-            const color = getColor(item);
-            const lineColor = getLineColor(item);
-            const lineHeight = slotLineHeight(slot);
-            const rowMinHeight = slotRowMinHeight(slot);
-            const isSquareCheckbox = useSquareCheckbox(item);
-            const rowBg = getRowBg(item);
-            // 时间标签：若该小时有首段，则第一个首段（idx最小且first）显示；否则第一个续段显示或不显示
-            let showLabel = false;
-            if (hasFirstInHour && isFirst) {
-              const firstFirstIdx = slots.findIndex(s => s.slotKind === 'first');
-              showLabel = firstFirstIdx === idx;
-            } else if (!hasFirstInHour) {
-              showLabel = idx === 0;
-            }
-            const done = item.isHabit ? !!item.done_today : !!item.is_done;
-            const isCat4 = !item.isHabit && getCat(item) === 4;
-            const timeColor = getTimeColor(item);
-            const doneColor = getDoneColor(item);
-            const borderColor = getBorderColor(item);
-            const key = `${h}-${item.isHabit ? 'h' : 's'}-${item.id}-${slot.slotIdx}`;
-
-            // === 续段渲染：背景色延伸 + 竖线 + 半透明标题（归属标识）+ 小圆点 ===
-            if (!isFirst) {
               return (
                 <div
-                  key={key}
-                  className={`timeline-row rounded-xl ${isSquareCheckbox ? 'task-row' : 'habit-row'}`}
-                  style={{background: rowBg, ...(rowMinHeight ? {minHeight: `${rowMinHeight}px`} : {})}}
-                  onClick={(e) => {
-                    if (item.isHabit || isCat4) return;
-                    onEdit?.(item);
+                  key={ev.id}
+                  className={`tl-event cat-${clsCat} ${done ? 'done' : ''} ${hPx < 48 ? 'compact' : ''}`}
+                  style={{
+                    top: `${top}px`,
+                    height: `${hPx}px`,
+                    left: 0,
+                    right: `${rightOffsetPx}px`,
                   }}
+                  onClick={handleEdit}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -505,101 +516,43 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     else window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
                   }}
                 >
-                  <div className="time-label" style={{color: timeColor, visibility:'hidden'}}>{showLabel ? timeStr : ''}</div>
-                  <div className="timeline-line" style={{background: lineColor, height: `${lineHeight}px`}}></div>
-                  <div className="timeline-content">
-                    {/* 续段显示半透明截断标题（归属标识），不显示复选框和完整时间 */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-[14px] font-medium truncate"
-                        style={{
-                          color: done ? '#aeaeae' : '#1c1c1e',
-                          opacity: 0.5,
-                          textDecoration: done ? 'line-through' : 'none',
-                        }}
-                      >
+                  <div className="tl-event-line" style={{ background: lineColor }} />
+                  <div className="tl-event-content">
+                    <input
+                      type="checkbox"
+                      className={cbClass}
+                      checked={done}
+                      onChange={() => {}}
+                      style={cbStyle}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (item.isHabit) toggleHabit(item);
+                        else toggleSchedule(item);
+                      }}
+                    />
+                    <div className="tl-event-text" onClick={handleEdit}>
+                      <div className={`tl-event-title ${done ? 'done' : ''}`}>
                         {item.emoji ? item.emoji + ' ' : ''}{item.title}
-                      </p>
+                      </div>
+                      <div className="tl-event-sub">{subText}</div>
                     </div>
                     <span
-                      className={`w-2 h-2 flex-shrink-0 self-center ${isSquareCheckbox ? 'rounded-[2px]' : 'rounded-full'}`}
-                      style={{background: color}}
+                      className={`tl-event-dot ${dotClass}`}
+                      style={{ background: dotColor }}
                       onClick={(e) => e.stopPropagation()}
-                    ></span>
+                    />
                   </div>
                 </div>
               );
-            }
+            })}
+          </div>
+        </div>
 
-            // === 首段渲染：完整 UI ===
-            return (
-              <div
-                key={key}
-                className={`timeline-row rounded-xl ${isSquareCheckbox ? 'task-row' : 'habit-row'}`}
-                style={{background: rowBg, ...(rowMinHeight ? {minHeight: `${rowMinHeight}px`} : {})}}
-                onClick={(e) => {
-                  if (item.isHabit || isCat4) return;
-                  onEdit?.(item);
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (item.isHabit || isCat4) window.__showContextMenu?.(e.clientX, e.clientY, 'habit', item.id);
-                  else window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
-                }}
-              >
-                <div className="time-label" style={{color: timeColor}}>{showLabel ? timeStr : ''}</div>
-                <div className="timeline-line" style={{background: lineColor, height: `${lineHeight}px`}}></div>
-                <div className="timeline-content">
-                  <input
-                    type="checkbox"
-                    className={isSquareCheckbox ? 'cb-square' : 'cb-round'}
-                    checked={done}
-                    onChange={() => {}}
-                    style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (item.isHabit) toggleHabit(item);
-                      else toggleSchedule(item);
-                    }}
-                  />
-                  <div className="flex-1">
-                    <p
-                      className={`text-[14px] font-medium ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.isHabit || isCat4) return;
-                        onEdit?.(item);
-                      }}
-                    >
-                      {item.emoji ? item.emoji + ' ' : ''}{item.title}
-                    </p>
-                    <p
-                      className={`text-[12px] mt-0 ${done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.isHabit || isCat4) return;
-                        onEdit?.(item);
-                      }}
-                    >
-                      {item.isHabit ? formatTimeLabel(item) : (isSquareCheckbox ? formatTimeLabel(item) : formatShort(item))}
-                    </p>
-                  </div>
-                  <span
-                    className={`w-2 h-2 flex-shrink-0 self-center ${isSquareCheckbox ? 'rounded-[2px]' : 'rounded-full'}`}
-                    style={{background: color}}
-                    onClick={(e) => e.stopPropagation()}
-                  ></span>
-                </div>
-              </div>
-            );
-          });
-        })}
-
+        {/* ============ 下方列表：待办 / 未定时事项 / 全天习惯 ============ */}
         {todayTasks.length > 0 && (
           <>
             <div className="hairline my-3"></div>
-            <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wide px-3 mb-2">待办</div>
+            <div className="tl-list-section-label px-3 mb-2">待办</div>
             <div className="space-y-1.5 px-3">
               {todayTasks.map(t => {
                 const done = !!t.is_done;
@@ -631,12 +584,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           </>
         )}
 
-        {todaySchedules.filter(s => !s.start_time).length > 0 && (
+        {untimedSchedules.length > 0 && (
           <>
             <div className="hairline my-3"></div>
-            <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wide px-3 mb-2">未定时事项</div>
+            <div className="tl-list-section-label px-3 mb-2">未定时事项</div>
             <div className="space-y-1.5 px-3">
-              {todaySchedules.filter(s => !s.start_time).map(s => {
+              {untimedSchedules.map(s => {
                 const square = useSquareCheckbox(s);
                 const rowBg = getRowBg(s);
                 const color = getColor(s);
@@ -664,12 +617,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           </>
         )}
 
-        {todayHabits.filter(h => !h.start_time && !h.target_time).length > 0 && (
+        {alldayHabits.length > 0 && (
           <>
             <div className="hairline my-3"></div>
-            <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wide px-3 mb-2">全天习惯</div>
+            <div className="tl-list-section-label px-3 mb-2">全天习惯</div>
             <div className="space-y-1.5 px-3">
-              {todayHabits.filter(h => !h.start_time && !h.target_time).map(h => {
+              {alldayHabits.map(h => {
                 const done = !!h.done_today;
                 const color = getColor(h);
                 const doneColor = getDoneColor(h);
@@ -778,7 +731,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       style={{background: rowBg, ...(rowMinHeight ? {minHeight: `${rowMinHeight}px`} : {})}}
                       onClick={() => isSched && onEdit?.(item)}
                     >
-                      <div className="time-label" style={{color: timeColor}}>
+                      <div className="time-label">
                         {item.start_time ? item.start_time.split('-')[0] : ''}
                       </div>
                       <div className="timeline-line" style={{background: lineColor, height: `${lineHeight}px`}}></div>

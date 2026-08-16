@@ -162,9 +162,10 @@ body {
   margin: 3px 0;
 }
 .time-label {
+  /* 用户要保留灰色时间点（统一灰色，不跟随分类变色） */
   width: 50px; flex-shrink: 0;
   font-size: 12px; font-weight: 600;
-  color: #8e8e93;
+  color: #8e8e93 !important; /* 强制灰色，不随分类颜色变化 */
   display: flex; align-items: center; justify-content: flex-end;
   padding-right: 14px;
   letter-spacing: -0.01em;
@@ -225,6 +226,165 @@ body {
   line-height: 1;
   color: #007aff;
   opacity: 0.7;
+}
+
+/* ====== 新版 Timeline Grid：绝对定位 + 精确时长映射 (1min=1px) ====== */
+.tl-grid-wrap {
+  position: relative;
+  display: flex;
+  user-select: none;
+}
+/* 刻度列：固定 56px，与新小时行高对齐 */
+.tl-time-col {
+  width: 56px; flex-shrink: 0; position: relative;
+}
+.tl-time-cell {
+  height: 60px;
+  position: relative;
+}
+.tl-time-cell-label {
+  position: absolute;
+  top: -6px; right: 10px;
+  font-size: 11px; font-weight: 600; color: #8e8e93;
+  letter-spacing: -0.01em;
+  background: rgba(255,255,255,0.72); padding: 0 2px;
+  white-space: nowrap;
+}
+.tl-time-cell:first-child .tl-time-cell-label { top: 4px; }
+.tl-time-cell--end .tl-time-cell-label {
+  /* 末尾 24:00 放在底部 */
+  top: auto;
+  bottom: -6px;
+}
+
+/* 网格列：相对定位，子元素绝对定位 */
+.tl-content-col {
+  position: relative; flex: 1; min-width: 0;
+  overflow: visible;
+}
+/* 小时实线（60px一条） */
+.tl-grid-line {
+  height: 60px;
+  border-top: 1px solid rgba(60,60,67,0.09);
+  box-sizing: border-box;
+}
+.tl-grid-line:first-child { border-top: none; }
+/* 半小时虚线 */
+.tl-grid-line::after {
+  content: '';
+  position: absolute; left: 0; right: 0;
+  top: 30px;
+  border-top: 1px dashed rgba(60,60,67,0.05);
+  pointer-events: none;
+}
+/* 最后一条底线没有 after（最后一行没有半小时）——通过 tl-grid-line.is-last 标识 */
+.tl-grid-line.is-last::after { display: none; }
+/* 为 after 提供绝对定位锚 */
+.tl-content-col-grid .tl-grid-line { position: relative; }
+.tl-content-col-grid { position: relative; }
+
+/* 事件色块：绝对定位，圆角胶囊，渐变 + 竖线 + 复选框 + 小圆点 */
+.tl-event {
+  position: absolute;
+  left: 0; right: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+  overflow: hidden;
+  z-index: 2;
+  padding: 0 12px 0 0;
+  box-sizing: border-box;
+}
+.tl-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+.tl-event-line {
+  width: 3px; flex-shrink: 0;
+  height: 60%;
+  align-self: center;
+  border-radius: 3px;
+  margin-left: 14px;
+  flex-shrink: 0;
+}
+.tl-event-content {
+  flex: 1; min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0 4px 12px;
+  min-height: 0;
+}
+.tl-event-text {
+  flex: 1; min-width: 0;
+}
+.tl-event-title {
+  font-size: 14px; font-weight: 700; color: #1c1c1e;
+  line-height: 1.3; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-event-title.done { color: #8e8e93; text-decoration: line-through; }
+.tl-event-sub {
+  font-size: 12px; font-weight: 500; color: #8e8e93;
+  letter-spacing: 0.01em; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-event.done .tl-event-sub { color: #aeaeae; }
+.tl-event-dot {
+  width: 9px; height: 9px; flex-shrink: 0;
+  align-self: center;
+  margin-right: 4px;
+}
+.tl-event-dot.r2 { border-radius: 2px; }
+.tl-event-dot.rfull { border-radius: 50%; }
+
+/* 紧凑模式：时长 < 48min 时隐藏副文本 */
+.tl-event.compact .tl-event-sub { display: none; }
+.tl-event.compact { padding-right: 10px; }
+.tl-event.compact .tl-event-line { margin-left: 12px; }
+.tl-event.compact .tl-event-content { gap: 10px; padding-left: 10px; }
+
+/* 分类渐变背景（沿用工作台风格） */
+.tl-event.cat-1 { background-image: linear-gradient(90deg, #ffe8e8 0%, transparent 78%); }
+.tl-event.cat-2 { background-image: linear-gradient(90deg, #fff4d8 0%, transparent 78%); }
+.tl-event.cat-3 { background-image: linear-gradient(90deg, #e5e5ea 0%, transparent 78%); }
+.tl-event.cat-4 { background-image: linear-gradient(90deg, #e5f6ea 0%, transparent 78%); }
+.tl-event.cat-5 { background-image: linear-gradient(90deg, #f3e8ff 0%, transparent 78%); }
+.tl-event.cat-6 { background-image: linear-gradient(90deg, #e3f0ff 0%, transparent 78%); }
+
+/* 空白区域点击提示 */
+.tl-grid-empty-cell {
+  position: absolute;
+  left: 0; right: 0;
+  height: 60px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background .15s ease;
+  z-index: 1;
+}
+.tl-grid-empty-cell:hover {
+  background: rgba(0,122,255,0.06);
+  outline: 1px dashed rgba(0,122,255,0.35);
+  outline-offset: -1px;
+}
+.tl-grid-empty-cell-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 12px; font-weight: 500; color: #007aff;
+  gap: 4px;
+}
+.tl-grid-empty-cell:hover .tl-grid-empty-cell-hint { display: inline-flex; }
+
+/* 下方列表区样式（待办 / 未定时 / 全天习惯 沿用旧行样式） */
+.tl-list-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #8e8e93;
+  padding: 0 3px;
 }
 
 /* ====== Chip ====== */

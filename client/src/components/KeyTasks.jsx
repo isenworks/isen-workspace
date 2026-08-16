@@ -272,7 +272,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           onClick={(e) => { e.stopPropagation(); toggle(s); }}
         />
         <div className="flex-1 min-w-0">
-          <p className={`text-[14px] font-[550] ${s.is_done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>{s.title}</p>
+          <p className={`text-[14px] ${s.is_done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>{s.title}</p>
           <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>{formatTime(s)}</p>
         </div>
         {/* 小圆点始终保留原色 */}

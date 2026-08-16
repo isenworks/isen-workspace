@@ -354,6 +354,7 @@ body {
 .tl-event.cat-4 { background-image: linear-gradient(90deg, #e5f6ea 0%, transparent 78%); }
 .tl-event.cat-5 { background-image: linear-gradient(90deg, #f3e8ff 0%, transparent 78%); }
 .tl-event.cat-6 { background-image: linear-gradient(90deg, #e3f0ff 0%, transparent 78%); }
+.tl-event.cat-7 { background-image: linear-gradient(90deg, #fbf3d8 0%, transparent 78%); }
 
 /* 空白区域点击提示 */
 .tl-grid-empty-cell {

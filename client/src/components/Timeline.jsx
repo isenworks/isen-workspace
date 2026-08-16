@@ -481,12 +481,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       const isSquareCheckbox = useSquareCheckbox(item);
       const cat = getCat(item);
 
-      // 习惯（cat=4）按成长类型：精力=绿(4)、知力=蓝(6)、能力=金/紫(5)
+      // 习惯（cat=4）按成长类型：精力=绿(4)、知力=蓝(6)、能力=金(7)
       let clsCat = cat;
       if (item.isHabit) {
         const gt = inferGrowthType(item);
         if (gt === 'mind') clsCat = 6;
-        else if (gt === 'skill') clsCat = 5;
+        else if (gt === 'skill') clsCat = 7;
         else clsCat = 4;
       }
 

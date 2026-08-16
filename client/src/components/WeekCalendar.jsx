@@ -122,7 +122,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
 
   return (
     <div
-      className="glass-card px-5 py-3"
+      className="glass-card px-5 py-3.5"
       style={{ opacity: loading && !hasData ? 0.7 : 1, transition: 'opacity .2s ease' }}
     >
       <div className="flex items-center gap-4">
@@ -136,7 +136,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
           </button>
         </div>
 
-        <div className="flex-1 overflow-x-auto pb-1" ref={scrollRef}>
+        <div className="flex-1 overflow-x-auto pb-1.5" ref={scrollRef}>
           <div className="flex items-center gap-1 px-2">{days}</div>
         </div>
       </div>

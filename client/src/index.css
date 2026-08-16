@@ -131,10 +131,10 @@ body {
 
 /* ====== Calendar ====== */
 .cal-day {
-  width: 38px; height: 44px; border-radius: 10px;
+  width: 40px; height: 48px; border-radius: 10px;
   flex-shrink: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 1px; cursor: pointer; transition: all .2s;
+  gap: 2px; cursor: pointer; transition: all .2s;
   position: relative;
   overflow: visible;
   outline-offset: 0;
@@ -147,9 +147,9 @@ body {
 }
 .cal-day.today .cal-weekday { opacity: 0.85; color: #fff; }
 .cal-day.today .cal-date { color: #fff; }
-.cal-weekday { font-size: 10px; line-height: 11px; opacity: 0.6; font-weight: 500; }
-.cal-date { font-size: 13px; font-weight: 600; }
-.cal-dots { display: flex; gap: 2px; margin-top: 0; min-height: 4px; }
+.cal-weekday { font-size: 10px; line-height: 12px; opacity: 0.6; font-weight: 500; }
+.cal-date { font-size: 14px; font-weight: 600; }
+.cal-dots { display: flex; gap: 2px; margin-top: 1px; min-height: 4px; }
 .cal-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
 
 /* ====== Timeline ====== */
@@ -445,8 +445,8 @@ body {
   flex-direction: column;
   gap: 14px;
   position: sticky;
-  top: 32px;
-  max-height: calc(100vh - 64px);
+  top: 24px;
+  max-height: calc(100vh - 48px);
   overflow-y: auto;
   overflow-x: hidden;
 }

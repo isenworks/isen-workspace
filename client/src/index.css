@@ -347,14 +347,14 @@ body {
 .tl-event.compact .tl-event-line { margin-left: 12px; }
 .tl-event.compact .tl-event-content { gap: 10px; padding-left: 10px; }
 
-/* 分类渐变背景（沿用工作台风格） */
-.tl-event.cat-1 { background-image: linear-gradient(90deg, #ffe8e8 0%, transparent 78%); }
-.tl-event.cat-2 { background-image: linear-gradient(90deg, #fff4d8 0%, transparent 78%); }
-.tl-event.cat-3 { background-image: linear-gradient(90deg, #e5e5ea 0%, transparent 78%); }
-.tl-event.cat-4 { background-image: linear-gradient(90deg, #e5f6ea 0%, transparent 78%); }
-.tl-event.cat-5 { background-image: linear-gradient(90deg, #f3e8ff 0%, transparent 78%); }
-.tl-event.cat-6 { background-image: linear-gradient(90deg, #e3f0ff 0%, transparent 78%); }
-.tl-event.cat-7 { background-image: linear-gradient(90deg, #fbf3d8 0%, transparent 78%); }
+/* 分类渐变背景（沿用工作台风格，与 HabitsPanel 保持一致：70% 淡出） */
+.tl-event.cat-1 { background-image: linear-gradient(90deg, #ffe8e8 0%, transparent 70%); }
+.tl-event.cat-2 { background-image: linear-gradient(90deg, #fff4d8 0%, transparent 70%); }
+.tl-event.cat-3 { background-image: linear-gradient(90deg, #e5e5ea 0%, transparent 70%); }
+.tl-event.cat-4 { background-image: linear-gradient(90deg, #e5f6ea 0%, transparent 70%); }
+.tl-event.cat-5 { background-image: linear-gradient(90deg, #f3e8ff 0%, transparent 70%); }
+.tl-event.cat-6 { background-image: linear-gradient(90deg, #e0ecff 0%, transparent 70%); }
+.tl-event.cat-7 { background-image: linear-gradient(90deg, #fbf3d8 0%, transparent 70%); }
 
 /* 空白区域点击提示 */
 .tl-grid-empty-cell {

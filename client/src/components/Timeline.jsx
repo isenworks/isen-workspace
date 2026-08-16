@@ -25,11 +25,20 @@ const CAT_COLORS = {
 // 根据习惯名称/图标自动推断成长类型
 function inferGrowthType(habit) {
   const text = (habit.name + ' ' + (habit.emoji || '')).toLowerCase();
-  // 关键词明确的优先匹配（覆盖 SQL 默认值 energy）
   if (/睡眠|运动|喝水|饮食|健身|跑步|游泳|瑜伽|冥想|休息|😴|🏃|💧|🍎/.test(text)) return 'energy';
   if (/看书|阅读|思考|学习|📖|🧠|📚/.test(text)) return 'mind';
   if (/英语|口语|表达|演讲|沟通|写作|🗣️|🎤|✍️/.test(text)) return 'skill';
-  // 用户显式设置的类型才生效
+  // 依据 accent_color 反推类型（应对历史数据或用户改色场景）
+  const c = (habit.accent_color || '').toLowerCase().replace('#', '');
+  if (c.length === 6) {
+    const r = parseInt(c.slice(0, 2), 16);
+    const g = parseInt(c.slice(2, 4), 16);
+    const b = parseInt(c.slice(4, 6), 16);
+    if (r > 180 && g > 140 && b < 120 && r > b && g > b) return 'skill';
+    if (b > r && b > g && b > 150) return 'mind';
+    if (g > r && g > b && g > 120) return 'energy';
+  }
+  // 用户显式设置的类型优先（但默认值 energy 不算显式）
   if (habit.growth_type && habit.growth_type !== 'energy') return habit.growth_type;
   return 'energy';
 }
@@ -613,6 +622,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 if (item.isHabit || isCat4) return;
                 onEdit?.(item);
               };
+              // 双保险：除了 cat-N 的 CSS class，再直接写 inline backgroundImage
+              // 这样即使 CSS 类因缓存/优先级/加载问题不生效，渐变也能正确显示
+              const inlineBg = `linear-gradient(90deg,${theme.bg || '#e5e5ea'} 0%,transparent 70%)`;
 
               return (
                 <div
@@ -623,6 +635,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     height: `${hPx}px`,
                     left: 0,
                     right: `${rightOffsetPx}px`,
+                    backgroundImage: inlineBg,
                   }}
                   onClick={handleEdit}
                   onContextMenu={(e) => {
@@ -743,8 +756,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 const color = getColor(h);
                 const doneColor = getDoneColor(h);
                 const borderColor = getBorderColor(h);
+                const rowBg = getRowBg(h);
                 return (
-                  <div key={`habit-allday-${h.id}`} className="flex items-center gap-3 py-2.5 px-3 rounded-xl habit-row" style={{background: 'linear-gradient(90deg,#e5f6ea 0%,transparent 70%)'}}>
+                  <div key={`habit-allday-${h.id}`} className="flex items-center gap-3 py-2.5 px-3 rounded-xl habit-row" style={{background: rowBg}}>
                     <input
                       type="checkbox"
                       className="cb-round"

@@ -51,6 +51,19 @@ export function inferGrowthType(habit) {
   if (/睡眠|运动|喝水|饮食|健身|跑步|游泳|瑜伽|冥想|休息|😴|🏃|💧|🍎/.test(text)) return 'energy';
   if (/看书|阅读|思考|学习|📖|🧠|📚/.test(text)) return 'mind';
   if (/英语|口语|表达|演讲|沟通|写作|🗣️|🎤|✍️/.test(text)) return 'skill';
+  // 依据 accent_color 反推类型（应对历史数据或用户改色场景）
+  const c = (habit?.accent_color || '').toLowerCase().replace('#', '');
+  if (c.length === 6) {
+    const r = parseInt(c.slice(0, 2), 16);
+    const g = parseInt(c.slice(2, 4), 16);
+    const b = parseInt(c.slice(4, 6), 16);
+    // 金色系: 红/绿高、蓝低 (R>180, G>150, B<120)
+    if (r > 180 && g > 140 && b < 120 && r > b && g > b) return 'skill';
+    // 蓝色系: 蓝最大
+    if (b > r && b > g && b > 150) return 'mind';
+    // 绿色系: 绿最大
+    if (g > r && g > b && g > 120) return 'energy';
+  }
   // 用户显式设置的类型优先（但默认值 energy 不算显式）
   if (habit?.growth_type && habit.growth_type !== 'energy') return habit.growth_type;
   return 'energy';

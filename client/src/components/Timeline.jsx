@@ -466,16 +466,24 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     const events = timedItems.map(item => {
       const { startMin: sMin, endMin: eMin } = parseTimeRange(item);
       const startMinRaw = sMin;
+      // === 计算真实时长（优先 duration_min，支持跨天） ===
       let durRaw;
       if (eMin != null && eMin > startMinRaw) {
+        // 同日：直接 e - s
         durRaw = eMin - startMinRaw;
+      } else if (eMin != null && eMin < startMinRaw) {
+        // 跨天：1440 - (s - e) = 补到次日同一时刻
+        durRaw = (24 * 60) - (startMinRaw - eMin);
       } else {
         durRaw = getEffectiveDur(item) ?? 30;
       }
+      const endMinRaw = startMinRaw + durRaw; // 可能 >1440（跨天）
+
+      // === 渲染裁剪：只画 06:00 - 24:00 可见区 ===
       const startMin = Math.max(baseMin, startMinRaw);
-      const endMin = Math.min(24 * 60, startMinRaw + durRaw);
+      const endMin = Math.min(24 * 60, endMinRaw);
       const top = toPx(startMin);
-      const hPx = Math.max(36, (endMin - startMin) * PX_PER_MIN); // 最短 36px
+      const hPx = Math.max(22, (endMin - startMin) * PX_PER_MIN);
       const done = item.isHabit ? !!item.done_today : !!item.is_done;
       const theme = getItemTheme(item);
       const isSquareCheckbox = useSquareCheckbox(item);
@@ -490,14 +498,21 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         else clsCat = 4;
       }
 
-      // 时间区间副文本（Start – End · Duration）
-      const fmtH = (v) => String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
-      const durMin = endMin - startMin;
+      // 时间区间副文本：显示真实起止（跨天用 24:00 之前/次日 之后标记）
+      const fmtH = (v) => {
+        const wrapped = ((v % (24 * 60)) + 24 * 60) % (24 * 60);
+        return String(Math.floor(wrapped / 60)).padStart(2, '0') + ':' + String(wrapped % 60).padStart(2, '0');
+      };
+      const isOvernight = endMinRaw > 24 * 60;
+      const displayStart = startMinRaw;
+      const displayEnd = isOvernight ? endMinRaw : endMinRaw;
+      const durMin = durRaw;
       let durTxt;
       if (durMin === 60) durTxt = '1h';
       else if (Number.isInteger(durMin / 60)) durTxt = `${durMin / 60}h`;
       else durTxt = `${durMin}m`;
-      const subText = `${fmtH(startMin)} – ${fmtH(endMin)} · ${durTxt}`;
+      const endLabel = isOvernight ? fmtH(endMinRaw) : fmtH(endMinRaw);
+      const subText = `${fmtH(displayStart)} – ${endLabel} · ${durTxt}`;
 
       return {
         item,

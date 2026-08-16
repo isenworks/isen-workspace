@@ -287,7 +287,12 @@ body {
 .tl-event {
   position: absolute;
   left: 0; right: 0;
-  border-radius: 12px;
+  /* 圆角随高度自适应，保持 12px / 高度 ≈ 固定比例：
+     - 60min(60px): min(12,30) = 12px ✓
+     - 30min(30px): min(12,15) = 12px (刚好对称)
+     - 22min(22px): min(12,11) = 11px (不变形)
+     - 15min(22px*): min(12,11) = 11px (最小高度下限22px) */
+  border-radius: min(12px, 50%);
   display: flex;
   align-items: center;
   gap: 0;

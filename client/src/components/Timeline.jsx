@@ -487,7 +487,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             {events.map(ev => {
               const { item, done, theme, isSquareCheckbox, clsCat, subText, top, hPx, rightOffsetPx } = ev;
               const cbClass = isSquareCheckbox ? 'cb-square' : 'cb-round';
-              const cbStyle = `--cb-color:${theme.doneColor}; --cb-border:${done ? theme.doneColor : theme.borderColor};`;
+              const cbStyle = { '--cb-color': theme.doneColor, '--cb-border': done ? theme.doneColor : theme.borderColor };
               const dotClass = isSquareCheckbox ? 'r2' : 'rfull';
               const dotColor = theme.color || theme.doneColor;
               const lineColor = theme.lineColor || theme.color;

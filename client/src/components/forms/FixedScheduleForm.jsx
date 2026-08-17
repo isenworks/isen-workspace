@@ -109,15 +109,14 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
       {/* 提示说明 */}
       <div style={{
         padding: '10px 12px',
-        background: 'linear-gradient(90deg, #ececef 0%, transparent 80%)',
+        background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
         borderRadius: '10px',
-        borderBottom: '2px solid rgba(142,142,147,0.6)',
         fontSize: '12px',
-        color: '#1c1c1e',
+        color: '#6c6c70',
         lineHeight: '1.5',
       }}>
         <span style={{ fontWeight: '600', color: '#6c6c70' }}>📌 固定日程</span>
-        <span style={{ color: '#6c6c70' }}> · 每天重复显示在时间线，仅作提醒，不可打卡，不进入重点/习惯事项</span>
+        <span> · 每天重复显示在时间线，仅作提醒，不可打卡，不进入重点/习惯事项</span>
       </div>
 
       <div>

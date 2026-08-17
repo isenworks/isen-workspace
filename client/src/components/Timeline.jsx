@@ -647,19 +647,18 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             {events.map(ev => {
               const { item, done, theme, isSquareCheckbox, clsCat, subText, top, hPx, rightOffsetPx, isFixed } = ev;
 
-              // === 固定日程：柔和渐变 + 底边灰线 + 每日标签 ===
+              // === 固定日程：极简柔化样式（无标签/无边框，通过透明度建立层级） ===
               if (isFixed) {
                 return (
                   <div
                     key={ev.id}
-                    className="tl-event tl-fixed-schedule"
+                    className={`tl-event tl-fixed-schedule ${hPx < 48 ? 'compact' : ''}`}
                     style={{
                       top: `${top}px`,
                       height: `${hPx}px`,
                       left: 0,
                       right: `${rightOffsetPx}px`,
-                      backgroundImage: 'linear-gradient(90deg, #ececef 0%, transparent 70%)',
-                      borderBottom: '2px solid rgba(142,142,147,0.6)',
+                      backgroundImage: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
                       borderRadius: 'min(12px, 50%)',
                     }}
                     onContextMenu={(e) => {
@@ -669,27 +668,16 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     }}
                     title="固定日程 · 右键管理"
                   >
-                    <div className="tl-event-line" style={{ background: 'rgba(142,142,147,0.7)' }} />
+                    <div className="tl-event-line" style={{ background: 'rgba(142,142,147,0.35)' }} />
                     <div className="tl-event-content" style={{ gap: '8px' }}>
                       <div className="tl-event-text">
-                        <div className="tl-event-title" style={{ color: '#6c6c70' }}>
+                        <div className="tl-event-title" style={{ color: '#8e8e93', fontWeight: '400' }}>
                           {item.emoji ? item.emoji + ' ' : ''}{item.title}
                         </div>
-                        <div className="tl-event-sub" style={{ color: '#8e8e93' }}>{subText}</div>
+                        {hPx >= 48 && (
+                          <div className="tl-event-sub" style={{ color: '#aeaeae' }}>{subText}</div>
+                        )}
                       </div>
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: '600',
-                          color: '#8e8e93',
-                          background: 'rgba(142,142,147,0.12)',
-                          borderRadius: '4px',
-                          padding: '1px 5px',
-                          flexShrink: 0,
-                          letterSpacing: '0.02em',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >每日</span>
                     </div>
                   </div>
                 );
@@ -1002,13 +990,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             fontSize: '12px',
             fontWeight: '500',
             color: '#8e8e93',
-            background: 'linear-gradient(90deg, #ececef 0%, transparent 80%)',
-            borderBottom: '2px solid rgba(142,142,147,0.6)',
+            background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
+            border: 'none',
             cursor: 'pointer',
             transition: 'all .15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#6c6c70'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#8e8e93'; }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#6c6c70'; e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.15) 0%, transparent 65%)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#8e8e93'; e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)'; }}
         >
           <span style={{ fontSize: '13px' }}>📌</span>
           固定日程

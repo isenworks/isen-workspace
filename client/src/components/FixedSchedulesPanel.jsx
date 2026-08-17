@@ -37,9 +37,8 @@ export default function FixedSchedulesPanel({ onEdit }) {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
         padding: '10px 12px',
-        background: 'linear-gradient(90deg, #ececef 0%, transparent 80%)',
+        background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
         borderRadius: '10px',
-        borderBottom: '2px solid rgba(142,142,147,0.6)',
       }}>
         <div style={{ fontSize: '12px', color: '#6c6c70', lineHeight: '1.5', flex: 1 }}>
           <span style={{ fontWeight: '600', color: '#007aff' }}>📌 固定日程</span>
@@ -78,9 +77,8 @@ export default function FixedSchedulesPanel({ onEdit }) {
         <div style={{
           padding: '32px 16px', textAlign: 'center',
           color: '#8e8e93', fontSize: '13px',
-          background: 'linear-gradient(90deg, #ececef 0%, transparent 80%)',
+          background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
           borderRadius: '10px',
-          borderBottom: '2px solid rgba(142,142,147,0.6)',
         }}>
           <div style={{ fontSize: '28px', marginBottom: '6px' }}>📌</div>
           还没有固定日程
@@ -97,13 +95,12 @@ export default function FixedSchedulesPanel({ onEdit }) {
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: 'linear-gradient(90deg, #ececef 0%, transparent 70%)',
-                  borderBottom: '2px solid rgba(142,142,147,0.5)',
+                  background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
                   cursor: 'pointer',
                   transition: 'all .15s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = '#007aff'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = '#c7c7cc'}
+                onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(90deg, rgba(0,122,255,0.08) 0%, transparent 65%)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)'; }}
                 onClick={() => onEdit?.(s)}
               >
                 <span style={{ fontSize: '18px', flexShrink: 0 }}>{s.emoji || '📌'}</span>

@@ -71,11 +71,12 @@ function isToday(dateStr) {
   return dateStr === getToday();
 }
 
-export default function Timeline({ date, view, range, refreshSignal, onEdit, onChange, onAdd }) {
+export default function Timeline({ date, view, range, refreshSignal, onEdit, onChange, onAdd, onManageFixedSchedules }) {
   const toast = useToast();
   const [schedules, setSchedules] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [habits, setHabits] = useState([]);
+  const [fixedSchedules, setFixedSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
   const inFlightRef = useRef(null);
@@ -112,7 +113,22 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     }).catch(e => { console.error(e); gate.done(); });
   }
 
+  // 固定日程：独立加载（与日期无关，每天重复）
+  function loadFixed() {
+    API.fixedSchedules.list().then(r => {
+      setFixedSchedules(r.fixedSchedules || []);
+    }).catch(e => {
+      // 表可能未创建（migration 未应用），静默处理
+      if (!String(e?.message || '').includes('does not exist') &&
+          !String(e?.message || '').includes('relation')) {
+        console.warn('fixed schedules load failed:', e?.message);
+      }
+      setFixedSchedules([]);
+    });
+  }
+
   useEffect(() => { load(); }, [range.from, range.to, date, refreshSignal]);
+  useEffect(() => { loadFixed(); }, [refreshSignal]);
 
   // 订阅 patch：其他面板 toggle 时即时同步，无需重新 load
   useEffect(() => store.subscribe(patch => {
@@ -125,6 +141,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     } else if (patch.type === 'reload') {
       cacheClear(cacheRef, 'tl:');
       load();
+      loadFixed();
       onChange?.();
     }
   }), []);
@@ -392,17 +409,27 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   // === Today 视图：绝对定位时间轴（1min=1px 精确映射） ===
   function renderTodayView() {
-    const todaySchedules = schedules.filter(s => s.date === date).map(s => ({ ...s, isHabit: false, isTask: false }));
-    const todayTasks = tasks.filter(t => t.date === date).map(t => ({ ...t, isHabit: false, isTask: true }));
+    const todaySchedules = schedules.filter(s => s.date === date).map(s => ({ ...s, isHabit: false, isTask: false, isFixed: false }));
+    const todayTasks = tasks.filter(t => t.date === date).map(t => ({ ...t, isHabit: false, isTask: true, isFixed: false }));
     const todayHabits = habits.map(h => ({
       ...h,
       isHabit: true,
       isTask: false,
+      isFixed: false,
       is_done: h.done_today ? 1 : 0,
       title: h.name,
       start_time: h.start_time || h.target_time,
       end_time: h.end_time,
       date: date
+    }));
+    // 固定日程：每天重复，仅时间线显示，不可打卡
+    const todayFixed = fixedSchedules.map(s => ({
+      ...s,
+      isHabit: false,
+      isTask: false,
+      isFixed: true,
+      title: s.name,
+      date: date,
     }));
 
     // 基准参数：06:00 – 24:00（18小时），每小时 60px → 高 1080px
@@ -466,7 +493,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       return { startMin: toMin(st), endMin: et ? toMin(et) : null, zeroRange: false };
     }
 
-    const timedItems = [...todaySchedules, ...todayHabits].filter(item => {
+    const timedItems = [...todaySchedules, ...todayHabits, ...todayFixed].filter(item => {
       const { startMin, zeroRange } = parseTimeRange(item);
       if (zeroRange || startMin == null) return false;
       const dur = getEffectiveDur(item);
@@ -499,9 +526,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       const top = toPx(startMin);
       const hPx = Math.max(22, (endMin - startMin) * PX_PER_MIN);
       const done = item.isHabit ? !!item.done_today : !!item.is_done;
-      const theme = getItemTheme(item);
-      const isSquareCheckbox = useSquareCheckbox(item);
-      const cat = getCat(item);
+      const theme = item.isFixed ? null : getItemTheme(item);
+      const isSquareCheckbox = item.isFixed ? false : useSquareCheckbox(item);
+      const cat = item.isFixed ? null : getCat(item);
 
       // 习惯（cat=4）按成长类型：精力=绿(4)、知力=蓝(6)、能力=金(7)
       let clsCat = cat;
@@ -528,11 +555,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       const endLabel = isOvernight ? fmtH(endMinRaw) : fmtH(endMinRaw);
       const subText = `${fmtH(displayStart)} – ${endLabel} · ${durTxt}`;
 
+      const prefix = item.isFixed ? 'f' : (item.isHabit ? 'h' : 's');
+
       return {
         item,
         startMin, endMin, top, hPx, done,
         theme, isSquareCheckbox, clsCat, subText,
-        id: (item.isHabit ? 'h' : 's') + '-' + item.id
+        isFixed: !!item.isFixed,
+        id: prefix + '-' + item.id
       };
     });
 
@@ -615,7 +645,52 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
             {/* 事件色块（绝对定位） */}
             {events.map(ev => {
-              const { item, done, theme, isSquareCheckbox, clsCat, subText, top, hPx, rightOffsetPx } = ev;
+              const { item, done, theme, isSquareCheckbox, clsCat, subText, top, hPx, rightOffsetPx, isFixed } = ev;
+
+              // === 固定日程：斜条纹灰底 + 虚线边框 + 无复选框/小圆点 ===
+              if (isFixed) {
+                return (
+                  <div
+                    key={ev.id}
+                    className="tl-event tl-fixed-schedule"
+                    style={{
+                      top: `${top}px`,
+                      height: `${hPx}px`,
+                      left: 0,
+                      right: `${rightOffsetPx}px`,
+                      backgroundImage: 'repeating-linear-gradient(45deg, rgba(142,142,147,0.12) 0, rgba(142,142,147,0.12) 8px, transparent 8px, transparent 16px)',
+                      backgroundColor: 'rgba(245,245,247,0.6)',
+                      border: '1px dashed rgba(142,142,147,0.55)',
+                      borderRadius: '10px',
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onManageFixedSchedules?.();
+                    }}
+                    title="固定日程 · 右键管理"
+                  >
+                    <div className="tl-event-line" style={{ background: 'rgba(142,142,147,0.55)' }} />
+                    <div className="tl-event-content">
+                      <div className="tl-event-text">
+                        <div className="tl-event-title" style={{ color: '#6c6c70' }}>
+                          {item.emoji ? item.emoji + ' ' : ''}{item.title}
+                        </div>
+                        <div className="tl-event-sub" style={{ color: '#8e8e93' }}>{subText}</div>
+                      </div>
+                      <span
+                        className="tl-fixed-pin"
+                        title="固定日程"
+                        style={{
+                          fontSize: '12px', color: '#8e8e93', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >📌</span>
+                    </div>
+                  </div>
+                );
+              }
+
               const cbClass = isSquareCheckbox ? 'cb-square' : 'cb-round';
               const cbStyle = { '--cb-color': theme.doneColor, '--cb-border': done ? theme.doneColor : theme.borderColor };
               const dotClass = isSquareCheckbox ? 'r2' : 'rfull';
@@ -913,6 +988,27 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           <span className="section-accent" style={{background:'#007aff'}}></span>
           <h3 className="section-title">{titleText}</h3>
         </div>
+        <button
+          onClick={() => onManageFixedSchedules?.()}
+          title="管理固定日程"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '4px',
+            padding: '5px 10px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: '#6c6c70',
+            background: 'repeating-linear-gradient(45deg, rgba(142,142,147,0.08) 0, rgba(142,142,147,0.08) 5px, transparent 5px, transparent 10px)',
+            border: '1px dashed rgba(142,142,147,0.35)',
+            cursor: 'pointer',
+            transition: 'all .15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#007aff'; e.currentTarget.style.color = '#007aff'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(142,142,147,0.35)'; e.currentTarget.style.color = '#6c6c70'; }}
+        >
+          <span style={{ fontSize: '13px' }}>📌</span>
+          固定日程
+        </button>
       </div>
 
       <div className="overflow-visible">

@@ -12,6 +12,8 @@ import Modal from '../components/Modal.jsx';
 import ScheduleForm from '../components/forms/ScheduleForm.jsx';
 import TaskForm from '../components/forms/TaskForm.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
+import FixedScheduleForm from '../components/forms/FixedScheduleForm.jsx';
+import FixedSchedulesPanel from '../components/FixedSchedulesPanel.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
 import { API } from '../api/client.js';
 import SettingsModal from '../components/SettingsModal.jsx';
@@ -438,6 +440,7 @@ export default function Workspace({ user: propUser }) {
                 refreshSignal={refreshKey}
                 onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
                 onAdd={(info) => setModal({ type: 'schedule', data: { start_time: info.start_time } })}
+                onManageFixedSchedules={() => setModal({ type: 'fixedSchedules' })}
                 onChange={refresh}
               />
             )}
@@ -453,6 +456,8 @@ export default function Workspace({ user: propUser }) {
           : modal.type === 'summary' ? '每日总结'
           : modal.type === 'schedule' ? (modal.data?.id ? '编辑事项' : '新建事项')
           : modal.type === 'habit' ? (modal.data?.id ? '编辑习惯' : '新建习惯')
+          : modal.type === 'fixedSchedules' ? '固定日程管理'
+          : modal.type === 'fixedSchedule' ? (modal.data?.id ? '编辑固定日程' : '新建固定日程')
           : (modal.data?.id ? '编辑待办' : '新建待办')
         }
       >
@@ -477,6 +482,18 @@ export default function Workspace({ user: propUser }) {
             initial={modal?.data}
             onSaved={() => { setModal(null); refresh(); }}
             onCancel={() => setModal(null)}
+          />
+        )}
+        {modal?.type === 'fixedSchedules' && (
+          <FixedSchedulesPanel
+            onEdit={(data) => setModal({ type: 'fixedSchedule', data })}
+          />
+        )}
+        {modal?.type === 'fixedSchedule' && (
+          <FixedScheduleForm
+            initial={modal?.data}
+            onSaved={() => { setModal({ type: 'fixedSchedules' }); refresh(); }}
+            onCancel={() => setModal({ type: 'fixedSchedules' })}
           />
         )}
 

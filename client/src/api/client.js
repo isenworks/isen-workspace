@@ -598,6 +598,61 @@ export const API = {
     },
   },
 
+  // 固定日程（时间线每日重复提醒，不进重点/习惯面板，不可打卡）
+  fixedSchedules: {
+    async list() {
+      const userId = await uid();
+      const data = await wrap(supabase
+        .from('ethan_fixed_schedules')
+        .select('*')
+        .eq('user_id', userId)
+        .order('sort_order')
+        .order('id'));
+      return { fixedSchedules: data };
+    },
+
+    async create(data) {
+      const userId = await uid();
+      const row = await wrap(supabase
+        .from('ethan_fixed_schedules')
+        .insert({
+          user_id: userId,
+          name: data.name,
+          emoji: data.emoji || '📌',
+          start_time: data.startTime,
+          end_time: data.endTime,
+          sort_order: data.sortOrder || 0,
+        })
+        .select()
+        .single());
+      return { fixedSchedule: row };
+    },
+
+    async update(id, data) {
+      const update = {};
+      if (data.name !== undefined) update.name = data.name;
+      if (data.emoji !== undefined) update.emoji = data.emoji;
+      if (data.startTime !== undefined) update.start_time = data.startTime;
+      if (data.endTime !== undefined) update.end_time = data.endTime;
+      if (data.sortOrder !== undefined) update.sort_order = data.sortOrder;
+      const row = await wrap(supabase
+        .from('ethan_fixed_schedules')
+        .update(update)
+        .eq('id', id)
+        .select()
+        .single());
+      return { fixedSchedule: row };
+    },
+
+    async remove(id) {
+      await wrap(supabase
+        .from('ethan_fixed_schedules')
+        .delete()
+        .eq('id', id));
+      return { ok: true };
+    },
+  },
+
   summaries: {
     async get(date) {
       const { data, error } = await supabase

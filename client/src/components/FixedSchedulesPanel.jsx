@@ -37,9 +37,9 @@ export default function FixedSchedulesPanel({ onEdit }) {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
         padding: '10px 12px',
-        background: 'linear-gradient(90deg, rgba(0,122,255,0.06) 0%, transparent 80%)',
+        background: 'linear-gradient(90deg, #ececef 0%, transparent 80%)',
         borderRadius: '10px',
-        border: '1px solid rgba(0,122,255,0.12)',
+        borderBottom: '2px solid rgba(142,142,147,0.6)',
       }}>
         <div style={{ fontSize: '12px', color: '#6c6c70', lineHeight: '1.5', flex: 1 }}>
           <span style={{ fontWeight: '600', color: '#007aff' }}>📌 固定日程</span>
@@ -78,9 +78,9 @@ export default function FixedSchedulesPanel({ onEdit }) {
         <div style={{
           padding: '32px 16px', textAlign: 'center',
           color: '#8e8e93', fontSize: '13px',
-          background: 'repeating-linear-gradient(45deg, #f5f5f7 0, #f5f5f7 10px, #fff 10px, #fff 20px)',
+          background: 'linear-gradient(90deg, #ececef 0%, transparent 80%)',
           borderRadius: '10px',
-          border: '1px dashed #d1d1d6',
+          borderBottom: '2px solid rgba(142,142,147,0.6)',
         }}>
           <div style={{ fontSize: '28px', marginBottom: '6px' }}>📌</div>
           还没有固定日程
@@ -97,8 +97,8 @@ export default function FixedSchedulesPanel({ onEdit }) {
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: 'repeating-linear-gradient(45deg, #f5f5f7 0, #f5f5f7 8px, #fff 8px, #fff 16px)',
-                  border: '1px dashed #c7c7cc',
+                  background: 'linear-gradient(90deg, #ececef 0%, transparent 70%)',
+                  borderBottom: '2px solid rgba(142,142,147,0.5)',
                   cursor: 'pointer',
                   transition: 'all .15s',
                 }}

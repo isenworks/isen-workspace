@@ -57,3 +57,7 @@ drop trigger if exists ethan_fixed_schedules_updated_at on public.ethan_fixed_sc
 create trigger ethan_fixed_schedules_updated_at
   before update on public.ethan_fixed_schedules
   for each row execute function public.ethan_fixed_schedules_set_updated_at();
+
+-- 授权：authenticated 角色可 CRUD（RLS 策略控制行级访问）
+grant select, insert, update, delete on public.ethan_fixed_schedules to authenticated;
+grant usage, select on all sequences in schema public to authenticated;

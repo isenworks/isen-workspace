@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>习惯数据看板 · 设计 Demo v3</title>
+<style>
+  :root {
+    --bg-gradient: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    --text-primary: #1c1c1e;
+    --text-secondary: #6c6c70;
+    --text-tertiary: #8e8e93;
+    --text-quaternary: #aeaeae;
+    --border-light: rgba(60,60,67,0.08);
+    --border-medium: rgba(60,60,67,0.12);
+    --glass-bg: rgba(255,255,255,0.72);
+    --glass-border: rgba(255,255,255,0.6);
+    --glass-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+    --radius-card: 18px;
+    --radius-medium: 12px;
+    --radius-small: 9px;
+    --radius-tiny: 6px;
+
+    --energy: #34c759;   --energy-bg: #e5f6ea;   --energy-soft: rgba(52,199,89,0.1);
+    --mind: #007aff;     --mind-bg: #e0ecff;     --mind-soft: rgba(0,122,255,0.1);
+    --skill: #d4a017;    --skill-bg: #fbf3d8;    --skill-soft: rgba(212,160,23,0.12);
+    --warn: #ff9500;
+    --danger: #ff3b30;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    font-family: -apple-system, "SF Pro Text", "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 28px 24px;
+  }
+
+  .container { max-width: 1080px; margin: 0 auto; }
+
+  /* ============ 玻璃卡片 ============ */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--glass-shadow);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+
+  /* ============ 顶部栏 ============ */
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px; gap: 12px;
+  }
+  .top-bar h1 {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .top-bar h1 .accent {
+    width: 4px; height: 20px; border-radius: 2px;
+    background: linear-gradient(180deg, #007aff, #34c759);
+  }
+  .top-bar-actions { display: flex; align-items: center; gap: 12px; }
+
+  /* 视图切换 - 沿用工作台 .tab-group 样式 */
+  .view-tabs {
+    display: inline-flex; background: rgba(120,120,128,0.12);
+    border-radius: 9px; padding: 2px;
+  }
+  .view-tabs button {
+    padding: 5px 14px; font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); border-radius: 7px;
+    transition: all .2s; border: none; background: transparent; cursor: pointer;
+  }
+  .view-tabs button.active {
+    background: #007aff; color: #fff; font-weight: 600;
+    box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
+  }
+
+  /* 月份导航 */
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .month-title { font-size: 15px; font-weight: 600; min-width: 110px; text-align: center; }
+  .nav-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: none; background: rgba(120,120,128,0.12);
+    color: var(--text-secondary); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .nav-btn:hover { background: rgba(120,120,128,0.22); }
+  .nav-btn svg { width: 13px; height: 13px; }
+
+  /* ============ 统计概览 ============ */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card {
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-medium);
+    padding: 12px 14px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .stat-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 2px; }
+  .stat-value .unit { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }
+  .stat-trend { font-size: 10px; margin-top: 3px; color: var(--text-tertiary); display: flex; align-items: center; gap: 3px; }
+  .stat-trend.up { color: var(--energy); }
+  .stat-trend.down { color: var(--danger); }
+
+  /* ============ 章节标题 ============ */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; color: var(--text-primary);
+  }
+  .section-title .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--mind);
+  }
+  .section-sub { font-size: 11px; color: var(--text-tertiary); }
+
+  /* 添加按钮 */
+  .btn-add {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 10px; border-radius: 7px;
+    font-size: 12px; font-weight: 500;
+    color: var(--mind); background: var(--mind-soft);
+    border: none; cursor: pointer; transition: all .15s;
+  }
+  .btn-add:hover { background: rgba(0,122,255,0.18); }
+  .btn-add svg { width: 12px; height: 12px; }
+
+  /* ============ 两列布局 ============ */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 16px;
+  }
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* ============ 目标卡片 ============ */
+  .goal-list { display: flex; flex-direction: column; gap: 8px; }
+  .goal-item {
+    padding: 12px 14px;
+    border-radius: var(--radius-small);
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--border-light);
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .goal-item:hover {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(0,122,255,0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+
+  .goal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .goal-title-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+  .goal-emoji { font-size: 16px; flex-shrink: 0; }
+  .goal-title {
+    font-size: 13px; font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .goal-type-tag {
+    font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+    letter-spacing: 0.03em; flex-shrink: 0;
+  }
+  .goal-type-tag.energy { color: var(--energy); background: var(--energy-soft); }
+  .goal-type-tag.mind { color: var(--mind); background: var(--mind-soft); }
+  .goal-type-tag.skill { color: var(--skill); background: var(--skill-soft); }
+
+  .goal-percent {
+    font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
+    min-width: 40px; text-align: right;
+  }
+  .goal-percent.done { color: var(--energy); }
+  .goal-percent.warning { color: var(--warn); }
+  .goal-percent.danger { color: var(--danger); }
+
+  /* 进度条 */
+  .progress-bar {
+    height: 5px; border-radius: 3px;
+    background: rgba(120,120,128,0.12);
+    overflow: hidden; position: relative;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 3px;
+    transition: width .5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    background: var(--mind);
+  }
+  .progress-fill.energy { background: linear-gradient(90deg, var(--energy), #2bb24c); }
+  .progress-fill.mind { background: linear-gradient(90deg, var(--mind), #0066d6); }
+  .progress-fill.skill { background: linear-gradient(90deg, var(--skill), #b88a0c); }
+  .progress-fill.warn { background: linear-gradient(90deg, var(--warn), #e07d00); }
+  .progress-fill.danger { background: linear-gradient(90deg, var(--danger), #cc2f26); }
+
+  .goal-meta {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--text-tertiary); margin-top: 5px;
+  }
+
+  /* ============ 月历卡片（重新设计） ============ */
+  .calendar-card { padding: 18px 20px; }
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-weekday {
+    text-align: center; font-size: 10px; font-weight: 600;
+    color: var(--text-tertiary); padding: 6px 0; letter-spacing: 0.05em;
+  }
+  .cal-weekday.weekend { color: var(--warn); opacity: 0.7; }
+  .cal-day {
+    aspect-ratio: 1; min-height: 50px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.4);
+    padding: 6px 6px 4px;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    transition: all .15s;
+    border: 1.5px solid transparent;
+    position: relative;
+  }
+  .cal-day.empty { background: transparent; cursor: default; }
+  .cal-day:hover:not(.empty):not(.future) {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(0,122,255,0.3);
+    transform: scale(1.03);
+    z-index: 2;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+  .cal-day.today {
+    background: var(--mind-soft);
+    border-color: var(--mind);
+  }
+  .cal-day.future { opacity: 0.45; }
+  .cal-day.selected {
+    background: var(--mind);
+    border-color: var(--mind);
+  }
+  .cal-day.selected .cal-day-num,
+  .cal-day.selected .cal-day-dots .dot { color: #fff !important; }
+
+  .cal-day-num {
+    font-size: 13px; font-weight: 500; color: var(--text-primary);
+    line-height: 1;
+  }
+  .cal-day.today .cal-day-num { color: var(--mind); font-weight: 700; }
+  .cal-day.future .cal-day-num { color: var(--text-quaternary); }
+
+  .cal-day-dots {
+    margin-top: auto;
+    display: flex; flex-wrap: wrap; gap: 2px;
+  }
+  .cal-day-dots .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+  }
+  .cal-day-dots .dot.energy { background: var(--energy); }
+  .cal-day-dots .dot.mind { background: var(--mind); }
+  .cal-day-dots .dot.skill { background: var(--skill); }
+  .cal-day-dots .dot.missed { background: rgba(255,59,48,0.4); }
+
+  .cal-day-summary {
+    font-size: 9px; color: var(--text-quaternary);
+    margin-top: 2px; font-weight: 500;
+  }
+  .cal-day.today .cal-day-summary { color: var(--mind); font-weight: 600; }
+
+  /* ============ 习惯矩阵（紧凑版） ============ */
+  .habits-matrix {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .matrix-row {
+    display: grid;
+    grid-template-columns: 130px repeat(var(--days), 1fr) 60px;
+    gap: 2px; align-items: center;
+    padding: 4px 0; border-radius: 8px;
+    transition: background .12s;
+  }
+  .matrix-row:hover { background: rgba(120,120,128,0.04); }
+
+  .matrix-habit {
+    display: flex; align-items: center; gap: 7px;
+    padding: 2px 6px 2px 4px; min-width: 0;
+  }
+  .matrix-emoji {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+    background: rgba(255,255,255,0.7); border: 1px solid var(--border-light);
+  }
+  .matrix-emoji.energy { background: linear-gradient(135deg, var(--energy-bg), #fff); border-color: rgba(52,199,89,0.2); }
+  .matrix-emoji.mind { background: linear-gradient(135deg, var(--mind-bg), #fff); border-color: rgba(0,122,255,0.2); }
+  .matrix-emoji.skill { background: linear-gradient(135deg, var(--skill-bg), #fff); border-color: rgba(212,160,23,0.2); }
+
+  .matrix-name {
+    font-size: 12px; font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .matrix-cell {
+    width: 100%; aspect-ratio: 1; max-width: 18px; max-height: 18px;
+    margin: 0 auto; border-radius: 50%;
+    border: 1.5px solid rgba(120,120,128,0.2);
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+    position: relative;
+  }
+  .matrix-cell:hover { border-color: var(--mind); transform: scale(1.2); }
+  .matrix-cell.future { visibility: hidden; pointer-events: none; }
+  .matrix-cell.today { box-shadow: 0 0 0 1.5px var(--mind); }
+  .matrix-cell.done { background: var(--c, var(--mind)); border-color: var(--c, var(--mind)); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .matrix-cell.done::after {
+    content: ""; width: 4px; height: 7px;
+    border: solid #fff; border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg) translate(-0.5px, -0.5px);
+    margin-top: -1px;
+  }
+  .matrix-cell.done.energy { --c: var(--energy); }
+  .matrix-cell.done.mind { --c: var(--mind); }
+  .matrix-cell.done.skill { --c: var(--skill); }
+
+  .matrix-stat {
+    text-align: center; font-size: 10px;
+    color: var(--text-tertiary); font-weight: 500;
+  }
+  .matrix-stat b { color: var(--text-primary); font-weight: 600; }
+
+  /* ============ 周视图：每日卡片 ============ */
+  .week-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  .day-card {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-medium);
+    padding: 12px 10px;
+    cursor: pointer;
+    transition: all .15s;
+    min-height: 180px;
+    display: flex; flex-direction: column;
+  }
+  .day-card:hover {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(0,122,255,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  }
+  .day-card.today {
+    background: var(--mind-soft);
+    border-color: var(--mind);
+  }
+  .day-card.future { opacity: 0.6; }
+  .day-card.past { opacity: 0.85; }
+
+  .day-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .day-card-num {
+    font-size: 20px; font-weight: 600; letter-spacing: -0.02em;
+  }
+  .day-card.today .day-card-num { color: var(--mind); }
+  .day-card-weekday {
+    font-size: 10px; font-weight: 600; color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+  }
+  .day-card.today .day-card-weekday { color: var(--mind); }
+  .day-card-weekday.weekend { color: var(--warn); }
+
+  .day-card-habits {
+    display: flex; flex-direction: column; gap: 4px;
+    flex: 1;
+  }
+  .day-habit-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px;
+  }
+  .day-habit-circle {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1.5px solid rgba(120,120,128,0.25);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .12s;
+  }
+  .day-habit-circle:hover { transform: scale(1.2); }
+  .day-habit-circle.done { background: var(--c); border-color: var(--c); }
+  .day-habit-circle.done::after {
+    content: ""; width: 3px; height: 6px;
+    border: solid #fff; border-width: 0 1.2px 1.2px 0;
+    transform: rotate(45deg);
+  }
+  .day-habit-circle.done.energy { --c: var(--energy); }
+  .day-habit-circle.done.mind { --c: var(--mind); }
+  .day-habit-circle.done.skill { --c: var(--skill); }
+  .day-habit-name {
+    color: var(--text-secondary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1;
+  }
+  .day-habit-row.done .day-habit-name { color: var(--text-tertiary); text-decoration: line-through; }
+
+  .day-card-summary {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--border-medium);
+    font-size: 10px; color: var(--text-tertiary);
+    display: flex; justify-content: space-between;
+  }
+  .day-card-summary b { color: var(--text-primary); }
+
+  /* ============ 计划列表 ============ */
+  .plan-list {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .plan-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--radius-small);
+    background: rgba(255,255,255,0.5);
+    border: 1px solid var(--border-light);
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .plan-item:hover {
+    background: rgba(255,255,255,0.85);
+    transform: translateX(2px);
+  }
+  .plan-item.done { opacity: 0.6; }
+  .plan-item.done .plan-text { text-decoration: line-through; color: var(--text-tertiary); }
+
+  .plan-check {
+    width: 16px; height: 16px; border-radius: 5px;
+    border: 1.5px solid rgba(120,120,128,0.3);
+    cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .plan-check:hover { border-color: var(--mind); }
+  .plan-check.done { background: var(--mind); border-color: var(--mind); }
+  .plan-check.done::after {
+    content: ""; width: 4px; height: 7px;
+    border: solid #fff; border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg) translate(-0.5px, -0.5px);
+    margin-top: -1px;
+  }
+  .plan-text {
+    font-size: 12px; flex: 1; color: var(--text-primary);
+  }
+  .plan-meta {
+    font-size: 10px; color: var(--text-tertiary);
+  }
+
+  /* ============ Modal 风格弹窗 ============ */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 50;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: saturate(180%) blur(30px);
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: var(--radius-card);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    padding: 22px 24px;
+    width: 380px; max-width: 92vw;
+    animation: modalIn .2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+  .modal-row { margin-bottom: 12px; }
+  .modal-label {
+    display: block; font-size: 10px; font-weight: 600;
+    color: var(--text-tertiary); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 5px;
+  }
+  .modal-input, .modal-select {
+    width: 100%; padding: 8px 12px;
+    border: 1px solid #d1d1d6; border-radius: 9px;
+    font-size: 13px; background: #fff;
+    outline: none; transition: all .15s;
+    font-family: inherit;
+  }
+  .modal-input:focus, .modal-select:focus {
+    border-color: var(--mind); box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+  }
+  .modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+    margin-top: 16px;
+  }
+  .btn {
+    padding: 6px 14px; border-radius: 9px;
+    font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer; transition: all .15s;
+    font-family: inherit;
+  }
+  .btn-ghost { background: rgba(120,120,128,0.12); color: var(--text-primary); }
+  .btn-ghost:hover { background: rgba(120,120,128,0.2); }
+  .btn-primary { background: var(--mind); color: #fff; box-shadow: 0 3px 8px rgba(0,122,255,0.25); }
+  .btn-primary:hover { background: #0066d6; }
+
+  /* ============ Tooltip ============ */
+  .tooltip {
+    position: fixed; z-index: 100;
+    background: rgba(28,28,30,0.94);
+    backdrop-filter: blur(12px);
+    color: #fff; font-size: 11px; font-weight: 500;
+    padding: 6px 10px; border-radius: 7px;
+    pointer-events: none; opacity: 0;
+    transition: opacity .12s; white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .tooltip.show { opacity: 1; }
+
+  /* ============ 设计说明 ============ */
+  .notes {
+    background: rgba(0,122,255,0.04);
+    border: 1px solid rgba(0,122,255,0.1);
+    border-radius: var(--radius-medium);
+    padding: 14px 16px;
+    font-size: 12px; color: var(--text-secondary); line-height: 1.6;
+  }
+  .notes b { color: var(--mind); }
+  .notes ul { padding-left: 16px; margin-top: 4px; }
+  .notes li { margin-bottom: 2px; }
+
+  /* ============ 视图切换动画 ============ */
+  .view { display: none; }
+  .view.active { display: block; animation: viewIn .25s ease; }
+  @keyframes viewIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 周视图样式覆盖 */
+  .week-matrix { --days: 7; }
+  .month-matrix { --days: 31; }
+
+  /* ============ 年度视图 ============ */
+  .year-months-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 900px) {
+    .year-months-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 540px) {
+    .year-months-grid { grid-template-columns: 1fr; }
+  }
+
+  .month-card {
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-medium);
+    padding: 14px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex; flex-direction: column;
+  }
+  .month-card:hover {
+    background: rgba(255,255,255,0.9);
+    border-color: rgba(0,122,255,0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  }
+  .month-card.current {
+    background: var(--mind-soft);
+    border-color: var(--mind);
+  }
+  .month-card.future { opacity: 0.55; }
+
+  .month-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .month-card-name {
+    font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .month-card.current .month-card-name { color: var(--mind); }
+  .month-card-rate {
+    font-size: 12px; font-weight: 700;
+    padding: 2px 7px; border-radius: 6px;
+    background: rgba(120,120,128,0.12);
+    color: var(--text-primary);
+  }
+  .month-card-rate.high { background: var(--energy-soft); color: var(--energy); }
+  .month-card-rate.mid { background: rgba(255,149,0,0.12); color: var(--warn); }
+  .month-card-rate.low { background: rgba(255,59,48,0.1); color: var(--danger); }
+
+  /* 月内热力图（7列x 5-6行） */
+  .month-heatmap {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  .month-heatmap .cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    background: rgba(120,120,128,0.08);
+  }
+  .month-heatmap .cell.empty { background: transparent; }
+  .month-heatmap .cell.lvl-1 { background: rgba(52,199,89,0.2); }
+  .month-heatmap .cell.lvl-2 { background: rgba(52,199,89,0.45); }
+  .month-heatmap .cell.lvl-3 { background: rgba(52,199,89,0.75); }
+  .month-heatmap .cell.lvl-4 { background: rgba(52,199,89,0.95); }
+  .month-heatmap .cell.missed { background: rgba(255,59,48,0.15); }
+  .month-heatmap .cell.today { box-shadow: 0 0 0 1.2px var(--mind); }
+
+  .month-card-stats {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--text-tertiary);
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-medium);
+  }
+  .month-card-stats b { color: var(--text-primary); font-weight: 600; }
+
+  /* 年度目标统计概览：4 列变 4 列加强 */
+  .year-overview-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ============ 顶部栏 ============ -->
+  <div class="top-bar">
+    <h1><span class="accent"></span>数据看板</h1>
+    <div class="top-bar-actions">
+      <div class="view-tabs">
+        <button class="active" data-view="month">月度</button>
+        <button data-view="week">周度</button>
+        <button data-view="year">年度</button>
+      </div>
+      <div class="month-nav">
+        <button class="nav-btn" id="prev">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="month-title" id="period-title">2026 年 8 月</div>
+        <button class="nav-btn" id="next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 统计概览 ============ -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">习惯打卡</div>
+      <div class="stat-value" id="stat-habits">87<span class="unit">/ 124</span></div>
+      <div class="stat-trend up">↑ 较上月 +12</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">完成率</div>
+      <div class="stat-value" id="stat-rate">70<span class="unit">%</span></div>
+      <div class="stat-trend up">↑ +8%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最长连续</div>
+      <div class="stat-value">23<span class="unit">天</span></div>
+      <div class="stat-trend">🏃 晨跑</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" id="stat-today-label">今日完成</div>
+      <div class="stat-value" id="stat-today">4<span class="unit">/ 6</span></div>
+      <div class="stat-trend up">进行中</div>
+    </div>
+  </div>
+
+  <!-- ============ 月度视图 ============ -->
+  <div class="view active" id="view-month">
+    <div class="two-col">
+      <!-- 左侧：月度目标 + 月历 -->
+      <div>
+        <!-- 月度目标 -->
+        <div class="glass-card">
+          <div class="section-header">
+            <div class="section-title"><span class="dot"></span>月度目标</div>
+            <button class="btn-add" onclick="openModal('goal')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              添加目标
+            </button>
+          </div>
+          <div class="goal-list" id="month-goals"></div>
+        </div>
+
+        <!-- 月历总览 -->
+        <div class="glass-card calendar-card">
+          <div class="section-header">
+            <div class="section-title"><span class="dot" style="background:var(--skill)"></span>月历总览</div>
+            <span class="section-sub">点击日期查看详情</span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+      </div>
+
+      <!-- 右侧：习惯打卡矩阵 -->
+      <div class="glass-card">
+        <div class="section-header">
+          <div class="section-title"><span class="dot" style="background:var(--energy)"></span>习惯打卡</div>
+          <span class="section-sub">点击圆圈切换打卡</span>
+        </div>
+        <div class="habits-matrix month-matrix" id="habits-matrix-month"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 周度视图 ============ -->
+  <div class="view" id="view-week">
+    <!-- 本周目标 -->
+    <div class="glass-card">
+      <div class="section-header">
+        <div class="section-title"><span class="dot"></span>本周计划</div>
+        <button class="btn-add" onclick="openModal('plan')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          添加计划
+        </button>
+      </div>
+      <div class="plan-list" id="week-plans"></div>
+    </div>
+
+    <!-- 本周日历卡片 -->
+    <div class="glass-card">
+      <div class="section-header">
+        <div class="section-title"><span class="dot" style="background:var(--skill)"></span>每日详情</div>
+        <span class="section-sub">点击圆圈切换打卡</span>
+      </div>
+      <div class="week-days-grid" id="week-days"></div>
+    </div>
+  </div>
+
+  <!-- ============ 年度视图 ============ -->
+  <div class="view" id="view-year">
+    <!-- 年度目标总览 -->
+    <div class="glass-card">
+      <div class="section-header">
+        <div class="section-title"><span class="dot"></span>年度目标</div>
+        <button class="btn-add" onclick="openModal('goal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          添加年度目标
+        </button>
+      </div>
+      <div class="goal-list" id="year-goals"></div>
+    </div>
+
+    <!-- 12 个月份热力图卡片 -->
+    <div class="glass-card">
+      <div class="section-header">
+        <div class="section-title"><span class="dot" style="background:var(--skill)"></span>全年节奏</div>
+        <span class="section-sub">点击月份查看详情</span>
+      </div>
+      <div class="year-months-grid" id="year-months"></div>
+    </div>
+  </div>
+
+  <!-- ============ 设计说明 ============ -->
+  <div class="notes">
+    <b>设计说明 v3（三视图）</b>
+    <ul>
+      <li><b>三视图切换</b>：年度（12 月热力图概览）/ 月度（目标+月历+习惯矩阵）/ 周度（计划+每日详情卡片）</li>
+      <li><b>年度视图</b>：4×3 月份卡片网格，每张卡片含当月迷你热力图（4 级强度）+ 完成率徽章，点击跳转月度视图</li>
+      <li><b>月历重新设计</b>：从横条改为传统 7×5 月历网格，每个日期格内显示习惯完成度小圆点（按成长类型色），今日蓝色高亮</li>
+      <li><b>目标进度可视化</b>：渐变进度条 + 百分比数字，颜色按完成率自动切换（绿→蓝→橙→红）</li>
+      <li><b>周度每日卡片</b>：7 个并排日卡，每张显示当天所有习惯的打卡状态 + 完成摘要</li>
+      <li><b>计划制定</b>：年度目标 + 月度目标 + 周度计划，通过模态弹窗添加（复用工作台 Modal 样式）</li>
+      <li><b>交互一致</b>：圆圈点击切换、hover tooltip、玻璃卡片、按钮风格全部沿用工作台设计规范</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- ============ 模态弹窗 ============ -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">添加目标</div>
+    <div class="modal-row">
+      <label class="modal-label">名称</label>
+      <input type="text" class="modal-input" id="modal-name" placeholder="例如：晨跑 25 天">
+    </div>
+    <div class="modal-row">
+      <label class="modal-label">类型</label>
+      <select class="modal-select" id="modal-type">
+        <option value="energy">精力型</option>
+        <option value="mind">知力型</option>
+        <option value="skill">能力型</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <label class="modal-label">目标值</label>
+      <input type="number" class="modal-input" id="modal-target" placeholder="例如：25" min="1">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+  // ============ 数据 ============
+  const TODAY = 17;
+  const DAYS_IN_MONTH = 31;
+  const YEAR = 2026, MONTH = 7; // JS Month 0-indexed
+
+  const HABITS = [
+    { id: 1, emoji: '🏃', name: '晨跑 5km', type: 'energy', typeLabel: '精力', target: 25,
+      data: [1,1,1,1,0,1,1, 1,1,1,1,0,1,1, 1,1,1,0,1,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id: 2, emoji: '💧', name: '喝水 2L', type: 'energy', typeLabel: '精力', target: 31,
+      data: [1,1,1,1,1,1,1, 1,1,1,1,1,1,1, 1,1,1,1,1,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id: 3, emoji: '📖', name: '阅读 30分钟', type: 'mind', typeLabel: '知力', target: 25,
+      data: [0,1,1,1,1,1,1, 1,1,1,0,1,1,1, 1,1,1,1,1,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id: 4, emoji: '🧠', name: '背单词 50个', type: 'mind', typeLabel: '知力', target: 31,
+      data: [1,0,1,1,1,0,1, 1,1,0,1,1,1,1, 0,1,1,1,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id: 5, emoji: '🗣️', name: '英语口语', type: 'skill', typeLabel: '能力', target: 25,
+      data: [1,1,0,1,1,1,0, 1,1,1,1,0,1,1, 1,0,1,1,1,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id: 6, emoji: '😴', name: '23:00前睡', type: 'energy', typeLabel: '精力', target: 31,
+      data: [0,0,1,0,0,1,0, 1,0,0,1,0,0,1, 0,0,1,0,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+  ];
+
+  // 月度目标
+  const MONTH_GOALS = [
+    { id: 1, emoji: '🏃', name: '晨跑 25 天', type: 'energy', current: 14, target: 25 },
+    { id: 2, emoji: '📖', name: '阅读 25 天', type: 'mind', current: 12, target: 25 },
+    { id: 3, emoji: '🗣️', name: '英语口语 20 天', type: 'skill', current: 11, target: 20 },
+    { id: 4, emoji: '🧠', name: '背单词 30 天', type: 'mind', current: 11, target: 30 },
+  ];
+
+  // 年度目标
+  const YEAR_GOALS = [
+    { id: 1, emoji: '🏃', name: '全年晨跑 300 天', type: 'energy', current: 187, target: 300 },
+    { id: 2, emoji: '📖', name: '阅读 100 本书', type: 'mind', current: 42, target: 100 },
+    { id: 3, emoji: '🗣️', name: '英语口语 250 天', type: 'skill', current: 156, target: 250 },
+    { id: 4, emoji: '😴', name: '早睡 280 天', type: 'energy', current: 124, target: 280 },
+  ];
+
+  // 模拟全年每月数据（1-12月）
+  // 每月数据：[完成天数, 缺卡天数, 总目标天数]
+  const YEAR_MONTH_DATA = [
+    { month: 1,  done: 95,  missed: 3, target: 124, days: 31 },
+    { month: 2,  done: 82,  missed: 5, target: 112, days: 28 },
+    { month: 3,  done: 105, missed: 2, target: 124, days: 31 },
+    { month: 4,  done: 98,  missed: 4, target: 120, days: 30 },
+    { month: 5,  done: 110, missed: 1, target: 124, days: 31 },
+    { month: 6,  done: 92,  missed: 6, target: 120, days: 30 },
+    { month: 7,  done: 118, missed: 2, target: 124, days: 31 },
+    { month: 8,  done: 87,  missed: 3, target: 124, days: 31, current: true }, // 8月当前
+    { month: 9,  done: 0,   missed: 0, target: 120, days: 30, future: true },
+    { month: 10, done: 0,   missed: 0, target: 124, days: 31, future: true },
+    { month: 11, done: 0,   missed: 0, target: 120, days: 30, future: true },
+    { month: 12, done: 0,   missed: 0, target: 124, days: 31, future: true },
+  ];
+
+  // 生成本月每日强度数据（用于年度视图的迷你热力图）
+  function genMonthIntensity(monthIdx) {
+    const data = YEAR_MONTH_DATA[monthIdx];
+    const cells = [];
+    const today = (data.current ? TODAY : (data.future ? 0 : data.days));
+    const firstWeekday = new Date(YEAR, monthIdx, 1).getDay();
+    const leadDays = (firstWeekday + 6) % 7;
+
+    for (let i = 0; i < leadDays; i++) cells.push('empty');
+    for (let d = 1; d <= data.days; d++) {
+      if (data.future || d > today) {
+        cells.push('empty');
+        continue;
+      }
+      // 模拟强度 0-4
+      const rand = Math.sin(d * 7 + monthIdx) * 0.5 + 0.5;
+      const lvl = Math.floor(rand * 4) + 1;
+      cells.push(`lvl-${lvl}`);
+    }
+    return cells;
+  }
+
+  // 周度计划（本周 8/17-8/23）
+  const WEEK_PLANS = [
+    { id: 1, text: '完成 2 篇博客输出', done: false, day: '周一' },
+    { id: 2, text: '复习 React 性能优化', done: true, day: '周二' },
+    { id: 3, text: '投递 5 个简历', done: false, day: '周三' },
+    { id: 4, text: '运动 3 次', done: false, day: '本周' },
+    { id: 5, text: '看完《原则》第 3 章', done: true, day: '周四' },
+  ];
+
+  // ============ 工具函数 ============
+  function getWeekday(day) {
+    return new Date(YEAR, MONTH, day).getDay();
+  }
+
+  function calcStreak(data) {
+    let s = 0;
+    for (let i = Math.min(data.length - 1, TODAY - 1); i >= 0; i--) {
+      if (data[i] === 1) s++;
+      else break;
+    }
+    return s;
+  }
+
+  function calcCompletion(data) {
+    const past = data.filter((_, i) => i < TODAY);
+    const done = past.filter(d => d === 1).length;
+    return past.length > 0 ? Math.round((done / past.length) * 100) : 0;
+  }
+
+  function getProgressColor(pct) {
+    if (pct >= 80) return 'energy';
+    if (pct >= 50) return 'mind';
+    if (pct >= 30) return 'warn';
+    return 'danger';
+  }
+
+  function getProgressStatus(pct) {
+    if (pct >= 80) return 'done';
+    if (pct >= 50) return '';
+    if (pct >= 30) return 'warning';
+    return 'danger';
+  }
+
+  // ============ 渲染：月历 ============
+  function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    const weekdays = ['一','二','三','四','五','六','日'];
+    let html = '';
+
+    // 星期表头
+    weekdays.forEach((w, i) => {
+      const isWeekend = i >= 5;
+      html += `<div class="cal-weekday ${isWeekend ? 'weekend' : ''}">${w}</div>`;
+    });
+
+    // 8/1 是周六，按周一开始需补 5 个空格
+    const firstWeekday = new Date(YEAR, MONTH, 1).getDay(); // 6=Saturday
+    const leadDays = (firstWeekday + 6) % 7; // 转换为周一开始
+    for (let i = 0; i < leadDays; i++) {
+      html += '<div class="cal-day empty"></div>';
+    }
+
+    // 日期格
+    for (let d = 1; d <= DAYS_IN_MONTH; d++) {
+      const weekday = getWeekday(d);
+      const isToday = d === TODAY;
+      const isFuture = d > TODAY;
+      const isWeekend = weekday === 0 || weekday === 6;
+
+      // 当日习惯打卡情况
+      const dayHabits = HABITS.map(h => ({ ...h, done: h.data[d - 1] === 1 }));
+      const doneHabits = dayHabits.filter(h => h.done);
+      const missedHabits = dayHabits.filter(h => !h.done && !isFuture && d < TODAY);
+
+      let dotsHtml = '';
+      // 已打卡的：按类型色
+      doneHabits.forEach(h => {
+        dotsHtml += `<span class="dot ${h.type}"></span>`;
+      });
+      // 缺卡的：红色
+      missedHabits.forEach(h => {
+        dotsHtml += `<span class="dot missed"></span>`;
+      });
+
+      const cls = ['cal-day'];
+      if (isToday) cls.push('today');
+      if (isFuture) cls.push('future');
+
+      const summary = isFuture ? '' : `${doneHabits.length}/${HABITS.length}`;
+
+      html += `
+        <div class="${cls.join(' ')}" data-day="${d}">
+          <div class="cal-day-num">${d}</div>
+          ${summary ? `<div class="cal-day-summary">${summary}</div>` : ''}
+          <div class="cal-day-dots">${dotsHtml}</div>
+        </div>
+      `;
+    }
+
+    grid.innerHTML = html;
+
+    // 绑定点击
+    grid.querySelectorAll('.cal-day:not(.empty)').forEach(el => {
+      el.addEventListener('click', () => {
+        grid.querySelectorAll('.cal-day').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+      });
+    });
+  }
+
+  // ============ 渲染：月度目标 ============
+  function renderMonthGoals() {
+    const list = document.getElementById('month-goals');
+    list.innerHTML = MONTH_GOALS.map(g => {
+      const pct = Math.round((g.current / g.target) * 100);
+      const colorClass = getProgressColor(pct);
+      const statusClass = getProgressStatus(pct);
+      return `
+        <div class="goal-item" data-id="${g.id}">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">${g.emoji}</span>
+              <span class="goal-title">${g.name}</span>
+              <span class="goal-type-tag ${g.type}">${g.typeLabel}</span>
+            </div>
+            <div class="goal-percent ${statusClass}">${pct}%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill ${colorClass}" style="width: ${pct}%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 ${g.current} / 目标 ${g.target}</span>
+            <span>${pct >= 100 ? '已完成 ✓' : `还差 ${g.target - g.current}`}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ============ 渲染：习惯矩阵（月度） ============
+  function renderHabitsMatrixMonth() {
+    const wrap = document.getElementById('habits-matrix-month');
+    let html = '';
+
+    // 表头：日期
+    let header = `<div class="matrix-row" style="--days: ${DAYS_IN_MONTH}">`;
+    header += '<div class="matrix-habit" style="font-size:10px;color:var(--text-tertiary);font-weight:600;letter-spacing:0.05em;">习惯</div>';
+    for (let d = 1; d <= DAYS_IN_MONTH; d++) {
+      const isToday = d === TODAY;
+      const isWeekend = [0, 6].includes(getWeekday(d));
+      const isFuture = d > TODAY;
+      const color = isToday ? 'var(--mind)' : (isWeekend ? 'var(--warn)' : (isFuture ? 'var(--text-quaternary)' : 'var(--text-tertiary)'));
+      const weight = isToday ? '700' : '500';
+      header += `<div style="text-align:center;font-size:9px;color:${color};font-weight:${weight};">${d}</div>`;
+    }
+    header += '<div style="text-align:center;font-size:10px;color:var(--text-tertiary);font-weight:600;">完成</div>';
+    header += '</div>';
+    html += header;
+
+    // 每个习惯一行
+    HABITS.forEach(h => {
+      const doneCount = h.data.filter(d => d === 1).length;
+      const pct = Math.round((doneCount / h.target) * 100);
+      let row = `<div class="matrix-row" style="--days: ${DAYS_IN_MONTH}">`;
+      row += `
+        <div class="matrix-habit">
+          <div class="matrix-emoji ${h.type}">${h.emoji}</div>
+          <div class="matrix-name">${h.name}</div>
+        </div>
+      `;
+      for (let d = 1; d <= DAYS_IN_MONTH; d++) {
+        const val = h.data[d - 1];
+        const isFuture = d > TODAY;
+        const isToday = d === TODAY;
+        const classes = ['matrix-cell'];
+        if (isFuture) classes.push('future');
+        if (isToday) classes.push('today');
+        if (val === 1) { classes.push('done'); classes.push(h.type); }
+        row += `<div class="${classes.join(' ')}" data-habit="${h.id}" data-day="${d}" title="${d}日 · ${val ? '已打卡' : '未打卡'}"></div>`;
+      }
+      row += `<div class="matrix-stat"><b>${doneCount}</b>/${h.target}</div>`;
+      row += '</div>';
+      html += row;
+    });
+
+    wrap.innerHTML = html;
+    bindMatrixClick(wrap);
+  }
+
+  // ============ 渲染：周度视图 ============
+  function renderWeekView() {
+    const wrap = document.getElementById('week-days');
+    // 本周 = 8/17(周一) - 8/23(周日)
+    const weekStart = 17;
+    const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+    let html = '';
+
+    for (let i = 0; i < 7; i++) {
+      const day = weekStart + i;
+      const weekday = getWeekday(day);
+      const isToday = day === TODAY;
+      const isFuture = day > TODAY;
+      const isPast = day < TODAY;
+      const isWeekend = weekday === 0 || weekday === 6;
+
+      const classes = ['day-card'];
+      if (isToday) classes.push('today');
+      if (isFuture) classes.push('future');
+      if (isPast) classes.push('past');
+
+      // 当天习惯打卡
+      const dayHabits = HABITS.map(h => ({ ...h, done: h.data[day - 1] === 1 }));
+      const doneCount = dayHabits.filter(h => h.done).length;
+
+      let habitsHtml = '';
+      dayHabits.forEach(h => {
+        habitsHtml += `
+          <div class="day-habit-row ${h.done ? 'done' : ''}">
+            <div class="day-habit-circle ${h.done ? 'done ' + h.type : ''}"
+                 data-habit="${h.id}" data-day="${day}"></div>
+            <span class="day-habit-name">${h.emoji} ${h.name}</span>
+          </div>
+        `;
+      });
+
+      html += `
+        <div class="${classes.join(' ')}">
+          <div class="day-card-head">
+            <div class="day-card-num">${day}</div>
+            <div class="day-card-weekday ${isWeekend ? 'weekend' : ''}">周${weekDays[i]}</div>
+          </div>
+          <div class="day-card-habits">${habitsHtml}</div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>${doneCount}</b>/${HABITS.length}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    wrap.innerHTML = html;
+
+    // 绑定圆圈点击
+    wrap.querySelectorAll('.day-habit-circle').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const habitId = parseInt(el.dataset.habit);
+        const day = parseInt(el.dataset.day);
+        const habit = HABITS.find(h => h.id === habitId);
+        if (!habit || day > TODAY) return;
+
+        if (el.classList.contains('done')) {
+          el.classList.remove('done', 'energy', 'mind', 'skill');
+          el.parentElement.classList.add('done'); // 父row保持done？不，应该移除
+          el.parentElement.classList.remove('done');
+          habit.data[day - 1] = 0;
+        } else {
+          el.classList.add('done', habit.type);
+          el.parentElement.classList.remove('done');
+          habit.data[day - 1] = 1;
+        }
+      });
+    });
+  }
+
+  // ============ 渲染：周度计划 ============
+  function renderWeekPlans() {
+    const list = document.getElementById('week-plans');
+    list.innerHTML = WEEK_PLANS.map(p => `
+      <div class="plan-item ${p.done ? 'done' : ''}" data-id="${p.id}">
+        <div class="plan-check ${p.done ? 'done' : ''}"></div>
+        <div class="plan-text">${p.text}</div>
+        <div class="plan-meta">${p.day}</div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.plan-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = parseInt(el.dataset.id);
+        const plan = WEEK_PLANS.find(p => p.id === id);
+        plan.done = !plan.done;
+        el.classList.toggle('done');
+        el.querySelector('.plan-check').classList.toggle('done');
+      });
+    });
+  }
+
+  // ============ 矩阵点击绑定 ============
+  function bindMatrixClick(wrap) {
+    wrap.querySelectorAll('.matrix-cell:not(.future)').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const habitId = parseInt(el.dataset.habit);
+        const day = parseInt(el.dataset.day);
+        const habit = HABITS.find(h => h.id === habitId);
+        if (!habit) return;
+
+        if (el.classList.contains('done')) {
+          el.classList.remove('done', 'energy', 'mind', 'skill');
+          habit.data[day - 1] = 0;
+        } else {
+          el.classList.add('done', habit.type);
+          habit.data[day - 1] = 1;
+        }
+
+        // 同步更新统计
+        updateStats();
+      });
+    });
+  }
+
+  // ============ 统计更新 ============
+  function updateStats() {
+    const totalDone = HABITS.reduce((sum, h) => sum + h.data.filter(d => d === 1).length, 0);
+    const totalTarget = HABITS.reduce((sum, h) => sum + h.target, 0);
+    const rate = Math.round((totalDone / totalTarget) * 100);
+    document.getElementById('stat-habits').innerHTML = `${totalDone}<span class="unit">/ ${totalTarget}</span>`;
+    document.getElementById('stat-rate').innerHTML = `${rate}<span class="unit">%</span>`;
+  }
+
+  // ============ 视图切换 ============
+  document.querySelectorAll('.view-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(`view-${view}`).classList.add('active');
+
+      // 更新顶部标题和今日标签
+      if (view === 'week') {
+        document.getElementById('period-title').textContent = '本周 · 8月17-23日';
+        document.getElementById('stat-today-label').textContent = '本周完成';
+      } else if (view === 'year') {
+        document.getElementById('period-title').textContent = '2026 年度';
+        document.getElementById('stat-today-label').textContent = '本年完成';
+      } else {
+        document.getElementById('period-title').textContent = '2026 年 8 月';
+        document.getElementById('stat-today-label').textContent = '今日完成';
+      }
+    });
+  });
+
+  // ============ Modal ============
+  function openModal(type) {
+    document.getElementById('modal-title').textContent = type === 'goal' ? '添加月度目标' : '添加周度计划';
+    document.getElementById('modal-backdrop').classList.add('show');
+    setTimeout(() => document.getElementById('modal-name').focus(), 100);
+  }
+  function closeModal() {
+    document.getElementById('modal-backdrop').classList.remove('show');
+    document.getElementById('modal-name').value = '';
+    document.getElementById('modal-target').value = '';
+  }
+  function saveModal() {
+    closeModal();
+  }
+  document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-backdrop') closeModal();
+  });
+
+  // ============ 渲染：年度视图 ============
+  function renderYearGoals() {
+    const list = document.getElementById('year-goals');
+    list.innerHTML = YEAR_GOALS.map(g => {
+      const pct = Math.round((g.current / g.target) * 100);
+      const colorClass = getProgressColor(pct);
+      const statusClass = getProgressStatus(pct);
+      return `
+        <div class="goal-item" data-id="${g.id}">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">${g.emoji}</span>
+              <span class="goal-title">${g.name}</span>
+              <span class="goal-type-tag ${g.type}">${g.typeLabel}</span>
+            </div>
+            <div class="goal-percent ${statusClass}">${pct}%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill ${colorClass}" style="width: ${pct}%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 ${g.current} / 目标 ${g.target}</span>
+            <span>${pct >= 100 ? '已完成 ✓' : `还差 ${g.target - g.current}`}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderYearMonths() {
+    const wrap = document.getElementById('year-months');
+    const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+    wrap.innerHTML = YEAR_MONTH_DATA.map((m, idx) => {
+      const rate = Math.round((m.done / m.target) * 100);
+      const rateClass = rate >= 80 ? 'high' : (rate >= 50 ? 'mid' : (rate > 0 ? 'low' : ''));
+
+      const cardClasses = ['month-card'];
+      if (m.current) cardClasses.push('current');
+      if (m.future) cardClasses.push('future');
+
+      // 迷你热力图
+      const cells = genMonthIntensity(idx);
+      const heatmapHtml = cells.map(c => {
+        const cls = ['cell'];
+        if (c !== 'empty') cls.push(c);
+        if (m.current && c.startsWith('lvl') && parseInt(c.split('-')[1]) > 0) {
+          // 仅当月高亮今日，简化处理：标记当月最后一天
+        }
+        return `<div class="${cls.join(' ')}"></div>`;
+      }).join('');
+
+      const statsHtml = m.future
+        ? `<div class="month-card-stats"><span>未开始</span><span>—</span></div>`
+        : `<div class="month-card-stats">
+             <span>完成 <b>${m.done}</b></span>
+             <span>缺卡 <b style="color:${m.missed > 5 ? 'var(--danger)' : 'var(--text-primary)'}">${m.missed}</b></span>
+           </div>`;
+
+      return `
+        <div class="${cardClasses.join(' ')}" data-month="${m.month}">
+          <div class="month-card-head">
+            <div class="month-card-name">${monthNames[idx]}</div>
+            <div class="month-card-rate ${rateClass}">${m.future ? '—' : rate + '%'}</div>
+          </div>
+          <div class="month-heatmap">${heatmapHtml}</div>
+          ${statsHtml}
+        </div>
+      `;
+    }).join('');
+
+    // 点击月份卡片切换到月度视图
+    wrap.querySelectorAll('.month-card').forEach(card => {
+      card.addEventListener('click', () => {
+        // 切换到月度视图
+        document.querySelectorAll('.view-tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelector('.view-tabs button[data-view="month"]').classList.add('active');
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById('view-month').classList.add('active');
+        document.getElementById('period-title').textContent = `2026 年 ${card.dataset.month} 月`;
+      });
+    });
+  }
+
+  // ============ 初始化 ============
+  renderCalendar();
+  renderMonthGoals();
+  renderHabitsMatrixMonth();
+  renderWeekView();
+  renderWeekPlans();
+  renderYearGoals();
+  renderYearMonths();
+  updateStats();
+</script>
+</body>
+</html>

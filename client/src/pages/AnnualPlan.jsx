@@ -22,9 +22,9 @@ import EntryForm from '../components/forms/EntryForm.jsx';
 const CATEGORIES = [
   { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#22c55e' }, /* accent-green */
   { key: 'cognition', label: '认知', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
-  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber */
+  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber/orange */
   { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' }, /* accent-red   */
-  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#f9a8a8' }, /* accent-pink  */
+  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#8b5cf6' }, /* accent-violet/purple */
 ];
 
 /* 习惯打卡 (精力) */
@@ -112,24 +112,24 @@ const WORK = [
 
 /* 生活 */
 const LIFE = [
-  { key:'relation', lb:'关系', color:'#ef4444', entries:[ /* accent-red */
+  { key:'relation', lb:'关系', color:'#8b5cf6', entries:[ /* violet */
     { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'7.28' },
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },
     { t:'和老婆周末野餐', n:'准备了她爱吃的草莓和可颂', d:'7.09' },
   ]},
-  { key:'food', lb:'美食', color:'#f59e0b', entries:[ /* accent-amber */
+  { key:'food', lb:'美食', color:'#a78bfa', entries:[ /* violet-400 */
     { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'7.22' },
     { t:'尝试手冲咖啡', n:'买了一套 Hario V60', d:'7.10' },
   ]},
-  { key:'travel', lb:'旅游', color:'#22c55e', entries:[ /* accent-green */
+  { key:'travel', lb:'旅游', color:'#c4b5fd', entries:[ /* violet-300 */
     { t:'苏州两日游', n:'去了拙政园和留园', d:'6.22-6.23' },
     { t:'崇明岛露营', n:'和朋友们搭帐篷烧烤', d:'5.18' },
   ]},
-  { key:'movie', lb:'电影', color:'#4b63f0', entries:[ /* accent-blue */
+  { key:'movie', lb:'电影', color:'#7c3aed', entries:[ /* violet-600 */
     { t:'奥本海默', n:'3小时但不闷，诺兰神了', d:'7.01' },
     { t:'蜘蛛侠：纵横宇宙', n:'画风惊艳', d:'6.05' },
   ]},
-  { key:'shop', lb:'购物', color:'#f9a8a8', entries:[ /* accent-pink */
+  { key:'shop', lb:'购物', color:'#6d28d9', entries:[ /* violet-700 */
     { t:'Sony WH-1000XM5 耳机', n:'降噪封神，通勤必带', d:'7.05' },
     { t:'露营折叠椅', n:'周末去公园躺着很舒服', d:'6.18' },
   ]},
@@ -698,13 +698,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[1200px]">
-            {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 月份×12 → 完成率 → 删除 */}
+            {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div>习惯名称</div>
               <div>目标</div>
               <div>累计</div>
+              <div>完成率</div>
               {monthLabels.map(m => <div key={m} className="text-center">{m}</div>)}
-              <div className="text-right">完成率</div>
               <div className="w-6"></div>
             </div>
             {habits.map(h => {
@@ -715,11 +715,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const isEditing = editingTargetKey === hkey;
               return (
                 <div key={hkey} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
-                  <div className="flex items-center gap-2.5 min-w-0 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                  <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
-                  <div className="tabular-nums font-medium cursor-text" onClick={(e) => e.stopPropagation()}>
+                  <div className="tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -735,7 +735,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         className="w-14 px-1.5 py-0.5 text-sm font-bold border border-accent-blue rounded-md outline-none focus:ring-2 focus:ring-accent-blue/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
-                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center gap-1 hover:bg-ink-100 rounded-md px-1.5 py-0.5 -mx-1.5 transition">
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center gap-1 hover:bg-ink-100 rounded-md px-1 -mx-1 transition">
                         <span className="text-sm font-semibold text-ink-700">{h.target}</span>
                         <span className="text-[10px] text-ink-400">{h.unit}</span>
                         <svg className="w-3 h-3 text-ink-300 group-hover:text-ink-500 transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -745,7 +745,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     )}
                   </div>
                   <div className="font-bold tabular-nums text-ink-900">{h.val}</div>
-                  {monthIndices.map((monthIdx, arrayIdx) => {
+                  {/* 完成率 - 去掉进度条，只显示百分比 */}
+                  <div className="text-right cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                    <span className="text-sm font-bold tabular-nums" style={{color: barColor}}>{p}%</span>
+                  </div>
+                  {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
                     const maxT = monthMaxDays[monthIdx - 1];
                     const ratio = n / maxT;
@@ -753,17 +757,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-xs font-bold tabular-nums px-1.5 py-1 rounded-md min-w-[32px] text-center transition-colors',
+                          'text-xs font-bold tabular-nums px-1 py-1 rounded-md min-w-[32px] text-center transition-colors',
                           passed ? 'bg-accent-green text-white' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
                     );
                   })}
-                  {/* 完成率 */}
-                  <div className="flex items-center justify-end gap-2 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
-                    <div className="w-20"><ProgressBar value={p} color={barColor} /></div>
-                    <span className="text-xs font-bold tabular-nums w-9 text-right" style={{color: barColor}}>{p}%</span>
-                  </div>
                   {/* 删除按钮 */}
                   <div className="flex justify-center">
                     <button onClick={(e) => { e.stopPropagation(); onAction?.('removeHabit', h); }}
@@ -774,9 +773,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 </div>
               );
             })}
-          </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -1362,10 +1361,10 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- 精力表格 grid 模板：[习惯名 目标 累计 (月份×12) 完成率 删除] ---- */
+      /* ---- 精力表格 grid 模板：[习惯名 目标 累计 完成率 (月份×12) 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(200px, 1.3fr) 100px 70px repeat(12, minmax(48px, 1fr)) 140px 30px;
-        gap: 0 8px;
+        grid-template-columns: minmax(160px, 1fr) 80px 60px 56px repeat(12, minmax(44px, 1fr)) 30px;
+        gap: 0 4px;
         align-items: center;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年度规划 · 2026</title>
+<style>
+:root{
+  --t1:#1c1c1e;--t2:#3c3c43;--t3:#8e8e93;--t4:#aeaeae;
+  --uib-2:rgba(60,60,67,0.12);--uib-3:rgba(60,60,67,0.06);
+  --r-card:18px;--r-row:12px;--r-tab:9px;--r-sm:8px;
+  /* category colors */
+  --c-en:#34c759;--c-en-bg:#e5f6ea;
+  --c-co:#007aff;--c-co-bg:#e0ecff;
+  --c-ab:#ff9500;--c-ab-bg:#fff4e6;
+  --c-wk:#ff3b30;--c-wk-bg:#ffe8e8;
+  --c-lf:#af52de;--c-lf-bg:#f3e8ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  background:linear-gradient(180deg,#f5f5f7 0%,#e8e8ed 100%);
+  background-attachment:fixed;min-height:100vh;color:var(--t1);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:-0.01em;
+  font-family:-apple-system,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  padding:24px;font-size:13px;
+}
+.p{max-width:1440px;margin:0 auto}
+
+/* ====== TOP BAR ====== */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:16px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:42px;height:42px;border-radius:10px;background:rgba(120,120,128,0.12);display:grid;place-items:center;color:var(--t2);font-weight:700}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--t1)}
+.brand p{font-size:12px;color:var(--t3);font-weight:500;margin-top:2px}
+.act{display:flex;align-items:center;gap:10px}
+.view-switch{
+  display:inline-flex;background:rgba(255,255,255,0.72);
+  border:1px solid rgba(255,255,255,0.6);border-radius:var(--r-tab);
+  padding:3px;gap:2px;backdrop-filter:blur(20px);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04);
+}
+.view-switch button{
+  padding:6px 14px;border:none;background:transparent;color:var(--t3);
+  font-size:12px;font-weight:600;border-radius:7px;cursor:pointer;transition:all .18s;
+}
+.view-switch button.on{background:#fff;color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.view-switch button:hover:not(.on){color:var(--t2)}
+.bt{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r-tab);border:1px solid rgba(120,120,128,0.2);background:rgba(255,255,255,0.7);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease;backdrop-filter:blur(8px)}
+.bt:hover{background:rgba(255,255,255,0.95)}
+.bt.p{background:#007aff;border-color:#007aff;color:#fff}
+.bt svg{width:13px;height:13px;stroke-width:2;fill:none;stroke:currentColor}
+
+/* ====== OVERVIEW ====== */
+.overview{display:grid;grid-template-columns:200px 1fr;gap:24px;margin-bottom:20px}
+.ring-card,.cats-card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  padding:20px;
+}
+.ring-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.ring-wrap{position:relative;width:140px;height:140px}
+.ring-svg{transform:rotate(-90deg)}
+.ring-bg{stroke:rgba(60,60,67,0.08);stroke-width:10;fill:none}
+.ring-fg{stroke:url(#ringGrad);stroke-width:10;fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-text .pct{font-size:32px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.ring-text .lb{font-size:11px;color:var(--t3);font-weight:500}
+.ring-card .tl{font-size:12px;font-weight:600;color:var(--t2);margin-top:4px}
+.cats-card h3{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+.cat-row{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;margin-bottom:10px}
+.cat-row:last-child{margin-bottom:0}
+.cat-row .dot{width:10px;height:10px;border-radius:3px}
+.cat-row .nm{font-size:12px;font-weight:600;color:var(--t2)}
+.cat-row .pr{font-size:14px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.cat-bar{height:6px;border-radius:3px;background:rgba(60,60,67,0.08);overflow:hidden;margin-top:4px}
+.cat-bar > div{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* ====== SECTION HEADER ====== */
+.sec-hd{
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:0 4px;
+}
+.sec-hd .icon{
+  width:32px;height:32px;border-radius:8px;display:grid;place-items:center;
+  font-size:16px;font-weight:700;flex-shrink:0;
+}
+.sec-hd h2{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-0.02em}
+.sec-hd .desc{font-size:12px;color:var(--t3);font-weight:500}
+.sec-hd .stat{margin-left:auto;display:flex;gap:16px;align-items:center}
+.sec-hd .stat .si{font-size:11px;color:var(--t3);font-weight:500}
+.sec-hd .stat .sn{font-size:14px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+
+/* ====== HABIT CALENDAR ====== */
+.habit-card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  margin-bottom:24px;overflow:hidden;
+}
+.habit-grid-wrap{overflow-x:auto;padding:4px 16px 16px}
+.habit-grid{display:flex;flex-direction:column}
+
+/* calendar header */
+.cal-hd{
+  display:grid;gap:3px;align-items:center;
+  padding:12px 12px 8px;border-bottom:2px solid var(--uib-2);
+  position:sticky;top:0;z-index:3;background:rgba(255,255,255,0.85);backdrop-filter:blur(10px);
+  border-radius:var(--r-card) var(--r-card) 0 0;
+}
+.cal-hd .col-name{font-size:11px;font-weight:700;color:var(--t2)}
+.cal-hd .col-pct{font-size:11px;font-weight:700;color:var(--t3);text-align:center}
+.cal-hd .col-day{
+  font-size:10px;font-weight:700;text-align:center;color:var(--t3);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.cal-hd .col-day .dn{font-size:11px}
+.cal-hd .col-day .dt{font-size:9px;color:var(--t4);font-weight:600}
+.cal-hd .col-day.today .dn{color:#007aff}
+.cal-hd .col-day.today .dt{color:#007aff;font-weight:700}
+.cal-hd .col-day.wknd .dn{color:var(--c-ab)}
+
+/* habit row */
+.h-row{
+  display:grid;gap:3px;align-items:center;
+  padding:8px 12px;transition:background .15s ease;border-radius:8px;
+}
+.h-row:hover{background:rgba(120,120,128,0.04)}
+.h-row .h-name{
+  display:flex;align-items:center;gap:8px;
+}
+.h-row .h-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+.h-row .h-text{font-size:13px;font-weight:600;color:var(--t1)}
+.h-row .h-sub{font-size:10px;color:var(--t3);margin-left:auto}
+.h-row .h-pct{
+  text-align:center;font-size:12px;font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.h-row .h-pct-bar{
+  height:3px;border-radius:2px;background:rgba(60,60,67,0.08);
+  overflow:hidden;margin-top:2px;
+}
+.h-row .h-pct-bar > div{height:100%;border-radius:2px;transition:width .4s ease}
+
+/* checkbox cell */
+.h-cell{display:grid;place-items:center}
+.habit-cb{
+  appearance:none;width:20px;height:20px;border-radius:5px;
+  border:1.5px solid var(--cat-bd);background:#fff;cursor:pointer;
+  transition:all .18s;position:relative;
+}
+.habit-cb:checked{background:var(--cat);border-color:var(--cat)}
+.habit-cb:checked::after{
+  content:"";width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;
+  transform:rotate(45deg) translate(-1px,-1px);
+}
+.habit-cb:hover:not(:checked){transform:scale(1.12);border-width:2px}
+.habit-cb:active:not(:checked){transform:scale(0.88)}
+.habit-cb.today{box-shadow:0 0 0 2px rgba(0,122,255,0.22)}
+.habit-cb.empty{opacity:.3}
+
+/* year view month blocks */
+.ym-block{
+  width:28px;height:28px;border-radius:6px;background:rgba(60,60,67,0.08);
+  display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--t3);
+  cursor:pointer;transition:all .15s;margin:0 auto;
+}
+.ym-block.done{background:var(--cat);color:#fff}
+.ym-block.partial{background:var(--cat-bg);color:var(--cat)}
+.ym-block:hover{transform:scale(1.1)}
+
+/* ====== OKR MODULE ====== */
+.okr-card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  overflow:hidden;
+}
+.okr-body{padding:16px 20px}
+.okr-sec-title{
+  display:flex;align-items:center;gap:8px;margin:20px 0 12px;
+  padding-bottom:8px;border-bottom:1px solid var(--uib-3);
+}
+.okr-sec-title:first-child{margin-top:0}
+.okr-sec-title .tag{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
+}
+.okr-sec-title .tag .dot{width:8px;height:8px;border-radius:3px}
+.okr-sec-title h3{font-size:14px;font-weight:700;color:var(--t1)}
+.okr-sec-title .count{font-size:11px;color:var(--t3);font-weight:500;margin-left:auto}
+
+/* OKR item */
+.okr-item{
+  border:1px solid var(--uib-2);border-radius:14px;padding:16px;margin-bottom:12px;
+  transition:box-shadow .2s ease,transform .2s ease;
+  border-left:4px solid var(--cat);
+}
+.okr-item:hover{box-shadow:0 4px 16px rgba(0,0,0,0.06);transform:translateY(-1px)}
+.okr-item:last-child{margin-bottom:0}
+.okr-item .o-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.okr-item .o-badge{
+  width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0;background:var(--cat);
+}
+.okr-item .o-title{flex:1;font-size:14px;font-weight:600;color:var(--t1);line-height:1.4}
+.okr-item .o-pct{font-size:16px;font-weight:700;color:var(--cat);font-variant-numeric:tabular-nums}
+.okr-item .o-pct-bar{
+  height:4px;border-radius:2px;background:rgba(60,60,67,0.08);
+  overflow:hidden;margin-top:6px;
+}
+.okr-item .o-pct-bar > div{height:100%;border-radius:2px;background:var(--cat);transition:width .6s ease}
+
+/* KR row */
+.kr-row{
+  display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;
+  align-items:center;padding:6px 0;
+}
+.kr-row+.kr-row{border-top:1px solid var(--uib-3)}
+.kr-txt{font-size:12px;color:var(--t2);line-height:1.4}
+.kr-bar{height:6px;border-radius:3px;background:rgba(60,60,67,0.08);overflow:hidden}
+.kr-bar > div{height:100%;border-radius:3px;background:var(--cat);transition:width .6s cubic-bezier(.4,0,.2,1)}
+.kr-num{font-size:12px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kr-st{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;
+  background:rgba(60,60,67,0.08);color:var(--t3);white-space:nowrap;
+}
+.kr-st.done{background:var(--c-en-bg);color:var(--c-en)}
+.kr-st.doing{background:rgba(0,122,255,0.1);color:#007aff}
+.kr-st.tg{background:rgba(60,60,67,0.06);color:var(--t3)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(60,60,67,0.18);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(60,60,67,0.3)}
+
+@media(max-width:900px){
+  .overview{grid-template-columns:1fr}
+  .view-switch{order:3;width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+<div class="p">
+  <!-- TOP -->
+  <div class="top">
+    <div class="brand">
+      <div class="logo">✦</div>
+      <div>
+        <h1>2026 年度规划</h1>
+        <p>习惯打卡 · OKR追踪 · 复盘调整</p>
+      </div>
+    </div>
+    <div class="act">
+      <div class="view-switch" id="viewSwitch">
+        <button data-view="week" class="on">周</button>
+        <button data-view="month">月</button>
+        <button data-view="year">年</button>
+      </div>
+      <button class="bt"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>导出</button>
+      <button class="bt p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加目标</button>
+    </div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="overview">
+    <div class="ring-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+          <defs>
+            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#34c759"/>
+              <stop offset="25%" stop-color="#007aff"/>
+              <stop offset="50%" stop-color="#ff9500"/>
+              <stop offset="75%" stop-color="#ff3b30"/>
+              <stop offset="100%" stop-color="#af52de"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="70" cy="70" r="58"/>
+          <circle class="ring-fg" cx="70" cy="70" r="58" stroke-dasharray="364.42" stroke-dashoffset="364.42" id="ringFg"/>
+        </svg>
+        <div class="ring-text"><span class="pct" id="ringPct">0%</span><span class="lb">年度总进度</span></div>
+      </div>
+      <div class="tl">Track · Review · Adjust</div>
+    </div>
+    <div class="cats-card">
+      <h3>分类进度</h3>
+      <div id="catBars"></div>
+    </div>
+  </div>
+
+  <!-- HABIT SECTION -->
+  <div class="sec-hd">
+    <div class="icon" style="background:rgba(52,199,89,0.12);color:var(--c-en)">📋</div>
+    <div>
+      <h2>习惯型 · 每日打卡</h2>
+      <div class="desc">统一日历追踪 · 事项 / 完成率 / 打卡</div>
+    </div>
+    <div class="stat">
+      <div class="si">习惯数 <span class="sn" id="habitCount">6</span></div>
+      <div class="si">本周完成 <span class="sn" id="habitDone">0/42</span></div>
+      <div class="si">完成率 <span class="sn" id="habitPct">0%</span></div>
+    </div>
+  </div>
+  <div class="habit-card" id="habitCard"></div>
+
+  <!-- OKR SECTION -->
+  <div class="sec-hd">
+    <div class="icon" style="background:rgba(0,122,255,0.12);color:var(--c-co)">🎯</div>
+    <div>
+      <h2>成就型 · OKR 追踪</h2>
+      <div class="desc">里程碑目标 · Objective + Key Results</div>
+    </div>
+    <div class="stat">
+      <div class="si">目标数 <span class="sn" id="okrCount">0</span></div>
+      <div class="si">已完成 <span class="sn" id="okrDone">0</span></div>
+      <div class="si">完成率 <span class="sn" id="okrPct">0%</span></div>
+    </div>
+  </div>
+  <div class="okr-card">
+    <div class="okr-body" id="okrBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============ DATA ============ */
+const WD=['一','二','三','四','五','六','日'];
+const MONTHS=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+const CAT={
+  en:{c:'#34c759',bg:'#e5f6ea',bd:'#a8e6b8',lb:'精力'},
+  co:{c:'#007aff',bg:'#e0ecff',bd:'#a8c8ff',lb:'认知'},
+  ab:{c:'#ff9500',bg:'#fff4e6',bd:'#ffc980',lb:'能力'},
+  wk:{c:'#ff3b30',bg:'#ffe8e8',bd:'#ff9999',lb:'工作'},
+  lf:{c:'#af52de',bg:'#f3e8ff',bd:'#d4b5ee',lb:'生活'},
+};
+const CK=k=>`--cat:${CAT[k].c};--cat-bg:${CAT[k].bg};--cat-bd:${CAT[k].bd}`;
+
+/* habits: all daily/weekly tracking items */
+const HABITS=[
+  {id:'sleep',n:'睡眠 7h',s:'23:00 前入睡',cat:'en',w:[1,1,0,0,0,0,0]},
+  {id:'water',n:'喝水 2L',s:'分4次饮用',cat:'en',w:[1,0,0,0,0,0,0]},
+  {id:'run',n:'运动',s:'每周≥3次',cat:'en',w:[0,0,0,0,0,0,0]},
+  {id:'read',n:'看书',s:'每周≥5h',cat:'co',w:[0,1,0,0,0,0,0]},
+  {id:'speak',n:'即兴表达',s:'每日1道题',cat:'ab',w:[1,1,0,0,0,0,0]},
+  {id:'english',n:'英语口语',s:'每日30min',cat:'ab',w:[1,0,0,0,0,0,0]},
+];
+
+/* OKR goals grouped by category */
+const OKRS={
+  co:[
+    {o:'年读12本书并产出践行改变',krs:[
+      {t:'读完12本书',v:5,t:12,u:'本',st:'doing'},
+      {t:'每本输出笔记+3条改变',v:3,t:12,u:'篇',st:'doing'},
+      {t:'≥6条改变落地30天',v:0,t:6,u:'条',st:'tg'},
+    ]}
+  ],
+  ab:[
+    {o:'英语口语：能完成10min英文自我介绍',krs:[
+      {t:'每日练习≥30min',v:5,t:7,u:'天',st:'doing'},
+      {t:'完成10min自我介绍',v:0,t:1,u:'项',st:'tg'},
+      {t:'看懂无字幕TED×5篇',v:0,t:5,u:'篇',st:'tg'},
+    ]},
+    {o:'即兴表达：3分钟不卡壳',krs:[
+      {t:'每日1道面试题',v:5,t:7,u:'天',st:'doing'},
+      {t:'完成10次模拟面试',v:0,t:10,u:'次',st:'tg'},
+      {t:'收到≥3次正反馈',v:0,t:3,u:'次',st:'tg'},
+    ]},
+    {o:'数据分析：SQL+Excel',krs:[
+      {t:'学完课程全部章节',v:1,t:5,u:'阶段',st:'doing'},
+      {t:'完成3个分析项目',v:0,t:3,u:'个',st:'tg'},
+      {t:'掌握SQL/Excel高级功能',v:0,t:2,u:'项',st:'tg'},
+    ]},
+  ],
+  wk:[
+    {o:'主业：找到20k+用户运营offer',krs:[
+      {t:'离职拿到大礼包',v:1,t:1,u:'项',st:'done'},
+      {t:'投递≥50家目标公司',v:20,t:50,u:'份',st:'doing'},
+      {t:'拿到≥10个面试',v:5,t:10,u:'个',st:'doing'},
+      {t:'拿到≥3个offer',v:0,t:3,u:'个',st:'tg'},
+      {t:'至少1个≥20k',v:0,t:1,u:'个',st:'tg'},
+    ]},
+    {o:'副业：小红书「小憨熊」涨粉变现',krs:[
+      {t:'发布≥50条内容',v:12,t:50,u:'条',st:'doing'},
+      {t:'粉丝≥5000',v:800,t:5000,u:'粉',st:'tg'},
+      {t:'接到第1个商业合作',v:0,t:1,u:'个',st:'tg'},
+    ]},
+  ],
+  lf:[
+    {o:'生活体验：美食+旅游+电影',krs:[
+      {t:'美食体验≥12次',v:5,t:12,u:'次',st:'doing'},
+      {t:'旅游≥3次',v:1,t:3,u:'次',st:'doing'},
+      {t:'观影≥12部',v:6,t:12,u:'部',st:'doing'},
+    ]},
+  ],
+};
+
+let currentView='week';
+
+/* ============ INIT ============ */
+function init(){
+  renderOverview();
+  renderHabitCard();
+  renderOKR();
+  bindViewSwitch();
+}
+
+function bindViewSwitch(){
+  document.querySelectorAll('#viewSwitch button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#viewSwitch button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      currentView=b.dataset.view;
+      renderHabitCard();
+    });
+  });
+}
+
+/* ============ OVERVIEW ============ */
+function renderOverview(){
+  const total=computeOverall();
+  const ring=document.getElementById('ringFg');
+  const C=2*Math.PI*58;
+  ring.setAttribute('stroke-dasharray',C);
+  ring.setAttribute('stroke-dashoffset',C);
+  document.getElementById('ringPct').textContent='0%';
+  requestAnimationFrame(()=>{
+    ring.setAttribute('stroke-dashoffset',C*(1-total/100));
+    let cur=0,tar=total,dur=800,st=performance.now();
+    const tick=t=>{const p=Math.min((t-st)/dur,1);const e=1-Math.pow(1-p,3);cur=Math.round(e*tar);document.getElementById('ringPct').textContent=cur+'%';if(p<1)requestAnimationFrame(tick)};
+    requestAnimationFrame(tick);
+  });
+  document.getElementById('catBars').innerHTML=Object.entries(CAT).map(([k,v])=>{
+    const p=catProgress(k);
+    return `<div class="cat-row"><span class="dot" style="background:${v.c}"></span><div><div class="nm">${v.lb}</div><div class="cat-bar"><div style="width:${p}%;background:${v.c}"></div></div></div><div class="pr">${p}%</div></div>`;
+  }).join('');
+}
+
+function computeOverall(){
+  return Math.round(catProgress('en')*0.15+catProgress('co')*0.2+catProgress('ab')*0.25+catProgress('wk')*0.3+catProgress('lf')*0.1);
+}
+function catProgress(k){
+  if(k==='en')return habitProgress('en');
+  if(k==='co')return Math.round((habitProgress('co')+okrProgress('co'))/2);
+  if(k==='ab')return Math.round((habitProgress('ab')+okrProgress('ab'))/2);
+  if(k==='wk')return okrProgress('wk');
+  if(k==='lf')return okrProgress('lf');
+  return 0;
+}
+function habitProgress(cat){
+  const list=cat?HABITS.filter(h=>h.cat===cat):HABITS;
+  if(!list.length)return 0;
+  let t=0,d=0;
+  list.forEach(h=>{h.w.forEach(v=>{t++;if(v===1)d++})});
+  return t>0?Math.round(d/t*100):0;
+}
+function okrProgress(key){
+  const list=OKRS[key]||[];
+  if(!list.length)return 0;
+  let t=0,d=0;
+  list.forEach(o=>{o.krs.forEach(kr=>{t+=kr.t;d+=Math.min(kr.v,kr.t)})});
+  return t>0?Math.round(d/t*100):0;
+}
+function okrObjProgress(o){
+  let t=0,d=0;
+  o.krs.forEach(kr=>{t+=kr.t;d+=Math.min(kr.v,kr.t)});
+  return t>0?Math.round(d/t*100):0;
+}
+
+/* ============ HABIT CALENDAR ============ */
+function getCols(){
+  if(currentView==='week')return {cols:7,type:'week'};
+  if(currentView==='month')return {cols:31,type:'month'};
+  return {cols:12,type:'year'};
+}
+
+function renderHabitCard(){
+  const {cols,type}=getCols();
+  const wrap=document.getElementById('habitCard');
+
+  // grid template: name(180px) | pct(70px) | cols × cell | 
+  const gridTmpl=`180px 70px repeat(${cols},minmax(28px,1fr))`;
+
+  // header
+  let hdCells='';
+  for(let i=0;i<cols;i++){
+    let label,sublabel='',cls='col-day';
+    if(type==='week'){
+      label=WD[i];
+      sublabel=''; 
+      if(i===0)cls+=' today';
+      if((4+i)%7>=5)cls+=' wknd';
+    }else if(type==='month'){
+      label=String(i+1);
+      if(i+1===new Date().getDate())cls+=' today';
+      if(i%7===5||i%7===6)cls+=' wknd';
+    }else{
+      label=MONTHS[i].replace('月','');
+      if(i===new Date().getMonth())cls+=' today';
+    }
+    hdCells+=`<div class="${cls}"><span class="dn">${label}</span>${sublabel?`<span class="dt">${sublabel}</span>`:''}</div>`;
+  }
+
+  const hdr=`<div class="cal-hd" style="grid-template-columns:${gridTmpl}">
+    <div class="col-name">习惯事项</div>
+    <div class="col-pct">完成率</div>
+    ${hdCells}
+  </div>`;
+
+  // rows
+  let rows='';
+  HABITS.forEach(h=>{
+    const v=CAT[h.cat];
+    const done=h.w.filter(x=>x===1).length;
+    const total=h.w.length;
+    const pct=Math.round(done/total*100);
+
+    // cells
+    let cells='';
+    if(type==='week'){
+      h.w.forEach((val,i)=>{
+        const today=i===0?' today':'';
+        cells+=`<div class="h-cell"><input type="checkbox" class="habit-cb${today}" data-id="${h.id}" data-i="${i}" ${val===1?'checked':''} style="${CK(h.cat)}"></div>`;
+      });
+    }else if(type==='month'){
+      for(let i=0;i<31;i++){
+        const val=i<7?h.w[i]:0;
+        const today=i+1===new Date().getDate()?' today':'';
+        cells+=`<div class="h-cell"><input type="checkbox" class="habit-cb${today}" data-id="${h.id}" data-i="${i}" ${val===1?'checked':''} style="${CK(h.cat)}"></div>`;
+      }
+    }else{
+      for(let m=0;m<12;m++){
+        const isDone=m<3;
+        const isPartial=m>=3&&m<6;
+        const cls=isDone?'done':isPartial?'partial':'';
+        cells+=`<div class="h-cell"><div class="ym-block ${cls}" style="${CK(h.cat)}">${isDone?'✓':isPartial?Math.round(pct/2)+'%':'·'}</div></div>`;
+      }
+    }
+
+    rows+=`<div class="h-row" style="grid-template-columns:${gridTmpl};${CK(h.cat)}">
+      <div class="h-name">
+        <span class="h-dot" style="background:${v.c}"></span>
+        <span class="h-text">${h.n}</span>
+        <span class="h-sub">${h.s}</span>
+      </div>
+      <div>
+        <div class="h-pct" style="color:${v.c}">${pct}%</div>
+        <div class="h-pct-bar"><div style="width:${pct}%;background:${v.c}"></div></div>
+      </div>
+      ${cells}
+    </div>`;
+  });
+
+  wrap.innerHTML=`<div class="habit-grid-wrap"><div class="habit-grid">${hdr}${rows}</div></div>`;
+
+  // update stats
+  let totalDone=0,totalAll=0;
+  HABITS.forEach(h=>{totalDone+=h.w.filter(x=>x===1).length;totalAll+=h.w.length});
+  document.getElementById('habitCount').textContent=HABITS.length;
+  document.getElementById('habitDone').textContent=`${totalDone}/${totalAll}`;
+  document.getElementById('habitPct').textContent=Math.round(totalDone/totalAll*100)+'%';
+
+  // bind checkboxes
+  wrap.querySelectorAll('.habit-cb').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      const id=e.target.dataset.id;
+      const i=parseInt(e.target.dataset.i);
+      const h=HABITS.find(x=>x.id===id);
+      if(h&&i<h.w.length){h.w[i]=e.target.checked?1:0;}
+      // re-render stats
+      let td=0,ta=0;
+      HABITS.forEach(h=>{td+=h.w.filter(x=>x===1).length;ta+=h.w.length});
+      document.getElementById('habitDone').textContent=`${td}/${ta}`;
+      document.getElementById('habitPct').textContent=Math.round(td/ta*100)+'%';
+    });
+  });
+}
+
+/* ============ OKR MODULE ============ */
+function renderOKR(){
+  const body=document.getElementById('okrBody');
+  const order=['co','ab','wk','lf']; // 认知 → 能力 → 工作 → 生活
+  let html='';
+  let totalGoals=0,doneGoals=0,totalKR=0,doneKR=0;
+
+  order.forEach(k=>{
+    const v=CAT[k];
+    const list=OKRS[k]||[];
+    if(!list.length)return;
+
+    totalGoals+=list.length;
+    list.forEach(o=>{
+      const p=okrObjProgress(o);
+      if(p>=100)doneGoals++;
+      o.krs.forEach(kr=>{totalKR++;if(kr.v>=kr.t)doneKR++});
+    });
+
+    html+=`<div class="okr-sec-title">
+      <span class="tag" style="background:${v.bg};color:${v.c}"><span class="dot" style="background:${v.c}"></span>${v.lb}</span>
+      <h3>${v.lb}目标</h3>
+      <span class="count">${list.length} 个目标</span>
+    </div>`;
+
+    list.forEach(o=>{
+      const p=okrObjProgress(o);
+      html+=`<div class="okr-item" style="${CK(k)}">
+        <div class="o-head">
+          <div class="o-badge">O</div>
+          <div class="o-title">${o.o}</div>
+          <div style="text-align:right"><div class="o-pct">${p}%</div></div>
+        </div>
+        <div class="o-pct-bar"><div style="width:${p}%"></div></div>
+        <div style="margin-top:12px">
+          ${o.krs.map(kr=>{
+            const kp=Math.round(kr.v/kr.t*100);
+            const cls=kr.st==='done'?'done':kr.st==='doing'?'doing':'tg';
+            const lbl=kr.st==='done'?'已完成':kr.st==='doing'?'进行中':'待启动';
+            return `<div class="kr-row">
+              <div class="kr-txt">${kr.t}</div>
+              <div class="kr-bar"><div style="width:${kp}%"></div></div>
+              <div class="kr-num">${kr.v}/${kr.t}${kr.u}</div>
+              <div class="kr-st ${cls}">${lbl}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    });
+  });
+
+  body.innerHTML=html;
+  document.getElementById('okrCount').textContent=totalGoals;
+  document.getElementById('okrDone').textContent=doneGoals;
+  document.getElementById('okrPct').textContent=totalKR>0?Math.round(doneKR/totalKR*100)+'%':'0%';
+}
+
+init();
+</script>
+</body>
+</html>

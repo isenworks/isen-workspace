@@ -12,6 +12,7 @@ const ICONS = {
   diary:   (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>),
   habit:   (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"></path></svg>),
   project: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 00-3-3.87"></path><path d="M16 3.13a4 4 0 010 7.75"></path></svg>),
+  annual:  (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" /><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>),
   settings:(<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>),
   bell:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>),
   msg:     (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path></svg>),
@@ -23,6 +24,7 @@ const ICONS = {
 const NAV_MAIN = [
   { key: 'plan',     label: '计划总结' },
   { key: 'calendar', label: '日历' },
+  { key: 'annual',   label: '年度规划' },
   { key: 'goal',     label: '目标' },
   { key: 'dashboard',label: '数据看板' },
   { key: 'diary',    label: '日记 / 复盘' }
@@ -33,7 +35,7 @@ const NAV_OTHER = [
   { key: 'settings', label: '设置' }
 ];
 
-export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onBeforeLogout, onSync, syncSignal = 0, onUserUpdate }) {
+export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate }) {
   const toast = useToast();
   const isImageAvatar = user?.avatar && /^https?:/.test(user.avatar);
   const avatar = isImageAvatar
@@ -246,9 +248,16 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
             <div
               key={item.key}
               className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
+              style={{ cursor: 'pointer' }}
+              onClick={() => onMenuChange?.(item.key)}
             >
-              {ICONS[item.key]}
-              {item.label}
+              <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
+              <span className="flex-1 min-w-0 truncate">{item.label}</span>
+              {item.key === 'annual' && (
+                <span className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md bg-brand-500/10 text-brand-500">
+                  40%
+                </span>
+              )}
             </div>
           ))}
 

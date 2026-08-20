@@ -18,6 +18,7 @@ import SummaryPanel from '../components/SummaryPanel.jsx';
 import { API } from '../api/client.js';
 import SettingsModal from '../components/SettingsModal.jsx';
 import { store } from '../utils/store.js';
+import AnnualPlan from './AnnualPlan.jsx';
 
 const VIEW_RANGES = {
   today: (d) => ({ from: d, to: d }),
@@ -30,6 +31,7 @@ export default function Workspace({ user: propUser }) {
   const toast = useToast();
   const user = propUser || authUser;
   const logout = authLogout || (() => {});
+  const [activeMenu, setActiveMenu] = useState('plan');
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [view, setView] = useState('today');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -376,77 +378,85 @@ export default function Workspace({ user: propUser }) {
             onCancel: () => setConfirm(null)
           });
         }}
+        activeMenu={activeMenu}
+        onMenuChange={setActiveMenu}
       />
 
       {/* 主内容区 */}
-      <main className="flex-1 min-w-0 max-w-[1180px] flex flex-col gap-4">
-        {/* 顶部日历条 */}
-        <WeekCalendar
-          selectedDate={selectedDate}
-          onSelectDate={handleSelectDate}
-          refreshSignal={refreshKey}
-        />
+      {activeMenu === 'annual' ? (
+        <div className="flex-1 min-w-0">
+          <AnnualPlan standalone={false} />
+        </div>
+      ) : (
+        <main className="flex-1 min-w-0 max-w-[1180px] flex flex-col gap-4">
+          {/* 顶部日历条 */}
+          <WeekCalendar
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+            refreshSignal={refreshKey}
+          />
 
-        {/* Tab 栏 + 统计胶囊 */}
-        <StatsBar
-          date={selectedDate}
-          range={range}
-          view={view}
-          refreshSignal={refreshKey}
-          onViewChange={handleViewChange}
-          onNew={(type) => setModal({ type: type || 'schedule' })}
-          onSummaryToggle={() => setShowSummary(v => !v)}
-          showSummary={showSummary}
-        />
+          {/* Tab 栏 + 统计胶囊 */}
+          <StatsBar
+            date={selectedDate}
+            range={range}
+            view={view}
+            refreshSignal={refreshKey}
+            onViewChange={handleViewChange}
+            onNew={(type) => setModal({ type: type || 'schedule' })}
+            onSummaryToggle={() => setShowSummary(v => !v)}
+            showSummary={showSummary}
+          />
 
-        {/* 主体：12 列网格（左 5 + 右 7） */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* 左栏：重点事项 + 习惯 */}
-          <div className="col-span-5 flex flex-col gap-4">
-            <KeyTasks
-              date={selectedDate}
-              view={view}
-              range={range}
-              refreshSignal={refreshKey}
-              onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
-              onNew={() => setModal({ type: 'schedule' })}
-              onChange={refresh}
-            />
-            <HabitsPanel
-              date={selectedDate}
-              refreshSignal={refreshKey}
-              onChange={refresh}
-            />
-          </div>
-
-          {/* 右栏：时间轴 / 总结面板 */}
-          <div className="col-span-7">
-            {showSummary ? (
-              <div className="glass-card p-5 h-full flex flex-col">
-                <SummaryPanel
-                  embed
-                  userId={user?.id}
-                  date={selectedDate}
-                  refreshSignal={refreshKey}
-                  onChange={refresh}
-                  onBack={() => setShowSummary(false)}
-                />
-              </div>
-            ) : (
-              <Timeline
+          {/* 主体：12 列网格（左 5 + 右 7） */}
+          <div className="grid grid-cols-12 gap-4">
+            {/* 左栏：重点事项 + 习惯 */}
+            <div className="col-span-5 flex flex-col gap-4">
+              <KeyTasks
                 date={selectedDate}
                 view={view}
                 range={range}
                 refreshSignal={refreshKey}
                 onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
-                onAdd={(info) => setModal({ type: 'schedule', data: { start_time: info.start_time } })}
-                onManageFixedSchedules={() => setModal({ type: 'fixedSchedules' })}
+                onNew={() => setModal({ type: 'schedule' })}
                 onChange={refresh}
               />
-            )}
+              <HabitsPanel
+                date={selectedDate}
+                refreshSignal={refreshKey}
+                onChange={refresh}
+              />
+            </div>
+
+            {/* 右栏：时间轴 / 总结面板 */}
+            <div className="col-span-7">
+              {showSummary ? (
+                <div className="glass-card p-5 h-full flex flex-col">
+                  <SummaryPanel
+                    embed
+                    userId={user?.id}
+                    date={selectedDate}
+                    refreshSignal={refreshKey}
+                    onChange={refresh}
+                    onBack={() => setShowSummary(false)}
+                  />
+                </div>
+              ) : (
+                <Timeline
+                  date={selectedDate}
+                  view={view}
+                  range={range}
+                  refreshSignal={refreshKey}
+                  onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
+                  onAdd={(info) => setModal({ type: 'schedule', data: { start_time: info.start_time } })}
+                  onManageFixedSchedules={() => setModal({ type: 'fixedSchedules' })}
+                  onChange={refresh}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
 
       <Modal
         open={!!modal}

@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年度规划 · 2026</title>
+<style>
+:root{
+  --t1:#1c1c1e;--t2:#3c3c43;--t3:#8e8e93;--t4:#aeaeae;
+  --uib:#d1d1d6;--uib-2:rgba(60,60,67,0.12);--uib-3:rgba(60,60,67,0.06);
+  --r-card:18px;--r-row:12px;--r-tab:9px;--r-cb:5px;--r-sm:8px;
+  --c-en:#34c759;--c-en-bg:#e5f6ea;
+  --c-co:#007aff;--c-co-bg:#e0ecff;
+  --c-ab:#d4a017;--c-ab-bg:#fbf3d8;
+  --c-wk:#af52de;--c-wk-bg:#f3e8ff;
+  --c-lf:#ff3b30;--c-lf-bg:#ffe8e8;
+  --w-cell:32px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  background:linear-gradient(180deg,#f5f5f7 0%,#e8e8ed 100%);
+  background-attachment:fixed;min-height:100vh;color:var(--t1);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:-0.01em;
+  font-family:-apple-system,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  padding:24px;font-size:13px;
+}
+.p{max-width:1440px;margin:0 auto}
+
+/* ====== TOP BAR ====== */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:16px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:42px;height:42px;border-radius:10px;background:rgba(120,120,128,0.12);display:grid;place-items:center;color:var(--t2);font-weight:700}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--t1)}
+.brand p{font-size:12px;color:var(--t3);font-weight:500;margin-top:2px}
+.act{display:flex;align-items:center;gap:10px}
+
+/* view switcher */
+.view-switch{
+  display:inline-flex;background:rgba(255,255,255,0.72);
+  border:1px solid rgba(255,255,255,0.6);border-radius:var(--r-tab);
+  padding:3px;gap:2px;backdrop-filter:blur(20px);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04);
+}
+.view-switch button{
+  padding:6px 14px;border:none;background:transparent;color:var(--t3);
+  font-size:12px;font-weight:600;border-radius:7px;cursor:pointer;transition:all .18s;
+  letter-spacing:.02em;
+}
+.view-switch button.on{background:#fff;color:var(--t1);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.view-switch button:hover:not(.on){color:var(--t2)}
+
+.bt{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r-tab);border:1px solid rgba(120,120,128,0.2);background:rgba(255,255,255,0.7);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease;backdrop-filter:blur(8px)}
+.bt:hover{background:rgba(255,255,255,0.95)}
+.bt.p{background:#007aff;border-color:#007aff;color:#fff}
+.bt svg{width:13px;height:13px;stroke-width:2;fill:none;stroke:currentColor}
+
+/* ====== OVERVIEW ====== */
+.overview{display:grid;grid-template-columns:200px 1fr;gap:24px;margin-bottom:20px}
+.ring-card,.cats-card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  padding:20px;
+}
+.ring-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.ring-wrap{position:relative;width:140px;height:140px}
+.ring-svg{transform:rotate(-90deg)}
+.ring-bg{stroke:rgba(60,60,67,0.08);stroke-width:10;fill:none}
+.ring-fg{stroke:url(#ringGrad);stroke-width:10;fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-text .pct{font-size:32px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.ring-text .lb{font-size:11px;color:var(--t3);font-weight:500}
+.ring-card .tl{font-size:12px;font-weight:600;color:var(--t2);margin-top:4px}
+.cats-card h3{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+.cat-row{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;margin-bottom:10px}
+.cat-row:last-child{margin-bottom:0}
+.cat-row .dot{width:10px;height:10px;border-radius:3px}
+.cat-row .nm{font-size:12px;font-weight:600;color:var(--t2)}
+.cat-row .pr{font-size:14px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.cat-bar{height:6px;border-radius:3px;background:rgba(60,60,67,0.08);overflow:hidden;margin-top:4px}
+.cat-bar > div{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* ====== CATEGORY CARD ====== */
+.cat-card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  margin-bottom:20px;overflow:hidden;transition:box-shadow .2s ease;
+}
+.cat-card:hover{box-shadow:0 0 0 1px rgba(0,0,0,0.06),0 12px 40px rgba(0,0,0,0.08)}
+.cat-hd{
+  display:flex;align-items:center;gap:12px;padding:16px 20px;
+  border-bottom:1px solid var(--uib-3);position:relative;
+}
+.cat-hd::after{
+  content:"";position:absolute;bottom:-1px;left:0;height:2px;width:60px;
+  background:var(--cat);border-radius:0 2px 2px 0;transition:width .4s ease;
+}
+.cat-card:hover .cat-hd::after{width:120px}
+.cat-hd .dot{width:12px;height:12px;border-radius:4px}
+.cat-hd h2{font-size:16px;font-weight:700;color:var(--t1)}
+.cat-hd .sp{font-size:12px;color:var(--t3);font-weight:500}
+.cat-hd .act{margin-left:auto;display:flex;gap:8px}
+.cat-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;margin-left:8px}
+
+/* ====== MATRIX TABLE ====== */
+.matrix-wrap{padding:4px 16px 16px;overflow-x:auto}
+.matrix-table{min-width:100%;display:flex;flex-direction:column}
+.m-hd,.m-row{display:grid;gap:3px;align-items:center}
+.m-hd{
+  display:grid;gap:3px;align-items:center;
+  padding:10px 12px 8px;border-bottom:1px solid var(--uib-3);
+  position:sticky;top:0;z-index:2;background:rgba(255,255,255,0.5);backdrop-filter:blur(10px);
+}
+.m-col-lbl{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.04em}
+.m-cell-lbl{font-size:10px;font-weight:600;color:var(--t3);text-align:center}
+.m-cell-lbl.today{color:#007aff;font-weight:700}
+.m-cell-lbl.wknd{color:var(--c-ab)}
+.m-cell-lbl.other{color:var(--t4)}
+
+.m-row{padding:4px 12px;transition:background .15s ease;border-radius:8px}
+.m-row:hover{background:rgba(120,120,128,0.04)}
+.m-row-head{grid-column:1;display:flex;flex-direction:column;gap:2px}
+.m-row-name{font-size:13px;font-weight:600;color:var(--t1)}
+.m-row-sub{font-size:11px;color:var(--t3);line-height:1.3}
+.m-row-stat{grid-column:var(--stat-col);text-align:right;font-size:12px;font-weight:700;color:var(--cat);font-variant-numeric:tabular-nums}
+
+/* cells */
+.m-cell{display:grid;place-items:center}
+.habit-cb{
+  appearance:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--cat-bd);
+  background:#fff;cursor:pointer;transition:all .18s;position:relative;
+}
+.habit-cb:checked{background:var(--cat);border-color:var(--cat)}
+.habit-cb:checked::after{content:"";width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.habit-cb:hover:not(:checked){transform:scale(1.12);border-width:2px}
+.habit-cb:active:not(:checked){transform:scale(0.88)}
+.habit-cb.today{box-shadow:0 0 0 2px rgba(0,122,255,0.22)}
+.habit-cb.empty{opacity:.35}
+
+/* OKR mini bar in matrix */
+.okr-mini{display:flex;flex-direction:column;gap:3px;padding:3px 0}
+.okr-mini-row{display:flex;align-items:center;gap:6px}
+.okr-mini-bar{flex:1;height:4px;border-radius:2px;background:rgba(60,60,67,0.08);overflow:hidden}
+.okr-mini-bar > div{height:100%;border-radius:2px;background:var(--cat);transition:width .6s cubic-bezier(.4,0,.2,1)}
+.okr-mini-num{font-size:10px;font-weight:700;color:var(--t2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.okr-mini-txt{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* experience dot in matrix */
+.exp-dot{width:10px;height:10px;border-radius:50%;cursor:pointer;transition:transform .15s}
+.exp-dot:hover{transform:scale(1.4)}
+.exp-dot.food{background:var(--c-lf)}
+.exp-dot.travel{background:var(--c-ab)}
+.exp-dot.movie{background:var(--c-co)}
+
+/* book cell */
+.book-cell{
+  border-radius:6px;padding:4px 6px;background:rgba(60,60,67,0.04);
+  cursor:pointer;transition:background .15s;position:relative;
+}
+.book-cell:hover{background:rgba(0,122,255,0.08)}
+.book-cell.reading{background:rgba(0,122,255,0.08)}
+.book-cell.done{background:var(--c-en-bg)}
+.book-cell .b-title{font-size:10px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.book-cell .b-st{font-size:9px;color:var(--t3);font-weight:500}
+
+/* ============ EXPANDED OKR PANEL ============ */
+.expand-panel{
+  margin:4px 16px 12px;padding:16px;border-radius:12px;
+  background:linear-gradient(135deg,var(--cat-bg) 0%,rgba(255,255,255,0.6) 100%);
+  border:1px solid rgba(255,255,255,0.5);
+  animation:slideDown .25s ease;
+}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.expand-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.expand-title .tag{font-size:10px;padding:2px 8px;border-radius:999px;background:rgba(60,60,67,0.1);color:var(--t3);font-weight:600}
+.expand-krs{display:flex;flex-direction:column;gap:8px}
+.expand-kr-row{display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;align-items:center}
+.expand-kr-txt{font-size:12px;color:var(--t2)}
+.expand-kr-bar{height:5px;border-radius:3px;background:rgba(60,60,67,0.08);overflow:hidden}
+.expand-kr-bar > div{height:100%;border-radius:3px;background:var(--cat);transition:width .6s ease}
+.expand-kr-num{font-size:11px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.expand-kr-st{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:600;background:rgba(60,60,67,0.1);color:var(--t3);white-space:nowrap}
+.expand-kr-st.done{background:var(--c-en-bg);color:var(--c-en)}
+.expand-kr-st.doing{background:rgba(0,122,255,0.1);color:#007aff}
+
+/* year-month cell */
+.ym-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px}
+.ym-label{font-size:10px;font-weight:600;color:var(--t3)}
+.ym-block{
+  width:22px;height:22px;border-radius:5px;background:rgba(60,60,67,0.08);
+  display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--t3);
+  cursor:pointer;transition:all .15s;
+}
+.ym-block.done{background:var(--c-en);color:#fff}
+.ym-block.partial{background:var(--cat);color:#fff}
+.ym-block:hover{transform:scale(1.1)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(60,60,67,0.18);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(60,60,67,0.3)}
+
+/* expanded indicator */
+.expand-toggle{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--t3);font-weight:600;cursor:pointer;padding:2px 6px;border-radius:6px;transition:all .15s}
+.expand-toggle:hover{background:rgba(60,60,67,0.08);color:var(--t2)}
+.expand-toggle .chev{transition:transform .2s}
+.expand-toggle.on .chev{transform:rotate(90deg)}
+
+@media(max-width:900px){
+  .overview{grid-template-columns:1fr}
+  .view-switch{order:3}
+}
+</style>
+</head>
+<body>
+<div class="p">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">✦</div>
+      <div>
+        <h1>2026 年度规划</h1>
+        <p>五大类目 · 追踪 · 复盘 · 调整</p>
+      </div>
+    </div>
+    <div class="act">
+      <div class="view-switch" id="viewSwitch">
+        <button data-view="week" class="on">周</button>
+        <button data-view="month">月</button>
+        <button data-view="year">年</button>
+      </div>
+      <button class="bt"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>导出</button>
+      <button class="bt p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加目标</button>
+    </div>
+  </div>
+
+  <div class="overview">
+    <div class="ring-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+          <defs>
+            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#34c759"/>
+              <stop offset="50%" stop-color="#007aff"/>
+              <stop offset="100%" stop-color="#af52de"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="70" cy="70" r="58"/>
+          <circle class="ring-fg" cx="70" cy="70" r="58" stroke-dasharray="364.42" stroke-dashoffset="364.42" id="ringFg"/>
+        </svg>
+        <div class="ring-text"><span class="pct" id="ringPct">0%</span><span class="lb">年度总进度</span></div>
+      </div>
+      <div class="tl">Track · Review · Adjust</div>
+    </div>
+    <div class="cats-card">
+      <h3>分类进度</h3>
+      <div id="catBars"></div>
+    </div>
+  </div>
+
+  <div id="cats"></div>
+</div>
+
+<script>
+/* ============ DATA ============ */
+const WD=['一','二','三','四','五','六','日'];
+const MONTHS=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+const CAT={
+  en:{c:'#34c759',bg:'#e5f6ea',bd:'#8ee4a7',lb:'精力',sb:'习惯型 · 每日打卡',type:'habit'},
+  co:{c:'#007aff',bg:'#e0ecff',bd:'#8ab8ff',lb:'认知',sb:'混合型 · 书架+笔记',type:'mixed'},
+  ab:{c:'#d4a017',bg:'#fbf3d8',bd:'#e6c873',lb:'能力',sb:'里程碑+自评',type:'milestone'},
+  wk:{c:'#af52de',bg:'#f3e8ff',bd:'#d4b5ee',lb:'工作',sb:'里程碑 · 量化KR',type:'milestone'},
+  lf:{c:'#ff3b30',bg:'#ffe8e8',bd:'#ff9999',lb:'生活',sb:'体验型 · 日志收集',type:'experience'},
+};
+const C=k=>`--cat:${CAT[k].c};--cat-bg:${CAT[k].bg};--cat-bd:${CAT[k].bd}`;
+
+const HABITS=[
+  {id:'en-sleep',n:'睡眠 7h',s:'23:00 前入睡',type:'en',w:[1,1,0,0,0,0,0]},
+  {id:'en-water',n:'喝水 2L',s:'分4次饮用',type:'en',w:[1,0,0,0,0,0,0]},
+  {id:'en-run',n:'运动',s:'每周≥3次',type:'en',w:[0,0,0,0,0,0,0]},
+  {id:'co-read',n:'看书',s:'每周≥5h',type:'co',w:[0,1,0,0,0,0,0]},
+  {id:'ab-yi',n:'即兴表达',s:'每日1道题',type:'ab',w:[1,1,0,0,0,0,0]},
+  {id:'ab-en',n:'英语口语',s:'每日30min',type:'ab',w:[1,0,0,0,0,0,0]},
+];
+
+const OKRS={
+  co:[
+    {o:'年读12本书并产出践行改变',krs:[
+      {t:'读完12本书',v:5,t:12,u:'本',st:'doing'},
+      {t:'每本输出笔记+3条改变',v:3,t:12,u:'篇',st:'doing'},
+      {t:'≥6条改变落地30天',v:0,t:6,u:'条',st:'tg'},
+    ]}
+  ],
+  ab:[
+    {o:'能完成10min英文自我介绍',krs:[
+      {t:'每日练习≥30min',v:5,t:7,u:'天',st:'doing'},
+      {t:'完成10min自我介绍',v:0,t:1,u:'项',st:'tg'},
+      {t:'看懂无字幕TED×5篇',v:0,t:5,u:'篇',st:'tg'},
+    ]},
+    {o:'即兴表达：3分钟不卡壳',krs:[
+      {t:'每日1道面试题',v:5,t:7,u:'天',st:'doing'},
+      {t:'完成10次模拟面试',v:0,t:10,u:'次',st:'tg'},
+      {t:'收到≥3次正反馈',v:0,t:3,u:'次',st:'tg'},
+    ]},
+    {o:'数据分析：SQL+Excel',krs:[
+      {t:'学完课程全部章节',v:1,t:5,u:'阶段',st:'doing'},
+      {t:'完成3个分析项目',v:0,t:3,u:'个',st:'tg'},
+      {t:'掌握SQL/Excel高级功能',v:0,t:2,u:'项',st:'tg'},
+    ]},
+  ],
+  wk:[
+    {o:'主业：找到20k+用户运营offer',krs:[
+      {t:'离职拿到大礼包',v:1,t:1,u:'项',st:'done'},
+      {t:'投递≥50家目标公司',v:20,t:50,u:'份',st:'doing'},
+      {t:'拿到≥10个面试',v:5,t:10,u:'个',st:'doing'},
+      {t:'拿到≥3个offer',v:0,t:3,u:'个',st:'tg'},
+      {t:'至少1个≥20k',v:0,t:1,u:'个',st:'tg'},
+    ]},
+    {o:'副业：小红书「小憨熊」涨粉变现',krs:[
+      {t:'发布≥50条内容',v:12,t:50,u:'条',st:'doing'},
+      {t:'粉丝≥5000',v:800,t:5000,u:'粉',st:'tg'},
+      {t:'接到第1个商业合作',v:0,t:1,u:'个',st:'tg'},
+    ]},
+  ],
+};
+
+const BOOKS=[
+  {t:'纳瓦尔宝典',a:'Eric Jorgenson',s:'reading',pct:60},
+  {t:'原则',a:'瑞·达利欧',s:'reading',pct:25},
+  {t:'深度工作',a:'Cal Newport',s:'done',pct:100},
+  {t:'认知觉醒',a:'周岭',s:'done',pct:100},
+  {t:'被讨厌的勇气',a:'岸见一郎',s:'done',pct:100},
+  {t:'富爸爸穷爸爸',a:'罗伯特·清崎',s:'todo',pct:0},
+  {t:'思考，快与慢',a:'丹尼尔·卡尼曼',s:'todo',pct:0},
+];
+
+const EXP_DOTS=[
+  {n:'芥末罗氏虾',type:'food',day:2},
+  {n:'火锅 · 宽窄巷子',type:'food',day:5},
+  {n:'成都3日游',type:'travel',day:12},
+  {n:'欢迎来龙餐馆',type:'movie',day:15},
+  {n:'奥本海默',type:'movie',day:1},
+];
+
+let currentView='week';
+
+/* ============ RENDER ============ */
+function render(){
+  renderOverview();
+  renderCats();
+  bindViewSwitch();
+}
+
+function bindViewSwitch(){
+  document.querySelectorAll('#viewSwitch button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#viewSwitch button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      currentView=b.dataset.view;
+      renderCats();
+    });
+  });
+}
+
+function renderOverview(){
+  const total=computeOverall();
+  const ring=document.getElementById('ringFg');
+  const C=2*Math.PI*58;
+  ring.setAttribute('stroke-dasharray',C);
+  ring.setAttribute('stroke-dashoffset',C);
+  document.getElementById('ringPct').textContent='0%';
+  requestAnimationFrame(()=>{
+    ring.setAttribute('stroke-dashoffset',C*(1-total/100));
+    let cur=0,tar=total,dur=800,st=performance.now();
+    const tick=t=>{const p=Math.min((t-st)/dur,1);const e=1-Math.pow(1-p,3);cur=Math.round(e*tar);document.getElementById('ringPct').textContent=cur+'%';if(p<1)requestAnimationFrame(tick)};
+    requestAnimationFrame(tick);
+  });
+  document.getElementById('catBars').innerHTML=Object.entries(CAT).map(([k,v])=>{
+    const p=catProgress(k);
+    return `<div class="cat-row"><span class="dot" style="background:${v.c}"></span><div><div class="nm">${v.lb}</div><div class="cat-bar"><div style="width:${p}%;background:${v.c}"></div></div></div><div class="pr">${p}%</div></div>`;
+  }).join('');
+}
+
+function computeOverall(){
+  return Math.round(catProgress('en')*0.15+catProgress('co')*0.2+catProgress('ab')*0.25+catProgress('wk')*0.3+catProgress('lf')*0.1);
+}
+function catProgress(k){
+  if(k==='en')return habitProgress();
+  if(k==='co')return Math.round(okrProgress('co')*0.6+bookProgress()*0.4);
+  if(k==='ab')return okrProgress('ab');
+  if(k==='wk')return okrProgress('wk');
+  if(k==='lf')return 45;
+  return 0;
+}
+function habitProgress(){
+  let t=0,d=0;
+  HABITS.forEach(h=>{h.w.forEach(v=>{t++;if(v===1)d++})});
+  return t>0?Math.round(d/t*100):0;
+}
+function okrProgress(key){
+  const list=OKRS[key]||[];
+  if(!list.length)return 0;
+  let t=0,d=0;
+  list.forEach(o=>{o.krs.forEach(kr=>{t+=kr.t;d+=Math.min(kr.v,kr.t)})});
+  return t>0?Math.round(d/t*100):0;
+}
+function bookProgress(){return Math.round(BOOKS.filter(b=>b.s==='done').length/12*100)}
+
+/* ============ RENDER CATS ============ */
+function renderCats(){
+  const c=document.getElementById('cats');
+  c.innerHTML=catCard('en')+catCard('co')+catCard('ab')+catCard('wk')+catCard('lf');
+  bindExpandToggles();
+}
+
+function catCard(k){
+  const v=CAT[k];
+  const p=catProgress(k);
+  return `<div class="cat-card" style="${C(k)}">
+    <div class="cat-hd">
+      <span class="dot" style="background:${v.c}"></span>
+      <h2>${v.lb}</h2>
+      <span class="cat-tag" style="background:${v.bg};color:${v.c}">${v.sb}</span>
+      <div class="act"><span style="color:${v.c};font-weight:700;font-size:14px">${p}%</span></div>
+    </div>
+    ${renderMatrix(k)}
+  </div>`;
+}
+
+/* ============ MATRIX RENDER ============ */
+function getMatrixCols(){
+  if(currentView==='week')return {cols:7,labels:WD,label:'周',stat:'本周',statCol:9};
+  if(currentView==='month')return {cols:31,labels:Array.from({length:31},(_,i)=>i+1),label:'月',stat:'本月',statCol:33};
+  return {cols:12,labels:MONTHS,label:'年',stat:'年度',statCol:14};
+}
+
+function renderMatrix(k){
+  const {cols,labels,stat,statCol}=getMatrixCols();
+  const v=CAT[k];
+  const catType=v.type;
+
+  // header
+  let hdrCells='';
+  for(let i=0;i<cols;i++){
+    const lbl=labels[i];
+    let cls='m-cell-lbl';
+    if(currentView==='week'){
+      if(i===0)cls+=' today';
+      if((4+i)%7>=5)cls+=' wknd';
+    }else if(currentView==='month'){
+      if(i===new Date().getDate()-1)cls+=' today';
+    }
+    hdrCells+=`<div class="m-cell ${cls}">${lbl}</div>`;
+  }
+
+  let body='';
+  if(catType==='habit')body=renderHabitRows(k,cols,labels,statCol);
+  else if(catType==='mixed')body=renderMixedRows(k,cols,labels,statCol);
+  else if(catType==='milestone')body=renderMilestoneRows(k,cols,labels,statCol);
+  else if(catType==='experience')body=renderExperienceRows(k,cols,labels,statCol);
+
+  const gridStyle=`grid-template-columns:200px repeat(${cols},var(--w-cell)) 80px`;
+
+  return `<div class="matrix-wrap">
+    <div class="matrix-table">
+      <div class="m-hd" style="${gridStyle};--stat-col:${statCol}">
+        <div class="m-col-lbl">${v.lb}目标</div>${hdrCells}<div class="m-col-lbl" style="grid-column:${statCol};text-align:right">${stat}</div>
+      </div>
+      ${body}
+    </div>
+  </div>`;
+}
+
+/* habit rows: checkboxes */
+function renderHabitRows(k,cols,labels,statCol){
+  const v=CAT[k];
+  const list=HABITS.filter(h=>h.type===k);
+  let rows='';
+  list.forEach(h=>{
+    let cells='';
+    if(currentView==='week'){
+      h.w.forEach((val,i)=>{
+        const todayCls=i===0?' today':'';
+        cells+=`<div class="m-cell"><input type="checkbox" class="habit-cb${todayCls}" data-hid="${h.id}" data-i="${i}" ${val===1?'checked':''}></div>`;
+      });
+    }else if(currentView==='month'){
+      for(let i=0;i<31;i++){
+        const val=h.w[i%7] && i<7 ? h.w[i] : (i<7?h.w[i]:0);
+        const todayCls=i===new Date().getDate()-1?' today':'';
+        const filled=val===1;
+        cells+=`<div class="m-cell"><input type="checkbox" class="habit-cb${todayCls}${!filled?' empty':''}" data-hid="${h.id}" data-i="${i}" ${filled?'checked':''}></div>`;
+      }
+    }else{
+      // year view: month summaries
+      for(let m=0;m<12;m++){
+        const doneDays=h.w.filter(x=>x===1).length;
+        const isDone=m<8;
+        cells+=`<div class="ym-cell"><div class="ym-block ${isDone?'done':'partial'}">${isDone?'✓':'·'}</div></div>`;
+      }
+    }
+    const done=h.w.filter(x=>x===1).length;
+    rows+=`<div class="m-row habit-row" style="grid-template-columns:200px repeat(${cols},var(--w-cell)) 80px;--cat:${v.c};--cat-bg:${v.bg};--cat-bd:${v.bd}">
+      <div class="m-row-head"><div class="m-row-name">${h.n}</div><div class="m-row-sub">${h.s}</div></div>
+      ${cells}
+      <div class="m-row-stat">${done}</div>
+    </div>`;
+  });
+  // bind checkboxes
+  setTimeout(()=>{
+    document.querySelectorAll('.habit-cb').forEach(cb=>{
+      cb.addEventListener('change',e=>{
+        const hid=e.target.dataset.hid;
+        const i=parseInt(e.target.dataset.i);
+        const h=HABITS.find(x=>x.id===hid);
+        if(h){h.w[i]=e.target.checked?1:0;}
+      });
+    });
+  },0);
+  return rows;
+}
+
+/* mixed rows: OKR mini + books */
+function renderMixedRows(k,cols,labels,statCol){
+  const v=CAT[k];
+  const list=OKRS[k]||[];
+  let rows='';
+  list.forEach(o=>{
+    let cells='';
+    const totalPct=okrProgressForObj(o);
+
+    if(currentView==='week'){
+      // week: show progress across 7 days (mini bars)
+      for(let i=0;i<7;i++){
+        const dayProgress=Math.max(0,totalPct-i*5);
+        const krsHtml=o.krs.slice(0,2).map(kr=>{
+          const dayVal=Math.max(0,kr.v-i);
+          const pct=Math.round(dayVal/kr.t*100);
+          return `<div class="okr-mini-row"><div class="okr-mini-bar"><div style="width:${pct}%"></div></div></div>`;
+        }).join('');
+        cells+=`<div class="m-cell" style="flex-direction:column;gap:3px"><div class="okr-mini">${krsHtml}</div></div>`;
+      }
+    }else if(currentView==='month'){
+      for(let i=0;i<31;i++){
+        const krsHtml=o.krs.slice(0,2).map(kr=>{
+          const dayVal=Math.max(0,kr.v-Math.floor(i/5));
+          const pct=Math.round(dayVal/kr.t*100);
+          return `<div class="okr-mini-row"><div class="okr-mini-bar"><div style="width:${pct}%"></div></div></div>`;
+        }).join('');
+        cells+=`<div class="m-cell"><div class="okr-mini">${krsHtml}</div></div>`;
+      }
+    }else{
+      // year
+      for(let m=0;m<12;m++){
+        const pct=Math.min(100,totalPct+m*8);
+        cells+=`<div class="ym-cell"><div class="ym-block ${pct>=100?'done':pct>0?'partial':''}" style="width:26px;height:26px;font-size:9px">${MONTHS[m].replace('月','')}</div></div>`;
+      }
+    }
+
+    const statusTag=totalPct>=100?'✅ 已完成':totalPct>0?'🔵 进行中':'⚪ 待启动';
+    rows+=`<div class="m-row" style="grid-template-columns:200px repeat(${cols},var(--w-cell)) 80px;--cat:${v.c};--cat-bg:${v.bg};--cat-bd:${v.bd}">
+      <div class="m-row-head"><div class="m-row-name">${o.o}</div><div class="m-row-sub">${statusTag} ${Math.round(totalPct)}%</div></div>
+      ${cells}
+      <div class="m-row-stat">${Math.round(totalPct)}%</div>
+    </div>`;
+  });
+
+  // books row
+  const bookCells=renderBookCells(cols);
+  const doneBooks=BOOKS.filter(b=>b.s==='done').length;
+  rows+=`<div class="m-row" style="grid-template-columns:200px repeat(${cols},var(--w-cell)) 80px;--cat:${v.c};--cat-bg:${v.bg};--cat-bd:${v.bd}">
+    <div class="m-row-head"><div class="m-row-name">📚 书架系统</div><div class="m-row-sub">年度目标 12本</div></div>
+    ${bookCells}
+    <div class="m-row-stat">${doneBooks}/12</div>
+  </div>`;
+
+  return rows;
+}
+
+function renderBookCells(cols){
+  let cells='';
+  const perCell=Math.ceil(BOOKS.length/cols);
+  for(let i=0;i<cols;i++){
+    const slice=BOOKS.slice(i*perCell,(i+1)*perCell);
+    if(!slice.length){cells+='<div class="m-cell"></div>';continue;}
+    if(currentView==='year'){
+      const b=slice[0];
+      const s=b.s==='done'?'done':b.s==='reading'?'reading':'';
+      const icon=s==='done'?'✓':s==='reading'?'●':'○';
+      cells+=`<div class="ym-cell"><div class="ym-block ${s}">${icon}</div></div>`;
+    }else{
+      cells+=`<div class="m-cell" style="flex-direction:column;gap:3px;width:100%">${slice.map(b=>`<div class="book-cell ${b.s}" title="${b.t}"><div class="b-title">${b.t}</div><div class="b-st">${b.s==='done'?'已读':b.s==='reading'?'在读':'待读'}</div></div>`).join('')}</div>`;
+    }
+  }
+  return cells;
+}
+
+function okrProgressForObj(o){
+  let t=0,d=0;
+  o.krs.forEach(kr=>{t+=kr.t;d+=Math.min(kr.v,kr.t)});
+  return t>0?Math.round(d/t*100):0;
+}
+
+/* milestone rows: OKR */
+function renderMilestoneRows(k,cols,labels,statCol){
+  const v=CAT[k];
+  const list=OKRS[k]||[];
+  let rows='';
+  list.forEach((o,idx)=>{
+    let cells='';
+    const totalPct=okrProgressForObj(o);
+
+    if(currentView==='week'){
+      for(let i=0;i<7;i++){
+        const dayKrs=o.krs.slice(0,2).map(kr=>{
+          const dayVal=Math.max(0,kr.v-i);
+          const pct=Math.round(dayVal/kr.t*100);
+          return `<div class="okr-mini-row"><div class="okr-mini-bar"><div style="width:${pct}%"></div></div></div>`;
+        }).join('');
+        cells+=`<div class="m-cell"><div class="okr-mini">${dayKrs}</div></div>`;
+      }
+    }else if(currentView==='month'){
+      for(let i=0;i<31;i++){
+        const dayKrs=o.krs.slice(0,2).map(kr=>{
+          const dayVal=Math.max(0,kr.v-Math.floor(i/5));
+          const pct=Math.round(dayVal/kr.t*100);
+          return `<div class="okr-mini-row"><div class="okr-mini-bar"><div style="width:${pct}%"></div></div></div>`;
+        }).join('');
+        cells+=`<div class="m-cell"><div class="okr-mini">${dayKrs}</div></div>`;
+      }
+    }else{
+      for(let m=0;m<12;m++){
+        const pct=Math.min(100,totalPct+m*8);
+        cells+=`<div class="ym-cell"><div class="ym-block ${pct>=100?'done':pct>0?'partial':''}">${MONTHS[m].replace('月','')}</div></div>`;
+      }
+    }
+
+    const statusTag=totalPct>=100?'✅ 已完成':totalPct>0?'🔵 进行中':'⚪ 待启动';
+    rows+=`<div class="m-row" style="grid-template-columns:200px repeat(${cols},var(--w-cell)) 80px;--cat:${v.c};--cat-bg:${v.bg};--cat-bd:${v.bd}">
+      <div class="m-row-head"><div class="m-row-name">${o.o}</div><div class="m-row-sub">${statusTag} <span class="expand-toggle" data-okr-key="${k}" data-idx="${idx}"><span class="chev">▶</span> 展开KRs</span></div></div>
+      ${cells}
+      <div class="m-row-stat">${Math.round(totalPct)}%</div>
+    </div>`;
+
+    // expanded panel
+    rows+=`<div class="expand-panel" id="expand-${k}-${idx}" style="display:none;--cat:${v.c};--cat-bg:${v.bg}">
+      <div class="expand-title">${o.o} <span class="tag">${CAT[k].lb} · OKR</span></div>
+      <div class="expand-krs">
+        ${o.krs.map(kr=>`
+          <div class="expand-kr-row">
+            <div class="expand-kr-txt">${kr.t}</div>
+            <div class="expand-kr-bar"><div style="width:${Math.round(kr.v/kr.t*100)}%;background:${v.c}"></div></div>
+            <div class="expand-kr-num">${kr.v}/${kr.t}${kr.u}</div>
+            <div class="expand-kr-st ${kr.st}">${kr.st==='done'?'✅':kr.st==='doing'?'进行中':'待启动'}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  });
+  return rows;
+}
+
+function bindExpandToggles(){
+  document.querySelectorAll('.expand-toggle').forEach(t=>{
+    t.addEventListener('click',e=>{
+      e.stopPropagation();
+      const k=t.dataset.okrKey;
+      const idx=t.dataset.idx;
+      const panel=document.getElementById(`expand-${k}-${idx}`);
+      const isOn=panel.style.display==='block';
+      panel.style.display=isOn?'none':'block';
+      t.classList.toggle('on');
+      t.querySelector('.chev').textContent=isOn?'▶':'▼';
+    });
+  });
+}
+
+/* experience rows: dots */
+function renderExperienceRows(k,cols,labels,statCol){
+  const v=CAT[k];
+  let cells='';
+  if(currentView==='year'){
+    for(let m=0;m<12;m++){
+      const events=EXP_DOTS.filter(d=>d.day>=m*2+1&&d.day<=(m+1)*2);
+      cells+=`<div class="ym-cell">${events.length?`<div class="ym-block done">${events.length}</div>`:`<div class="ym-block">·</div>`}</div>`;
+    }
+  }else{
+    const days=currentView==='week'?7:31;
+    for(let i=0;i<days;i++){
+      const events=EXP_DOTS.filter(d=>currentView==='week'?d.day%7===i+1:d.day===i+1);
+      if(events.length){
+        cells+=`<div class="m-cell" style="flex-direction:column;gap:3px">${events.map(e=>`<div class="exp-dot ${e.type}" title="${e.n}"></div>`).join('')}</div>`;
+      }else{
+        cells+='<div class="m-cell"><div style="width:10px;height:10px;border-radius:50%;background:rgba(60,60,67,0.1)"></div></div>';
+      }
+    }
+  }
+
+  const totalEvents=EXP_DOTS.length;
+  return `<div class="m-row" style="grid-template-columns:200px repeat(${cols},var(--w-cell)) 80px;--cat:${v.c};--cat-bg:${v.bg};--cat-bd:${v.bd}">
+    <div class="m-row-head"><div class="m-row-name">🎯 体验日志</div><div class="m-row-sub">记录美好生活</div></div>
+    ${cells}
+    <div class="m-row-stat">${totalEvents}</div>
+  </div>`;
+}
+
+render();
+</script>
+</body>
+</html>

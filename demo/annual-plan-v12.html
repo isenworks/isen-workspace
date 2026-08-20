@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class=""><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年度规划 · 2026</title>
+<style>
+:root{
+  --t1:#1c1c1e;--t2:#3c3c43;--t3:#8e8e93;--t4:#aeaeae;
+  --uib-1:rgba(60,60,67,0.04);--uib-2:rgba(60,60,67,0.12);--uib-3:rgba(60,60,67,0.06);
+  --r-card:18px;--r-row:12px;--r-tab:9px;
+  --sidebar-w:220px;
+  --c-en:#34c759;--c-en-bg:#e5f6ea;--c-en-bd:#a8e6b8;
+  --c-co:#007aff;--c-co-bg:#e0ecff;--c-co-bd:#a8c8ff;
+  --c-ab:#ff9500;--c-ab-bg:#fff4e6;--c-ab-bd:#ffc980;
+  --c-wk:#ff3b30;--c-wk-bg:#ffe8e8;--c-wk-bd:#ff9999;
+  --c-lf:#af52de;--c-lf-bg:#f3e8ff;--c-lf-bd:#d4b5ee;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  background:linear-gradient(180deg,#f5f5f7 0%,#e8e8ed 100%);
+  background-attachment:fixed;min-height:100vh;color:var(--t1);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:-0.01em;
+  font-family:-apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  font-size:13px;
+}
+.ico{width:14px;height:14px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ====== LAYOUT ====== */
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+.sidebar{
+  background:rgba(255,255,255,0.72);backdrop-filter:saturate(180%) blur(20px);
+  border-right:1px solid var(--uib-2);padding:20px 0;display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.main{padding:24px 28px;max-width:calc(100vw - var(--sidebar-w));overflow-x:hidden}
+
+/* ====== SIDEBAR ====== */
+.sb-brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid var(--uib-3)}
+.sb-logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#34c759,#007aff,#ff9500,#ff3b30,#af52de);display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px}
+.sb-brand h1{font-size:16px;font-weight:700}
+.sb-brand p{font-size:10px;color:var(--t3);font-weight:500;margin-top:1px}
+
+.sb-nav{padding:16px 12px;flex:1}
+.sb-nav-label{font-size:10px;font-weight:700;color:var(--t4);letter-spacing:.06em;text-transform:uppercase;padding:0 8px 8px}
+.sb-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;
+  cursor:pointer;transition:all .15s;margin-bottom:2px;
+}
+.sb-item:hover{background:var(--uib-1)}
+.sb-item.on{background:rgba(255,255,255,0.8);box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.sb-item .si-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.sb-item .si-lb{font-size:13px;font-weight:600;color:var(--t2);flex:1}
+.sb-item.on .si-lb{color:var(--t1)}
+.sb-item .si-pct{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--t3)}
+.sb-item.on .si-pct{color:var(--t1)}
+
+.sb-foot{padding:12px 20px;border-top:1px solid var(--uib-3)}
+.sb-foot .sf-ring{display:flex;align-items:center;gap:10px}
+.sb-foot .sf-ring-svg{transform:rotate(-90deg)}
+.sb-foot .sf-ring-text{font-size:16px;font-weight:700}
+.sb-foot .sf-ring-lb{font-size:10px;color:var(--t3);font-weight:500}
+
+/* ====== TOP BAR ====== */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.top h2{font-size:20px;font-weight:700;letter-spacing:-0.02em}
+.top p{font-size:12px;color:var(--t3);font-weight:500;margin-top:2px}
+.top .act{display:flex;gap:8px}
+.bt{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:9px;border:1px solid rgba(120,120,128,0.2);background:rgba(255,255,255,0.7);color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.bt:hover{background:rgba(255,255,255,0.95)}
+.bt.p{background:#007aff;border-color:#007aff;color:#fff}
+
+/* ====== OVERVIEW DASHBOARD ====== */
+.glass{
+  background:rgba(255,255,255,0.72);backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+}
+
+/* ring card */
+.ring-card{padding:18px 20px;display:flex;align-items:center;gap:18px;margin-bottom:16px}
+.ring-wrap{position:relative;width:84px;height:84px;flex-shrink:0}
+.ring-svg{transform:rotate(-90deg)}
+.ring-bg{stroke:rgba(60,60,67,0.06);stroke-width:6;fill:none}
+.ring-fg{stroke:url(#ringGrad);stroke-width:6;fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-text .pct{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+.ring-text .lb{font-size:9px;color:var(--t4);font-weight:500}
+.ring-info{flex:1}
+.ring-info .ri-sub{font-size:11px;color:var(--t3);line-height:1.5}
+.ring-info .ri-track{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-top:6px}
+.ring-info .ri-track.on{background:var(--c-en-bg);color:var(--c-en)}
+.ring-info .ri-track.off{background:rgba(255,149,0,0.12);color:#ff9500}
+
+/* category cards grid */
+.cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}
+.cat-card{
+  border-radius:16px;padding:16px 14px;border:1px solid var(--uib-2);
+  background:rgba(255,255,255,0.6);transition:all .2s ease;cursor:pointer;
+  position:relative;overflow:hidden;
+}
+.cat-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.06)}
+.cat-card::before{content:"";position:absolute;top:0;left:0;width:100%;height:3px;background:var(--card-c)}
+.cat-card .cc-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cat-card .cc-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex-shrink:0;background:var(--card-bg)}
+.cat-card .cc-lb{font-size:13px;font-weight:700;color:var(--t1);flex:1}
+.cat-card .cc-type{font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;background:var(--card-bg);color:var(--card-c)}
+.cat-card .cc-pct-row{display:flex;align-items:baseline;gap:4px;margin-bottom:8px}
+.cat-card .cc-pct{font-size:26px;font-weight:700;color:var(--card-c);font-variant-numeric:tabular-nums;letter-spacing:-0.03em}
+.cat-card .cc-pct-u{font-size:13px;font-weight:600;color:var(--card-c)}
+.cat-card .cc-pct-lb{font-size:9px;color:var(--t4);font-weight:500;margin-left:auto}
+.cat-card .cc-bar{height:3px;border-radius:2px;background:rgba(60,60,67,0.06);overflow:hidden;margin-bottom:10px}
+.cat-card .cc-bar>div{height:100%;border-radius:2px;background:var(--card-c);transition:width .8s ease}
+.cat-card .cc-items{display:flex;flex-direction:column;gap:5px}
+.cat-card .cc-item{display:flex;align-items:center;justify-content:space-between;font-size:11px}
+.cat-card .cc-item .ci-lb{color:var(--t4);font-weight:500}
+.cat-card .cc-item .ci-val{font-weight:600;color:var(--t2);font-variant-numeric:tabular-nums}
+.cat-card .cc-item .ci-val.done{color:var(--c-en)}
+
+/* ====== DETAIL VIEW ====== */
+.detail-view{display:none}
+.detail-view.on{display:block}
+.detail-back{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t3);font-weight:600;cursor:pointer;margin-bottom:16px;transition:color .15s}
+.detail-back:hover{color:var(--t1)}
+.detail-hd{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.detail-hd .dh-icon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex-shrink:0}
+.detail-hd h2{font-size:22px;font-weight:700;letter-spacing:-0.02em}
+.detail-hd .dh-type{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;margin-left:8px}
+
+/* ====== REVIEW CARD ====== */
+.review-card{padding:14px 18px;display:flex;align-items:center;gap:14px}
+.review-card .rv-icon{width:32px;height:32px;border-radius:9px;background:rgba(175,82,222,0.1);display:grid;place-items:center;color:var(--c-lf);flex-shrink:0}
+.review-card .rv-title{font-size:13px;font-weight:700}
+.review-card .rv-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.review-card .rv-btn{margin-left:auto;padding:6px 14px;border-radius:8px;background:var(--c-lf);color:#fff;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all .15s}
+.review-card .rv-btn:hover{opacity:.9;transform:translateY(-1px)}
+
+/* ====== HABIT CALENDAR (精力详情) ====== */
+.habit-card{overflow:hidden;margin-bottom:16px}
+.habit-grid-wrap{overflow-x:auto;padding:4px 16px 12px}
+.cal-hd{display:grid;gap:2px;align-items:center;padding:10px 12px 8px;border-bottom:1px solid var(--uib-3);position:sticky;top:0;z-index:3;background:rgba(255,255,255,0.95);border-radius:var(--r-card) var(--r-card) 0 0}
+.cal-hd .col-name{font-size:11px;font-weight:700;color:var(--t2)}
+.cal-hd .col-pct{font-size:10px;font-weight:700;color:var(--t4);text-align:center}
+.cal-hd .col-streak{font-size:10px;font-weight:700;color:var(--t4);text-align:center}
+.cal-hd .col-day{font-size:10px;font-weight:700;text-align:center;color:var(--t4);display:flex;flex-direction:column;align-items:center;gap:1px}
+.cal-hd .col-day .dn{font-size:11px}
+.cal-hd .col-day .dt{font-size:9px;color:var(--t4);font-weight:600}
+.cal-hd .col-day.today .dn,.cal-hd .col-day.today .dt{color:#007aff;font-weight:700}
+.cal-hd .col-day.wknd .dn{color:var(--c-ab)}
+.h-row{display:grid;gap:2px;align-items:center;padding:8px 12px;transition:background .15s;border-radius:8px}
+.h-row:hover{background:rgba(120,120,128,0.03)}
+.h-row .h-name{display:flex;align-items:center;gap:8px;overflow:hidden}
+.h-row .h-dot{width:6px;height:6px;border-radius:3px;flex-shrink:0}
+.h-row .h-text{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h-row .h-sub{font-size:10px;color:var(--t4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h-row .h-pct{text-align:center;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.h-row .h-pct-bar{height:3px;border-radius:2px;background:rgba(60,60,67,0.05);overflow:hidden;margin-top:3px}
+.h-row .h-pct-bar>div{height:100%;border-radius:2px}
+.h-row .h-streak{text-align:center;font-size:11px;font-weight:600;color:var(--c-ab)}
+.h-cell{display:grid;place-items:center}
+.habit-cb{appearance:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--cat-bd);background:#fff;cursor:pointer;transition:all .18s;position:relative}
+.habit-cb:checked{background:var(--cat);border-color:var(--cat)}
+.habit-cb:checked::after{content:"";width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.habit-cb:hover:not(:checked){transform:scale(1.1);border-width:2px}
+
+/* ====== BOOKSHELF (认知详情) ====== */
+.cog-kr-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.cog-kr-card{padding:16px 18px;border-radius:14px;border:1px solid var(--uib-2);background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-top:3px solid var(--c-co);transition:box-shadow .2s ease}
+.cog-kr-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+.cog-kr-card .ck-title{font-size:11px;font-weight:700;color:var(--c-co);margin-bottom:4px}
+.cog-kr-card .ck-val{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.cog-kr-card .ck-sub{font-size:10px;color:var(--t4)}
+.cog-kr-card .ck-bar{height:3px;border-radius:2px;background:rgba(0,122,255,0.12);overflow:hidden;margin-top:8px}
+.cog-kr-card .ck-bar>div{height:100%;border-radius:2px;background:var(--c-co)}
+.cog-layout{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:4px}
+.book-col{display:flex;flex-direction:column;min-height:0;padding:12px;border-radius:14px}
+.book-col-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 2px}
+.book-col-hd .bch-badge{font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;color:#fff}
+.book-col-hd .bch-count{font-size:13px;font-weight:700;color:var(--t2)}
+.book-col-hd .bch-more{margin-left:auto;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--t4);cursor:pointer;transition:background .15s}
+.book-col-hd .bch-more:hover{background:rgba(60,60,67,0.06)}
+.book-col.reading .bch-badge{background:var(--c-co)}
+.book-col.pending .bch-badge{background:var(--t3)}
+.book-col.done .bch-badge{background:var(--c-en)}
+.book-col.paused .bch-badge{background:var(--c-ab)}
+.book-list{display:flex;flex-direction:column;gap:8px;flex:1;overflow-y:auto}
+.book-item{padding:12px 14px;border-radius:10px;background:#fff;border:1px solid var(--uib-2);cursor:pointer;transition:all .15s}
+.book-item:hover{border-color:rgba(0,122,255,0.3);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.book-item .bi-title{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:4px;line-height:1.4}
+.book-item .bi-sub{font-size:11px;color:var(--t4)}
+.book-item.done .bi-title{color:var(--t4)}
+.book-col-add{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.7);border:1px dashed var(--uib-3);font-size:12px;font-weight:600;color:var(--t4);cursor:pointer;transition:all .15s;margin-top:8px}
+.book-col-add:hover{background:rgba(0,122,255,0.05);color:var(--c-co);border-color:rgba(0,122,255,0.3)}
+.book-col-add svg{width:14px;height:14px}
+.book-col.done{background:rgba(52,199,89,0.06)}
+.book-col.reading{background:rgba(0,122,255,0.06)}
+.book-col.paused{background:rgba(255,149,0,0.06)}
+.book-col.pending{background:rgba(60,60,67,0.03)}
+
+/* ====== ABILITY (能力详情) ====== */
+.ab-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:4px}
+.ab-target{display:flex;flex-direction:column;gap:0;padding:20px;border:1px solid var(--uib-2);border-radius:18px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-top:3px solid var(--c-ab);transition:box-shadow .2s ease}
+.ab-target:hover{box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+.ab-t-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ab-t-hd .ab-badge{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;background:var(--c-ab);flex-shrink:0}
+.ab-t-hd .ab-title{flex:1;font-size:14px;font-weight:700;line-height:1.3}
+.ab-t-hd .ab-se-score{font-size:16px;font-weight:700;color:var(--c-ab);font-variant-numeric:tabular-nums}
+.ab-t-hd .ab-se-max{font-size:10px;color:var(--t4)}
+.ab-daily{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;background:var(--c-ab-bg);margin-bottom:12px;font-size:11px}
+.ab-daily .ab-d-text{font-weight:500;color:var(--t2);flex:1}
+.ab-daily .ab-d-streak{font-weight:700;color:var(--c-ab);font-size:11px}
+.ab-milestones{display:flex;flex-direction:column;gap:2px}
+.ab-ms{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 0}
+.ab-ms+.ab-ms{border-top:1px solid rgba(60,60,67,0.04)}
+.ab-ms .ms-check{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--c-ab-bd);display:grid;place-items:center;flex-shrink:0}
+.ab-ms.done .ms-check{background:var(--c-ab);border-color:var(--c-ab)}
+.ab-ms.done .ms-check::after{content:"✓";color:#fff;font-size:8px;font-weight:700}
+.ab-ms .ms-text{font-size:12px;color:var(--t2);line-height:1.4}
+.ab-ms.done .ms-text{color:var(--t4);text-decoration:line-through}
+.ab-ms .ms-st{font-size:9px;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.ab-ms .ms-st.done{background:var(--c-en-bg);color:var(--c-en)}
+.ab-ms .ms-st.doing{background:rgba(255,149,0,0.08);color:var(--c-ab)}
+.ab-ms .ms-st.tg{background:rgba(60,60,67,0.04);color:var(--t4)}
+
+/* ====== WORK (工作详情) ====== */
+.wk-layout{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-top:4px}
+.wk-panel{display:flex;flex-direction:column;gap:0;padding:22px;border:1px solid var(--uib-2);border-radius:18px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:box-shadow .2s ease}
+.wk-panel:hover{box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+.wk-panel-hd{display:flex;align-items:center;gap:10px;padding:0 0 12px;border-bottom:1px solid var(--uib-3);margin-bottom:12px}
+.wk-panel-hd .wph-label{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.1em}
+.wk-panel-hd .wph-title{font-size:18px;font-weight:700;letter-spacing:-0.02em}
+.wk-panel-hd .wph-sep{flex:1}
+.wk-panel-hd .wph-pct{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.03em}
+.wk-panel-hd .wph-pct-u{font-size:14px;font-weight:600}
+.wk-panel-hd .wph-track{font-size:10px;font-weight:600;padding:3px 10px;border-radius:999px}
+.wk-panel-hd .wph-track.done{background:var(--c-en-bg);color:var(--c-en)}
+.wk-panel-hd .wph-track.doing{background:rgba(255,59,48,0.08);color:var(--c-wk)}
+.wk-panel-hd .wph-track.tg{background:rgba(60,60,67,0.05);color:var(--t4)}
+.wk-panel-bar{height:3px;border-radius:2px;background:rgba(60,60,67,0.06);overflow:hidden;margin-bottom:18px}
+.wk-panel-bar>div{height:100%;border-radius:2px;background:var(--c-wk);transition:width .6s ease}
+.wk-panel-bar.done>div{background:var(--c-en)}
+.wk-kr-list{display:flex;flex-direction:column}
+.wk-kr-item{display:grid;grid-template-columns:36px 1fr auto auto;gap:12px;align-items:center;padding:10px 0;border-radius:8px}
+.wk-kr-item:hover{background:rgba(255,255,255,0.5)}
+.wk-kr-item+.wk-kr-item{border-top:1px solid rgba(60,60,67,0.03)}
+.wk-kr-num{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0}
+.wk-kr-item.done .wk-kr-num{background:var(--c-en-bg);color:var(--c-en)}
+.wk-kr-item.doing .wk-kr-num{background:rgba(255,59,48,0.08);color:var(--c-wk)}
+.wk-kr-item.tg .wk-kr-num{background:rgba(60,60,67,0.05);color:var(--t4)}
+.wk-kr-info{min-width:0}
+.wk-kr-title{font-size:13px;font-weight:600;line-height:1.35;margin-bottom:6px;color:var(--t1)}
+.wk-kr-item.done .wk-kr-title{color:var(--t4);text-decoration:line-through}
+.wk-kr-bar{height:3px;border-radius:2px;background:rgba(60,60,67,0.05);overflow:hidden}
+.wk-kr-bar>div{height:100%;border-radius:2px;background:var(--c-wk);transition:width .6s ease}
+.wk-kr-item.done .wk-kr-bar>div{background:var(--c-en)}
+.wk-kr-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.wk-kr-count{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--t2)}
+.wk-kr-status{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.wk-kr-status.done{background:var(--c-en-bg);color:var(--c-en)}
+.wk-kr-status.doing{background:rgba(255,59,48,0.08);color:var(--c-wk)}
+.wk-kr-status.tg{background:rgba(60,60,67,0.05);color:var(--t4)}
+.wk-panel-side{display:flex;flex-direction:column;border-top:3px solid var(--c-wk)}
+.wk-panel-side .wk-panel-hd .wph-title{font-size:16px}
+.wk-panel-side .wk-kr-item.doing .wk-kr-num{background:rgba(255,59,48,0.08);color:var(--c-wk)}
+.wk-panel-side .wk-kr-item.doing .wk-kr-bar>div{background:var(--c-wk)}
+.wk-panel-side .wk-kr-status.doing{background:rgba(255,59,48,0.08);color:var(--c-wk)}
+.wk-panel-main{border-top:3px solid var(--c-wk)}
+.wk-panel-urgent{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--c-wk);padding:3px 9px;border-radius:999px;background:rgba(255,59,48,0.08);margin-left:8px}
+.wk-panel-deadline{font-size:11px;font-weight:500;color:var(--t4);margin-left:auto}
+
+/* ====== LIFE (生活详情) ====== */
+.life-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;padding:20px;width:100%}
+.life-col{display:flex;flex-direction:column;min-height:0;background:rgba(255,255,255,0.6);border-radius:16px;border:1px solid var(--uib-2);overflow:hidden;transition:all .25s ease}
+.life-col:hover{box-shadow:0 4px 20px rgba(0,0,0,0.06);border-color:rgba(175,82,222,0.2)}
+.life-col-hd{display:flex;align-items:center;gap:10px;padding:16px 14px 14px;border-bottom:1px solid var(--uib-3)}
+.life-col-hd .lch-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.life-col-hd .lch-lb{font-size:14px;font-weight:700;color:var(--t1);flex:1;letter-spacing:-0.01em}
+.life-col-hd .lch-count{font-size:11px;font-weight:600;color:var(--t4)}
+.life-col-log{flex:1;overflow-y:auto;padding:8px 10px;max-height:400px}
+.life-entry{display:flex;flex-direction:column;gap:4px;padding:12px 8px;border-radius:10px;transition:background .15s}
+.life-entry:hover{background:rgba(175,82,222,0.03)}
+.life-entry:last-child{margin-bottom:0}
+.life-entry .le-body{display:flex;flex-direction:column;gap:3px}
+.life-entry .le-title{font-size:12.5px;font-weight:600;line-height:1.4;color:var(--t1)}
+.life-entry .le-note{font-size:11px;color:var(--t3);line-height:1.4}
+.life-entry .le-date{font-size:10px;color:var(--t4);font-weight:500;letter-spacing:0.02em}
+.life-col-empty{padding:30px 12px;text-align:center;font-size:12px;color:var(--t4);font-weight:500}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(60,60,67,0.18);border-radius:3px}
+
+@media(max-width:1100px){
+  .cat-grid{grid-template-columns:repeat(2,1fr)}
+  .cog-layout{grid-template-columns:1fr}
+  .cog-kr-summary{border-right:none;border-bottom:1px solid var(--uib-3)}
+  .ab-grid{grid-template-columns:1fr}
+  .wk-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .life-grid{grid-template-columns:repeat(2,1fr)}
+  .life-col{border-right:none;border-bottom:1px solid var(--uib-3)}
+  .life-col:nth-child(even){border-right:none}
+  .life-col:nth-last-child(-n+2){border-bottom:none}
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;transform:translateX(-100%);z-index:100;transition:transform .3s}
+  .sidebar.open{transform:translateX(0)}
+}
+</style>
+<style id="trae-panel-enter-style">
+        @keyframes trae-panel-enter {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      </style><script src="https://unpkg.byted-static.com/html2canvas/1.4.1/dist/html2canvas.min.js"></script></head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">✦</div>
+      <div><h1>2026</h1><p>年度规划</p></div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-nav-label">总览</div>
+      <div class="sb-item" data-view="overview">
+        <span class="si-dot" style="background:linear-gradient(135deg,#34c759,#007aff,#ff9500,#ff3b30,#af52de)"></span>
+        <span class="si-lb">年度概览</span>
+        <span class="si-pct" id="sbPct">17%</span>
+      </div>
+      <div class="sb-nav-label" style="margin-top:16px">五大类目</div>
+      <div class="sb-item" data-view="en" style="--cat:#34c759;--cat-bg:#e5f6ea">
+        <span class="si-dot" style="background:#34c759"></span>
+        <span class="si-lb">精力</span>
+        <span class="si-pct" id="sbEn">14%</span>
+      </div>
+      <div class="sb-item on" data-view="co" style="--cat:#007aff;--cat-bg:#e0ecff">
+        <span class="si-dot" style="background:#007aff"></span>
+        <span class="si-lb">认知</span>
+        <span class="si-pct" id="sbCo">28%</span>
+      </div>
+      <div class="sb-item" data-view="ab" style="--cat:#ff9500;--cat-bg:#fff4e6">
+        <span class="si-dot" style="background:#ff9500"></span>
+        <span class="si-lb">能力</span>
+        <span class="si-pct" id="sbAb">0%</span>
+      </div>
+      <div class="sb-item" data-view="wk" style="--cat:#ff3b30;--cat-bg:#ffe8e8">
+        <span class="si-dot" style="background:#ff3b30"></span>
+        <span class="si-lb">工作</span>
+        <span class="si-pct" id="sbWk">16%</span>
+      </div>
+      <div class="sb-item" data-view="lf" style="--cat:#af52de;--cat-bg:#f3e8ff">
+        <span class="si-dot" style="background:#af52de"></span>
+        <span class="si-lb">生活</span>
+        <span class="si-pct" id="sbLf">40%</span>
+      </div>
+    </nav>
+    <div class="sb-foot">
+      <div class="sf-ring">
+        <svg class="sf-ring-svg" width="40" height="40" viewBox="0 0 40 40">
+          <defs><linearGradient id="sbGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#34c759"></stop><stop offset="50%" stop-color="#ff9500"></stop><stop offset="100%" stop-color="#af52de"></stop>
+          </linearGradient></defs>
+          <circle cx="20" cy="20" r="16" stroke="rgba(60,60,67,0.08)" stroke-width="4" fill="none"></circle>
+          <circle id="sbRing" cx="20" cy="20" r="16" stroke="url(#sbGrad)" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="100.53096491487338" stroke-dashoffset="83.4407008793449" transform="rotate(-90 20 20)"></circle>
+        </svg>
+        <div><div class="sf-ring-text" id="sfRingText">17%</div><div class="sf-ring-lb">年度总进度</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- ====== OVERVIEW VIEW ====== -->
+    <div class="detail-view on" id="view-overview">
+      <div class="top">
+        <div><h2>年度概览 · 2026</h2><p>五大类目完成进度 · 一屏全局</p></div>
+        <div class="act">
+          <button class="bt"><svg class="ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>导出</button>
+          <button class="bt p"><svg class="ico" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加目标</button>
+        </div>
+      </div>
+
+      <!-- Ring -->
+      <div class="glass ring-card">
+        <div class="ring-wrap">
+          <svg class="ring-svg" width="88" height="88" viewBox="0 0 88 88">
+            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#34c759"></stop><stop offset="25%" stop-color="#007aff"></stop>
+              <stop offset="50%" stop-color="#ff9500"></stop><stop offset="75%" stop-color="#ff3b30"></stop>
+              <stop offset="100%" stop-color="#af52de"></stop>
+            </linearGradient></defs>
+            <circle class="ring-bg" cx="44" cy="44" r="38"></circle>
+            <circle class="ring-fg" cx="44" cy="44" r="38" stroke-dasharray="238.76104167282426" stroke-dashoffset="198.17166458844412" id="ringFg"></circle>
+          </svg>
+          <div class="ring-text"><span class="pct" id="ringPct">17%</span><span class="lb">年度总进度</span></div>
+        </div>
+        <div class="ring-info">
+          <div class="ri-sub">预期进度 <span id="expectedPct">63%</span> · 实际 <span id="actualPct">17%</span> · 权重: 精15%+认20%+能25%+工30%+生10%</div>
+          <div class="ri-track off" id="trackBadge">落后 46%</div>
+        </div>
+      </div>
+
+      <!-- 5 Category Cards -->
+      <div class="cat-grid" id="catGrid"><div class="cat-card" style="--card-c:#34c759;--card-bg:#e5f6ea20;--card-bg-solid:#e5f6ea;--card-bd:#a8e6b8" onclick="showView('en')">
+      <div class="cc-head">
+        <div class="cc-icon"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;color:#34c759"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></div>
+        <span class="cc-lb">精力</span><span class="cc-type">习惯型</span>
+      </div>
+      <div class="cc-pct-row"><span class="cc-pct">14</span><span class="cc-pct-u">%</span><span class="cc-pct-lb">权重15%</span></div>
+      <div class="cc-bar"><div style="width:14%"></div></div>
+      <div class="cc-items"><div class="cc-item"><span class="ci-lb">睡眠</span><span class="ci-val done">142天/230天</span></div><div class="cc-item"><span class="ci-lb">喝水</span><span class="ci-val done">168天/230天</span></div><div class="cc-item"><span class="ci-lb">运动</span><span class="ci-val ">48天/156天</span></div></div>
+    </div><div class="cat-card" style="--card-c:#007aff;--card-bg:#e0ecff20;--card-bg-solid:#e0ecff;--card-bd:#a8c8ff" onclick="showView('co')">
+      <div class="cc-head">
+        <div class="cc-icon"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;color:#007aff"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
+        <span class="cc-lb">认知</span><span class="cc-type">混合型</span>
+      </div>
+      <div class="cc-pct-row"><span class="cc-pct">28</span><span class="cc-pct-u">%</span><span class="cc-pct-lb">权重20%</span></div>
+      <div class="cc-bar"><div style="width:28%"></div></div>
+      <div class="cc-items"><div class="cc-item"><span class="ci-lb">已读/目标</span><span class="ci-val ">5/12本</span></div><div class="cc-item"><span class="ci-lb">阅读中</span><span class="ci-val ">3本</span></div><div class="cc-item"><span class="ci-lb">笔记输出</span><span class="ci-val ">3/12篇</span></div></div>
+    </div><div class="cat-card" style="--card-c:#ff9500;--card-bg:#fff4e620;--card-bg-solid:#fff4e6;--card-bd:#ffc980" onclick="showView('ab')">
+      <div class="cc-head">
+        <div class="cc-icon"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;color:#ff9500"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path></svg></div>
+        <span class="cc-lb">能力</span><span class="cc-type">里程碑型</span>
+      </div>
+      <div class="cc-pct-row"><span class="cc-pct">0</span><span class="cc-pct-u">%</span><span class="cc-pct-lb">权重25%</span></div>
+      <div class="cc-bar"><div style="width:0%"></div></div>
+      <div class="cc-items"><div class="cc-item"><span class="ci-lb">英语口语</span><span class="ci-val ">0/2</span></div><div class="cc-item"><span class="ci-lb">即兴表达</span><span class="ci-val ">0/3</span></div><div class="cc-item"><span class="ci-lb">数据分析</span><span class="ci-val ">0/3</span></div></div>
+    </div><div class="cat-card" style="--card-c:#ff3b30;--card-bg:#ffe8e820;--card-bg-solid:#ffe8e8;--card-bd:#ff9999" onclick="showView('wk')">
+      <div class="cc-head">
+        <div class="cc-icon"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;color:#ff3b30"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div>
+        <span class="cc-lb">工作</span><span class="cc-type">量化型</span>
+      </div>
+      <div class="cc-pct-row"><span class="cc-pct">16</span><span class="cc-pct-u">%</span><span class="cc-pct-lb">权重30%</span></div>
+      <div class="cc-bar"><div style="width:16%"></div></div>
+      <div class="cc-items"><div class="cc-item"><span class="ci-lb">主业</span><span class="ci-val ">40%</span></div><div class="cc-item"><span class="ci-lb">副业</span><span class="ci-val ">16%</span></div></div>
+    </div><div class="cat-card" style="--card-c:#af52de;--card-bg:#f3e8ff20;--card-bg-solid:#f3e8ff;--card-bd:#d4b5ee" onclick="showView('lf')">
+      <div class="cc-head">
+        <div class="cc-icon"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;color:#af52de"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
+        <span class="cc-lb">生活</span><span class="cc-type">体验型</span>
+      </div>
+      <div class="cc-pct-row"><span class="cc-pct">40</span><span class="cc-pct-u">%</span><span class="cc-pct-lb">权重10%</span></div>
+      <div class="cc-bar"><div style="width:40%"></div></div>
+      <div class="cc-items"><div class="cc-item"><span class="ci-lb">关系</span><span class="ci-val ">5次</span></div><div class="cc-item"><span class="ci-lb">美食</span><span class="ci-val ">5道</span></div><div class="cc-item"><span class="ci-lb">旅游</span><span class="ci-val ">2次</span></div><div class="cc-item"><span class="ci-lb">电影</span><span class="ci-val ">6部</span></div><div class="cc-item"><span class="ci-lb">购物</span><span class="ci-val ">2件</span></div></div>
+    </div></div>
+
+      <!-- Review -->
+      <div class="glass review-card">
+        <div class="rv-icon"><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 3v18h18"></path><path d="M7 14l4-4 4 4 5-5"></path></svg></div>
+        <div><div class="rv-title">本周复盘</div><div class="rv-sub">Track → Review → Adjust</div></div>
+        <button class="rv-btn">开始复盘</button>
+      </div>
+    </div>
+
+    <!-- ====== 精力 DETAIL ====== -->
+    <div class="detail-view" id="view-en">
+      <div class="detail-back" onclick="showView('overview')"><svg class="ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>返回概览</div>
+      <div class="detail-hd">
+        <div class="dh-icon" style="background:var(--c-en-bg);color:var(--c-en)"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></div>
+        <h2>精力 · 习惯打卡</h2><span class="dh-type" style="background:var(--c-en-bg);color:var(--c-en)">习惯型</span>
+      </div>
+      <div class="glass habit-card" id="habitCard"><div class="habit-grid-wrap">
+    <div class="cal-hd" style="grid-template-columns:170px 55px 45px repeat(7,minmax(32px,1fr))"><span class="col-name">习惯事项</span><span class="col-pct">完成率</span><span class="col-streak">连续</span><div class="col-day today"><span class="dn">一</span><span class="dt">8/17</span></div><div class="col-day wknd"><span class="dn">二</span><span class="dt">8/18</span></div><div class="col-day wknd"><span class="dn">三</span><span class="dt">8/19</span></div><div class="col-day"><span class="dn">四</span><span class="dt">8/20</span></div><div class="col-day"><span class="dn">五</span><span class="dt">8/21</span></div><div class="col-day"><span class="dn">六</span><span class="dt">8/22</span></div><div class="col-day"><span class="dn">日</span><span class="dt">8/23</span></div></div><div class="h-row" style="grid-template-columns:170px 55px 45px repeat(7,minmax(32px,1fr));--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8">
+      <div class="h-name"><span class="h-dot" style="background:#34c759"></span><span class="h-text">睡眠 11pm-6am</span><span class="h-sub">作息</span></div>
+      <div><div class="h-pct" style="color:#34c759">29%</div><div class="h-pct-bar"><div style="width:29%;background:#34c759"></div></div></div>
+      <div class="h-streak">3</div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="sleep" data-i="0" checked="" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="sleep" data-i="1" checked="" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="sleep" data-i="2" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="sleep" data-i="3" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="sleep" data-i="4" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="sleep" data-i="5" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="sleep" data-i="6" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div>
+    </div><div class="h-row" style="grid-template-columns:170px 55px 45px repeat(7,minmax(32px,1fr));--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8">
+      <div class="h-name"><span class="h-dot" style="background:#34c759"></span><span class="h-text">喝水 2L</span><span class="h-sub">每日</span></div>
+      <div><div class="h-pct" style="color:#34c759">14%</div><div class="h-pct-bar"><div style="width:14%;background:#34c759"></div></div></div>
+      <div class="h-streak">1</div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="water" data-i="0" checked="" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="water" data-i="1" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="water" data-i="2" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="water" data-i="3" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="water" data-i="4" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="water" data-i="5" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="water" data-i="6" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div>
+    </div><div class="h-row" style="grid-template-columns:170px 55px 45px repeat(7,minmax(32px,1fr));--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8">
+      <div class="h-name"><span class="h-dot" style="background:#34c759"></span><span class="h-text">运动</span><span class="h-sub">每周≥3次</span></div>
+      <div><div class="h-pct" style="color:#34c759">0%</div><div class="h-pct-bar"><div style="width:0%;background:#34c759"></div></div></div>
+      <div class="h-streak">-</div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="run" data-i="0" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="run" data-i="1" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="run" data-i="2" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="run" data-i="3" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="run" data-i="4" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="run" data-i="5" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="run" data-i="6" style="--cat:#34c759;--cat-bg:#e5f6ea;--cat-bd:#a8e6b8"></div>
+    </div><div class="h-row" style="grid-template-columns:170px 55px 45px repeat(7,minmax(32px,1fr));--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980">
+      <div class="h-name"><span class="h-dot" style="background:#ff9500"></span><span class="h-text">英语口语练习</span><span class="h-sub">每日≥30min</span></div>
+      <div><div class="h-pct" style="color:#ff9500">29%</div><div class="h-pct-bar"><div style="width:29%;background:#ff9500"></div></div></div>
+      <div class="h-streak">5</div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="eng-prac" data-i="0" checked="" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="eng-prac" data-i="1" checked="" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="eng-prac" data-i="2" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="eng-prac" data-i="3" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="eng-prac" data-i="4" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="eng-prac" data-i="5" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="eng-prac" data-i="6" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div>
+    </div><div class="h-row" style="grid-template-columns:170px 55px 45px repeat(7,minmax(32px,1fr));--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980">
+      <div class="h-name"><span class="h-dot" style="background:#ff9500"></span><span class="h-text">即兴表达练习</span><span class="h-sub">每日1道题</span></div>
+      <div><div class="h-pct" style="color:#ff9500">14%</div><div class="h-pct-bar"><div style="width:14%;background:#ff9500"></div></div></div>
+      <div class="h-streak">4</div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="speak-prac" data-i="0" checked="" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="speak-prac" data-i="1" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="speak-prac" data-i="2" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="speak-prac" data-i="3" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="speak-prac" data-i="4" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="speak-prac" data-i="5" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div><div class="h-cell"><input type="checkbox" class="habit-cb" data-id="speak-prac" data-i="6" style="--cat:#ff9500;--cat-bg:#fff4e6;--cat-bd:#ffc980"></div>
+    </div>
+  </div></div>
+    </div>
+
+    <!-- ====== 认知 DETAIL ====== -->
+    <div class="detail-view" id="view-co">
+      <div class="detail-back" onclick="showView('overview')"><svg class="ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>返回概览</div>
+      <div class="detail-hd">
+        <div class="dh-icon" style="background:var(--c-co-bg);color:var(--c-co)"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
+        <h2>认知 · 书架系统</h2><span class="dh-type" style="background:var(--c-co-bg);color:var(--c-co)">混合型</span>
+      </div>
+      <div class="cog-kr-summary" id="cogKRS"></div>
+      <div class="cog-layout" id="bookGrid"></div>
+    </div>
+
+    <!-- ====== 能力 DETAIL ====== -->
+    <div class="detail-view" id="view-ab">
+      <div class="detail-back" onclick="showView('overview')"><svg class="ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>返回概览</div>
+      <div class="detail-hd">
+        <div class="dh-icon" style="background:var(--c-ab-bg);color:var(--c-ab)"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg></div>
+        <h2>能力 · 里程碑 + 自评</h2><span class="dh-type" style="background:var(--c-ab-bg);color:var(--c-ab)">里程碑型</span>
+      </div>
+      <div class="ab-grid" id="abBody"></div>
+    </div>
+
+    <!-- ====== 工作 DETAIL ====== -->
+    <div class="detail-view" id="view-wk">
+      <div class="detail-back" onclick="showView('overview')"><svg class="ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>返回概览</div>
+      <div class="detail-hd">
+        <div class="dh-icon" style="background:var(--c-wk-bg);color:var(--c-wk)"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div>
+        <h2>工作 · OKR 量化追踪</h2><span class="dh-type" style="background:var(--c-wk-bg);color:var(--c-wk)">量化型</span>
+      </div>
+      <div class="wk-layout" id="wkLayout"></div>
+    </div>
+
+    <!-- ====== 生活 DETAIL ====== -->
+    <div class="detail-view" id="view-lf">
+      <div class="detail-back" onclick="showView('overview')"><svg class="ico" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>返回概览</div>
+      <div class="detail-hd">
+        <div class="dh-icon" style="background:var(--c-lf-bg);color:var(--c-lf)"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
+        <h2>生活 · 体验日志</h2><span class="dh-type" style="background:var(--c-lf-bg);color:var(--c-lf)">体验型</span>
+      </div>
+      <div class="glass"><div class="life-grid" id="lifeGrid"><div class="life-col">
+      <div class="life-col-hd"><span class="lch-ico" style="background:#ff3b3018;color:#ff3b30">💛</span><span class="lch-lb">关系</span><span class="lch-count">5</span></div>
+      <div class="life-col-log"><div class="life-entry"><div class="le-body"><div class="le-title">给爸妈打了视频电话</div><div class="le-note">聊了40分钟，妈妈说最近身体不错</div></div><div class="le-date">8/18</div></div><div class="life-entry"><div class="le-body"><div class="le-title">老婆生日：Sony耳机</div><div class="le-note">她开心了一整天，说降噪效果太好</div></div><div class="le-date">8/12</div></div><div class="life-entry"><div class="le-body"><div class="le-title">朋友小王生日：领口好书</div><div class="le-note">送了《原则》，他说正在找这本</div></div><div class="le-date">8/5</div></div><div class="life-entry"><div class="le-body"><div class="le-title">带老婆去看了奥本海默</div><div class="le-note">她说三小时也不觉得长</div></div><div class="le-date">8/8</div></div><div class="life-entry"><div class="le-body"><div class="le-title">给妈妈买了按摩仪</div><div class="le-note">她说颈椎好多了</div></div><div class="le-date">7/28</div></div></div>
+    </div><div class="life-col">
+      <div class="life-col-hd"><span class="lch-ico" style="background:#ff950018;color:#ff9500">🍜</span><span class="lch-lb">美食</span><span class="lch-count">5</span></div>
+      <div class="life-col-log"><div class="life-entry"><div class="le-body"><div class="le-title">学会做红烧肉</div><div class="le-note">跟着下厨房，肥而不腻成功</div></div><div class="le-date">8/15</div></div><div class="life-entry"><div class="le-body"><div class="le-title">海底捞火锅（西湖店）</div><div class="le-note">服务一如既往好，等位时做了美甲</div></div><div class="le-date">8/10</div></div><div class="life-entry"><div class="le-body"><div class="le-title">外婆家（杭州大厦店）</div><div class="le-note">茶香鸡很嫩，性价比高</div></div><div class="le-date">8/5</div></div><div class="life-entry"><div class="le-body"><div class="le-title">点都德早茶</div><div class="le-note">虾饺皇绝了，排队40分钟但值</div></div><div class="le-date">7/28</div></div><div class="life-entry"><div class="le-body"><div class="le-title">学会做番茄牛腩</div><div class="le-note">炖了2小时，牛肉软烂入味</div></div><div class="le-date">7/20</div></div></div>
+    </div><div class="life-col">
+      <div class="life-col-hd"><span class="lch-ico" style="background:#007aff18;color:#007aff">✈️</span><span class="lch-lb">旅游</span><span class="lch-count">2</span></div>
+      <div class="life-col-log"><div class="life-entry"><div class="le-body"><div class="le-title">杭州西湖骑行</div><div class="le-note">断桥→苏堤→雷峰塔，全程18km</div></div><div class="le-date">8/12</div></div><div class="life-entry"><div class="le-body"><div class="le-title">莫干山周末游</div><div class="le-note">住了两天民宿，竹林徒步很放松</div></div><div class="le-date">7/25</div></div></div>
+    </div><div class="life-col">
+      <div class="life-col-hd"><span class="lch-ico" style="background:#af52de18;color:#af52de">🎬</span><span class="lch-lb">电影</span><span class="lch-count">6</span></div>
+      <div class="life-col-log"><div class="life-entry"><div class="le-body"><div class="le-title">奥本海默</div><div class="le-note">三小时不无聊，诺兰的叙事太强</div></div><div class="le-date">8/8</div></div><div class="life-entry"><div class="le-body"><div class="le-title">蜘蛛侠：纵横宇宙</div><div class="le-note">画面太炸了，动画天花板</div></div><div class="le-date">7/30</div></div><div class="life-entry"><div class="le-body"><div class="le-title">封神第一部</div><div class="le-note">中国神话史诗，期待第二部</div></div><div class="le-date">7/22</div></div><div class="life-entry"><div class="le-body"><div class="le-title">碟中谍7</div><div class="le-note">阿汤哥真是拼命，实拍太震撼</div></div><div class="le-date">7/18</div></div><div class="life-entry"><div class="le-body"><div class="le-title">长安三万里</div><div class="le-note">李白高适的友情，诗很美</div></div><div class="le-date">7/10</div></div><div class="life-entry"><div class="le-body"><div class="le-title">消失的她</div><div class="le-note">反转不错但逻辑有硬伤</div></div><div class="le-date">6/28</div></div></div>
+    </div><div class="life-col">
+      <div class="life-col-hd"><span class="lch-ico" style="background:#34c75918;color:#34c759">🛍️</span><span class="lch-lb">购物</span><span class="lch-count">2</span></div>
+      <div class="life-col-log"><div class="life-entry"><div class="le-body"><div class="le-title">Sony WH-1000XM5</div><div class="le-note">降噪效果太好了，通勤救星</div></div><div class="le-date">8/3</div></div><div class="life-entry"><div class="le-body"><div class="le-title">iPad Air 5</div><div class="le-note">读书做笔记效率翻倍</div></div><div class="le-date">7/20</div></div></div>
+    </div></div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+const CAT={
+  en:{c:'#34c759',bg:'#e5f6ea',bd:'#a8e6b8',lb:'精力',w:15,type:'习惯型'},
+  co:{c:'#007aff',bg:'#e0ecff',bd:'#a8c8ff',lb:'认知',w:20,type:'混合型'},
+  ab:{c:'#ff9500',bg:'#fff4e6',bd:'#ffc980',lb:'能力',w:25,type:'里程碑型'},
+  wk:{c:'#ff3b30',bg:'#ffe8e8',bd:'#ff9999',lb:'工作',w:30,type:'量化型'},
+  lf:{c:'#af52de',bg:'#f3e8ff',bd:'#d4b5ee',lb:'生活',w:10,type:'体验型'},
+};
+const CK=k=>`--cat:${CAT[k].c};--cat-bg:${CAT[k].bg};--cat-bd:${CAT[k].bd}`;
+const WD=['一','二','三','四','五','六','日'];
+
+/* ============ DATA ============ */
+const HABITS=[
+  {id:'sleep',n:'睡眠 11pm-6am',s:'作息',cat:'en',w:[1,1,0,0,0,0,0],streak:3,yearDone:142,yearTotal:230},
+  {id:'water',n:'喝水 2L',s:'每日',cat:'en',w:[1,0,0,0,0,0,0],streak:1,yearDone:168,yearTotal:230},
+  {id:'run',n:'运动',s:'每周≥3次',cat:'en',w:[0,0,0,0,0,0,0],streak:0,yearDone:48,yearTotal:156},
+  {id:'eng-prac',n:'英语口语练习',s:'每日≥30min',cat:'ab',w:[1,1,0,0,0,0,0],streak:5,yearDone:95,yearTotal:230},
+  {id:'speak-prac',n:'即兴表达练习',s:'每日1道题',cat:'ab',w:[1,0,0,0,0,0,0],streak:4,yearDone:78,yearTotal:230},
+];
+const BOOKS=[
+  {t:'纳瓦尔宝典',a:'Eric Jorgenson',st:'done',tag:'认知',fmt:'微信读书',pct:100,c:'#007aff'},
+  {t:'原则',a:'瑞·达利欧',st:'done',tag:'认知',fmt:'PDF',pct:100,c:'#34c759'},
+  {t:'思考，快与慢',a:'丹尼尔·卡尼曼',st:'done',tag:'认知',fmt:'PDF',pct:100,c:'#34c759'},
+  {t:'被讨厌的勇气',a:'岸见一郎',st:'done',tag:'认知',fmt:'微信读书',pct:100,c:'#34c759'},
+  {t:'Atomic Habits',a:'James Clear',st:'done',tag:'商业',fmt:'PDF',pct:100,c:'#34c759'},
+  {t:'穷查理宝典',a:'查理·芒格',st:'reading',tag:'商业',fmt:'微信读书',pct:65,c:'#007aff'},
+  {t:'人类简史',a:'尤瓦尔·赫拉利',st:'reading',tag:'认知',fmt:'PDF',pct:30,c:'#007aff'},
+  {t:'硅谷钢铁侠',a:'阿什利·万斯',st:'reading',tag:'传记',fmt:'微信读书',pct:15,c:'#007aff'},
+  {t:'影响力',a:'罗伯特·西奥迪尼',st:'pending',tag:'商业',fmt:'PDF',pct:0,c:'#8e8e93'},
+  {t:'非暴力沟通',a:'马歇尔·卢森堡',st:'pending',tag:'认知',fmt:'微信读书',pct:0,c:'#8e8e93'},
+  {t:'定位',a:'艾·里斯',st:'pending',tag:'商业',fmt:'PDF',pct:0,c:'#8e8e93'},
+  {t:'从0到1',a:'彼得·蒂尔',st:'pending',tag:'商业',fmt:'微信读书',pct:0,c:'#8e8e93'},
+];
+const ABILITY=[
+  {id:'ab-eng',title:'英语口语',daily:'跟着飞书文档练习 ≥ 30分钟',dStreak:5,ms:[{t:'能完成10分钟英文自我介绍',st:'tg'},{t:'能看懂无字幕 TED × 5 篇',st:'tg'}],selfEval:4},
+  {id:'ab-speak',title:'即兴表达',daily:'练习1道面试题',dStreak:4,ms:[{t:'能即兴回答3分钟不卡壳',st:'tg'},{t:'完成10次模拟面试',st:'tg'},{t:'收到 ≥ 3次正反馈',st:'tg'}],selfEval:3},
+  {id:'ab-data',title:'数据分析',daily:'飞书文档课程学习',dStreak:2,ms:[{t:'学完课程全部章节',st:'doing'},{t:'完成3个分析项目',st:'tg'},{t:'掌握SQL / Excel高级功能',st:'tg'}],selfEval:2},
+];
+const WORK=[
+  {id:'wk-job',title:'主业：用户运营offer，薪资≥20k',core:true,deadline:'9月30日',krs:[
+    {t:'从鲸灵离职 + 拿到大礼包',v:1,t:1,u:'项',st:'done'},
+    {t:'投递≥50家目标公司',v:20,t:50,u:'份',st:'doing'},
+    {t:'拿到≥10个面试',v:5,t:10,u:'个',st:'doing'},
+    {t:'拿到≥3个offer',v:0,t:3,u:'个',st:'tg'},
+    {t:'其中至少1个薪资≥20k',v:0,t:1,u:'个',st:'tg'},
+  ]},
+  {id:'wk-side',title:'副业：小红书「小憨熊」涨粉+变现',core:false,deadline:'12月31日',krs:[
+    {t:'发布≥50条内容',v:12,t:50,u:'条',st:'doing'},
+    {t:'粉丝≥5000',v:800,t:5000,u:'粉',st:'doing'},
+    {t:'接到第1个商业合作',v:0,t:1,u:'个',st:'tg'},
+  ]},
+];
+const LIFE=[
+  {cat:'relation',ico:'💛',lb:'关系',color:'#ff3b30',entries:[
+    {t:'给爸妈打了视频电话',n:'聊了40分钟，妈妈说最近身体不错',d:'8/18'},
+    {t:'老婆生日：Sony耳机',n:'她开心了一整天，说降噪效果太好',d:'8/12'},
+    {t:'朋友小王生日：领口好书',n:'送了《原则》，他说正在找这本',d:'8/5'},
+    {t:'带老婆去看了奥本海默',n:'她说三小时也不觉得长',d:'8/8'},
+    {t:'给妈妈买了按摩仪',n:'她说颈椎好多了',d:'7/28'},
+  ]},
+  {cat:'food',ico:'🍜',lb:'美食',color:'#ff9500',entries:[
+    {t:'学会做红烧肉',n:'跟着下厨房，肥而不腻成功',d:'8/15'},
+    {t:'海底捞火锅（西湖店）',n:'服务一如既往好，等位时做了美甲',d:'8/10'},
+    {t:'外婆家（杭州大厦店）',n:'茶香鸡很嫩，性价比高',d:'8/5'},
+    {t:'点都德早茶',n:'虾饺皇绝了，排队40分钟但值',d:'7/28'},
+    {t:'学会做番茄牛腩',n:'炖了2小时，牛肉软烂入味',d:'7/20'},
+  ]},
+  {cat:'travel',ico:'✈️',lb:'旅游',color:'#007aff',entries:[
+    {t:'杭州西湖骑行',n:'断桥→苏堤→雷峰塔，全程18km',d:'8/12'},
+    {t:'莫干山周末游',n:'住了两天民宿，竹林徒步很放松',d:'7/25'},
+  ]},
+  {cat:'movie',ico:'🎬',lb:'电影',color:'#af52de',entries:[
+    {t:'奥本海默',n:'三小时不无聊，诺兰的叙事太强',d:'8/8'},
+    {t:'蜘蛛侠：纵横宇宙',n:'画面太炸了，动画天花板',d:'7/30'},
+    {t:'封神第一部',n:'中国神话史诗，期待第二部',d:'7/22'},
+    {t:'碟中谍7',n:'阿汤哥真是拼命，实拍太震撼',d:'7/18'},
+    {t:'长安三万里',n:'李白高适的友情，诗很美',d:'7/10'},
+    {t:'消失的她',n:'反转不错但逻辑有硬伤',d:'6/28'},
+  ]},
+  {cat:'shop',ico:'🛍️',lb:'购物',color:'#34c759',entries:[
+    {t:'Sony WH-1000XM5',n:'降噪效果太好了，通勤救星',d:'8/3'},
+    {t:'iPad Air 5',n:'读书做笔记效率翻倍',d:'7/20'},
+  ]},
+];
+
+/* ============ PROGRESS ============ */
+function getExpectedPct(){const n=new Date();const s=new Date(n.getFullYear(),0,1);const e=new Date(n.getFullYear()+1,0,1);return Math.round((n-s)/(e-s)*100)}
+function habitProgress(cat){const l=cat?HABITS.filter(h=>h.cat===cat):HABITS;if(!l.length)return 0;let t=0,d=0;l.forEach(h=>{h.w.forEach(v=>{t++;if(v===1)d++})});return t>0?Math.round(d/t*100):0}
+function cogProgress(){const r=BOOKS.filter(b=>b.st==='done').length;return Math.round(r/12*50+3/12*30+0/6*20)}
+function abProgress(){let t=0,d=0;ABILITY.forEach(a=>{a.ms.forEach(m=>{t++;if(m.st==='done')d++})});return t>0?Math.round(d/t*100):0}
+function wkProgress(){let t=0,d=0;WORK.forEach(o=>{o.krs.forEach(kr=>{t+=kr.t;d+=Math.min(kr.v,kr.t)})});return t>0?Math.round(d/t*100):0}
+function lfProgress(){const t=LIFE.reduce((s,c)=>s+c.entries.length,0);return Math.min(Math.round(t/50*100),100)}
+function catProgress(k){if(k==='en')return habitProgress('en');if(k==='co')return cogProgress();if(k==='ab')return abProgress();if(k==='wk')return wkProgress();if(k==='lf')return lfProgress();return 0}
+function computeOverall(){return Math.round(catProgress('en')*0.15+catProgress('co')*0.20+catProgress('ab')*0.25+catProgress('wk')*0.30+catProgress('lf')*0.10)}
+
+/* ============ VIEW SWITCH ============ */
+function showView(view){
+  document.querySelectorAll('.detail-view').forEach(v=>v.classList.remove('on'));
+  document.getElementById('view-'+view)?.classList.add('on');
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.toggle('on',s.dataset.view===view));
+  // render detail content
+  if(view==='en')renderHabitCard();
+  if(view==='co')renderBookshelf();
+  if(view==='ab')renderAbility();
+  if(view==='wk')renderWork();
+  if(view==='lf')renderLife();
+  window.scrollTo(0,0);
+}
+
+/* ============ OVERVIEW ============ */
+function renderOverview(){
+  const total=computeOverall();
+  const expected=getExpectedPct();
+  // ring
+  const ring=document.getElementById('ringFg');
+  const C=2*Math.PI*38;
+  ring.setAttribute('stroke-dasharray',C);ring.setAttribute('stroke-dashoffset',C);
+  requestAnimationFrame(()=>{
+    ring.setAttribute('stroke-dashoffset',C*(1-total/100));
+    let cur=0,st=performance.now();
+    const tick=t=>{const p=Math.min((t-st)/800,1);const e=1-Math.pow(1-p,3);cur=Math.round(e*total);document.getElementById('ringPct').textContent=cur+'%';document.getElementById('actualPct').textContent=cur+'%';if(p<1)requestAnimationFrame(tick)};
+    requestAnimationFrame(tick);
+  });
+  document.getElementById('expectedPct').textContent=expected+'%';
+  const badge=document.getElementById('trackBadge');
+  if(total>=expected-5){badge.className='ri-track on';badge.textContent='在轨 ✓'}
+  else{badge.className='ri-track off';badge.textContent=`落后 ${expected-total}%`}
+
+  // category cards
+  const icons={en:'⚡',co:'📚',ab:'🎯',wk:'💼',lf:'💜'};
+  const catData={
+    en:()=>HABITS.filter(h=>h.cat==='en').map(h=>({lb:h.n.split(' ')[0],val:`${h.yearDone}天`,total:`/${h.yearTotal}天`,done:h.yearDone>=h.yearTotal*0.6})),
+    co:()=>[{lb:'已读/目标',val:`${BOOKS.filter(b=>b.st==='done').length}`,total:'/12本',done:false},{lb:'阅读中',val:`${BOOKS.filter(b=>b.st==='reading').length}`,total:'本',done:false},{lb:'笔记输出',val:'3',total:'/12篇',done:false}],
+    ab:()=>ABILITY.map(a=>({lb:a.title,val:`${a.ms.filter(m=>m.st==='done').length}/${a.ms.length}`,done:false})),
+    wk:()=>WORK.map(o=>{let t=0,d=0;o.krs.forEach(kr=>{t+=kr.t;d+=Math.min(kr.v,kr.t)});return{lb:o.title.split('：')[0].slice(0,6),val:`${t>0?Math.round(d/t*100):0}%`,done:false}}),
+    lf:()=>LIFE.map(c=>({lb:c.lb,val:`${c.entries.length}`,total:c.cat==='relation'?'次':c.cat==='food'?'道':c.cat==='travel'?'次':c.cat==='movie'?'部':'件',done:false})),
+  };
+  document.getElementById('catGrid').innerHTML=Object.entries(CAT).map(([k,v])=>{
+    const p=catProgress(k);
+    const items=catData[k]();
+    const itemsHTML=items.map(it=>`<div class="cc-item"><span class="ci-lb">${it.lb}</span><span class="ci-val ${it.done?'done':''}">${it.val}${it.total||''}</span></div>`).join('');
+    return `<div class="cat-card" style="--card-c:${v.c};--card-bg:${v.bg}20;--card-bg-solid:${v.bg};--card-bd:${v.bd}" onclick="showView('${k}')">
+      <div class="cc-head">
+        <div class="cc-icon"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;color:${v.c}">${{en:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',co:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',ab:'<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/>',wk:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',lf:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'}[k]}</svg></div>
+        <span class="cc-lb">${v.lb}</span><span class="cc-type">${v.type}</span>
+      </div>
+      <div class="cc-pct-row"><span class="cc-pct">${p}</span><span class="cc-pct-u">%</span><span class="cc-pct-lb">权重${v.w}%</span></div>
+      <div class="cc-bar"><div style="width:${p}%"></div></div>
+      <div class="cc-items">${itemsHTML}</div>
+    </div>`;
+  }).join('');
+
+  // sidebar
+  document.getElementById('sbPct').textContent=total+'%';
+  document.getElementById('sbEn').textContent=catProgress('en')+'%';
+  document.getElementById('sbCo').textContent=catProgress('co')+'%';
+  document.getElementById('sbAb').textContent=catProgress('ab')+'%';
+  document.getElementById('sbWk').textContent=catProgress('wk')+'%';
+  document.getElementById('sbLf').textContent=catProgress('lf')+'%';
+  const sbRing=document.getElementById('sbRing');
+  const SC=2*Math.PI*16;
+  sbRing.setAttribute('stroke-dasharray',SC);
+  requestAnimationFrame(()=>{sbRing.setAttribute('stroke-dashoffset',SC*(1-total/100));document.getElementById('sfRingText').textContent=total+'%'});
+}
+
+/* ============ HABIT CARD (精力详情) ============ */
+function getWeekDates(){const n=new Date();const d=n.getDay()===0?7:n.getDay();const m=new Date(n);m.setDate(n.getDate()-d+1);const a=[];for(let i=0;i<7;i++){const d2=new Date(m);d2.setDate(m.getDate()+i);a.push(`${d2.getMonth()+1}/${d2.getDate()}`)}return a}
+function renderHabitCard(){
+  const wrap=document.getElementById('habitCard');
+  const dates=getWeekDates();
+  const tmpl=`170px 55px 45px repeat(7,minmax(32px,1fr))`;
+  let hd='';
+  for(let i=0;i<7;i++){let c='col-day';if(i===0)c+=' today';if((4+i)%7>=5)c+=' wknd';hd+=`<div class="${c}"><span class="dn">${WD[i]}</span><span class="dt">${dates[i]}</span></div>`}
+  let rows='';
+  HABITS.forEach(h=>{
+    const v=CAT[h.cat];const done=h.w.filter(x=>x===1).length;const pct=Math.round(done/h.w.length*100);
+    let cells='';
+    h.w.forEach((val,i)=>{cells+=`<div class="h-cell"><input type="checkbox" class="habit-cb" data-id="${h.id}" data-i="${i}" ${val===1?'checked':''} style="${CK(h.cat)}"></div>`});
+    const tag=`<span class="h-sub">${h.s}</span>`;
+    rows+=`<div class="h-row" style="grid-template-columns:${tmpl};${CK(h.cat)}">
+      <div class="h-name"><span class="h-dot" style="background:${v.c}"></span><span class="h-text">${h.n}</span>${tag}</div>
+      <div><div class="h-pct" style="color:${v.c}">${pct}%</div><div class="h-pct-bar"><div style="width:${pct}%;background:${v.c}"></div></div></div>
+      <div class="h-streak">${h.streak>0?h.streak:'-'}</div>${cells}
+    </div>`;
+  });
+  wrap.innerHTML=`<div class="habit-grid-wrap">
+    <div class="cal-hd" style="grid-template-columns:${tmpl}"><span class="col-name">习惯事项</span><span class="col-pct">完成率</span><span class="col-streak">连续</span>${hd}</div>${rows}
+  </div>`;
+  wrap.querySelectorAll('.habit-cb').forEach(cb=>{cb.addEventListener('change',e=>{const id=e.target.dataset.id;const i=parseInt(e.target.dataset.i);const h=HABITS.find(x=>x.id===id);if(h&&i<h.w.length)h.w[i]=e.target.checked?1:0})});
+}
+
+/* ============ BOOKSHELF (认知详情) ============ */
+function renderBookshelf(){
+  const read=BOOKS.filter(b=>b.st==='done').length;
+  const krData=[{t:'KR1 读完12本',v:read,tgt:12,sub:`已读${read}本`},{t:'KR2 读书笔记',v:3,tgt:12,sub:'已输出3篇'},{t:'KR3 改变落地',v:0,tgt:6,sub:'已落地0条'}];
+  document.getElementById('cogKRS').innerHTML=krData.map(kr=>{const p=Math.round(kr.v/kr.tgt*100);return `<div class="cog-kr-card"><div class="ck-title">${kr.t}</div><div class="ck-val">${kr.v}/${kr.tgt}</div><div class="ck-sub">${kr.sub}</div><div class="ck-bar"><div style="width:${p}%"></div></div></div>`}).join('');
+
+  function bookItemHTML(b){
+    return `<div class="book-item ${b.st==='done'?'done':''}"><div class="bi-title">${b.t}</div><div class="bi-sub">${b.tag}</div></div>`;
+  }
+  const reading=BOOKS.filter(b=>b.st==='reading');
+  const pending=BOOKS.filter(b=>b.st==='pending');
+  const done=BOOKS.filter(b=>b.st==='done');
+  const paused=BOOKS.filter(b=>b.st==='paused');
+
+  document.getElementById('bookGrid').innerHTML=`
+    <div class="book-col reading">
+      <div class="book-col-hd"><span class="bch-badge">阅读中</span><span class="bch-count">${reading.length}</span><span class="bch-more">⋯</span></div>
+      <div class="book-list">${reading.map(bookItemHTML).join('')}</div>
+      <div class="book-col-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加书籍</div>
+    </div>
+    <div class="book-col pending">
+      <div class="book-col-hd"><span class="bch-badge">未开始</span><span class="bch-count">${pending.length}</span><span class="bch-more">⋯</span></div>
+      <div class="book-list">${pending.map(bookItemHTML).join('')}</div>
+      <div class="book-col-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加书籍</div>
+    </div>
+    <div class="book-col done">
+      <div class="book-col-hd"><span class="bch-badge">已读完</span><span class="bch-count">${done.length}</span><span class="bch-more">⋯</span></div>
+      <div class="book-list">${done.map(bookItemHTML).join('')}</div>
+      <div class="book-col-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加书籍</div>
+    </div>
+    <div class="book-col paused">
+      <div class="book-col-hd"><span class="bch-badge">已暂停</span><span class="bch-count">${paused.length}</span><span class="bch-more">⋯</span></div>
+      <div class="book-list">${paused.map(bookItemHTML).join('')}</div>
+      <div class="book-col-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>添加书籍</div>
+    </div>
+  `;
+}
+
+/* ============ ABILITY (能力详情) ============ */
+function renderAbility(){
+  document.getElementById('abBody').innerHTML=ABILITY.map(a=>{
+    const ms=a.ms.map(m=>{const sc=m.st==='done'?'done':m.st==='doing'?'doing':'tg';const sl=m.st==='done'?'已完成':m.st==='doing'?'进行中':'待启动';return `<div class="ab-ms ${m.st==='done'?'done':''}"><div class="ms-check"></div><div class="ms-text">${m.t}</div><div class="ms-st ${sc}">${sl}</div></div>`}).join('');
+    return `<div class="ab-target"><div class="ab-t-hd"><div class="ab-badge">O</div><div class="ab-title">${a.title}</div><div><span class="ab-se-score">${a.selfEval}</span><span class="ab-se-max">/10</span></div></div><div class="ab-daily"><span>📊</span><span class="ab-d-text">${a.daily}</span><span class="ab-d-streak">连续${a.dStreak}天</span></div><div class="ab-milestones">${ms}</div></div>`;
+  }).join('');
+}
+
+/* ============ WORK (工作详情) ============ */
+function renderWork(){
+  const mainJob=WORK.find(o=>o.core);
+  const sideJob=WORK.find(o=>!o.core);
+  const wk=document.getElementById('wkLayout');
+  if(!wk)return;
+
+  function calcPct(o){let t=0,d=0;o.krs.forEach(kr=>{t+=kr.t;d+=Math.min(kr.v,kr.t)});return t>0?Math.round(d/t*100):0}
+  function krItem(kr,idx){
+    const st=kr.st==='done'?'done':kr.st==='doing'?'doing':'tg';
+    const label=kr.st==='done'?'已完成':kr.st==='doing'?'进行中':'待启动';
+    const pct=Math.round(kr.v/kr.t*100);
+    return `<div class="wk-kr-item ${st}">
+      <div class="wk-kr-num">${idx+1}</div>
+      <div class="wk-kr-info">
+        <div class="wk-kr-title">${kr.t}${kr.u?' ('+kr.u+')':''}</div>
+        <div class="wk-kr-bar"><div style="width:${pct}%"></div></div>
+      </div>
+      <div class="wk-kr-meta">
+        <div class="wk-kr-count">${kr.v}/${kr.t}</div>
+      </div>
+      <div class="wk-kr-status ${st}">${label}</div>
+    </div>`;
+  }
+
+  function panelHTML(o,label,cls){
+    const p=calcPct(o);
+    const doneCount=o.krs.filter(k=>k.st==='done').length;
+    const doingCount=o.krs.filter(k=>k.st==='doing').length;
+    const st=doneCount===o.krs.length?'done':doingCount>0?'doing':'tg';
+    const urgent=o.deadline.includes('9月');
+    const krList=o.krs.map((kr,i)=>krItem(kr,i)).join('');
+    return `<div class="wk-panel ${cls}">
+      <div class="wk-panel-hd">
+        <span class="wph-label">${label}</span>
+        <span class="wph-title">${o.title.split('：')[1]||o.title}</span>
+        ${urgent?'<span class="wk-panel-urgent">⏰ 截止'+o.deadline+'</span>':'<span class="wk-panel-deadline">截止'+o.deadline+'</span>'}
+        <span class="wph-sep"></span>
+        <span class="wph-pct" style="color:var(--c-wk)">${p}</span><span class="wph-pct-u" style="color:var(--c-wk)">%</span>
+      </div>
+      <div class="wk-panel-bar ${p===100?'done':''}"><div style="width:${p}%"></div></div>
+      <div class="wk-kr-list">${krList}</div>
+    </div>`;
+  }
+
+  wk.innerHTML=`
+    ${mainJob?panelHTML(mainJob,'主业','wk-panel-main'):''}
+    ${sideJob?panelHTML(sideJob,'副业','wk-panel-side'):''}
+  `;
+}
+
+/* ============ LIFE (生活详情) ============ */
+function renderLife(){
+  document.getElementById('lifeGrid').innerHTML=LIFE.map(c=>{
+    const entries=c.entries.map(e=>`<div class="life-entry"><div class="le-body"><div class="le-title">${e.t}</div><div class="le-note">${e.n}</div></div><div class="le-date">${e.d}</div></div>`).join('');
+    return `<div class="life-col">
+      <div class="life-col-hd"><span class="lch-ico" style="background:${c.color}18;color:${c.color}">${c.ico}</span><span class="lch-lb">${c.lb}</span><span class="lch-count">${c.entries.length}</span></div>
+      <div class="life-col-log">${entries||'<div class="life-col-empty">暂无记录</div>'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ INIT ============ */
+function init(){
+  renderOverview();
+  document.querySelectorAll('.sb-item').forEach(s=>s.addEventListener('click',()=>showView(s.dataset.view)));
+}
+init();
+</script>
+
+
+
+</body></html>

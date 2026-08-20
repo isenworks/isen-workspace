@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>习惯数据看板 · 设计 Demo v3</title>
@@ -656,17 +655,17 @@
     <h1><span class="accent"></span>数据看板</h1>
     <div class="top-bar-actions">
       <div class="view-tabs">
-        <button class="active" data-view="month">月度</button>
-        <button data-view="week">周度</button>
-        <button data-view="year">年度</button>
+        <button class="" data-view="month">月度</button>
+        <button data-view="week" class="active">周度</button>
+        <button data-view="year" class="">年度</button>
       </div>
       <div class="month-nav">
         <button class="nav-btn" id="prev">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
-        <div class="month-title" id="period-title">2026 年 8 月</div>
+        <div class="month-title" id="period-title">本周 · 8月17-23日</div>
         <button class="nav-btn" id="next">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
       </div>
     </div>
@@ -676,12 +675,12 @@
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-label">习惯打卡</div>
-      <div class="stat-value" id="stat-habits">87<span class="unit">/ 124</span></div>
+      <div class="stat-value" id="stat-habits">87<span class="unit">/ 168</span></div>
       <div class="stat-trend up">↑ 较上月 +12</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">完成率</div>
-      <div class="stat-value" id="stat-rate">70<span class="unit">%</span></div>
+      <div class="stat-value" id="stat-rate">52<span class="unit">%</span></div>
       <div class="stat-trend up">↑ +8%</div>
     </div>
     <div class="stat-card">
@@ -690,14 +689,14 @@
       <div class="stat-trend">🏃 晨跑</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label" id="stat-today-label">今日完成</div>
+      <div class="stat-label" id="stat-today-label">本周完成</div>
       <div class="stat-value" id="stat-today">4<span class="unit">/ 6</span></div>
       <div class="stat-trend up">进行中</div>
     </div>
   </div>
 
   <!-- ============ 月度视图 ============ -->
-  <div class="view active" id="view-month">
+  <div class="view" id="view-month">
     <div class="two-col">
       <!-- 左侧：月度目标 + 月历 -->
       <div>
@@ -706,11 +705,83 @@
           <div class="section-header">
             <div class="section-title"><span class="dot"></span>月度目标</div>
             <button class="btn-add" onclick="openModal('goal')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               添加目标
             </button>
           </div>
-          <div class="goal-list" id="month-goals"></div>
+          <div class="goal-list" id="month-goals">
+        <div class="goal-item" data-id="1">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">🏃</span>
+              <span class="goal-title">晨跑 25 天</span>
+              <span class="goal-type-tag energy">undefined</span>
+            </div>
+            <div class="goal-percent ">56%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill mind" style="width: 56%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 14 / 目标 25</span>
+            <span>还差 11</span>
+          </div>
+        </div>
+      
+        <div class="goal-item" data-id="2">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">📖</span>
+              <span class="goal-title">阅读 25 天</span>
+              <span class="goal-type-tag mind">undefined</span>
+            </div>
+            <div class="goal-percent warning">48%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill warn" style="width: 48%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 12 / 目标 25</span>
+            <span>还差 13</span>
+          </div>
+        </div>
+      
+        <div class="goal-item" data-id="3">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">🗣️</span>
+              <span class="goal-title">英语口语 20 天</span>
+              <span class="goal-type-tag skill">undefined</span>
+            </div>
+            <div class="goal-percent ">55%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill mind" style="width: 55%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 11 / 目标 20</span>
+            <span>还差 9</span>
+          </div>
+        </div>
+      
+        <div class="goal-item" data-id="4">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">🧠</span>
+              <span class="goal-title">背单词 30 天</span>
+              <span class="goal-type-tag mind">undefined</span>
+            </div>
+            <div class="goal-percent warning">37%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill warn" style="width: 37%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 11 / 目标 30</span>
+            <span>还差 19</span>
+          </div>
+        </div>
+      </div>
         </div>
 
         <!-- 月历总览 -->
@@ -719,7 +790,193 @@
             <div class="section-title"><span class="dot" style="background:var(--skill)"></span>月历总览</div>
             <span class="section-sub">点击日期查看详情</span>
           </div>
-          <div class="calendar-grid" id="calendar-grid"></div>
+          <div class="calendar-grid" id="calendar-grid"><div class="cal-weekday ">一</div><div class="cal-weekday ">二</div><div class="cal-weekday ">三</div><div class="cal-weekday ">四</div><div class="cal-weekday ">五</div><div class="cal-weekday weekend">六</div><div class="cal-weekday weekend">日</div><div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day empty"></div>
+        <div class="cal-day" data-day="1">
+          <div class="cal-day-num">1</div>
+          <div class="cal-day-summary">4/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="2">
+          <div class="cal-day-num">2</div>
+          <div class="cal-day-summary">4/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="3">
+          <div class="cal-day-num">3</div>
+          <div class="cal-day-summary">5/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot energy"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="4">
+          <div class="cal-day-num">4</div>
+          <div class="cal-day-summary">5/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="5">
+          <div class="cal-day-num">5</div>
+          <div class="cal-day-summary">4/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="6">
+          <div class="cal-day-num">6</div>
+          <div class="cal-day-summary">5/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot energy"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="7">
+          <div class="cal-day-num">7</div>
+          <div class="cal-day-summary">4/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="8">
+          <div class="cal-day-num">8</div>
+          <div class="cal-day-summary">6/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot energy"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="9">
+          <div class="cal-day-num">9</div>
+          <div class="cal-day-summary">5/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="10">
+          <div class="cal-day-num">10</div>
+          <div class="cal-day-summary">4/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="11">
+          <div class="cal-day-num">11</div>
+          <div class="cal-day-summary">5/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot energy"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="12">
+          <div class="cal-day-num">12</div>
+          <div class="cal-day-summary">3/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot missed"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="13">
+          <div class="cal-day-num">13</div>
+          <div class="cal-day-summary">5/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="14">
+          <div class="cal-day-num">14</div>
+          <div class="cal-day-summary">6/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot energy"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="15">
+          <div class="cal-day-num">15</div>
+          <div class="cal-day-summary">4/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day" data-day="16">
+          <div class="cal-day-num">16</div>
+          <div class="cal-day-summary">4/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot missed"></span><span class="dot missed"></span></div>
+        </div>
+      
+        <div class="cal-day today" data-day="17">
+          <div class="cal-day-num">17</div>
+          <div class="cal-day-summary">6/6</div>
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span><span class="dot energy"></span></div>
+        </div>
+      
+        <div class="cal-day future" data-day="18">
+          <div class="cal-day-num">18</div>
+          
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot mind"></span><span class="dot mind"></span><span class="dot skill"></span></div>
+        </div>
+      
+        <div class="cal-day future" data-day="19">
+          <div class="cal-day-num">19</div>
+          
+          <div class="cal-day-dots"><span class="dot energy"></span><span class="dot energy"></span><span class="dot mind"></span><span class="dot skill"></span></div>
+        </div>
+      
+        <div class="cal-day future" data-day="20">
+          <div class="cal-day-num">20</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="21">
+          <div class="cal-day-num">21</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="22">
+          <div class="cal-day-num">22</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="23">
+          <div class="cal-day-num">23</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="24">
+          <div class="cal-day-num">24</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="25">
+          <div class="cal-day-num">25</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="26">
+          <div class="cal-day-num">26</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="27">
+          <div class="cal-day-num">27</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="28">
+          <div class="cal-day-num">28</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="29">
+          <div class="cal-day-num">29</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="30">
+          <div class="cal-day-num">30</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      
+        <div class="cal-day future" data-day="31">
+          <div class="cal-day-num">31</div>
+          
+          <div class="cal-day-dots"></div>
+        </div>
+      </div>
         </div>
       </div>
 
@@ -729,23 +986,83 @@
           <div class="section-title"><span class="dot" style="background:var(--energy)"></span>习惯打卡</div>
           <span class="section-sub">点击圆圈切换打卡</span>
         </div>
-        <div class="habits-matrix month-matrix" id="habits-matrix-month"></div>
+        <div class="habits-matrix month-matrix" id="habits-matrix-month"><div class="matrix-row" style="--days: 31"><div class="matrix-habit" style="font-size:10px;color:var(--text-tertiary);font-weight:600;letter-spacing:0.05em;">习惯</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">1</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">2</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">3</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">4</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">5</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">6</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">7</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">8</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">9</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">10</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">11</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">12</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">13</div><div style="text-align:center;font-size:9px;color:var(--text-tertiary);font-weight:500;">14</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">15</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">16</div><div style="text-align:center;font-size:9px;color:var(--mind);font-weight:700;">17</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">18</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">19</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">20</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">21</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">22</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">23</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">24</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">25</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">26</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">27</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">28</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">29</div><div style="text-align:center;font-size:9px;color:var(--warn);font-weight:500;">30</div><div style="text-align:center;font-size:9px;color:var(--text-quaternary);font-weight:500;">31</div><div style="text-align:center;font-size:10px;color:var(--text-tertiary);font-weight:600;">完成</div></div><div class="matrix-row" style="--days: 31">
+        <div class="matrix-habit">
+          <div class="matrix-emoji energy">🏃</div>
+          <div class="matrix-name">晨跑 5km</div>
+        </div>
+      <div class="matrix-cell done energy" data-habit="1" data-day="1" title="1日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="2" title="2日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="3" title="3日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="4" title="4日 · 已打卡"></div><div class="matrix-cell" data-habit="1" data-day="5" title="5日 · 未打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="6" title="6日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="7" title="7日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="8" title="8日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="9" title="9日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="10" title="10日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="11" title="11日 · 已打卡"></div><div class="matrix-cell" data-habit="1" data-day="12" title="12日 · 未打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="13" title="13日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="14" title="14日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="15" title="15日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="1" data-day="16" title="16日 · 已打卡"></div><div class="matrix-cell today done energy" data-habit="1" data-day="17" title="17日 · 已打卡"></div><div class="matrix-cell future" data-habit="1" data-day="18" title="18日 · 未打卡"></div><div class="matrix-cell future done energy" data-habit="1" data-day="19" title="19日 · 已打卡"></div><div class="matrix-cell future" data-habit="1" data-day="20" title="20日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="21" title="21日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="22" title="22日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="23" title="23日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="24" title="24日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="25" title="25日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="26" title="26日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="27" title="27日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="28" title="28日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="29" title="29日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="30" title="30日 · 未打卡"></div><div class="matrix-cell future" data-habit="1" data-day="31" title="31日 · 未打卡"></div><div class="matrix-stat"><b>16</b>/25</div></div><div class="matrix-row" style="--days: 31">
+        <div class="matrix-habit">
+          <div class="matrix-emoji energy">💧</div>
+          <div class="matrix-name">喝水 2L</div>
+        </div>
+      <div class="matrix-cell done energy" data-habit="2" data-day="1" title="1日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="2" title="2日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="3" title="3日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="4" title="4日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="5" title="5日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="6" title="6日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="7" title="7日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="8" title="8日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="9" title="9日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="10" title="10日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="11" title="11日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="12" title="12日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="13" title="13日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="14" title="14日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="15" title="15日 · 已打卡"></div><div class="matrix-cell done energy" data-habit="2" data-day="16" title="16日 · 已打卡"></div><div class="matrix-cell today done energy" data-habit="2" data-day="17" title="17日 · 已打卡"></div><div class="matrix-cell future done energy" data-habit="2" data-day="18" title="18日 · 已打卡"></div><div class="matrix-cell future done energy" data-habit="2" data-day="19" title="19日 · 已打卡"></div><div class="matrix-cell future" data-habit="2" data-day="20" title="20日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="21" title="21日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="22" title="22日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="23" title="23日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="24" title="24日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="25" title="25日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="26" title="26日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="27" title="27日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="28" title="28日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="29" title="29日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="30" title="30日 · 未打卡"></div><div class="matrix-cell future" data-habit="2" data-day="31" title="31日 · 未打卡"></div><div class="matrix-stat"><b>19</b>/31</div></div><div class="matrix-row" style="--days: 31">
+        <div class="matrix-habit">
+          <div class="matrix-emoji mind">📖</div>
+          <div class="matrix-name">阅读 30分钟</div>
+        </div>
+      <div class="matrix-cell" data-habit="3" data-day="1" title="1日 · 未打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="2" title="2日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="3" title="3日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="4" title="4日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="5" title="5日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="6" title="6日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="7" title="7日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="8" title="8日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="9" title="9日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="10" title="10日 · 已打卡"></div><div class="matrix-cell" data-habit="3" data-day="11" title="11日 · 未打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="12" title="12日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="13" title="13日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="14" title="14日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="15" title="15日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="3" data-day="16" title="16日 · 已打卡"></div><div class="matrix-cell today done mind" data-habit="3" data-day="17" title="17日 · 已打卡"></div><div class="matrix-cell future done mind" data-habit="3" data-day="18" title="18日 · 已打卡"></div><div class="matrix-cell future done mind" data-habit="3" data-day="19" title="19日 · 已打卡"></div><div class="matrix-cell future" data-habit="3" data-day="20" title="20日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="21" title="21日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="22" title="22日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="23" title="23日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="24" title="24日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="25" title="25日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="26" title="26日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="27" title="27日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="28" title="28日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="29" title="29日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="30" title="30日 · 未打卡"></div><div class="matrix-cell future" data-habit="3" data-day="31" title="31日 · 未打卡"></div><div class="matrix-stat"><b>17</b>/25</div></div><div class="matrix-row" style="--days: 31">
+        <div class="matrix-habit">
+          <div class="matrix-emoji mind">🧠</div>
+          <div class="matrix-name">背单词 50个</div>
+        </div>
+      <div class="matrix-cell done mind" data-habit="4" data-day="1" title="1日 · 已打卡"></div><div class="matrix-cell" data-habit="4" data-day="2" title="2日 · 未打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="3" title="3日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="4" title="4日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="5" title="5日 · 已打卡"></div><div class="matrix-cell" data-habit="4" data-day="6" title="6日 · 未打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="7" title="7日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="8" title="8日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="9" title="9日 · 已打卡"></div><div class="matrix-cell" data-habit="4" data-day="10" title="10日 · 未打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="11" title="11日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="12" title="12日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="13" title="13日 · 已打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="14" title="14日 · 已打卡"></div><div class="matrix-cell" data-habit="4" data-day="15" title="15日 · 未打卡"></div><div class="matrix-cell done mind" data-habit="4" data-day="16" title="16日 · 已打卡"></div><div class="matrix-cell today done mind" data-habit="4" data-day="17" title="17日 · 已打卡"></div><div class="matrix-cell future done mind" data-habit="4" data-day="18" title="18日 · 已打卡"></div><div class="matrix-cell future" data-habit="4" data-day="19" title="19日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="20" title="20日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="21" title="21日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="22" title="22日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="23" title="23日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="24" title="24日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="25" title="25日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="26" title="26日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="27" title="27日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="28" title="28日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="29" title="29日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="30" title="30日 · 未打卡"></div><div class="matrix-cell future" data-habit="4" data-day="31" title="31日 · 未打卡"></div><div class="matrix-stat"><b>14</b>/31</div></div><div class="matrix-row" style="--days: 31">
+        <div class="matrix-habit">
+          <div class="matrix-emoji skill">🗣️</div>
+          <div class="matrix-name">英语口语</div>
+        </div>
+      <div class="matrix-cell done skill" data-habit="5" data-day="1" title="1日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="2" title="2日 · 已打卡"></div><div class="matrix-cell" data-habit="5" data-day="3" title="3日 · 未打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="4" title="4日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="5" title="5日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="6" title="6日 · 已打卡"></div><div class="matrix-cell" data-habit="5" data-day="7" title="7日 · 未打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="8" title="8日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="9" title="9日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="10" title="10日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="11" title="11日 · 已打卡"></div><div class="matrix-cell" data-habit="5" data-day="12" title="12日 · 未打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="13" title="13日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="14" title="14日 · 已打卡"></div><div class="matrix-cell done skill" data-habit="5" data-day="15" title="15日 · 已打卡"></div><div class="matrix-cell" data-habit="5" data-day="16" title="16日 · 未打卡"></div><div class="matrix-cell today done skill" data-habit="5" data-day="17" title="17日 · 已打卡"></div><div class="matrix-cell future done skill" data-habit="5" data-day="18" title="18日 · 已打卡"></div><div class="matrix-cell future done skill" data-habit="5" data-day="19" title="19日 · 已打卡"></div><div class="matrix-cell future" data-habit="5" data-day="20" title="20日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="21" title="21日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="22" title="22日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="23" title="23日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="24" title="24日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="25" title="25日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="26" title="26日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="27" title="27日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="28" title="28日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="29" title="29日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="30" title="30日 · 未打卡"></div><div class="matrix-cell future" data-habit="5" data-day="31" title="31日 · 未打卡"></div><div class="matrix-stat"><b>15</b>/25</div></div><div class="matrix-row" style="--days: 31">
+        <div class="matrix-habit">
+          <div class="matrix-emoji energy">😴</div>
+          <div class="matrix-name">23:00前睡</div>
+        </div>
+      <div class="matrix-cell" data-habit="6" data-day="1" title="1日 · 未打卡"></div><div class="matrix-cell" data-habit="6" data-day="2" title="2日 · 未打卡"></div><div class="matrix-cell done energy" data-habit="6" data-day="3" title="3日 · 已打卡"></div><div class="matrix-cell" data-habit="6" data-day="4" title="4日 · 未打卡"></div><div class="matrix-cell" data-habit="6" data-day="5" title="5日 · 未打卡"></div><div class="matrix-cell done energy" data-habit="6" data-day="6" title="6日 · 已打卡"></div><div class="matrix-cell" data-habit="6" data-day="7" title="7日 · 未打卡"></div><div class="matrix-cell done energy" data-habit="6" data-day="8" title="8日 · 已打卡"></div><div class="matrix-cell" data-habit="6" data-day="9" title="9日 · 未打卡"></div><div class="matrix-cell" data-habit="6" data-day="10" title="10日 · 未打卡"></div><div class="matrix-cell done energy" data-habit="6" data-day="11" title="11日 · 已打卡"></div><div class="matrix-cell" data-habit="6" data-day="12" title="12日 · 未打卡"></div><div class="matrix-cell" data-habit="6" data-day="13" title="13日 · 未打卡"></div><div class="matrix-cell done energy" data-habit="6" data-day="14" title="14日 · 已打卡"></div><div class="matrix-cell" data-habit="6" data-day="15" title="15日 · 未打卡"></div><div class="matrix-cell" data-habit="6" data-day="16" title="16日 · 未打卡"></div><div class="matrix-cell today done energy" data-habit="6" data-day="17" title="17日 · 已打卡"></div><div class="matrix-cell future" data-habit="6" data-day="18" title="18日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="19" title="19日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="20" title="20日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="21" title="21日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="22" title="22日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="23" title="23日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="24" title="24日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="25" title="25日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="26" title="26日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="27" title="27日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="28" title="28日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="29" title="29日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="30" title="30日 · 未打卡"></div><div class="matrix-cell future" data-habit="6" data-day="31" title="31日 · 未打卡"></div><div class="matrix-stat"><b>6</b>/31</div></div></div>
       </div>
     </div>
   </div>
 
   <!-- ============ 周度视图 ============ -->
-  <div class="view" id="view-week">
+  <div class="view active" id="view-week">
     <!-- 本周目标 -->
     <div class="glass-card">
       <div class="section-header">
         <div class="section-title"><span class="dot"></span>本周计划</div>
         <button class="btn-add" onclick="openModal('plan')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           添加计划
         </button>
       </div>
-      <div class="plan-list" id="week-plans"></div>
+      <div class="plan-list" id="week-plans">
+      <div class="plan-item " data-id="1">
+        <div class="plan-check "></div>
+        <div class="plan-text">完成 2 篇博客输出</div>
+        <div class="plan-meta">周一</div>
+      </div>
+    
+      <div class="plan-item done" data-id="2">
+        <div class="plan-check done"></div>
+        <div class="plan-text">复习 React 性能优化</div>
+        <div class="plan-meta">周二</div>
+      </div>
+    
+      <div class="plan-item " data-id="3">
+        <div class="plan-check "></div>
+        <div class="plan-text">投递 5 个简历</div>
+        <div class="plan-meta">周三</div>
+      </div>
+    
+      <div class="plan-item " data-id="4">
+        <div class="plan-check "></div>
+        <div class="plan-text">运动 3 次</div>
+        <div class="plan-meta">本周</div>
+      </div>
+    
+      <div class="plan-item done" data-id="5">
+        <div class="plan-check done"></div>
+        <div class="plan-text">看完《原则》第 3 章</div>
+        <div class="plan-meta">周四</div>
+      </div>
+    </div>
     </div>
 
     <!-- 本周日历卡片 -->
@@ -754,7 +1071,301 @@
         <div class="section-title"><span class="dot" style="background:var(--skill)"></span>每日详情</div>
         <span class="section-sub">点击圆圈切换打卡</span>
       </div>
-      <div class="week-days-grid" id="week-days"></div>
+      <div class="week-days-grid" id="week-days">
+        <div class="day-card today">
+          <div class="day-card-head">
+            <div class="day-card-num">17</div>
+            <div class="day-card-weekday ">周一</div>
+          </div>
+          <div class="day-card-habits">
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done energy" data-habit="1" data-day="17"></div>
+            <span class="day-habit-name">🏃 晨跑 5km</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done energy" data-habit="2" data-day="17"></div>
+            <span class="day-habit-name">💧 喝水 2L</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done mind" data-habit="3" data-day="17"></div>
+            <span class="day-habit-name">📖 阅读 30分钟</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done mind" data-habit="4" data-day="17"></div>
+            <span class="day-habit-name">🧠 背单词 50个</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done skill" data-habit="5" data-day="17"></div>
+            <span class="day-habit-name">🗣️ 英语口语</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done energy" data-habit="6" data-day="17"></div>
+            <span class="day-habit-name">😴 23:00前睡</span>
+          </div>
+        </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>6</b>/6</span>
+          </div>
+        </div>
+      
+        <div class="day-card future">
+          <div class="day-card-head">
+            <div class="day-card-num">18</div>
+            <div class="day-card-weekday ">周二</div>
+          </div>
+          <div class="day-card-habits">
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="1" data-day="18"></div>
+            <span class="day-habit-name">🏃 晨跑 5km</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done energy" data-habit="2" data-day="18"></div>
+            <span class="day-habit-name">💧 喝水 2L</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done mind" data-habit="3" data-day="18"></div>
+            <span class="day-habit-name">📖 阅读 30分钟</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done mind" data-habit="4" data-day="18"></div>
+            <span class="day-habit-name">🧠 背单词 50个</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done skill" data-habit="5" data-day="18"></div>
+            <span class="day-habit-name">🗣️ 英语口语</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="6" data-day="18"></div>
+            <span class="day-habit-name">😴 23:00前睡</span>
+          </div>
+        </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>4</b>/6</span>
+          </div>
+        </div>
+      
+        <div class="day-card future">
+          <div class="day-card-head">
+            <div class="day-card-num">19</div>
+            <div class="day-card-weekday ">周三</div>
+          </div>
+          <div class="day-card-habits">
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done energy" data-habit="1" data-day="19"></div>
+            <span class="day-habit-name">🏃 晨跑 5km</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done energy" data-habit="2" data-day="19"></div>
+            <span class="day-habit-name">💧 喝水 2L</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done mind" data-habit="3" data-day="19"></div>
+            <span class="day-habit-name">📖 阅读 30分钟</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="4" data-day="19"></div>
+            <span class="day-habit-name">🧠 背单词 50个</span>
+          </div>
+        
+          <div class="day-habit-row done">
+            <div class="day-habit-circle done skill" data-habit="5" data-day="19"></div>
+            <span class="day-habit-name">🗣️ 英语口语</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="6" data-day="19"></div>
+            <span class="day-habit-name">😴 23:00前睡</span>
+          </div>
+        </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>4</b>/6</span>
+          </div>
+        </div>
+      
+        <div class="day-card future">
+          <div class="day-card-head">
+            <div class="day-card-num">20</div>
+            <div class="day-card-weekday ">周四</div>
+          </div>
+          <div class="day-card-habits">
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="1" data-day="20"></div>
+            <span class="day-habit-name">🏃 晨跑 5km</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="2" data-day="20"></div>
+            <span class="day-habit-name">💧 喝水 2L</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="3" data-day="20"></div>
+            <span class="day-habit-name">📖 阅读 30分钟</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="4" data-day="20"></div>
+            <span class="day-habit-name">🧠 背单词 50个</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="5" data-day="20"></div>
+            <span class="day-habit-name">🗣️ 英语口语</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="6" data-day="20"></div>
+            <span class="day-habit-name">😴 23:00前睡</span>
+          </div>
+        </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>0</b>/6</span>
+          </div>
+        </div>
+      
+        <div class="day-card future">
+          <div class="day-card-head">
+            <div class="day-card-num">21</div>
+            <div class="day-card-weekday ">周五</div>
+          </div>
+          <div class="day-card-habits">
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="1" data-day="21"></div>
+            <span class="day-habit-name">🏃 晨跑 5km</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="2" data-day="21"></div>
+            <span class="day-habit-name">💧 喝水 2L</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="3" data-day="21"></div>
+            <span class="day-habit-name">📖 阅读 30分钟</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="4" data-day="21"></div>
+            <span class="day-habit-name">🧠 背单词 50个</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="5" data-day="21"></div>
+            <span class="day-habit-name">🗣️ 英语口语</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="6" data-day="21"></div>
+            <span class="day-habit-name">😴 23:00前睡</span>
+          </div>
+        </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>0</b>/6</span>
+          </div>
+        </div>
+      
+        <div class="day-card future">
+          <div class="day-card-head">
+            <div class="day-card-num">22</div>
+            <div class="day-card-weekday weekend">周六</div>
+          </div>
+          <div class="day-card-habits">
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="1" data-day="22"></div>
+            <span class="day-habit-name">🏃 晨跑 5km</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="2" data-day="22"></div>
+            <span class="day-habit-name">💧 喝水 2L</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="3" data-day="22"></div>
+            <span class="day-habit-name">📖 阅读 30分钟</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="4" data-day="22"></div>
+            <span class="day-habit-name">🧠 背单词 50个</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="5" data-day="22"></div>
+            <span class="day-habit-name">🗣️ 英语口语</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="6" data-day="22"></div>
+            <span class="day-habit-name">😴 23:00前睡</span>
+          </div>
+        </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>0</b>/6</span>
+          </div>
+        </div>
+      
+        <div class="day-card future">
+          <div class="day-card-head">
+            <div class="day-card-num">23</div>
+            <div class="day-card-weekday weekend">周日</div>
+          </div>
+          <div class="day-card-habits">
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="1" data-day="23"></div>
+            <span class="day-habit-name">🏃 晨跑 5km</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="2" data-day="23"></div>
+            <span class="day-habit-name">💧 喝水 2L</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="3" data-day="23"></div>
+            <span class="day-habit-name">📖 阅读 30分钟</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="4" data-day="23"></div>
+            <span class="day-habit-name">🧠 背单词 50个</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="5" data-day="23"></div>
+            <span class="day-habit-name">🗣️ 英语口语</span>
+          </div>
+        
+          <div class="day-habit-row ">
+            <div class="day-habit-circle " data-habit="6" data-day="23"></div>
+            <span class="day-habit-name">😴 23:00前睡</span>
+          </div>
+        </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>0</b>/6</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -765,11 +1376,83 @@
       <div class="section-header">
         <div class="section-title"><span class="dot"></span>年度目标</div>
         <button class="btn-add" onclick="openModal('goal')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           添加年度目标
         </button>
       </div>
-      <div class="goal-list" id="year-goals"></div>
+      <div class="goal-list" id="year-goals">
+        <div class="goal-item" data-id="1">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">🏃</span>
+              <span class="goal-title">全年晨跑 300 天</span>
+              <span class="goal-type-tag energy">undefined</span>
+            </div>
+            <div class="goal-percent ">62%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill mind" style="width: 62%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 187 / 目标 300</span>
+            <span>还差 113</span>
+          </div>
+        </div>
+      
+        <div class="goal-item" data-id="2">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">📖</span>
+              <span class="goal-title">阅读 100 本书</span>
+              <span class="goal-type-tag mind">undefined</span>
+            </div>
+            <div class="goal-percent warning">42%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill warn" style="width: 42%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 42 / 目标 100</span>
+            <span>还差 58</span>
+          </div>
+        </div>
+      
+        <div class="goal-item" data-id="3">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">🗣️</span>
+              <span class="goal-title">英语口语 250 天</span>
+              <span class="goal-type-tag skill">undefined</span>
+            </div>
+            <div class="goal-percent ">62%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill mind" style="width: 62%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 156 / 目标 250</span>
+            <span>还差 94</span>
+          </div>
+        </div>
+      
+        <div class="goal-item" data-id="4">
+          <div class="goal-header">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">😴</span>
+              <span class="goal-title">早睡 280 天</span>
+              <span class="goal-type-tag energy">undefined</span>
+            </div>
+            <div class="goal-percent warning">44%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill warn" style="width: 44%"></div>
+          </div>
+          <div class="goal-meta">
+            <span>已达成 124 / 目标 280</span>
+            <span>还差 156</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 12 个月份热力图卡片 -->
@@ -778,7 +1461,139 @@
         <div class="section-title"><span class="dot" style="background:var(--skill)"></span>全年节奏</div>
         <span class="section-sub">点击月份查看详情</span>
       </div>
-      <div class="year-months-grid" id="year-months"></div>
+      <div class="year-months-grid" id="year-months">
+        <div class="month-card" data-month="1">
+          <div class="month-card-head">
+            <div class="month-card-name">1月</div>
+            <div class="month-card-rate mid">77%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>95</b></span>
+             <span>缺卡 <b style="color:var(--text-primary)">3</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card" data-month="2">
+          <div class="month-card-head">
+            <div class="month-card-name">2月</div>
+            <div class="month-card-rate mid">73%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>82</b></span>
+             <span>缺卡 <b style="color:var(--text-primary)">5</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card" data-month="3">
+          <div class="month-card-head">
+            <div class="month-card-name">3月</div>
+            <div class="month-card-rate high">85%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>105</b></span>
+             <span>缺卡 <b style="color:var(--text-primary)">2</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card" data-month="4">
+          <div class="month-card-head">
+            <div class="month-card-name">4月</div>
+            <div class="month-card-rate high">82%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>98</b></span>
+             <span>缺卡 <b style="color:var(--text-primary)">4</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card" data-month="5">
+          <div class="month-card-head">
+            <div class="month-card-name">5月</div>
+            <div class="month-card-rate high">89%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>110</b></span>
+             <span>缺卡 <b style="color:var(--text-primary)">1</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card" data-month="6">
+          <div class="month-card-head">
+            <div class="month-card-name">6月</div>
+            <div class="month-card-rate mid">77%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>92</b></span>
+             <span>缺卡 <b style="color:var(--danger)">6</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card" data-month="7">
+          <div class="month-card-head">
+            <div class="month-card-name">7月</div>
+            <div class="month-card-rate high">95%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>118</b></span>
+             <span>缺卡 <b style="color:var(--text-primary)">2</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card current" data-month="8">
+          <div class="month-card-head">
+            <div class="month-card-name">8月</div>
+            <div class="month-card-rate mid">70%</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-2"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-3"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-4"></div><div class="cell lvl-3"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-1"></div><div class="cell lvl-2"></div><div class="cell lvl-3"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+          <div class="month-card-stats">
+             <span>完成 <b>87</b></span>
+             <span>缺卡 <b style="color:var(--text-primary)">3</b></span>
+           </div>
+        </div>
+      
+        <div class="month-card future" data-month="9">
+          <div class="month-card-head">
+            <div class="month-card-name">9月</div>
+            <div class="month-card-rate ">—</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+          <div class="month-card-stats"><span>未开始</span><span>—</span></div>
+        </div>
+      
+        <div class="month-card future" data-month="10">
+          <div class="month-card-head">
+            <div class="month-card-name">10月</div>
+            <div class="month-card-rate ">—</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+          <div class="month-card-stats"><span>未开始</span><span>—</span></div>
+        </div>
+      
+        <div class="month-card future" data-month="11">
+          <div class="month-card-head">
+            <div class="month-card-name">11月</div>
+            <div class="month-card-rate ">—</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+          <div class="month-card-stats"><span>未开始</span><span>—</span></div>
+        </div>
+      
+        <div class="month-card future" data-month="12">
+          <div class="month-card-head">
+            <div class="month-card-name">12月</div>
+            <div class="month-card-rate ">—</div>
+          </div>
+          <div class="month-heatmap"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+          <div class="month-card-stats"><span>未开始</span><span>—</span></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1358,5 +2173,6 @@
   renderYearMonths();
   updateStats();
 </script>
-</body>
-</html>
+
+
+</body></html>

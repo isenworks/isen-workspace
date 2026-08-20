@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年度规划 · 设计 Demo v4</title>
+<style>
+  :root {
+    --bg-gradient: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    --text-primary: #1c1c1e;
+    --text-secondary: #6c6c70;
+    --text-tertiary: #8e8e93;
+    --text-quaternary: #aeaeae;
+    --glass-bg: rgba(255,255,255,0.72);
+    --glass-border: rgba(255,255,255,0.6);
+    --glass-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+
+    /* 五大领域色 */
+    --c-energy:  #34c759; --c-energy-bg:  #e5f6ea; --c-energy-soft:  rgba(52,199,89,0.1);
+    --c-mind:    #007aff; --c-mind-bg:    #e0ecff; --c-mind-soft:    rgba(0,122,255,0.1);
+    --c-skill:   #d4a017; --c-skill-bg:   #fbf3d8; --c-skill-soft:   rgba(212,160,23,0.12);
+    --c-work:    #af52de; --c-work-bg:    #f3e8ff; --c-work-soft:    rgba(175,82,222,0.1);
+    --c-life:    #ff3b30; --c-life-bg:    #ffe8e8; --c-life-soft:    rgba(255,59,48,0.1);
+
+    --warn: #ff9500;
+    --danger: #ff3b30;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; background: var(--bg-gradient); background-attachment: fixed;
+    color: var(--text-primary); -webkit-font-smoothing: antialiased;
+    font-family: -apple-system, "SF Pro Text", "SF Pro Display", "PingFang SC", system-ui, sans-serif;
+    padding: 28px 24px; letter-spacing: -0.01em;
+  }
+  .container { max-width: 1120px; margin: 0 auto; }
+
+  /* ============ 顶部栏 ============ */
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+  }
+  .top-bar h1 {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .top-bar h1 .accent {
+    width: 4px; height: 20px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--c-energy), var(--c-mind), var(--c-skill), var(--c-work), var(--c-life));
+  }
+  .top-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  /* 视图切换 */
+  .view-tabs { display: inline-flex; background: rgba(120,120,128,0.12); border-radius: 9px; padding: 2px; }
+  .view-tabs button {
+    padding: 5px 14px; font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); border-radius: 7px;
+    transition: all .2s; border: none; background: transparent; cursor: pointer;
+  }
+  .view-tabs button.active {
+    background: #007aff; color: #fff; font-weight: 600;
+    box-shadow: 0 3px 8px rgba(0,122,255,0.25);
+  }
+
+  .period-nav { display: flex; align-items: center; gap: 8px; }
+  .period-title { font-size: 15px; font-weight: 600; min-width: 120px; text-align: center; }
+  .nav-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: none; background: rgba(120,120,128,0.12);
+    color: var(--text-secondary); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .nav-btn:hover { background: rgba(120,120,128,0.22); }
+  .nav-btn svg { width: 13px; height: 13px; }
+
+  /* ============ 通用玻璃卡片 ============ */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    box-shadow: var(--glass-shadow);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600;
+  }
+  .section-title .bar {
+    width: 4px; height: 14px; border-radius: 2px;
+  }
+  .section-sub { font-size: 11px; color: var(--text-tertiary); }
+
+  .btn-add {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 10px; border-radius: 7px;
+    font-size: 12px; font-weight: 500;
+    color: var(--c-mind); background: var(--c-mind-soft);
+    border: none; cursor: pointer; transition: all .15s;
+  }
+  .btn-add:hover { background: rgba(0,122,255,0.18); }
+  .btn-add svg { width: 12px; height: 12px; }
+
+  /* ============ 年度视图：5 大领域总览卡 ============ */
+  .domain-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 10px; margin-bottom: 18px;
+  }
+  @media (max-width: 900px) { .domain-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .domain-grid { grid-template-columns: 1fr; } }
+
+  .domain-card {
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative; overflow: hidden;
+  }
+  .domain-card::before {
+    content: ""; position: absolute; inset: 0;
+    opacity: 0.5; pointer-events: none;
+  }
+  .domain-card[data-cat="energy"]::before { background: linear-gradient(135deg, var(--c-energy-bg), transparent 70%); }
+  .domain-card[data-cat="mind"]::before   { background: linear-gradient(135deg, var(--c-mind-bg), transparent 70%); }
+  .domain-card[data-cat="skill"]::before  { background: linear-gradient(135deg, var(--c-skill-bg), transparent 70%); }
+  .domain-card[data-cat="work"]::before   { background: linear-gradient(135deg, var(--c-work-bg), transparent 70%); }
+  .domain-card[data-cat="life"]::before   { background: linear-gradient(135deg, var(--c-life-bg), transparent 70%); }
+  .domain-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  }
+  .domain-icon-wrap {
+    width: 40px; height: 40px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 10px; position: relative; z-index: 1;
+  }
+  .domain-card[data-cat="energy"] .domain-icon-wrap { background: linear-gradient(135deg, var(--c-energy), #2bb24c); color: #fff; }
+  .domain-card[data-cat="mind"]   .domain-icon-wrap { background: linear-gradient(135deg, var(--c-mind), #0066d6); color: #fff; }
+  .domain-card[data-cat="skill"]  .domain-icon-wrap { background: linear-gradient(135deg, var(--c-skill), #b88a0c); color: #fff; }
+  .domain-card[data-cat="work"]   .domain-icon-wrap { background: linear-gradient(135deg, var(--c-work), #8b3dbd); color: #fff; }
+  .domain-card[data-cat="life"]   .domain-icon-wrap { background: linear-gradient(135deg, var(--c-life), #cc2f26); color: #fff; }
+
+  .domain-name {
+    font-size: 14px; font-weight: 600;
+    margin-bottom: 8px; position: relative; z-index: 1;
+  }
+  .domain-stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
+    font-size: 10px; color: var(--text-secondary);
+    margin-bottom: 10px; position: relative; z-index: 1;
+  }
+  .domain-stats b { color: var(--text-primary); font-weight: 600; font-size: 12px; }
+
+  .domain-progress {
+    height: 5px; border-radius: 3px;
+    background: rgba(120,120,128,0.1);
+    overflow: hidden; position: relative; z-index: 1;
+  }
+  .domain-fill {
+    height: 100%; border-radius: 3px;
+    transition: width .5s ease;
+  }
+  .domain-card[data-cat="energy"] .domain-fill { background: linear-gradient(90deg, var(--c-energy), #2bb24c); }
+  .domain-card[data-cat="mind"]   .domain-fill { background: linear-gradient(90deg, var(--c-mind), #0066d6); }
+  .domain-card[data-cat="skill"]  .domain-fill { background: linear-gradient(90deg, var(--c-skill), #b88a0c); }
+  .domain-card[data-cat="work"]   .domain-fill { background: linear-gradient(90deg, var(--c-work), #8b3dbd); }
+  .domain-card[data-cat="life"]   .domain-fill { background: linear-gradient(90deg, var(--c-life), #cc2f26); }
+
+  .domain-progress-text {
+    font-size: 10px; color: var(--text-tertiary);
+    margin-top: 4px; display: flex; justify-content: space-between;
+    position: relative; z-index: 1;
+  }
+  .domain-progress-text b { font-weight: 700; }
+
+  /* ============ 年度视图：领域详情（目标+里程碑+书架等） ============ */
+  .two-col {
+    display: grid; grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* 目标列表 */
+  .goal-list { display: flex; flex-direction: column; gap: 8px; }
+  .goal-item {
+    padding: 12px 14px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(60,60,67,0.08);
+    transition: all .15s; cursor: pointer;
+  }
+  .goal-item:hover {
+    background: rgba(255,255,255,0.88);
+    border-color: rgba(0,122,255,0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .goal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .goal-title-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+  .goal-emoji { font-size: 16px; flex-shrink: 0; }
+  .goal-title {
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .goal-status-tag {
+    font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
+    letter-spacing: 0.03em; flex-shrink: 0;
+  }
+  .status-done { background: var(--c-energy-soft); color: var(--c-energy); }
+  .status-progress { background: var(--c-mind-soft); color: var(--c-mind); }
+  .status-warn { background: rgba(255,149,0,0.12); color: var(--warn); }
+  .status-risk { background: rgba(255,59,48,0.1); color: var(--danger); }
+  .status-archive { background: rgba(120,120,128,0.1); color: var(--text-tertiary); }
+
+  .goal-pct {
+    font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
+    min-width: 36px; text-align: right;
+  }
+  .goal-pct.done { color: var(--c-energy); }
+  .goal-pct.warning { color: var(--warn); }
+  .goal-pct.danger { color: var(--danger); }
+
+  .goal-bar {
+    height: 5px; border-radius: 3px;
+    background: rgba(120,120,128,0.12); overflow: hidden;
+  }
+  .goal-fill {
+    height: 100%; border-radius: 3px;
+    transition: width .5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* KRs / 关键结果 */
+  .krs-list {
+    margin-top: 8px;
+    display: flex; flex-direction: column; gap: 3px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(120,120,128,0.18);
+  }
+  .kr-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--text-secondary);
+  }
+  .kr-check {
+    width: 12px; height: 12px; border-radius: 3px;
+    border: 1.5px solid rgba(120,120,128,0.3);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .12s; cursor: pointer;
+  }
+  .kr-check.done { background: var(--c-mind); border-color: var(--c-mind); }
+  .kr-check.done::after {
+    content: ""; width: 3px; height: 6px;
+    border: solid #fff; border-width: 0 1.2px 1.2px 0;
+    transform: rotate(45deg);
+  }
+  .kr-text { flex: 1; }
+  .kr-text.done { text-decoration: line-through; color: var(--text-tertiary); }
+  .kr-pct {
+    font-weight: 600; color: var(--text-primary);
+    min-width: 28px; text-align: right;
+  }
+
+  .goal-meta {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--text-tertiary); margin-top: 5px;
+  }
+
+  /* 追踪模式标签 */
+  .mode-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 9px; font-weight: 600; color: var(--text-tertiary);
+    padding: 1px 5px; border-radius: 4px;
+    background: rgba(120,120,128,0.1);
+  }
+  .mode-tag::before {
+    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--text-tertiary);
+  }
+  .mode-tag.habit::before { background: var(--c-energy); }
+  .mode-tag.milestone::before { background: var(--c-skill); }
+  .mode-tag.reflect::before { background: var(--c-mind); }
+  .mode-tag.quant::before { background: var(--c-work); }
+
+  /* ============ 书架（认知领域） ============ */
+  .shelf-list { display: flex; flex-direction: column; gap: 10px; }
+  .book-item {
+    display: flex; gap: 12px;
+    padding: 12px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(60,60,67,0.08);
+    cursor: pointer; transition: all .15s;
+    align-items: flex-start;
+  }
+  .book-item:hover {
+    background: rgba(255,255,255,0.88);
+    transform: translateX(2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+
+  .book-cover {
+    width: 42px; height: 56px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 2px 3px 8px rgba(0,0,0,0.12);
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+  }
+
+  .book-info { flex: 1; min-width: 0; }
+  .book-title {
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+  .book-author {
+    font-size: 10px; color: var(--text-tertiary); margin-bottom: 6px;
+  }
+  .book-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+  .book-tag {
+    font-size: 9px; padding: 1px 6px; border-radius: 3px;
+    background: rgba(120,120,128,0.1);
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .book-status {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .book-progress {
+    flex: 1; height: 4px; border-radius: 2px;
+    background: rgba(120,120,128,0.12); overflow: hidden;
+  }
+  .book-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--c-mind), #0066d6);
+    transition: width .4s ease;
+  }
+  .book-pct {
+    font-size: 10px; font-weight: 600; color: var(--text-secondary);
+    min-width: 32px; text-align: right;
+  }
+
+  .book-state-tag {
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    letter-spacing: 0.03em;
+  }
+  .state-reading { background: var(--c-mind-soft); color: var(--c-mind); }
+  .state-done { background: var(--c-energy-soft); color: var(--c-energy); }
+  .state-pending { background: rgba(120,120,128,0.12); color: var(--text-tertiary); }
+  .state-paused { background: rgba(255,149,0,0.12); color: var(--warn); }
+
+  /* ============ 里程碑进度（能力领域） ============ */
+  .milestone-timeline {
+    display: flex; flex-direction: column; gap: 0;
+    position: relative;
+    padding-left: 22px;
+  }
+  .milestone-timeline::before {
+    content: ""; position: absolute;
+    left: 9px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--c-skill) 0%, rgba(212,160,23,0.2) 100%);
+    border-radius: 1px;
+  }
+
+  .milestone-node {
+    position: relative;
+    padding: 10px 0 10px 12px;
+  }
+  .milestone-node::before {
+    content: ""; position: absolute;
+    left: -19px; top: 15px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--glass-bg);
+    border: 2px solid var(--c-skill);
+    transition: all .2s;
+  }
+  .milestone-node.done::before {
+    background: var(--c-skill);
+  }
+  .milestone-node.done::after {
+    content: ""; position: absolute;
+    left: -17px; top: 17px;
+    width: 4px; height: 7px;
+    border: solid #fff; border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+  }
+  .milestone-node.current::before {
+    border-color: var(--c-mind);
+    box-shadow: 0 0 0 4px rgba(0,122,255,0.15);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(0,122,255,0.15); }
+    50% { box-shadow: 0 0 0 6px rgba(0,122,255,0.25); }
+  }
+
+  .milestone-name {
+    font-size: 13px; font-weight: 500; margin-bottom: 3px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .milestone-node.current .milestone-name { color: var(--c-mind); }
+  .milestone-node.done .milestone-name { color: var(--text-tertiary); text-decoration: line-through; }
+
+  .milestone-desc {
+    font-size: 11px; color: var(--text-tertiary); line-height: 1.5;
+    margin-bottom: 4px;
+  }
+
+  .milestone-doc-link {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; color: var(--c-mind); font-weight: 500;
+    padding: 2px 6px; border-radius: 4px;
+    background: var(--c-mind-soft);
+    cursor: pointer;
+  }
+  .milestone-doc-link:hover { text-decoration: underline; }
+
+  .milestone-subtasks {
+    display: flex; flex-direction: column; gap: 3px;
+    margin-top: 6px;
+  }
+  .subtask-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-secondary);
+  }
+  .sub-check {
+    width: 12px; height: 12px; border-radius: 3px;
+    border: 1.5px solid rgba(120,120,128,0.3);
+    flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .12s;
+  }
+  .sub-check.done { background: var(--c-skill); border-color: var(--c-skill); }
+  .sub-check.done::after {
+    content: ""; width: 3px; height: 6px;
+    border: solid #fff; border-width: 0 1.2px 1.2px 0;
+    transform: rotate(45deg);
+  }
+
+  /* ============ 工作领域：求职进度 ============ */
+  .job-stages {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  @media (max-width: 500px) { .job-stages { grid-template-columns: 1fr; } }
+
+  .stage-card {
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(60,60,67,0.08);
+    cursor: pointer; transition: all .15s;
+  }
+  .stage-card:hover { background: rgba(255,255,255,0.88); }
+  .stage-card.done { opacity: 0.6; }
+  .stage-card.done .stage-name { text-decoration: line-through; }
+  .stage-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .stage-name { font-size: 12px; font-weight: 600; }
+  .stage-status {
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  }
+  .stage-status.done { background: var(--c-energy-soft); color: var(--c-energy); }
+  .stage-status.doing { background: var(--c-mind-soft); color: var(--c-mind); }
+  .stage-status.pending { background: rgba(120,120,128,0.12); color: var(--text-tertiary); }
+
+  .stage-meta {
+    font-size: 10px; color: var(--text-tertiary);
+    display: flex; justify-content: space-between;
+  }
+  .stage-meta b { color: var(--text-primary); }
+
+  .salary-bar {
+    height: 4px; border-radius: 2px;
+    background: rgba(120,120,128,0.12); overflow: hidden;
+    margin-top: 6px; position: relative;
+  }
+  .salary-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--c-work), #8b3dbd);
+  }
+  .salary-target {
+    position: absolute; top: -8px;
+    width: 1px; height: 20px;
+    background: var(--c-work);
+  }
+
+  /* ============ 生活领域：体验卡片 ============ */
+  .life-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 700px) { .life-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .life-category {
+    padding: 12px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(60,60,67,0.08);
+    transition: all .15s;
+  }
+  .life-category:hover {
+    background: rgba(255,255,255,0.88);
+    transform: translateY(-1px);
+  }
+  .life-cat-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .life-cat-name {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600;
+  }
+  .life-cat-count {
+    font-size: 10px; color: var(--text-tertiary);
+    padding: 1px 6px; border-radius: 10px;
+    background: rgba(120,120,128,0.1);
+  }
+
+  .life-items {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .life-item {
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 5px;
+    background: rgba(120,120,128,0.06);
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+  }
+  .life-item.done {
+    color: var(--text-tertiary);
+    text-decoration: line-through;
+    background: rgba(120,120,128,0.04);
+  }
+  .life-item:hover { background: rgba(120,120,128,0.1); }
+  .life-date { font-size: 9px; color: var(--text-quaternary); }
+
+  /* ============ 统计概览 ============ */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card {
+    background: var(--glass-bg); backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .stat-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 2px; }
+  .stat-value .unit { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }
+  .stat-trend { font-size: 10px; margin-top: 3px; color: var(--text-tertiary); display: flex; align-items: center; gap: 3px; }
+  .stat-trend.up { color: var(--c-energy); }
+  .stat-trend.down { color: var(--danger); }
+
+  /* ============ 视图切换 ============ */
+  .view { display: none; }
+  .view.active { display: block; animation: viewIn .25s ease; }
+  @keyframes viewIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ 月度视图 ============ */
+  .month-matrix { --days: 31; }
+  .habits-matrix { display: flex; flex-direction: column; gap: 2px; }
+  .matrix-row {
+    display: grid;
+    grid-template-columns: 130px repeat(var(--days), 1fr) 60px;
+    gap: 2px; align-items: center;
+    padding: 4px 0; border-radius: 8px;
+    transition: background .12s;
+  }
+  .matrix-row:hover { background: rgba(120,120,128,0.04); }
+  .matrix-habit { display: flex; align-items: center; gap: 7px; padding: 2px 6px 2px 4px; min-width: 0; }
+  .matrix-emoji {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+    background: rgba(255,255,255,0.7); border: 1px solid rgba(60,60,67,0.08);
+  }
+  .matrix-emoji.energy { background: linear-gradient(135deg, var(--c-energy-bg), #fff); border-color: rgba(52,199,89,0.2); }
+  .matrix-emoji.mind { background: linear-gradient(135deg, var(--c-mind-bg), #fff); border-color: rgba(0,122,255,0.2); }
+  .matrix-emoji.skill { background: linear-gradient(135deg, var(--c-skill-bg), #fff); border-color: rgba(212,160,23,0.2); }
+  .matrix-name {
+    font-size: 12px; font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .matrix-cell {
+    width: 100%; aspect-ratio: 1; max-width: 18px; max-height: 18px;
+    margin: 0 auto; border-radius: 50%;
+    border: 1.5px solid rgba(120,120,128,0.2);
+    background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .matrix-cell:hover { border-color: var(--c-mind); transform: scale(1.2); }
+  .matrix-cell.future { visibility: hidden; pointer-events: none; }
+  .matrix-cell.today { box-shadow: 0 0 0 1.5px var(--c-mind); }
+  .matrix-cell.done { background: var(--c, var(--c-mind)); border-color: var(--c, var(--c-mind)); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .matrix-cell.done::after {
+    content: ""; width: 4px; height: 7px;
+    border: solid #fff; border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg) translate(-0.5px, -0.5px); margin-top: -1px;
+  }
+  .matrix-cell.done.energy { --c: var(--c-energy); }
+  .matrix-cell.done.mind { --c: var(--c-mind); }
+  .matrix-cell.done.skill { --c: var(--c-skill); }
+
+  .matrix-stat { text-align: center; font-size: 10px; color: var(--text-tertiary); font-weight: 500; }
+  .matrix-stat b { color: var(--text-primary); font-weight: 600; }
+
+  /* ============ 周度视图 ============ */
+  .week-day-cards {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 720px) {
+    .week-day-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+  .day-card {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(60,60,67,0.08);
+    border-radius: 12px; padding: 12px 10px;
+    cursor: pointer; transition: all .15s;
+    min-height: 170px; display: flex; flex-direction: column;
+  }
+  .day-card:hover {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(0,122,255,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  }
+  .day-card.today {
+    background: var(--c-mind-soft);
+    border-color: var(--c-mind);
+  }
+  .day-card.future { opacity: 0.6; }
+  .day-card-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .day-card-num { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .day-card.today .day-card-num { color: var(--c-mind); }
+  .day-card-weekday { font-size: 10px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 0.05em; }
+  .day-card.today .day-card-weekday { color: var(--c-mind); }
+
+  .day-card-habits { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .day-habit-row { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .day-habit-circle {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1.5px solid rgba(120,120,128,0.25);
+    flex-shrink: 0; cursor: pointer; transition: all .12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .day-habit-circle:hover { transform: scale(1.2); }
+  .day-habit-circle.done { background: var(--c); border-color: var(--c); }
+  .day-habit-circle.done::after {
+    content: ""; width: 3px; height: 6px;
+    border: solid #fff; border-width: 0 1.2px 1.2px 0;
+    transform: rotate(45deg);
+  }
+  .day-habit-circle.done.energy { --c: var(--c-energy); }
+  .day-habit-circle.done.mind { --c: var(--c-mind); }
+  .day-habit-circle.done.skill { --c: var(--c-skill); }
+  .day-habit-name {
+    color: var(--text-secondary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+  }
+  .day-habit-row.done .day-habit-name { color: var(--text-tertiary); text-decoration: line-through; }
+
+  .day-card-summary {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed rgba(60,60,67,0.12);
+    font-size: 10px; color: var(--text-tertiary);
+    display: flex; justify-content: space-between;
+  }
+  .day-card-summary b { color: var(--text-primary); }
+
+  .week-plan-list { display: flex; flex-direction: column; gap: 6px; }
+  .plan-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 9px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(60,60,67,0.08);
+    transition: all .15s; cursor: pointer;
+  }
+  .plan-item:hover { background: rgba(255,255,255,0.85); transform: translateX(2px); }
+  .plan-item.done { opacity: 0.6; }
+  .plan-check {
+    width: 16px; height: 16px; border-radius: 5px;
+    border: 1.5px solid rgba(120,120,128,0.3);
+    flex-shrink: 0; cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .plan-check.done { background: var(--c-mind); border-color: var(--c-mind); }
+  .plan-check.done::after {
+    content: ""; width: 4px; height: 7px;
+    border: solid #fff; border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg) translate(-0.5px, -0.5px); margin-top: -1px;
+  }
+  .plan-text { font-size: 12px; flex: 1; }
+  .plan-item.done .plan-text { text-decoration: line-through; color: var(--text-tertiary); }
+  .plan-meta { font-size: 10px; color: var(--text-tertiary); }
+
+  /* 设计说明 */
+  .notes {
+    background: rgba(0,122,255,0.04);
+    border: 1px solid rgba(0,122,255,0.1);
+    border-radius: 12px; padding: 14px 16px;
+    font-size: 12px; color: var(--text-secondary); line-height: 1.6;
+  }
+  .notes b { color: var(--c-mind); }
+  .notes ul { padding-left: 16px; margin-top: 4px; }
+  .notes li { margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 顶部 -->
+  <div class="top-bar">
+    <h1><span class="accent"></span>2026 年度规划</h1>
+    <div class="top-actions">
+      <div class="view-tabs">
+        <button class="active" data-view="year">年度</button>
+        <button data-view="month">月度</button>
+        <button data-view="week">周度</button>
+      </div>
+      <div class="period-nav">
+        <button class="nav-btn" id="prev">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="period-title" id="period-title">2026 年度</div>
+        <button class="nav-btn" id="next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 年度视图 ============ -->
+  <div class="view active" id="view-year">
+
+    <!-- 统计概览 -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">目标总数</div>
+        <div class="stat-value">17<span class="unit">个</span></div>
+        <div class="stat-trend up">已完成 3 · 进行中 10 · 未开始 4</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">总体进度</div>
+        <div class="stat-value">36<span class="unit">%</span></div>
+        <div class="stat-trend up">↑ 较Q2 +11%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">习惯打卡</div>
+        <div class="stat-value">568<span class="unit">次</span></div>
+        <div class="stat-trend up">连续 17 天</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">阅读</div>
+        <div class="stat-value">42<span class="unit">/ 100</span></div>
+        <div class="stat-trend up">↑ 阅读中 8 · 读完 5</div>
+      </div>
+    </div>
+
+    <!-- 5大领域总览卡 -->
+    <div class="domain-grid" id="domain-grid"></div>
+
+    <!-- 两列：目标 | 领域特色内容 -->
+    <div class="two-col">
+      <div class="glass-card" id="domain-goals-card">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="bar" style="background:var(--c-energy)"></span>
+            <span id="domain-title">精力</span> · 年度目标
+          </div>
+          <button class="btn-add">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            添加目标
+          </button>
+        </div>
+        <div class="goal-list" id="domain-goals"></div>
+      </div>
+
+      <div class="glass-card" id="domain-feature-card">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="bar" style="background:var(--c-mind)"></span>
+            <span id="feature-title">📚 阅读书架</span>
+          </div>
+          <button class="btn-add">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            添加书籍
+          </button>
+        </div>
+        <div id="domain-feature"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 月度视图 ============ -->
+  <div class="view" id="view-month">
+    <div class="two-col">
+      <div>
+        <div class="glass-card">
+          <div class="section-head">
+            <div class="section-title">
+              <span class="bar" style="background:var(--c-mind)"></span>
+              月度目标 · 8月
+            </div>
+            <button class="btn-add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              添加
+            </button>
+          </div>
+          <div class="goal-list" id="month-goals"></div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="bar" style="background:var(--c-energy)"></span>
+            习惯打卡矩阵
+          </div>
+          <span class="section-sub">点击圆圈切换打卡</span>
+        </div>
+        <div class="habits-matrix month-matrix" id="habits-matrix"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 周度视图 ============ -->
+  <div class="view" id="view-week">
+    <div class="glass-card">
+      <div class="section-head">
+        <div class="section-title">
+          <span class="bar" style="background:var(--c-work)"></span>
+          本周行动计划 · 8月17-23日
+        </div>
+        <button class="btn-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          添加计划
+        </button>
+      </div>
+      <div class="week-plan-list" id="week-plans"></div>
+    </div>
+    <div class="glass-card">
+      <div class="section-head">
+        <div class="section-title">
+          <span class="bar" style="background:var(--c-skill)"></span>
+          每日执行
+        </div>
+      </div>
+      <div class="week-day-cards" id="week-day-cards"></div>
+    </div>
+  </div>
+
+  <!-- 设计说明 -->
+  <div class="notes">
+    <b>设计说明 v4（年度规划三视图）</b>
+    <ul>
+      <li><b>5 大领域差异化追踪</b>：精力(习惯打卡)/ 认知(阅读书架)/ 能力(里程碑+学习计划)/ 工作(求职阶段+副业)/ 生活(体验卡片)</li>
+      <li><b>年度视图</b>：顶部5张领域概览卡(图标+渐变背景+进度条)，下方左列展示所选领域的目标+KRs，右列是该领域特色模块</li>
+      <li><b>4 种追踪模式</b>：🔁习惯型(每日打卡) / 🎯里程碑型(学完某课程) / 🪞反思型(获得改变-月度自评分) / 💰量化型(涨粉/薪资数值目标)</li>
+      <li><b>阅读书架</b>：书籍封面+进度条+状态标签(未开始/阅读中/已读完/已暂停)+分类标签+作者+链接入口</li>
+      <li><b>里程碑可视化</b>：垂直时间线，当前阶段高亮脉冲动画，支持飞书文档链接</li>
+      <li><b>求职追踪</b>：阶段卡片(已完成/进行中/待开始)+薪资目标进度条</li>
+      <li><b>生活体验</b>：美食/旅游/电影/购物 4 类分类卡片 + 完成状态</li>
+      <li><b>月度视图</b>：月度目标 + 习惯打卡矩阵，将年度目标拆解到月度执行</li>
+      <li><b>周度视图</b>：周计划清单 + 7 日每日执行卡片，将月度目标拆解到每日行动</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+  // ================== 5 大领域数据 ==================
+  const DOMAINS = [
+    { key: 'energy', name: '精力',  emoji: '💪', color: '--c-energy',  desc: '通过习惯打卡追踪' },
+    { key: 'mind',   name: '认知',  emoji: '🧠', color: '--c-mind',    desc: '12本书+践行改变' },
+    { key: 'skill',  name: '能力',  emoji: '⭐️', color: '--c-skill',   desc: '里程碑+学习计划' },
+    { key: 'work',   name: '工作',  emoji: '💼', color: '--c-work',    desc: '求职+副业涨粉' },
+    { key: 'life',   name: '生活',  emoji: '🎨', color: '--c-life',    desc: '增加生活体验' },
+  ];
+
+  // 目标结构：每个目标含 追踪模式 + KRs
+  const GOALS_BY_DOMAIN = {
+    energy: [
+      { id:1, emoji:'😴', title:'养成良好作息(23:00前睡/7:00起)', mode:'habit', pct:44, status:'progress',
+        current: 136, target: 280,
+        krs:[
+          { text:'连续30天 23:00前睡', pct:60, done:false },
+          { text:'连续30天 7:00起床', pct:50, done:false },
+          { text:'入睡时长 <15分钟', pct:30, done:false },
+        ]},
+      { id:2, emoji:'💧', title:'每天喝够2L水(防左肾结晶)', mode:'habit', pct:78, status:'progress',
+        current: 242, target: 280,
+        krs:[
+          { text:'连续60天达标', pct:70, done:false },
+          { text:'使用定时提醒App', pct:100, done:true },
+          { text:'每月体检尿常规正常', pct:60, done:false },
+        ]},
+      { id:3, emoji:'🏃', title:'通过运动增强体能', mode:'habit', pct:62, status:'progress',
+        current: 124, target: 200,
+        krs:[
+          { text:'全年跑步 300km', pct:55, done:false },
+          { text:'每月健身房 8次+', pct:60, done:false },
+          { text:'5km 跑进 30分钟', pct:40, done:false },
+        ]},
+    ],
+    mind: [
+      { id:1, emoji:'📚', title:'年度阅读12本书+践行改变', mode:'reflect', pct:35, status:'progress',
+        current: 42, target: 120,
+        krs:[
+          { text:'读完 12 本非虚构类', pct:42, done:false },
+          { text:'每本书写践行输出', pct:20, done:false },
+          { text:'月度复盘：获得的改变打分', pct:30, done:false },
+        ]},
+      { id:2, emoji:'🧠', title:'每周深度思考 ≥3小时', mode:'habit', pct:58, status:'progress',
+        current: 18, target: 31,
+        krs:[
+          { text:'周日晚1h独处复盘', pct:70, done:false },
+          { text:'完成 50 篇思考笔记', pct:40, done:false },
+        ]},
+    ],
+    skill: [
+      { id:1, emoji:'🗣️', title:'英语口语：日常对话流畅', mode:'milestone', pct:45, status:'progress',
+        current: 126, target: 250,
+        krs:[
+          { text:'完成飞书文档Level 1-10', pct:50, done:false },
+          { text:'完成 Shadowing 100篇', pct:40, done:false },
+          { text:'能跟外教30分钟日常对话', pct:20, done:false },
+        ]},
+      { id:2, emoji:'🎤', title:'即兴表达：面试应答自如', mode:'milestone', pct:30, status:'doing',
+        current: 60, target: 200,
+        krs:[
+          { text:'刷完 500 道面试题库', pct:25, done:false },
+          { text:'完成 50 次模拟录音', pct:20, done:false },
+          { text:'面试实战不紧张、逻辑清晰', pct:10, done:false },
+        ]},
+      { id:3, emoji:'📊', title:'数据分析能力：独立完成报告', mode:'milestone', pct:20, status:'progress',
+        current: 1, target: 5,
+        krs:[
+          { text:'学完飞书课程(统计学+Excel+SQL)', pct:20, done:false },
+          { text:'完成 5 个真实数据集练习', pct:10, done:false },
+          { text:'输出 3 篇数据洞察分析文章', pct:0, done:false },
+        ]},
+    ],
+    work: [
+      { id:1, emoji:'💸', title:'从鲸灵集团离职 + 拿到大礼包', mode:'milestone', pct:100, status:'done',
+        current: 1, target: 1,
+        krs:[{ text:'完成离职手续', pct:100, done:true }, { text:'拿到N+1大礼包', pct:100, done:true }]},
+      { id:2, emoji:'🎯', title:'入职上升期行业中大型/新锐公司做用户运营，薪资20k+', mode:'quant', pct:15, status:'doing',
+        current: 15, target: 100,
+        krs:[
+          { text:'优化简历+作品集', pct:50, done:false },
+          { text:'投递 100+ 简历', pct:30, done:false },
+          { text:'拿到 10+ 面试邀请', pct:15, done:false },
+          { text:'入职 Offer ≥20k', pct:5, done:false },
+        ]},
+      { id:3, emoji:'🐻', title:'小红书"小憨熊"涨粉+商业变现', mode:'quant', pct:8, status:'progress',
+        current: 40, target: 500,
+        krs:[
+          { text:'发布 50 篇漫画笔记', pct:10, done:false },
+          { text:'粉丝破 5000', pct:8, done:false },
+          { text:'接到第一个商业合作', pct:0, done:false },
+        ]},
+    ],
+    life: [
+      { id:1, emoji:'🍜', title:'美食：探索20家新餐厅', mode:'quant', pct:30, status:'progress',
+        current: 6, target: 20,
+        krs:[{ text:'杭州本地10家', pct:50, done:false }, { text:'旅行中打卡10家', pct:10, done:false }]},
+      { id:2, emoji:'✈️', title:'旅游：3次国内/1次短途', mode:'milestone', pct:33, status:'progress',
+        current: 1, target: 3,
+        krs:[{ text:'周末短途 ×3', pct:33, done:false }, { text:'长途 ×1', pct:0, done:false }]},
+      { id:3, emoji:'🎬', title:'电影/展：20部影片+3个展览', mode:'quant', pct:45, status:'progress',
+        current: 9, target: 20,
+        krs:[{ text:'豆瓣 Top250 影片 15部', pct:40, done:false }, { text:'线下展览 3个', pct:33, done:false }]},
+      { id:4, emoji:'🛍️', title:'购物：品质升级年度好物', mode:'reflect', pct:50, status:'progress',
+        current: 5, target: 10,
+        krs:[{ text:'购入 10 件提升生活品质的好物', pct:50, done:false }, { text:'每季度一次断舍离', pct:25, done:false }]},
+    ],
+  };
+
+  // 特色模块（每个领域一个）
+  const FEATURE_BY_DOMAIN = {
+    mind: { type:'shelf', title:'📚 阅读书架',
+      books: [
+        { emoji:'📖', title:'原则', author:'瑞·达利欧', tags:['商业','思维'], state:'reading', pct:68, cover:'linear-gradient(135deg, #f093fb, #f5576c)' },
+        { emoji:'🧑‍💻', title:'穷查理宝典', author:'彼得·考夫曼', tags:['思维','投资'], state:'reading', pct:35, cover:'linear-gradient(135deg, #667eea, #764ba2)' },
+        { emoji:'🎯', title:'OKR工作法', author:'克里斯蒂娜·沃特克', tags:['管理','效率'], state:'done', pct:100, cover:'linear-gradient(135deg, #4facfe, #00f2fe)' },
+        { emoji:'💭', title:'被讨厌的勇气', author:'岸见一郎', tags:['心理','哲学'], state:'done', pct:100, cover:'linear-gradient(135deg, #fa709a, #fee140)' },
+        { emoji:'📊', title:'深入浅出数据分析', author:'Michael Milton', tags:['数据分析','技能'], state:'pending', pct:0, cover:'linear-gradient(135deg, #43e97b, #38f9d7)' },
+        { emoji:'🎨', title:'用户运营方法论', author:'黄杰民', tags:['运营','职业'], state:'pending', pct:0, cover:'linear-gradient(135deg, #a8edea, #fed6e3)' },
+      ]
+    },
+    skill: { type:'milestones', title:'⭐️ 能力里程碑',
+      groups: [
+        { name:'英语口语提升', nodes:[
+          { name:'飞书 Level 1-10 完成', desc:'基础发音+常用句型掌握', done:true, subs:[{t:'完成 L1-L3', done:true},{t:'完成 L4-L6', done:true},{t:'完成 L7-L10', done:false}] },
+          { name:'Shadowing 50篇录音', desc:'每日 Shadowing 录音复盘', done:false, current:true, subs:[{t:'第1-20篇', done:true},{t:'第21-50篇', done:false},{t:'找外教点评', done:false}] },
+          { name:'30分钟流利对话', desc:'与外教/AI 日常交流无压力', done:false, subs:[{t:'15分钟不中断', done:false},{t:'话题拓展3+', done:false},{t:'自信度≥80%', done:false}] },
+        ]},
+        { name:'数据分析能力', docLink:'https://my.feishu.cn/wiki/ELuYweUnFiijkikRVYhc5V7ynxe', nodes:[
+          { name:'统计学+Excel 基础', desc:'完成飞书课程模块一', done:false, current:true, subs:[{t:'完成课程章节', done:true},{t:'课后练习×5', done:false}] },
+          { name:'SQL 查询掌握', desc:'JOIN/子查询/窗口函数', done:false, subs:[{t:'刷 LeetCode 20题', done:false},{t:'真实数据练习2套', done:false}] },
+          { name:'独立输出分析报告', desc:'从数据→洞察→建议', done:false, subs:[{t:'完成3份报告', done:false},{t:'分享到社交平台', done:false}] },
+        ]},
+      ]
+    },
+    work: { type:'job', title:'💼 求职+副业追踪',
+      mainJob: {
+        salaryTarget: 20, salaryCurrent: 0, // 0-100% 进度
+        stages: [
+          { name:'鲸灵离职+大礼包', progress:'100%', status:'done', date:'已完成' },
+          { name:'简历+作品集优化', progress:'50%', status:'doing', date:'进行中' },
+          { name:'批量投递简历(100+)', progress:'20%', status:'doing', date:'已投20家' },
+          { name:'面试准备(题库+模拟)', progress:'25%', status:'doing', date:'25/500题' },
+          { name:'拿到面试邀请(10+)', progress:'15%', status:'pending', date:'1.5/10' },
+          { name:'终面+谈薪+入职', progress:'0%', status:'pending', date:'目标20k+' },
+        ]
+      },
+      sideJob: {
+        stages: [
+          { name:'人设IP确立(小憨熊)', progress:'100%', status:'done', date:'已完成' },
+          { name:'漫画模板+素材库', progress:'60%', status:'doing', date:'进行中' },
+          { name:'发布50篇笔记', progress:'8%', status:'doing', date:'4/50' },
+          { name:'粉丝破5000', progress:'0.8%', status:'pending', date:'40/5000' },
+          { name:'首次商业合作', progress:'0%', status:'pending', date:'待达成' },
+        ]
+      }
+    },
+    life: { type:'life', title:'🎨 生活体验',
+      categories: [
+        { name:'🍜 美食', items:[
+          { name:'潮汕牛肉火锅(广州)', date:'2月', done:true },
+          { name:'怀石料理(京都/国内日料)', date:'计划', done:false },
+          { name:'米其林1星体验', date:'计划', done:false },
+          { name:'杭州小众餐厅×10', date:'进行中', done:false },
+        ]},
+        { name:'✈️ 旅游', items:[
+          { name:'莫干山周末', date:'3月', done:true },
+          { name:'川西短途', date:'10月计划', done:false },
+          { name:'云南+大理', date:'12月计划', done:false },
+        ]},
+        { name:'🎬 电影&展', items:[
+          { name:'沙丘2', date:'3月', done:true },
+          { name:'杭州工艺美术馆', date:'4月', done:true },
+          { name:'西湖音乐节', date:'计划', done:false },
+          { name:'年度观影20部', date:'目标', done:false },
+        ]},
+        { name:'🛍️ 购物', items:[
+          { name:'降噪耳机 SONY WH', date:'已购', done:true },
+          { name:'宜家家居升级', date:'Q3计划', done:false },
+          { name:'品质运动装备', date:'目标', done:false },
+        ]},
+      ]
+    },
+    energy: { type:'habits', title:'💪 习惯打卡节奏',
+      habits: [
+        { emoji:'😴', name:'23:00前睡', type:'energy', pct:58, streak:3, monthly:[12,10,11,13] },
+        { emoji:'💧', name:'喝水 2L',  type:'energy', pct:85, streak:17, monthly:[15,14,15,16] },
+        { emoji:'🏃', name:'运动',     type:'energy', pct:62, streak:5, monthly:[10,11,9,12] },
+        { emoji:'🧘', name:'冥想 5min', type:'energy', pct:35, streak:0, monthly:[6,7,5,8] },
+      ]
+    }
+  };
+
+  // ================== 工具函数 ==================
+  function getProgressClass(pct, mode) {
+    if (mode === 'milestone') {
+      if (pct >= 100) return 'done';
+      if (pct >= 60) return '';
+      if (pct >= 30) return 'warning';
+      return 'danger';
+    }
+    if (pct >= 80) return 'done';
+    if (pct >= 50) return '';
+    if (pct >= 30) return 'warning';
+    return 'danger';
+  }
+  function getStatusTag(status) {
+    const map = {
+      done:     ['已完成', 'status-done'],
+      progress: ['进行中', 'status-progress'],
+      doing:    ['推进中', 'status-progress'],
+      warn:     ['预警',   'status-warn'],
+      risk:     ['风险',   'status-risk'],
+      archive:  ['归档',   'status-archive'],
+    };
+    const [text, cls] = map[status] || ['未开始','status-progress'];
+    return `<span class="goal-status-tag ${cls}">${text}</span>`;
+  }
+  function modeTag(mode) {
+    const map = {
+      habit:     ['习惯打卡', 'habit'],
+      milestone: ['里程碑',   'milestone'],
+      reflect:   ['反思评分', 'reflect'],
+      quant:     ['量化目标', 'quant'],
+    };
+    const [text, cls] = map[mode] || ['', 'habit'];
+    return `<span class="mode-tag ${cls}">${text}</span>`;
+  }
+  function progressColor(domainKey, pct) {
+    if (pct >= 80) return 'background: linear-gradient(90deg, var(--c-energy), #2bb24c)';
+    if (pct >= 50) return `background: linear-gradient(90deg, var(${getDomainVar(domainKey)}), var(${getDomainVar(domainKey)}))`;
+    if (pct >= 30) return 'background: linear-gradient(90deg, var(--warn), #e07d00)';
+    return 'background: linear-gradient(90deg, var(--danger), #cc2f26)';
+  }
+  function getDomainVar(key) {
+    return ({energy:'--c-energy', mind:'--c-mind', skill:'--c-skill', work:'--c-work', life:'--c-life'})[key] || '--c-mind';
+  }
+
+  // ================== 渲染：领域总览卡 ==================
+  let currentDomain = 'energy';
+
+  function renderDomainGrid() {
+    const grid = document.getElementById('domain-grid');
+    grid.innerHTML = DOMAINS.map(d => {
+      const goals = GOALS_BY_DOMAIN[d.key];
+      const avgPct = Math.round(goals.reduce((s,g)=>s+g.pct,0) / goals.length);
+      const doneCount = goals.filter(g => g.status==='done').length;
+      const totalCount = goals.length;
+      const active = d.key === currentDomain ? 'border-color: var('+d.color+'); transform: translateY(-3px);' : '';
+      return `
+        <div class="domain-card" data-cat="${d.key}" style="border: 2px solid transparent; ${active}" data-key="${d.key}">
+          <div class="domain-icon-wrap">${d.emoji}</div>
+          <div class="domain-name">${d.name}</div>
+          <div class="domain-stats">
+            <div>目标 <b>${totalCount}</b></div><div>完成 <b>${doneCount}</b></div>
+          </div>
+          <div class="domain-progress">
+            <div class="domain-fill" style="width:${avgPct}%"></div>
+          </div>
+          <div class="domain-progress-text">
+            <span>整体进度</span><b>${avgPct}%</b>
+          </div>
+        </div>
+      `;
+    }).join('');
+    grid.querySelectorAll('.domain-card').forEach(el => {
+      el.addEventListener('click', () => {
+        currentDomain = el.dataset.key;
+        renderDomainGrid();
+        renderDomainContent();
+      });
+    });
+  }
+
+  // ================== 渲染：领域内容（目标 + 特色模块） ==================
+  function renderDomainContent() {
+    const d = DOMAINS.find(x => x.key === currentDomain);
+    const goals = GOALS_BY_DOMAIN[currentDomain];
+    const feature = FEATURE_BY_DOMAIN[currentDomain];
+
+    // 更新标题
+    document.getElementById('domain-title').textContent = d.name;
+    document.querySelectorAll('#domain-goals-card .section-title .bar')[0].style.background = `var(${d.color})`;
+    document.getElementById('feature-title').textContent = feature.title;
+
+    // 目标列表
+    const goalsHtml = goals.map(g => {
+      const pctClass = getProgressClass(g.pct);
+      const krsHtml = g.krs.map(k => `
+        <div class="kr-row">
+          <div class="kr-check ${k.done ? 'done' : ''}"></div>
+          <div class="kr-text ${k.done ? 'done' : ''}">${k.text}</div>
+          <div class="kr-pct">${k.pct}%</div>
+        </div>
+      `).join('');
+      return `
+        <div class="goal-item" data-id="${g.id}">
+          <div class="goal-head">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">${g.emoji}</span>
+              <span class="goal-title">${g.title}</span>
+              ${modeTag(g.mode)}
+            </div>
+            <span class="goal-pct ${pctClass}">${g.pct}%</span>
+          </div>
+          <div class="goal-bar">
+            <div class="goal-fill" style="width:${g.pct}%; ${progressColor(currentDomain, g.pct)}"></div>
+          </div>
+          ${g.krs && g.krs.length ? `<div class="krs-list">${krsHtml}</div>` : ''}
+          <div class="goal-meta">
+            <span>当前 ${g.current} / 目标 ${g.target}</span>
+            ${getStatusTag(g.status)}
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('domain-goals').innerHTML = goalsHtml;
+
+    // 特色模块
+    const featureHtml = renderFeature(feature, currentDomain);
+    document.getElementById('domain-feature').innerHTML = featureHtml;
+
+    // 更新特色模块标题色条
+    document.querySelectorAll('#domain-feature-card .section-title .bar')[0].style.background = `var(${d.color})`;
+  }
+
+  function renderFeature(f, domainKey) {
+    switch (f.type) {
+      case 'shelf': return renderShelf(f);
+      case 'milestones': return renderMilestones(f);
+      case 'job': return renderJob(f);
+      case 'life': return renderLife(f);
+      case 'habits': return renderHabitsSummary(f);
+      default: return '<div style="font-size:12px;color:var(--text-tertiary);">暂无内容</div>';
+    }
+  }
+
+  // 书架
+  function renderShelf(f) {
+    const stateMap = { reading:['阅读中','state-reading'], done:['已读完','state-done'], pending:['未开始','state-pending'], paused:['已暂停','state-paused'] };
+    return `<div class="shelf-list">${f.books.map(b => {
+      const [stxt, scls] = stateMap[b.state];
+      return `
+        <div class="book-item">
+          <div class="book-cover" style="background:${b.cover}">${b.emoji}</div>
+          <div class="book-info">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+              <div class="book-title">${b.title}</div>
+              <span class="book-state-tag ${scls}">${stxt}</span>
+            </div>
+            <div class="book-author">${b.author}</div>
+            <div class="book-tags">${b.tags.map(t=>`<span class="book-tag">${t}</span>`).join('')}</div>
+            <div class="book-status">
+              <div class="book-progress"><div class="book-fill" style="width:${b.pct}%"></div></div>
+              <div class="book-pct">${b.pct}%</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('')}</div>`;
+  }
+
+  // 能力里程碑
+  function renderMilestones(f) {
+    let html = '';
+    f.groups.forEach(g => {
+      html += `
+        <div style="margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:600;">${g.name}</div>
+            ${g.docLink ? `<a class="milestone-doc-link" target="_blank" href="${g.docLink}" style="text-decoration:none;">📄 学习计划 →</a>` : ''}
+          </div>
+          <div class="milestone-timeline">
+            ${g.nodes.map(n => {
+              const cls = ['milestone-node'];
+              if (n.done) cls.push('done');
+              if (n.current) cls.push('current');
+              const subsHtml = (n.subs||[]).map(s => `
+                <div class="subtask-row">
+                  <div class="sub-check ${s.done?'done':''}"></div>
+                  <div style="flex:1;${s.done?'text-decoration:line-through;color:var(--text-tertiary);':''}">${s.t}</div>
+                </div>
+              `).join('');
+              return `
+                <div class="${cls.join(' ')}">
+                  <div class="milestone-name">${n.name}</div>
+                  <div class="milestone-desc">${n.desc||''}</div>
+                  ${n.subs && n.subs.length ? `<div class="milestone-subtasks">${subsHtml}</div>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    });
+    return html;
+  }
+
+  // 求职 + 副业
+  function renderJob(f) {
+    const mj = f.mainJob;
+    const sj = f.sideJob;
+    function stages(stages, title, color) {
+      return `
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:600;">${title}</div>
+            <div style="font-size:10px;color:var(--text-tertiary);">${stages.filter(s=>s.status==='done').length}/${stages.length} 完成</div>
+          </div>
+          <div class="job-stages">
+            ${stages.map(s => `
+              <div class="stage-card ${s.status==='done'?'done':''}">
+                <div class="stage-head">
+                  <div class="stage-name">${s.name}</div>
+                  <span class="stage-status ${s.status}">${s.status==='done'?'完成':s.status==='doing'?'进行中':'待办'}</span>
+                </div>
+                <div class="stage-meta">
+                  <span>进度 <b>${s.progress}</b></span>
+                  <span>${s.date}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    // 薪资目标进度条
+    const salaryHtml = `
+      <div style="margin-bottom:16px;padding:10px 12px;border-radius:9px;background:linear-gradient(135deg, var(--c-work-bg), #fff); border:1px solid rgba(175,82,222,0.15);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:600;color:var(--c-work);">💰 薪资目标</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">目标 <b style="color:var(--c-work);font-weight:700;">¥20,000</b></div>
+        </div>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-0.02em;color:var(--c-work);">0%</div>
+        <div class="salary-bar" style="margin-top:6px;">
+          <div class="salary-fill" style="width:0%"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;">入职后根据实际薪资解锁</div>
+      </div>
+    `;
+    return salaryHtml + stages(mj.stages, '🎯 主业求职', 'work') + stages(sj.stages, '🐻 副业：小红书"小憨熊"', 'skill');
+  }
+
+  // 生活体验
+  function renderLife(f) {
+    return `<div class="life-grid">${f.categories.map(cat => `
+      <div class="life-category">
+        <div class="life-cat-head">
+          <div class="life-cat-name">${cat.name}</div>
+          <span class="life-cat-count">${cat.items.filter(i=>i.done).length}/${cat.items.length}</span>
+        </div>
+        <div class="life-items">
+          ${cat.items.map(i => `
+            <div class="life-item ${i.done?'done':''}">
+              <span>${i.done?'✅':'⚪️'} ${i.name}</span>
+              <span class="life-date">${i.date}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  // 习惯简要
+  function renderHabitsSummary(f) {
+    return `<div class="shelf-list">${f.habits.map(h => {
+      return `
+        <div class="goal-item" style="padding:12px 14px;">
+          <div class="goal-head">
+            <div class="goal-title-wrap">
+              <span class="goal-emoji">${h.emoji}</span>
+              <span class="goal-title">${h.name}</span>
+              <span class="mode-tag habit">连续 ${h.streak}天</span>
+            </div>
+            <span class="goal-pct">${h.pct}%</span>
+          </div>
+          <div class="goal-bar">
+            <div class="goal-fill" style="width:${h.pct}%; background: linear-gradient(90deg, var(--c-energy), #2bb24c);"></div>
+          </div>
+          <div class="goal-meta">
+            <span>近4周打卡：${h.monthly.join(' · ')}</span>
+            <span class="goal-status-tag status-progress">进行中</span>
+          </div>
+        </div>
+      `;
+    }).join('')}</div>`;
+  }
+
+  // ================== 月度视图 ==================
+  const MONTH_GOALS = [
+    { id:1, emoji:'🏃', title:'晨跑 ≥12次', type:'energy', current:8, target:12, pct:67, status:'progress' },
+    { id:2, emoji:'📖', title:'读完《原则》+《穷查理》', type:'mind', current:2, target:2, pct:50, status:'progress' },
+    { id:3, emoji:'🗣️', title:'刷面试题100道', type:'skill', current:35, target:100, pct:35, status:'warn' },
+    { id:4, emoji:'📨', title:'投递简历50份', type:'work', current:10, target:50, pct:20, status:'warn' },
+    { id:5, emoji:'✈️', title:'莫干山2日游', type:'life', current:0, target:1, pct:0, status:'progress' },
+  ];
+  function renderMonthGoals() {
+    document.getElementById('month-goals').innerHTML = MONTH_GOALS.map(g => `
+      <div class="goal-item" data-id="${g.id}">
+        <div class="goal-head">
+          <div class="goal-title-wrap">
+            <span class="goal-emoji">${g.emoji}</span>
+            <span class="goal-title">${g.title}</span>
+          </div>
+          <span class="goal-pct ${getProgressClass(g.pct)}">${g.pct}%</span>
+        </div>
+        <div class="goal-bar">
+          <div class="goal-fill" style="width:${g.pct}%; ${progressColor(g.type, g.pct)}"></div>
+        </div>
+        <div class="goal-meta">
+          <span>当前 ${g.current} / 目标 ${g.target}</span>
+          ${getStatusTag(g.status)}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const HABITS = [
+    { id:1, emoji:'🏃', name:'晨跑 5km', type:'energy', target:25,
+      data:[1,1,1,1,0,1,1, 1,1,1,1,0,1,1, 1,1,1,0,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id:2, emoji:'💧', name:'喝水 2L', type:'energy', target:31,
+      data:[1,1,1,1,1,1,1, 1,1,1,1,1,1,1, 1,1,1,1,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id:3, emoji:'📖', name:'阅读 30分钟', type:'mind', target:25,
+      data:[0,1,1,1,1,1,1, 1,1,1,0,1,1,1, 1,1,1,1,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id:4, emoji:'🧠', name:'背单词 50个', type:'mind', target:31,
+      data:[1,0,1,1,1,0,1, 1,1,0,1,1,1,1, 0,1,1,1,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id:5, emoji:'🗣️', name:'英语口语', type:'skill', target:25,
+      data:[1,1,0,1,1,1,0, 1,1,1,1,0,1,1, 1,0,1,1,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+    { id:6, emoji:'😴', name:'23:00前睡', type:'energy', target:31,
+      data:[0,0,1,0,0,1,0, 1,0,0,1,0,0,1, 0,0,1,0,0,0,0, 0,0,0,0,0,0,0, 0,0,0] },
+  ];
+  function renderHabitsMatrix() {
+    const DAYS = 31;
+    const wrap = document.getElementById('habits-matrix');
+    let html = '';
+    // 表头
+    let header = `<div class="matrix-row" style="--days:${DAYS}">`;
+    header += '<div class="matrix-habit" style="font-size:10px;color:var(--text-tertiary);font-weight:600;letter-spacing:0.05em;">习惯</div>';
+    for (let d=1; d<=DAYS; d++) {
+      const isToday = d === TODAY;
+      const isWeekend = [0,6].includes(new Date(2026,7,d).getDay());
+      const color = isToday ? 'var(--c-mind)' : (isWeekend ? 'var(--warn)' : 'var(--text-tertiary)');
+      const weight = isToday ? '700' : '500';
+      header += `<div style="text-align:center;font-size:9px;color:${color};font-weight:${weight};">${d}</div>`;
+    }
+    header += '<div style="text-align:center;font-size:10px;color:var(--text-tertiary);font-weight:600;">完成</div>';
+    header += '</div>';
+    html += header;
+    const TODAY = 18;
+    HABITS.forEach(h => {
+      const doneCount = h.data.filter(d=>d===1).length;
+      let row = `<div class="matrix-row" style="--days:${DAYS}">`;
+      row += `
+        <div class="matrix-habit">
+          <div class="matrix-emoji ${h.type}">${h.emoji}</div>
+          <div class="matrix-name">${h.name}</div>
+        </div>
+      `;
+      for (let d=1; d<=DAYS; d++) {
+        const val = h.data[d-1];
+        const isFuture = d > TODAY;
+        const isToday = d === TODAY;
+        const cls = ['matrix-cell'];
+        if (isFuture) cls.push('future');
+        if (isToday) cls.push('today');
+        if (val === 1) { cls.push('done'); cls.push(h.type); }
+        row += `<div class="${cls.join(' ')}" data-habit="${h.id}" data-day="${d}"></div>`;
+      }
+      row += `<div class="matrix-stat"><b>${doneCount}</b>/${h.target}</div>`;
+      row += '</div>';
+      html += row;
+    });
+    wrap.innerHTML = html;
+    // 点击切换
+    wrap.querySelectorAll('.matrix-cell:not(.future)').forEach(el => {
+      el.addEventListener('click', () => {
+        const habitId = parseInt(el.dataset.habit);
+        const day = parseInt(el.dataset.day);
+        const habit = HABITS.find(h=>h.id===habitId);
+        if (!habit || day > TODAY) return;
+        if (el.classList.contains('done')) {
+          el.classList.remove('done','energy','mind','skill');
+          habit.data[day-1] = 0;
+        } else {
+          el.classList.add('done', habit.type);
+          habit.data[day-1] = 1;
+        }
+        // 更新统计
+        const doneCount = habit.data.filter(d=>d===1).length;
+        el.closest('.matrix-row').querySelector('.matrix-stat').innerHTML = `<b>${doneCount}</b>/${habit.target}`;
+      });
+    });
+  }
+
+  // ================== 周度视图 ==================
+  const WEEK_PLANS = [
+    { text:'完成《原则》精读输出 1 篇', done:false, meta:'认知' },
+    { text:'刷面试题库 100 道', done:false, meta:'能力' },
+    { text:'投递简历 15+ 份', done:false, meta:'工作' },
+    { text:'晨跑 4 次 + 健身房 2 次', done:true, meta:'精力' },
+    { text:'小红书发布 2 篇漫画笔记', done:false, meta:'工作' },
+    { text:'莫干山2日游', done:false, meta:'生活' },
+  ];
+  function renderWeekPlans() {
+    document.getElementById('week-plans').innerHTML = WEEK_PLANS.map((p,i) => `
+      <div class="plan-item ${p.done?'done':''}" data-idx="${i}">
+        <div class="plan-check ${p.done?'done':''}"></div>
+        <div class="plan-text">${p.text}</div>
+        <div class="plan-meta">${p.meta}</div>
+      </div>
+    `).join('');
+    document.querySelectorAll('.plan-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const i = parseInt(el.dataset.idx);
+        WEEK_PLANS[i].done = !WEEK_PLANS[i].done;
+        el.classList.toggle('done');
+        el.querySelector('.plan-check').classList.toggle('done');
+      });
+    });
+  }
+
+  function renderWeekDayCards() {
+    const TODAY = 18;
+    const start = 17;
+    const weekdays = ['一','二','三','四','五','六','日'];
+    let html = '';
+    for (let i=0; i<7; i++) {
+      const day = start+i;
+      const weekday = new Date(2026,7,day).getDay();
+      const isToday = day === TODAY;
+      const isFuture = day > TODAY;
+      const isPast = day < TODAY;
+      const classes = ['day-card'];
+      if (isToday) classes.push('today');
+      if (isFuture) classes.push('future');
+
+      const dayHabits = HABITS.map(h => ({...h, done:h.data[day-1]===1}));
+      const doneCount = dayHabits.filter(h=>h.done).length;
+
+      html += `
+        <div class="${classes.join(' ')}">
+          <div class="day-card-head">
+            <div class="day-card-num">${day}</div>
+            <div class="day-card-weekday">周${weekdays[i]}</div>
+          </div>
+          <div class="day-card-habits">
+            ${dayHabits.map(h => `
+              <div class="day-habit-row ${h.done?'done':''}">
+                <div class="day-habit-circle ${h.done?'done '+h.type:''}" data-habit="${h.id}" data-day="${day}"></div>
+                <span class="day-habit-name">${h.emoji} ${h.name}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="day-card-summary">
+            <span>打卡</span>
+            <span><b>${doneCount}</b>/${HABITS.length}</span>
+          </div>
+        </div>
+      `;
+    }
+    document.getElementById('week-day-cards').innerHTML = html;
+    document.querySelectorAll('.day-habit-circle').forEach(el => {
+      el.addEventListener('click', () => {
+        const habitId = parseInt(el.dataset.habit);
+        const day = parseInt(el.dataset.day);
+        const habit = HABITS.find(h=>h.id===habitId);
+        if (!habit || day > TODAY) return;
+        if (el.classList.contains('done')) {
+          el.classList.remove('done','energy','mind','skill');
+          habit.data[day-1] = 0;
+          el.parentElement.classList.remove('done');
+        } else {
+          el.classList.add('done', habit.type);
+          habit.data[day-1] = 1;
+          el.parentElement.classList.add('done');
+        }
+        // 更新摘要
+        const card = el.closest('.day-card');
+        const doneCount = card.querySelectorAll('.day-habit-circle.done').length;
+        const summary = card.querySelector('.day-card-summary b');
+        if (summary) summary.textContent = doneCount;
+      });
+    });
+  }
+
+  // ================== 视图切换 ==================
+  document.querySelectorAll('.view-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-tabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const v = btn.dataset.view;
+      document.querySelectorAll('.view').forEach(vv=>vv.classList.remove('active'));
+      document.getElementById('view-'+v).classList.add('active');
+
+      if (v==='year') {
+        document.getElementById('period-title').textContent = '2026 年度';
+      } else if (v==='month') {
+        document.getElementById('period-title').textContent = '2026 年 8 月';
+      } else {
+        document.getElementById('period-title').textContent = '本周 · 8月17-23日';
+      }
+    });
+  });
+
+  // ================== 初始化 ==================
+  renderDomainGrid();
+  renderDomainContent();
+  renderMonthGoals();
+  renderHabitsMatrix();
+  renderWeekPlans();
+  renderWeekDayCards();
+</script>
+</body>
+</html>

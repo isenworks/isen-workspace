@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年度规划 · 2026</title>
+<style>
+:root{
+  --t1:#1c1c1e;--t2:#3c3c43;--t3:#8e8e93;--t4:#aeaeae;
+  --uib:#d1d1d6;--uib-2:rgba(60,60,67,0.12);--uib-3:rgba(60,60,67,0.06);
+  --r-card:18px;--r-row:12px;--r-tab:9px;--r-cb:5px;--r-sm:8px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;
+  --c-en:#34c759;--c-en-bg:#e5f6ea;
+  --c-co:#007aff;--c-co-bg:#e0ecff;
+  --c-ab:#d4a017;--c-ab-bg:#fbf3d8;
+  --c-wk:#af52de;--c-wk-bg:#f3e8ff;
+  --c-lf:#ff3b30;--c-lf-bg:#ffe8e8;
+  --cat:#8e8e93;--cat-bg:#e5e5ea;--cat-bd:#c6cbd3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  background:linear-gradient(180deg,#f5f5f7 0%,#e8e8ed 100%);
+  background-attachment:fixed;min-height:100vh;color:var(--t1);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:-0.01em;
+  font-family:-apple-system,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  padding:24px;font-size:13px;
+}
+.p{max-width:1360px;margin:0 auto}
+
+/* ====== TOP ====== */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:16px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:42px;height:42px;border-radius:10px;background:rgba(120,120,128,0.12);display:grid;place-items:center;color:var(--t2);font-weight:700}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--t1)}
+.brand p{font-size:12px;color:var(--t3);font-weight:500;margin-top:2px}
+.act{display:flex;align-items:center;gap:var(--s2)}
+.bt{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r-tab);border:1px solid rgba(120,120,128,0.2);background:rgba(255,255,255,0.7);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease;backdrop-filter:blur(8px)}
+.bt:hover{background:rgba(255,255,255,0.95)}
+.bt.p{background:#007aff;border-color:#007aff;color:#fff}
+.bt svg{width:13px;height:13px;stroke-width:2;fill:none;stroke:currentColor}
+
+/* ====== OVERVIEW ====== */
+.overview{
+  display:grid;grid-template-columns:200px 1fr;gap:24px;margin-bottom:20px;
+}
+.ring-card,.cats-card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  padding:20px;
+}
+.ring-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.ring-wrap{position:relative;width:140px;height:140px}
+.ring-svg{transform:rotate(-90deg)}
+.ring-bg{stroke:rgba(60,60,67,0.08);stroke-width:10;fill:none}
+.ring-fg{stroke:url(#ringGrad);stroke-width:10;fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-text .pct{font-size:32px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.ring-text .lb{font-size:11px;color:var(--t3);font-weight:500}
+.ring-card .tl{font-size:12px;font-weight:600;color:var(--t2);margin-top:4px}
+
+.cats-card h3{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+.cat-row{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;margin-bottom:10px}
+.cat-row:last-child{margin-bottom:0}
+.cat-row .dot{width:10px;height:10px;border-radius:3px}
+.cat-row .nm{font-size:12px;font-weight:600;color:var(--t2)}
+.cat-row .pr{font-size:14px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.cat-bar{height:6px;border-radius:3px;background:rgba(60,60,67,0.08);overflow:hidden;margin-top:4px}
+.cat-bar > div{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* ====== CATEGORY CARD ====== */
+.cat-card{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  margin-bottom:20px;overflow:hidden;transition:box-shadow .2s ease;
+}
+.cat-card:hover{box-shadow:0 0 0 1px rgba(0,0,0,0.06),0 12px 40px rgba(0,0,0,0.08)}
+.cat-hd{
+  display:flex;align-items:center;gap:12px;padding:16px 20px;
+  border-bottom:1px solid var(--uib-3);
+  position:relative;
+}
+.cat-hd::after{
+  content:"";position:absolute;bottom:-1px;left:0;height:2px;width:60px;
+  background:var(--cat);border-radius:0 2px 2px 0;transition:width .4s ease;
+}
+.cat-card:hover .cat-hd::after{width:120px}
+.cat-hd .dot{width:12px;height:12px;border-radius:4px}
+.cat-hd h2{font-size:16px;font-weight:700;color:var(--t1)}
+.cat-hd .sp{font-size:12px;color:var(--t3);font-weight:500}
+.cat-hd .act{margin-left:auto;display:flex;gap:8px}
+.cat-bd{padding:20px}
+.cat-tag{
+  display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;
+  font-size:11px;font-weight:600;margin-left:8px;
+}
+
+/* ====== HABIT MATRIX ====== */
+.habit-grid{display:flex;flex-direction:column;gap:4px}
+.habit-row{
+  display:grid;grid-template-columns:180px repeat(7,1fr) 60px;gap:4px;align-items:center;
+  padding:10px;border-radius:var(--r-sm);transition:background .18s ease;
+}
+.habit-row:hover{background:rgba(120,120,128,0.05)}
+.habit-row .nm{font-size:13px;font-weight:600;color:var(--t1)}
+.habit-row .sb{font-size:11px;color:var(--t3);margin-top:2px}
+.habit-row .cells{grid-column:2;display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.habit-row .ct{grid-column:9;text-align:right;font-size:14px;font-weight:700;color:var(--cat);font-variant-numeric:tabular-nums}
+.habit-row .cb{
+  appearance:none;width:16px;height:16px;border-radius:4px;border:1.5px solid var(--cat-bd);
+  background:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  transition:all .18s;outline:none;margin:0;justify-self:center;position:relative;
+}
+.habit-row .cb:checked{background:var(--cat);border-color:var(--cat)}
+.habit-row .cb:checked::after{content:"";width:3px;height:6px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.habit-row .cb:hover:not(:checked){border-width:2px;transform:scale(1.15)}
+.habit-row .cb:active:not(:checked){transform:scale(0.9)}
+.habit-row .cb.today{box-shadow:0 0 0 2px rgba(0,122,255,0.2)}
+.habit-row .ct .lb{font-size:10px;color:var(--t3);font-weight:500;margin-right:4px}
+
+.day-hd{
+  display:grid;grid-template-columns:180px 1fr 60px;gap:4px;
+  padding:0 10px 6px;border-bottom:1px solid var(--uib-3);margin-bottom:6px;align-items:center;
+}
+.day-hd .lbl{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.04em}
+.day-hd .days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.day-hd .days span{text-align:center;font-size:10px;font-weight:600;color:var(--t3)}
+.day-hd .days span.today{color:var(--c-co)}
+.day-hd .days span.wknd{color:var(--c-ab)}
+.day-hd .sum{text-align:right;font-size:10px;color:var(--t3);font-weight:500}
+
+/* ====== OKR CARD ====== */
+.okr{
+  border:1px solid var(--uib-2);border-radius:var(--r-card);padding:16px;margin-bottom:12px;
+  transition:box-shadow .2s ease,transform .2s ease;
+}
+.okr:hover{box-shadow:0 2px 12px rgba(0,0,0,0.06);transform:translateY(-1px)}
+.okr:last-child{margin-bottom:0}
+.okr .o-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.okr .o-num{
+  width:24px;height:24px;border-radius:6px;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.okr .o-text{flex:1;font-size:14px;font-weight:600;color:var(--t1);line-height:1.4}
+.kr-row{display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;align-items:center;margin-bottom:10px}
+.kr-row:last-child{margin-bottom:0}
+.kr-bar{height:6px;border-radius:3px;background:rgba(60,60,67,0.08);overflow:hidden}
+.kr-bar > div{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.kr-row .kr-txt{font-size:12px;color:var(--t2);min-width:0}
+.kr-row .kr-num{font-size:12px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kr-row .kr-st{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.03em;
+  background:rgba(60,60,67,0.1);color:var(--t3);white-space:nowrap;
+}
+.kr-row .kr-st.done{background:var(--c-en-bg);color:var(--c-en)}
+.kr-row .kr-st.doing{background:rgba(0,122,255,0.1);color:#007aff}
+.kr-row .kr-st.tg{background:rgba(60,60,67,0.08);color:var(--t3)}
+
+/* ====== BOOKSHELF ====== */
+.shelf-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.shelf-hd h4{font-size:12px;font-weight:600;color:var(--t2)}
+.shelf-stats{display:flex;gap:16px}
+.shelf-stats .si{text-align:center}
+.shelf-stats .sn{font-size:18px;font-weight:700;color:var(--t1)}
+.shelf-stats .sl{font-size:10px;color:var(--t3);font-weight:500}
+.book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.book{
+  border:1px solid var(--uib-2);border-radius:var(--r-sm);padding:10px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.book .bk{font-size:13px;font-weight:600;color:var(--t1);line-height:1.3}
+.book .ba{font-size:11px;color:var(--t3)}
+.book .bpr{height:4px;border-radius:2px;background:rgba(60,60,67,0.08);overflow:hidden}
+.book .bpr > div{height:100%;border-radius:2px}
+.book .bst{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;align-self:flex-start}
+.book .bst.reading{background:rgba(0,122,255,0.1);color:#007aff}
+.book .bst.done{background:var(--c-en-bg);color:var(--c-en)}
+.book .bst.todo{background:rgba(60,60,67,0.08);color:var(--t3)}
+
+/* ====== EXPERIENCE LOG ====== */
+.exp-tabs{display:flex;gap:6px;margin-bottom:12px}
+.exp-tab{
+  padding:6px 12px;border-radius:999px;font-size:11px;font-weight:600;
+  background:rgba(60,60,67,0.08);color:var(--t3);cursor:pointer;transition:all .15s;user-select:none;
+}
+.exp-tab.on{background:var(--c-lf-bg);color:var(--c-lf)}
+.exp-list{display:flex;flex-direction:column;gap:6px}
+.exp-item{
+  display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;
+  padding:10px 12px;border-radius:var(--r-sm);background:rgba(120,120,128,0.03);
+  transition:background .15s ease;
+}
+.exp-item:hover{background:rgba(255,59,48,0.06)}
+.exp-item .ei{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;flex-shrink:0;background:var(--c-lf-bg);color:var(--c-lf);font-weight:700}
+.exp-item .et{font-size:13px;font-weight:500;color:var(--t1)}
+.exp-item .ed{font-size:11px;color:var(--t3);font-weight:500}
+.exp-summary{display:flex;gap:12px;margin-top:14px;padding:14px;border-radius:var(--r-sm);background:rgba(255,59,48,0.04);border:1px solid rgba(255,59,48,0.08)}
+.exp-summary .ss{flex:1;text-align:center;padding:0 8px;border-right:1px solid rgba(255,59,48,0.12)}
+.exp-summary .ss:last-child{border-right:none}
+.exp-summary .sn{font-size:20px;font-weight:700;color:var(--c-lf);font-variant-numeric:tabular-nums}
+.exp-summary .sl{font-size:10px;color:var(--t3);font-weight:600;margin-top:2px;letter-spacing:.02em}
+
+/* ====== ABILITY SELF-ASSESSMENT ====== */
+.sa-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;margin-bottom:8px}
+.sa-row:last-child{margin-bottom:0}
+.sa-row .sl{font-size:12px;font-weight:500;color:var(--t2)}
+.sa-row .sv{font-size:12px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.sa-row .ss{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(60,60,67,0.18);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(60,60,67,0.3)}
+@media(max-width:900px){
+  .overview{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="p">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">✦</div>
+      <div>
+        <h1>2026 年度规划</h1>
+        <p>五大类目 · 追踪 · 复盘 · 调整</p>
+      </div>
+    </div>
+    <div class="act">
+      <button class="bt"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>导出</button>
+      <button class="bt p"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加目标</button>
+    </div>
+  </div>
+
+  <div class="overview">
+    <div class="ring-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+          <defs>
+            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#34c759"/>
+              <stop offset="50%" stop-color="#007aff"/>
+              <stop offset="100%" stop-color="#af52de"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="70" cy="70" r="58"/>
+          <circle class="ring-fg" cx="70" cy="70" r="58" stroke-dasharray="364.42" stroke-dashoffset="364.42" id="ringFg"/>
+        </svg>
+        <div class="ring-text"><span class="pct" id="ringPct">0%</span><span class="lb">年度总进度</span></div>
+      </div>
+      <div class="tl">Track · Review · Adjust</div>
+    </div>
+    <div class="cats-card">
+      <h3>分类进度</h3>
+      <div id="catBars"></div>
+    </div>
+  </div>
+
+  <div id="cats"></div>
+</div>
+
+<script>
+const WD=['一','二','三','四','五','六','日'];
+const CAT={
+  en:{c:'#34c759',bg:'#e5f6ea',bd:'#8ee4a7',lb:'精力',sb:'习惯型 · 每日打卡'},
+  co:{c:'#007aff',bg:'#e0ecff',bd:'#8ab8ff',lb:'认知',sb:'混合型 · 书架+笔记'},
+  ab:{c:'#d4a017',bg:'#fbf3d8',bd:'#e6c873',lb:'能力',sb:'里程碑+自评'},
+  wk:{c:'#af52de',bg:'#f3e8ff',bd:'#d4b5ee',lb:'工作',sb:'里程碑 · 量化KR'},
+  lf:{c:'#ff3b30',bg:'#ffe8e8',bd:'#ff9999',lb:'生活',sb:'体验型 · 日志收集'},
+};
+const C=k=>`--cat:${CAT[k].c};--cat-bg:${CAT[k].bg};--cat-bd:${CAT[k].bd}`;
+
+const H={
+  es:{n:'睡眠 7h',s:'23:00 前入睡',w:[1,1,0,0,0,0,0]},
+  ew:{n:'喝水 2L',s:'分4次饮用',w:[1,0,0,0,0,0,0]},
+  ee:{n:'运动',s:'每周≥3次',w:[0,0,0,0,0,0,0]},
+  cr:{n:'看书',s:'每周≥5h',w:[0,1,0,0,0,0,0]},
+  si:{n:'即兴表达',s:'每日1道题',w:[1,1,0,0,0,0,0]},
+  se:{n:'英语口语',s:'每日30min',w:[1,0,0,0,0,0,0]},
+};
+
+const OKRS={
+  co:[
+    {o:'年读12本书并产出践行改变',krs:[
+      {t:'读完12本书',v:5,t:12,u:'本',st:'doing'},
+      {t:'每本输出笔记+3条改变',v:3,t:12,u:'篇',st:'doing'},
+      {t:'≥6条改变落地30天',v:0,t:6,u:'条',st:'tg'},
+    ]}
+  ],
+  ab:[
+    {o1:'英语口语提升',o:'能完成10min英文自我介绍',krs:[
+      {t:'每日练习≥30min',v:5,t:7,u:'天',st:'doing'},
+      {t:'完成10min自我介绍',v:0,t:1,u:'项',st:'tg'},
+      {t:'看懂无字幕TED×5篇',v:0,t:5,u:'篇',st:'tg'},
+    ]},
+    {o:'即兴表达：3分钟不卡壳',krs:[
+      {t:'每日1道面试题',v:5,t:7,u:'天',st:'doing'},
+      {t:'完成10次模拟面试',v:0,t:10,u:'次',st:'tg'},
+      {t:'收到≥3次正反馈',v:0,t:3,u:'次',st:'tg'},
+    ]},
+    {o:'数据分析：SQL+Excel',krs:[
+      {t:'学完课程全部章节',v:1,t:5,u:'阶段',st:'doing'},
+      {t:'完成3个分析项目',v:0,t:3,u:'个',st:'tg'},
+      {t:'掌握SQL/Excel高级功能',v:0,t:2,u:'项',st:'tg'},
+    ]},
+  ],
+  wk:[
+    {o:'主业：找到20k+用户运营offer',krs:[
+      {t:'离职拿到大礼包',v:1,t:1,u:'项',st:'done'},
+      {t:'投递≥50家目标公司',v:20,t:50,u:'份',st:'doing'},
+      {t:'拿到≥10个面试',v:5,t:10,u:'个',st:'doing'},
+      {t:'拿到≥3个offer',v:0,t:3,u:'个',st:'tg'},
+      {t:'至少1个≥20k',v:0,t:1,u:'个',st:'tg'},
+    ]},
+    {o:'副业：小红书「小憨熊」涨粉变现',krs:[
+      {t:'发布≥50条内容',v:12,t:50,u:'条',st:'doing'},
+      {t:'粉丝≥5000',v:800,t:5000,u:'粉',st:'tg'},
+      {t:'接到第1个商业合作',v:0,t:1,u:'个',st:'tg'},
+    ]},
+  ],
+};
+
+const BOOKS=[
+  {t:'纳瓦尔宝典',a:'Eric Jorgenson',s:'reading',pct:60},
+  {t:'原则',a:'瑞·达利欧',s:'reading',pct:25},
+  {t:'深度工作',a:'Cal Newport',s:'done',pct:100},
+  {t:'认知觉醒',a:'周岭',s:'done',pct:100},
+  {t:'被讨厌的勇气',a:'岸见一郎',s:'done',pct:100},
+  {t:'富爸爸穷爸爸',a:'罗伯特·清崎',s:'todo',pct:0},
+  {t:'思考，快与慢',a:'丹尼尔·卡尼曼',s:'todo',pct:0},
+];
+
+const EXPS=[
+  {c:'lf',cat:'🍜 美食',items:[
+    {t:'芥末罗氏虾',d:'8月15日',k:'food'},
+    {t:'火锅 · 宽窄巷子',d:'8月10日',k:'food'},
+  ]},
+  {c:'lf',cat:'✈️ 旅游',items:[
+    {t:'成都3日游',d:'7月20日',k:'travel'},
+  ]},
+  {c:'lf',cat:'🎬 电影',items:[
+    {t:'欢迎来龙餐馆',d:'8月16日',k:'movie'},
+    {t:'奥本海默',d:'7月1日',k:'movie'},
+  ]},
+];
+
+/* ====== RENDER ====== */
+function render(){
+  renderOverview();
+  renderCats();
+}
+
+function renderOverview(){
+  const total=computeOverall();
+  const ring=document.getElementById('ringFg');
+  const C=2*Math.PI*58;
+  ring.setAttribute('stroke-dasharray',C);
+  ring.setAttribute('stroke-dashoffset',C);
+  document.getElementById('ringPct').textContent='0%';
+  requestAnimationFrame(()=>{
+    ring.setAttribute('stroke-dashoffset',C*(1-total/100));
+    let cur=0;
+    const tar=total;
+    const dur=800;const st=performance.now();
+    function tick(t){
+      const p=Math.min((t-st)/dur,1);
+      const ease=1-Math.pow(1-p,3);
+      cur=Math.round(ease*tar);
+      document.getElementById('ringPct').textContent=cur+'%';
+      if(p<1)requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+
+  // cat bars
+  const bars=document.getElementById('catBars');
+  bars.innerHTML=Object.entries(CAT).map(([k,v])=>{
+    const p=catProgress(k);
+    return `<div class="cat-row">
+      <span class="dot" style="background:${v.c}"></span>
+      <div><div class="nm">${v.lb}</div><div class="cat-bar"><div style="width:${p}%;background:${v.c}"></div></div></div>
+      <div class="pr">${p}%</div>
+    </div>`;
+  }).join('');
+}
+
+function computeOverall(){
+  const ws=0.15,co=0.2,ab=0.25,wk=0.3,lf=0.1;
+  return Math.round(
+    catProgress('en')*ws+
+    catProgress('co')*co+
+    catProgress('ab')*ab+
+    catProgress('wk')*wk+
+    catProgress('lf')*lf
+  );
+}
+
+function catProgress(k){
+  if(k==='en')return habitProgress();
+  if(k==='co'){
+    const r=okrProgress('co');const bp=bookProgress();
+    return Math.round(r*0.6+bp*0.4);
+  }
+  if(k==='ab')return okrProgress('ab');
+  if(k==='wk')return okrProgress('wk');
+  if(k==='lf')return 45;
+  return 0;
+}
+
+function habitProgress(){
+  let total=0,done=0;
+  Object.values(H).forEach(h=>{h.w.forEach(v=>{total++;if(v===1)done++})});
+  return total>0?Math.round(done/total*100):0;
+}
+
+function okrProgress(key){
+  const list=OKRS[key]||[];
+  if(list.length===0)return 0;
+  let total=0,done=0;
+  list.forEach(o=>{
+    o.krs.forEach(kr=>{total+=kr.t;done+=Math.min(kr.v,kr.t)});
+  });
+  return total>0?Math.round(done/total*100):0;
+}
+
+function bookProgress(){
+  const done=BOOKS.filter(b=>b.s==='done').length;
+  return Math.round(done/12*100);
+}
+
+/* ====== RENDER CATS ====== */
+function renderCats(){
+  const c=document.getElementById('cats');
+  c.innerHTML=catCard('en')+catCard('co')+catCard('ab')+catCard('wk')+catCard('lf');
+}
+
+function catCard(k){
+  const v=CAT[k];
+  const p=catProgress(k);
+  let body='';
+  if(k==='en')body=habitBody();
+  else if(k==='co')body=cogBody();
+  else if(k==='ab')body=abilityBody();
+  else if(k==='wk')body=workBody();
+  else if(k==='lf')body=lifeBody();
+
+  return `<div class="cat-card" style="${C(k)}">
+    <div class="cat-hd">
+      <span class="dot" style="background:${v.c}"></span>
+      <h2>${v.lb}</h2>
+      <span class="cat-tag" style="background:${v.bg};color:${v.c}">${v.sb}</span>
+      <div class="act"><span class="pr" style="color:${v.c};font-weight:700;font-size:14px">${p}%</span></div>
+    </div>
+    <div class="cat-body" style="padding:20px">${body}</div>
+  </div>`;
+}
+
+/* --- 精力: 习惯打卡矩阵 --- */
+function habitBody(){
+  const hds=['睡眠 7h','喝水 2L','运动','看书','即兴表达','英语口语'];
+  const days=WD.map((d,i)=>`<span class="${i===0?'today':''}${(4+i)%7>=5?' wknd':''}">${d}</span>`).join('');
+  let rows='';
+  Object.values(H).forEach(h=>{
+    const done=h.w.filter(x=>x===1).length;
+    const cells=h.w.map((v,i)=>`<div><input type="checkbox" class="cb ${i===0?'today':''}" ${v===1?'checked':''}></div>`).join('');
+    rows+=`<div class="habit-row" style="${C('en')}">
+      <div class="nm-cell"><div class="nm">${h.n}</div><div class="sb">${h.s}</div></div>
+      <div class="cells" style="grid-template-columns:repeat(7,1fr);gap:2px">${cells}</div>
+      <div class="ct"><span class="lb">本周</span>${done}</div>
+    </div>`;
+  });
+  return `<div class="day-hd"><span class="lbl">目标</span><div class="days">${days}</div><div class="sum">本周</div></div>
+  <div class="habit-grid">${rows}</div>`;
+}
+
+/* --- 认知: 书架 + 阅读OKR --- */
+function cogBody(){
+  const list=OKRS.co;
+  const objs=list.map(o=>okrBlock(o,'co')).join('');
+  const bks=BOOKS.map(b=>{
+    const bstyle=b.s==='done'?'background:var(--c-en-bg);color:var(--c-en)':b.s==='reading'?'background:rgba(0,122,255,0.1);color:#007aff':'background:rgba(60,60,67,0.08);color:var(--t3)';
+    const pstyle=b.s==='done'?'width:100%;background:var(--c-en)':`width:${b.pct}%;background:#007aff`;
+    const lb=b.s==='done'?'已读完':b.s==='reading'?'阅读中':'待读';
+    return `<div class="book">
+      <div class="bst ${b.s}" style="${bstyle}">${lb}</div>
+      <div class="bk">${b.t}</div>
+      <div class="ba">${b.a}</div>
+      <div class="bpr"><div style="${pstyle}"></div></div>
+    </div>`;
+  }).join('');
+  const doneC=BOOKS.filter(b=>b.s==='done').length;
+  const readC=BOOKS.filter(b=>b.s==='reading').length;
+  const todoC=BOOKS.filter(b=>b.s==='todo').length;
+
+  return `
+    <div style="margin-bottom:20px">${objs}</div>
+    <div>
+      <div class="shelf-hd">
+        <h4>📚 书架系统</h4>
+        <div class="shelf-stats">
+          <div class="si"><div class="sn" style="color:var(--c-co)">${doneC}</div><div class="sl">已读完</div></div>
+          <div class="si"><div class="sn" style="color:#007aff">${readC}</div><div class="sl">阅读中</div></div>
+          <div class="si"><div class="sn" style="color:var(--t3)">${todoC}</div><div class="sl">待读</div></div>
+          <div class="si"><div class="sn" style="color:var(--c-en)">${doneC}/12</div><div class="sl">年度目标</div></div>
+        </div>
+      </div>
+      <div class="book-grid">${bks}</div>
+    </div>`;
+}
+
+/* --- 能力: OKR --- */
+function abilityBody(){
+  const list=OKRS.ab;
+  return list.map((o,i)=>`<div style="margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.04em;margin-bottom:6px">目标 ${i+1}</div>
+    ${okrBlock(o,'ab')}
+  </div>`).join('');
+}
+
+/* --- 工作: OKR --- */
+function workBody(){
+  const list=OKRS.wk;
+  return list.map((o,i)=>`<div style="margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.04em;margin-bottom:6px">目标 ${i+1}</div>
+    ${okrBlock(o,'wk')}
+  </div>`).join('');
+}
+
+/* --- 生活: 体验日志 --- */
+function lifeBody(){
+  const tabs=[...new Set(EXPS.map(e=>e.cat))];
+  const catMap={'🍜 美食':'food','✈️ 旅游':'travel','🎬 电影':'movie'};
+  const catIcons={'food':'🍜','travel':'✈️','movie':'🎬'};
+  let list='';
+  tabs.forEach((t,i)=>{
+    const items=EXPS.filter(g=>g.cat===t).flatMap(g=>g.items);
+    list+=`<div class="exp-tab ${i===0?'on':''}">${t} (${items.length})</div>`;
+  });
+  let items='';
+  EXPS.forEach(g=>{
+    g.items.forEach(it=>{
+      items+=`<div class="exp-item">
+        <div class="ei">${g.cat.charAt(0)}</div>
+        <div class="et">${it.t}</div>
+        <div class="ed">${it.d}</div>
+      </div>`;
+    });
+  });
+  const food=EXPS.find(g=>g.cat.includes('美食'))?.items.length||0;
+  const trip=EXPS.find(g=>g.cat.includes('旅游'))?.items.length||0;
+  const movie=EXPS.find(g=>g.cat.includes('电影'))?.items.length||0;
+  return `<div>
+    <div class="exp-tabs" id="expTabs">${list}</div>
+    <div class="exp-list">${items}</div>
+    <div class="exp-summary">
+      <div class="ss"><div class="sn">${food}</div><div class="sl">🍜 美食</div></div>
+      <div class="ss"><div class="sn">${trip}</div><div class="sl">✈️ 旅游</div></div>
+      <div class="ss"><div class="sn">${movie}</div><div class="sl">🎬 电影</div></div>
+      <div class="ss"><div class="sn">${food+trip+movie}</div><div class="sl">总体验</div></div>
+    </div>
+  </div>`;
+}
+
+/* --- OKR 通用组件 --- */
+function okrBlock(o,k){
+  const v=CAT[k];
+  const r=okrProgress([o]);
+  const krs=o.krs.map(kr=>{
+    const pct=Math.round(kr.v/kr.t*100);
+    const stcls=kr.st==='done'?'done':kr.st==='doing'?'doing':'tg';
+    return `<div class="kr-row">
+      <div class="kr-txt">${kr.t}</div>
+      <div class="kr-bar"><div style="width:${pct}%;background:${v.c}"></div></div>
+      <div class="kr-num">${kr.v}/${kr.t}${kr.u}</div>
+      <div class="kr-st ${stcls}">${kr.st==='done'?'✅':kr.st==='doing'?'进行中':'待启动'}</div>
+    </div>`;
+  }).join('');
+  return `<div class="okr" style="${C(k)}">
+    <div class="o-row">
+      <div class="o-num" style="background:${v.c}">O</div>
+      <div class="o-text">${o.o}</div>
+    </div>
+    ${krs}
+  </div>`;
+}
+
+render();
+</script>
+</body>
+</html>

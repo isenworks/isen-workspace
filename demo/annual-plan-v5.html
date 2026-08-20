@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年度规划 · Demo v5 · 顶尖UI</title>
+<style>
+  :root {
+    --bg-gradient: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,0.08) 0%, transparent 60%),
+                   linear-gradient(180deg, #fafafa 0%, #f2f2f5 100%);
+    --text-primary: #1a1a1c; --text-secondary: #57575a;
+    --text-tertiary: #8e8e93; --text-quaternary: #c7c7cc;
+    --glass-bg: rgba(255,255,255,0.7);
+    --glass-border: rgba(255,255,255,0.7);
+    --glass-stroke: rgba(0,0,0,0.06);
+    --glass-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -4px rgba(0,0,0,0.06);
+    --glass-shadow-lg: 0 0 0 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04), 0 20px 48px -12px rgba(0,0,0,0.10);
+    --radius-xs:6px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
+    --c-energy:#30b35c;--c-energy-bg:#e9f7ee;--c-energy-soft:rgba(48,179,92,0.10);--c-energy-deep:#1f8a45;
+    --c-mind:#2f6cf0;--c-mind-bg:#e8efff;--c-mind-soft:rgba(47,108,240,0.10);--c-mind-deep:#1f4fc4;
+    --c-skill:#c99414;--c-skill-bg:#fbf4e0;--c-skill-soft:rgba(201,148,20,0.12);--c-skill-deep:#a37609;
+    --c-work:#9d4edd;--c-work-bg:#f1e5fa;--c-work-soft:rgba(157,78,221,0.10);--c-work-deep:#7b32b5;
+    --c-life:#e6493d;--c-life-bg:#fde9e8;--c-life-soft:rgba(230,73,61,0.10);--c-life-deep:#c43530;
+    --warn:#f08a00;--warn-bg:#fff4e0;--danger:#e6493d;
+    --ease:cubic-bezier(0.22,1,0.36,1);
+    --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:var(--bg-gradient);background-attachment:fixed;
+    color:var(--text-primary);-webkit-font-smoothing:antialiased;
+    font-family:-apple-system,"SF Pro Display","SF Pro Text","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+    padding:28px 24px 48px;letter-spacing:-0.011em;line-height:1.5}
+  .container{max-width:1160px;margin:0 auto}
+  button{font-family:inherit}
+
+  .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand-accent{width:36px;height:36px;border-radius:12px;
+    background:conic-gradient(from 210deg,var(--c-energy) 0,var(--c-mind) 72deg,var(--c-skill) 144deg,var(--c-work) 216deg,var(--c-life) 288deg,var(--c-energy) 360deg);
+    display:grid;place-items:center;box-shadow:0 6px 18px -4px rgba(0,0,0,0.18);position:relative}
+  .brand-accent::after{content:"";position:absolute;inset:4px;background:#fff;border-radius:8px}
+  .brand-accent::before{content:"✦";position:relative;z-index:1;color:var(--text-primary);font-size:14px;font-weight:700}
+  .brand h1{font-size:21px;font-weight:600;letter-spacing:-0.022em;line-height:1.2}
+  .brand h1 small{display:block;font-size:11px;font-weight:500;color:var(--text-tertiary);margin-top:2px;letter-spacing:0.02em}
+  .top-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+  .view-tabs{display:inline-flex;background:rgba(120,120,128,0.10);border-radius:10px;padding:3px}
+  .view-tabs button{padding:6px 16px;font-size:13px;font-weight:600;color:var(--text-secondary);
+    border-radius:8px;transition:all .28s var(--ease);border:0;background:transparent;cursor:pointer;letter-spacing:0.01em}
+  .view-tabs button.active{color:var(--text-primary);background:#fff;
+    box-shadow:0 1px 2px rgba(0,0,0,0.04),0 4px 12px -2px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.04)}
+
+  .period-nav{display:flex;align-items:center;gap:6px;background:rgba(120,120,128,0.08);padding:3px;border-radius:10px}
+  .period-title{font-size:13px;font-weight:600;min-width:128px;text-align:center;padding:4px 2px}
+  .nav-btn{width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--text-secondary);
+    cursor:pointer;display:grid;place-items:center;transition:all .2s var(--ease)}
+  .nav-btn:hover{background:rgba(120,120,128,0.14);color:var(--text-primary)}
+  .nav-btn:active{transform:scale(0.94)}
+  .nav-btn svg{width:14px;height:14px}
+
+  .glass-card{background:var(--glass-bg);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+    border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);border-radius:var(--radius-xl);
+    padding:20px 24px;margin-bottom:16px;position:relative;overflow:hidden}
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .section-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;letter-spacing:-0.01em}
+  .section-title .bar{width:3px;height:15px;border-radius:2px}
+  .section-sub{font-size:11px;color:var(--text-tertiary);font-weight:500}
+  .btn-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:999px;
+    font-size:12px;font-weight:600;color:var(--c-mind-deep);background:var(--c-mind-soft);
+    border:0;cursor:pointer;transition:all .2s var(--ease)}
+  .btn-pill:hover{transform:translateY(-1px);background:rgba(47,108,240,0.16)}
+  .btn-pill svg{width:12px;height:12px}
+
+  /* Hero */
+  .hero-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px}
+  @media(max-width:860px){.hero-grid{grid-template-columns:1fr}}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:560px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:linear-gradient(180deg,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0.6) 100%);
+    border:1px solid var(--glass-stroke);border-radius:var(--radius-lg);padding:16px;
+    position:relative;overflow:hidden;transition:all .3s var(--ease)}
+  .kpi:hover{transform:translateY(-2px);box-shadow:var(--glass-shadow-lg)}
+  .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--c-mind));opacity:0.85}
+  .kpi-label{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:6px}
+  .kpi-value{font-size:26px;font-weight:700;letter-spacing:-0.03em;line-height:1.1;display:flex;align-items:baseline;gap:3px;font-variant-numeric:tabular-nums}
+  .kpi-value .unit{font-size:12px;font-weight:600;color:var(--text-tertiary)}
+  .kpi-sub{font-size:10.5px;color:var(--text-secondary);margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .kpi-trend{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px}
+  .kpi-trend.up{background:var(--c-energy-soft);color:var(--c-energy-deep)}
+
+  .radar-wrap{display:flex;align-items:center;gap:14px}
+  @media(max-width:560px){.radar-wrap{flex-direction:column;align-items:flex-start}}
+  .radar-svg-wrap{width:180px;height:180px;flex-shrink:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,0.6),rgba(255,255,255,0.1))}
+  .radar-legend{display:flex;flex-direction:column;gap:8px;flex:1;width:100%}
+  .legend-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:8px;cursor:pointer;transition:background .2s}
+  .legend-row:hover{background:rgba(120,120,128,0.06)}
+  .legend-left{display:flex;align-items:center;gap:8px;min-width:0}
+  .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .legend-name{font-size:12px;font-weight:500;color:var(--text-primary)}
+  .legend-bar{flex:1;min-width:50px;height:5px;border-radius:3px;background:rgba(120,120,128,0.1);overflow:hidden}
+  .legend-fill{height:100%;border-radius:3px;transition:width .8s var(--ease)}
+  .legend-pct{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
+
+  .quarter-timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
+  @media(max-width:720px){.quarter-timeline{grid-template-columns:repeat(2,1fr)}}
+  .q-card{position:relative;padding:14px;border-radius:var(--radius-lg);
+    background:rgba(255,255,255,0.5);border:1px solid var(--glass-stroke);transition:all .25s var(--ease)}
+  .q-card:hover{background:rgba(255,255,255,0.85);transform:translateY(-1px)}
+  .q-card.active{background:linear-gradient(135deg,rgba(47,108,240,0.08),rgba(47,108,240,0.02));
+    border-color:rgba(47,108,240,0.25);box-shadow:0 0 0 3px rgba(47,108,240,0.08)}
+  .q-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .q-name{font-size:13px;font-weight:800;letter-spacing:-0.01em}
+  .q-months{font-size:10px;color:var(--text-tertiary);margin-top:1px;font-weight:500}
+  .q-chip{font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:0.03em}
+  .q-chip.past{background:rgba(48,179,92,0.12);color:var(--c-energy-deep)}
+  .q-chip.active{background:var(--c-mind);color:#fff;box-shadow:0 4px 10px -2px rgba(47,108,240,0.4)}
+  .q-chip.future{background:rgba(120,120,128,0.1);color:var(--text-tertiary)}
+  .q-milestones{display:flex;flex-direction:column;gap:4px}
+  .q-m{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text-secondary)}
+  .q-m-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+  .q-m-dot.done{background:var(--c-energy)}.q-m-dot.doing{background:var(--c-mind)}.q-m-dot.pending{background:var(--text-quaternary)}
+  .q-m.done{color:var(--text-tertiary);text-decoration:line-through}
+
+  /* Domain Grid */
+  .domain-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+  @media(max-width:900px){.domain-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:580px){.domain-grid{grid-template-columns:repeat(2,1fr)}}
+  .domain-card{position:relative;padding:16px;border-radius:var(--radius-lg);cursor:pointer;
+    transition:all .3s var(--ease-spring);background:rgba(255,255,255,0.6);border:2px solid transparent;overflow:hidden}
+  .domain-card::before{content:"";position:absolute;inset:0;background:var(--card-bg,transparent);opacity:0.9;pointer-events:none}
+  .domain-card[data-cat="energy"]{--card-bg:linear-gradient(160deg,var(--c-energy-bg) 0%,rgba(255,255,255,0) 65%)}
+  .domain-card[data-cat="mind"]{--card-bg:linear-gradient(160deg,var(--c-mind-bg) 0%,rgba(255,255,255,0) 65%)}
+  .domain-card[data-cat="skill"]{--card-bg:linear-gradient(160deg,var(--c-skill-bg) 0%,rgba(255,255,255,0) 65%)}
+  .domain-card[data-cat="work"]{--card-bg:linear-gradient(160deg,var(--c-work-bg) 0%,rgba(255,255,255,0) 65%)}
+  .domain-card[data-cat="life"]{--card-bg:linear-gradient(160deg,var(--c-life-bg) 0%,rgba(255,255,255,0) 65%)}
+  .domain-card:hover{transform:translateY(-4px);box-shadow:var(--glass-shadow-lg)}
+  .domain-card.active{border-color:var(--card-color,var(--c-mind));box-shadow:0 0 0 4px var(--card-soft,var(--c-mind-soft)),var(--glass-shadow-lg)}
+  .domain-card[data-cat="energy"]{--card-color:var(--c-energy);--card-soft:var(--c-energy-soft)}
+  .domain-card[data-cat="mind"]{--card-color:var(--c-mind);--card-soft:var(--c-mind-soft)}
+  .domain-card[data-cat="skill"]{--card-color:var(--c-skill);--card-soft:var(--c-skill-soft)}
+  .domain-card[data-cat="work"]{--card-color:var(--c-work);--card-soft:var(--c-work-soft)}
+  .domain-card[data-cat="life"]{--card-color:var(--c-life);--card-soft:var(--c-life-soft)}
+  .domain-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:18px;
+    background:var(--icon-bg,var(--c-mind));box-shadow:0 4px 12px -2px var(--card-soft);
+    margin-bottom:10px;position:relative;z-index:1}
+  .domain-card[data-cat="energy"] .domain-icon{--icon-bg:linear-gradient(135deg,var(--c-energy),var(--c-energy-deep));color:#fff}
+  .domain-card[data-cat="mind"] .domain-icon{--icon-bg:linear-gradient(135deg,var(--c-mind),var(--c-mind-deep));color:#fff}
+  .domain-card[data-cat="skill"] .domain-icon{--icon-bg:linear-gradient(135deg,var(--c-skill),var(--c-skill-deep));color:#fff}
+  .domain-card[data-cat="work"] .domain-icon{--icon-bg:linear-gradient(135deg,var(--c-work),var(--c-work-deep));color:#fff}
+  .domain-card[data-cat="life"] .domain-icon{--icon-bg:linear-gradient(135deg,var(--c-life),var(--c-life-deep));color:#fff}
+  .domain-name{font-size:14px;font-weight:700;margin-bottom:2px;position:relative;z-index:1;letter-spacing:-0.01em}
+  .domain-desc{font-size:10.5px;color:var(--text-tertiary);margin-bottom:12px;position:relative;z-index:1}
+  .domain-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:10px;color:var(--text-tertiary);margin-bottom:10px;position:relative;z-index:1}
+  .domain-stat-row b{color:var(--text-primary);font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+  .domain-bar{height:6px;border-radius:4px;background:rgba(120,120,128,0.09);overflow:hidden;position:relative;z-index:1}
+  .domain-fill{height:100%;border-radius:4px;transition:width .8s var(--ease);position:relative}
+  .domain-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);animation:shimmer 2.5s infinite}
+  @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .domain-card[data-cat="energy"] .domain-fill{background:linear-gradient(90deg,var(--c-energy),var(--c-energy-deep))}
+  .domain-card[data-cat="mind"] .domain-fill{background:linear-gradient(90deg,var(--c-mind),var(--c-mind-deep))}
+  .domain-card[data-cat="skill"] .domain-fill{background:linear-gradient(90deg,var(--c-skill),var(--c-skill-deep))}
+  .domain-card[data-cat="work"] .domain-fill{background:linear-gradient(90deg,var(--c-work),var(--c-work-deep))}
+  .domain-card[data-cat="life"] .domain-fill{background:linear-gradient(90deg,var(--c-life),var(--c-life-deep))}
+  .domain-pct-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:10px;color:var(--text-tertiary);position:relative;z-index:1}
+  .domain-pct-row b{font-size:13px;font-weight:800;color:var(--card-color);font-variant-numeric:tabular-nums}
+
+  .two-col{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr}}
+
+  /* Goals */
+  .goal-list{display:flex;flex-direction:column;gap:8px}
+  .goal-item{padding:16px;border-radius:var(--radius-md);background:rgba(255,255,255,0.55);
+    border:1px solid var(--glass-stroke);transition:all .22s var(--ease);cursor:pointer}
+  .goal-item:hover{background:rgba(255,255,255,0.92);border-color:rgba(47,108,240,0.22);transform:translateX(2px);box-shadow:0 6px 18px -6px rgba(0,0,0,0.08)}
+  .goal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .goal-title-wrap{display:flex;align-items:flex-start;gap:8px;min-width:0;flex:1}
+  .goal-emoji{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(120,120,128,0.08);font-size:15px;flex-shrink:0}
+  .goal-title{font-size:13px;font-weight:600;line-height:1.4;padding-top:4px}
+  .goal-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+  .status-pill{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:0.02em}
+  .status-pill::before{content:"";width:4px;height:4px;border-radius:50%;background:currentColor}
+  .status-pill.done{background:var(--c-energy-soft);color:var(--c-energy-deep)}
+  .status-pill.progress{background:var(--c-mind-soft);color:var(--c-mind-deep)}
+  .status-pill.warn{background:var(--warn-bg);color:var(--warn)}
+  .status-pill.risk{background:var(--c-life-soft);color:var(--c-life-deep)}
+  .status-pill.archive{background:rgba(120,120,128,0.1);color:var(--text-tertiary)}
+  .mode-pill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:600;color:var(--text-secondary);padding:2px 7px;border-radius:5px;background:rgba(120,120,128,0.08)}
+  .mode-pill .mode-dot{width:6px;height:6px;border-radius:1.5px}
+  .mode-pill.habit .mode-dot{background:var(--c-energy)}
+  .mode-pill.milestone .mode-dot{background:var(--c-skill)}
+  .mode-pill.reflect .mode-dot{background:var(--c-mind)}
+  .mode-pill.quant .mode-dot{background:var(--c-work)}
+  .goal-pct{font-size:15px;font-weight:800;letter-spacing:-0.02em;min-width:42px;text-align:right;line-height:1;font-variant-numeric:tabular-nums;padding-top:5px}
+  .goal-pct.done{color:var(--c-energy-deep)}.goal-pct.warning{color:var(--warn)}.goal-pct.danger{color:var(--c-life-deep)}
+  .goal-bar{height:6px;border-radius:4px;background:rgba(120,120,128,0.1);overflow:hidden}
+  .goal-fill{height:100%;border-radius:4px;transition:width .7s var(--ease)}
+  .krs-list{margin-top:10px;display:flex;flex-direction:column;gap:5px;padding-top:10px;border-top:1px dashed rgba(120,120,128,0.18)}
+  .kr-row{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-secondary);padding:3px 0}
+  .kr-check{width:15px;height:15px;border-radius:4px;border:1.5px solid rgba(120,120,128,0.28);flex-shrink:0;display:grid;place-items:center;transition:all .15s var(--ease);cursor:pointer}
+  .kr-check:hover{border-color:var(--c-mind)}
+  .kr-check.done{background:var(--c-mind);border-color:var(--c-mind)}
+  .kr-check.done::after{content:"";width:3.5px;height:7px;border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(45deg) translate(-0.5px,-0.5px);margin-top:-1px}
+  .kr-text{flex:1}
+  .kr-text.done{text-decoration:line-through;color:var(--text-tertiary)}
+  .kr-pct{font-weight:700;min-width:30px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums}
+  .goal-meta{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--text-tertiary);margin-top:9px}
+  .goal-meta b{color:var(--text-primary);font-weight:600}
+
+  /* Shelf */
+  .shelf-filter{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+  .shelf-filter button{font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:999px;border:0;cursor:pointer;transition:all .15s;background:rgba(120,120,128,0.08);color:var(--text-secondary)}
+  .shelf-filter button.active{background:var(--c-mind);color:#fff;box-shadow:0 3px 8px -2px rgba(47,108,240,0.35)}
+  .book-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(max-width:500px){.book-grid{grid-template-columns:1fr}}
+  .book-item{display:flex;gap:10px;padding:12px;border-radius:var(--radius-md);background:rgba(255,255,255,0.55);border:1px solid var(--glass-stroke);cursor:pointer;transition:all .2s var(--ease);align-items:flex-start}
+  .book-item:hover{background:rgba(255,255,255,0.9);transform:translateY(-2px);box-shadow:0 8px 20px -8px rgba(0,0,0,0.1)}
+  .book-cover{width:46px;height:62px;border-radius:7px;flex-shrink:0;display:grid;place-items:center;font-size:20px;color:#fff;box-shadow:2px 4px 10px rgba(0,0,0,0.14),0 0 0 1px rgba(0,0,0,0.06);position:relative}
+  .book-cover::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:2px;background:rgba(0,0,0,0.1);border-radius:2px}
+  .book-info{flex:1;min-width:0}
+  .book-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:3px}
+  .book-title{font-size:12.5px;font-weight:600;line-height:1.3}
+  .book-state{font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;letter-spacing:0.02em;flex-shrink:0;white-space:nowrap}
+  .book-state.reading{background:var(--c-mind-soft);color:var(--c-mind-deep)}
+  .book-state.done{background:var(--c-energy-soft);color:var(--c-energy-deep)}
+  .book-state.pending{background:rgba(120,120,128,0.1);color:var(--text-tertiary)}
+  .book-state.paused{background:var(--warn-bg);color:var(--warn)}
+  .book-author{font-size:10.5px;color:var(--text-tertiary);margin-bottom:6px}
+  .book-tags{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px}
+  .book-tag{font-size:9px;padding:1.5px 6px;border-radius:4px;background:rgba(120,120,128,0.08);color:var(--text-secondary);font-weight:600}
+  .book-progress-row{display:flex;align-items:center;gap:8px}
+  .book-progress{flex:1;height:4px;border-radius:3px;background:rgba(120,120,128,0.1);overflow:hidden}
+  .book-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--c-mind),var(--c-mind-deep));transition:width .5s var(--ease)}
+  .book-pct{font-size:10.5px;font-weight:700;min-width:32px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+
+  /* Reflect card */
+  .reflect-card{background:linear-gradient(135deg,var(--c-mind-bg) 0%,rgba(255,255,255,0) 60%);border:1px solid rgba(47,108,240,0.15);border-radius:var(--radius-lg);padding:16px;margin-top:14px}
+  .reflect-card.skill{background:linear-gradient(135deg,var(--c-skill-bg) 0%,rgba(255,255,255,0) 60%);border-color:rgba(201,148,20,0.2)}
+  .reflect-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .reflect-name{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .reflect-score{display:flex;align-items:baseline;gap:3px;font-size:22px;font-weight:800;letter-spacing:-0.02em;color:var(--c-mind-deep)}
+  .reflect-card.skill .reflect-score{color:var(--c-skill-deep)}
+  .reflect-score .unit{font-size:11px;font-weight:600;color:var(--text-tertiary)}
+  .score-bars{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+  .score-row{display:grid;grid-template-columns:74px 1fr 28px;align-items:center;gap:8px;font-size:10.5px}
+  .score-label{color:var(--text-secondary);font-weight:500}
+  .score-bar{height:7px;border-radius:4px;background:rgba(120,120,128,0.1);overflow:hidden}
+  .score-fill{height:100%;border-radius:4px;transition:width .8s var(--ease)}
+  .reflect-card .score-fill{background:linear-gradient(90deg,var(--c-mind),var(--c-mind-deep))}
+  .reflect-card.skill .score-fill{background:linear-gradient(90deg,var(--c-skill),var(--c-skill-deep))}
+  .score-val{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .reflect-notes{background:rgba(255,255,255,0.55);border-radius:8px;padding:8px 10px;font-size:10.5px;color:var(--text-secondary);line-height:1.6;border:1px solid rgba(255,255,255,0.5)}
+  .reflect-notes b{color:var(--text-primary);font-weight:600}
+
+  /* Milestones */
+  .ms-group{margin-bottom:20px}
+  .ms-group:last-child{margin-bottom:0}
+  .ms-group-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px}
+  .ms-group-name{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .ms-doc-link{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:var(--c-mind-deep);padding:4px 9px;border-radius:7px;background:var(--c-mind-soft);cursor:pointer;text-decoration:none;transition:all .15s}
+  .ms-doc-link:hover{background:rgba(47,108,240,0.16);transform:translateY(-1px)}
+  .ms-timeline{position:relative;padding-left:22px}
+  .ms-timeline::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2.5px;background:linear-gradient(180deg,var(--c-skill) 0%,rgba(201,148,20,0.18) 100%);border-radius:2px}
+  .ms-node{position:relative;padding:10px 0 10px 14px}
+  .ms-node::before{content:"";position:absolute;left:-19px;top:14px;width:14px;height:14px;border-radius:50%;background:#fff;border:2.5px solid var(--c-skill);transition:all .25s var(--ease);box-sizing:border-box}
+  .ms-node.done::before{background:var(--c-skill)}
+  .ms-node.done::after{content:"";position:absolute;left:-16.5px;top:16.5px;width:4.5px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .ms-node.current::before{border-color:var(--c-mind);animation:msPulse 2.4s var(--ease) infinite}
+  @keyframes msPulse{0%,100%{box-shadow:0 0 0 3px rgba(47,108,240,0.15)}50%{box-shadow:0 0 0 6px rgba(47,108,240,0.22)}}
+  .ms-title{font-size:12.5px;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .ms-node.current .ms-title{color:var(--c-mind-deep)}
+  .ms-node.done .ms-title{color:var(--text-tertiary);text-decoration:line-through}
+  .ms-desc{font-size:11px;color:var(--text-tertiary);line-height:1.55;margin-bottom:6px}
+  .ms-sub{display:flex;flex-direction:column;gap:4px;padding-top:6px;border-top:1px dashed rgba(120,120,128,0.15)}
+  .sub-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-secondary)}
+  .sub-check{width:13px;height:13px;border-radius:3.5px;border:1.5px solid rgba(120,120,128,0.28);flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:all .12s}
+  .sub-check:hover{border-color:var(--c-skill)}
+  .sub-check.done{background:var(--c-skill);border-color:var(--c-skill)}
+  .sub-check.done::after{content:"";width:3px;height:6px;border:solid #fff;border-width:0 1.2px 1.2px 0;transform:rotate(45deg)}
+  .sub-row.done .sub-t{color:var(--text-tertiary);text-decoration:line-through}
+  .sub-t{flex:1}
+
+  /* Job */
+  .salary-widget{padding:14px 16px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--c-work-bg) 0%,rgba(255,255,255,0) 55%);border:1px solid rgba(157,78,221,0.18);margin-bottom:14px;position:relative;overflow:hidden}
+  .salary-widget::before{content:"💰";position:absolute;right:-8px;bottom:-14px;font-size:72px;opacity:0.06}
+  .salary-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;position:relative}
+  .salary-label{font-size:11px;font-weight:700;color:var(--c-work-deep);letter-spacing:0.03em}
+  .salary-target{font-size:11px;color:var(--text-tertiary)}
+  .salary-target b{color:var(--c-work-deep);font-size:14px;font-weight:800}
+  .salary-val{font-size:24px;font-weight:800;color:var(--c-work-deep);letter-spacing:-0.03em;line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums;position:relative}
+  .salary-val small{font-size:12px;font-weight:600;color:var(--text-tertiary);margin-left:2px}
+  .salary-bar{height:8px;border-radius:5px;background:rgba(255,255,255,0.8);overflow:hidden;position:relative;border:1px solid rgba(157,78,221,0.1)}
+  .salary-fill{height:100%;background:linear-gradient(90deg,var(--c-work),var(--c-work-deep));transition:width .8s var(--ease);position:relative}
+  .salary-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);animation:shimmer 2.5s infinite}
+  .salary-hint{font-size:10px;color:var(--text-tertiary);margin-top:6px;position:relative}
+  .job-section{margin-bottom:14px}
+  .job-section:last-child{margin-bottom:0}
+  .job-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .job-section-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .job-section-meta{font-size:10.5px;color:var(--text-tertiary);font-weight:600}
+  .job-section-meta b{color:var(--text-primary);font-variant-numeric:tabular-nums}
+  .stage-rail{display:grid;gap:7px;grid-template-columns:repeat(3,1fr)}
+  @media(max-width:620px){.stage-rail{grid-template-columns:repeat(2,1fr)}}
+  .stage-card{padding:10px 12px;border-radius:var(--radius-md);background:rgba(255,255,255,0.55);border:1px solid var(--glass-stroke);cursor:pointer;transition:all .2s var(--ease);position:relative}
+  .stage-card:hover{background:rgba(255,255,255,0.9);transform:translateY(-1px)}
+  .stage-card.done{opacity:0.6}
+  .stage-card.done .stage-name{text-decoration:line-through;color:var(--text-tertiary)}
+  .stage-card.doing{border-color:rgba(47,108,240,0.22);box-shadow:0 0 0 3px rgba(47,108,240,0.07)}
+  .stage-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+  .stage-name{font-size:11.5px;font-weight:600;line-height:1.3}
+  .stage-state{font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px}
+  .stage-state.done{background:var(--c-energy-soft);color:var(--c-energy-deep)}
+  .stage-state.doing{background:var(--c-mind-soft);color:var(--c-mind-deep)}
+  .stage-state.pending{background:rgba(120,120,128,0.1);color:var(--text-tertiary)}
+  .stage-bottom{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text-tertiary)}
+  .stage-bottom b{color:var(--text-primary);font-weight:700}
+  .stage-mini-bar{height:3px;border-radius:2px;background:rgba(120,120,128,0.1);overflow:hidden;margin-top:6px}
+  .stage-mini-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--c-work),var(--c-work-deep))}
+
+  /* Life */
+  .life-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(max-width:500px){.life-grid{grid-template-columns:1fr}}
+  .life-cat{padding:13px;border-radius:var(--radius-md);background:rgba(255,255,255,0.55);border:1px solid var(--glass-stroke);transition:all .2s var(--ease)}
+  .life-cat:hover{background:rgba(255,255,255,0.88);transform:translateY(-1px)}
+  .life-cat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .life-cat-name{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
+  .life-cat-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:rgba(120,120,128,0.1);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+  .life-items{display:flex;flex-direction:column;gap:4px}
+  .life-item{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10.5px;padding:5px 8px;border-radius:6px;cursor:pointer;color:var(--text-secondary);transition:all .15s}
+  .life-item:hover{background:rgba(120,120,128,0.07)}
+  .life-item.done{color:var(--text-tertiary)}
+  .life-item.done .life-item-name{text-decoration:line-through}
+  .life-left{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
+  .life-check{width:13px;height:13px;border-radius:4px;border:1.3px solid rgba(120,120,128,0.25);flex-shrink:0;display:grid;place-items:center;transition:all .12s}
+  .life-item.done .life-check{background:var(--c-life);border-color:var(--c-life)}
+  .life-item.done .life-check::after{content:"";width:3px;height:6px;border:solid #fff;border-width:0 1.2px 1.2px 0;transform:rotate(45deg)}
+  .life-item-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+  .life-date{font-size:9.5px;color:var(--text-quaternary);flex-shrink:0}
+
+  /* Habits */
+  .habit-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+  .habit-stat-card{padding:12px;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--c-energy-bg) 0%,rgba(255,255,255,0) 60%);border:1px solid rgba(48,179,92,0.15);transition:all .2s}
+  .habit-stat-card:hover{transform:translateY(-1px)}
+  .hstat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .hstat-emoji{font-size:18px}
+  .hstat-streak{font-size:10px;font-weight:700;color:var(--c-energy-deep);padding:2px 7px;border-radius:999px;background:var(--c-energy-soft)}
+  .hstat-name{font-size:11.5px;font-weight:600;margin-bottom:6px}
+  .hstat-bar{height:5px;border-radius:3px;background:rgba(255,255,255,0.6);overflow:hidden;margin-bottom:4px}
+  .hstat-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--c-energy),var(--c-energy-deep));transition:width .6s var(--ease)}
+  .hstat-meta{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-tertiary)}
+  .hstat-meta b{color:var(--text-primary);font-variant-numeric:tabular-nums}
+
+  /* Views */
+  .view{display:none}
+  .view.active{display:block;animation:viewIn .32s var(--ease)}
+  @keyframes viewIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Month */
+  .month-goals-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed rgba(120,120,128,0.18)}
+  .month-theme{background:linear-gradient(135deg,var(--c-mind-bg),rgba(255,255,255,0));border:1px solid rgba(47,108,240,0.15);padding:8px 12px;border-radius:10px}
+  .month-theme-label{font-size:9.5px;color:var(--c-mind-deep);font-weight:700;letter-spacing:0.05em}
+  .month-theme-name{font-size:12px;font-weight:700;color:var(--c-mind-deep);margin-top:1px}
+  .month-progress-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:10px;font-weight:600;padding:4px 9px;border-radius:999px;background:rgba(120,120,128,0.08);color:var(--text-secondary);display:inline-flex;align-items:center;gap:4px}
+  .chip b{color:var(--text-primary);font-variant-numeric:tabular-nums}
+
+  .matrix-wrap{overflow-x:auto;padding-bottom:4px}
+  .habits-matrix{display:flex;flex-direction:column;gap:2px;min-width:640px}
+  .matrix-row{display:grid;grid-template-columns:150px repeat(31,1fr) 56px;gap:2px;align-items:center;padding:5px 4px;border-radius:9px;transition:background .12s}
+  .matrix-row:hover{background:rgba(120,120,128,0.05)}
+  .matrix-habit{display:flex;align-items:center;gap:8px;padding:2px 6px 2px 4px;min-width:0}
+  .matrix-emoji{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:13px;flex-shrink:0;background:rgba(255,255,255,0.7);border:1px solid var(--glass-stroke)}
+  .matrix-emoji.energy{background:var(--c-energy-bg);border-color:rgba(48,179,92,0.2)}
+  .matrix-emoji.mind{background:var(--c-mind-bg);border-color:rgba(47,108,240,0.2)}
+  .matrix-emoji.skill{background:var(--c-skill-bg);border-color:rgba(201,148,20,0.2)}
+  .matrix-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .matrix-cell{width:100%;aspect-ratio:1;max-width:20px;max-height:20px;margin:0 auto;border-radius:6px;border:1.5px solid rgba(120,120,128,0.18);background:rgba(255,255,255,0.4);cursor:pointer;display:grid;place-items:center;transition:all .15s var(--ease)}
+  .matrix-cell:hover{border-color:var(--c-mind);transform:scale(1.18);z-index:2;box-shadow:0 2px 6px rgba(47,108,240,0.2)}
+  .matrix-cell.future{opacity:0.25;pointer-events:none;border-style:dashed}
+  .matrix-cell.today{box-shadow:0 0 0 2px var(--c-mind),0 2px 6px rgba(47,108,240,0.3);border-color:var(--c-mind);z-index:1}
+  .matrix-cell.done{background:var(--mc,var(--c-mind));border-color:var(--mc,var(--c-mind))}
+  .matrix-cell.done::after{content:"";width:4px;height:7px;border:solid #fff;border-width:0 1.4px 1.4px 0;transform:rotate(45deg) translate(-0.5px,-0.5px)}
+  .matrix-cell.done.energy{--mc:var(--c-energy)}.matrix-cell.done.mind{--mc:var(--c-mind)}.matrix-cell.done.skill{--mc:var(--c-skill)}
+  .matrix-stat{text-align:center;font-size:10.5px;color:var(--text-tertiary);font-weight:600}
+  .matrix-stat b{color:var(--text-primary);font-weight:700;font-variant-numeric:tabular-nums}
+  .matrix-hd{font-size:9px;color:var(--text-tertiary);font-weight:700;text-align:center;letter-spacing:0.02em}
+  .matrix-hd.we{color:var(--warn)}.matrix-hd.today-cell{color:var(--c-mind);font-weight:800}
+
+  /* Week */
+  .week-day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:9px}
+  @media(max-width:820px){.week-day-grid{grid-template-columns:repeat(2,1fr)}}
+  .day-card{padding:14px 11px;border-radius:var(--radius-lg);background:rgba(255,255,255,0.5);border:1px solid var(--glass-stroke);cursor:pointer;transition:all .22s var(--ease);min-height:180px;display:flex;flex-direction:column}
+  .day-card:hover{background:rgba(255,255,255,0.9);border-color:rgba(47,108,240,0.2);transform:translateY(-3px);box-shadow:0 10px 24px -8px rgba(0,0,0,0.12)}
+  .day-card.today{background:linear-gradient(160deg,var(--c-mind-soft) 0%,rgba(255,255,255,0.6) 60%);border-color:rgba(47,108,240,0.35);box-shadow:0 0 0 3px rgba(47,108,240,0.1),var(--glass-shadow)}
+  .day-card.future{opacity:0.68}
+  .day-card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed rgba(120,120,128,0.15)}
+  .day-card-num{font-size:22px;font-weight:800;letter-spacing:-0.03em;line-height:1}
+  .day-card.today .day-card-num{color:var(--c-mind-deep)}
+  .day-card-weekday{font-size:10px;font-weight:700;color:var(--text-tertiary);letter-spacing:0.06em;text-transform:uppercase}
+  .day-card.today .day-card-weekday{color:var(--c-mind-deep)}
+  .day-card-habits{display:flex;flex-direction:column;gap:5px;flex:1}
+  .day-habit{display:flex;align-items:center;gap:6px;font-size:10.5px}
+  .day-habit-check{width:14px;height:14px;border-radius:4px;border:1.5px solid rgba(120,120,128,0.22);flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:all .12s var(--ease)}
+  .day-habit-check:hover{transform:scale(1.2)}
+  .day-habit-check.done{background:var(--hc,var(--c-mind));border-color:var(--hc,var(--c-mind))}
+  .day-habit-check.done::after{content:"";width:3px;height:6px;border:solid #fff;border-width:0 1.2px 1.2px 0;transform:rotate(45deg)}
+  .day-habit-check.done.energy{--hc:var(--c-energy)}.day-habit-check.done.mind{--hc:var(--c-mind)}.day-habit-check.done.skill{--hc:var(--c-skill)}
+  .day-habit-name{flex:1;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .day-habit.done .day-habit-name{color:var(--text-tertiary);text-decoration:line-through}
+  .day-card-foot{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(120,120,128,0.15);display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text-tertiary);font-weight:600}
+  .day-card-foot b{color:var(--text-primary);font-size:11.5px;font-variant-numeric:tabular-nums}
+  .day-card.today .day-card-foot b{color:var(--c-mind-deep)}
+
+  .plan-list{display:flex;flex-direction:column;gap:7px}
+  .plan-item{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:var(--radius-md);background:rgba(255,255,255,0.55);border:1px solid var(--glass-stroke);transition:all .2s var(--ease);cursor:pointer}
+  .plan-item:hover{background:rgba(255,255,255,0.9);transform:translateX(3px)}
+  .plan-item.done{opacity:0.65}
+  .plan-check{width:17px;height:17px;border-radius:5px;border:1.7px solid rgba(120,120,128,0.28);flex-shrink:0;cursor:pointer;display:grid;place-items:center;transition:all .15s var(--ease);margin-top:1px}
+  .plan-check:hover{border-color:var(--c-mind);transform:scale(1.1)}
+  .plan-check.done{background:var(--c-mind);border-color:var(--c-mind)}
+  .plan-check.done::after{content:"";width:4px;height:8px;border:solid #fff;border-width:0 1.6px 1.6px 0;transform:rotate(45deg) translate(-0.5px,-0.5px)}
+  .plan-body{flex:1;min-width:0}
+  .plan-text{font-size:12.5px;font-weight:500;line-height:1.4}
+  .plan-item.done .plan-text{text-decoration:line-through;color:var(--text-tertiary)}
+  .plan-foot{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--text-tertiary);font-weight:600}
+  .plan-cat{display:inline-flex;align-items:center;gap:3px;padding:1.5px 6px;border-radius:5px}
+  .plan-cat.e{background:var(--c-energy-soft);color:var(--c-energy-deep)}
+  .plan-cat.m{background:var(--c-mind-soft);color:var(--c-mind-deep)}
+  .plan-cat.s{background:var(--c-skill-soft);color:var(--c-skill-deep)}
+  .plan-cat.w{background:var(--c-work-soft);color:var(--c-work-deep)}
+  .plan-cat.l{background:var(--c-life-soft);color:var(--c-life-deep)}
+
+  .design-note{background:linear-gradient(135deg,rgba(99,102,241,0.04),rgba(47,108,240,0.02));border:1px solid rgba(47,108,240,0.12);border-radius:20px;padding:18px 22px;font-size:12px;color:var(--text-secondary);line-height:1.7;margin-top:8px}
+  .design-note h3{font-size:13px;font-weight:700;color:var(--c-mind-deep);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .design-note h3::before{content:"";width:4px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--c-mind),var(--c-work))}
+  .design-note ul{padding-left:18px}
+  .design-note li{margin-bottom:2px}
+  .design-note b{color:var(--text-primary);font-weight:600}
+  .design-note .tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin:0 1px}
+  .tag-habit{background:var(--c-energy-soft);color:var(--c-energy-deep)}
+  .tag-mile{background:var(--c-skill-soft);color:var(--c-skill-deep)}
+  .tag-refl{background:var(--c-mind-soft);color:var(--c-mind-deep)}
+  .tag-quant{background:var(--c-work-soft);color:var(--c-work-deep)}
+
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(120,120,128,0.22);border-radius:4px}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(120,120,128,0.38)}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-accent"></div>
+      <h1>2026 年度规划<small>Annual Compass · 精力 · 认知 · 能力 · 工作 · 生活</small></h1>
+    </div>
+    <div class="top-actions">
+      <div class="view-tabs">
+        <button class="active" data-view="year">年度</button>
+        <button data-view="month">月度</button>
+        <button data-view="week">周度</button>
+      </div>
+      <div class="period-nav">
+        <button class="nav-btn" id="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <div class="period-title" id="period-title">2026 年度</div>
+        <button class="nav-btn" id="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- YEAR VIEW -->
+  <div class="view active" id="view-year">
+    <div class="hero-grid">
+      <div class="glass-card">
+        <div class="section-head">
+          <div class="section-title"><span class="bar" style="background:linear-gradient(180deg,var(--c-mind),var(--c-work));"></span>全年进度总览</div>
+          <span class="section-sub">截至 Q3 · 8月18日</span>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi" style="--kpi-color:var(--c-mind);">
+            <div class="kpi-label">🎯 目标总数</div>
+            <div class="kpi-value">17<span class="unit">个</span></div>
+            <div class="kpi-sub"><span class="kpi-trend up">完成 3</span><span>· 进行 10 · 未启动 4</span></div>
+          </div>
+          <div class="kpi" style="--kpi-color:var(--c-energy);">
+            <div class="kpi-label">📊 综合完成率</div>
+            <div class="kpi-value">36<span class="unit">%</span></div>
+            <div class="kpi-sub"><span class="kpi-trend up">↑ +11%</span><span>较 Q2 末</span></div>
+          </div>
+          <div class="kpi" style="--kpi-color:var(--c-skill);">
+            <div class="kpi-label">🔥 习惯打卡</div>
+            <div class="kpi-value">568<span class="unit">次</span></div>
+            <div class="kpi-sub"><span class="kpi-trend up">连 17 天</span><span>· 4 个习惯</span></div>
+          </div>
+          <div class="kpi" style="--kpi-color:var(--c-work);">
+            <div class="kpi-label">📚 认知积分</div>
+            <div class="kpi-value">42<span class="unit">pt</span></div>
+            <div class="kpi-sub"><span class="kpi-trend up">阅读 5</span><span>· 践行输出 2</span></div>
+          </div>
+        </div>
+        <div class="quarter-timeline" id="quarter-timeline"></div>
+      </div>
+
+      <div class="glass-card">
+        <div class="section-head">
+          <div class="section-title"><span class="bar" style="background:linear-gradient(90deg,var(--c-mind),var(--c-work));"></span>人生平衡雷达</div>
+          <span class="section-sub">5 维发展</span>
+        </div>
+        <div class="radar-wrap">
+          <div class="radar-svg-wrap">
+            <svg viewBox="0 0 200 200">
+              <g fill="none" stroke="rgba(120,120,128,0.15)" stroke-width="1">
+                <polygon points="100,20 176,65 176,145 100,190 24,145 24,65"/>
+                <polygon points="100,40 160,72 160,136 100,168 40,136 40,72" stroke-dasharray="2,3"/>
+                <polygon points="100,60 144,81 144,127 100,148 56,127 56,81" stroke-dasharray="2,3"/>
+                <polygon points="100,80 128,90 128,118 100,128 72,118 72,90" stroke-dasharray="2,3"/>
+              </g>
+              <g stroke="rgba(120,120,128,0.2)" stroke-width="1">
+                <line x1="100" y1="100" x2="100" y2="20"/><line x1="100" y1="100" x2="176" y2="65"/>
+                <line x1="100" y1="100" x2="176" y2="145"/><line x1="100" y1="100" x2="100" y2="190"/>
+                <line x1="100" y1="100" x2="24" y2="145"/><line x1="100" y1="100" x2="24" y2="65"/>
+              </g>
+              <polygon points="100,42 161,70 160,130 100,152 40,130 41,70" fill="url(#rg)" fill-opacity="0.35" stroke="var(--c-mind)" stroke-width="1.8" stroke-linejoin="round"/>
+              <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--c-mind)"/><stop offset="50%" stop-color="var(--c-work)"/><stop offset="100%" stop-color="var(--c-skill)"/></linearGradient></defs>
+              <g fill="#fff" stroke="var(--c-mind)" stroke-width="2">
+                <circle cx="100" cy="42" r="4"/><circle cx="161" cy="70" r="4"/><circle cx="160" cy="130" r="4"/>
+                <circle cx="100" cy="152" r="4"/><circle cx="40" cy="130" r="4"/><circle cx="41" cy="70" r="4"/>
+              </g>
+              <g font-size="10.5" font-weight="700" text-anchor="middle">
+                <text x="100" y="10" fill="var(--c-energy-deep)">精力</text>
+                <text x="188" y="58" fill="var(--c-mind-deep)" text-anchor="start">认知</text>
+                <text x="188" y="152" fill="var(--c-skill-deep)" text-anchor="start">能力</text>
+                <text x="100" y="202" fill="var(--c-work-deep)">工作</text>
+                <text x="12" y="152" fill="var(--c-life-deep)" text-anchor="end">生活</text>
+                <text x="12" y="58" fill="var(--text-tertiary)" text-anchor="end">平衡</text>
+              </g>
+            </svg>
+          </div>
+          <div class="radar-legend" id="radar-legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="domain-grid" id="domain-grid"></div>
+
+    <div class="two-col">
+      <div class="glass-card">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="bar" id="bar-l" style="background:var(--c-energy);"></span>
+            <span id="d-name">精力</span> · 年度目标 & 关键结果
+          </div>
+          <button class="btn-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新增目标
+          </button>
+        </div>
+        <div class="goal-list" id="goal-list"></div>
+      </div>
+      <div class="glass-card">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="bar" id="bar-r" style="background:var(--c-energy);"></span>
+            <span id="f-name">💪 习惯打卡节奏</span>
+          </div>
+          <button class="btn-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span id="f-add">添加</span>
+          </button>
+        </div>
+        <div id="f-panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTH VIEW -->
+  <div class="view" id="view-month">
+    <div class="two-col">
+      <div class="glass-card">
+        <div class="section-head">
+          <div class="section-title"><span class="bar" style="background:var(--c-mind);"></span>月度目标 · 8月</div>
+          <button class="btn-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加</button>
+        </div>
+        <div class="month-goals-head">
+          <div class="month-theme">
+            <div class="month-theme-label">本月主题</div>
+            <div class="month-theme-name">🎯 求职冲刺 + 夯实基础</div>
+          </div>
+          <div class="month-progress-chips">
+            <span class="chip">完成 <b>1</b>/5</span>
+            <span class="chip">打卡 <b>63%</b></span>
+            <span class="chip">阅读 <b>2</b> 本</span>
+          </div>
+        </div>
+        <div class="goal-list" id="m-goals"></div>
+      </div>
+      <div class="glass-card">
+        <div class="section-head">
+          <div class="section-title"><span class="bar" style="background:var(--c-energy);"></span>习惯打卡矩阵 · 8月</div>
+          <span class="section-sub">点击圆圈切换打卡</span>
+        </div>
+        <div class="matrix-wrap"><div class="habits-matrix" id="h-matrix"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEK VIEW -->
+  <div class="view" id="view-week">
+    <div class="glass-card">
+      <div class="section-head">
+        <div class="section-title"><span class="bar" style="background:var(--c-work);"></span>本周行动计划 · 8月17-23日</div>
+        <button class="btn-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增计划</button>
+      </div>
+      <div class="plan-list" id="w-plans"></div>
+    </div>
+    <div class="glass-card">
+      <div class="section-head">
+        <div class="section-title"><span class="bar" style="background:var(--c-skill);"></span>每日执行卡</div>
+        <span class="section-sub">点击习惯圆圈打卡</span>
+      </div>
+      <div class="week-day-grid" id="w-days"></div>
+    </div>
+  </div>
+
+  <div class="design-note">
+    <h3>设计说明 v5 · 顶尖 UI 视角的年度规划系统</h3>
+    <ul>
+      <li><b>4 种追踪模式</b>：
+        <span class="tag tag-habit">🔁 习惯打卡</span>
+        <span class="tag tag-mile">🎯 里程碑</span>
+        <span class="tag tag-refl">🪞 反思评分</span>
+        <span class="tag tag-quant">💰 量化目标</span>
+      </li>
+      <li><b>反思型目标可衡量</b>：为"认知改变/即兴表达"设置多维度自评卡（输入量、输出量、思维改变、自信度等），每月打分，让"假大空"目标变得可视化</li>
+      <li><b>年度视图三件套</b>：KPI 卡片（shimmer扫光效果） + SVG 雷达图（5维平衡） + Q1-Q4 季度轴（当前季度高亮）</li>
+      <li><b>5 大领域差异化 UI</b>：精力=习惯热力卡 / 认知=书架+反思卡 / 能力=里程碑时间线+pulse脉冲 / 工作=薪资进度条+阶段卡 / 生活=体验图鉴</li>
+      <li><b>OKR 层层落地</b>：年度 → 月度主题 → 周计划 → 每日执行卡，自上而下拆解</li>
+      <li><b>UI 细节</b>：conic品牌标识、玻璃拟态升级、spring悬停弹性、进度条微光扫光、柔和分级阴影</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+const DOMAINS=[
+  {key:'energy',name:'精力',emoji:'💪',c:'--c-energy',d:'--c-energy-deep',s:'--c-energy-soft',desc:'习惯打卡 · 健康体能',v:65},
+  {key:'mind',name:'认知',emoji:'🧠',c:'--c-mind',d:'--c-mind-deep',s:'--c-mind-soft',desc:'12本书 · 践行改变',v:58},
+  {key:'skill',name:'能力',emoji:'⭐️',c:'--c-skill',d:'--c-skill-deep',s:'--c-skill-soft',desc:'里程碑 · 技能进阶',v:40},
+  {key:'work',name:'工作',emoji:'💼',c:'--c-work',d:'--c-work-deep',s:'--c-work-soft',desc:'求职入职 · 副业变现',v:35},
+  {key:'life',name:'生活',emoji:'🎨',c:'--c-life',d:'--c-life-deep',s:'--c-life-soft',desc:'体验积累 · 品质生活',v:48},
+];
+
+const GOALS={
+  energy:[
+    {id:1,emoji:'😴',title:'养成良好作息：23:00前睡 / 7:00起',mode:'habit',pct:44,status:'progress',cur:136,tgt:280,
+      krs:[{t:'连续 30 天 23:00 前入睡',p:60,done:false},{t:'连续 30 天 7:00 准时起床',p:50,done:false},{t:'平均入睡时长 < 15 分钟',p:30,done:false}]},
+    {id:2,emoji:'💧',title:'每日喝够 2L 水 · 预防左肾结晶',mode:'habit',pct:78,status:'progress',cur:242,tgt:280,
+      krs:[{t:'连续 60 天达成饮水量',p:70,done:false},{t:'定时提醒 App 配置完成',p:100,done:true},{t:'季度体检 · 尿常规正常',p:60,done:false}]},
+    {id:3,emoji:'🏃',title:'运动增强体能 · 年度 200 次',mode:'habit',pct:62,status:'progress',cur:124,tgt:200,
+      krs:[{t:'全年跑步 ≥ 300km',p:55,done:false},{t:'月均健身房 ≥ 8 次',p:60,done:false},{t:'5 公里跑进 30 分钟',p:40,done:false}]},
+  ],
+  mind:[
+    {id:1,emoji:'📚',title:'年度阅读 12 本 + 践行输出',mode:'reflect',pct:35,status:'progress',cur:42,tgt:120,
+      krs:[{t:'读完 12 本非虚构类书籍',p:42,done:false},{t:'每本书写践行笔记（≥300字）',p:20,done:false},{t:'月度反思 · 获得改变自评打分',p:30,done:false}]},
+    {id:2,emoji:'🧠',title:'每周深度思考 ≥ 3 小时',mode:'habit',pct:58,status:'progress',cur:18,tgt:31,
+      krs:[{t:'周日晚 1h 独处复盘',p:70,done:false},{t:'完成 50 篇思考笔记',p:40,done:false}]},
+  ],
+  skill:[
+    {id:1,emoji:'🗣️',title:'英语口语 · 日常对话流畅',mode:'milestone',pct:45,status:'progress',cur:126,tgt:250,
+      krs:[{t:'完成飞书 Level 1-10 课程',p:50,done:false},{t:'Shadowing 录音 100 篇',p:40,done:false},{t:'30 分钟外教对话不中断',p:20,done:false}]},
+    {id:2,emoji:'🎤',title:'即兴表达 · 面试应答自如',mode:'reflect',pct:30,status:'progress',cur:60,tgt:200,
+      krs:[{t:'刷完 500 道面试题库',p:25,done:false},{t:'完成 50 次模拟录音',p:20,done:false},{t:'面试自信度月度自评',p:10,done:false}]},
+    {id:3,emoji:'📊',title:'数据分析 · 独立输出报告',mode:'milestone',pct:20,status:'progress',cur:1,tgt:5,
+      krs:[{t:'完成飞书学习规划',p:20,done:false},{t:'5 个真实数据集练习',p:10,done:false},{t:'输出 3 篇数据洞察',p:0,done:false}]},
+  ],
+  work:[
+    {id:1,emoji:'💸',title:'鲸灵离职 + 拿到大礼包',mode:'milestone',pct:100,status:'done',cur:1,tgt:1,
+      krs:[{t:'离职手续完成',p:100,done:true},{t:'大礼包到账',p:100,done:true}]},
+    {id:2,emoji:'🎯',title:'入职上升期行业 · 用户运营 · 20k+',mode:'quant',pct:15,status:'progress',cur:15,tgt:100,
+      krs:[{t:'简历+作品集打磨完成',p:50,done:false},{t:'累计投递 100+',p:30,done:false},{t:'10+ 面试邀请',p:15,done:false},{t:'谈下 ≥20k Offer',p:5,done:false}]},
+    {id:3,emoji:'🐻',title:'小红书「小憨熊」涨粉变现',mode:'quant',pct:8,status:'progress',cur:40,tgt:500,
+      krs:[{t:'发布 50 篇漫画笔记',p:10,done:false},{t:'粉丝破 5000',p:8,done:false},{t:'首个商业合作',p:0,done:false}]},
+  ],
+  life:[
+    {id:1,emoji:'🍜',title:'美食 · 探索 20 家新餐厅',mode:'quant',pct:30,status:'progress',cur:6,tgt:20,
+      krs:[{t:'杭州本地 10 家',p:50,done:false},{t:'旅行中打卡 10 家',p:10,done:false}]},
+    {id:2,emoji:'✈️',title:'旅游 · 国内 3 次 + 短途 1 次',mode:'milestone',pct:33,status:'progress',cur:1,tgt:3,
+      krs:[{t:'周末短途 × 3',p:33,done:false},{t:'长途 × 1',p:0,done:false}]},
+    {id:3,emoji:'🎬',title:'文化 · 20 部电影 + 3 个展览',mode:'quant',pct:45,status:'progress',cur:9,tgt:20,
+      krs:[{t:'豆瓣 Top250 观影 15 部',p:40,done:false},{t:'线下展览 3 个',p:33,done:false}]},
+    {id:4,emoji:'🛍️',title:'购物 · 10 件品质好物',mode:'reflect',pct:50,status:'progress',cur:5,tgt:10,
+      krs:[{t:'购入 10 件品质好物',p:50,done:false},{t:'每季度 1 次断舍离',p:25,done:false}]},
+  ]
+};
+
+const FEATURE={
+  energy:{type:'habits',name:'💪 习惯打卡节奏',add:'添加习惯',
+    habits:[
+      {e:'😴',n:'23:00 前睡',p:44,st:3,w:[12,10,11,13]},
+      {e:'💧',n:'每日饮水 2L',p:85,st:17,w:[15,14,15,16]},
+      {e:'🏃',n:'运动 / 健身',p:62,st:5,w:[10,11,9,12]},
+      {e:'🧘',n:'冥想 5 分钟',p:35,st:0,w:[6,7,5,8]},
+    ]},
+  mind:{type:'shelf',name:'📚 我的阅读书架',add:'添加书籍',
+    filter:['全部','阅读中','已读完','未开始','已暂停'],
+    books:[
+      {e:'📖',t:'原则',a:'瑞·达利欧',tags:['商业','思维'],s:'reading',p:68,bg:'linear-gradient(135deg,#f093fb,#f5576c)'},
+      {e:'💼',t:'穷查理宝典',a:'彼得·考夫曼',tags:['多元思维','投资'],s:'reading',p:35,bg:'linear-gradient(135deg,#667eea,#764ba2)'},
+      {e:'🎯',t:'OKR 工作法',a:'克里斯蒂娜',tags:['管理','效率'],s:'done',p:100,bg:'linear-gradient(135deg,#4facfe,#00f2fe)'},
+      {e:'🪞',t:'被讨厌的勇气',a:'岸见一郎',tags:['心理','哲学'],s:'done',p:100,bg:'linear-gradient(135deg,#fa709a,#fee140)'},
+      {e:'📊',t:'深入浅出数据分析',a:'Michael Milton',tags:['数据分析'],s:'pending',p:0,bg:'linear-gradient(135deg,#43e97b,#38f9d7)'},
+      {e:'🧭',t:'用户运营方法论',a:'黄杰民',tags:['运营','职业'],s:'pending',p:0,bg:'linear-gradient(135deg,#a8edea,#fed6e3)'},
+    ],
+    ref:{n:'🧠 认知改变自评（8月）',sc:6.4,mx:10,
+      d:[{l:'阅读输入量',v:7.2},{l:'践行输出量',v:5.5},{l:'思维模型积累',v:6.0},{l:'决策改变可见',v:6.8}],
+      note:'📌 读完《原则》后开始有意识地应用"可信度加权"和"二阶效应"做决策；下月目标：输出 3 篇践行笔记。'
+    }},
+  skill:{type:'milestones',name:'⭐️ 能力里程碑',add:'添加能力',
+    groups:[
+      {n:'🗣️ 英语口语提升',nodes:[
+        {n:'飞书 Level 1-10 课程',desc:'发音+句型+话题',done:true,subs:[{t:'L1-L3 完成',done:true},{t:'L4-L6 完成',done:true},{t:'L7-L10',done:false}]},
+        {n:'Shadowing 跟读 50 篇',desc:'每日录音复盘',current:true,subs:[{t:'第 1-20 篇',done:true},{t:'第 21-50 篇',done:false},{t:'外教点评 3 次',done:false}]},
+        {n:'30 分钟流利对话',desc:'聊天无明显卡壳',done:false,subs:[{t:'15 分钟不中断',done:false},{t:'话题 ≥ 3 个',done:false},{t:'自信度 ≥ 8',done:false}]},
+      ]},
+      {n:'📊 数据分析能力',doc:'https://my.feishu.cn/wiki/ELuYweUnFiijkikRVYhc5V7ynxe',nodes:[
+        {n:'统计学 + Excel 基础',desc:'飞书课程模块一',current:true,subs:[{t:'完成视频课',done:true},{t:'课后练习 × 5',done:false}]},
+        {n:'SQL 查询掌握',desc:'JOIN / 子查询 / 窗口',done:false,subs:[{t:'LeetCode 20 题',done:false},{t:'真实数据 × 2 套',done:false}]},
+        {n:'独立输出分析报告',desc:'数据 → 洞察 → 建议',done:false,subs:[{t:'完成 3 份报告',done:false},{t:'公开发表 1 篇',done:false}]},
+      ]},
+    ],
+    ref:{n:'🎤 即兴表达自评（8月）',sc:5.6,mx:10,sk:true,
+      d:[{l:'题库练习量',v:6.5},{l:'表达逻辑性',v:5.0},{l:'情绪稳定度',v:4.8},{l:'案例丰富度',v:6.0}],
+      note:'📌 练习 25 道 STAR 题，发现"思考停顿 > 3s"占 40%。下月目标：引入"1-3-5 框架"，强制先列 3 个点再开口。'
+    }},
+  work:{type:'job',name:'💼 求职 + 副业追踪',add:'添加阶段',
+    sal:{t:20,c:0,u:'k'},
+    main:[
+      {n:'鲸灵离职 + 大礼包',p:100,s:'done',m:'已完成 7/31'},
+      {n:'简历 + 作品集优化',p:50,s:'doing',m:'50% · 补充项目'},
+      {n:'批量投递 100+ 份',p:20,s:'doing',m:'已投 20 家'},
+      {n:'面试准备（题库+模拟）',p:25,s:'doing',m:'25/500 题'},
+      {n:'拿到 10+ 面试邀请',p:15,s:'pending',m:'1.5/10'},
+      {n:'终面 + 谈薪 + 入职',p:0,s:'pending',m:'目标 20k+'},
+    ],
+    side:[
+      {n:'人设 IP 确立（小憨熊）',p:100,s:'done',m:'已完成'},
+      {n:'漫画模板 + 素材库',p:60,s:'doing',m:'模板 6 套'},
+      {n:'发布 50 篇笔记',p:8,s:'doing',m:'4/50 篇'},
+      {n:'粉丝破 5000',p:0.8,s:'pending',m:'40/5000'},
+      {n:'首次商业合作',p:0,s:'pending',m:'待达成'},
+    ]},
+  life:{type:'life',name:'🎨 生活体验图鉴',add:'添加体验',
+    cats:[
+      {i:'🍜',n:'美食探索',items:[{n:'潮汕牛肉火锅（广州）',d:'2月',done:true},{n:'怀石料理体验',d:'计划',done:false},{n:'米其林 1 星',d:'计划',done:false},{n:'杭州小众 ×10',d:'进行中',done:false}]},
+      {i:'✈️',n:'旅行足迹',items:[{n:'莫干山 2 日',d:'3月',done:true},{n:'川西短途自驾',d:'10 月',done:false},{n:'云南·大理+丽江',d:'12 月',done:false}]},
+      {i:'🎬',n:'电影 & 展览',items:[{n:'沙丘 2',d:'3月',done:true},{n:'杭州工艺美术馆',d:'4月',done:true},{n:'西湖音乐节',d:'待办',done:false},{n:'观影 20 部',d:'目标',done:false}]},
+      {i:'🛍️',n:'品质购物',items:[{n:'SONY WH 降噪耳机',d:'已购',done:true},{n:'宜家家居升级 2 件',d:'Q3',done:false},{n:'运动装备套装',d:'目标',done:false}]},
+    ]}
+};
+
+const QUARTERS=[
+  {q:'Q1',ms:'1-3 月',st:'past',ch:'已完成',items:[{t:'完成离职流程 + 大礼包',s:'done'},{t:'读完 3 本书 + 输出 2 篇',s:'done'},{t:'口语 Level 1-6 完成',s:'done'}]},
+  {q:'Q2',ms:'4-6 月',st:'past',ch:'已完成',items:[{t:'小红书人设 + 模板确立',s:'done'},{t:'莫干山短途旅行',s:'done'},{t:'数据分析课程启动',s:'doing'}]},
+  {q:'Q3',ms:'7-9 月',st:'active',ch:'当前季度',items:[{t:'求职冲刺 · 入职 Offer',s:'doing'},{t:'刷面试题库 200 道',s:'doing'},{t:'读完《原则》+《穷查理》',s:'doing'}]},
+  {q:'Q4',ms:'10-12月',st:'future',ch:'待启动',items:[{t:'川西 + 云南旅行',s:'pending'},{t:'小红书粉丝破 5000',s:'pending'},{t:'年度复盘 + 2027 规划',s:'pending'}]},
+];
+
+const MONTH_GOALS=[
+  {id:1,e:'🏃',t:'晨跑 ≥12 次',k:'energy',cur:8,tgt:12,pct:67,s:'progress'},
+  {id:2,e:'📖',t:'读完《原则》+《穷查理》',k:'mind',cur:1,tgt:2,pct:50,s:'progress'},
+  {id:3,e:'🎤',t:'刷面试题 100 道',k:'skill',cur:35,tgt:100,pct:35,s:'warn'},
+  {id:4,e:'📨',t:'投递简历 50 份',k:'work',cur:10,tgt:50,pct:20,s:'warn'},
+  {id:5,e:'✈️',t:'短途出游 1 次',k:'life',cur:0,tgt:1,pct:0,s:'progress'},
+];
+
+const HABITS=[
+  {id:1,e:'🏃',n:'晨跑 5km',    k:'energy',tgt:25,d:[1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+  {id:2,e:'💧',n:'喝水 2L',     k:'energy',tgt:31,d:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+  {id:3,e:'📖',n:'阅读 30 分钟',k:'mind',  tgt:25,d:[0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+  {id:4,e:'🧠',n:'背单词 50 个', k:'mind',  tgt:31,d:[1,0,1,1,1,0,1,1,1,0,1,1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+  {id:5,e:'🗣️',n:'英语口语练习', k:'skill', tgt:25,d:[1,1,0,1,1,1,0,1,1,1,1,0,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+  {id:6,e:'😴',n:'23:00 前睡',   k:'energy',tgt:31,d:[0,0,1,0,0,1,0,1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+];
+
+const WEEK_PLANS=[
+  {t:'完成《原则》精读输出 1 篇',done:false,c:'m',cd:'认知'},
+  {t:'刷面试题库 100 道',done:false,c:'s',cd:'能力'},
+  {t:'投递简历 15+ 份',done:false,c:'w',cd:'工作'},
+  {t:'晨跑 4 次 + 健身房 2 次',done:true,c:'e',cd:'精力'},
+  {t:'小红书发布 2 篇漫画',done:false,c:'w',cd:'工作'},
+  {t:'短途出游（莫干山计划）',done:false,c:'l',cd:'生活'},
+];
+
+const TODAY=18;
+
+// ==== Helpers ====
+const $=s=>document.querySelector(s);
+function pcCls(p,m){if(p>=100)return'done';if(m==='milestone')return p>=60?'':p>=30?'warning':'danger';return p>=80?'done':p>=50?'':p>=30?'warning':'danger';}
+function stTag(s){const m={done:['已完成','done'],progress:['进行中','progress'],doing:['推进中','progress'],warn:['预警','warn'],risk:['风险','risk'],archive:['归档','archive']};const[t,c]=m[s]||['未开始','progress'];return`<span class="status-pill ${c}">${t}</span>`;}
+function mdTag(m){const mm={habit:['习惯打卡','habit'],milestone:['里程碑','milestone'],reflect:['反思评分','reflect'],quant:['量化目标','quant']};const[t,c]=mm[m]||['','habit'];return`<span class="mode-pill ${c}"><span class="mode-dot"></span>${t}</span>`;}
+function barC(dk,p){
+  if(p>=80)return'background:linear-gradient(90deg,var(--c-energy),var(--c-energy-deep))';
+  const ck={energy:'--c-energy',mind:'--c-mind',skill:'--c-skill',work:'--c-work',life:'--c-life'};
+  const cv=getComputedStyle(document.documentElement).getPropertyValue(ck[dk]||'--c-mind').trim();
+  if(p>=50)return`background:linear-gradient(90deg,${cv},${cv}dd)`;
+  if(p>=30)return'background:linear-gradient(90deg,var(--warn),#e07a00)';
+  return'background:linear-gradient(90deg,var(--danger),var(--c-life-deep))';
+}
+
+// ==== Render: Quarters ====
+function renderQ(){
+  $('#quarter-timeline').innerHTML=QUARTERS.map(q=>`
+    <div class="q-card ${q.st==='active'?'active':''}">
+      <div class="q-head">
+        <div><div class="q-name">${q.q}</div><div class="q-months">${q.ms}</div></div>
+        <span class="q-chip ${q.st}">${q.ch}</span>
+      </div>
+      <div class="q-milestones">
+        ${q.items.map(it=>`<div class="q-m ${it.s==='done'?'done':''}"><span class="q-m-dot ${it.s}"></span><span>${it.t}</span></div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ==== Render: Radar Legend ====
+function renderRL(){
+  const cs=['--c-energy','--c-mind','--c-skill','--c-work','--c-life'];
+  $('#radar-legend').innerHTML=DOMAINS.map((d,i)=>`
+    <div class="legend-row">
+      <div class="legend-left"><span class="legend-dot" style="background:var(${cs[i]})"></span><span class="legend-name">${d.emoji} ${d.name}</span></div>
+      <div class="legend-bar"><div class="legend-fill" style="width:${d.v}%;background:var(${cs[i]})"></div></div>
+      <span class="legend-pct">${d.v}</span>
+    </div>`).join('')+`
+    <div class="legend-row" style="margin-top:4px;padding-top:8px;border-top:1px dashed rgba(120,120,128,0.14);">
+      <div class="legend-left"><span class="legend-dot" style="background:linear-gradient(135deg,var(--c-work),var(--c-mind))"></span><span class="legend-name">⭐ 综合平衡</span></div>
+      <div></div><span class="legend-pct" style="color:var(--c-mind-deep);">49</span>
+    </div>`;
+}
+
+// ==== Render: Domain Grid ====
+let curDom='energy';
+function renderDG(){
+  const g=$('#domain-grid');
+  g.innerHTML=DOMAINS.map(d=>{
+    const gs=GOALS[d.key];const avg=Math.round(gs.reduce((s,x)=>s+x.pct,0)/gs.length);
+    const dn=gs.filter(x=>x.status==='done').length;
+    return `<div class="domain-card ${d.key===curDom?'active':''}" data-cat="${d.key}" data-k="${d.key}">
+      <div class="domain-icon">${d.emoji}</div>
+      <div class="domain-name">${d.name}</div>
+      <div class="domain-desc">${d.desc}</div>
+      <div class="domain-stat-row"><span>目标 <b>${gs.length}</b></span><span>完成 <b>${dn}</b></span></div>
+      <div class="domain-bar"><div class="domain-fill" style="width:${avg}%"></div></div>
+      <div class="domain-pct-row"><span>整体</span><b>${avg}%</b></div>
+    </div>`;
+  }).join('');
+  g.querySelectorAll('.domain-card').forEach(el=>{
+    el.addEventListener('click',()=>{curDom=el.dataset.k;renderDG();renderDetail();});
+  });
+}
+
+// ==== Render: Goals ====
+function renderGoals(dk){
+  return GOALS[dk].map(g=>{
+    const c=pcCls(g.pct,g.mode);
+    const ks=g.krs.map(k=>`<div class="kr-row"><div class="kr-check ${k.done?'done':''}"></div><div class="kr-text ${k.done?'done':''}">${k.t}</div><div class="kr-pct">${k.p}%</div></div>`).join('');
+    return `<div class="goal-item">
+      <div class="goal-head">
+        <div class="goal-title-wrap">
+          <div class="goal-emoji">${g.emoji}</div>
+          <div><div class="goal-title">${g.title}</div><div class="goal-tags">${mdTag(g.mode)} ${stTag(g.status)}</div></div>
+        </div>
+        <div class="goal-pct ${c}">${g.pct}%</div>
+      </div>
+      <div class="goal-bar"><div class="goal-fill" style="width:${g.pct}%;${barC(dk,g.pct)}"></div></div>
+      ${g.krs.length?`<div class="krs-list">${ks}</div>`:''}
+      <div class="goal-meta"><span>当前 <b>${g.cur}</b> / 目标 <b>${g.tgt}</b></span><span>KR <b>${g.krs.filter(k=>k.done).length}</b>/${g.krs.length}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ==== Render: Feature Panels ====
+function renderHabits(f){
+  return `<div class="habit-stats">${f.habits.map(h=>`
+    <div class="habit-stat-card">
+      <div class="hstat-top"><span class="hstat-emoji">${h.e}</span><span class="hstat-streak">🔥 连 ${h.st} 天</span></div>
+      <div class="hstat-name">${h.n}</div>
+      <div class="hstat-bar"><div class="hstat-fill" style="width:${h.p}%"></div></div>
+      <div class="hstat-meta"><span><b>${h.p}%</b> 完成</span><span>4周 ${h.w.join('·')}</span></div>
+    </div>`).join('')}</div>
+    <div style="padding:10px 12px;border-radius:10px;background:rgba(48,179,92,0.06);border:1px solid rgba(48,179,92,0.12);">
+      <div style="font-size:11px;font-weight:700;color:var(--c-energy-deep);margin-bottom:4px;">💡 本周建议</div>
+      <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.55;">早起连续 3 天达标，建议用"睡前准备法"把闹钟放远 1 米；冥想 35% 偏低，先从 2min 启动建立惯性。</div>
+    </div>`;
+}
+function renderShelf(f){
+  const btns=f.filter.map((t,i)=>`<button class="${i===0?'active':''}">${t}</button>`).join('');
+  const grid=f.books.map(b=>{
+    const sm={reading:['阅读中','reading'],done:['已读完','done'],pending:['未开始','pending'],paused:['已暂停','paused']};
+    const [st,sc]=sm[b.s];
+    return `<div class="book-item" data-s="${b.s}">
+      <div class="book-cover" style="background:${b.bg}">${b.e}</div>
+      <div class="book-info">
+        <div class="book-top"><div class="book-title">${b.t}</div><span class="book-state ${sc}">${st}</span></div>
+        <div class="book-author">${b.a}</div>
+        <div class="book-tags">${b.tags.map(x=>`<span class="book-tag">${x}</span>`).join('')}</div>
+        <div class="book-progress-row"><div class="book-progress"><div class="book-fill" style="width:${b.p}%"></div></div><span class="book-pct">${b.p}%</span></div>
+      </div></div>`;
+  }).join('');
+  const r=f.ref;
+  const ref=`<div class="reflect-card">
+    <div class="reflect-head"><div class="reflect-name">${r.n}</div><div class="reflect-score">${r.sc}<span class="unit">/ ${r.mx}</span></div></div>
+    <div class="score-bars">${r.d.map(x=>`<div class="score-row"><span class="score-label">${x.l}</span><div class="score-bar"><div class="score-fill" style="width:${x.v*10}%"></div></div><span class="score-val">${x.v}</span></div>`).join('')}</div>
+    <div class="reflect-notes">${r.note}</div></div>`;
+  return `<div class="shelf-filter">${btns}</div><div class="book-grid">${grid}</div>${ref}`;
+}
+function renderMS(f){
+  const gh=f.groups.map(g=>`<div class="ms-group">
+    <div class="ms-group-head">
+      <div class="ms-group-name">${g.n}</div>
+      ${g.doc?`<a class="ms-doc-link" target="_blank" href="${g.doc}">📄 学习计划 →</a>`:''}
+    </div>
+    <div class="ms-timeline">${g.nodes.map(n=>{
+      const cl=['ms-node'];if(n.done)cl.push('done');if(n.current)cl.push('current');
+      const sb=(n.subs||[]).map(s=>`<div class="sub-row ${s.done?'done':''}"><div class="sub-check ${s.done?'done':''}"></div><span class="sub-t">${s.t}</span></div>`).join('');
+      return `<div class="${cl.join(' ')}">
+        <div class="ms-title">${n.n}</div>${n.desc?`<div class="ms-desc">${n.desc}</div>`:''}
+        ${n.subs&&n.subs.length?`<div class="ms-sub">${sb}</div>`:''}</div>`;
+    }).join('')}</div></div>`).join('');
+  const r=f.ref;
+  const ref=`<div class="reflect-card skill">
+    <div class="reflect-head"><div class="reflect-name">${r.n}</div><div class="reflect-score">${r.sc}<span class="unit">/ ${r.mx}</span></div></div>
+    <div class="score-bars">${r.d.map(x=>`<div class="score-row"><span class="score-label">${x.l}</span><div class="score-bar"><div class="score-fill" style="width:${x.v*10}%"></div></div><span class="score-val">${x.v}</span></div>`).join('')}</div>
+    <div class="reflect-notes">${r.note}</div></div>`;
+  return gh+ref;
+}
+function renderJob(f){
+  const sw=`<div class="salary-widget">
+    <div class="salary-top"><div class="salary-label">💰 薪资目标进度</div><div class="salary-target">目标 <b>¥${f.sal.t},000</b></div></div>
+    <div class="salary-val">0<small>%</small></div>
+    <div class="salary-bar"><div class="salary-fill" style="width:0%"></div></div>
+    <div class="salary-hint">入职后根据实际薪资解锁 · 阶段追踪见下方卡片</div></div>`;
+  function sec(title,arr,key){
+    const dn=arr.filter(x=>x.s==='done').length;
+    return `<div class="job-section">
+      <div class="job-section-head">
+        <div class="job-section-title">${title}</div>
+        <div class="job-section-meta"><b>${dn}</b>/${arr.length} 完成</div>
+      </div>
+      <div class="stage-rail">${arr.map(s=>`<div class="stage-card ${s.s}">
+        <div class="stage-top"><div class="stage-name">${s.n}</div><span class="stage-state ${s.s}">${s.s==='done'?'完成':s.s==='doing'?'进行中':'待办'}</span></div>
+        <div class="stage-bottom"><span>进度 <b>${s.p}%</b></span><span>${s.m}</span></div>
+        <div class="stage-mini-bar"><div class="stage-mini-fill" style="width:${s.p}%"></div></div>
+      </div>`).join('')}</div></div>`;
+  }
+  return sw+sec('🎯 主业：求职冲刺',f.main)+sec('🐻 副业：小红书「小憨熊」',f.side);
+}
+function renderLife(f){
+  return `<div class="life-grid">${f.cats.map(c=>`<div class="life-cat">
+    <div class="life-cat-head">
+      <div class="life-cat-name">${c.i} ${c.n}</div>
+      <span class="life-cat-badge">${c.items.filter(i=>i.done).length}/${c.items.length}</span>
+    </div>
+    <div class="life-items">${c.items.map(i=>`<div class="life-item ${i.done?'done':''}">
+      <div class="life-left"><span class="life-check"></span><span class="life-item-name">${i.n}</span></div>
+      <span class="life-date">${i.d}</span></div>`).join('')}</div>
+  </div>`).join('')}</div>`;
+}
+
+// ==== Render: Detail (left+right) ====
+function renderDetail(){
+  const d=DOMAINS.find(x=>x.key===curDom);
+  const f=FEATURE[curDom];
+  $('#bar-l').style.background=`var(${d.c})`;$('#d-name').textContent=d.name;
+  $('#bar-r').style.background=`var(${d.c})`;$('#f-name').textContent=f.name;$('#f-add').textContent=f.add;
+  $('#goal-list').innerHTML=renderGoals(curDom);
+  const p=$('#f-panel');
+  switch(f.type){
+    case'habits':p.innerHTML=renderHabits(f);break;
+    case'shelf':p.innerHTML=renderShelf(f);break;
+    case'milestones':p.innerHTML=renderMS(f);break;
+    case'job':p.innerHTML=renderJob(f);break;
+    case'life':p.innerHTML=renderLife(f);break;
+  }
+}
+
+// ==== Render: Month ====
+function renderMonth(){
+  $('#m-goals').innerHTML=MONTH_GOALS.map(g=>{
+    const c=pcCls(g.pct);
+    return `<div class="goal-item">
+      <div class="goal-head">
+        <div class="goal-title-wrap"><div class="goal-emoji">${g.e}</div><div>
+          <div class="goal-title">${g.t}</div>
+          <div class="goal-tags">${stTag(g.s)}</div>
+        </div></div>
+        <div class="goal-pct ${c}">${g.pct}%</div>
+      </div>
+      <div class="goal-bar"><div class="goal-fill" style="width:${g.pct}%;${barC(g.k,g.pct)}"></div></div>
+      <div class="goal-meta"><span>当前 <b>${g.cur}</b> / 目标 <b>${g.tgt}</b></span><span>来自年度：${DOMAINS.find(d=>d.key===g.k).name}</span></div>
+    </div>`;
+  }).join('');
+  // matrix
+  const D=31;let html='';
+  // header row
+  let hdr=`<div class="matrix-row" style="grid-template-columns:150px repeat(${D},1fr) 56px;">`;
+  hdr+='<div class="matrix-habit" style="font-size:9px;color:var(--text-tertiary);font-weight:700;letter-spacing:0.05em;">习惯</div>';
+  for(let i=1;i<=D;i++){
+    const we=[0,6].includes(new Date(2026,7,i).getDay());
+    const isT=i===TODAY;
+    let cl='matrix-hd'+(we?' we':'')+(isT?' today-cell':'');
+    hdr+=`<div class="${cl}">${i}</div>`;
+  }
+  hdr+='<div class="matrix-hd" style="text-align:right;padding-right:6px;">完成</div></div>';
+  html+=hdr;
+  HABITS.forEach(h=>{
+    const done=h.d.filter(x=>x===1).length;
+    let row=`<div class="matrix-row" style="grid-template-columns:150px repeat(${D},1fr) 56px;">`;
+    row+=`<div class="matrix-habit"><div class="matrix-emoji ${h.k}">${h.e}</div><div class="matrix-name">${h.n}</div></div>`;
+    for(let i=1;i<=D;i++){
+      const v=h.d[i-1],isF=i>TODAY,isT=i===TODAY;
+      const cl=['matrix-cell'];if(isF)cl.push('future');if(isT)cl.push('today');if(v===1){cl.push('done');cl.push(h.k);}
+      row+=`<div class="${cl.join(' ')}" data-h="${h.id}" data-d="${i}"></div>`;
+    }
+    row+=`<div class="matrix-stat"><b>${done}</b>/${h.tgt}</div></div>`;
+    html+=row;
+  });
+  $('#h-matrix').innerHTML=html;
+  $('#h-matrix').querySelectorAll('.matrix-cell:not(.future)').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const h=HABITS.find(x=>x.id===+el.dataset.h),i=+el.dataset.d;
+      if(!h||i>TODAY)return;
+      if(el.classList.contains('done')){el.classList.remove('done','energy','mind','skill');h.d[i-1]=0;}
+      else{el.classList.add('done',h.k);h.d[i-1]=1;}
+      const dn=h.d.filter(x=>x===1).length;
+      el.closest('.matrix-row').querySelector('.matrix-stat').innerHTML=`<b>${dn}</b>/${h.tgt}`;
+    });
+  });
+}
+
+// ==== Render: Week ====
+function renderWeek(){
+  $('#w-plans').innerHTML=WEEK_PLANS.map((p,i)=>`<div class="plan-item ${p.done?'done':''}" data-i="${i}">
+    <div class="plan-check ${p.done?'done':''}"></div>
+    <div class="plan-body"><div class="plan-text">${p.t}</div>
+    <div class="plan-foot"><span class="plan-cat ${p.c}">${p.cd}</span><span>${p.done?'已完成':'待执行'}</span></div></div>
+  </div>`).join('');
+  $$('#w-plans .plan-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const i=+el.dataset.i;WEEK_PLANS[i].done=!WEEK_PLANS[i].done;
+      el.classList.toggle('done');el.querySelector('.plan-check').classList.toggle('done');
+    });
+  });
+  // days
+  const wk=['一','二','三','四','五','六','日'];const s=17;let html='';
+  for(let i=0;i<7;i++){const dy=s+i;const wd=new Date(2026,7,dy).getDay();
+    const isT=dy===TODAY,isF=dy>TODAY,isP=dy<TODAY;
+    const cl=['day-card'];if(isT)cl.push('today');if(isF)cl.push('future');
+    const dhs=HABITS.map(h=>({...h,done:h.d[dy-1]===1}));const dn=dhs.filter(h=>h.done).length;
+    html+=`<div class="${cl.join(' ')}">
+      <div class="day-card-head"><div class="day-card-num">${dy}</div><div class="day-card-weekday">周${wk[i]}</div></div>
+      <div class="day-card-habits">${dhs.map(h=>`<div class="day-habit ${h.done?'done':''}">
+        <div class="day-habit-check ${h.done?'done '+h.k:''}" data-h="${h.id}" data-d="${dy}"></div>
+        <span class="day-habit-name">${h.e} ${h.n}</span></div>`).join('')}</div>
+      <div class="day-card-foot"><span>打卡</span><span><b>${dn}</b>/${HABITS.length}</span></div>
+    </div>`;
+  }
+  $('#w-days').innerHTML=html;
+  $$('#w-days .day-habit-check').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const h=HABITS.find(x=>x.id===+el.dataset.h),dy=+el.dataset.d;
+      if(!h||dy>TODAY)return;
+      if(el.classList.contains('done')){el.classList.remove('done','energy','mind','skill');h.d[dy-1]=0;el.parentElement.classList.remove('done');}
+      else{el.classList.add('done',h.k);h.d[dy-1]=1;el.parentElement.classList.add('done');}
+      const card=el.closest('.day-card');
+      const dn=card.querySelectorAll('.day-habit-check.done').length;
+      card.querySelector('.day-card-foot b').textContent=dn;
+    });
+  });
+}
+
+// ==== Tabs ====
+$$('.view-tabs button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    $$('.view-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    const v=b.dataset.view;$$('.view').forEach(x=>x.classList.remove('active'));$('#view-'+v).classList.add('active');
+    const t={year:'2026 年度',month:'2026 年 8 月',week:'本周 · 8月17-23日'};$('#period-title').textContent=t[v];
+  });
+});
+
+// ==== Init ====
+renderQ();renderRL();renderDG();renderDetail();renderMonth();renderWeek();
+</script>
+</body>
+</html>

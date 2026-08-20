@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年度规划 · 追踪矩阵</title>
+<style>
+/* ======================================================
+   WORKSTATION UI DESIGN TOKENS (strictly aligned)
+   ====================================================== */
+:root{
+  /* Text (exact from index.css + ui-spec-demo) */
+  --t1:#1c1c1e; --t2:#3c3c43; --t3:#8e8e93; --t4:#aeaeae;
+  /* Borders */
+  --uib:#d1d1d6;
+  --uib-2:rgba(60,60,67,0.12);
+  --uib-3:rgba(60,60,67,0.06);
+  /* Radii: 18 card | 12 row | 9 input/tab | 5 cb */
+  --r-card:18px; --r-row:12px; --r-tab:9px; --r-cb:5px;
+  /* Spacing 8pt */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+  /* Per-cell custom props (set inline) with safe defaults */
+  --cat:#8e8e93; --cat-bg:#e5e5ea; --cat-bd:#c6cbd3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  background:linear-gradient(180deg,#f5f5f7 0%,#e8e8ed 100%);
+  background-attachment:fixed;
+  min-height:100vh;color:var(--t1);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:-0.01em;
+  font-family:-apple-system,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  padding:24px;font-size:13px;
+}
+.p{max-width:1360px;margin:0 auto}
+
+/* ================= TOP ================= */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:16px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:42px;height:42px;border-radius:10px;background:rgba(120,120,128,0.12);display:grid;place-items:center;color:var(--t2);font-weight:700}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--t1)}
+.brand p{font-size:12px;color:var(--t3);font-weight:500;margin-top:2px}
+.act{display:flex;align-items:center;gap:var(--s2)}
+.bt{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r-tab);border:1px solid rgba(120,120,128,0.2);background:rgba(255,255,255,0.7);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s ease;backdrop-filter:blur(8px)}
+.bt:hover{background:rgba(255,255,255,0.95)}
+.bt.p{background:#007aff;border-color:#007aff;color:#fff}
+.bt.p:hover{background:#0062cc}
+.bt svg{width:13px;height:13px;stroke-width:2;fill:none;stroke:currentColor}
+.lgd{display:flex;gap:14px;margin-right:var(--s2);align-items:center}
+.lgi{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t3);font-weight:500}
+.lgd-d{width:11px;height:11px;border-radius:3px}
+
+/* ================= MATRIX GLASS CARD ================= */
+.mx{
+  background:rgba(255,255,255,0.72);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border:1px solid rgba(255,255,255,0.6);
+  border-radius:var(--r-card);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.06);
+  overflow:hidden;
+}
+
+/* ================= SECTION (week/month/year) - horizontal scroll for M/Y ================= */
+.sec{border-bottom:1px solid var(--uib-3)}
+.sec:last-child{border-bottom:none}
+.sec-scr{overflow-x:auto}
+.sec-grid{display:grid;min-width:100%}
+/* grid columns for 3 view types */
+.sec-grid.week{grid-template-columns:56px 180px repeat(7,40px) 110px}
+.sec-grid.month{grid-template-columns:56px 180px repeat(31,32px) 110px}
+.sec-grid.year{grid-template-columns:56px 180px repeat(12,56px) 110px}
+
+/* sticky cols when horizontal scrolling - need opaque bg for overlap */
+.stk-col1{position:sticky;left:0;z-index:4}
+.stk-col2{position:sticky;left:56px;z-index:3}
+.stk-sum{position:sticky;right:0;z-index:3}
+/* Opaque backing so scroll content doesn't bleed through sticky cells */
+.cat-lbl.stk-col1{backdrop-filter:blur(4px)}
+.h-info.stk-col2,.an-info.stk-col2,.qg-info.stk-col2{
+  position:sticky;left:56px;z-index:3;
+  box-shadow:inset -1px 0 0 var(--uib-3);
+  background-color:rgba(255,255,255,0.92);
+  background-blend-mode:normal;
+}
+/* Preserve gradient layer by applying it via ::before */
+.h-info.stk-col2{position:sticky;left:56px;z-index:3;background-image:linear-gradient(90deg,var(--cat-bg) 0%,transparent 70%);background-color:rgba(255,255,255,0.92)}
+.stk-sum:not(.hd-cell){background:rgba(255,255,255,0.95);backdrop-filter:blur(4px)}
+
+/* ================= HEADER ROW ================= */
+.hd-cell{
+  background:rgba(120,120,128,0.06);z-index:5;position:relative;
+  border-bottom:1px solid var(--uib-3);
+}
+/* Sticky column header needs opaque bg so content doesn't show through */
+.stk-col1.hd-cell,.stk-col2.hd-cell,.stk-sum.hd-cell{
+  backdrop-filter:blur(4px);
+  background:rgba(245,245,247,0.92);
+}
+.sec-lbl{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--t3);letter-spacing:0.06em;text-transform:uppercase;border-right:1px solid var(--uib-3)}
+.sec-dc{text-align:center;padding:9px 2px 6px;font-size:10px;font-weight:600;color:var(--t3);border-right:1px solid var(--uib-3)}
+.sec-dc:last-child{border-right:none}
+.sec-dc.today{color:#007aff;font-weight:700;background:rgba(0,122,255,0.08)}
+.sec-dc.wknd{color:#d4a017}
+.sec-dc .dw{display:block;font-size:9px;font-weight:600;margin-bottom:1px;letter-spacing:.04em}
+.sec-dc .dm{display:block;font-size:12px;font-weight:700}
+.sec-sum{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding:var(--s2) var(--s4);gap:1px;border-left:1px solid var(--uib-3);background:rgba(120,120,128,0.04)}
+.sec-sum .lb{font-size:11px;color:var(--t3);font-weight:500;white-space:nowrap}
+.sec-sum .ct{font-size:20px;font-weight:700;color:#007aff;font-variant-numeric:tabular-nums}
+
+/* ================= CATEGORY LABEL ================= */
+.cat-lbl{
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;letter-spacing:.1em;
+  position:relative;background:var(--cat-bg);color:var(--cat);
+  border-right:1px solid var(--uib-3);
+}
+.cat-lbl::after{
+  content:"";position:absolute;right:0;top:8px;bottom:8px;
+  width:3px;border-radius:0 2px 2px 0;background:var(--cat);
+}
+
+/* ================= HABIT INFO CELL ================= */
+.h-info{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;border-right:1px solid var(--uib-3);
+  background:linear-gradient(90deg,var(--cat-bg) 0%,transparent 70%);
+}
+.h-info .dt{width:8px;height:8px;border-radius:2px;background:var(--cat);flex-shrink:0}
+.h-info .mt{flex:1;min-width:0}
+.h-info .nm{font-size:15px;font-weight:500;color:var(--t1);line-height:1.3}
+.h-info .sb{font-size:12px;color:var(--t3);margin-top:2px}
+.h-info .ctrs{display:flex;align-items:center;gap:5px;margin-top:4px}
+.pl{display:inline-flex;align-items:center;gap:2px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.8);border:1px solid var(--uib-2);color:var(--t3);font-variant-numeric:tabular-nums}
+.pl.ok{background:var(--cat-bg);color:var(--cat);border-color:transparent}
+.pl.tg{color:var(--t3);font-weight:500}
+
+/* ================= CHECKBOX CELL (per day) ================= */
+.gc{
+  display:flex;align-items:center;justify-content:center;
+  transition:background .1s;position:relative;border-right:1px solid var(--uib-3);
+  padding:0 var(--s1);
+}
+.gc:last-child{border-right:none}
+.gc:hover{background:rgba(0,0,0,0.02)}
+.gc.ft{opacity:0.25;pointer-events:none}
+.gc.today{background:rgba(0,122,255,0.06)}
+.gc.today::before{content:"";position:absolute;inset:3px;border-radius:5px;border:1px solid rgba(0,122,255,0.25);pointer-events:none}
+.cb{
+  appearance:none;-webkit-appearance:none;
+  width:18px;height:18px;border-radius:var(--r-cb);
+  border:1.5px solid var(--cat-bd);background:#fff;
+  cursor:pointer;flex-shrink:0;display:inline-flex;
+  align-items:center;justify-content:center;transition:all .18s ease;margin:0;outline:none;
+}
+.cb:checked{background:var(--cat);border-color:var(--cat)}
+.cb:checked::after{content:"";width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.cb:hover:not(:checked){border-width:2px}
+
+/* ================= YEAR CELLS ================= */
+.yc{text-align:center;padding:8px 2px;font-size:12px;font-weight:700;color:var(--t3);border-right:1px solid var(--uib-3);cursor:pointer;transition:all .15s;border-radius:6px}
+.yc:hover{background:rgba(0,0,0,0.04)}
+.yc.done{background:var(--cat-bg);color:var(--cat)}
+.yc.done::after{content:"✓";display:block;font-size:13px;font-weight:800;margin-top:1px}
+.yc:last-child{border-right:none}
+
+/* ================= ACHIEVEMENT ROW ================= */
+.an-info{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;background:rgba(120,120,128,0.04);
+  border-right:1px solid var(--uib-3);
+}
+.an-info .mk{width:16px;height:16px;border-radius:4px;display:grid;place-items:center;background:rgba(0,0,0,0.06);color:var(--t3);font-size:10px;font-weight:700}
+.an-info .lt{font-size:11px;color:var(--t3);font-weight:600;letter-spacing:0.02em}
+.an-body{
+  padding:10px 14px;display:flex;align-items:center;gap:10px;
+  background:linear-gradient(90deg,var(--cat-bg) 0%,transparent 85%);
+}
+.an-body.done{background:linear-gradient(90deg,rgba(52,199,89,0.12) 0%,transparent 85%)!important}
+.an-ic{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;background:var(--cat)}
+.an-body.done .an-ic{background:#34c759!important}
+.an-tx{font-size:15px;font-weight:500;color:var(--t1)}
+
+/* ================= QUANT ROW ================= */
+.qg-info{display:flex;align-items:center;gap:8px;padding:10px 14px;border-right:1px solid var(--uib-3)}
+.qg-info .dt{width:6px;height:14px;border-radius:2px;background:var(--cat);flex-shrink:0}
+.qg-info .nm{font-size:13px;color:var(--t2);font-weight:600}
+.qg-body{padding:10px 14px;display:flex;align-items:center;gap:14px}
+.pb{flex:1;height:6px;border-radius:3px;background:rgba(60,60,67,0.1);overflow:hidden}
+.pf{height:100%;border-radius:3px;background:var(--cat);transition:width .5s ease}
+.pi{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.pv{font-size:13px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.pu{font-size:12px;color:var(--t3);font-weight:500}
+.pt{font-size:10px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:.03em;text-transform:uppercase;background:rgba(60,60,67,0.1);color:var(--t3)}
+.pt.done{background:rgba(52,199,89,0.1);color:#34c759}
+.pt.doing{background:rgba(0,122,255,0.1);color:#007aff}
+.pt.tg{background:rgba(255,149,0,0.12);color:#c98414}
+
+/* ================= PROGRESS BAR on category ================= */
+.cat-progress{height:2px;transition:width .4s ease;border-radius:0 1px 0 0;background:var(--cat);align-self:end}
+
+/* separator */
+.sec-sep{height:6px;background:linear-gradient(180deg,rgba(0,0,0,0.02),rgba(0,0,0,0.04))}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(60,60,67,0.18);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(60,60,67,0.3)}
+</style>
+</head>
+<body>
+<div class="p">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">✦</div>
+      <div>
+        <h1>2026 年度追踪</h1>
+        <p>周 / 月 / 年 · 习惯打卡 · 里程碑 · 量化目标</p>
+      </div>
+    </div>
+    <div class="act">
+      <div class="lgd">
+        <div class="lgi"><span class="lgd-d" style="background:#007aff"></span>已打卡</div>
+        <div class="lgi"><span class="lgd-d" style="background:#d1d1d6"></span>未打卡</div>
+        <div class="lgi"><span class="lgd-d" style="background:#34c759"></span>已完成</div>
+      </div>
+      <button class="bt">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        导出
+      </button>
+      <button class="bt p">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        添加目标
+      </button>
+    </div>
+  </div>
+  <div class="mx" id="mx"></div>
+</div>
+
+<script>
+const WD=['一','二','三','四','五','六','日'];
+const MS=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const W=7,M=31,Y=12,TODAY_W=1,TODAY_M=17;
+
+/* exact category colors from workstation uiConstants */
+const CAT={
+  en:{c:'#34c759',bg:'#e5f6ea',bd:'#8ee4a7'},
+  co:{c:'#007aff',bg:'#e0ecff',bd:'#8ab8ff'},
+  ab:{c:'#d4a017',bg:'#fbf3d8',bd:'#e6c873'},
+  wk:{c:'#af52de',bg:'#f3e8ff',bd:'#d4b5ee'},
+  lf:{c:'#ff3b30',bg:'#ffe8e8',bd:'#ff9999'},
+};
+const CS=k=>`--cat:${CAT[k].c};--cat-bg:${CAT[k].bg};--cat-bd:${CAT[k].bd}`;
+const LBLS={en:'精力',co:'认知',ab:'能力',wk:'工作',lf:'生活'};
+
+const H={
+  es:{n:'睡眠 7 小时',  s:'每日 · 23:00 前入睡', c:'en', w:[1,1,0,0,0,0,0], m:a(31,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  ew:{n:'喝水 2L',     s:'每日 · 分 4 次饮用',   c:'en', w:[1,0,0,0,0,0,0], m:a(31,[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  ee:{n:'运动',        s:'每周 2 次 · 跑步/健身', c:'en', w:[0,0,0,0,0,0,0], m:a(31,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  cr:{n:'看书',        s:'每周 ≥ 5 小时阅读',     c:'co', w:[0,1,0,0,0,0,0], m:a(31,[0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  si:{n:'即兴表达',    s:'每日 · 面试题录音练习', c:'ab', w:[1,1,0,0,0,0,0], m:a(31,[1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  se:{n:'英语口语',    s:'每日 · 飞书文档跟读',   c:'ab', w:[1,0,0,0,0,0,0], m:a(31,[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  wm:{n:'主业 · 求职投递', s:'每周 ≥ 5 份',      c:'wk', w:[1,1,0,0,0,0,0], m:a(31,[1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  ws:{n:'副业 · 小红书', s:'每周 ≥ 3 篇漫画',    c:'wk', w:[0,0,0,0,0,0,0], m:a(31,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  lm:{n:'学一道菜',    s:'每周 ≥ 1 次',          c:'lf', w:[0,1,0,0,0,0,0], m:a(31,[1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+  lv:{n:'电影/展览',   s:'每月 ≥ 4 次',          c:'lf', w:[1,0,0,0,0,0,0], m:a(31,[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])},
+};
+const AR={
+  a1:{lt:'阅读记录',tx:'《纳瓦尔宝典》看到第二章 p147 页',ok:false},
+  a2:{lt:'学习进展',tx:'完成数据分析基础课程学习',ok:true},
+  a3:{lt:'生活记录',tx:'学会一道菜 — 芥末罗氏虾',ok:true},
+  a4:{lt:'生活记录',tx:'看了电影《欢迎来龙餐馆》',ok:true},
+  a5:{lt:'本月目标',tx:'看完 1 本书',ok:false},
+};
+const QR={
+  q1:{nm:'年度运动目标',cu:124,tg:200,u:'次'},
+  q2:{nm:'年度阅读 12 本书',cu:5,tg:12,u:'本'},
+  q3:{nm:'数据分析课程进度',cu:1,tg:5,u:'阶段'},
+  q4:{nm:'求职投递 → Offer',cu:20,tg:100,u:'份'},
+  q5:{nm:'年度旅行',cu:1,tg:3,u:'次'},
+};
+const CATS=[
+  {k:'en',hs:['es','ew','ee'],ars:[],qs:['q1']},
+  {k:'co',hs:['cr'],ars:['a1','a5'],qs:['q2']},
+  {k:'ab',hs:['si','se'],ars:['a2'],qs:['q3']},
+  {k:'wk',hs:['wm','ws'],ars:[],qs:['q4']},
+  {k:'lf',hs:['lm','lv'],ars:['a3','a4'],qs:['q5']},
+];
+
+function a(n,v){return Array(n).fill(0).map((_,i)=>v[i]||0)}
+function yd(h){const m=H[h];if(!m._y)m._y=[12,10,11,13,8,9,12,12,11,0,0,0];return m._y}
+
+/* ============================================================
+   RENDER: each section uses grid with explicit row-start numbers
+   ============================================================ */
+function render(){
+  document.getElementById('mx').innerHTML=sec('week')+sec('month')+sec('year');
+  bind();
+}
+
+function sec(type){
+  const N=type==='week'?W:type==='month'?M:Y;
+  const lbl=type==='week'?'周视图':type==='month'?'月视图':'年视图';
+  const sl=type==='week'?'8月17-23日':type==='month'?'8月':'2026';
+  const st=type==='week'?'完成打卡':type==='month'?'完成打卡':'完成月份';
+  const cls=type; // 'week' | 'month' | 'year' -> sets grid column widths via CSS
+
+  // HEADER row (row 1)
+  let dates='';
+  if(type==='year'){
+    dates=MS.map((m,i)=>{
+      const x=['sec-dc'];if(i===7)x.push('today');
+      return `<div class="${x.join(' ')}" style="grid-column:${i+3};grid-row:1">${m}</div>`;
+    }).join('');
+  }else{
+    dates=Array.from({length:N},(_,i)=>{
+      const d=i+1,wd=type==='week'?i:(4+i)%7;
+      const x=['sec-dc'];
+      if((type==='week'&&d===TODAY_W)||(type==='month'&&d===TODAY_M))x.push('today');
+      if(wd===5||wd===6)x.push('wknd');
+      return `<div class="${x.join(' ')}" style="grid-column:${i+3};grid-row:1">
+        <span class="dw">${WD[wd]}</span><span class="dm">${d}</span></div>`;
+    }).join('');
+  }
+
+  const header=`
+    <div class="sec-lbl stk-col1 hd-cell" style="grid-column:1;grid-row:1">${lbl}</div>
+    <div class="stk-col2 hd-cell" style="grid-column:2;grid-row:1"></div>
+    <div class="sec-sum stk-sum hd-cell" style="grid-column:${N+3};grid-row:1">
+      <div class="lb">${sl} · ${st}</div>
+      <div class="ct" id="${type}-total">0</div>
+    </div>
+    ${dates.replace(/class="sec-dc"/g,'class="sec-dc hd-cell"')}
+  `;
+
+  // BODY rows (start from grid-row 2)
+  let rs=2;
+  const catBlocks=CATS.map(c=>{
+    const html=catBlock(c,type,N,rs);
+    rs+=c.hs.length+c.ars.length+c.qs.length;
+    return html;
+  }).join('');
+
+  const sep=type==='year'?'':'<div class="sec-sep"></div>';
+  return `<div class="sec"><div class="sec-scr"><div class="sec-grid ${cls}">${header}${catBlocks}</div></div>${sep}</div>`;
+}
+
+function catBlock(cat,type,N,rowStart){
+  const k=cat.k;
+  const style=CS(k);
+  const rCount=cat.hs.length+cat.ars.length+cat.qs.length;
+  let r=rowStart;
+  let html=`<div class="cat-lbl stk-col1" style="grid-column:1;grid-row:${rowStart} / span ${rCount};${style}">${LBLS[k]}</div>`;
+  cat.hs.forEach(h=>{html+=habitRow(h,type,N,r);r++});
+  cat.ars.forEach(a=>{html+=achRow(a,type,N,r,k);r++});
+  cat.qs.forEach(q=>{html+=quantRow(q,type,N,r,k);r++});
+
+  // category completion
+  let total=0,done=0;
+  cat.hs.forEach(hid=>{
+    const dt=type==='week'?H[hid].w:type==='month'?H[hid].m:yd(hid);
+    total+=dt.length;done+=dt.filter(x=>type==='year'?x>0:x===1).length;
+  });
+  const pct=total>0?Math.round(done/total*100):0;
+  html+=`<div class="cat-progress stk-col2" style="grid-column:2 / -1;grid-row:${rowStart+rCount-1};width:${pct}%;${style}"></div>`;
+  return html;
+}
+
+function habitRow(hid,type,N,r){
+  const h=H[hid];const st=CS(h.c);
+  const dt=type==='week'?h.w:type==='month'?h.m:yd(hid);
+  const done=type==='year'?dt.filter(x=>x>0).length:dt.filter(x=>x===1).length;
+  let cells='';
+  for(let i=0;i<N;i++){
+    const d=i+1;
+    const isFut=type==='week'?d>TODAY_W:type==='month'?d>TODAY_M:false;
+    const isToday=type==='week'?d===TODAY_W:type==='month'?d===TODAY_M:false;
+    if(type==='year'){
+      const v=dt[i];
+      cells+=`<div class="yc ${v>0?'done':''}" data-hy="${hid}" data-mi="${i}" style="grid-column:${i+3};grid-row:${r};${v>0?st:''}">${v>0?'✓':MS[i].replace('月','')}</div>`;
+    }else{
+      const x=['gc'];if(isFut)x.push('ft');if(isToday)x.push('today');
+      cells+=`<div class="${x.join(' ')}" data-h="${hid}" data-d="${d}" style="grid-column:${i+3};grid-row:${r}">
+        <input type="checkbox" class="cb" ${dt[i]===1?'checked':''} style="${st}"></div>`;
+    }
+  }
+  const tgtTxt=type==='week'?'周':type==='month'?'月':'月度';
+  return `
+    <div class="h-info stk-col2" style="grid-column:2;grid-row:${r};margin-top:4px;margin-bottom:8px;${st}">
+      <span class="dt"></span>
+      <div class="mt">
+        <div class="nm">${h.n}</div>
+        <div class="sb">${h.s}</div>
+        <div class="ctrs"><span class="pl ok" style="${st}">${done}</span><span class="pl tg">${tgtTxt}</span></div>
+      </div>
+    </div>
+    ${cells}
+    <div class="stk-sum" style="grid-column:${N+3};grid-row:${r}"></div>
+  `;
+}
+
+function achRow(aid,type,N,r,ck){
+  const a=AR[aid];const st=CS(ck);
+  return `
+    <div class="an-info stk-col2" style="grid-column:2;grid-row:${r};margin-bottom:8px">
+      <span class="mk">!</span>
+      <span class="lt">${a.lt}</span>
+    </div>
+    <div class="an-body ${a.ok?'done':''}" style="grid-column:3 / span ${N+1};grid-row:${r};margin-bottom:8px;${st}">
+      <span class="an-ic" style="${a.ok?'--cat:#34c759;--cat-bg:rgba(52,199,89,0.1);':st}">${a.ok?'✓':'i'}</span>
+      <span class="an-tx">${a.tx}</span>
+    </div>
+  `;
+}
+
+function quantRow(qid,type,N,r,ck){
+  const q=QR[qid];const st=CS(ck);
+  const pct=Math.min(Math.round(q.cu/q.tg*100),100);
+  const s=pct>=100?'done':pct>=30?'doing':'tg';
+  return `
+    <div class="qg-info stk-col2" style="grid-column:2;grid-row:${r};margin-bottom:8px">
+      <span class="dt" style="${st}"></span>
+      <span class="nm">${q.nm}</span>
+    </div>
+    <div class="qg-body" style="grid-column:3 / span ${N+1};grid-row:${r};margin-bottom:8px">
+      <div class="pb"><div class="pf" style="width:${pct}%;${st}"></div></div>
+      <div class="pi">
+        <span class="pv">${q.cu}</span>
+        <span class="pu">/ ${q.tg} ${q.u}</span>
+        <span class="pt ${s}">${s==='done'?'已完成':s==='doing'?'进行中':'目标'}</span>
+      </div>
+    </div>
+  `;
+}
+
+/* ====================================================== EVENTS ====================================================== */
+function bind(){
+  document.querySelectorAll('.cb').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      const gc=cb.closest('.gc');if(!gc)return;
+      const hid=gc.dataset.h,d=parseInt(gc.dataset.d);if(!hid)return;
+      const sec=cb.closest('.sec');
+      const lbl=sec.querySelector('.sec-lbl')?.textContent;
+      const dt=lbl==='周视图'?H[hid].w:H[hid].m;
+      dt[d-1]=cb.checked?1:0;
+      const info=gc.closest('.sec-grid');if(info){
+        const r=parseInt(gc.style.gridRow);
+        // find info cell on same row
+        const infoCell=info.querySelector(`.h-info[style*="grid-row:${r}"]`);
+        if(infoCell){
+          const cnt=dt.filter(x=>x===1).length;
+          const pill=infoCell.querySelector('.pl.ok');
+          if(pill)pill.textContent=cnt;
+        }
+      }
+      totals();updateCatProgress(sec);
+    });
+  });
+
+  document.querySelectorAll('.yc').forEach(c=>{
+    c.addEventListener('click',()=>{
+      const hid=c.dataset.hy,mi=parseInt(c.dataset.mi);if(!hid)return;
+      const done=c.classList.contains('done');
+      const y=yd(hid);y[mi]=done?0:12;
+      c.classList.toggle('done',!done);
+      c.innerHTML=!done?'✓':MS[mi].replace('月','');
+      // apply style only when done for tint
+      const h=H[hid];
+      if(!done)c.setAttribute('style',(c.getAttribute('style')||'')+';'+CS(h.c));
+      else c.setAttribute('style',c.getAttribute('style').replace(new RegExp(CS(h.c).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+';?','g'),''));
+      const sec=c.closest('.sec');const grid=c.closest('.sec-grid');if(grid){
+        const r=parseInt(c.style.gridRow);
+        const infoCell=grid.querySelector(`.h-info[style*="grid-row:${r}"]`);
+        if(infoCell){
+          const cnt=y.filter(x=>x>0).length;
+          const pill=infoCell.querySelector('.pl.ok');
+          if(pill)pill.textContent=cnt;
+        }
+      }
+      totals();updateCatProgress(sec);
+    });
+  });
+  totals();
+}
+
+function updateCatProgress(sec){
+  if(!sec)return;
+  sec.querySelectorAll('.cat-progress').forEach(pb=>{
+    const grid=pb.closest('.sec-grid');
+    const rowStr=pb.style.gridRow;
+    let startRow,span;
+    if(rowStr.includes('/ span')){[startRow,span]=rowStr.split(' / span ').map(x=>parseInt(x.replace(/[^\d]/g,'')))}
+    else{startRow=parseInt(rowStr);span=1}
+    // Find checkboxes & yc within this grid that are in row range
+    let total=0,done=0;
+    grid.querySelectorAll('.cb,.yc').forEach(el=>{
+      const rr=parseInt(el.style.gridRow);
+      if(rr>=startRow && rr<startRow+span){
+        if(el.classList.contains('yc')){total++;if(el.classList.contains('done'))done++}
+        else{total++;if(el.checked)done++}
+      }
+    });
+    const pct=total>0?Math.round(done/total*100):0;
+    pb.style.width=pct+'%';
+  });
+}
+
+function totals(){
+  ['week','month','year'].forEach(t=>{
+    const sec=document.querySelectorAll('.sec')[t==='week'?0:t==='month'?1:2];
+    if(!sec)return;let cnt=0;
+    if(t==='year')cnt=sec.querySelectorAll('.yc.done').length;
+    else cnt=sec.querySelectorAll('.cb:checked').length;
+    const el=document.getElementById(`${t}-total`);
+    if(el)el.textContent=cnt;
+  });
+}
+
+render();
+</script>
+</body>
+</html>

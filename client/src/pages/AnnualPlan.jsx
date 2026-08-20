@@ -166,18 +166,23 @@ function CategoryIcon({ catKey, className }) {
 }
 
 function ProgressBar({ value, color, height }) {
+  // P1-4: 全局统一 4px 高度，状态颜色语义化
+  const h = height || 'h-1';
   return (
-    <div className={`${height || 'h-1.5'} rounded-full bg-ink-100 overflow-hidden`}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color || undefined }} />
+    <div className={`${h} rounded-full bg-ink-100 overflow-hidden`}>
+      <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color || '#4b63f0' }} />
     </div>
   );
 }
 
 function AddButton({ label, onClick }) {
+  // P2-1: 圆形白+号+文字，去虚线
   return (
-    <button onClick={onClick || (() => {})} className="p-2.5 rounded-xl border border-dashed border-ink-200 text-ink-500 text-xs font-semibold inline-flex items-center justify-center gap-1 hover:bg-surface-soft hover:border-brand-400/40 hover:text-brand-500 transition mt-auto cursor-pointer">
-      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-      {label}
+    <button onClick={onClick || (() => {})} className="mt-auto p-2 rounded-xl border border-ink-100 text-ink-500 text-xs font-semibold inline-flex items-center justify-center gap-2 hover:bg-ink-50 hover:border-ink-200 hover:text-ink-700 transition cursor-pointer w-full">
+      <span className="w-5 h-5 rounded-full bg-ink-100 grid place-items-center text-ink-600 flex-shrink-0">
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+      </span>
+      <span>{label}</span>
     </button>
   );
 }
@@ -417,31 +422,53 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     <div className="flex flex-col gap-5">
       {/* Hero */}
       <section className="glass-card p-5 flex items-center gap-6">
-        <div className="relative w-24 h-24 flex-shrink-0">
-          <svg viewBox="0 0 36 36" className="w-24 h-24 -rotate-90">
-            <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
-            <circle cx="18" cy="18" r="15" fill="none" stroke="#4b63f0" strokeWidth="3"
-              strokeDasharray={`${(stats.weighted / 100) * 94.2} 94.2`} strokeLinecap="round"/>
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold text-ink-900 tabular-nums leading-none">{stats.weighted}</span>
-            <span className="text-[10px] text-ink-500 mt-1.5">/ 100</span>
+        <div className="relative flex-shrink-0">
+          <div className="absolute -inset-3 rounded-full bg-brand-500/5" />
+          <div className="relative w-[120px] h-[120px]">
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="2.5"/>
+              <circle cx="18" cy="18" r="15" fill="none" stroke="#4b63f0" strokeWidth="2.5"
+                strokeDasharray={`${(stats.weighted / 100) * 94.2} 94.2`} strokeLinecap="round"/>
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-ink-900 tabular-nums leading-none">{stats.weighted}</span>
+              <span className="text-xs text-ink-500 mt-1">/ 100</span>
+            </div>
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-base font-bold text-ink-900 tracking-tight">{year} 年度规划总览</h2>
+          <h2 className="text-base font-bold text-ink-900 tracking-tight mb-2">{year} 年度规划总览</h2>
+          {/* 最优/最弱结构化pill */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+              style={{ background: `${CATEGORIES[bestIdx].color}12`, color: CATEGORIES[bestIdx].color }}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7" strokeLinecap="round"/></svg>
+              最优 · {CATEGORIES[bestIdx].label} {Math.round(stats.perCat[bestIdx])}%
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+              style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round"/></svg>
+              待提升 · {CATEGORIES[worstIdx].label} {Math.round(stats.perCat[worstIdx])}%
+            </span>
           </div>
-          <p className="text-sm text-ink-500 leading-relaxed mb-3">
-            已完成 <span className="font-semibold text-ink-900">{stats.weighted}%</span> 的年度计划。
-            五大类目中，表现最优为
-            <span style={{color: CATEGORIES[bestIdx].color}} className="font-semibold"> {CATEGORIES[bestIdx].label}</span>，
-            <span style={{color: CATEGORIES[worstIdx].color}} className="font-semibold"> {CATEGORIES[worstIdx].label}</span> 待重点提升。
+          <p className="text-sm text-ink-500 leading-relaxed mb-4">
+            已完成 <span className="font-semibold text-ink-900">{stats.weighted}%</span> 的年度计划
           </p>
-          <div className="grid grid-cols-3 gap-3 max-w-lg">
-            <Stat label="完成目标" value={doneGoals} sub="个" />
-            <Stat label="累计打卡" value={totalCheckins} sub="次" />
-            <Stat label="今年剩余" value={daysLeft} sub="天" />
+          {/* 3 Stat 去卡片 → 纯文字块 */}
+          <div className="grid grid-cols-3 gap-0 max-w-xl">
+            {[
+              { label: '完成目标', v: doneGoals, u: '个', color: '#4b63f0' },
+              { label: '累计打卡', v: totalCheckins, u: '次', color: '#22c55e' },
+              { label: '今年剩余', v: daysLeft, u: '天', color: '#f59e0b' },
+            ].map(s => (
+              <div key={s.label} className="flex flex-col gap-0.5 pr-6">
+                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.label}</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-bold text-ink-900 tabular-nums leading-none">{s.v}</span>
+                  <span className="text-xs text-ink-500">{s.u}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -452,18 +479,18 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           const v = Math.round(stats.perCat[i]);
           return (
             <button key={c.key} onClick={() => onNav(c.key)}
-              className="glass-card p-4 text-left flex flex-col gap-3 hover:shadow-cardL transition-all group"
-              style={{ borderTop: `3px solid ${c.color}` }}>
+              className="glass-card p-4 text-left flex flex-col gap-3 hover:shadow-cardL transition-all group">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg grid place-items-center text-white"
-                  style={{ background: c.color }}>
+                <div className="w-7 h-7 rounded-lg grid place-items-center bg-ink-100 text-ink-500"
+                  style={{ color: c.color, background: `${c.color}10` }}>
                   <CategoryIcon catKey={c.key} className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-bold text-ink-900 leading-tight">{c.label}</span>
                   <span className="text-xs text-ink-500">{c.type}</span>
                 </div>
-                <span className="ml-auto text-xs font-semibold text-ink-500 group-hover:text-ink-700">
+                <span className="ml-auto text-xs font-bold tabular-nums group-hover:opacity-80 transition"
+                  style={{ color: c.color }}>
                   {v}%
                 </span>
               </div>
@@ -495,9 +522,10 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
   switch (cat) {
     case 'energy': {
       const habits = realHabits || HABITS;
-      if (habits.length === 0) return <div className="text-xs text-ink-400 pt-1 border-t border-ink-100">暂无精力类习惯</div>;
+      if (habits.length === 0) return <div className="text-xs text-ink-400 pt-1">暂无精力类习惯</div>;
       return (
-        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
+        // P1-3: 删border-t
+        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1">
           {habits.map(h => (
             <SummaryRow key={h.key} lb={h.name || h.label.replace(/^\S+\s/, '')} v={h.val} t={h.target} />
           ))}
@@ -510,7 +538,7 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
       const reading = dynBooks.filter(b => b.st === 'reading').length;
       const cogPct = pct(done, 12);
       return (
-        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
+        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1">
           <div>年度目标 12 本 · 已读 <span className="font-semibold text-ink-900 tabular-nums">{done}</span> 本</div>
           <div className="text-xs text-ink-500">完成率 {cogPct}% · 正在读 {reading} 本</div>
         </div>
@@ -519,7 +547,7 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
     case 'ability': {
       const dynAb = abilities || ABILITY;
       return (
-        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
+        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1">
           {dynAb.map(a => {
             const mDone = a.mstones.filter(m => m.st === 'done').length;
             const mTotal = a.mstones.length;
@@ -534,7 +562,7 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
       const mainP = main ? Math.round(main.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / main.krs.length) : 0;
       const sideP = side ? Math.round(side.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / side.krs.length) : 0;
       return (
-        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
+        <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1">
           <div className="flex items-center justify-between"><span>主业完成</span><span className="font-semibold text-ink-900 tabular-nums">{mainP}%</span></div>
           <div className="flex items-center justify-between"><span>副业完成</span><span className="font-semibold text-ink-900 tabular-nums">{sideP}%</span></div>
           <div className="text-xs text-ink-500">薪资目标 · 截止 {main?.deadline || ''}</div>
@@ -543,14 +571,14 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
     }
     case 'life': {
       const dynLife = lifeData || LIFE;
+      // P1-3: 生活改文字标签而非5小格
+      const total = dynLife.reduce((s, c) => s + c.entries.length, 0);
       return (
-        <div className="grid grid-cols-5 gap-0.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
-          {dynLife.map(i => (
-            <div key={i.key} className="flex flex-col items-center gap-0.5 p-1 rounded-md bg-surface-soft">
-              <span className="font-bold text-ink-900 tabular-nums">{i.entries.length}</span>
-              <span className="text-xs text-ink-500">{i.lb}</span>
-            </div>
-          ))}
+        <div className="flex flex-col gap-1 text-xs text-ink-500 pt-1">
+          <div>累计 <span className="font-semibold text-ink-900 tabular-nums">{total}</span> 条生活记录</div>
+          <div className="text-[11px] text-ink-500 leading-snug truncate">
+            {dynLife.map(i => `${i.lb}${i.entries.length}`).join(' · ')}
+          </div>
         </div>
       );
     }
@@ -569,18 +597,22 @@ function SummaryRow({ lb, v, t }) {
 
 /* ---------- 7. 视图 · 精力 (习惯打卡) ---------- */
 function EnergyView({ realHabits, loading, onAction }) {
-  // onAction 现在用于打开习惯编辑 Modal（由父组件传入）
-  // 精力习惯的增删改通过工作台 HabitForm + API 实现
   const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const [half, setHalf] = useState('H1'); // H1: 1-6月, H2: 7-12月
   const habits = realHabits || HABITS;
+
   if (loading && !realHabits) {
     return (
       <div className="flex flex-col gap-4">
-        <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
-        <div className="glass-card p-12 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-3 border-ink-200 border-t-accent-green rounded-full" style={{ animation: 'spin 0.8s linear infinite' }} />
-            <span className="text-sm text-ink-500">加载习惯数据...</span>
+        <SectionHeader cat="energy" title="精力 · 习惯打卡" />
+        <div className="glass-card p-16 flex flex-col items-center justify-center gap-4">
+          <div className="relative w-10 h-10">
+            <div className="absolute inset-0 rounded-full border-2 border-ink-100" />
+            <div className="absolute inset-0 rounded-full border-2 border-brand-500 border-t-transparent" style={{ animation: 'spin 0.8s linear infinite' }} />
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-sm font-semibold text-ink-700">正在同步习惯数据...</span>
+            <span className="text-xs text-ink-500">从工作台自动读取精力类习惯的年度打卡记录</span>
           </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -590,58 +622,67 @@ function EnergyView({ realHabits, loading, onAction }) {
   if (habits.length === 0) {
     return (
       <div className="flex flex-col gap-4">
-        <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
-        <div className="glass-card p-12 text-center">
-          <p className="text-sm font-semibold text-ink-700 mb-1">还没有精力类习惯</p>
-          <p className="text-xs text-ink-500">前往工作台「习惯」面板创建睡眠、喝水、运动等打卡习惯，这里会自动同步数据</p>
+        <SectionHeader cat="energy" title="精力 · 习惯打卡" />
+        <div className="glass-card p-16 flex flex-col items-center justify-center gap-3 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-accent-green/10 grid place-items-center">
+            <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-sm font-bold text-ink-900">还没有精力类习惯</p>
+            <p className="text-xs text-ink-500 max-w-sm">前往工作台「习惯」面板创建睡眠、喝水、运动等打卡习惯，<br/>这里会自动同步年度打卡数据</p>
+          </div>
         </div>
       </div>
     );
   }
+
+  const monthIndices = half === 'H1' ? [1,2,3,4,5,6] : [7,8,9,10,11,12];
+  const monthLabels = monthIndices.map(i => months[i-1]);
+  const monthMaxDays = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+  // 计算精力模块完成率
+  const energyPct = habits.length > 0
+    ? Math.round(habits.reduce((s, h) => s + pct(h.val, h.target), 0) / habits.length)
+    : 0;
+
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
-      <div className="grid grid-cols-3 gap-4 mb-1 annual-energy-grid">
-        {habits.map(h => {
-          const p = pct(h.val, h.target);
-          return (
-            <div key={h.key} className="glass-card p-4 flex flex-col gap-3"
-              style={{ borderTop: `3px solid ${catMeta('energy').color}` }}>
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm font-bold text-ink-900 truncate">{h.label}</span>
-                  <span className="text-xs text-ink-500">目标 {h.target} {h.unit}</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-ink-900 tabular-nums leading-none">{p}<span className="text-xs font-semibold text-ink-500">%</span></div>
-                </div>
-              </div>
-              <ProgressBar value={p} color={catMeta('energy').color} />
-              <div className="flex items-center justify-between text-xs text-ink-500 pt-1">
-                <span>已完成 <b className="text-ink-900 tabular-nums">{h.val}</b> {h.unit}</span>
-                <span>剩余 {Math.max(0, h.target - h.val)}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      {/* 月度打卡矩阵 */}
+      <SectionHeader cat="energy" title="精力 · 习惯打卡" progress={energyPct} />
       <div className="glass-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-ink-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-ink-900">{new Date().getFullYear()} 累计打卡</h3>
-          <span className="text-xs text-ink-500">单位：{habits[0].unit}</span>
+        <div className="px-4 py-3 border-b border-ink-100 flex flex-wrap items-center gap-3 justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {habits.map(h => (
+              <span key={h.key} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                style={{ background: h.val >= h.target ? 'rgba(34,197,94,0.12)' : 'rgba(75,99,240,0.10)', color: h.val >= h.target ? '#22c55e' : '#4b63f0' }}>
+                {h.label.replace(/^\S+\s?/, '')} {h.val}/{h.target}
+                <span className="opacity-70">{h.unit}</span>
+              </span>
+            ))}
+          </div>
+          <div className="inline-flex p-0.5 rounded-lg bg-ink-100">
+            {[
+              { k: 'H1', lb: '上半年 1-6 月' },
+              { k: 'H2', lb: '下半年 7-12 月' },
+            ].map(t => (
+              <button key={t.k} onClick={() => setHalf(t.k)}
+                className={[
+                  'px-3 py-1 rounded-md text-xs font-bold transition-all',
+                  half === t.k ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'
+                ].join(' ')}>
+                {t.lb}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
-            {/* 表头 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div>习惯名称</div>
               <div>累计</div>
               <div>目标</div>
-              {months.slice(0, 7).map(m => <div key={m} className="text-center">{m}</div>)}
+              {monthLabels.map(m => <div key={m} className="text-center">{m}</div>)}
               <div className="text-right">完成率</div>
             </div>
-            {/* 行 */}
             {habits.map(h => {
               const p = pct(h.val, h.target);
               return (
@@ -651,20 +692,23 @@ function EnergyView({ realHabits, loading, onAction }) {
                   </div>
                   <div className="font-bold tabular-nums text-ink-900">{h.val}</div>
                   <div className="tabular-nums text-ink-500">{h.target}</div>
-                  {months.slice(0, 7).map((m, i) => {
-                    const n = h.month?.[i + 1] || 0;
-                    const maxT = [31, 28, 31, 30, 31, 30, 31][i];
+                  {monthIndices.map((monthIdx, arrayIdx) => {
+                    const n = h.month?.[monthIdx] || 0;
+                    const maxT = monthMaxDays[monthIdx - 1];
                     const ratio = n / maxT;
-                    const bg = ratio >= 0.9 ? 'bg-accent-green/80 text-white' : ratio >= 0.6 ? 'bg-accent-green/30 text-accent-green' : ratio >= 0.3 ? 'bg-accent-green/15 text-accent-green' : 'bg-ink-100 text-ink-500';
+                    const passed = ratio >= 0.8;
                     return (
-                      <div key={m} className="flex justify-center">
-                        <span className={`text-xs font-bold tabular-nums px-2 py-1 rounded-md min-w-[36px] text-center ${bg}`}>{n}</span>
+                      <div key={monthIdx} className="flex justify-center">
+                        <span className={[
+                          'text-xs font-bold tabular-nums px-2 py-1 rounded-md min-w-[36px] text-center transition-colors',
+                          passed ? 'bg-accent-green text-white' : 'bg-ink-100 text-ink-500'
+                        ].join(' ')}>{n}</span>
                       </div>
                     );
                   })}
                   <div className="flex items-center justify-end gap-2">
-                    <div className="w-16"><ProgressBar value={p} color={catMeta('energy').color} height="h-1" /></div>
-                    <span className="text-xs font-bold tabular-nums text-ink-900 w-10 text-right">{p}%</span>
+                    <div className="w-16"><ProgressBar value={p} color="#22c55e" /></div>
+                    <span className="text-xs font-bold tabular-nums w-10 text-right" style={{color:'#22c55e'}}>{p}%</span>
                   </div>
                 </div>
               );
@@ -687,28 +731,38 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
     };
   }, [books]);
   const groupLabels = [
-    { key: 'reading', lb: '阅读中', bg: 'bg-accent-blue', count: groups.reading.length, col: groups.reading.length > 0 ? undefined : 'opacity-50' },
-    { key: 'pending', lb: '未开始', bg: 'bg-ink-500', count: groups.pending.length, col: groups.pending.length > 0 ? undefined : 'opacity-50' },
-    { key: 'done',    lb: '已读完', bg: 'bg-accent-green', count: groups.done.length,    col: groups.done.length > 0 ? undefined : 'opacity-50' },
+    { key: 'reading', lb: '阅读中', col: '#4b63f0', count: groups.reading.length, disabled: groups.reading.length === 0 },
+    { key: 'pending', lb: '未开始', col: '#8e8e93', count: groups.pending.length, disabled: groups.pending.length === 0 },
+    { key: 'done',    lb: '已读完', col: '#22c55e', count: groups.done.length,    disabled: groups.done.length === 0 },
   ];
+
+  const CAT_COLOR = {
+    '商业': '#1d4ed8', '心理学': '#7c3aed', '哲学': '#047857',
+    '科技': '#0891b2', '传记': '#be185d', '文学': '#475569', '其他': '#64748b',
+  };
+
+  // 计算认知完成率（基于KR的加权平均）
+  const cogPct = useMemo(() => {
+    const total = COG_KR.reduce((s, kr) => s + pct(kr.val, kr.tgt), 0);
+    return Math.round(total / COG_KR.length);
+  }, []);
+
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="cognition" title="认知 · 书架系统" sub="混合型目标 · 阅读打卡 + OKR 结合" />
+      <SectionHeader cat="cognition" title="认知 · 书架系统" progress={cogPct} />
       {/* KR */}
       <div className="grid grid-cols-3 gap-4">
         {COG_KR.map(kr => {
           const p = pct(kr.val, kr.tgt);
           return (
-            <div key={kr.lb} className="glass-card p-4 flex flex-col gap-2.5"
-              style={{ borderTop: `3px solid ${catMeta('cognition').color}` }}>
-              <span className="text-xs font-bold text-accent-blue uppercase tracking-wide">{kr.lb.slice(0, 3)}</span>
-              <span className="text-sm font-bold text-ink-900 leading-snug">{kr.lb.slice(4)}</span>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-xl font-bold text-ink-900 tabular-nums leading-none">{kr.val}</span>
+            <div key={kr.lb} className="glass-card p-4 flex flex-col gap-2.5">
+              <span className="text-sm font-bold text-ink-900 leading-snug">{kr.lb}</span>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-xl font-bold tabular-nums leading-none" style={{color: '#4b63f0'}}>{kr.val}</span>
                 <span className="text-xs text-ink-500">/ {kr.tgt} · {kr.sub}</span>
               </div>
-              <ProgressBar value={p} color={catMeta('cognition').color} height="h-1" />
-              <div className="text-xs font-bold text-ink-500 tabular-nums">完成率 {p}%</div>
+              <ProgressBar value={p} color="#4b63f0" />
+              <div className="text-xs font-semibold tabular-nums" style={{color:'#4b63f0'}}>完成率 {p}%</div>
             </div>
           );
         })}
@@ -716,35 +770,35 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
       {/* 书架看板 - 3列: 阅读中 / 未开始 / 已读完 */}
       <div className="grid grid-cols-3 gap-4">
         {groupLabels.map(g => (
-          <div key={g.key} className={`flex flex-col gap-2.5 ${g.col}`}>
+          <div key={g.key} className={`flex flex-col gap-2.5 ${g.disabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center gap-2 px-0.5">
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full text-white ${g.bg}`}>{g.lb}</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{ background: `${g.col}10`, color: g.col }}>{g.lb}</span>
               <span className="text-xs font-bold text-ink-700 tabular-nums">{g.count}</span>
             </div>
             <div className="flex flex-col gap-2 flex-1 min-h-[100px]">
               {(groups[g.key] || []).map((b, idx) => {
                 const sm = statusMeta(b.st);
                 const dim = b.st === 'done' ? 'text-ink-500' : 'text-ink-900';
+                const coverColor = CAT_COLOR[b.cat] || CAT_COLOR['其他'];
                 return (
                   <div key={idx} onClick={() => onBookEdit?.(b)} className="glass-card p-3 hover:shadow-cardL transition cursor-pointer">
-                    <div className="flex items-start gap-2.5 mb-1.5">
-                      <div className="w-9 h-12 rounded-md flex-shrink-0"
-                        style={{ background: sm.bar || '#9ca3af' }}>
-                      </div>
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-9 h-12 rounded-md flex-shrink-0 opacity-85"
+                        style={{ background: `linear-gradient(135deg, ${coverColor} 0%, ${coverColor}cc 100%)` }} />
                       <div className="flex-1 min-w-0">
                         <div className={`text-sm font-semibold leading-snug ${dim}`}>{b.t}</div>
                         <div className="text-xs text-ink-500 mt-0.5 truncate">{b.author}</div>
                       </div>
+                      <div className="text-xs font-bold tabular-nums flex-shrink-0" style={{color: g.col}}>{b.pct}%</div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-ink-100">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-surface-soft text-ink-500">{b.cat}</span>
-                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-surface-soft text-ink-500">{b.src}</span>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <span className="text-xs font-semibold text-ink-600">{b.cat}</span>
+                        <span className="text-xs text-ink-300">·</span>
+                        <span className="text-xs font-medium text-ink-500">{b.src}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-1 max-w-[90px]">
-                        <div className="flex-1"><ProgressBar value={b.pct} height="h-1" /></div>
-                        <span className="text-xs font-bold tabular-nums text-ink-700 w-7 text-right">{b.pct}%</span>
-                      </div>
+                      <div className="flex-1 min-w-[80px] max-w-[110px]"><ProgressBar value={b.pct} color={g.col} /></div>
                     </div>
                   </div>
                 );
@@ -761,57 +815,72 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
 /* ---------- 9. 视图 · 能力 ---------- */
 function AbilityView({ abilities, onMsAdd, onMsEdit }) {
   const dynAb = abilities || ABILITY;
+  const scoreColor = (s) => {
+    if (s >= 9) return '#22c55e';
+    if (s >= 6) return '#f59e0b';
+    return '#ef4444';
+  };
+  // 计算能力模块完成率
+  const abPct = useMemo(() => {
+    const total = dynAb.reduce((s, a) => {
+      const msAvg = a.mstones.length > 0 ? a.mstones.reduce((t, m) => t + m.pct, 0) / a.mstones.length : 0;
+      return s + msAvg;
+    }, 0);
+    return Math.round(total / dynAb.length);
+  }, [dynAb]);
+
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="ability" title="能力 · 里程碑系统" sub="里程碑型目标 · 自评 + 阶段里程碑" />
+      <SectionHeader cat="ability" title="能力 · 里程碑系统" progress={abPct} />
       <div className="grid grid-cols-3 gap-4 annual-ability-grid">
         {dynAb.map((a, ai) => {
           const mDone = a.mstones.filter(m => m.st === 'done').length;
           const mTotal = a.mstones.length;
           const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal);
+          const sc = scoreColor(a.score);
           return (
-            <div key={a.title} className="glass-card p-5 flex flex-col gap-4"
-              style={{ borderTop: `3px solid ${catMeta('ability').color}` }}>
-              <div className="flex items-start gap-3">
+            <div key={a.title} className="glass-card p-5 flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-base font-bold text-ink-900 leading-tight">{a.title}</h3>
-                    <div className="flex flex-col items-end flex-shrink-0">
-                      <div className="flex items-baseline gap-0.5">
-                        <span className="text-xl font-bold tabular-nums text-ink-900 leading-none">{a.score}</span>
-                        <span className="text-xs text-ink-500">/10</span>
-                      </div>
-                      <span className="text-xs text-ink-500 mt-0.5">当前自评</span>
-                    </div>
+                  <h3 className="text-base font-bold text-ink-900 leading-tight mb-1">{a.title}</h3>
+                  {/* 每日任务 - 纯文字排版 */}
+                  <div className="text-xs text-ink-500 leading-snug">
+                    <span className="font-semibold text-ink-700">每日：</span>{a.daily}
                   </div>
+                </div>
+                {/* 自评 - 梯度染色 */}
+                <div className="flex flex-col items-end flex-shrink-0">
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-xl font-bold tabular-nums leading-none" style={{color: sc}}>{a.score}</span>
+                    <span className="text-xs" style={{color: sc, opacity:.7}}>/10</span>
+                  </div>
+                  <span className="text-xs font-semibold mt-0.5" style={{color: sc, opacity:.9}}>
+                    {a.score >= 9 ? '优秀' : a.score >= 6 ? '进行中' : '待启动'}
+                  </span>
                 </div>
               </div>
               {/* 总进度条 */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="font-semibold text-ink-500">整体进度</span>
-                  <span className="font-bold tabular-nums text-ink-700">{mPct}% · {mDone}/{mTotal}</span>
+                  <span className="font-bold tabular-nums" style={{color:'#f59e0b'}}>{mPct}% · {mDone}/{mTotal}</span>
                 </div>
-                <ProgressBar value={mPct} color={catMeta('ability').color} />
-              </div>
-              {/* 每日任务 */}
-              <div className="p-3 rounded-xl bg-surface-soft border border-ink-100 flex items-start gap-2.5">
-                <svg className="w-4 h-4 text-accent-amber flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" strokeLinecap="round"/></svg>
-                <div className="text-xs text-ink-700 leading-relaxed"><b className="font-semibold text-ink-900">每日任务</b> · {a.daily}</div>
+                <ProgressBar value={mPct} color="#f59e0b" />
               </div>
               {/* 里程碑列表 */}
               <div className="flex flex-col gap-2">
                 <div className="text-xs font-bold uppercase tracking-wide text-ink-500 px-0.5">里程碑</div>
                 {a.mstones.map((m, i) => {
                   const sm = statusMeta(m.st);
+                  const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
                   return (
                     <div key={i} onClick={() => onMsEdit?.(ai, i, m)} className="p-3 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
-                      <div className={`w-7 h-7 rounded-lg grid place-items-center text-xs font-bold flex-shrink-0 ${sm.numBg}`}>{i + 1}</div>
+                      <div className="w-7 h-7 rounded-lg grid place-items-center text-xs font-bold tabular-nums flex-shrink-0 text-ink-700">{i + 1}</div>
                       <div className="flex-1 min-w-0">
                         <div className={`text-sm font-semibold leading-tight ${m.st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{m.lb}</div>
-                        <div className="mt-1.5"><ProgressBar value={m.pct} height="h-1" /></div>
+                        <div className="mt-1.5"><ProgressBar value={m.pct} color={msCol} /></div>
                       </div>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${sm.tagCls} flex-shrink-0`}>{sm.lb} · {m.pct}%</span>
+                      <span className="text-xs font-bold tabular-nums flex-shrink-0" style={{color: msCol}}>{sm.lb} · {m.pct}%</span>
                     </div>
                   );
                 })}
@@ -831,23 +900,43 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
   const main = dynWk[0];
   const side = dynWk[1];
   const calcPct = (o) => Math.round(o.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / o.krs.length);
+
+  // P1-2: 截止按剩余天数判定
+  const daysLeft = (deadlineStr) => {
+    try {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const year = today.getFullYear();
+      const [mm, dd] = deadlineStr.replace(/月|日/g, '.').split('.').filter(Boolean).map(Number);
+      const target = new Date(year, mm - 1, dd);
+      if (target < today) target.setFullYear(year + 1);
+      return Math.ceil((target - today) / 86400000);
+    } catch { return 999; }
+  };
+
+  const totalPct = useMemo(() => {
+    if (!main) return 0;
+    const allKrs = [...(main?.krs || []), ...(side?.krs || [])];
+    return allKrs.length ? Math.round(allKrs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / allKrs.length) : 0;
+  }, [main, side]);
+
   const panelHtml = (o, label, color) => {
     const p = calcPct(o);
-    const urgent = o.deadline.includes('9');
+    const dl = daysLeft(o.deadline);
+    const urgent = dl <= 30;
+    const overdue = dl < 0;
     return (
-      <div key={label} className="glass-card flex flex-col"
-        style={{ borderTop: `3px solid ${color}` }}>
+      <div key={label} className="glass-card flex flex-col p-5 gap-4">
         {/* 头部 */}
-        <div className="px-5 pt-5 pb-3">
-          <div className="flex items-baseline gap-2 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-[0.08em] text-ink-500">{label}</span>
-            {urgent && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent-red/10 text-accent-red text-xs font-bold">
-                截止 {o.deadline}
-              </span>
-            )}
-            {!urgent && (
-              <span className="text-xs font-semibold text-ink-500">截止 {o.deadline}</span>
+        <div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-xs font-bold uppercase tracking-[0.08em]" style={{color}}>{label}</span>
+            {overdue ? (
+              <span className="text-[11px] font-bold text-accent-red">已过期</span>
+            ) : urgent ? (
+              <span className="text-[11px] font-bold text-accent-red">剩余 {dl} 天</span>
+            ) : (
+              <span className="text-[11px] font-semibold text-ink-500">剩余 {dl} 天</span>
             )}
             <div className="ml-auto flex items-baseline gap-0.5">
               <span className="text-xl font-bold tabular-nums text-ink-900 leading-none">{p}</span>
@@ -856,28 +945,36 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
           </div>
           <h3 className="text-base font-bold text-ink-900 leading-snug">{o.title}</h3>
         </div>
-        <div className="px-5 pb-3"><ProgressBar value={p} color={color} /></div>
-        {/* KR 列表 */}
-        <div className="flex flex-col gap-2 p-4 pb-5">
+        <ProgressBar value={p} color={color} />
+        {/* KR 列表 - P1-2: KR编号裸数字+状态仅颜色，padding对齐 */}
+        <div className="flex flex-col gap-1.5">
           {o.krs.map((kr, i) => {
             const st = kr.st === 'done' ? 'done' : kr.st === 'doing' ? 'doing' : 'tg';
             const sm = statusMeta(st);
             const p2 = pct(kr.v, kr.tgt);
+            // 状态仅用颜色点区分
+            const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
             return (
-              <div key={i} onClick={() => onKrEdit?.(o._workIdx, i, kr)} className="grid grid-cols-[36px_1fr_auto_60px] items-center gap-3 p-2.5 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
-                <div className={`w-9 h-9 rounded-xl grid place-items-center text-sm font-bold tabular-nums flex-shrink-0 ${sm.numBg}`}>
+              <div key={i} onClick={() => onKrEdit?.(o._workIdx, i, kr)} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 py-2.5 px-1 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
+                {/* KR编号 - 裸数字，无背景 */}
+                <div className="text-xs font-bold tabular-nums text-ink-500 text-center flex-shrink-0">
                   {i + 1}
                 </div>
                 <div className="min-w-0">
                   <div className={`text-sm font-semibold leading-tight ${st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
                     {kr.t}
                   </div>
-                  <div className="mt-1.5"><ProgressBar value={p2} height="h-1" /></div>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex-1 min-w-0"><ProgressBar value={p2} color={statusDot} /></div>
+                  </div>
                 </div>
-                <div className="text-sm font-bold tabular-nums text-ink-700 text-right whitespace-nowrap">
-                  {kr.v}<span className="text-xs font-semibold text-ink-500">/{kr.tgt}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs font-bold tabular-nums text-ink-700 whitespace-nowrap">
+                    {kr.v}<span className="text-[11px] font-semibold text-ink-500">/{kr.tgt}</span>
+                  </span>
+                  {/* 状态仅用颜色点 */}
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: statusDot}} />
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 rounded-lg text-center ${sm.tagCls}`}>{sm.lb}</span>
               </div>
             );
           })}
@@ -888,7 +985,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
   };
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="work" title="工作 · OKR 量化追踪" sub="量化型目标 · 主业/副业双栏看板" />
+      <SectionHeader cat="work" title="工作 · OKR 量化追踪" progress={totalPct} />
       <div className="grid grid-cols-[1.2fr_1fr] gap-4 annual-work-grid">
         {panelHtml({ ...main, _workIdx: 0 }, '主业', '#ef4444')}
         {side && panelHtml({ ...side, _workIdx: 1 }, '副业', '#f9a8a8')}
@@ -900,30 +997,33 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
 /* ---------- 11. 视图 · 生活 ---------- */
 function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
   const dynLife = lifeData || LIFE;
+  // 生活模块完成率：有记录的类目数 / 总类目数 * 100（体验型鼓励每个类目都有内容）
+  const lifePct = Math.round((dynLife.filter(c => c.entries.length > 0).length / dynLife.length) * 100);
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="life" title="生活 · 体验记录" sub="体验型目标 · 不追求完成率，追求幸福感" />
-      <div className="grid grid-cols-5 gap-4 auto-rows-fr annual-life-grid">
+      <SectionHeader cat="life" title="生活 · 体验记录" progress={lifePct} />
+      <div className="grid grid-cols-5 gap-4 annual-life-grid">
         {dynLife.map((c, ci) => (
-          <div key={c.key} className="glass-card p-4 flex flex-col min-h-0">
-            {/* 头部 */}
-            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-ink-100 flex-shrink-0">
-              <span className="text-sm font-bold text-ink-900 flex-1">{c.lb}</span>
-              <span className="inline-flex items-center gap-0.5 text-xs font-bold tabular-nums px-2 py-0.5 rounded-full"
-                style={{ background: `${c.color}10`, color: c.color }}>
-                {c.entries.length}<span className="font-semibold opacity-80">条</span>
+          <div key={c.key} className="glass-card p-4 flex flex-col">
+            {/* 头部 - count pill改tabnum裸数字 */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-bold text-ink-900">{c.lb}</span>
+              <span className="text-xs font-bold tabular-nums ml-auto" style={{color: c.color}}>
+                {c.entries.length}
               </span>
             </div>
-            {/* 条目列表 */}
-            <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-0.5">
+            {/* 条目列表 - 取消overflow-y-auto，日期移至右侧 */}
+            <div className="flex flex-col gap-2 flex-1">
               {c.entries.length === 0 && (
                 <div className="text-xs text-ink-400 text-center py-6 italic">暂无记录</div>
               )}
               {c.entries.map((e, i) => (
                 <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer">
-                  <div className="text-xs font-semibold text-ink-900 leading-snug mb-1">{e.t}</div>
-                  {e.n && <div className="text-xs text-ink-500 leading-relaxed mb-1.5">{e.n}</div>}
-                  <div className="text-xs font-semibold text-ink-400">{e.d}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-xs font-semibold text-ink-900 leading-snug flex-1 min-w-0">{e.t}</div>
+                    <div className="text-[10px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
+                  </div>
+                  {e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1">{e.n}</div>}
                 </div>
               ))}
               <AddButton label="添加" onClick={() => onEntryAdd?.(ci, c.lb)} />
@@ -936,15 +1036,26 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
 }
 
 /* ---------- 12. 通用 · Section Header ---------- */
-function SectionHeader({ cat, title, sub }) {
+function SectionHeader({ cat, title, progress, right }) {
   const c = catMeta(cat);
   return (
     <div className="flex items-center gap-3 pb-3 border-b border-ink-100">
-      <div className="w-1 h-5 rounded-full" style={{ background: c.color }} />
-      <div>
-        <h2 className="text-base font-bold text-ink-900 leading-tight tracking-tight">{title}</h2>
-        <p className="text-xs text-ink-500 mt-0.5">{sub}</p>
+      {/* P1-1: 竖条→32×32图标块 */}
+      <div className="w-8 h-8 rounded-xl grid place-items-center flex-shrink-0"
+        style={{ background: `${c.color}12`, color: c.color }}>
+        <CategoryIcon catKey={c.key} className="w-4 h-4" />
       </div>
+      <div className="flex-1 min-w-0">
+        <h2 className="text-base font-bold text-ink-900 leading-tight tracking-tight">{title}</h2>
+      </div>
+      {/* P1-1: 右侧完成率 badge 或自定义内容 */}
+      {typeof progress === 'number' && (
+        <div className="flex items-center gap-2">
+          <div className="w-16"><ProgressBar value={progress} color={c.color} /></div>
+          <span className="text-xs font-bold tabular-nums" style={{color: c.color}}>{progress}%</span>
+        </div>
+      )}
+      {right}
     </div>
   );
 }

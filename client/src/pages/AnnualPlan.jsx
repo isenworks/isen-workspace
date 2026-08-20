@@ -193,10 +193,16 @@ function AddButton({ label, onClick }) {
 function useEnergyHabits() {
   const [realHabits, setRealHabits] = useState(null); // null = 未获取/失败；[] = 获取到空列表
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0); // 手动刷新触发
+
+  const refresh = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoading(true);
       try {
         const year = new Date().getFullYear();
         const from = `${year}-01-01`;
@@ -252,9 +258,9 @@ function useEnergyHabits() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshKey]);
 
-  return { realHabits, loading };
+  return { realHabits, loading, refresh };
 }
 
 /* ---------- 3. 视图数据计算 · Overview ---------- */
@@ -647,7 +653,18 @@ function EnergyView({ realHabits, loading, onAction }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="energy" title="精力 · 习惯打卡" progress={energyPct} />
+      <SectionHeader
+        cat="energy"
+        title="精力 · 习惯打卡"
+        progress={energyPct}
+        right={
+          <button onClick={() => onAction?.('addHabit')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 text-accent-green text-xs font-bold hover:bg-accent-green/15 transition">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+            添加精力习惯
+          </button>
+        }
+      />
       <div className="glass-card overflow-hidden">
         <div className="px-4 py-3 border-b border-ink-100 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex flex-wrap items-center gap-2">
@@ -676,22 +693,26 @@ function EnergyView({ realHabits, loading, onAction }) {
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
+            {/* T2: 列排版 习惯名 → 目标 → 累计 → 月份 → 完成率 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div>习惯名称</div>
-              <div>累计</div>
               <div>目标</div>
+              <div>累计</div>
               {monthLabels.map(m => <div key={m} className="text-center">{m}</div>)}
               <div className="text-right">完成率</div>
+              <div className="w-6"></div>
             </div>
             {habits.map(h => {
               const p = pct(h.val, h.target);
+              const done = p >= 100;
+              const barColor = done ? '#22c55e' : p >= 50 ? '#4b63f0' : '#f59e0b';
               return (
-                <div key={h.key} onClick={() => onAction?.('editHabit', h)} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors cursor-pointer">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                <div key={h.key} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
+                  <div className="flex items-center gap-2.5 min-w-0 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
+                  <div className="tabular-nums text-ink-500 font-medium">{h.target}<span className="text-[10px] text-ink-400 ml-0.5">{h.unit}</span></div>
                   <div className="font-bold tabular-nums text-ink-900">{h.val}</div>
-                  <div className="tabular-nums text-ink-500">{h.target}</div>
                   {monthIndices.map((monthIdx, arrayIdx) => {
                     const n = h.month?.[monthIdx] || 0;
                     const maxT = monthMaxDays[monthIdx - 1];
@@ -706,9 +727,17 @@ function EnergyView({ realHabits, loading, onAction }) {
                       </div>
                     );
                   })}
-                  <div className="flex items-center justify-end gap-2">
-                    <div className="w-16"><ProgressBar value={p} color="#22c55e" /></div>
-                    <span className="text-xs font-bold tabular-nums w-10 text-right" style={{color:'#22c55e'}}>{p}%</span>
+                  {/* 完成率：进度条+% 合并，颜色根据完成度渐变 */}
+                  <div className="flex items-center justify-end gap-2 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                    <div className="w-20"><ProgressBar value={p} color={barColor} /></div>
+                    <span className="text-xs font-bold tabular-nums w-9 text-right" style={{color: barColor}}>{p}%</span>
+                  </div>
+                  {/* 删除按钮 */}
+                  <div className="flex justify-center">
+                    <button onClick={(e) => { e.stopPropagation(); onAction?.('removeHabit', h); }}
+                      className="w-6 h-6 rounded-lg grid place-items-center text-ink-300 hover:text-accent-red hover:bg-accent-red/10 opacity-0 group-hover:opacity-100 transition-all" title="删除习惯">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
                   </div>
                 </div>
               );
@@ -1079,7 +1108,7 @@ function usePersistentState(key, initial) {
 export default function AnnualPlan({ standalone = true }) {
   const [view, setView] = useState('overview');
   const [toast, setToast] = useState(null);
-  const { realHabits, loading: energyLoading } = useEnergyHabits();
+  const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
   const [books, setBooks] = usePersistentState('annual_books', () => BOOKS.map(b => ({ ...b, id: crypto.randomUUID() })));
@@ -1150,10 +1179,12 @@ export default function AnnualPlan({ standalone = true }) {
   const closeModal = () => setModal(null);
 
   // 精力习惯编辑（打开 HabitForm）
-  const handleEnergyAction = useCallback((action, habit) => {
+  const handleEnergyAction = useCallback(async (action, habit) => {
+    if (action === 'addHabit') {
+      // 新建精力类习惯
+      setModal({ type: 'habit', initial: { growth_type: 'energy', accent_color: '#22c55e' } });
+    }
     if (action === 'editHabit' && habit) {
-      // 从 API 习惯列表中找到原始习惯对象传给 HabitForm
-      // habit 是 useEnergyHabits 映射后的精简对象，需要还原为完整习惯格式
       const rawHabit = {
         id: habit.id,
         name: habit.name,
@@ -1166,7 +1197,19 @@ export default function AnnualPlan({ standalone = true }) {
       };
       setModal({ type: 'habit', initial: rawHabit });
     }
-  }, []);
+    if (action === 'removeHabit' && habit?.id) {
+      // 删除习惯：先二次确认（Toast 交互式确认）
+      const ok = window.confirm(`确定删除习惯「${habit.name}」吗？\n年度统计会一并删除，此操作不可撤销。`);
+      if (!ok) return;
+      try {
+        await API.habits.remove(habit.id);
+        showToast(`已删除习惯「${habit.name}」`);
+        refreshEnergy();
+      } catch (e) {
+        showToast('删除失败：' + e.message);
+      }
+    }
+  }, [refreshEnergy, showToast]);
 
   // ---- CRUD 回调 ----
   const onBookAdd = () => setModal({ type: 'book' });
@@ -1183,11 +1226,16 @@ export default function AnnualPlan({ standalone = true }) {
     const props = { onSaved: closeModal, onCancel: closeModal };
     switch (modal.type) {
       case 'habit':
+        const isHabitEdit = !!(modal.initial && modal.initial.id);
         return (
-          <Modal open onClose={closeModal} title="编辑精力习惯">
+          <Modal open onClose={closeModal} title={isHabitEdit ? '编辑精力习惯' : '添加精力习惯'}>
             <HabitForm
               initial={modal.initial}
-              onSaved={() => { closeModal(); showToast('习惯已更新'); window.location.reload(); }}
+              onSaved={() => {
+                closeModal();
+                showToast(isHabitEdit ? '习惯已更新' : '习惯已添加');
+                refreshEnergy();
+              }}
               onCancel={closeModal}
             />
           </Modal>
@@ -1264,9 +1312,9 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- P1-7: 精力表格 grid 抽离 ---- */
+      /* ---- 精力表格 grid 模板：[习惯名 目标 累计 (月份×7) 完成率 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(200px, 1.3fr) 70px 70px repeat(7, minmax(56px, 1fr)) 120px;
+        grid-template-columns: minmax(200px, 1.3fr) 70px 70px repeat(7, minmax(56px, 1fr)) 140px 30px;
         gap: 0 8px;
         align-items: center;
       }

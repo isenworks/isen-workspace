@@ -14,11 +14,11 @@ import { inferGrowthType } from '../utils/uiConstants.js';
 
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
-  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#34c759' },
-  { key: 'cognition', label: '认知', type: '混合型',    weight: 0.20, color: '#007aff' },
-  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#d4a017' },
-  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' },
-  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#af52de' },
+  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#22c55e' }, /* accent-green */
+  { key: 'cognition', label: '认知', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
+  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber */
+  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' }, /* accent-red   */
+  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#f9a8a8' }, /* accent-pink  */
 ];
 
 /* 习惯打卡 (精力) */
@@ -106,24 +106,24 @@ const WORK = [
 
 /* 生活 */
 const LIFE = [
-  { key:'relation', lb:'关系', color:'#ef4444', entries:[
+  { key:'relation', lb:'关系', color:'#ef4444', entries:[ /* accent-red */
     { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'7.28' },
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },
     { t:'和老婆周末野餐', n:'准备了她爱吃的草莓和可颂', d:'7.09' },
   ]},
-  { key:'food', lb:'美食', color:'#f59e0b', entries:[
+  { key:'food', lb:'美食', color:'#f59e0b', entries:[ /* accent-amber */
     { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'7.22' },
     { t:'尝试手冲咖啡', n:'买了一套 Hario V60', d:'7.10' },
   ]},
-  { key:'travel', lb:'旅游', color:'#22c55e', entries:[
+  { key:'travel', lb:'旅游', color:'#22c55e', entries:[ /* accent-green */
     { t:'苏州两日游', n:'去了拙政园和留园', d:'6.22-6.23' },
     { t:'崇明岛露营', n:'和朋友们搭帐篷烧烤', d:'5.18' },
   ]},
-  { key:'movie', lb:'电影', color:'#007aff', entries:[
+  { key:'movie', lb:'电影', color:'#4b63f0', entries:[ /* accent-blue */
     { t:'奥本海默', n:'3小时但不闷，诺兰神了', d:'7.01' },
     { t:'蜘蛛侠：纵横宇宙', n:'画风惊艳', d:'6.05' },
   ]},
-  { key:'shop', lb:'购物', color:'#af52de', entries:[
+  { key:'shop', lb:'购物', color:'#f9a8a8', entries:[ /* accent-pink */
     { t:'Sony WH-1000XM5 耳机', n:'降噪封神，通勤必带', d:'7.05' },
     { t:'露营折叠椅', n:'周末去公园躺着很舒服', d:'6.18' },
   ]},
@@ -185,15 +185,19 @@ function useEnergyHabits() {
             const m = parseInt(d.split('-')[1], 10);
             monthData[m] = (monthData[m] || 0) + 1;
           });
+          // 智能推断年度目标：运动类 120 次，其余 230 天
+          const name = (h.name || '').toLowerCase();
+          const isExercise = /运动|exercise|sport|健身|跑步|run|workout/.test(name);
+          const annualTarget = isExercise ? 120 : 230;
           return {
             id: h.id,
             key: h.id,
             label: `${h.emoji || '✅'} ${h.name}`,
             name: h.name,
             emoji: h.emoji || '✅',
-            unit: h.target_unit || '天',
-            target: 230,           // 年度目标 230 天（≈6.3天/周）
-            val: st.done_days || 0, // 今年累计完成天数
+            unit: isExercise ? '次' : (h.target_unit || '天'),
+            target: annualTarget,
+            val: st.done_days || 0,
             month: monthData,
           };
         });
@@ -236,6 +240,7 @@ function useOverviewStats(realHabits) {
 
 /* ---------- 4. 子组件 · 顶部 Nav 条 ---------- */
 function NavBar() {
+  const year = new Date().getFullYear();
   return (
     <div className="flex items-center justify-between mb-5">
       <a href="#/" className="inline-flex items-center gap-2 text-sm font-medium text-ink-500 hover:text-accent-blue transition">
@@ -243,8 +248,8 @@ function NavBar() {
         返回工作台
       </a>
       <div className="inline-flex items-center gap-2 text-xs font-semibold text-ink-500">
-        <span className="px-2 py-0.5 rounded-full bg-ink-100 text-ink-700">2025</span>
-        <span>年度规划 · Draft</span>
+        <span className="px-2 py-0.5 rounded-full bg-ink-100 text-ink-700">{year}</span>
+        <span>年度规划</span>
       </div>
     </div>
   );
@@ -272,16 +277,18 @@ const SIDEBAR_ITEMS = [
 
 function Sidebar({ active, onChange, stats }) {
   const ring = stats.weighted;
+  const year = new Date().getFullYear();
+  const yy = String(year).slice(-2);
   return (
     <aside className="w-[260px] flex-shrink-0 flex flex-col gap-3 sticky top-6 max-h-[calc(100vh-48px)] overflow-y-auto overflow-x-hidden pr-1">
       {/* Logo + 总进度环 */}
-      <div className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-4">
+      <div className="glass-card p-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-            26
+            {yy}
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-ink-900 leading-tight">2025 年度规划</span>
+            <span className="text-sm font-bold text-ink-900 leading-tight">{year} 年度规划</span>
             <span className="text-[11px] text-ink-500 mt-0.5">个人成长计划</span>
           </div>
         </div>
@@ -299,13 +306,12 @@ function Sidebar({ active, onChange, stats }) {
           <div className="flex flex-col gap-1 min-w-0">
             <span className="text-xs text-ink-500">年度总进度</span>
             <span className="text-[13px] font-semibold text-ink-900 truncate">已完成 {ring}%</span>
-            <span className="text-[11px] text-ink-500">加油，保持节奏 💪</span>
           </div>
         </div>
       </div>
 
       {/* 导航 */}
-      <div className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-2 flex-1 flex flex-col">
+      <div className="glass-card p-2 flex-1 flex flex-col">
         <div className="px-2.5 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
           年度导航
         </div>
@@ -342,7 +348,7 @@ function Sidebar({ active, onChange, stats }) {
       {/* 底部说明 */}
       <div className="px-2 text-[11px] text-ink-400 leading-relaxed">
         五大类目 · 差异化追踪模型<br/>
-        v1 · 工作台沙盒预览版
+        工作台年度规划
       </div>
     </aside>
   );
@@ -350,10 +356,30 @@ function Sidebar({ active, onChange, stats }) {
 
 /* ---------- 6. 视图 · Overview ---------- */
 function OverviewView({ onNav, stats, realHabits }) {
+  const year = new Date().getFullYear();
+
+  // 动态计算 Hero 统计数据
+  const habits = realHabits || HABITS;
+  const totalCheckins = habits.reduce((s, h) => s + h.val, 0);
+  const booksDone = BOOKS.filter(b => b.st === 'done').length;
+  const abilityDoneMs = ABILITY.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
+  const workDoneKrs = WORK.reduce((s, o) => s + o.krs.filter(k => k.st === 'done').length, 0);
+  const doneGoals = booksDone + abilityDoneMs + workDoneKrs;
+
+  // 今年剩余天数
+  const now = new Date();
+  const endOfYear = new Date(year, 11, 31);
+  const daysLeft = Math.max(0, Math.ceil((endOfYear - now) / 86400000));
+
+  // 最优/最弱类目
+  const perCat = stats.perCat;
+  let bestIdx = 0, worstIdx = 0;
+  perCat.forEach((v, i) => { if (v > perCat[bestIdx]) bestIdx = i; if (v < perCat[worstIdx]) worstIdx = i; });
+
   return (
     <div className="flex flex-col gap-5">
       {/* Hero */}
-      <section className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-5 flex items-center gap-6">
+      <section className="glass-card p-5 flex items-center gap-6">
         <div className="relative w-24 h-24 flex-shrink-0">
           <svg viewBox="0 0 36 36" className="w-24 h-24 -rotate-90">
             <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
@@ -367,28 +393,29 @@ function OverviewView({ onNav, stats, realHabits }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-lg font-bold text-ink-900 tracking-tight">你好，今年过得怎么样？</h2>
+            <h2 className="text-lg font-bold text-ink-900 tracking-tight">{year} 年度规划总览</h2>
           </div>
           <p className="text-sm text-ink-500 leading-relaxed mb-3">
-            已经完成 <span className="font-semibold text-ink-900">{stats.weighted}%</span> 的年度计划，
-            进度尚可。5 大类目中，<span className="text-[#34c759] font-semibold">精力</span> 和 <span className="text-[#007aff] font-semibold">认知</span> 表现最好，
-            <span className="text-[#d4a017] font-semibold"> 能力</span> 和 <span className="text-[#ef4444] font-semibold">工作</span> 还有较大提升空间。
+            已完成 <span className="font-semibold text-ink-900">{stats.weighted}%</span> 的年度计划。
+            五大类目中，表现最优为
+            <span style={{color: CATEGORIES[bestIdx].color}} className="font-semibold"> {CATEGORIES[bestIdx].label}</span>，
+            <span style={{color: CATEGORIES[worstIdx].color}} className="font-semibold"> {CATEGORIES[worstIdx].label}</span> 待重点提升。
           </p>
           <div className="grid grid-cols-3 gap-3 max-w-lg">
-            <Stat label="完成目标" value="12" sub="个" />
-            <Stat label="累计打卡" value="396" sub="次" />
-            <Stat label="今年剩余" value="134" sub="天" />
+            <Stat label="完成目标" value={doneGoals} sub="个" />
+            <Stat label="累计打卡" value={totalCheckins} sub="次" />
+            <Stat label="今年剩余" value={daysLeft} sub="天" />
           </div>
         </div>
       </section>
 
       {/* 5 类目卡片 */}
-      <section className="grid grid-cols-5 gap-4">
+      <section className="grid grid-cols-5 gap-4 annual-cat-grid">
         {CATEGORIES.map((c, i) => {
           const v = Math.round(stats.perCat[i]);
           return (
             <button key={c.key} onClick={() => onNav(c.key)}
-              className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-4 text-left flex flex-col gap-3 hover:border-brand-400 hover:shadow-cardL transition-all group"
+              className="glass-card p-4 text-left flex flex-col gap-3 hover:shadow-cardL transition-all group"
               style={{ borderTop: `3px solid ${c.color}` }}>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
@@ -440,43 +467,52 @@ function CatSummary({ cat, realHabits }) {
         </div>
       );
     }
-    case 'cognition':
+    case 'cognition': {
+      const done = BOOKS.filter(b => b.st === 'done').length;
+      const reading = BOOKS.filter(b => b.st === 'reading').length;
+      const cogPct = pct(done, 12);
       return (
         <div className="flex flex-col gap-1.5 text-[12px] text-ink-500 pt-1 border-t border-ink-100">
-          <div>年度目标 12 本 · 已读 <span className="font-semibold text-ink-900 tabular-nums">5</span> 本</div>
-          <div className="text-[11px] text-ink-500">完成率 41.7% · 正在读 3 本</div>
+          <div>年度目标 12 本 · 已读 <span className="font-semibold text-ink-900 tabular-nums">{done}</span> 本</div>
+          <div className="text-[11px] text-ink-500">完成率 {cogPct}% · 正在读 {reading} 本</div>
         </div>
       );
-    case 'ability':
+    }
+    case 'ability': {
       return (
         <div className="flex flex-col gap-1.5 text-[12px] text-ink-500 pt-1 border-t border-ink-100">
-          <SummaryRow lb="英语口语"     v={2} t={5}  />
-          <SummaryRow lb="结构化表达"   v={2} t={4}  />
-          <SummaryRow lb="写作输出"     v={0} t={6}  />
+          {ABILITY.map(a => {
+            const mDone = a.mstones.filter(m => m.st === 'done').length;
+            const mTotal = a.mstones.length;
+            return <SummaryRow key={a.title} lb={a.title} v={mDone} t={mTotal} />;
+          })}
         </div>
       );
-    case 'work':
+    }
+    case 'work': {
+      const main = WORK[0], side = WORK[1];
+      const mainP = Math.round(main.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / main.krs.length);
+      const sideP = Math.round(side.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / side.krs.length);
       return (
         <div className="flex flex-col gap-1.5 text-[12px] text-ink-500 pt-1 border-t border-ink-100">
-          <div className="flex items-center justify-between"><span>主业完成</span><span className="font-semibold text-ink-900 tabular-nums">40%</span></div>
-          <div className="flex items-center justify-between"><span>副业完成</span><span className="font-semibold text-ink-900 tabular-nums">16%</span></div>
-          <div className="text-[11px] text-ink-500">薪资目标 ⏰ 截止 9/30</div>
+          <div className="flex items-center justify-between"><span>主业完成</span><span className="font-semibold text-ink-900 tabular-nums">{mainP}%</span></div>
+          <div className="flex items-center justify-between"><span>副业完成</span><span className="font-semibold text-ink-900 tabular-nums">{sideP}%</span></div>
+          <div className="text-[11px] text-ink-500">薪资目标 ⏰ 截止 {main.deadline}</div>
         </div>
       );
-    case 'life':
+    }
+    case 'life': {
       return (
         <div className="grid grid-cols-5 gap-0.5 text-[11px] text-ink-500 pt-1 border-t border-ink-100">
-          {[
-            { lb: '关系', n: 3 }, { lb: '美食', n: 2 }, { lb: '旅游', n: 2 },
-            { lb: '电影', n: 2 }, { lb: '购物', n: 2 },
-          ].map(i => (
-            <div key={i.lb} className="flex flex-col items-center gap-0.5 p-1 rounded-md bg-surface-soft">
-              <span className="font-bold text-ink-900 tabular-nums">{i.n}</span>
+          {LIFE.map(i => (
+            <div key={i.key} className="flex flex-col items-center gap-0.5 p-1 rounded-md bg-surface-soft">
+              <span className="font-bold text-ink-900 tabular-nums">{i.entries.length}</span>
               <span className="text-[9px] text-ink-500">{i.lb}</span>
             </div>
           ))}
         </div>
       );
+    }
     default: return null;
   }
 }
@@ -491,14 +527,28 @@ function SummaryRow({ lb, v, t }) {
 }
 
 /* ---------- 7. 视图 · 精力 (习惯打卡) ---------- */
-function EnergyView({ realHabits }) {
+function EnergyView({ realHabits, loading }) {
   const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
   const habits = realHabits || HABITS;
+  if (loading && !realHabits) {
+    return (
+      <div className="flex flex-col gap-4">
+        <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
+        <div className="glass-card p-12 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-3 border-ink-200 border-t-accent-green rounded-full" style={{ animation: 'spin 0.8s linear infinite' }} />
+            <span className="text-sm text-ink-500">加载习惯数据...</span>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
   if (habits.length === 0) {
     return (
       <div className="flex flex-col gap-4">
         <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
-        <div className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <div className="text-3xl mb-3">🌱</div>
           <p className="text-sm font-semibold text-ink-700 mb-1">还没有精力类习惯</p>
           <p className="text-xs text-ink-500">前往工作台「习惯」面板创建睡眠、喝水、运动等打卡习惯，这里会自动同步数据</p>
@@ -509,11 +559,11 @@ function EnergyView({ realHabits }) {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
-      <div className="grid grid-cols-3 gap-4 mb-1">
+      <div className="grid grid-cols-3 gap-4 mb-1 annual-energy-grid">
         {habits.map(h => {
           const p = pct(h.val, h.target);
           return (
-            <div key={h.key} className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-4 flex flex-col gap-3"
+            <div key={h.key} className="glass-card p-4 flex flex-col gap-3"
               style={{ borderTop: `3px solid ${catMeta('energy').color}` }}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-accent-green/10 text-accent-green grid place-items-center text-sm font-bold">
@@ -539,7 +589,7 @@ function EnergyView({ realHabits }) {
         })}
       </div>
       {/* 月度打卡矩阵 */}
-      <div className="bg-surface-card border border-ink-100 rounded-2xl shadow-card overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="px-4 py-3 border-b border-ink-100 flex items-center justify-between">
           <h3 className="text-sm font-bold text-ink-900">{new Date().getFullYear()} 累计打卡</h3>
           <span className="text-xs text-ink-500">单位：{habits[0].unit}</span>
@@ -601,14 +651,12 @@ function CognitionView() {
       reading: BOOKS.filter(b => b.st === 'reading'),
       pending: BOOKS.filter(b => b.st === 'pending'),
       done:    BOOKS.filter(b => b.st === 'done'),
-      paused:  BOOKS.filter(b => b.st === 'paused' || false),
     };
   }, []);
   const groupLabels = [
     { key: 'reading', lb: '阅读中', bg: 'bg-accent-blue', count: groups.reading.length, col: groups.reading.length > 0 ? undefined : 'opacity-50' },
     { key: 'pending', lb: '未开始', bg: 'bg-ink-500', count: groups.pending.length, col: groups.pending.length > 0 ? undefined : 'opacity-50' },
     { key: 'done',    lb: '已读完', bg: 'bg-accent-green', count: groups.done.length,    col: groups.done.length > 0 ? undefined : 'opacity-50' },
-    { key: 'paused',  lb: '已暂停', bg: 'bg-accent-amber', count: 0, col: 'opacity-40' },
   ];
   return (
     <div className="flex flex-col gap-4">
@@ -618,7 +666,7 @@ function CognitionView() {
         {COG_KR.map(kr => {
           const p = pct(kr.val, kr.tgt);
           return (
-            <div key={kr.lb} className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-4 flex flex-col gap-2.5"
+            <div key={kr.lb} className="glass-card p-4 flex flex-col gap-2.5"
               style={{ borderTop: `3px solid ${catMeta('cognition').color}` }}>
               <span className="text-[11px] font-bold text-accent-blue uppercase tracking-wide">{kr.lb.slice(0, 3)}</span>
               <span className="text-sm font-bold text-ink-900 leading-snug">{kr.lb.slice(4)}</span>
@@ -634,8 +682,8 @@ function CognitionView() {
           );
         })}
       </div>
-      {/* 书架看板 */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* 书架看板 - 3列: 阅读中 / 未开始 / 已读完 */}
+      <div className="grid grid-cols-3 gap-4">
         {groupLabels.map(g => (
           <div key={g.key} className={`flex flex-col gap-2.5 ${g.col}`}>
             <div className="flex items-center gap-2 px-0.5">
@@ -650,7 +698,7 @@ function CognitionView() {
                 const sm = statusMeta(b.st);
                 const dim = b.st === 'done' ? 'text-ink-500' : 'text-ink-900';
                 return (
-                  <div key={idx} className="bg-surface-card border border-ink-100 rounded-xl p-3 hover:border-accent-blue/40 hover:shadow-card transition cursor-pointer">
+                  <div key={idx} className="glass-card p-3 hover:shadow-cardL transition cursor-pointer">
                     <div className="flex items-start gap-2.5 mb-1.5">
                       <div className="w-9 h-12 rounded-md flex-shrink-0 grid place-items-center text-[11px] font-bold text-white"
                         style={{ background: sm.bar || '#9ca3af' }}>
@@ -694,13 +742,13 @@ function AbilityView() {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="ability" title="能力 · 里程碑系统" sub="里程碑型目标 · 自评 + 阶段里程碑" />
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4 annual-ability-grid">
         {ABILITY.map(a => {
           const mDone = a.mstones.filter(m => m.st === 'done').length;
           const mTotal = a.mstones.length;
           const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal);
           return (
-            <div key={a.title} className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-5 flex flex-col gap-4"
+            <div key={a.title} className="glass-card p-5 flex flex-col gap-4"
               style={{ borderTop: `3px solid ${catMeta('ability').color}` }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-accent-amber/10 text-accent-amber grid place-items-center text-sm font-bold flex-shrink-0">
@@ -770,7 +818,7 @@ function WorkView() {
     const p = calcPct(o);
     const urgent = o.deadline.includes('9');
     return (
-      <div key={label} className="bg-surface-card border border-ink-100 rounded-2xl shadow-card flex flex-col"
+      <div key={label} className="glass-card flex flex-col"
         style={{ borderTop: `3px solid ${color}` }}>
         {/* 头部 */}
         <div className="px-5 pt-5 pb-3">
@@ -827,9 +875,9 @@ function WorkView() {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="work" title="工作 · OKR 量化追踪" sub="量化型目标 · 主业/副业双栏看板" />
-      <div className="grid grid-cols-[1.2fr_1fr] gap-4">
+      <div className="grid grid-cols-[1.2fr_1fr] gap-4 annual-work-grid">
         {panelHtml(main, '主业', '#ef4444')}
-        {panelHtml(side, '副业', '#ef4444')}
+        {panelHtml(side, '副业', '#f9a8a8')}
       </div>
     </div>
   );
@@ -840,9 +888,9 @@ function LifeView() {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="life" title="生活 · 体验记录" sub="体验型目标 · 不追求完成率，追求幸福感" />
-      <div className="grid grid-cols-5 gap-4 auto-rows-fr">
+      <div className="grid grid-cols-5 gap-4 auto-rows-fr annual-life-grid">
         {LIFE.map(c => (
-          <div key={c.key} className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-4 flex flex-col min-h-0">
+          <div key={c.key} className="glass-card p-4 flex flex-col min-h-0">
             {/* 头部 */}
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-ink-100 flex-shrink-0">
               <div className="w-8 h-8 rounded-lg grid place-items-center text-sm font-bold text-white" style={{ background: c.color }}>
@@ -903,14 +951,14 @@ function SectionHeader({ cat, title, sub }) {
 /* ---------- 13. 入口组件 ---------- */
 export default function AnnualPlan({ standalone = true }) {
   const [view, setView] = useState('overview');
-  const { realHabits } = useEnergyHabits();
+  const { realHabits, loading: energyLoading } = useEnergyHabits();
   const stats = useOverviewStats(realHabits);
 
   // 主内容：无论 standalone 与否都渲染
   const mainContent = (
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
       {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={realHabits} />}
-      {view === 'energy'    && <EnergyView   realHabits={realHabits} />}
+      {view === 'energy'    && <EnergyView   realHabits={realHabits} loading={energyLoading} />}
       {view === 'cognition' && <CognitionView/>}
       {view === 'ability'   && <AbilityView  />}
       {view === 'work'      && <WorkView     />}
@@ -920,7 +968,7 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- P1-7: 精力表格 grid 抽离（避免 inline style 重复） ---- */
+      /* ---- P1-7: 精力表格 grid 抽离 ---- */
       .habit-table {
         grid-template-columns: minmax(200px, 1.3fr) 70px 70px repeat(7, minmax(56px, 1fr)) 120px;
         gap: 0 8px;
@@ -932,6 +980,28 @@ export default function AnnualPlan({ standalone = true }) {
         to   { opacity: 1; transform: none; }
       }
       .animate-fade-in { animation: fade-in-up 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+      /* ---- P1-8: 响应式断点 ---- */
+      /* 中等屏幕：5列 → 3列 */
+      @media (max-width: 1200px) {
+        .annual-cat-grid   { grid-template-columns: repeat(3, 1fr) !important; }
+        .annual-life-grid  { grid-template-columns: repeat(3, 1fr) !important; }
+        .annual-work-grid  { grid-template-columns: 1fr !important; }
+      }
+      /* 小屏幕：3列 → 2列 */
+      @media (max-width: 900px) {
+        .annual-cat-grid   { grid-template-columns: repeat(2, 1fr) !important; }
+        .annual-life-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+        .annual-energy-grid,
+        .annual-ability-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      }
+      /* 极小屏幕：2列 → 1列 */
+      @media (max-width: 640px) {
+        .annual-cat-grid,
+        .annual-life-grid,
+        .annual-energy-grid,
+        .annual-ability-grid { grid-template-columns: 1fr !important; }
+      }
     `}</style>
   );
 
@@ -941,7 +1011,7 @@ export default function AnnualPlan({ standalone = true }) {
     ...CATEGORIES.map(c => ({ key: c.key, label: c.label, color: c.color })),
   ];
   const embedTabs = (
-    <div className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-2 mb-4 flex items-center gap-1 overflow-x-auto">
+    <div className="glass-card p-2 mb-4 flex items-center gap-1 overflow-x-auto">
       {EMBED_NAV.map(item => {
         const on = view === item.key;
         const pctVal = item.key !== 'overview'

@@ -602,10 +602,12 @@ function SummaryRow({ lb, v, t }) {
 }
 
 /* ---------- 7. 视图 · 精力 (习惯打卡) ---------- */
-function EnergyView({ realHabits, loading, onAction }) {
+function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-  const [half, setHalf] = useState('H1'); // H1: 1-6月, H2: 7-12月
   const habits = realHabits || HABITS;
+  // 正在编辑目标的行 habit key，null = 不编辑
+  const [editingTargetKey, setEditingTargetKey] = useState(null);
+  const [targetDraft, setTargetDraft] = useState('');
 
   if (loading && !realHabits) {
     return (
@@ -642,14 +644,31 @@ function EnergyView({ realHabits, loading, onAction }) {
     );
   }
 
-  const monthIndices = half === 'H1' ? [1,2,3,4,5,6] : [7,8,9,10,11,12];
-  const monthLabels = monthIndices.map(i => months[i-1]);
+  // 直接展示 1-12 月，不分上下半年
+  const monthIndices = [1,2,3,4,5,6,7,8,9,10,11,12];
+  const monthLabels = months;
   const monthMaxDays = [31,28,31,30,31,30,31,31,30,31,30,31];
 
   // 计算精力模块完成率
   const energyPct = habits.length > 0
     ? Math.round(habits.reduce((s, h) => s + pct(h.val, h.target), 0) / habits.length)
     : 0;
+
+  // 开始编辑目标
+  const startEditTarget = (h) => {
+    setEditingTargetKey(h.id || h.key);
+    setTargetDraft(String(h.target));
+  };
+  // 提交目标修改
+  const commitTarget = (h) => {
+    const key = h.id || h.key;
+    const v = Math.round(Number(targetDraft) || 0);
+    if (v > 0 && v !== h.target) {
+      onSetTarget?.(key, v);
+    }
+    setEditingTargetKey(null);
+    setTargetDraft('');
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -666,7 +685,7 @@ function EnergyView({ realHabits, loading, onAction }) {
         }
       />
       <div className="glass-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-ink-100 flex flex-wrap items-center gap-3 justify-between">
+        <div className="px-4 py-3 border-b border-ink-100 flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {habits.map(h => (
               <span key={h.key} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
@@ -676,24 +695,10 @@ function EnergyView({ realHabits, loading, onAction }) {
               </span>
             ))}
           </div>
-          <div className="inline-flex p-0.5 rounded-lg bg-ink-100">
-            {[
-              { k: 'H1', lb: '上半年 1-6 月' },
-              { k: 'H2', lb: '下半年 7-12 月' },
-            ].map(t => (
-              <button key={t.k} onClick={() => setHalf(t.k)}
-                className={[
-                  'px-3 py-1 rounded-md text-xs font-bold transition-all',
-                  half === t.k ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'
-                ].join(' ')}>
-                {t.lb}
-              </button>
-            ))}
-          </div>
         </div>
         <div className="overflow-x-auto">
-          <div className="min-w-[760px]">
-            {/* T2: 列排版 习惯名 → 目标 → 累计 → 月份 → 完成率 */}
+          <div className="min-w-[1200px]">
+            {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 月份×12 → 完成率 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div>习惯名称</div>
               <div>目标</div>
@@ -706,12 +711,39 @@ function EnergyView({ realHabits, loading, onAction }) {
               const p = pct(h.val, h.target);
               const done = p >= 100;
               const barColor = done ? '#22c55e' : p >= 50 ? '#4b63f0' : '#f59e0b';
+              const hkey = h.id || h.key;
+              const isEditing = editingTargetKey === hkey;
               return (
-                <div key={h.key} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
+                <div key={hkey} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
                   <div className="flex items-center gap-2.5 min-w-0 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
-                  <div className="tabular-nums text-ink-500 font-medium">{h.target}<span className="text-[10px] text-ink-400 ml-0.5">{h.unit}</span></div>
+                  {/* 目标 - inline 编辑 */}
+                  <div className="tabular-nums font-medium cursor-text" onClick={(e) => e.stopPropagation()}>
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        type="number"
+                        min="1"
+                        value={targetDraft}
+                        onChange={(e) => setTargetDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitTarget(h);
+                          if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
+                        }}
+                        onBlur={() => commitTarget(h)}
+                        className="w-14 px-1.5 py-0.5 text-sm font-bold border border-accent-blue rounded-md outline-none focus:ring-2 focus:ring-accent-blue/30 tabular-nums text-ink-900 bg-white"
+                      />
+                    ) : (
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center gap-1 hover:bg-ink-100 rounded-md px-1.5 py-0.5 -mx-1.5 transition">
+                        <span className="text-sm font-semibold text-ink-700">{h.target}</span>
+                        <span className="text-[10px] text-ink-400">{h.unit}</span>
+                        <svg className="w-3 h-3 text-ink-300 group-hover:text-ink-500 transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 1 1 3.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
                   <div className="font-bold tabular-nums text-ink-900">{h.val}</div>
                   {monthIndices.map((monthIdx, arrayIdx) => {
                     const n = h.month?.[monthIdx] || 0;
@@ -721,13 +753,13 @@ function EnergyView({ realHabits, loading, onAction }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-xs font-bold tabular-nums px-2 py-1 rounded-md min-w-[36px] text-center transition-colors',
+                          'text-xs font-bold tabular-nums px-1.5 py-1 rounded-md min-w-[32px] text-center transition-colors',
                           passed ? 'bg-accent-green text-white' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
                     );
                   })}
-                  {/* 完成率：进度条+% 合并，颜色根据完成度渐变 */}
+                  {/* 完成率 */}
                   <div className="flex items-center justify-end gap-2 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
                     <div className="w-20"><ProgressBar value={p} color={barColor} /></div>
                     <span className="text-xs font-bold tabular-nums w-9 text-right" style={{color: barColor}}>{p}%</span>
@@ -1115,6 +1147,24 @@ export default function AnnualPlan({ standalone = true }) {
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: crypto.randomUUID(), mstones: a.mstones.map(m => ({ ...m, id: crypto.randomUUID() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: crypto.randomUUID(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: crypto.randomUUID() })) })));
+  // 精力习惯 - 用户自定义年度目标（覆盖默认推断值 120/230）
+  const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));
+
+  // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
+  const mergedHabits = useMemo(() => {
+    const src = realHabits || HABITS;
+    return src.map(h => {
+      const key = h.id || h.key;
+      const custom = habitTargets?.[key];
+      return custom ? { ...h, target: custom } : h;
+    });
+  }, [realHabits, habitTargets]);
+
+  // 修改单个习惯的年度目标
+  const setHabitTarget = useCallback((habitKeyOrId, newTarget) => {
+    const t = Math.max(1, Math.round(Number(newTarget) || 0));
+    setHabitTargets(prev => ({ ...prev, [habitKeyOrId]: t }));
+  }, [setHabitTargets]);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -1289,13 +1339,13 @@ export default function AnnualPlan({ standalone = true }) {
     }
   })();
 
-  const stats = useOverviewStats(realHabits, books, abilities, workGoals, lifeData);
+  const stats = useOverviewStats(mergedHabits, books, abilities, workGoals, lifeData);
 
   // 主内容
   const mainContent = (
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
-      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={realHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} />}
-      {view === 'energy'    && <EnergyView   realHabits={realHabits} loading={energyLoading} onAction={handleEnergyAction} />}
+      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} />}
+      {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit} />}
       {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit} />}
@@ -1312,9 +1362,9 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- 精力表格 grid 模板：[习惯名 目标 累计 (月份×7) 完成率 删除] ---- */
+      /* ---- 精力表格 grid 模板：[习惯名 目标 累计 (月份×12) 完成率 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(200px, 1.3fr) 70px 70px repeat(7, minmax(56px, 1fr)) 140px 30px;
+        grid-template-columns: minmax(200px, 1.3fr) 100px 70px repeat(12, minmax(48px, 1fr)) 140px 30px;
         gap: 0 8px;
         align-items: center;
       }

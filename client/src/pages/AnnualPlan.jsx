@@ -8,6 +8,8 @@ import MilestoneForm from '../components/forms/MilestoneForm.jsx';
 import KrForm from '../components/forms/KrForm.jsx';
 import EntryForm from '../components/forms/EntryForm.jsx';
 
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
 /* ============================================================
    AnnualPlan · 个人成长年度规划 v1 · 工作台沙盒版
    - 所有间距/圆角/字号对齐工作台已有的 Tailwind tokens (8pt grid)
@@ -400,29 +402,79 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 6. 视图 · Overview ---------- */
-function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData }) {
+function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData, timeScale, onTimeScaleChange }) {
   const year = new Date().getFullYear();
-
-  // 动态计算 Hero 统计数据
   const habits = realHabits || HABITS;
-  const totalCheckins = habits.reduce((s, h) => s + h.val, 0);
   const dynBooks = books || BOOKS;
-  const booksDone = dynBooks.filter(b => b.st === 'done').length;
   const dynAbilities = abilities || ABILITY;
-  const abilityDoneMs = dynAbilities.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
   const dynWork = workGoals || WORK;
-  const workDoneKrs = dynWork.reduce((s, o) => s + o.krs.filter(k => k.st === 'done').length, 0);
-  const doneGoals = booksDone + abilityDoneMs + workDoneKrs;
-
-  // 今年剩余天数
   const now = new Date();
-  const endOfYear = new Date(year, 11, 31);
-  const daysLeft = Math.max(0, Math.ceil((endOfYear - now) / 86400000));
 
-  // 最优/最弱类目
+  // 时间维度数据计算
+  const getTimeScaleData = () => {
+    const curMonth = now.getMonth() + 1;
+    const curDay = now.getDate();
+    const dayOfWeek = now.getDay() || 7; // 1-7 (Mon-Sun)
+    const weekStart = curDay - dayOfWeek + 1;
+    const weekEnd = Math.min(weekStart + 6, [31,28,31,30,31,30,31,31,30,31,30,31][curMonth - 1]);
+    const monthDaysInYear = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+    if (timeScale === 'week') {
+      const weekCheckins = habits.reduce((s, h) => {
+        let count = 0;
+        for (let d = weekStart; d <= weekEnd; d++) {
+          // 简化：用当月打卡数据估算本周
+          if (h.month?.[curMonth] && d <= curDay) count += Math.max(0, Math.round((h.month[curMonth] / curDay)));
+        }
+        return s + count;
+      }, 0);
+      const weekDaysLeft = Math.max(0, 7 - (curDay - weekStart + 1));
+      return {
+        periodLabel: `${curMonth}月${weekStart}-${weekEnd}日`,
+        stat1: { label: '本周打卡', v: weekCheckins, u: '次', color: '#22c55e' },
+        stat2: { label: '周完成率', v: Math.round(stats.weighted * 0.25), u: '%', color: '#4b63f0' },
+        stat3: { label: '剩余天数', v: weekDaysLeft, u: '天', color: '#f59e0b' },
+        subtitle: '本周进度',
+      };
+    }
+    if (timeScale === 'month') {
+      const monthCheckins = habits.reduce((s, h) => s + (h.month?.[curMonth] || 0), 0);
+      const monthDaysLeft = Math.max(0, monthDaysInYear[curMonth - 1] - curDay);
+      const monthBooks = dynBooks.filter(b => b.st === 'done').length;
+      return {
+        periodLabel: `${curMonth}月`,
+        stat1: { label: '本月打卡', v: monthCheckins, u: '次', color: '#22c55e' },
+        stat2: { label: '月度完成', v: Math.round(stats.weighted * (curDay / monthDaysInYear[curMonth - 1])), u: '%', color: '#4b63f0' },
+        stat3: { label: '剩余天数', v: monthDaysLeft, u: '天', color: '#f59e0b' },
+        subtitle: '本月进度',
+      };
+    }
+    // year
+    const totalCheckins = habits.reduce((s, h) => s + h.val, 0);
+    const booksDone = dynBooks.filter(b => b.st === 'done').length;
+    const abilityDoneMs = dynAbilities.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
+    const workDoneKrs = dynWork.reduce((s, o) => s + o.krs.filter(k => k.st === 'done').length, 0);
+    const endOfYear = new Date(year, 11, 31);
+    const daysLeft = Math.max(0, Math.ceil((endOfYear - now) / 86400000));
+    return {
+      periodLabel: `${year}年度`,
+      stat1: { label: '完成目标', v: booksDone + abilityDoneMs + workDoneKrs, u: '个', color: '#4b63f0' },
+      stat2: { label: '累计打卡', v: totalCheckins, u: '次', color: '#22c55e' },
+      stat3: { label: '今年剩余', v: daysLeft, u: '天', color: '#f59e0b' },
+      subtitle: '已完成',
+    };
+  };
+
+  const tsData = getTimeScaleData();
   const perCat = stats.perCat;
   let bestIdx = 0, worstIdx = 0;
   perCat.forEach((v, i) => { if (v > perCat[bestIdx]) bestIdx = i; if (v < perCat[worstIdx]) worstIdx = i; });
+
+  const scaleTabs = [
+    { k: 'week', lb: '本周' },
+    { k: 'month', lb: '本月' },
+    { k: 'year', lb: '全年' },
+  ];
 
   return (
     <div className="flex flex-col gap-5">
@@ -443,8 +495,20 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-base font-bold text-ink-900 tracking-tight mb-2">{year} 年度规划总览</h2>
-          {/* 最优/最弱结构化pill */}
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="text-base font-bold text-ink-900 tracking-tight">{year} 年度规划总览</h2>
+            <div className="inline-flex p-0.5 rounded-lg bg-ink-100">
+              {scaleTabs.map(t => (
+                <button key={t.k} onClick={() => onTimeScaleChange(t.k)}
+                  className={[
+                    'px-3 py-1 rounded-md text-xs font-bold transition-all',
+                    timeScale === t.k ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'
+                  ].join(' ')}>
+                  {t.lb}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex items-center gap-2 mb-3">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
               style={{ background: `${CATEGORIES[bestIdx].color}12`, color: CATEGORIES[bestIdx].color }}>
@@ -458,15 +522,10 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             </span>
           </div>
           <p className="text-sm text-ink-500 leading-relaxed mb-4">
-            已完成 <span className="font-semibold text-ink-900">{stats.weighted}%</span> 的年度计划
+            {tsData.subtitle} <span className="font-semibold text-ink-900">{stats.weighted}%</span> 的{tsData.periodLabel}计划
           </p>
-          {/* 3 Stat 去卡片 → 纯文字块 */}
           <div className="grid grid-cols-3 gap-0 max-w-xl">
-            {[
-              { label: '完成目标', v: doneGoals, u: '个', color: '#4b63f0' },
-              { label: '累计打卡', v: totalCheckins, u: '次', color: '#22c55e' },
-              { label: '今年剩余', v: daysLeft, u: '天', color: '#f59e0b' },
-            ].map(s => (
+            {[tsData.stat1, tsData.stat2, tsData.stat3].map(s => (
               <div key={s.label} className="flex flex-col gap-0.5 pr-6">
                 <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.label}</span>
                 <div className="flex items-baseline gap-1">
@@ -648,6 +707,52 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   const monthIndices = [1,2,3,4,5,6,7,8,9,10,11,12];
   const monthLabels = months;
   const monthMaxDays = [31,28,31,30,31,30,31,31,30,31,30,31];
+  const today = new Date();
+  const curMonth = today.getMonth() + 1;
+  const curDay = today.getDate();
+  const isCurrentMonth = (m) => m === curMonth;
+  const daysElapsedInCurMonth = curDay;
+
+  // 计算习惯的月度分析
+  const getMonthAnalysis = (habit) => {
+    const curMonthVal = habit.month?.[curMonth] || 0;
+    const prevMonthIdx = curMonth === 1 ? 12 : curMonth - 1;
+    const prevMonthVal = habit.month?.[prevMonthIdx] || 0;
+    const expectedCur = daysElapsedInCurMonth;
+    const achievementRate = expectedCur > 0 ? Math.round((curMonthVal / expectedCur) * 100) : 0;
+    const delta = prevMonthVal > 0 ? Math.round(((curMonthVal - prevMonthVal) / prevMonthVal) * 100) : null;
+    return { curMonthVal, prevMonthVal, achievementRate, delta, expectedCur };
+  };
+
+  const Sparkline = ({ data, color = '#22c55e', width = 120, height = 28 }) => {
+    if (!data || data.length === 0) return null;
+    const max = Math.max(...data, 1);
+    const range = max;
+    const stepX = width / (data.length - 1);
+    const pts = data.map((v, i) => {
+      const x = i * stepX;
+      const y = height - ((v / range) * (height - 4)) - 2;
+      return `${x},${y}`;
+    }).join(' ');
+    const areaPath = 'M0,' + height + ' L' + pts + ' L' + width + ',' + height + ' Z';
+    const linePath = pts.split(' ').map((p, i) => (i === 0 ? 'M' + p : 'L' + p)).join(' ');
+    const lastPoint = (data.length - 1) * stepX;
+    const lastY = height - ((data[data.length - 1] / range) * (height - 4)) - 2;
+    const gid = 'sg' + color.replace('#','');
+    return (
+      <svg width={width} height={height} className="overflow-visible">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill={'url(#' + gid + ')'} />
+        <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={lastPoint} cy={lastY} r="2.5" fill={color} />
+      </svg>
+    );
+  };
 
   // 计算精力模块完成率
   const energyPct = habits.length > 0
@@ -685,17 +790,43 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         }
       />
       <div className="glass-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-ink-100 flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {habits.map(h => (
-              <span key={h.key} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-                style={{ background: h.val >= h.target ? 'rgba(34,197,94,0.12)' : 'rgba(75,99,240,0.10)', color: h.val >= h.target ? '#22c55e' : '#4b63f0' }}>
-                {h.label.replace(/^\S+\s?/, '')} {h.val}/{h.target}
-                <span className="opacity-70">{h.unit}</span>
-              </span>
-            ))}
+        {/* 月度分析概览 */}
+        <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-ink-700">{curMonth}月 · 本月进度分析</span>
+            <span className="text-[11px] text-ink-400">当前已过 {daysElapsedInCurMonth} 天</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {habits.map(h => {
+              const ana = getMonthAnalysis(h);
+              const achColor = ana.achievementRate >= 80 ? '#22c55e' : ana.achievementRate >= 50 ? '#4b63f0' : '#f59e0b';
+              const habitColor = h.val >= h.target ? '#22c55e' : '#4b63f0';
+              const monthData = Array.from({ length: 12 }, (_, i) => h.month?.[i + 1] || 0);
+              return (
+                <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-white border border-ink-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-ink-900 truncate max-w-[90px]">{h.label.replace(/^\S+\s?/, '')}</span>
+                    {ana.delta !== null && ana.delta !== 0 && (
+                      <span className={['text-[10px] font-bold flex items-center gap-0.5', ana.delta > 0 ? 'text-accent-green' : 'text-accent-red'].join(' ')}>
+                        {ana.delta > 0 ? '↑' : '↓'}{Math.abs(ana.delta)}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-bold tabular-nums" style={{color: achColor}}>{ana.achievementRate}%</span>
+                    <span className="text-[10px] text-ink-400">达成率</span>
+                  </div>
+                  <div className="text-[11px] text-ink-500 tabular-nums">
+                    {ana.curMonthVal} / {ana.expectedCur} {h.unit}
+                    {ana.prevMonthVal > 0 && <span className="text-ink-400 ml-1">· 上月 {ana.prevMonthVal}</span>}
+                  </div>
+                  <Sparkline data={monthData} color={habitColor} width={120} height={24} />
+                </div>
+              );
+            })}
           </div>
         </div>
+        {/* 详情表格 */}
         <div className="overflow-x-auto">
           <div className="min-w-[1200px]">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
@@ -704,7 +835,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div>目标</div>
               <div>累计</div>
               <div>完成率</div>
-              {monthLabels.map(m => <div key={m} className="text-center">{m}</div>)}
+              {monthLabels.map((m, idx) => (
+                <div key={m} className={['text-center', isCurrentMonth(idx + 1) ? 'text-accent-blue font-bold' : ''].join(' ')}>
+                  {m}
+                </div>
+              ))}
               <div className="w-6"></div>
             </div>
             {habits.map(h => {
@@ -754,11 +889,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     const maxT = monthMaxDays[monthIdx - 1];
                     const ratio = n / maxT;
                     const passed = ratio >= 0.8;
+                    const isCur = isCurrentMonth(monthIdx);
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
                           'text-xs font-bold tabular-nums px-1 py-1 rounded-md min-w-[32px] text-center transition-colors',
-                          passed ? 'bg-accent-green text-white' : 'bg-ink-100 text-ink-500'
+                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-blue/10 text-accent-blue' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
                     );
@@ -775,7 +911,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             })}
         </div>
       </div>
-    </div>
+      </div>
     </div>
   );
 }
@@ -1139,13 +1275,15 @@ function usePersistentState(key, initial) {
 export default function AnnualPlan({ standalone = true }) {
   const [view, setView] = useState('overview');
   const [toast, setToast] = useState(null);
+  const [timeScale, setTimeScale] = useState('year');
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books', () => BOOKS.map(b => ({ ...b, id: crypto.randomUUID() })));
-  const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: crypto.randomUUID(), mstones: a.mstones.map(m => ({ ...m, id: crypto.randomUUID() })) })));
-  const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: crypto.randomUUID(), st: k.st === 'tg' ? 'pending' : k.st })) })));
-  const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: crypto.randomUUID() })) })));
+  const [books, setBooks] = usePersistentState('annual_books', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
+  const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
+  const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
   // 精力习惯 - 用户自定义年度目标（覆盖默认推断值 120/230）
   const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));
 
@@ -1173,14 +1311,14 @@ export default function AnnualPlan({ standalone = true }) {
   // ---- CRUD 操作 ----
   // 认知·书籍
   const bookOps = {
-    add: (data) => { setBooks(prev => [...prev, { ...data, id: crypto.randomUUID() }]); showToast('书籍已添加'); },
+    add: (data) => { setBooks(prev => [...prev, { ...data, id: uid() }]); showToast('书籍已添加'); },
     update: (data) => { setBooks(prev => prev.map(b => b.id === data.id ? { ...b, ...data } : b)); showToast('书籍已更新'); },
     remove: (id) => { setBooks(prev => prev.filter(b => b.id !== id)); showToast('书籍已删除'); },
   };
   // 能力·里程碑
   const msOps = {
     add: (data) => {
-      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: [...a.mstones, { ...data, id: crypto.randomUUID() }] } : a));
+      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: [...a.mstones, { ...data, id: uid() }] } : a));
       showToast('里程碑已添加');
     },
     update: (data) => {
@@ -1195,7 +1333,7 @@ export default function AnnualPlan({ standalone = true }) {
   // 工作·KR
   const krOps = {
     add: (data) => {
-      setWorkGoals(prev => prev.map((o, i) => i === data.workIdx ? { ...o, krs: [...o.krs, { ...data, id: crypto.randomUUID() }] } : o));
+      setWorkGoals(prev => prev.map((o, i) => i === data.workIdx ? { ...o, krs: [...o.krs, { ...data, id: uid() }] } : o));
       showToast('KR 已添加');
     },
     update: (data) => {
@@ -1210,7 +1348,7 @@ export default function AnnualPlan({ standalone = true }) {
   // 生活·记录
   const entryOps = {
     add: (data) => {
-      setLifeData(prev => prev.map((c, i) => i === data.lifeKey ? { ...c, entries: [...c.entries, { ...data, id: crypto.randomUUID() }] } : c));
+      setLifeData(prev => prev.map((c, i) => i === data.lifeKey ? { ...c, entries: [...c.entries, { ...data, id: uid() }] } : c));
       showToast('记录已添加');
     },
     update: (data) => {
@@ -1247,16 +1385,23 @@ export default function AnnualPlan({ standalone = true }) {
       setModal({ type: 'habit', initial: rawHabit });
     }
     if (action === 'removeHabit' && habit?.id) {
-      // 删除习惯：先二次确认（Toast 交互式确认）
-      const ok = window.confirm(`确定删除习惯「${habit.name}」吗？\n年度统计会一并删除，此操作不可撤销。`);
-      if (!ok) return;
-      try {
-        await API.habits.remove(habit.id);
-        showToast(`已删除习惯「${habit.name}」`);
-        refreshEnergy();
-      } catch (e) {
-        showToast('删除失败：' + e.message);
-      }
+      setConfirmDialog({
+        title: '删除习惯',
+        message: `确定删除习惯「${habit.name}」吗？\n年度统计会一并删除，此操作不可撤销。`,
+        confirmText: '删除',
+        danger: true,
+        onConfirm: async () => {
+          try {
+            await API.habits.remove(habit.id);
+            showToast(`已删除习惯「${habit.name}」`);
+            refreshEnergy();
+          } catch (e) {
+            showToast('删除失败：' + e.message);
+          }
+          setConfirmDialog(null);
+        },
+        onCancel: () => setConfirmDialog(null),
+      });
     }
   }, [refreshEnergy, showToast]);
 
@@ -1343,7 +1488,7 @@ export default function AnnualPlan({ standalone = true }) {
   // 主内容
   const mainContent = (
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
-      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} />}
+      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} timeScale={timeScale} onTimeScaleChange={setTimeScale} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit} />}
@@ -1356,6 +1501,24 @@ export default function AnnualPlan({ standalone = true }) {
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-ink-900 text-white text-sm font-medium shadow-lg flex items-center gap-2">
       <svg className="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
       {toast}
+    </div>
+  );
+
+  const confirmEl = confirmDialog && (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-900/40 backdrop-blur-sm" onClick={confirmDialog.onCancel}>
+      <div className="bg-white rounded-2xl shadow-xl w-[360px] overflow-hidden animate-fade-in" onClick={e => e.stopPropagation()}>
+        <div className="p-5 flex flex-col gap-1">
+          <h3 className="text-base font-bold text-ink-900">{confirmDialog.title}</h3>
+          <p className="text-sm text-ink-500 whitespace-pre-line leading-relaxed mt-1">{confirmDialog.message}</p>
+        </div>
+        <div className="flex border-t border-ink-100">
+          <button onClick={confirmDialog.onCancel} className="flex-1 py-3.5 text-sm font-semibold text-ink-600 hover:bg-ink-100 transition">取消</button>
+          <button onClick={confirmDialog.onConfirm}
+            className={['flex-1 py-3.5 text-sm font-bold transition', confirmDialog.danger ? 'text-accent-red hover:bg-accent-red/10' : 'text-brand-500 hover:bg-brand-500/10'].join(' ')}>
+            {confirmDialog.confirmText || '确认'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -1450,6 +1613,7 @@ export default function AnnualPlan({ standalone = true }) {
         {styles}
         {toastEl}
         {modalEl}
+        {confirmEl}
       </div>
     );
   }
@@ -1467,6 +1631,7 @@ export default function AnnualPlan({ standalone = true }) {
       {styles}
       {toastEl}
       {modalEl}
+      {confirmEl}
     </div>
   );
 }

@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { API } from '../api/client.js';
+import { inferGrowthType } from '../utils/uiConstants.js';
 
 /* ============================================================
    AnnualPlan · 个人成长年度规划 v1 · 工作台沙盒版
@@ -142,10 +144,79 @@ const statusMeta = (st) => {
 };
 const catMeta = (key) => CATEGORIES.find(c => c.key === key) || CATEGORIES[0];
 
+/* ---------- 2.5 真实习惯数据获取 · Energy ---------- */
+// 从工作台习惯打卡 API 读取精力类习惯的年度数据
+// 未登录/API 失败时回退到 mock HABITS，保证沙盒模式可用
+function useEnergyHabits() {
+  const [realHabits, setRealHabits] = useState(null); // null = 未获取/失败；[] = 获取到空列表
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const year = new Date().getFullYear();
+        const from = `${year}-01-01`;
+        const to   = `${year}-12-31`;
+        const today = new Date().toISOString().slice(0, 10);
+
+        // 1. 获取所有习惯（含当天打卡状态）
+        const habitsRes = await API.habits.list({ date: today });
+        const allHabits = habitsRes.habits || [];
+
+        // 2. 筛选精力类习惯
+        const energyHabits = allHabits.filter(h => inferGrowthType(h) === 'energy');
+        if (energyHabits.length === 0) {
+          if (!cancelled) { setRealHabits([]); setLoading(false); }
+          return;
+        }
+
+        // 3. 获取年度统计
+        const statsRes = await API.habits.stats(from, to);
+        const statsMap = {};
+        (statsRes.stats || []).forEach(s => { statsMap[s.habit_id] = s; });
+
+        // 4. 映射为年度规划格式
+        const mapped = energyHabits.map(h => {
+          const st = statsMap[h.id] || { done_days: 0, dates: [] };
+          // 按月统计打卡天数
+          const monthData = {};
+          (st.dates || []).forEach(d => {
+            const m = parseInt(d.split('-')[1], 10);
+            monthData[m] = (monthData[m] || 0) + 1;
+          });
+          return {
+            id: h.id,
+            key: h.id,
+            label: `${h.emoji || '✅'} ${h.name}`,
+            name: h.name,
+            emoji: h.emoji || '✅',
+            unit: h.target_unit || '天',
+            target: 230,           // 年度目标 230 天（≈6.3天/周）
+            val: st.done_days || 0, // 今年累计完成天数
+            month: monthData,
+          };
+        });
+
+        if (!cancelled) { setRealHabits(mapped); setLoading(false); }
+      } catch (e) {
+        // 未登录或 API 异常 → 回退 mock 数据
+        if (!cancelled) { setRealHabits(null); setLoading(false); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { realHabits, loading };
+}
+
 /* ---------- 3. 视图数据计算 · Overview ---------- */
-function useOverviewStats() {
+function useOverviewStats(realHabits) {
   return useMemo(() => {
-    const energyVal = HABITS.reduce((s, h) => s + pct(h.val, h.target), 0) / HABITS.length;
+    const habits = realHabits || HABITS;
+    const energyVal = habits.length > 0
+      ? habits.reduce((s, h) => s + pct(h.val, h.target), 0) / habits.length
+      : 0;
     const booksDone = BOOKS.filter(b => b.st === 'done').length;
     const cogVal = pct(booksDone, 12);
     const abilityVal = ABILITY.reduce((s, a) => {
@@ -160,7 +231,7 @@ function useOverviewStats() {
       CATEGORIES.reduce((s, c, i) => s + vals[i] * c.weight, 0)
     );
     return { perCat: vals, weighted };
-  }, []);
+  }, [realHabits]);
 }
 
 /* ---------- 4. 子组件 · 顶部 Nav 条 ---------- */
@@ -278,7 +349,7 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 6. 视图 · Overview ---------- */
-function OverviewView({ onNav, stats }) {
+function OverviewView({ onNav, stats, realHabits }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Hero */}
@@ -333,7 +404,7 @@ function OverviewView({ onNav, stats }) {
               <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{ width: `${v}%`, background: c.color }} />
               </div>
-              <CatSummary cat={c.key} />
+              <CatSummary cat={c.key} realHabits={realHabits} />
             </button>
           );
         })}
@@ -356,16 +427,19 @@ function Stat({ label, value, sub }) {
   );
 }
 
-function CatSummary({ cat }) {
+function CatSummary({ cat, realHabits }) {
   switch (cat) {
-    case 'energy':
+    case 'energy': {
+      const habits = realHabits || HABITS;
+      if (habits.length === 0) return <div className="text-[11px] text-ink-400 pt-1 border-t border-ink-100">暂无精力类习惯</div>;
       return (
         <div className="flex flex-col gap-1.5 text-[12px] text-ink-500 pt-1 border-t border-ink-100">
-          <SummaryRow lb="睡眠" v={142} t={230} />
-          <SummaryRow lb="喝水" v={198} t={230} />
-          <SummaryRow lb="运动" v={56}  t={120} />
+          {habits.map(h => (
+            <SummaryRow key={h.key} lb={h.name || h.label.replace(/^\S+\s/, '')} v={h.val} t={h.target} />
+          ))}
         </div>
       );
+    }
     case 'cognition':
       return (
         <div className="flex flex-col gap-1.5 text-[12px] text-ink-500 pt-1 border-t border-ink-100">
@@ -417,20 +491,33 @@ function SummaryRow({ lb, v, t }) {
 }
 
 /* ---------- 7. 视图 · 精力 (习惯打卡) ---------- */
-function EnergyView() {
+function EnergyView({ realHabits }) {
   const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const habits = realHabits || HABITS;
+  if (habits.length === 0) {
+    return (
+      <div className="flex flex-col gap-4">
+        <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
+        <div className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-12 text-center">
+          <div className="text-3xl mb-3">🌱</div>
+          <p className="text-sm font-semibold text-ink-700 mb-1">还没有精力类习惯</p>
+          <p className="text-xs text-ink-500">前往工作台「习惯」面板创建睡眠、喝水、运动等打卡习惯，这里会自动同步数据</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="energy" title="精力 · 习惯打卡" sub="习惯型目标 · 用打卡矩阵追踪" />
       <div className="grid grid-cols-3 gap-4 mb-1">
-        {HABITS.map(h => {
+        {habits.map(h => {
           const p = pct(h.val, h.target);
           return (
             <div key={h.key} className="bg-surface-card border border-ink-100 rounded-2xl shadow-card p-4 flex flex-col gap-3"
               style={{ borderTop: `3px solid ${catMeta('energy').color}` }}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-accent-green/10 text-accent-green grid place-items-center text-sm font-bold">
-                  {h.label[0]}
+                  {h.emoji || h.label[0]}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
                   <span className="text-sm font-bold text-ink-900 truncate">{h.label}</span>
@@ -445,7 +532,7 @@ function EnergyView() {
               </div>
               <div className="flex items-center justify-between text-[11px] text-ink-500 pt-1">
                 <span>已完成 <b className="text-ink-900 tabular-nums">{h.val}</b> {h.unit}</span>
-                <span>剩余 {h.target - h.val}</span>
+                <span>剩余 {Math.max(0, h.target - h.val)}</span>
               </div>
             </div>
           );
@@ -454,8 +541,8 @@ function EnergyView() {
       {/* 月度打卡矩阵 */}
       <div className="bg-surface-card border border-ink-100 rounded-2xl shadow-card overflow-hidden">
         <div className="px-4 py-3 border-b border-ink-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-ink-900">2025 累计打卡</h3>
-          <span className="text-xs text-ink-500">单位：{HABITS[0].unit}</span>
+          <h3 className="text-sm font-bold text-ink-900">{new Date().getFullYear()} 累计打卡</h3>
+          <span className="text-xs text-ink-500">单位：{habits[0].unit}</span>
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
@@ -468,13 +555,13 @@ function EnergyView() {
               <div className="text-right">完成率</div>
             </div>
             {/* 行 */}
-            {HABITS.map(h => {
+            {habits.map(h => {
               const p = pct(h.val, h.target);
               return (
                 <div key={h.key} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-7 h-7 rounded-lg bg-accent-green/10 text-accent-green grid place-items-center text-xs font-bold flex-shrink-0">
-                      {h.label[0]}
+                      {h.emoji || h.label[0]}
                     </div>
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
@@ -816,13 +903,14 @@ function SectionHeader({ cat, title, sub }) {
 /* ---------- 13. 入口组件 ---------- */
 export default function AnnualPlan({ standalone = true }) {
   const [view, setView] = useState('overview');
-  const stats = useOverviewStats();
+  const { realHabits } = useEnergyHabits();
+  const stats = useOverviewStats(realHabits);
 
   // 主内容：无论 standalone 与否都渲染
   const mainContent = (
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
-      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} />}
-      {view === 'energy'    && <EnergyView   />}
+      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={realHabits} />}
+      {view === 'energy'    && <EnergyView   realHabits={realHabits} />}
       {view === 'cognition' && <CognitionView/>}
       {view === 'ability'   && <AbilityView  />}
       {view === 'work'      && <WorkView     />}

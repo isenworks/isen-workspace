@@ -1,6 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { API } from '../api/client.js';
 import { inferGrowthType } from '../utils/uiConstants.js';
+import Modal from '../components/Modal.jsx';
+import HabitForm from '../components/forms/HabitForm.jsx';
+import BookForm from '../components/forms/BookForm.jsx';
+import MilestoneForm from '../components/forms/MilestoneForm.jsx';
+import KrForm from '../components/forms/KrForm.jsx';
+import EntryForm from '../components/forms/EntryForm.jsx';
 
 /* ============================================================
    AnnualPlan · 个人成长年度规划 v1 · 工作台沙盒版
@@ -247,27 +253,33 @@ function useEnergyHabits() {
 }
 
 /* ---------- 3. 视图数据计算 · Overview ---------- */
-function useOverviewStats(realHabits) {
+function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dynamicWork, dynamicLife) {
   return useMemo(() => {
     const habits = realHabits || HABITS;
     const energyVal = habits.length > 0
       ? habits.reduce((s, h) => s + pct(h.val, h.target), 0) / habits.length
       : 0;
-    const booksDone = BOOKS.filter(b => b.st === 'done').length;
+    const books = dynamicBooks || BOOKS;
+    const booksDone = books.filter(b => b.st === 'done').length;
     const cogVal = pct(booksDone, 12);
-    const abilityVal = ABILITY.reduce((s, a) => {
-      const mp = a.mstones.reduce((t, m) => t + m.pct, 0) / a.mstones.length;
-      return s + mp;
-    }, 0) / ABILITY.length;
-    const wkMain = WORK[0];
-    const wkVal = wkMain.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / wkMain.krs.length;
-    const lifeVal = LIFE.reduce((s, c) => s + (c.entries.length > 0 ? 50 : 0), 0) / LIFE.length;
+    const abilities = dynamicAbilities || ABILITY;
+    const abilityVal = abilities.length > 0
+      ? abilities.reduce((s, a) => {
+          const ms = a.mstones.length > 0 ? a.mstones.reduce((t, m) => t + m.pct, 0) / a.mstones.length : 0;
+          return s + ms;
+        }, 0) / abilities.length
+      : 0;
+    const work = dynamicWork || WORK;
+    const wkMain = work[0];
+    const wkVal = wkMain ? wkMain.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / wkMain.krs.length : 0;
+    const life = dynamicLife || LIFE;
+    const lifeVal = life.reduce((s, c) => s + (c.entries.length > 0 ? 50 : 0), 0) / life.length;
     const vals = [energyVal, cogVal, abilityVal, wkVal, lifeVal];
     const weighted = Math.round(
       CATEGORIES.reduce((s, c, i) => s + vals[i] * c.weight, 0)
     );
     return { perCat: vals, weighted };
-  }, [realHabits]);
+  }, [realHabits, dynamicBooks, dynamicAbilities, dynamicWork, dynamicLife]);
 }
 
 /* ---------- 4. 子组件 · 顶部 Nav 条 ---------- */
@@ -377,15 +389,18 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 6. 视图 · Overview ---------- */
-function OverviewView({ onNav, stats, realHabits }) {
+function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData }) {
   const year = new Date().getFullYear();
 
   // 动态计算 Hero 统计数据
   const habits = realHabits || HABITS;
   const totalCheckins = habits.reduce((s, h) => s + h.val, 0);
-  const booksDone = BOOKS.filter(b => b.st === 'done').length;
-  const abilityDoneMs = ABILITY.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
-  const workDoneKrs = WORK.reduce((s, o) => s + o.krs.filter(k => k.st === 'done').length, 0);
+  const dynBooks = books || BOOKS;
+  const booksDone = dynBooks.filter(b => b.st === 'done').length;
+  const dynAbilities = abilities || ABILITY;
+  const abilityDoneMs = dynAbilities.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
+  const dynWork = workGoals || WORK;
+  const workDoneKrs = dynWork.reduce((s, o) => s + o.krs.filter(k => k.st === 'done').length, 0);
   const doneGoals = booksDone + abilityDoneMs + workDoneKrs;
 
   // 今年剩余天数
@@ -453,7 +468,7 @@ function OverviewView({ onNav, stats, realHabits }) {
                 </span>
               </div>
               <ProgressBar value={v} color={c.color} />
-              <CatSummary cat={c.key} realHabits={realHabits} />
+              <CatSummary cat={c.key} realHabits={realHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} />
             </button>
           );
         })}
@@ -476,7 +491,7 @@ function Stat({ label, value, sub }) {
   );
 }
 
-function CatSummary({ cat, realHabits }) {
+function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) {
   switch (cat) {
     case 'energy': {
       const habits = realHabits || HABITS;
@@ -490,8 +505,9 @@ function CatSummary({ cat, realHabits }) {
       );
     }
     case 'cognition': {
-      const done = BOOKS.filter(b => b.st === 'done').length;
-      const reading = BOOKS.filter(b => b.st === 'reading').length;
+      const dynBooks = books || BOOKS;
+      const done = dynBooks.filter(b => b.st === 'done').length;
+      const reading = dynBooks.filter(b => b.st === 'reading').length;
       const cogPct = pct(done, 12);
       return (
         <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
@@ -501,9 +517,10 @@ function CatSummary({ cat, realHabits }) {
       );
     }
     case 'ability': {
+      const dynAb = abilities || ABILITY;
       return (
         <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
-          {ABILITY.map(a => {
+          {dynAb.map(a => {
             const mDone = a.mstones.filter(m => m.st === 'done').length;
             const mTotal = a.mstones.length;
             return <SummaryRow key={a.title} lb={a.title} v={mDone} t={mTotal} />;
@@ -512,21 +529,23 @@ function CatSummary({ cat, realHabits }) {
       );
     }
     case 'work': {
-      const main = WORK[0], side = WORK[1];
-      const mainP = Math.round(main.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / main.krs.length);
-      const sideP = Math.round(side.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / side.krs.length);
+      const dynWk = workGoals || WORK;
+      const main = dynWk[0], side = dynWk[1];
+      const mainP = main ? Math.round(main.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / main.krs.length) : 0;
+      const sideP = side ? Math.round(side.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / side.krs.length) : 0;
       return (
         <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
           <div className="flex items-center justify-between"><span>主业完成</span><span className="font-semibold text-ink-900 tabular-nums">{mainP}%</span></div>
           <div className="flex items-center justify-between"><span>副业完成</span><span className="font-semibold text-ink-900 tabular-nums">{sideP}%</span></div>
-          <div className="text-xs text-ink-500">薪资目标 · 截止 {main.deadline}</div>
+          <div className="text-xs text-ink-500">薪资目标 · 截止 {main?.deadline || ''}</div>
         </div>
       );
     }
     case 'life': {
+      const dynLife = lifeData || LIFE;
       return (
         <div className="grid grid-cols-5 gap-0.5 text-xs text-ink-500 pt-1 border-t border-ink-100">
-          {LIFE.map(i => (
+          {dynLife.map(i => (
             <div key={i.key} className="flex flex-col items-center gap-0.5 p-1 rounded-md bg-surface-soft">
               <span className="font-bold text-ink-900 tabular-nums">{i.entries.length}</span>
               <span className="text-xs text-ink-500">{i.lb}</span>
@@ -550,6 +569,8 @@ function SummaryRow({ lb, v, t }) {
 
 /* ---------- 7. 视图 · 精力 (习惯打卡) ---------- */
 function EnergyView({ realHabits, loading, onAction }) {
+  // onAction 现在用于打开习惯编辑 Modal（由父组件传入）
+  // 精力习惯的增删改通过工作台 HabitForm + API 实现
   const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
   const habits = realHabits || HABITS;
   if (loading && !realHabits) {
@@ -624,7 +645,7 @@ function EnergyView({ realHabits, loading, onAction }) {
             {habits.map(h => {
               const p = pct(h.val, h.target);
               return (
-                <div key={h.key} onClick={() => onAction?.('编辑习惯')} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors cursor-pointer">
+                <div key={h.key} onClick={() => onAction?.('editHabit', h)} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors cursor-pointer">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
@@ -656,14 +677,15 @@ function EnergyView({ realHabits, loading, onAction }) {
 }
 
 /* ---------- 8. 视图 · 认知 (书架系统) ---------- */
-function CognitionView({ onAction }) {
+function CognitionView({ books, onBookAdd, onBookEdit }) {
   const groups = useMemo(() => {
+    const dynBooks = books || BOOKS;
     return {
-      reading: BOOKS.filter(b => b.st === 'reading'),
-      pending: BOOKS.filter(b => b.st === 'pending'),
-      done:    BOOKS.filter(b => b.st === 'done'),
+      reading: dynBooks.filter(b => b.st === 'reading'),
+      pending: dynBooks.filter(b => b.st === 'pending'),
+      done:    dynBooks.filter(b => b.st === 'done'),
     };
-  }, []);
+  }, [books]);
   const groupLabels = [
     { key: 'reading', lb: '阅读中', bg: 'bg-accent-blue', count: groups.reading.length, col: groups.reading.length > 0 ? undefined : 'opacity-50' },
     { key: 'pending', lb: '未开始', bg: 'bg-ink-500', count: groups.pending.length, col: groups.pending.length > 0 ? undefined : 'opacity-50' },
@@ -704,7 +726,7 @@ function CognitionView({ onAction }) {
                 const sm = statusMeta(b.st);
                 const dim = b.st === 'done' ? 'text-ink-500' : 'text-ink-900';
                 return (
-                  <div key={idx} onClick={() => onAction?.('编辑书籍')} className="glass-card p-3 hover:shadow-cardL transition cursor-pointer">
+                  <div key={idx} onClick={() => onBookEdit?.(b)} className="glass-card p-3 hover:shadow-cardL transition cursor-pointer">
                     <div className="flex items-start gap-2.5 mb-1.5">
                       <div className="w-9 h-12 rounded-md flex-shrink-0"
                         style={{ background: sm.bar || '#9ca3af' }}>
@@ -727,7 +749,7 @@ function CognitionView({ onAction }) {
                   </div>
                 );
               })}
-              <AddButton label="添加书籍" onClick={() => onAction?.('添加书籍')} />
+              <AddButton label="添加书籍" onClick={() => onBookAdd?.()} />
             </div>
           </div>
         ))}
@@ -737,12 +759,13 @@ function CognitionView({ onAction }) {
 }
 
 /* ---------- 9. 视图 · 能力 ---------- */
-function AbilityView({ onAction }) {
+function AbilityView({ abilities, onMsAdd, onMsEdit }) {
+  const dynAb = abilities || ABILITY;
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="ability" title="能力 · 里程碑系统" sub="里程碑型目标 · 自评 + 阶段里程碑" />
       <div className="grid grid-cols-3 gap-4 annual-ability-grid">
-        {ABILITY.map(a => {
+        {dynAb.map((a, ai) => {
           const mDone = a.mstones.filter(m => m.st === 'done').length;
           const mTotal = a.mstones.length;
           const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal);
@@ -782,7 +805,7 @@ function AbilityView({ onAction }) {
                 {a.mstones.map((m, i) => {
                   const sm = statusMeta(m.st);
                   return (
-                    <div key={i} onClick={() => onAction?.('编辑里程碑')} className="p-3 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
+                    <div key={i} onClick={() => onMsEdit?.(ai, i, m)} className="p-3 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
                       <div className={`w-7 h-7 rounded-lg grid place-items-center text-xs font-bold flex-shrink-0 ${sm.numBg}`}>{i + 1}</div>
                       <div className="flex-1 min-w-0">
                         <div className={`text-sm font-semibold leading-tight ${m.st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{m.lb}</div>
@@ -792,6 +815,7 @@ function AbilityView({ onAction }) {
                     </div>
                   );
                 })}
+                <AddButton label="添加里程碑" onClick={() => onMsAdd?.(ai)} />
               </div>
             </div>
           );
@@ -802,9 +826,10 @@ function AbilityView({ onAction }) {
 }
 
 /* ---------- 10. 视图 · 工作 (OKR) ---------- */
-function WorkView({ onAction }) {
-  const main = WORK[0];
-  const side = WORK[1];
+function WorkView({ workGoals, onKrAdd, onKrEdit }) {
+  const dynWk = workGoals || WORK;
+  const main = dynWk[0];
+  const side = dynWk[1];
   const calcPct = (o) => Math.round(o.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / o.krs.length);
   const panelHtml = (o, label, color) => {
     const p = calcPct(o);
@@ -839,7 +864,7 @@ function WorkView({ onAction }) {
             const sm = statusMeta(st);
             const p2 = pct(kr.v, kr.tgt);
             return (
-              <div key={i} onClick={() => onAction?.('编辑 KR')} className="grid grid-cols-[36px_1fr_auto_60px] items-center gap-3 p-2.5 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
+              <div key={i} onClick={() => onKrEdit?.(o._workIdx, i, kr)} className="grid grid-cols-[36px_1fr_auto_60px] items-center gap-3 p-2.5 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
                 <div className={`w-9 h-9 rounded-xl grid place-items-center text-sm font-bold tabular-nums flex-shrink-0 ${sm.numBg}`}>
                   {i + 1}
                 </div>
@@ -856,6 +881,7 @@ function WorkView({ onAction }) {
               </div>
             );
           })}
+          <AddButton label="添加 KR" onClick={() => onKrAdd?.(o._workIdx)} />
         </div>
       </div>
     );
@@ -864,20 +890,21 @@ function WorkView({ onAction }) {
     <div className="flex flex-col gap-4">
       <SectionHeader cat="work" title="工作 · OKR 量化追踪" sub="量化型目标 · 主业/副业双栏看板" />
       <div className="grid grid-cols-[1.2fr_1fr] gap-4 annual-work-grid">
-        {panelHtml(main, '主业', '#ef4444')}
-        {panelHtml(side, '副业', '#f9a8a8')}
+        {panelHtml({ ...main, _workIdx: 0 }, '主业', '#ef4444')}
+        {side && panelHtml({ ...side, _workIdx: 1 }, '副业', '#f9a8a8')}
       </div>
     </div>
   );
 }
 
 /* ---------- 11. 视图 · 生活 ---------- */
-function LifeView({ onAction }) {
+function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
+  const dynLife = lifeData || LIFE;
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="life" title="生活 · 体验记录" sub="体验型目标 · 不追求完成率，追求幸福感" />
       <div className="grid grid-cols-5 gap-4 auto-rows-fr annual-life-grid">
-        {LIFE.map(c => (
+        {dynLife.map((c, ci) => (
           <div key={c.key} className="glass-card p-4 flex flex-col min-h-0">
             {/* 头部 */}
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-ink-100 flex-shrink-0">
@@ -893,13 +920,13 @@ function LifeView({ onAction }) {
                 <div className="text-xs text-ink-400 text-center py-6 italic">暂无记录</div>
               )}
               {c.entries.map((e, i) => (
-                <div key={i} onClick={() => onAction?.('编辑记录')} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer">
+                <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer">
                   <div className="text-xs font-semibold text-ink-900 leading-snug mb-1">{e.t}</div>
                   {e.n && <div className="text-xs text-ink-500 leading-relaxed mb-1.5">{e.n}</div>}
                   <div className="text-xs font-semibold text-ink-400">{e.d}</div>
                 </div>
               ))}
-              <AddButton label="添加" onClick={() => onAction?.('添加记录')} />
+              <AddButton label="添加" onClick={() => onEntryAdd?.(ci, c.lb)} />
             </div>
           </div>
         ))}
@@ -922,34 +949,205 @@ function SectionHeader({ cat, title, sub }) {
   );
 }
 
-/* ---------- 13. 入口组件 ---------- */
+/* ---------- 13. localStorage 持久化 hook ---------- */
+function usePersistentState(key, initial) {
+  const [state, setState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return typeof initial === 'function' ? initial() : initial;
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify(state)); } catch {}
+  }, [key, state]);
+  return [state, setState];
+}
+
+/* ---------- 14. 入口组件 ---------- */
 export default function AnnualPlan({ standalone = true }) {
   const [view, setView] = useState('overview');
   const [toast, setToast] = useState(null);
   const { realHabits, loading: energyLoading } = useEnergyHabits();
-  const stats = useOverviewStats(realHabits);
 
-  const showToast = (msg) => {
+  // 可变数据（localStorage 持久化）
+  const [books, setBooks] = usePersistentState('annual_books', () => BOOKS.map(b => ({ ...b, id: crypto.randomUUID() })));
+  const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: crypto.randomUUID(), mstones: a.mstones.map(m => ({ ...m, id: crypto.randomUUID() })) })));
+  const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: crypto.randomUUID(), st: k.st === 'tg' ? 'pending' : k.st })) })));
+  const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: crypto.randomUUID() })) })));
+
+  const showToast = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
+  }, []);
+
+  // ---- CRUD 操作 ----
+  // 认知·书籍
+  const bookOps = {
+    add: (data) => { setBooks(prev => [...prev, { ...data, id: crypto.randomUUID() }]); showToast('书籍已添加'); },
+    update: (data) => { setBooks(prev => prev.map(b => b.id === data.id ? { ...b, ...data } : b)); showToast('书籍已更新'); },
+    remove: (id) => { setBooks(prev => prev.filter(b => b.id !== id)); showToast('书籍已删除'); },
+  };
+  // 能力·里程碑
+  const msOps = {
+    add: (data) => {
+      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: [...a.mstones, { ...data, id: crypto.randomUUID() }] } : a));
+      showToast('里程碑已添加');
+    },
+    update: (data) => {
+      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: a.mstones.map((m, j) => j === data.msIdx ? { ...m, lb: data.lb, st: data.st, pct: data.pct } : m) } : a));
+      showToast('里程碑已更新');
+    },
+    remove: ({ abilityIdx, msIdx }) => {
+      setAbilities(prev => prev.map((a, i) => i === abilityIdx ? { ...a, mstones: a.mstones.filter((_, j) => j !== msIdx) } : a));
+      showToast('里程碑已删除');
+    },
+  };
+  // 工作·KR
+  const krOps = {
+    add: (data) => {
+      setWorkGoals(prev => prev.map((o, i) => i === data.workIdx ? { ...o, krs: [...o.krs, { ...data, id: crypto.randomUUID() }] } : o));
+      showToast('KR 已添加');
+    },
+    update: (data) => {
+      setWorkGoals(prev => prev.map((o, i) => i === data.workIdx ? { ...o, krs: o.krs.map((k, j) => j === data.krIdx ? { ...k, t: data.t, v: data.v, tgt: data.tgt, u: data.u, st: data.st } : k) } : o));
+      showToast('KR 已更新');
+    },
+    remove: ({ workIdx, krIdx }) => {
+      setWorkGoals(prev => prev.map((o, i) => i === workIdx ? { ...o, krs: o.krs.filter((_, j) => j !== krIdx) } : o));
+      showToast('KR 已删除');
+    },
+  };
+  // 生活·记录
+  const entryOps = {
+    add: (data) => {
+      setLifeData(prev => prev.map((c, i) => i === data.lifeKey ? { ...c, entries: [...c.entries, { ...data, id: crypto.randomUUID() }] } : c));
+      showToast('记录已添加');
+    },
+    update: (data) => {
+      setLifeData(prev => prev.map((c, i) => i === data.lifeKey ? { ...c, entries: c.entries.map((e, j) => j === data.entryIdx ? { ...e, t: data.t, n: data.n, d: data.d } : e) } : c));
+      showToast('记录已更新');
+    },
+    remove: ({ lifeKey, entryIdx }) => {
+      setLifeData(prev => prev.map((c, i) => i === lifeKey ? { ...c, entries: c.entries.filter((_, j) => j !== entryIdx) } : c));
+      showToast('记录已删除');
+    },
   };
 
-  // 主内容：无论 standalone 与否都渲染
+  // ---- Modal 状态 ----
+  const [modal, setModal] = useState(null); // { type, initial, categoryLabel }
+  const closeModal = () => setModal(null);
+
+  // 精力习惯编辑（打开 HabitForm）
+  const handleEnergyAction = useCallback((action, habit) => {
+    if (action === 'editHabit' && habit) {
+      // 从 API 习惯列表中找到原始习惯对象传给 HabitForm
+      // habit 是 useEnergyHabits 映射后的精简对象，需要还原为完整习惯格式
+      const rawHabit = {
+        id: habit.id,
+        name: habit.name,
+        emoji: habit.emoji,
+        growth_type: 'energy',
+        accent_color: '#22c55e',
+        target_mode: habit.unit === '次' ? 'count' : 'check',
+        target_unit: habit.unit === '次' ? '次' : habit.unit,
+        target_value: habit.unit === '次' ? '1' : null,
+      };
+      setModal({ type: 'habit', initial: rawHabit });
+    }
+  }, []);
+
+  // ---- CRUD 回调 ----
+  const onBookAdd = () => setModal({ type: 'book' });
+  const onBookEdit = (book) => setModal({ type: 'book', initial: book });
+  const onMsAdd = (abilityIdx) => setModal({ type: 'milestone', initial: { abilityIdx } });
+  const onMsEdit = (abilityIdx, msIdx, m) => setModal({ type: 'milestone', initial: { ...m, abilityIdx, msIdx, id: m.id } });
+  const onKrAdd = (workIdx) => setModal({ type: 'kr', initial: { workIdx } });
+  const onKrEdit = (workIdx, krIdx, k) => setModal({ type: 'kr', initial: { ...k, workIdx, krIdx, id: k.id } });
+  const onEntryAdd = (lifeKey, label) => setModal({ type: 'entry', initial: { lifeKey }, categoryLabel: label });
+  const onEntryEdit = (lifeKey, entryIdx, e) => setModal({ type: 'entry', initial: { ...e, lifeKey, entryIdx, id: e.id }, categoryLabel: lifeData[lifeKey]?.lb });
+
+  // Modal 渲染
+  const modalEl = modal && (() => {
+    const props = { onSaved: closeModal, onCancel: closeModal };
+    switch (modal.type) {
+      case 'habit':
+        return (
+          <Modal open onClose={closeModal} title="编辑精力习惯">
+            <HabitForm
+              initial={modal.initial}
+              onSaved={() => { closeModal(); showToast('习惯已更新'); window.location.reload(); }}
+              onCancel={closeModal}
+            />
+          </Modal>
+        );
+      case 'book':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑书籍' : '添加书籍'}>
+            <BookForm
+              initial={modal.initial}
+              onSaved={(data) => { modal.initial?.id ? bookOps.update(data) : bookOps.add(data); }}
+              {...props}
+              onDelete={modal.initial?.id ? (id) => { bookOps.remove(id); closeModal(); } : undefined}
+            />
+          </Modal>
+        );
+      case 'milestone':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑里程碑' : '添加里程碑'}>
+            <MilestoneForm
+              initial={modal.initial}
+              onSaved={(data) => { modal.initial?.id ? msOps.update(data) : msOps.add(data); }}
+              {...props}
+              onDelete={modal.initial?.id ? (idx) => { msOps.remove(idx); closeModal(); } : undefined}
+            />
+          </Modal>
+        );
+      case 'kr':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑 KR' : '添加 KR'}>
+            <KrForm
+              initial={modal.initial}
+              onSaved={(data) => { modal.initial?.id ? krOps.update(data) : krOps.add(data); }}
+              {...props}
+              onDelete={modal.initial?.id ? (idx) => { krOps.remove(idx); closeModal(); } : undefined}
+            />
+          </Modal>
+        );
+      case 'entry':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑记录' : '添加记录'}>
+            <EntryForm
+              initial={modal.initial}
+              categoryLabel={modal.categoryLabel}
+              onSaved={(data) => { modal.initial?.id ? entryOps.update(data) : entryOps.add(data); }}
+              {...props}
+              onDelete={modal.initial?.id ? (idx) => { entryOps.remove(idx); closeModal(); } : undefined}
+            />
+          </Modal>
+        );
+      default: return null;
+    }
+  })();
+
+  const stats = useOverviewStats(realHabits, books, abilities, workGoals, lifeData);
+
+  // 主内容
   const mainContent = (
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
-      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={realHabits} />}
-      {view === 'energy'    && <EnergyView   realHabits={realHabits} loading={energyLoading} onAction={showToast} />}
-      {view === 'cognition' && <CognitionView onAction={showToast} />}
-      {view === 'ability'   && <AbilityView  onAction={showToast} />}
-      {view === 'work'      && <WorkView     onAction={showToast} />}
-      {view === 'life'      && <LifeView     onAction={showToast} />}
+      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={realHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} />}
+      {view === 'energy'    && <EnergyView   realHabits={realHabits} loading={energyLoading} onAction={handleEnergyAction} />}
+      {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} />}
+      {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit} />}
+      {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit} />}
+      {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit} />}
     </main>
   );
 
   const toastEl = toast && (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-ink-900 text-white text-sm font-medium shadow-lg flex items-center gap-2">
-      <svg className="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" strokeLinecap="round"/></svg>
-      {toast} · 功能开发中
+      <svg className="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      {toast}
     </div>
   );
 
@@ -1043,6 +1241,7 @@ export default function AnnualPlan({ standalone = true }) {
         {mainContent}
         {styles}
         {toastEl}
+        {modalEl}
       </div>
     );
   }
@@ -1059,6 +1258,7 @@ export default function AnnualPlan({ standalone = true }) {
       </div>
       {styles}
       {toastEl}
+      {modalEl}
     </div>
   );
 }

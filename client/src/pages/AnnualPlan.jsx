@@ -980,7 +980,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-500">
               <div className="grp-start">习惯名称</div>
               <div className="text-right">目标</div>
-              <div className="text-right">累计</div>
+              <div className="text-right cum-gap">累计</div>
               <div className="text-right grp-end">完成率</div>
               {monthLabels.map((m, idx) => (
                 <div key={m} className={['text-center', isCurrentMonth(idx + 1) ? 'text-accent-green font-bold' : ''].join(' ')}>
@@ -1023,7 +1023,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     )}
                   </div>
-                  <div className="text-right font-bold tabular-nums text-ink-900">{h.val}</div>
+                  <div className="text-right font-bold tabular-nums text-ink-900 cum-gap">{h.val}</div>
                   {/* 完成率 - 去掉进度条，只显示百分比 */}
                   <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-bold tabular-nums" style={{color: barColor}}>{p}%</span>
@@ -1037,7 +1037,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-xs font-bold tabular-nums px-1 py-1 rounded-md min-w-[32px] text-center transition-colors',
+                          'text-xs font-bold tabular-nums px-0.5 py-1 rounded-md min-w-[26px] text-center transition-colors',
                           passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/20 text-accent-green' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
@@ -1915,17 +1915,21 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(120px, 2.2fr) 68px 56px 52px repeat(12, minmax(34px, 1fr)) 28px;
-        gap: 0 4px;
+        grid-template-columns: minmax(120px, 2.2fr) 68px 56px 52px repeat(12, minmax(28px, 1fr)) 28px;
+        gap: 0 2px;
         align-items: center;
       }
       /* 分组间距：习惯名与统计区分组 */
       .habit-table > .grp-start {
-        margin-right: 10px;
+        margin-right: 8px;
       }
       /* 分组间距：统计区与月份区分组 */
       .habit-table > .grp-end {
-        padding-right: 10px;
+        padding-right: 8px;
+      }
+      /* 统计区内：累计与完成率之间加大间距 */
+      .habit-table > .cum-gap {
+        margin-right: 6px;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */
       @keyframes fade-in-up {

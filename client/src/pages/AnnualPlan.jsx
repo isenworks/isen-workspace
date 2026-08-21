@@ -977,7 +977,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 详情表格 */}
         <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
-            <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-500">
+            <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-700">
               <div className="grp-start">习惯名称</div>
               <div className="text-right">目标</div>
               <div className="text-right cum-gap">累计</div>

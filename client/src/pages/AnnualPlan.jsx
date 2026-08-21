@@ -1038,7 +1038,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const yearMonthLabels = [];
               for (let m = 1; m <= curMonth; m++) {
                 yearCounts.push(h.month?.[m] || 0);
-                yearMonthLabels.push(`${m}月`);
+                yearMonthLabels.push(`${m}`);   // 月份标签直接用数字，不加"月"字
               }
 
               return (
@@ -1059,10 +1059,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-xl font-bold tabular-nums leading-none" style={{color: achColor}}>{ana.achievementRate}</span>
                     <span className="text-[11px] font-semibold text-ink-400">% 达标率</span>
-                  </div>
-                  <div className="text-[11px] text-ink-400 tabular-nums leading-tight">
-                    {ana.curMonthVal}<span className="text-ink-300">/</span>{ana.expectedCur} <span className="text-ink-400">{h.unit}</span>
-                    {ana.prevMonthVal > 0 && <span className="ml-1.5 text-ink-300">· 上月 {ana.prevMonthVal}</span>}
                   </div>
                   {/* 年度走势折线：月份标签在下方，hover每个顶点显示当月打卡次数 */}
                   <div className="mt-1 -mx-1">

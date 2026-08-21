@@ -855,7 +855,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   if (loading && !realHabits) {
     return (
       <div className="flex flex-col gap-4">
-        <SectionHeader cat="energy" title="精力 · 习惯打卡" />
         <div className="glass-card p-16 flex flex-col items-center justify-center gap-4">
           <div className="relative w-10 h-10">
             <div className="absolute inset-0 rounded-full border-2 border-ink-100" />
@@ -873,7 +872,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   if (habits.length === 0) {
     return (
       <div className="flex flex-col gap-4">
-        <SectionHeader cat="energy" title="精力 · 习惯打卡" />
         <div className="glass-card p-16 flex flex-col items-center justify-center gap-3 text-center">
           <div className="w-12 h-12 rounded-2xl bg-accent-green/10 grid place-items-center">
             <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -936,7 +934,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-ink-700">{curMonth}月 · 本月进度分析</span>
+              <span className="text-sm font-semibold text-ink-700">{curMonth}月 · 整体情况</span>
               <div className="flex items-center gap-1.5">
                 <div className="w-12"><ProgressBar value={energyPct} color="#22c55e" /></div>
                 <span className="text-[11px] font-bold tabular-nums text-accent-green">{energyPct}%</span>
@@ -1069,7 +1067,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 当月打卡日历（读取真实打卡日期） */}
         <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-ink-700">{curMonth}月 · 打卡日历</span>
+            <span className="text-sm font-semibold text-ink-700">{curMonth}月 · 打卡日历</span>
             <div className="flex items-center gap-3 text-[10px] text-ink-400">
               <span className="inline-flex items-center gap-1">
                 <span className="w-3 h-3 rounded-[4px] bg-accent-green"></span>已打卡
@@ -1172,7 +1170,30 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="cognition" title="认知 · 书架系统" progress={cogPct} />
+      {/* 认知 · 书架系统（内嵌标题行） */}
+      <div className="glass-card px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(75, 99, 240, 0.07)', color: '#4b63f0' }}>
+            <CategoryIcon catKey="cognition" className="w-4 h-4" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-ink-700">认知 · 书架系统</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-16"><ProgressBar value={cogPct} color="#4b63f0" /></div>
+            <span className="text-xs font-bold tabular-nums" style={{color:'#4b63f0'}}>{cogPct}%</span>
+          </div>
+          <button onClick={() => onBookAdd?.()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+            style={{ background: 'rgba(75, 99, 240, 0.10)', color: '#4b63f0' }}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+            <span className="text-xs font-bold">添加</span>
+          </button>
+        </div>
+      </div>
       {/* KR */}
       <div className="grid grid-cols-3 gap-3">
         {COG_KR.map(kr => {
@@ -1291,7 +1312,20 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore })
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="ability" title="能力 · 里程碑系统" progress={abPct} />
+      {/* 能力 · 里程碑系统（内嵌标题行） */}
+      <div className="glass-card px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(245, 158, 11, 0.07)', color: '#f59e0b' }}>
+            <CategoryIcon catKey="ability" className="w-4 h-4" />
+          </div>
+          <span className="text-sm font-semibold text-ink-700">能力 · 里程碑系统</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-16"><ProgressBar value={abPct} color="#f59e0b" /></div>
+          <span className="text-xs font-bold tabular-nums" style={{color:'#f59e0b'}}>{abPct}%</span>
+        </div>
+      </div>
       <div className="grid grid-cols-3 gap-3 annual-ability-grid">
         {dynAb.map((a, ai) => {
           const mDone = a.mstones.filter(m => m.st === 'done').length;
@@ -1553,7 +1587,20 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
   };
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="work" title="工作 · OKR 量化追踪" progress={totalPct} />
+      {/* 工作 · OKR 量化追踪（内嵌标题行） */}
+      <div className="glass-card px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(239, 68, 68, 0.07)', color: '#ef4444' }}>
+            <CategoryIcon catKey="work" className="w-4 h-4" />
+          </div>
+          <span className="text-sm font-semibold text-ink-700">工作 · OKR 量化追踪</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-16"><ProgressBar value={totalPct} color="#ef4444" /></div>
+          <span className="text-xs font-bold tabular-nums" style={{color:'#ef4444'}}>{totalPct}%</span>
+        </div>
+      </div>
       <div className="grid grid-cols-[1.2fr_1fr] gap-4 annual-work-grid">
         {panelHtml({ ...main, _workIdx: 0 }, '主业', '#ef4444')}
         {side && panelHtml({ ...side, _workIdx: 1 }, '副业', '#f9a8a8')}
@@ -1569,7 +1616,28 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
   const lifePct = Math.round((dynLife.filter(c => c.entries.length > 0).length / dynLife.length) * 100);
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader cat="life" title="生活 · 体验记录" progress={lifePct} />
+      {/* 生活 · 体验记录（内嵌标题行） */}
+      <div className="glass-card px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(139, 92, 246, 0.07)', color: '#8b5cf6' }}>
+            <CategoryIcon catKey="life" className="w-4 h-4" />
+          </div>
+          <span className="text-sm font-semibold text-ink-700">生活 · 体验记录</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-16"><ProgressBar value={lifePct} color="#8b5cf6" /></div>
+            <span className="text-xs font-bold tabular-nums" style={{color:'#8b5cf6'}}>{lifePct}%</span>
+          </div>
+          <button onClick={() => onEntryAdd?.()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+            style={{ background: 'rgba(139, 92, 246, 0.10)', color: '#8b5cf6' }}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+            <span className="text-xs font-bold">添加</span>
+          </button>
+        </div>
+      </div>
       {/* P2-2: 生活统计条 */}
       <LifeStatsBar categories={dynLife.map(c => ({ key: c.key, label: c.lb, count: c.entries.length, color: c.color }))} />
       <div className="grid grid-cols-5 gap-3 annual-life-grid">

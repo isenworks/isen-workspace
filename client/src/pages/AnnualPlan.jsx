@@ -634,7 +634,7 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
         {labels && labels.length === data.length && pts.map((p, i) =>
           showIdx.has(i) && (
             <text key={'l'+i} x={p.x} y={labelY} textAnchor="middle"
-              fontSize="9" fontWeight="600"
+              fontSize="11" fontWeight="600"
               fill={i === data.length - 1 ? color : '#9ca3af'}
               style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
               {labels[i]}
@@ -647,14 +647,14 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
         <div className="pointer-events-none absolute z-20"
           style={{
             left: Math.min(Math.max(hp.x - 42, 0), width - 84),
-            top: Math.max(hp.y - 32, -2),
+            top: Math.max(hp.y - 34, -2),
           }}>
-          <div className="px-2 py-1 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.08)] flex flex-col items-center gap-0.5"
-            style={{ minWidth: 68 }}>
+          <div className="px-2.5 py-1.5 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.08)] flex flex-col items-center gap-0.5"
+            style={{ minWidth: 72 }}>
             {labels && labels[hoverIdx] && (
-              <div className="text-[9px] font-semibold text-ink-400 leading-none">{labels[hoverIdx]}</div>
+              <div className="text-[11px] font-semibold text-ink-400 leading-none">{labels[hoverIdx]}月</div>
             )}
-            <div className="text-[11px] font-bold tabular-nums leading-tight" style={{ color }}>
+            <div className="text-[15px] font-bold tabular-nums leading-tight" style={{ color }}>
               {hp.v} 次
             </div>
           </div>
@@ -1044,7 +1044,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 <div key={h.key} className="flex flex-col gap-2.5 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
                   {/* 行1：左=习惯全称  右=【迷你短进度条 + 百分比数字】 */}
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm font-bold text-ink-900 leading-snug truncate">{h.label}</span>
+                    <span className="text-[15px] font-bold text-ink-900 leading-snug truncate">{h.label}</span>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {/* 迷你短进度条：88px / 高3px / dense 风格 */}
                       <div className="w-[88px] h-0.75 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
@@ -1052,14 +1052,14 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
                       </div>
                       <div className="flex items-baseline gap-0.5 flex-shrink-0">
-                        <span className="text-base font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
-                        <span className="text-[10px] font-semibold text-ink-400">%</span>
+                        <span className="text-[17px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
+                        <span className="text-[12px] font-semibold text-ink-500">%</span>
                       </div>
                     </div>
                   </div>
                   {/* 行2：年度累计/目标 放在卡片最右侧 — 正好对齐行1的%正下方（垂直对齐右侧KPI列） */}
                   <div className="flex justify-end">
-                    <div className="text-[11px] tabular-nums leading-none font-medium text-ink-500">
+                    <div className="text-[13px] tabular-nums leading-none font-medium text-ink-600">
                       <span className="font-bold text-ink-900">{h.val}</span>
                       <span className="text-ink-300 mx-0.5">/</span>
                       <span className="text-ink-600">{h.target}</span>
@@ -1078,7 +1078,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 详情表格 */}
         <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
-            <div className="grid habit-table px-4 py-2 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-700">
+            <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis">{year}年 · 各月数据</div>
               <div className="text-right pr-1 whitespace-nowrap">目标</div>
               <div className="text-right cum-gap whitespace-nowrap">累计</div>
@@ -1097,9 +1097,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (
-                <div key={hkey} className="grid habit-table px-4 py-2 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
+                <div key={hkey} className="grid habit-table px-4 py-2.5 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
                   <div className="flex items-center gap-2 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
+                    <span className="text-[14px] font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
                   <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
@@ -1115,19 +1115,19 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-16 ml-auto px-2 py-1 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-16 ml-auto px-2 py-1 text-[14px] font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
                       <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer w-full pr-0">
-                        <span className="text-sm font-semibold text-ink-700 tabular-nums text-right ml-1">{h.target}</span>
-                        <span className="text-[10px] text-ink-400 ml-1">{h.unit}</span>
+                        <span className="text-[14px] font-semibold text-ink-700 tabular-nums text-right ml-1">{h.target}</span>
+                        <span className="text-[12px] text-ink-500 ml-1">{h.unit}</span>
                       </div>
                     )}
                   </div>
-                  <div className="text-right font-semibold tabular-nums text-ink-900 cum-gap">{h.val}</div>
+                  <div className="text-right font-semibold tabular-nums text-ink-900 text-[14px] cum-gap">{h.val}</div>
                   {/* 完成率 - 去掉进度条，只显示百分比 */}
                   <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="text-sm font-semibold tabular-nums" style={{color: barColor}}>{p}%</span>
+                    <span className="text-[14px] font-semibold tabular-nums" style={{color: barColor}}>{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
@@ -1162,8 +1162,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-xs tabular-nums text-center transition-colors grid place-items-center',
-                          'aspect-square w-7 h-7 rounded-md',   // 形状/圆角与打卡日历方块完全一致（aspect-square + rounded-md 6px）
+                          'text-[13px] tabular-nums text-center transition-colors grid place-items-center',
+                          'aspect-square w-[30px] h-[30px] rounded-md',   // 月份格子同步放大，与日期尺寸成比例
                           cellBg, cellText, cellBorder, cellRing
                         ].join(' ')}>{n}</span>
                       </div>
@@ -1183,20 +1183,20 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 当月打卡日历（读取真实打卡日期） */}
         <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-ink-700">{year}年 · {curMonth}月打卡日历</span>
-            <div className="flex items-center gap-3 text-[10px] text-ink-400">
-              <span className="inline-flex items-center gap-1">
-                <span className="w-3 h-3 rounded-[4px] bg-accent-green"></span>已打卡
+            <span className="text-base font-bold text-ink-900">{year}年 · {curMonth}月打卡日历</span>
+            <div className="flex items-center gap-3 text-[13px] text-ink-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
               </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-3 h-3 rounded-[4px] bg-ink-100"></span>未打卡
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
               </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-3 h-3 rounded-[4px] bg-ink-50 border border-ink-100"></span>未开始
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-md bg-ink-50 border border-ink-200"></span>未开始
               </span>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {habits.map((h, hidx) => {
               const daysTotal = monthMaxDays[curMonth - 1];
               // 读取真实打卡日期：API 返回时 monthDates[curMonth] 是当日集合；Mock 时退化为前 N 天连续（和"累计"逻辑一致）
@@ -1205,9 +1205,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 ? realDates
                 : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
-                <div key={h.key} className="flex items-center gap-3">
-                  <div className="w-[120px] flex-shrink-0 truncate">
-                    <span className="text-[11px] font-semibold text-ink-600 truncate">{h.label}</span>
+                <div key={h.key} className="flex items-center gap-4">
+                  <div className="w-[160px] flex-shrink-0 truncate">
+                    <span className="text-[14px] font-semibold text-ink-800 truncate">{h.label}</span>
                   </div>
                   <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '3px'}}>
                     {Array.from({ length: daysTotal }, (_, d) => {
@@ -1239,7 +1239,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           title={`${curMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
                           className={[
                             'aspect-square rounded-md grid place-items-center',
-                            'text-[9px] tabular-nums leading-none transition-colors',
+                            'text-[13px] tabular-nums leading-none font-medium transition-colors',
                             cellBg, cellText, cellRing, cellBorder
                           ].join(' ')}>
                           {day}
@@ -2114,7 +2114,7 @@ export default function AnnualPlan({ standalone = true }) {
          ③ 12 月列权重由 0.65fr 继续砍到 0.45fr → 月份格子之间空白显著收紧
       */
       .habit-table {
-        grid-template-columns: minmax(92px, 1.45fr) 62px 50px 56px repeat(12, minmax(28px, 0.45fr)) 28px;
+        grid-template-columns: minmax(100px, 1.5fr) 64px 52px 60px repeat(12, minmax(30px, 0.5fr)) 30px;
         gap: 0 0;
         align-items: center;
       }

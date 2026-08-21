@@ -1129,22 +1129,40 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
-                    const maxT = monthMaxDays[monthIdx - 1];
-                    const ratio = n / maxT;
-                    const passed = ratio >= 0.8;
-                    const doing  = ratio >= 0.5 && ratio < 0.8;
+                    const isFuture = monthIdx > curMonth;
                     const isCur = isCurrentMonth(monthIdx);
-                    // 颜色分层与打卡日历方块保持一致：≥80%→实心绿白字（与日历已打卡同色）；50~80%→浅绿底深绿字；<50%→灰底灰字
-                    let pill = '';
-                    if (passed) pill = 'bg-accent-green text-white';
-                    else if (doing) pill = 'bg-accent-green/30 text-accent-green';
-                    else if (n > 0) pill = 'bg-accent-green/15 text-ink-700';
-                    else pill = 'bg-ink-100 text-ink-400';
+
+                    // ↓↓ 月份汇总格子样式 ↔ 打卡日历小方块 三态严格一一对应（不再按达标率分4档，保持与日历图例完全一致）
+                    let cellBg = '';
+                    let cellText = '';
+                    let cellBorder = '';
+                    let cellRing = '';
+                    if (n > 0) {
+                      // 有打卡记录 → 对应日历「已打卡」态：实心绿 bg-accent-green + 白字
+                      cellBg = 'bg-accent-green';
+                      cellText = 'text-white font-bold';
+                    } else if (isFuture) {
+                      // 未来月份还没到 → 对应日历「未开始」态：浅灰底 + 细灰边框（图例中第三种）
+                      cellBg = 'bg-ink-50';
+                      cellText = 'text-ink-300';
+                      cellBorder = 'border border-ink-100';
+                    } else {
+                      // 已过/当前月但打卡数=0 → 对应日历「未打卡」态：中灰底（图例中第二种）
+                      cellBg = 'bg-ink-100';
+                      cellText = 'text-ink-400';
+                    }
+                    if (isCur) {
+                      // 当前月份（=8月）→ 额外加一圈环，与今日方块的 ring 机制统一
+                      cellRing = n > 0
+                        ? 'ring-2 ring-accent-green/40 ring-offset-1'
+                        : 'ring-2 ring-ink-300/50 ring-offset-1';
+                    }
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-xs font-bold tabular-nums px-0 py-1 rounded-md min-w-[24px] text-center transition-colors',
-                          pill
+                          'text-xs tabular-nums text-center transition-colors grid place-items-center',
+                          'aspect-square w-7 h-7 rounded-md',   // 形状/圆角与打卡日历方块完全一致（aspect-square + rounded-md 6px）
+                          cellBg, cellText, cellBorder, cellRing
                         ].join(' ')}>{n}</span>
                       </div>
                     );

@@ -979,7 +979,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-500">
               <div className="grp-start">习惯名称</div>
-              <div className="text-center">目标</div>
+              <div className="text-right">目标</div>
               <div className="text-right">累计</div>
               <div className="text-right grp-end">完成率</div>
               {monthLabels.map((m, idx) => (
@@ -1001,7 +1001,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
-                  <div className="text-center tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
+                  <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1014,10 +1014,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-16 px-2 py-1 text-sm font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-16 ml-auto px-2 py-1 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
-                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-center gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
                         <span className="text-sm font-semibold text-ink-700 tabular-nums">{h.target}</span>
                         <span className="text-[10px] text-ink-400">{h.unit}</span>
                       </div>
@@ -1915,17 +1915,17 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(80px, 1.8fr) 80px 64px 56px repeat(12, minmax(36px, 1fr)) 32px;
-        gap: 0 8px;
+        grid-template-columns: minmax(120px, 2.2fr) 68px 56px 52px repeat(12, minmax(34px, 1fr)) 28px;
+        gap: 0 4px;
         align-items: center;
       }
       /* 分组间距：习惯名与统计区分组 */
       .habit-table > .grp-start {
-        margin-right: 12px;
+        margin-right: 10px;
       }
       /* 分组间距：统计区与月份区分组 */
       .habit-table > .grp-end {
-        padding-right: 12px;
+        padding-right: 10px;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */
       @keyframes fade-in-up {

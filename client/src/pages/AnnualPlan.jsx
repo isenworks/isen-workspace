@@ -1017,7 +1017,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-ink-700">{year}年 · 年度数据</span>
+              <span className="text-[15px] font-bold text-ink-900">{year}年 · 年度数据</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => onAction?.('addHabit')}
@@ -1079,7 +1079,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-[14px] font-semibold text-ink-700">
-              <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis">{year}年 · 各月数据</div>
+              <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis text-[14px] font-bold text-ink-800">{year}年 · 各月数据</div>
               <div className="text-right pr-1 whitespace-nowrap">目标</div>
               <div className="text-right cum-gap whitespace-nowrap">累计</div>
               <div className="text-right grp-end whitespace-nowrap">完成率</div>
@@ -1183,8 +1183,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 当月打卡日历（读取真实打卡日期） */}
         <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-[17px] font-bold text-ink-900">{year}年 · {curMonth}月打卡日历</span>
-            <div className="flex items-center gap-3 text-[14px] text-ink-500">
+            <span className="text-[14px] font-bold text-ink-800">{year}年 · {curMonth}月打卡日历</span>
+            <div className="flex items-center gap-3 text-[13px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
               </span>
@@ -1206,8 +1206,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
                 <div key={h.key} className="flex items-center gap-4">
-                  <div className="w-[180px] flex-shrink-0 truncate">
-                    <span className="text-[16px] font-semibold text-ink-800 truncate">{h.label}</span>
+                  <div className="w-[170px] flex-shrink-0 truncate">
+                    <span className="text-[15px] font-semibold text-ink-800 truncate">{h.label}</span>
                   </div>
                   {/* 高密度数据格子：minmax(28px) 兜底底线尺寸，窄屏自动横滚而不是被压扁 */}
                   <div className="flex-1 grid overflow-x-auto" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(28px, 1fr))`, gap: '4px'}}>

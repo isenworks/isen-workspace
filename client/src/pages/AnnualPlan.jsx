@@ -979,7 +979,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div className="grp-start">习惯名称</div>
-              <div className="text-center pl-6">目标</div>
+              <div className="text-center pl-1">目标</div>
               <div className="text-right">累计</div>
               <div className="text-right grp-end">完成率</div>
               {monthLabels.map((m, idx) => (
@@ -1001,7 +1001,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
-                  <div className="text-center tabular-nums font-medium pl-6" onClick={(e) => e.stopPropagation()}>
+                  <div className="text-center tabular-nums font-medium pl-1" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1918,8 +1918,8 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- */
       .habit-table {
-        grid-template-columns: 2fr 88px 56px 52px repeat(12, minmax(30px, 1fr)) 32px;
-        gap: 0 4px;
+        grid-template-columns: 2fr 72px 52px 48px repeat(12, minmax(30px, 1fr)) 32px;
+        gap: 0 6px;
         align-items: center;
       }
       /* 分组间距：习惯名与统计区分组 */

@@ -572,7 +572,8 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
   const [hoverIdx, setHoverIdx] = useState(null);
   if (!data || data.length === 0) return null;
   const LABEL_H = 14;     // 底部月份标签高度
-  const PAD_T = 4; PAD_B = 2;
+  const PAD_T = 4;
+  const PAD_B = 2;
   const plotH = height - LABEL_H - PAD_T - PAD_B;
   const max = Math.max(10, Math.max(...data));
   const min = 0;                           // 次数=0是有意义的下限

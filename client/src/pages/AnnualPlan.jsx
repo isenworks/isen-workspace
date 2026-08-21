@@ -1038,7 +1038,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
                           'text-xs font-bold tabular-nums px-0 py-1 rounded-md min-w-[24px] text-center transition-colors',
-                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/30 text-accent-green' : 'bg-ink-100 text-ink-500'
+                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/40 text-ink-900' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
                     );

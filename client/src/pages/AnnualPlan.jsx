@@ -1042,11 +1042,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
 
               return (
                 <div key={h.key} className="flex flex-col gap-2.5 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
-                  {/* 顶行：左=习惯全称  右=【迷你短进度条 + 百分比数字】  (两者耦合，进度条不再单独横贯全宽) */}
-                  <div className="flex items-center justify-between gap-2">
+                  {/* 行1：左=习惯全称  右=【迷你短进度条 + 百分比数字】 */}
+                  <div className="flex items-start justify-between gap-2">
                     <span className="text-sm font-bold text-ink-900 leading-snug truncate">{h.label}</span>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* 迷你短进度条：固定宽度88px / 高3px / dense 风格，放在%数字左侧 */}
+                      {/* 迷你短进度条：88px / 高3px / dense 风格 */}
                       <div className="w-[88px] h-0.75 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
                         <div className="h-full rounded-full transition-all duration-500 ease-out"
                           style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
@@ -1057,14 +1057,16 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     </div>
                   </div>
-                  {/* 中间行：年度累计 vs 目标 纯文字（不再带重复的进度条） */}
-                  <div className="text-[11px] tabular-nums leading-none font-medium text-ink-500">
-                    <span className="font-bold text-ink-900">{h.val}</span>
-                    <span className="text-ink-300 mx-0.5">/</span>
-                    <span className="text-ink-600">{h.target}</span>
-                    <span className="text-ink-400 ml-1">{h.unit}</span>
+                  {/* 行2：年度累计/目标 放在卡片最右侧 — 正好对齐行1的%正下方（垂直对齐右侧KPI列） */}
+                  <div className="flex justify-end">
+                    <div className="text-[11px] tabular-nums leading-none font-medium text-ink-500">
+                      <span className="font-bold text-ink-900">{h.val}</span>
+                      <span className="text-ink-300 mx-0.5">/</span>
+                      <span className="text-ink-600">{h.target}</span>
+                      <span className="text-ink-400 ml-1">{h.unit}</span>
+                    </div>
                   </div>
-                  {/* 底行：全宽年度折线 + 月份数字 1~N (hover tooltip 保留) */}
+                  {/* 行3：全宽年度折线 + 月份数字 1~N (hover tooltip 保留) */}
                   <div className="mt-0.5 -mx-1">
                     <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={52} />
                   </div>

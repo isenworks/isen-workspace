@@ -167,12 +167,10 @@ function CategoryIcon({ catKey, className }) {
   );
 }
 
-function ProgressBar({ value, color, height }) {
-  // P1-4: 全局统一 4px 高度，状态颜色语义化
-  const h = height || 'h-1';
+function ProgressBar({ value, color }) {
   return (
-    <div className={`${h} rounded-full bg-ink-100 overflow-hidden`}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color || '#4b63f0' }} />
+    <div className="h-1 rounded-full bg-ink-100 overflow-hidden">
+      <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%`, background: color || '#4b63f0' }} />
     </div>
   );
 }
@@ -186,6 +184,123 @@ function AddButton({ label, onClick }) {
       </span>
       <span>{label}</span>
     </button>
+  );
+}
+
+/* ---------- P2-2: 认知阅读漏斗图 ---------- */
+function ReadingFunnel({ pending, reading, done }) {
+  const stages = [
+    { key: 'pending', label: '想读', count: pending, color: '#8e8e93', widthPct: 100 },
+    { key: 'reading', label: '在读', count: reading, color: '#4b63f0', widthPct: 68 },
+    { key: 'done',    label: '读完', count: done,    color: '#22c55e', widthPct: 42 },
+  ];
+  const total = pending + reading + done || 1;
+  const conv1 = pending > 0 ? Math.round((reading / pending) * 100) : 0;
+  const conv2 = reading > 0 ? Math.round((done / reading) * 100) : 0;
+  const overall = Math.round((done / total) * 100);
+
+  return (
+    <div className="glass-card p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg grid place-items-center bg-brand-500/10 text-brand-500">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className="text-sm font-bold text-ink-900">阅读漏斗</span>
+        </div>
+        <div className="flex items-center gap-1 text-[11px] font-bold text-accent-green">
+          <span>读完率</span>
+          <span className="tabular-nums">{overall}%</span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        {stages.map((s, i) => {
+          const next = stages[i + 1];
+          const conversion = next && s.count > 0 ? Math.round((next.count / s.count) * 100) : null;
+          return (
+            <div key={s.key} className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2.5">
+                <div className="relative w-full h-9 rounded-lg overflow-hidden bg-ink-50">
+                  <div className="h-full rounded-lg transition-all duration-500 flex items-center px-3 justify-between"
+                    style={{ width: `${s.widthPct}%`, background: `linear-gradient(90deg, ${s.color} 0%, ${s.color}dd 100%)` }}>
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span className="opacity-90">{s.label}</span>
+                    </span>
+                    <span className="text-sm font-bold text-white tabular-nums">{s.count}</span>
+                  </div>
+                </div>
+              </div>
+              {conversion !== null && (
+                <div className="flex items-center justify-center gap-1 py-0.5">
+                  <div className="h-3 w-px bg-ink-200" />
+                  <svg className="w-3 h-3 text-ink-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <span className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md"
+                    style={{
+                      color: conversion >= 60 ? '#16a34a' : conversion >= 35 ? '#ca8a04' : '#dc2626',
+                      background: conversion >= 60 ? '#dcfce7' : conversion >= 35 ? '#fef9c3' : '#fee2e2',
+                    }}>
+                    转化率 {conversion}%
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- P2-2: 生活统计条 ---------- */
+function LifeStatsBar({ categories }) {
+  const total = categories.reduce((s, c) => s + c.count, 0) || 1;
+  const max = Math.max(...categories.map(c => c.count), 1);
+  return (
+    <div className="glass-card p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg grid place-items-center bg-rose-500/10 text-rose-500">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M3 3v18h18M7 14l4-4 4 4 5-5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className="text-sm font-bold text-ink-900">生活记录分布</span>
+        </div>
+        <span className="text-[11px] font-semibold text-ink-500">共 <span className="tabular-nums text-ink-700">{total}</span> 条记录</span>
+      </div>
+      {/* 堆叠百分比条 */}
+      <div className="flex h-3 rounded-full overflow-hidden bg-ink-50">
+        {categories.map((c, i) => {
+          const w = (c.count / total) * 100;
+          if (w < 1) return null;
+          return <div key={c.key} style={{ width: `${w}%`, background: c.color }} className={i === 0 ? 'rounded-l-full' : i === categories.length - 1 ? 'rounded-r-full' : ''} />;
+        })}
+      </div>
+      {/* 单项进度排行 */}
+      <div className="flex flex-col gap-2">
+        {[...categories].sort((a, b) => b.count - a.count).map((c, i) => {
+          const pct = Math.round((c.count / max) * 100);
+          const share = Math.round((c.count / total) * 100);
+          return (
+            <div key={c.key} className="flex items-center gap-2.5">
+              <span className="text-xs w-4 h-4 rounded-md grid place-items-center flex-shrink-0 font-bold"
+                style={{ background: `${c.color}15`, color: c.color }}>
+                {i + 1}
+              </span>
+              <span className="text-xs font-semibold text-ink-700 w-10 flex-shrink-0">{c.label}</span>
+              <div className="flex-1 h-2 rounded-full bg-ink-50 overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: c.color }} />
+              </div>
+              <span className="text-[11px] font-bold tabular-nums text-ink-700 w-10 text-right flex-shrink-0">
+                {c.count} · {share}%
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -296,7 +411,7 @@ function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dynamicWor
 }
 
 /* ---------- 4. 子组件 · 顶部 Nav 条 ---------- */
-function NavBar() {
+function NavBar({ onExport, onImport, onReset }) {
   const year = new Date().getFullYear();
   return (
     <div className="flex items-center justify-between mb-5">
@@ -304,9 +419,28 @@ function NavBar() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         返回工作台
       </a>
-      <div className="inline-flex items-center gap-2 text-xs font-semibold text-ink-500">
-        <span className="px-2 py-0.5 rounded-full bg-ink-100 text-ink-700">{year}</span>
-        <span>年度规划</span>
+      <div className="flex items-center gap-3">
+        <div className="inline-flex items-center rounded-xl border border-ink-100 bg-white p-0.5 gap-0.5">
+          <button onClick={onExport} title="导出年度数据为JSON"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-ink-600 hover:bg-ink-50 transition">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            导出
+          </button>
+          <label title="从JSON导入年度数据"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-ink-600 hover:bg-ink-50 transition cursor-pointer">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            导入
+            <input type="file" accept="application/json" className="hidden" onChange={onImport}/>
+          </label>
+        </div>
+        <button onClick={onReset} title="重置为初始模板"
+          className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-xl text-xs font-semibold text-ink-400 hover:text-accent-red hover:bg-accent-red/5 transition">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+        <div className="inline-flex items-center gap-2 text-xs font-semibold text-ink-500">
+          <span className="px-2 py-0.5 rounded-full bg-ink-100 text-ink-700">{year}</span>
+          <span>年度规划</span>
+        </div>
       </div>
     </div>
   );
@@ -327,7 +461,7 @@ function Sidebar({ active, onChange, stats }) {
   const year = new Date().getFullYear();
   const yy = String(year).slice(-2);
   return (
-    <aside className="w-[260px] flex-shrink-0 flex flex-col gap-3 sticky top-6 max-h-[calc(100vh-48px)] overflow-y-auto overflow-x-hidden pr-1">
+    <aside className="w-[260px] flex-shrink-0 flex flex-col gap-2.5 sticky top-6 max-h-[calc(100vh-48px)] overflow-y-auto overflow-x-hidden pr-1">
       {/* Logo + 总进度环 */}
       <div className="glass-card p-4">
         <div className="flex items-center gap-3 mb-3">
@@ -400,6 +534,38 @@ function Sidebar({ active, onChange, stats }) {
     </aside>
   );
 }
+
+/* ---------- 通用 Sparkline 迷你折线图 ---------- */
+const Sparkline = ({ data, color = '#22c55e', width = 120, height = 28 }) => {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(10, Math.max(...data));
+  const min = Math.min(0, Math.min(...data));
+  const range = Math.max(1, max - min);
+  const stepX = data.length === 1 ? 0 : width / (data.length - 1);
+  const pts = data.map((v, i) => {
+    const x = i * stepX;
+    const y = height - (((v - min) / range) * (height - 4)) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+  const areaPath = 'M0,' + height + ' L' + pts + ' L' + width + ',' + height + ' Z';
+  const linePath = pts.split(' ').map((p, i) => (i === 0 ? 'M' + p : 'L' + p)).join(' ');
+  const lastPoint = (data.length - 1) * stepX;
+  const lastY = height - (((data[data.length - 1] - min) / range) * (height - 4)) - 2;
+  const gid = 'sg-' + color.replace('#','') + '-' + Math.abs(data.reduce((s,v)=>s+v,0)).toString(36);
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={'url(#' + gid + ')'} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastPoint} cy={lastY} r="2.5" fill={color} />
+    </svg>
+  );
+};
 
 /* ---------- 6. 视图 · Overview ---------- */
 function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData, timeScale, onTimeScaleChange }) {
@@ -477,7 +643,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* Hero */}
       <section className="glass-card p-5 flex items-center gap-6">
         <div className="relative flex-shrink-0">
@@ -539,7 +705,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       </section>
 
       {/* 5 类目卡片 */}
-      <section className="grid grid-cols-5 gap-4 annual-cat-grid">
+      <section className="grid grid-cols-5 gap-3 annual-cat-grid">
         {CATEGORIES.map((c, i) => {
           const v = Math.round(stats.perCat[i]);
           return (
@@ -722,36 +888,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
     const achievementRate = expectedCur > 0 ? Math.round((curMonthVal / expectedCur) * 100) : 0;
     const delta = prevMonthVal > 0 ? Math.round(((curMonthVal - prevMonthVal) / prevMonthVal) * 100) : null;
     return { curMonthVal, prevMonthVal, achievementRate, delta, expectedCur };
-  };
-
-  const Sparkline = ({ data, color = '#22c55e', width = 120, height = 28 }) => {
-    if (!data || data.length === 0) return null;
-    const max = Math.max(...data, 1);
-    const range = max;
-    const stepX = width / (data.length - 1);
-    const pts = data.map((v, i) => {
-      const x = i * stepX;
-      const y = height - ((v / range) * (height - 4)) - 2;
-      return `${x},${y}`;
-    }).join(' ');
-    const areaPath = 'M0,' + height + ' L' + pts + ' L' + width + ',' + height + ' Z';
-    const linePath = pts.split(' ').map((p, i) => (i === 0 ? 'M' + p : 'L' + p)).join(' ');
-    const lastPoint = (data.length - 1) * stepX;
-    const lastY = height - ((data[data.length - 1] / range) * (height - 4)) - 2;
-    const gid = 'sg' + color.replace('#','');
-    return (
-      <svg width={width} height={height} className="overflow-visible">
-        <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill={'url(#' + gid + ')'} />
-        <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={lastPoint} cy={lastY} r="2.5" fill={color} />
-      </svg>
-    );
   };
 
   // 计算精力模块完成率
@@ -947,7 +1083,7 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
     <div className="flex flex-col gap-4">
       <SectionHeader cat="cognition" title="认知 · 书架系统" progress={cogPct} />
       {/* KR */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         {COG_KR.map(kr => {
           const p = pct(kr.val, kr.tgt);
           return (
@@ -963,6 +1099,8 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
           );
         })}
       </div>
+      {/* P2-2: 阅读漏斗图 */}
+      <ReadingFunnel pending={groups.pending.length} reading={groups.reading.length} done={groups.done.length} />
       {/* 书架看板 - 3列: 阅读中 / 未开始 / 已读完 */}
       <div className="grid grid-cols-3 gap-4">
         {groupLabels.map(g => (
@@ -973,6 +1111,20 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
               <span className="text-xs font-bold text-ink-700 tabular-nums">{g.count}</span>
             </div>
             <div className="flex flex-col gap-2 flex-1 min-h-[100px]">
+              {(groups[g.key] || []).length === 0 && (
+                <div className="flex-1 flex flex-col items-center justify-center py-5 px-3 rounded-xl border border-dashed border-ink-100 text-center gap-1.5">
+                  <svg className="w-7 h-7 text-ink-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" strokeLinecap="round"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" strokeLinecap="round"/>
+                  </svg>
+                  <div className="text-xs font-semibold text-ink-500">{g.lb}为空</div>
+                  <div className="text-[11px] text-ink-400 leading-snug">
+                    {g.key === 'reading' && '开始一本新书，养成每日阅读习惯'}
+                    {g.key === 'todo' && '把想读的书先加进来，避免书单荒'}
+                    {g.key === 'done' && '读完的书记得归档，积累成就感'}
+                  </div>
+                </div>
+              )}
               {(groups[g.key] || []).map((b, idx) => {
                 const sm = statusMeta(b.st);
                 const dim = b.st === 'done' ? 'text-ink-500' : 'text-ink-900';
@@ -1009,14 +1161,35 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
 }
 
 /* ---------- 9. 视图 · 能力 ---------- */
-function AbilityView({ abilities, onMsAdd, onMsEdit }) {
+function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore }) {
   const dynAb = abilities || ABILITY;
+  const [editingScoreIdx, setEditingScoreIdx] = useState(null);
   const scoreColor = (s) => {
-    if (s >= 9) return '#22c55e';
-    if (s >= 6) return '#f59e0b';
+    const n = Number(s) || 0;
+    if (n >= 9) return '#22c55e';
+    if (n >= 6) return '#f59e0b';
     return '#ef4444';
   };
-  // 计算能力模块完成率
+  // 生成本年 1-12 月的自评历史数据
+  const getHistorySeries = (ab) => {
+    const abId = ab.id || ab.title;
+    const hist = scoreHistory?.[abId] || {};
+    const curScore = Number(ab.score) || 0;
+    const curYM = new Date().toISOString().slice(0,7);
+    const year = new Date().getFullYear();
+    const series = [];
+    const months = [];
+    for (let m = 1; m <= 12; m++) {
+      const ym = `${year}-${String(m).padStart(2,'0')}`;
+      months.push(ym);
+      const v = hist[ym];
+      if (v !== undefined && v !== null) series.push(Number(v));
+      else if (ym <= curYM) series.push(curScore); // 当前月前用现有分回补
+      else break;
+    }
+    return series;
+  };
+
   const abPct = useMemo(() => {
     const total = dynAb.reduce((s, a) => {
       const msAvg = a.mstones.length > 0 ? a.mstones.reduce((t, m) => t + m.pct, 0) / a.mstones.length : 0;
@@ -1028,31 +1201,76 @@ function AbilityView({ abilities, onMsAdd, onMsEdit }) {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="ability" title="能力 · 里程碑系统" progress={abPct} />
-      <div className="grid grid-cols-3 gap-4 annual-ability-grid">
+      <div className="grid grid-cols-3 gap-3 annual-ability-grid">
         {dynAb.map((a, ai) => {
           const mDone = a.mstones.filter(m => m.st === 'done').length;
           const mTotal = a.mstones.length;
-          const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal);
+          const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / Math.max(1, mTotal));
           const sc = scoreColor(a.score);
+          const series = getHistorySeries(a);
+          const lastScore = series[series.length - 1];
+          const firstScore = series[0];
+          const trendDelta = series.length >= 2 && firstScore !== undefined
+            ? Math.round(((lastScore - firstScore) / Math.max(1, firstScore)) * 100) : null;
           return (
-            <div key={a.title} className="glass-card p-5 flex flex-col gap-4">
+            <div key={a.title} className="glass-card p-4 flex flex-col gap-3.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base font-bold text-ink-900 leading-tight mb-1">{a.title}</h3>
-                  {/* 每日任务 - 纯文字排版 */}
                   <div className="text-xs text-ink-500 leading-snug">
                     <span className="font-semibold text-ink-700">每日：</span>{a.daily}
                   </div>
                 </div>
-                {/* 自评 - 梯度染色 */}
-                <div className="flex flex-col items-end flex-shrink-0">
-                  <div className="flex items-baseline gap-0.5">
-                    <span className="text-xl font-bold tabular-nums leading-none" style={{color: sc}}>{a.score}</span>
-                    <span className="text-xs" style={{color: sc, opacity:.7}}>/10</span>
+                {/* 自评 - 点击可编辑 */}
+                {editingScoreIdx === ai ? (
+                  <div className="flex flex-col items-end flex-shrink-0 gap-1">
+                    <div className="flex items-center gap-1">
+                      <input type="range" min="0" max="10" step="1" defaultValue={a.score}
+                        style={{accentColor: sc, width:'72px'}}
+                        onDoubleClick={e => e.target.blur()}
+                        onChange={e => {
+                          const n = Number(e.target.value);
+                          if (document.getElementById('ab-score-'+ai)) document.getElementById('ab-score-'+ai).textContent = n;
+                        }}
+                        onMouseUp={e => {
+                          const n = Number(e.target.value);
+                          onSetScore?.(ai, n);
+                          setEditingScoreIdx(null);
+                        }}
+                      />
+                    </div>
+                    <span id={'ab-score-'+ai} className="text-[11px] font-semibold" style={{color:sc}}>拖动·当前 {a.score}</span>
                   </div>
-                  <span className="text-xs font-semibold mt-0.5" style={{color: sc, opacity:.9}}>
-                    {a.score >= 9 ? '优秀' : a.score >= 6 ? '进行中' : '待启动'}
-                  </span>
+                ) : (
+                  <div className="flex flex-col items-end flex-shrink-0 cursor-pointer hover:opacity-80 transition"
+                    title="点击调整自评分数" onClick={() => setEditingScoreIdx(ai)}>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-xl font-bold tabular-nums leading-none" style={{color: sc}}>{a.score}</span>
+                      <span className="text-xs" style={{color: sc, opacity:.7}}>/10</span>
+                    </div>
+                    <span className="text-xs font-semibold mt-0.5" style={{color: sc, opacity:.9}}>
+                      {Number(a.score) >= 9 ? '优秀' : Number(a.score) >= 6 ? '进行中' : '待启动'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* 自评历史 Sparkline */}
+              <div className="rounded-xl bg-surface-soft px-3 py-2 flex items-center justify-between gap-3">
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-ink-400 mb-1">自评趋势</div>
+                  {series.length >= 2 && (
+                    <div className="flex items-center gap-2">
+                      <Sparkline data={series} color={sc} width={140} height={30} />
+                      {trendDelta !== null && (
+                        <span className={`text-xs font-bold tabular-nums ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {trendDelta >= 0 ? '↑' : '↓'}{Math.abs(trendDelta)}%
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {series.length < 2 && (
+                    <div className="text-[11px] text-ink-400 italic">数据积累中，每月初更新一次自评</div>
+                  )}
                 </div>
               </div>
               {/* 总进度条 */}
@@ -1095,19 +1313,39 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
   const dynWk = workGoals || WORK;
   const main = dynWk[0];
   const side = dynWk[1];
-  const calcPct = (o) => Math.round(o.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / o.krs.length);
+  const calcPct = (o) => Math.round(o.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / Math.max(1, o.krs.length));
 
-  // P1-2: 截止按剩余天数判定
-  const daysLeft = (deadlineStr) => {
+  // 截止日期 → { days, timePct }
+  const daysAndTimePct = (deadlineStr, startStr) => {
     try {
-      const today = new Date();
-      today.setHours(0,0,0,0);
+      const today = new Date(); today.setHours(0,0,0,0);
       const year = today.getFullYear();
-      const [mm, dd] = deadlineStr.replace(/月|日/g, '.').split('.').filter(Boolean).map(Number);
-      const target = new Date(year, mm - 1, dd);
-      if (target < today) target.setFullYear(year + 1);
-      return Math.ceil((target - today) / 86400000);
-    } catch { return 999; }
+      const parseMD = (s) => {
+        const [mm, dd] = s.replace(/月|日/g, '.').split('.').filter(Boolean).map(Number);
+        let t = new Date(year, mm - 1, dd);
+        if (t < today - 86400000 * 180) t = new Date(year + 1, mm - 1, dd);
+        return t;
+      };
+      const target = parseMD(deadlineStr);
+      const start = startStr ? parseMD(startStr) : new Date(year, 0, 1);
+      const total = Math.max(1, target - start);
+      const elapsed = Math.max(0, Math.min(total, today - start));
+      const dl = Math.ceil((target - today) / 86400000);
+      return { days: dl, timePct: Math.round((elapsed / total) * 100) };
+    } catch { return { days: 999, timePct: 50 }; }
+  };
+  // KR 4 象限分类
+  const risk4Quadrant = (kr, goalDeadline, goalStart) => {
+    const { timePct, days } = daysAndTimePct(goalDeadline, goalStart);
+    const kPct = pct(kr.v, kr.tgt);
+    const diff = kPct - timePct;
+    let q, label, color;
+    if (kr.st === 'done' || kPct >= 100) { q = 'done'; label = '已完成'; color = '#22c55e'; }
+    else if (diff <= -20) { q = 'risk'; label = '严重落后'; color = '#ef4444'; }
+    else if (diff <= -5) { q = 'warn'; label = '略落后'; color = '#f59e0b'; }
+    else if (diff >= 20) { q = 'ahead'; label = '超额'; color = '#10b981'; }
+    else { q = 'normal'; label = '正常'; color = '#3b82f6'; }
+    return { q, label, color, diff, kPct, timePct, daysLeft: days };
   };
 
   const totalPct = useMemo(() => {
@@ -1116,14 +1354,53 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
     return allKrs.length ? Math.round(allKrs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / allKrs.length) : 0;
   }, [main, side]);
 
+  const Risk4QuadSummary = ({ krs, goalDeadline, goalStart }) => {
+    if (!krs || krs.length === 0) return null;
+    const stats = { risk: 0, warn: 0, normal: 0, ahead: 0, done: 0 };
+    krs.forEach(kr => { stats[risk4Quadrant(kr, goalDeadline, goalStart).q]++; });
+    const total = krs.length;
+    const items = [
+      { k: 'risk',  lb: '高风险', col: '#ef4444', n: stats.risk },
+      { k: 'warn',  lb: '需关注', col: '#f59e0b', n: stats.warn },
+      { k: 'normal',lb: '正常',   col: '#3b82f6', n: stats.normal },
+      { k: 'ahead', lb: '超额',   col: '#10b981', n: stats.ahead },
+      { k: 'done',  lb: '已完成', col: '#22c55e', n: stats.done },
+    ].filter(i => i.n > 0);
+    return (
+      <div className="rounded-xl bg-surface-soft p-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {items.map(it => (
+            <div key={it.k} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/70 border border-ink-100">
+              <div className="w-2 h-2 rounded-full" style={{background: it.col}} />
+              <span className="text-[11px] font-semibold text-ink-600">{it.lb}</span>
+              <span className="text-[11px] font-bold tabular-nums" style={{color: it.col}}>{it.n}/{total}</span>
+            </div>
+          ))}
+        </div>
+        <svg width="100" height="60" viewBox="0 0 100 60" className="flex-shrink-0">
+          <line x1="5" y1="55" x2="95" y2="5" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="3,2" />
+          <polygon points="5,55 95,25 95,55" fill="#fef2f2" opacity="0.7" />
+          <polygon points="5,35 95,5 5,5" fill="#f0fdf4" opacity="0.6" />
+          {krs.map((kr, i) => {
+            const { kPct, timePct, color } = risk4Quadrant(kr, goalDeadline, goalStart);
+            const x = 5 + (timePct / 100) * 90;
+            const y = 55 - (kPct / 100) * 50;
+            return <circle key={i} cx={x} cy={y} r="2.5" fill={color} opacity="0.9" />;
+          })}
+          <text x="2" y="59" fontSize="8" fill="#9ca3af">时间→</text>
+          <text x="0" y="10" fontSize="8" fill="#9ca3af" transform="rotate(-90 6 35)">完成</text>
+        </svg>
+      </div>
+    );
+  };
+
   const panelHtml = (o, label, color) => {
     const p = calcPct(o);
-    const dl = daysLeft(o.deadline);
+    const { days: dl } = daysAndTimePct(o.deadline, o.start);
     const urgent = dl <= 30;
     const overdue = dl < 0;
     return (
-      <div key={label} className="glass-card flex flex-col p-5 gap-4">
-        {/* 头部 */}
+      <div key={label} className="glass-card flex flex-col p-4 gap-3.5">
         <div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-xs font-bold uppercase tracking-[0.08em]" style={{color}}>{label}</span>
@@ -1142,34 +1419,38 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
           <h3 className="text-base font-bold text-ink-900 leading-snug">{o.title}</h3>
         </div>
         <ProgressBar value={p} color={color} />
-        {/* KR 列表 - P1-2: KR编号裸数字+状态仅颜色，padding对齐 */}
+        <Risk4QuadSummary krs={o.krs} goalDeadline={o.deadline} goalStart={o.start} />
         <div className="flex flex-col gap-1.5">
           {o.krs.map((kr, i) => {
             const st = kr.st === 'done' ? 'done' : kr.st === 'doing' ? 'doing' : 'tg';
-            const sm = statusMeta(st);
             const p2 = pct(kr.v, kr.tgt);
-            // 状态仅用颜色点区分
             const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
+            const risk = risk4Quadrant(kr, o.deadline, o.start);
             return (
               <div key={i} onClick={() => onKrEdit?.(o._workIdx, i, kr)} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 py-2.5 px-1 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
-                {/* KR编号 - 裸数字，无背景 */}
-                <div className="text-xs font-bold tabular-nums text-ink-500 text-center flex-shrink-0">
-                  {i + 1}
-                </div>
+                <div className="text-xs font-bold tabular-nums text-ink-500 text-center flex-shrink-0">{i + 1}</div>
                 <div className="min-w-0">
-                  <div className={`text-sm font-semibold leading-tight ${st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
-                    {kr.t}
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className={`text-sm font-semibold leading-tight min-w-0 flex-1 truncate ${st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
+                      {kr.t}
+                    </div>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0"
+                      style={{background: risk.color + '1a', color: risk.color, whiteSpace: 'nowrap'}}>
+                      {risk.label}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
                     <div className="flex-1 min-w-0"><ProgressBar value={p2} color={statusDot} /></div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                   <span className="text-xs font-bold tabular-nums text-ink-700 whitespace-nowrap">
                     {kr.v}<span className="text-[11px] font-semibold text-ink-500">/{kr.tgt}</span>
                   </span>
-                  {/* 状态仅用颜色点 */}
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: statusDot}} />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold tabular-nums text-ink-400">时间{risk.timePct}%</span>
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: statusDot}} />
+                  </div>
                 </div>
               </div>
             );
@@ -1198,7 +1479,9 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
   return (
     <div className="flex flex-col gap-4">
       <SectionHeader cat="life" title="生活 · 体验记录" progress={lifePct} />
-      <div className="grid grid-cols-5 gap-4 annual-life-grid">
+      {/* P2-2: 生活统计条 */}
+      <LifeStatsBar categories={dynLife.map(c => ({ key: c.key, label: c.lb, count: c.entries.length, color: c.color }))} />
+      <div className="grid grid-cols-5 gap-3 annual-life-grid">
         {dynLife.map((c, ci) => (
           <div key={c.key} className="glass-card p-4 flex flex-col">
             {/* 头部 - count pill改tabnum裸数字 */}
@@ -1211,7 +1494,25 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
             {/* 条目列表 - 取消overflow-y-auto，日期移至右侧 */}
             <div className="flex flex-col gap-2 flex-1">
               {c.entries.length === 0 && (
-                <div className="text-xs text-ink-400 text-center py-6 italic">暂无记录</div>
+                <div className="flex-1 flex flex-col items-center justify-center py-5 px-2 rounded-xl border border-dashed border-ink-100 text-center gap-1.5">
+                  <div className="w-8 h-8 rounded-xl grid place-items-center" style={{background: `${c.color}10`}}>
+                    <span className="text-base">
+                      {c.key === 'food' && '🍜'}
+                      {c.key === 'travel' && '✈️'}
+                      {c.key === 'movie' && '🎬'}
+                      {c.key === 'gift' && '🎁'}
+                      {c.key === 'moment' && '📸'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-semibold text-ink-500">还没有{c.lb}记录</div>
+                  <div className="text-[10px] text-ink-400 leading-snug">
+                    {c.key === 'food' && '记录探店美食，分享舌尖记忆'}
+                    {c.key === 'travel' && '把每次出行都变成珍贵回忆'}
+                    {c.key === 'movie' && '好片烂片都值得留下观后感'}
+                    {c.key === 'gift' && '收礼送礼的心意都值得记下来'}
+                    {c.key === 'moment' && '记录平凡日子里的小闪光'}
+                  </div>
+                </div>
               )}
               {c.entries.map((e, i) => (
                 <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer">
@@ -1286,6 +1587,8 @@ export default function AnnualPlan({ standalone = true }) {
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
   // 精力习惯 - 用户自定义年度目标（覆盖默认推断值 120/230）
   const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));
+  // 能力自评历史 - 每月记录一次分数，key: ability.id, value: {[YYYY-MM]: score}
+  const [abilityScoreHistory, setAbilityScoreHistory] = usePersistentState('annual_ability_score_history', () => ({}));
 
   // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
   const mergedHabits = useMemo(() => {
@@ -1307,6 +1610,77 @@ export default function AnnualPlan({ standalone = true }) {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
   }, []);
+
+  // ---- 数据导入 / 导出 / 重置 ----
+  const handleExport = useCallback(() => {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      books, abilities, workGoals, lifeData,
+      habitTargets, abilityScoreHistory,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const y = new Date().getFullYear();
+    a.href = url;
+    a.download = `annual-plan-${y}-${new Date().toISOString().slice(5,10).replace('-','')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ 年度数据已导出');
+  }, [books, abilities, workGoals, lifeData, habitTargets, abilityScoreHistory, showToast]);
+
+  const handleImport = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setConfirmDialog({
+      title: '确认导入数据？',
+      message: '将覆盖当前所有年度规划数据（书籍、能力、工作、生活、习惯目标、自评历史），此操作无法撤销。',
+      confirmText: '确认导入',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          if (data.books !== undefined) setBooks(data.books);
+          if (data.abilities !== undefined) setAbilities(data.abilities);
+          if (data.workGoals !== undefined) setWorkGoals(data.workGoals);
+          if (data.lifeData !== undefined) setLifeData(data.lifeData);
+          if (data.habitTargets !== undefined) setHabitTargets(data.habitTargets);
+          if (data.abilityScoreHistory !== undefined) setAbilityScoreHistory(data.abilityScoreHistory);
+          showToast('✅ 年度数据已导入');
+        } catch (err) {
+          console.error(err);
+          showToast('❌ 导入失败：文件格式不正确');
+        }
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
+  }, [setBooks, setAbilities, setWorkGoals, setLifeData, setHabitTargets, setAbilityScoreHistory, showToast]);
+
+  const handleReset = useCallback(() => {
+    setConfirmDialog({
+      title: '重置为初始模板？',
+      message: '将清除当前所有自定义数据，恢复为示例模板。此操作无法撤销。',
+      confirmText: '确认重置',
+      danger: true,
+      onConfirm: () => {
+        setBooks(BOOKS.map(b => ({ ...b, id: uid() })));
+        setAbilities(ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
+        setWorkGoals(WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
+        setLifeData(LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
+        setHabitTargets({});
+        setAbilityScoreHistory({});
+        showToast('✅ 已重置为初始模板');
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
+  }, [setBooks, setAbilities, setWorkGoals, setLifeData, setHabitTargets, setAbilityScoreHistory, showToast]);
 
   // ---- CRUD 操作 ----
   // 认知·书籍
@@ -1491,7 +1865,15 @@ export default function AnnualPlan({ standalone = true }) {
       {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} timeScale={timeScale} onTimeScaleChange={setTimeScale} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} />}
-      {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit} />}
+      {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}
+        scoreHistory={abilityScoreHistory} onSetScore={(abilityIdx, newScore) => {
+          const ab = abilities[abilityIdx]; if (!ab) return;
+          const ym = new Date().toISOString().slice(0,7);
+          const abId = ab.id || ab.title;
+          setAbilityScoreHistory(prev => ({ ...prev, [abId]: { ...(prev[abId] || {}), [ym]: newScore } }));
+          setAbilities(prev => prev.map((a, i) => i === abilityIdx ? { ...a, score: String(newScore) } : a));
+          showToast('自评已更新');
+        }} />}
       {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit} />}
       {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit} />}
     </main>
@@ -1622,7 +2004,7 @@ export default function AnnualPlan({ standalone = true }) {
   return (
     <div className="min-h-screen bg-surface-base px-6 py-6">
       <div className="max-w-[1400px] mx-auto">
-        <NavBar />
+        <NavBar onExport={handleExport} onImport={handleImport} onReset={handleReset} />
         <div className="flex gap-5 items-start">
           <Sidebar active={view} onChange={setView} stats={stats} />
           {mainContent}

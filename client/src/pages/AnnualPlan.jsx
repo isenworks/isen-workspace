@@ -22,7 +22,7 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
-  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#16a34a' }, /* accent-green */
+  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#22c55e' }, /* accent-green */
   { key: 'cognition', label: '认知', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
   { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber/orange */
   { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' }, /* accent-red   */
@@ -242,7 +242,7 @@ function ReadingFunnel({ pending, reading, done }) {
                   <svg className="w-3 h-3 text-ink-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   <span className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md"
                     style={{
-                      color: conversion >= 60 ? '#16a34a' : conversion >= 35 ? '#ca8a04' : '#dc2626',
+                      color: conversion >= 60 ? '#22c55e' : conversion >= 35 ? '#f97316' : '#dc2626',
                       background: conversion >= 60 ? '#dcfce7' : conversion >= 35 ? '#fef9c3' : '#fee2e2',
                     }}>
                     转化率 {conversion}%
@@ -540,7 +540,7 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 通用 Sparkline 迷你折线图 ---------- */
-const Sparkline = ({ data, color = '#16a34a', width = 120, height = 28 }) => {
+const Sparkline = ({ data, color = '#22c55e', width = 120, height = 28 }) => {
   if (!data || data.length === 0) return null;
   const max = Math.max(10, Math.max(...data));
   const min = Math.min(0, Math.min(...data));
@@ -942,8 +942,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           <div className="grid grid-cols-3 gap-3">
             {habits.map(h => {
               const ana = getMonthAnalysis(h);
-              const achColor = ana.achievementRate >= 80 ? '#15803d' : ana.achievementRate >= 50 ? '#16a34a' : '#d97706';
-              const habitColor = h.val >= h.target ? '#15803d' : '#16a34a';
+              const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : '#f97316';
+              const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
               const monthData = Array.from({ length: 12 }, (_, i) => h.month?.[i + 1] || 0);
               return (
                 <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
@@ -992,7 +992,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {habits.map(h => {
               const p = pct(h.val, h.target);
               const done = p >= 100;
-              const barColor = done ? '#15803d' : p >= 50 ? '#16a34a' : '#d97706';
+              const barColor = done ? '#16a34a' : p >= 50 ? '#22c55e' : '#f97316';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (

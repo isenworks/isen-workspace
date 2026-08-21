@@ -1019,7 +1019,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     ) : (
                       <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer w-full pr-0">
                         <span className="text-sm font-semibold text-ink-700 tabular-nums text-right ml-1">{h.target}</span>
-                        <span className="text-[10px] text-ink-400">{h.unit}</span>
+                        <span className="text-[10px] text-ink-400 ml-1">{h.unit}</span>
                       </div>
                     )}
                   </div>

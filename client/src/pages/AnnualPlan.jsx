@@ -1029,11 +1029,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           </div>
           <div className="grid grid-cols-3 gap-3">
             {habits.map(h => {
-              const ana = getMonthAnalysis(h);
-              const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : ana.achievementRate >= 20 ? '#f97316' : '#ef4444';
-              const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
+              // 年度目标达成情况：累计 / 目标
+              const yearlyPct = pct(h.val, h.target);
+              const LINE_COLOR = '#16a34a';   // 所有折线统一为绿色 (工作台精力色)
 
-              // 年度走势（1月~当前月，不含未来）— 各月打卡「次数」绝对值（不再转百分比）
+              // 年度走势（1月~当前月，不含未来）— 各月打卡「次数」绝对值
               const yearCounts = [];
               const yearMonthLabels = [];
               for (let m = 1; m <= curMonth; m++) {
@@ -1042,27 +1042,31 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               }
 
               return (
-                <div key={h.key} className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-ink-900 truncate max-w-[110px]">{h.label.replace(/^\S+\s?/, '')}</span>
-                    {ana.delta !== null && ana.delta !== 0 && (
-                      <span className={[
-                        'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums',
-                        ana.delta > 0
-                          ? 'bg-accent-green/10 text-accent-green'
-                          : 'bg-accent-red/10 text-accent-red'
-                      ].join(' ')}>
-                        {ana.delta > 0 ? '▲' : '▼'}{Math.abs(ana.delta)}%
-                      </span>
-                    )}
+                <div key={h.key} className="flex flex-col gap-2.5 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
+                  {/* 标题 + 年度完成率 */}
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-bold text-ink-900 leading-snug truncate max-w-[140px]">{h.label.replace(/^\S+\s?/, '')}</span>
+                    <div className="flex items-baseline gap-1 flex-shrink-0">
+                      <span className="text-lg font-bold tabular-nums leading-none text-accent-green">{yearlyPct}</span>
+                      <span className="text-[10px] font-semibold text-ink-400">%/年</span>
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-bold tabular-nums leading-none" style={{color: achColor}}>{ana.achievementRate}</span>
-                    <span className="text-[11px] font-semibold text-ink-400">% 达标率</span>
+                  {/* 年度目标：累计 / 目标 + 进度条 */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-[11px] tabular-nums">
+                      <span className="text-ink-500 font-medium">
+                        <span className="font-bold text-ink-900">{h.val}</span>
+                        <span className="text-ink-300 mx-0.5">/</span>
+                        <span className="text-ink-600">{h.target}</span>
+                        <span className="text-ink-400 ml-1">{h.unit}</span>
+                      </span>
+                      <span className="font-semibold text-accent-green">{yearlyPct}%</span>
+                    </div>
+                    <ProgressBar value={yearlyPct} color={LINE_COLOR} />
                   </div>
                   {/* 年度走势折线：月份标签在下方，hover每个顶点显示当月打卡次数 */}
-                  <div className="mt-1 -mx-1">
-                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={achColor} width={260} height={52} />
+                  <div className="mt-0.5 -mx-1">
+                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={LINE_COLOR} width={260} height={52} />
                   </div>
                 </div>
               );

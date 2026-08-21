@@ -30,10 +30,27 @@ const CATEGORIES = [
 ];
 
 /* 习惯打卡 (精力) */
+// monthDates: 按月份归类的真实打卡日期 Set（用于热力图 + 本月每日节奏折线）
+const __mockMonthDates = (pattern /* 字符串，'1'=打卡 '.'=未打卡，长度<=当月天数 */, m /* 8月等 */) => {
+  const s = new Set();
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === '1') s.add(i + 1);
+  }
+  return { [m]: s };
+};
 const HABITS = [
-  { key: 'sleep', label: '睡觉 23:00 前', unit: '天', target: 230, val: 142, month: { 1: 22, 2: 18, 3: 23, 4: 20, 5: 21, 6: 18, 7: 20 } },
-  { key: 'water', label: '喝水 ≥ 2L',    unit: '杯', target: 230, val: 198, month: { 1: 28, 2: 22, 3: 29, 4: 25, 5: 30, 6: 28, 7: 31 } },
-  { key: 'sport', label: '运动 ≥ 30 分', unit: '次', target: 120, val: 56,  month: { 1: 8,  2: 6,  3: 9,  4: 7,  5: 12, 6: 8,  7: 6  } },
+  // 作息：8月节奏 - 前半月稳定，17号左右出差乱了几天，20号之后慢慢恢复
+  { key: 'sleep', label: '睡觉 23:00 前', unit: '天', target: 230, val: 142,
+    month: { 1: 22, 2: 18, 3: 23, 4: 20, 5: 21, 6: 18, 7: 20 },
+    monthDates: __mockMonthDates('111.11111.111.11.1..1.11', 8) },
+  // 喝水：8月节奏 - 非常稳定，几乎每天达标（只有3天忘记）
+  { key: 'water', label: '喝水 ≥ 2L',    unit: '杯', target: 230, val: 198,
+    month: { 1: 28, 2: 22, 3: 29, 4: 25, 5: 30, 6: 28, 7: 31 },
+    monthDates: __mockMonthDates('111111111111.1111111.111', 8) },
+  // 运动：8月节奏 - 周中隔天练，周末休息（一周3练左右，低频节奏明显）
+  { key: 'sport', label: '运动 ≥ 30 分', unit: '次', target: 120, val: 56,
+    month: { 1: 8,  2: 6,  3: 9,  4: 7,  5: 12, 6: 8,  7: 6  },
+    monthDates: __mockMonthDates('.1.1..1.1..1.1..1..1..', 8) },
 ];
 
 /* 认知 · 书籍 */
@@ -954,7 +971,33 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const ana = getMonthAnalysis(h);
               const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : ana.achievementRate >= 20 ? '#f97316' : '#ef4444';
               const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
-              const monthData = Array.from({ length: 12 }, (_, i) => h.month?.[i + 1] || 0);
+
+              // —— 本月每日打卡节奏（替换原来的"12个月汇总+未来填0"）——
+              // 1) 取当月1~今日的每日打卡 0/1 序列
+              const checkedSet = h.monthDates?.[curMonth];
+              let dailyRaw;
+              if (checkedSet && checkedSet.size > 0) {
+                dailyRaw = Array.from({ length: daysElapsedInCurMonth }, (_, i) => (checkedSet.has(i + 1) ? 1 : 0));
+              } else {
+                // 兜底：无真实打卡日期时，按本月完成天数近似均匀分布（保证不空白、不雷同）
+                const n = Math.max(0, Math.min(daysElapsedInCurMonth, ana.curMonthVal));
+                const step = daysElapsedInCurMonth / Math.max(1, n);
+                const fillSet = new Set();
+                for (let k = 0; k < n; k++) fillSet.add(Math.floor(k * step) + 1);
+                dailyRaw = Array.from({ length: daysElapsedInCurMonth }, (_, i) => (fillSet.has(i + 1) ? 1 : 0));
+                // 三个习惯用不同的撒点偏移，避免兜底时形状一样
+                if (h.key === 'sport') dailyRaw = dailyRaw.map((v, i) => (i % 3 === 1 ? v : 0));
+                else if (h.key === 'sleep') dailyRaw = dailyRaw.map((v, i) => ((i % 7) % 6 === 5 ? 0 : v));
+              }
+              // 2) 7 日滑动平均 → 百分比，折线平滑 = 近7天达标率趋势
+              const WINDOW = 7;
+              const trend = dailyRaw.map((_, idx) => {
+                const s = Math.max(0, idx - WINDOW + 1);
+                let sum = 0, cnt = 0;
+                for (let k = s; k <= idx; k++) { sum += dailyRaw[k]; cnt++; }
+                return cnt === 0 ? 0 : Math.round((sum / cnt) * 100);
+              });
+
               return (
                 <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
                   <div className="flex items-center justify-between">
@@ -978,7 +1021,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     {ana.curMonthVal}<span className="text-ink-300">/</span>{ana.expectedCur} <span className="text-ink-400">{h.unit}</span>
                     {ana.prevMonthVal > 0 && <span className="ml-1.5 text-ink-300">· 上月 {ana.prevMonthVal}</span>}
                   </div>
-                  <Sparkline data={monthData} color={achColor} width={120} height={24} />
+                  <div className="mt-0.5 flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">近7天节奏</span>
+                    <Sparkline data={trend} color={achColor} width={120} height={22} />
+                  </div>
                 </div>
               );
             })}

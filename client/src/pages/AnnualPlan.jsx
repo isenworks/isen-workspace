@@ -977,7 +977,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 详情表格 */}
         <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
-            <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
+            <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-500">
               <div className="grp-start">习惯名称</div>
               <div className="text-right">目标</div>
               <div className="text-right">累计</div>
@@ -1014,13 +1014,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-14 ml-auto px-1.5 py-0.5 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-16 ml-auto px-2 py-1 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
-                      <div onClick={() => startEditTarget(h)} className="relative inline-block text-right hover:bg-ink-100 rounded-md px-1 -mx-1 transition cursor-pointer">
-                        <span className="block text-sm font-semibold text-ink-700">{h.target}</span>
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-ink-400">{h.unit}</span>
-                        <svg className="absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-ink-300 group-hover:text-ink-500 transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
+                        <span className="text-sm font-semibold text-ink-700 tabular-nums">{h.target}</span>
+                        <span className="text-[10px] text-ink-400">{h.unit}</span>
+                        <svg className="w-3 h-3 text-ink-300 group-hover:text-ink-500 transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 1 1 3.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
@@ -1040,8 +1040,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-[11px] font-bold tabular-nums px-0.5 py-1 rounded-md min-w-[28px] text-center transition-colors',
-                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/15 text-accent-green' : 'bg-ink-100 text-ink-500'
+                          'text-xs font-bold tabular-nums px-1 py-1 rounded-md min-w-[32px] text-center transition-colors',
+                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/20 text-accent-green' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
                     );
@@ -1918,17 +1918,17 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- */
       .habit-table {
-        grid-template-columns: 2fr 72px 52px 48px repeat(12, minmax(30px, 1fr)) 32px;
-        gap: 0 6px;
+        grid-template-columns: minmax(80px, 1.8fr) 80px 64px 56px repeat(12, minmax(36px, 1fr)) 32px;
+        gap: 0 8px;
         align-items: center;
       }
       /* 分组间距：习惯名与统计区分组 */
       .habit-table > .grp-start {
-        margin-right: 10px;
+        margin-right: 12px;
       }
       /* 分组间距：统计区与月份区分组 */
       .habit-table > .grp-end {
-        padding-right: 10px;
+        padding-right: 12px;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */
       @keyframes fade-in-up {

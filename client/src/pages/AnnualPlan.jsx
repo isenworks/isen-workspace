@@ -1029,11 +1029,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           </div>
           <div className="grid grid-cols-3 gap-3">
             {habits.map(h => {
-              // 年度目标达成情况：累计 / 目标
               const yearlyPct = pct(h.val, h.target);
-              const GREEN = '#22c55e';   // ← 统一使用页面 accent-green（与8月高亮、打卡日历方块、月份达标色完全一致）
+              const GREEN = '#22c55e';
 
-              // 年度走势（1月~当前月，不含未来）— 各月打卡「次数」绝对值
+              // 年度走势（1月~当前月）— 各月打卡次数绝对值
               const yearCounts = [];
               const yearMonthLabels = [];
               for (let m = 1; m <= curMonth; m++) {
@@ -1042,28 +1041,30 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               }
 
               return (
-                <div key={h.key} className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
-                  {/* 标题：左=习惯全称(带目标频率)  右=完成率% (只保留这一处展示%，不重复) */}
+                <div key={h.key} className="flex flex-col gap-2.5 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
+                  {/* 顶行：左=习惯全称  右=【迷你短进度条 + 百分比数字】  (两者耦合，进度条不再单独横贯全宽) */}
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-bold text-ink-900 leading-snug truncate">{h.label}</span>
-                    <div className="flex items-baseline gap-0.5 flex-shrink-0">
-                      <span className="text-lg font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
-                      <span className="text-[10px] font-semibold text-ink-400">%</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* 迷你短进度条：固定宽度88px / 高3px / dense 风格，放在%数字左侧 */}
+                      <div className="w-[88px] h-0.75 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
+                        <div className="h-full rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
+                      </div>
+                      <div className="flex items-baseline gap-0.5 flex-shrink-0">
+                        <span className="text-base font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
+                        <span className="text-[10px] font-semibold text-ink-400">%</span>
+                      </div>
                     </div>
                   </div>
-                  {/* 年度进度：累计/目标 单位  +  进度条（不单独再放%，用标题的那个唯一展示） */}
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-[11px] tabular-nums leading-none">
-                      <span className="font-medium text-ink-500">
-                        <span className="font-bold text-ink-900">{h.val}</span>
-                        <span className="text-ink-300 mx-0.5">/</span>
-                        <span className="text-ink-600">{h.target}</span>
-                        <span className="text-ink-400 ml-1">{h.unit}</span>
-                      </span>
-                    </div>
-                    <ProgressBar value={yearlyPct} color={GREEN} />
+                  {/* 中间行：年度累计 vs 目标 纯文字（不再带重复的进度条） */}
+                  <div className="text-[11px] tabular-nums leading-none font-medium text-ink-500">
+                    <span className="font-bold text-ink-900">{h.val}</span>
+                    <span className="text-ink-300 mx-0.5">/</span>
+                    <span className="text-ink-600">{h.target}</span>
+                    <span className="text-ink-400 ml-1">{h.unit}</span>
                   </div>
-                  {/* 年度走势折线：月份数字1-8，悬停顶点tooltip显示当月打卡次数 */}
+                  {/* 底行：全宽年度折线 + 月份数字 1~N (hover tooltip 保留) */}
                   <div className="mt-0.5 -mx-1">
                     <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={52} />
                   </div>

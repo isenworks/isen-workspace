@@ -1023,10 +1023,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     )}
                   </div>
-                  <div className="text-right font-bold tabular-nums text-ink-900 cum-gap">{h.val}</div>
+                  <div className="text-right font-semibold tabular-nums text-ink-900 cum-gap">{h.val}</div>
                   {/* 完成率 - 去掉进度条，只显示百分比 */}
                   <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="text-sm font-bold tabular-nums" style={{color: barColor}}>{p}%</span>
+                    <span className="text-sm font-semibold tabular-nums" style={{color: barColor}}>{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;

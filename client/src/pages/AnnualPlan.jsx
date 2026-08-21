@@ -1183,20 +1183,20 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 当月打卡日历（读取真实打卡日期） */}
         <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-base font-bold text-ink-900">{year}年 · {curMonth}月打卡日历</span>
-            <div className="flex items-center gap-3 text-[13px] text-ink-500">
+            <span className="text-[17px] font-bold text-ink-900">{year}年 · {curMonth}月打卡日历</span>
+            <div className="flex items-center gap-3 text-[14px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
+                <span className="w-5 h-5 rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
+                <span className="w-5 h-5 rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-md bg-ink-50 border border-ink-200"></span>未开始
+                <span className="w-5 h-5 rounded-md bg-ink-50 border border-ink-200"></span>未开始
               </span>
             </div>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3.5">
             {habits.map((h, hidx) => {
               const daysTotal = monthMaxDays[curMonth - 1];
               // 读取真实打卡日期：API 返回时 monthDates[curMonth] 是当日集合；Mock 时退化为前 N 天连续（和"累计"逻辑一致）
@@ -1206,10 +1206,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
                 <div key={h.key} className="flex items-center gap-4">
-                  <div className="w-[160px] flex-shrink-0 truncate">
-                    <span className="text-[14px] font-semibold text-ink-800 truncate">{h.label}</span>
+                  <div className="w-[180px] flex-shrink-0 truncate">
+                    <span className="text-[16px] font-semibold text-ink-800 truncate">{h.label}</span>
                   </div>
-                  <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '3px'}}>
+                  {/* 高密度数据格子：minmax(28px) 兜底底线尺寸，窄屏自动横滚而不是被压扁 */}
+                  <div className="flex-1 grid overflow-x-auto" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(28px, 1fr))`, gap: '4px'}}>
                     {Array.from({ length: daysTotal }, (_, d) => {
                       const day = d + 1;
                       const isPast = day <= daysElapsedInCurMonth;
@@ -1222,7 +1223,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       let cellBorder = '';
                       if (checked) {
                         cellBg = 'bg-accent-green text-white';
-                        cellText = 'font-semibold';
+                        cellText = 'font-bold';
                       } else if (!isPast) {
                         cellBg = 'bg-ink-50 text-ink-300';
                         cellBorder = 'border border-ink-100';
@@ -1238,8 +1239,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         <div key={day}
                           title={`${curMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
                           className={[
-                            'aspect-square rounded-md grid place-items-center',
-                            'text-[13px] tabular-nums leading-none font-medium transition-colors',
+                            'aspect-square rounded-md grid place-items-center min-h-[28px]',
+                            'text-[15px] tabular-nums leading-none font-semibold transition-colors',
                             cellBg, cellText, cellRing, cellBorder
                           ].join(' ')}>
                           {day}

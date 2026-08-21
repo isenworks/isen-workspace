@@ -22,7 +22,7 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
-  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#22c55e' }, /* accent-green */
+  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#16a34a' }, /* accent-green */
   { key: 'cognition', label: '认知', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
   { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber/orange */
   { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' }, /* accent-red   */
@@ -540,7 +540,7 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 通用 Sparkline 迷你折线图 ---------- */
-const Sparkline = ({ data, color = '#22c55e', width = 120, height = 28 }) => {
+const Sparkline = ({ data, color = '#16a34a', width = 120, height = 28 }) => {
   if (!data || data.length === 0) return null;
   const max = Math.max(10, Math.max(...data));
   const min = Math.min(0, Math.min(...data));
@@ -560,13 +560,13 @@ const Sparkline = ({ data, color = '#22c55e', width = 120, height = 28 }) => {
     <svg width={width} height={height} className="overflow-visible">
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill={'url(#' + gid + ')'} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastPoint} cy={lastY} r="2.5" fill={color} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastPoint} cy={lastY} r="3" fill={color} />
     </svg>
   );
 };
@@ -942,8 +942,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           <div className="grid grid-cols-3 gap-3">
             {habits.map(h => {
               const ana = getMonthAnalysis(h);
-              const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : '#f59e0b';
-              const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
+              const achColor = ana.achievementRate >= 80 ? '#15803d' : ana.achievementRate >= 50 ? '#16a34a' : '#d97706';
+              const habitColor = h.val >= h.target ? '#15803d' : '#16a34a';
               const monthData = Array.from({ length: 12 }, (_, i) => h.month?.[i + 1] || 0);
               return (
                 <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
@@ -992,7 +992,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {habits.map(h => {
               const p = pct(h.val, h.target);
               const done = p >= 100;
-              const barColor = done ? '#16a34a' : p >= 50 ? '#22c55e' : '#f59e0b';
+              const barColor = done ? '#15803d' : p >= 50 ? '#16a34a' : '#d97706';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (
@@ -1038,7 +1038,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
                           'text-xs font-bold tabular-nums px-0 py-1 rounded-md min-w-[24px] text-center transition-colors',
-                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/20 text-accent-green' : 'bg-ink-100 text-ink-500'
+                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/30 text-accent-green' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
                     );

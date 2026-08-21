@@ -942,8 +942,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           <div className="grid grid-cols-3 gap-3">
             {habits.map(h => {
               const ana = getMonthAnalysis(h);
-              const achColor = ana.achievementRate >= 80 ? '#22c55e' : ana.achievementRate >= 50 ? '#4b63f0' : '#f59e0b';
-              const habitColor = h.val >= h.target ? '#22c55e' : '#4b63f0';
+              const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : '#f59e0b';
+              const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
               const monthData = Array.from({ length: 12 }, (_, i) => h.month?.[i + 1] || 0);
               return (
                 <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
@@ -975,8 +975,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           </div>
         </div>
         {/* 详情表格 */}
-        <div className="overflow-x-auto">
-          <div className="min-w-[1200px]">
+        <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div>习惯名称</div>
@@ -984,7 +983,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div>累计</div>
               <div>完成率</div>
               {monthLabels.map((m, idx) => (
-                <div key={m} className={['text-center', isCurrentMonth(idx + 1) ? 'text-accent-blue font-bold' : ''].join(' ')}>
+                <div key={m} className={['text-center', isCurrentMonth(idx + 1) ? 'text-accent-green font-bold' : ''].join(' ')}>
                   {m}
                 </div>
               ))}
@@ -993,7 +992,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {habits.map(h => {
               const p = pct(h.val, h.target);
               const done = p >= 100;
-              const barColor = done ? '#22c55e' : p >= 50 ? '#4b63f0' : '#f59e0b';
+              const barColor = done ? '#16a34a' : p >= 50 ? '#22c55e' : '#f59e0b';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (
@@ -1015,7 +1014,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-14 px-1.5 py-0.5 text-sm font-bold border border-accent-blue rounded-md outline-none focus:ring-2 focus:ring-accent-blue/30 tabular-nums text-ink-900 bg-white"
+                        className="w-14 px-1.5 py-0.5 text-sm font-bold border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
                       <div onClick={() => startEditTarget(h)} className="inline-flex items-center gap-1 hover:bg-ink-100 rounded-md px-1 -mx-1 transition">
@@ -1041,8 +1040,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-xs font-bold tabular-nums px-1 py-1 rounded-md min-w-[32px] text-center transition-colors',
-                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-blue/10 text-accent-blue' : 'bg-ink-100 text-ink-500'
+                          'text-[11px] font-bold tabular-nums px-0.5 py-1 rounded-md min-w-[28px] text-center transition-colors',
+                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/15 text-accent-green' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
                     );
@@ -1058,7 +1057,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               );
             })}
         </div>
-      </div>
       </div>
     </div>
   );
@@ -1920,8 +1918,8 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名 目标 累计 完成率 (月份×12) 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(160px, 1fr) 80px 60px 56px repeat(12, minmax(44px, 1fr)) 30px;
-        gap: 0 4px;
+        grid-template-columns: minmax(120px, 1.2fr) 56px 48px 44px repeat(12, 1fr) 28px;
+        gap: 0 2px;
         align-items: center;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */

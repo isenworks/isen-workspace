@@ -907,6 +907,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   const monthLabels = months;
   const monthMaxDays = [31,28,31,30,31,30,31,31,30,31,30,31];
   const today = new Date();
+  const year = today.getFullYear();
   const curMonth = today.getMonth() + 1;
   const curDay = today.getDate();
   const isCurrentMonth = (m) => m === curMonth;
@@ -951,14 +952,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-ink-700">{curMonth}月 · 整体情况</span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-12"><ProgressBar value={energyPct} color="#22c55e" /></div>
-                <span className="text-[11px] font-bold tabular-nums text-accent-green">{energyPct}%</span>
-              </div>
+              <span className="text-sm font-semibold text-ink-700">{year}年 · 精力完成情况</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[11px] text-ink-400">当前已过 {daysElapsedInCurMonth} 天</span>
               <button onClick={() => onAction?.('addHabit')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 text-accent-green text-xs font-bold hover:bg-accent-green/15 transition">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
@@ -972,31 +968,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : ana.achievementRate >= 20 ? '#f97316' : '#ef4444';
               const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
 
-              // —— 本月每日打卡节奏（替换原来的"12个月汇总+未来填0"）——
-              // 1) 取当月1~今日的每日打卡 0/1 序列
-              const checkedSet = h.monthDates?.[curMonth];
-              let dailyRaw;
-              if (checkedSet && checkedSet.size > 0) {
-                dailyRaw = Array.from({ length: daysElapsedInCurMonth }, (_, i) => (checkedSet.has(i + 1) ? 1 : 0));
-              } else {
-                // 兜底：无真实打卡日期时，按本月完成天数近似均匀分布（保证不空白、不雷同）
-                const n = Math.max(0, Math.min(daysElapsedInCurMonth, ana.curMonthVal));
-                const step = daysElapsedInCurMonth / Math.max(1, n);
-                const fillSet = new Set();
-                for (let k = 0; k < n; k++) fillSet.add(Math.floor(k * step) + 1);
-                dailyRaw = Array.from({ length: daysElapsedInCurMonth }, (_, i) => (fillSet.has(i + 1) ? 1 : 0));
-                // 三个习惯用不同的撒点偏移，避免兜底时形状一样
-                if (h.key === 'sport') dailyRaw = dailyRaw.map((v, i) => (i % 3 === 1 ? v : 0));
-                else if (h.key === 'sleep') dailyRaw = dailyRaw.map((v, i) => ((i % 7) % 6 === 5 ? 0 : v));
+              // 年度趋势（1月~当前月，不给未来填0），Y = 该月完成天数 / 当月自然天数 * 100 = 月度达标率
+              const yearTrend = [];
+              for (let m = 1; m <= curMonth; m++) {
+                const daysInMonth = monthMaxDays[m - 1];
+                const v = h.month?.[m] || 0;
+                yearTrend.push(Math.round((v / Math.max(1, daysInMonth)) * 100));
               }
-              // 2) 7 日滑动平均 → 百分比，折线平滑 = 近7天达标率趋势
-              const WINDOW = 7;
-              const trend = dailyRaw.map((_, idx) => {
-                const s = Math.max(0, idx - WINDOW + 1);
-                let sum = 0, cnt = 0;
-                for (let k = s; k <= idx; k++) { sum += dailyRaw[k]; cnt++; }
-                return cnt === 0 ? 0 : Math.round((sum / cnt) * 100);
-              });
 
               return (
                 <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
@@ -1022,8 +1000,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     {ana.prevMonthVal > 0 && <span className="ml-1.5 text-ink-300">· 上月 {ana.prevMonthVal}</span>}
                   </div>
                   <div className="mt-0.5 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">近7天节奏</span>
-                    <Sparkline data={trend} color={achColor} width={120} height={22} />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">年度走势</span>
+                    <Sparkline data={yearTrend} color={achColor} width={120} height={22} />
                   </div>
                 </div>
               );
@@ -1034,7 +1012,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-700">
-              <div className="grp-start">习惯名称</div>
+              <div className="grp-start">{year}年 · 各月份数据</div>
               <div className="text-right">目标</div>
               <div className="text-right cum-gap">累计</div>
               <div className="text-right grp-end">完成率</div>
@@ -1113,7 +1091,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 当月打卡日历（读取真实打卡日期） */}
         <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-ink-700">{curMonth}月 · 打卡日历</span>
+            <span className="text-sm font-semibold text-ink-700">{year}年{curMonth}月 · 精力打卡日历</span>
             <div className="flex items-center gap-3 text-[10px] text-ink-400">
               <span className="inline-flex items-center gap-1">
                 <span className="w-3 h-3 rounded-[4px] bg-accent-green"></span>已打卡

@@ -1017,8 +1017,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         className="w-16 ml-auto px-2 py-1 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
-                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
-                        <span className="text-sm font-semibold text-ink-700 tabular-nums">{h.target}</span>
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer w-full pr-0">
+                        <span className="text-sm font-semibold text-ink-700 tabular-nums text-right">{h.target}</span>
                         <span className="text-[10px] text-ink-400">{h.unit}</span>
                       </div>
                     )}

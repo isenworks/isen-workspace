@@ -981,7 +981,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div>习惯名称</div>
               <div className="text-center">目标</div>
               <div className="text-right">累计</div>
-              <div className="text-right">完成率</div>
+              <div className="text-right pr-3">完成率</div>
               {monthLabels.map((m, idx) => (
                 <div key={m} className={['text-center', isCurrentMonth(idx + 1) ? 'text-accent-green font-bold' : ''].join(' ')}>
                   {m}
@@ -997,11 +997,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const isEditing = editingTargetKey === hkey;
               return (
                 <div key={hkey} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
-                  <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                  <div className="flex items-center gap-2 min-w-0 cursor-pointer mr-3" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
-                  <div className="tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
+                  <div className="text-center tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1014,7 +1014,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-14 px-1.5 py-0.5 text-sm font-bold border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-14 mx-auto px-1.5 py-0.5 text-sm font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
                       <div onClick={() => startEditTarget(h)} className="inline-flex items-center gap-1 hover:bg-ink-100 rounded-md px-1 -mx-1 transition">
@@ -1026,9 +1026,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     )}
                   </div>
-                  <div className="text-right font-bold tabular-nums text-ink-900 pr-1">{h.val}</div>
+                  <div className="text-right font-bold tabular-nums text-ink-900">{h.val}</div>
                   {/* 完成率 - 去掉进度条，只显示百分比 */}
-                  <div className="text-right cursor-pointer pr-1" onClick={() => onAction?.('editHabit', h)}>
+                  <div className="text-right cursor-pointer pr-3" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-bold tabular-nums" style={{color: barColor}}>{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
@@ -1918,8 +1918,8 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名 目标 累计 完成率 (月份×12) 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(120px, 1.2fr) 56px 56px 52px repeat(12, 1fr) 28px;
-        gap: 0 4px;
+        grid-template-columns: 2fr 72px 64px 60px repeat(12, minmax(30px, 1fr)) 32px;
+        gap: 0 12px;
         align-items: center;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */

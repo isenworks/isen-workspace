@@ -348,29 +348,40 @@ function useEnergyHabits() {
 
         // 4. 映射为年度规划格式
         const mapped = energyHabits.map(h => {
-          const st = statsMap[h.id] || { done_days: 0, dates: [] };
-          // 按月统计打卡天数
-          const monthData = {};
-          (st.dates || []).forEach(d => {
-            const m = parseInt(d.split('-')[1], 10);
-            monthData[m] = (monthData[m] || 0) + 1;
+            const st = statsMap[h.id] || { done_days: 0, dates: [] };
+            // 按月统计打卡天数
+            const monthData = {};
+            const dates = st.dates || [];
+            dates.forEach(d => {
+              const m = parseInt(d.split('-')[1], 10);
+              monthData[m] = (monthData[m] || 0) + 1;
+            });
+            // 按月份归类实际打卡日期集合（用于打卡日历）
+            const monthDateSet = {};
+            dates.forEach(d => {
+              const m = parseInt(d.split('-')[1], 10);
+              const day = parseInt(d.split('-')[2], 10);
+              if (!monthDateSet[m]) monthDateSet[m] = new Set();
+              monthDateSet[m].add(day);
+            });
+            // 智能推断年度目标：运动类 120 次，其余 230 天
+            const name = (h.name || '').toLowerCase();
+            const isExercise = /运动|exercise|sport|健身|跑步|run|workout/.test(name);
+            const annualTarget = isExercise ? 120 : 230;
+            return {
+              id: h.id,
+              key: h.id,
+              label: `${h.emoji || '✅'} ${h.name}`,
+              name: h.name,
+              emoji: h.emoji || '✅',
+              unit: isExercise ? '次' : (h.target_unit || '天'),
+              target: annualTarget,
+              val: st.done_days || 0,
+              month: monthData,
+              monthDates: monthDateSet,
+              allDates: dates,
+            };
           });
-          // 智能推断年度目标：运动类 120 次，其余 230 天
-          const name = (h.name || '').toLowerCase();
-          const isExercise = /运动|exercise|sport|健身|跑步|run|workout/.test(name);
-          const annualTarget = isExercise ? 120 : 230;
-          return {
-            id: h.id,
-            key: h.id,
-            label: `${h.emoji || '✅'} ${h.name}`,
-            name: h.name,
-            emoji: h.emoji || '✅',
-            unit: isExercise ? '次' : (h.target_unit || '天'),
-            target: annualTarget,
-            val: st.done_days || 0,
-            month: monthData,
-          };
-        });
 
         if (!cancelled) { setRealHabits(mapped); setLoading(false); }
       } catch (e) {
@@ -1055,10 +1066,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               );
             })}
         </div>
-        {/* 当月打卡热力图 */}
+        {/* 当月打卡日历（读取真实打卡日期） */}
         <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold text-ink-700">{curMonth}月 · 打卡热力图</span>
+            <span className="text-xs font-bold text-ink-700">{curMonth}月 · 打卡日历</span>
             <div className="flex items-center gap-3 text-[10px] text-ink-400">
               <span className="inline-flex items-center gap-1">
                 <span className="w-3 h-3 rounded-[4px] bg-accent-green"></span>已打卡
@@ -1073,35 +1084,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           </div>
           <div className="flex flex-col gap-2">
             {habits.map((h, hidx) => {
-              const monthVal = h.month?.[curMonth] || 0;
               const daysTotal = monthMaxDays[curMonth - 1];
-              // 均匀分布打卡日：在 1～daysElapsedInCurMonth 中挑出 monthVal 个打卡日（稳定分布）
-              const completedDays = useMemo(() => {
-                const s = new Set();
-                const eligible = daysElapsedInCurMonth;
-                const needed = Math.min(monthVal, eligible);
-                if (needed <= 0) return s;
-                if (needed >= eligible) {
-                  for (let i = 1; i <= eligible; i++) s.add(i);
-                  return s;
-                }
-                // 步长均匀 + 最后一天打卡（模拟当天打卡的真实感，如20号运动打卡）
-                for (let i = 0; i < needed; i++) {
-                  const d = 1 + Math.round((i / needed) * (eligible - 1));
-                  s.add(d);
-                }
-                // 确保当天（已过）包含在打卡集合里，模拟"今天也完成了"的真实视觉
-                if (!s.has(eligible)) {
-                  s.add(eligible);
-                  // 移除一个最早的非关键日保持数量一致
-                  if (s.size > needed) {
-                    for (let k = 1; k <= eligible; k++) {
-                      if (s.has(k) && k !== eligible) { s.delete(k); break; }
-                    }
-                  }
-                }
-                return s;
-              }, [monthVal, daysElapsedInCurMonth, h.key]);
+              // 读取真实打卡日期：API 返回时 monthDates[curMonth] 是当日集合；Mock 时退化为前 N 天连续（和"累计"逻辑一致）
+              const realDates = h.monthDates?.[curMonth];
+              const completedDays = realDates
+                ? realDates
+                : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
                 <div key={h.key} className="flex items-center gap-3">
                   <div className="w-[120px] flex-shrink-0 truncate">

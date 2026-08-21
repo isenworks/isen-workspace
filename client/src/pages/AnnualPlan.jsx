@@ -123,7 +123,7 @@ const LIFE = [
     { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'7.22' },
     { t:'尝试手冲咖啡', n:'买了一套 Hario V60', d:'7.10' },
   ]},
-  { key:'travel', lb:'旅游', color:'#c4b5fd', entries:[ /* violet-300 */
+  { key:'travel', lb:'旅游', color:'#8b5cf6', entries:[ /* violet - 符合WCAG AA对比度 */
     { t:'苏州两日游', n:'去了拙政园和留园', d:'6.22-6.23' },
     { t:'崇明岛露营', n:'和朋友们搭帐篷烧烤', d:'5.18' },
   ]},
@@ -167,9 +167,13 @@ function CategoryIcon({ catKey, className }) {
   );
 }
 
-function ProgressBar({ value, color }) {
+function ProgressBar({ value, color, variant }) {
+  // P1-3 / 4.1 进度条分层规范：
+  //  default = 标准 4px (类目卡 / Hero / SectionHeader)
+  //  dense   = 细 3px (KR列表 / 书籍明细 - 场景密集，减少视觉噪声)
+  const h = variant === 'dense' ? 'h-0.75' : 'h-1';
   return (
-    <div className="h-1 rounded-full bg-ink-100 overflow-hidden">
+    <div className={`${h} rounded-full bg-ink-100 overflow-hidden`}>
       <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%`, background: color || '#4b63f0' }} />
     </div>
   );
@@ -663,12 +667,15 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-base font-bold text-ink-900 tracking-tight">{year} 年度规划总览</h2>
-            <div className="inline-flex p-0.5 rounded-lg bg-ink-100">
+            {/* P0 / 2.1: 周·月·年视图切换，分段控件风格强化，符合工作台设计系统 */}
+            <div className="inline-flex p-0.5 rounded-xl bg-surface-soft border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
               {scaleTabs.map(t => (
                 <button key={t.k} onClick={() => onTimeScaleChange(t.k)}
                   className={[
-                    'px-3 py-1 rounded-md text-xs font-bold transition-all',
-                    timeScale === t.k ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'
+                    'relative px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200',
+                    timeScale === t.k
+                      ? 'bg-white text-ink-900 shadow-[0_1px_3px_rgba(17,24,39,0.08),0_1px_2px_rgba(17,24,39,0.04)] ring-1 ring-ink-100'
+                      : 'text-ink-400 hover:text-ink-600 hover:bg-white/40'
                   ].join(' ')}>
                   {t.lb}
                 </button>
@@ -939,22 +946,27 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const habitColor = h.val >= h.target ? '#22c55e' : '#4b63f0';
               const monthData = Array.from({ length: 12 }, (_, i) => h.month?.[i + 1] || 0);
               return (
-                <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-white border border-ink-100">
+                <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-ink-900 truncate max-w-[90px]">{h.label.replace(/^\S+\s?/, '')}</span>
                     {ana.delta !== null && ana.delta !== 0 && (
-                      <span className={['text-[10px] font-bold flex items-center gap-0.5', ana.delta > 0 ? 'text-accent-green' : 'text-accent-red'].join(' ')}>
-                        {ana.delta > 0 ? '↑' : '↓'}{Math.abs(ana.delta)}%
+                      <span className={[
+                        'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums',
+                        ana.delta > 0
+                          ? 'bg-accent-green/10 text-accent-green'
+                          : 'bg-accent-red/10 text-accent-red'
+                      ].join(' ')}>
+                        {ana.delta > 0 ? '▲' : '▼'}{Math.abs(ana.delta)}%
                       </span>
                     )}
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-bold tabular-nums" style={{color: achColor}}>{ana.achievementRate}%</span>
-                    <span className="text-[10px] text-ink-400">达成率</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-lg font-bold tabular-nums leading-none" style={{color: achColor}}>{ana.achievementRate}</span>
+                    <span className="text-[11px] font-semibold" style={{color: achColor}}>% 达标率</span>
                   </div>
-                  <div className="text-[11px] text-ink-500 tabular-nums">
-                    {ana.curMonthVal} / {ana.expectedCur} {h.unit}
-                    {ana.prevMonthVal > 0 && <span className="text-ink-400 ml-1">· 上月 {ana.prevMonthVal}</span>}
+                  <div className="text-[11px] text-ink-400 tabular-nums leading-tight">
+                    {ana.curMonthVal}<span className="text-ink-300">/</span>{ana.expectedCur} <span className="text-ink-400">{h.unit}</span>
+                    {ana.prevMonthVal > 0 && <span className="ml-1.5 text-ink-300">· 上月 {ana.prevMonthVal}</span>}
                   </div>
                   <Sparkline data={monthData} color={habitColor} width={120} height={24} />
                 </div>
@@ -1136,17 +1148,17 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
                         style={{ background: `linear-gradient(135deg, ${coverColor} 0%, ${coverColor}cc 100%)` }} />
                       <div className="flex-1 min-w-0">
                         <div className={`text-sm font-semibold leading-snug ${dim}`}>{b.t}</div>
-                        <div className="text-xs text-ink-500 mt-0.5 truncate">{b.author}</div>
+                        <div className="text-[11px] text-ink-400 mt-0.5 truncate">{b.author}</div>
                       </div>
                       <div className="text-xs font-bold tabular-nums flex-shrink-0" style={{color: g.col}}>{b.pct}%</div>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center gap-1.5 flex-1">
-                        <span className="text-xs font-semibold text-ink-600">{b.cat}</span>
-                        <span className="text-xs text-ink-300">·</span>
-                        <span className="text-xs font-medium text-ink-500">{b.src}</span>
+                        <span className="text-[11px] font-semibold text-ink-600">{b.cat}</span>
+                        <span className="text-[11px] text-ink-300">·</span>
+                        <span className="text-[11px] font-medium text-ink-400">{b.src}</span>
                       </div>
-                      <div className="flex-1 min-w-[80px] max-w-[110px]"><ProgressBar value={b.pct} color={g.col} /></div>
+                      <div className="flex-1 min-w-[80px] max-w-[110px]"><ProgressBar value={b.pct} color={g.col} variant="dense" /></div>
                     </div>
                   </div>
                 );
@@ -1282,19 +1294,19 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore })
                 <ProgressBar value={mPct} color="#f59e0b" />
               </div>
               {/* 里程碑列表 */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <div className="text-xs font-bold uppercase tracking-wide text-ink-500 px-0.5">里程碑</div>
                 {a.mstones.map((m, i) => {
                   const sm = statusMeta(m.st);
                   const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
                   return (
-                    <div key={i} onClick={() => onMsEdit?.(ai, i, m)} className="p-3 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
-                      <div className="w-7 h-7 rounded-lg grid place-items-center text-xs font-bold tabular-nums flex-shrink-0 text-ink-700">{i + 1}</div>
+                    <div key={i} onClick={() => onMsEdit?.(ai, i, m)} className="p-2.5 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
+                      <div className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold tabular-nums flex-shrink-0 text-ink-700">{i + 1}</div>
                       <div className="flex-1 min-w-0">
                         <div className={`text-sm font-semibold leading-tight ${m.st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{m.lb}</div>
-                        <div className="mt-1.5"><ProgressBar value={m.pct} color={msCol} /></div>
+                        <div className="mt-1"><ProgressBar value={m.pct} color={msCol} variant="dense" /></div>
                       </div>
-                      <span className="text-xs font-bold tabular-nums flex-shrink-0" style={{color: msCol}}>{sm.lb} · {m.pct}%</span>
+                      <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{color: msCol}}>{sm.lb} · {m.pct}%</span>
                     </div>
                   );
                 })}
@@ -1427,8 +1439,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
             const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
             const risk = risk4Quadrant(kr, o.deadline, o.start);
             return (
-              <div key={i} onClick={() => onKrEdit?.(o._workIdx, i, kr)} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 py-2.5 px-1 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
-                <div className="text-xs font-bold tabular-nums text-ink-500 text-center flex-shrink-0">{i + 1}</div>
+              <div key={i} onClick={() => onKrEdit?.(o._workIdx, i, kr)} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 py-2 px-1 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
+                <div className="text-[11px] font-bold tabular-nums text-ink-500 text-center flex-shrink-0">{i + 1}</div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <div className={`text-sm font-semibold leading-tight min-w-0 flex-1 truncate ${st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
@@ -1439,8 +1451,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
                       {risk.label}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <div className="flex-1 min-w-0"><ProgressBar value={p2} color={statusDot} /></div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex-1 min-w-0"><ProgressBar value={p2} color={statusDot} variant="dense" /></div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
@@ -1518,9 +1530,9 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
                 <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer">
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-xs font-semibold text-ink-900 leading-snug flex-1 min-w-0">{e.t}</div>
-                    <div className="text-[10px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
+                    <div className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
                   </div>
-                  {e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1">{e.n}</div>}
+                  {e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-1">{e.n}</div>}
                 </div>
               ))}
               <AddButton label="添加" onClick={() => onEntryAdd?.(ci, c.lb)} />

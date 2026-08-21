@@ -1001,7 +1001,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
-                  <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
+                  <div className="text-left tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1014,10 +1014,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-16 ml-auto px-2 py-1 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-16 px-2 py-1 text-sm font-bold text-left border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
-                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-start gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
                         <span className="text-sm font-semibold text-ink-700 tabular-nums">{h.target}</span>
                         <span className="text-[10px] text-ink-400">{h.unit}</span>
                       </div>

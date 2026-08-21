@@ -2105,23 +2105,25 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- */
+      /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- 
+         首列收窄 → 右侧 12 月整体视觉右移；12 月列权重由 1fr 降到 0.65fr → 月份格子间距显著收紧
+      */
       .habit-table {
-        grid-template-columns: minmax(120px, 2.2fr) 68px 56px 52px repeat(12, minmax(24px, 1fr)) 28px;
-        gap: 0 1px;
+        grid-template-columns: minmax(96px, 1.5fr) 64px 52px 48px repeat(12, minmax(24px, 0.65fr)) 28px;
+        gap: 0 0;
         align-items: center;
       }
-      /* 分组间距：习惯名与统计区分组 */
+      /* 分组间距：习惯名与统计区分组（右移：首列与统计区分组缩小，月份区腾出更多右侧空间） */
       .habit-table > .grp-start {
-        margin-right: 8px;
+        margin-right: 4px;
       }
       /* 分组间距：统计区与月份区分组 */
       .habit-table > .grp-end {
-        padding-right: 8px;
+        padding-right: 12px;
       }
-      /* 统计区内：累计与完成率之间加大间距 */
+      /* 统计区内：累计与完成率之间间距 */
       .habit-table > .cum-gap {
-        margin-right: 10px;
+        margin-right: 6px;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */
       @keyframes fade-in-up {

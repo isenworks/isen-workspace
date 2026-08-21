@@ -567,35 +567,99 @@ function Sidebar({ active, onChange, stats }) {
   );
 }
 
-/* ---------- 通用 Sparkline 迷你折线图 ---------- */
-const Sparkline = ({ data, color = '#22c55e', width = 120, height = 28 }) => {
+/* ---------- 通用 Sparkline 迷你折线图（带月份标注+顶点Hover Tooltip） ---------- */
+const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }) => {
+  const [hoverIdx, setHoverIdx] = useState(null);
   if (!data || data.length === 0) return null;
+  const LABEL_H = 14;     // 底部月份标签高度
+  const PAD_T = 4; PAD_B = 2;
+  const plotH = height - LABEL_H - PAD_T - PAD_B;
   const max = Math.max(10, Math.max(...data));
-  const min = Math.min(0, Math.min(...data));
+  const min = 0;                           // 次数=0是有意义的下限
   const range = Math.max(1, max - min);
   const stepX = data.length === 1 ? 0 : width / (data.length - 1);
+  const gid = 'sg-' + color.replace('#','') + '-' + Math.abs(data.reduce((s,v)=>s+v,0)).toString(36);
+
   const pts = data.map((v, i) => {
     const x = i * stepX;
-    const y = height - (((v - min) / range) * (height - 4)) - 2;
-    return `${x},${y}`;
-  }).join(' ');
-  const areaPath = 'M0,' + height + ' L' + pts + ' L' + width + ',' + height + ' Z';
-  const linePath = pts.split(' ').map((p, i) => (i === 0 ? 'M' + p : 'L' + p)).join(' ');
-  const lastPoint = (data.length - 1) * stepX;
-  const lastY = height - (((data[data.length - 1] - min) / range) * (height - 4)) - 2;
-  const gid = 'sg-' + color.replace('#','') + '-' + Math.abs(data.reduce((s,v)=>s+v,0)).toString(36);
+    const y = PAD_T + plotH - (((v - min) / range) * (plotH - 2)) - 1;
+    return { x, y, v };
+  });
+  const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
+  const areaPath = 'M0,' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (width) + ',' + (PAD_T + plotH) + ' Z';
+  const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ');
+  const labelY = PAD_T + plotH + PAD_B + LABEL_H - 2;
+  // 显示标签策略：点数<=8 全部显示；否则首尾+每2个或首尾+中间
+  const showIdx = new Set();
+  if (data.length <= 8) {
+    for (let i = 0; i < data.length; i++) showIdx.add(i);
+  } else {
+    showIdx.add(0);
+    showIdx.add(data.length - 1);
+    for (let i = 2; i < data.length - 1; i += 3) showIdx.add(i);
+  }
+
+  const hp = hoverIdx !== null ? pts[hoverIdx] : null;
   return (
-    <svg width={width} height={height} className="overflow-visible">
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={'url(#' + gid + ')'} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastPoint} cy={lastY} r="3" fill={color} />
-    </svg>
+    <div className="relative w-full" style={{ width, height: height + LABEL_H }}>
+      <svg width={width} height={height + LABEL_H} className="overflow-visible">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* 区域填充 */}
+        <path d={areaPath} fill={'url(#' + gid + ')'} />
+        {/* 折线 */}
+        <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* 每个数据点的命中检测 + 圆点（hover显示） */}
+        {pts.map((p, i) => (
+          <g key={i}>
+            {/* 命中热区（8x8方形，比圆点大） */}
+            <rect
+              x={p.x - 5} y={p.y - 5} width={10} height={10}
+              fill="transparent" style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setHoverIdx(i)}
+              onMouseLeave={() => setHoverIdx(h => (h === i ? null : h))}
+            />
+            {(hoverIdx === i || i === pts.length - 1) && (
+              <circle cx={p.x} cy={p.y} r={i === pts.length - 1 && hoverIdx !== i ? 2.5 : 3.5} fill={color}
+                stroke="#fff" strokeWidth={i === pts.length - 1 && hoverIdx !== i ? 1 : 1.5} />
+            )}
+          </g>
+        ))}
+        {/* 底部月份标签 */}
+        {labels && labels.length === data.length && pts.map((p, i) =>
+          showIdx.has(i) && (
+            <text key={'l'+i} x={p.x} y={labelY} textAnchor="middle"
+              fontSize="9" fontWeight="600"
+              fill={i === data.length - 1 ? color : '#9ca3af'}
+              style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
+              {labels[i]}
+            </text>
+          )
+        )}
+      </svg>
+      {/* Hover Tooltip */}
+      {hp && (
+        <div className="pointer-events-none absolute z-20"
+          style={{
+            left: Math.min(Math.max(hp.x - 42, 0), width - 84),
+            top: Math.max(hp.y - 32, -2),
+          }}>
+          <div className="px-2 py-1 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.08)] flex flex-col items-center gap-0.5"
+            style={{ minWidth: 68 }}>
+            {labels && labels[hoverIdx] && (
+              <div className="text-[9px] font-semibold text-ink-400 leading-none">{labels[hoverIdx]}</div>
+            )}
+            <div className="text-[11px] font-bold tabular-nums leading-tight" style={{ color }}>
+              {hp.v} 次
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -952,7 +1016,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-ink-700">{year}年 · 精力完成情况</span>
+              <span className="text-sm font-semibold text-ink-700">{year}年 · 年度数据</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => onAction?.('addHabit')}
@@ -968,18 +1032,18 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : ana.achievementRate >= 20 ? '#f97316' : '#ef4444';
               const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
 
-              // 年度趋势（1月~当前月，不给未来填0），Y = 该月完成天数 / 当月自然天数 * 100 = 月度达标率
-              const yearTrend = [];
+              // 年度走势（1月~当前月，不含未来）— 各月打卡「次数」绝对值（不再转百分比）
+              const yearCounts = [];
+              const yearMonthLabels = [];
               for (let m = 1; m <= curMonth; m++) {
-                const daysInMonth = monthMaxDays[m - 1];
-                const v = h.month?.[m] || 0;
-                yearTrend.push(Math.round((v / Math.max(1, daysInMonth)) * 100));
+                yearCounts.push(h.month?.[m] || 0);
+                yearMonthLabels.push(`${m}月`);
               }
 
               return (
-                <div key={h.key} className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
+                <div key={h.key} className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-ink-900 truncate max-w-[90px]">{h.label.replace(/^\S+\s?/, '')}</span>
+                    <span className="text-xs font-bold text-ink-900 truncate max-w-[110px]">{h.label.replace(/^\S+\s?/, '')}</span>
                     {ana.delta !== null && ana.delta !== 0 && (
                       <span className={[
                         'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums',
@@ -992,16 +1056,16 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     )}
                   </div>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-lg font-bold tabular-nums leading-none" style={{color: achColor}}>{ana.achievementRate}</span>
+                    <span className="text-xl font-bold tabular-nums leading-none" style={{color: achColor}}>{ana.achievementRate}</span>
                     <span className="text-[11px] font-semibold text-ink-400">% 达标率</span>
                   </div>
                   <div className="text-[11px] text-ink-400 tabular-nums leading-tight">
                     {ana.curMonthVal}<span className="text-ink-300">/</span>{ana.expectedCur} <span className="text-ink-400">{h.unit}</span>
                     {ana.prevMonthVal > 0 && <span className="ml-1.5 text-ink-300">· 上月 {ana.prevMonthVal}</span>}
                   </div>
-                  <div className="mt-0.5 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-400">年度走势</span>
-                    <Sparkline data={yearTrend} color={achColor} width={120} height={22} />
+                  {/* 年度走势折线：月份标签在下方，hover每个顶点显示当月打卡次数 */}
+                  <div className="mt-1 -mx-1">
+                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={achColor} width={260} height={52} />
                   </div>
                 </div>
               );
@@ -1012,8 +1076,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-700">
-              <div className="grp-start">{year}年 · 各月份数据</div>
-              <div className="text-right">目标</div>
+              <div className="grp-start">{year}年 · 各月数据</div>
+              <div className="text-right pr-1">目标</div>
               <div className="text-right cum-gap">累计</div>
               <div className="text-right grp-end">完成率</div>
               {monthLabels.map((m, idx) => (
@@ -1067,12 +1131,19 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     const maxT = monthMaxDays[monthIdx - 1];
                     const ratio = n / maxT;
                     const passed = ratio >= 0.8;
+                    const doing  = ratio >= 0.5 && ratio < 0.8;
                     const isCur = isCurrentMonth(monthIdx);
+                    // 颜色分层与打卡日历方块保持一致：≥80%→实心绿白字（与日历已打卡同色）；50~80%→浅绿底深绿字；<50%→灰底灰字
+                    let pill = '';
+                    if (passed) pill = 'bg-accent-green text-white';
+                    else if (doing) pill = 'bg-accent-green/30 text-accent-green';
+                    else if (n > 0) pill = 'bg-accent-green/15 text-ink-700';
+                    else pill = 'bg-ink-100 text-ink-400';
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
                           'text-xs font-bold tabular-nums px-0 py-1 rounded-md min-w-[24px] text-center transition-colors',
-                          passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/40 text-ink-900' : 'bg-ink-100 text-ink-500'
+                          pill
                         ].join(' ')}>{n}</span>
                       </div>
                     );
@@ -1091,7 +1162,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* 当月打卡日历（读取真实打卡日期） */}
         <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-ink-700">{year}年{curMonth}月 · 精力打卡日历</span>
+            <span className="text-sm font-semibold text-ink-700">{year}年 · {curMonth}月打卡日历</span>
             <div className="flex items-center gap-3 text-[10px] text-ink-400">
               <span className="inline-flex items-center gap-1">
                 <span className="w-3 h-3 rounded-[4px] bg-accent-green"></span>已打卡
@@ -1146,7 +1217,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         <div key={day}
                           title={`${curMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
                           className={[
-                            'aspect-square rounded-[5px] grid place-items-center',
+                            'aspect-square rounded-md grid place-items-center',
                             'text-[9px] tabular-nums leading-none transition-colors',
                             cellBg, cellText, cellRing, cellBorder
                           ].join(' ')}>

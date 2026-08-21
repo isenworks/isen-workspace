@@ -979,9 +979,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div>习惯名称</div>
-              <div>目标</div>
-              <div>累计</div>
-              <div>完成率</div>
+              <div className="text-center">目标</div>
+              <div className="text-right">累计</div>
+              <div className="text-right">完成率</div>
               {monthLabels.map((m, idx) => (
                 <div key={m} className={['text-center', isCurrentMonth(idx + 1) ? 'text-accent-green font-bold' : ''].join(' ')}>
                   {m}
@@ -1026,9 +1026,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     )}
                   </div>
-                  <div className="font-bold tabular-nums text-ink-900">{h.val}</div>
+                  <div className="text-right font-bold tabular-nums text-ink-900 pr-1">{h.val}</div>
                   {/* 完成率 - 去掉进度条，只显示百分比 */}
-                  <div className="text-right cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                  <div className="text-right cursor-pointer pr-1" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-bold tabular-nums" style={{color: barColor}}>{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
@@ -1918,8 +1918,8 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名 目标 累计 完成率 (月份×12) 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(120px, 1.2fr) 56px 48px 44px repeat(12, 1fr) 28px;
-        gap: 0 2px;
+        grid-template-columns: minmax(120px, 1.2fr) 56px 56px 52px repeat(12, 1fr) 28px;
+        gap: 0 4px;
         align-items: center;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */

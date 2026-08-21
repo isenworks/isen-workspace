@@ -978,10 +978,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-1">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
-              <div>习惯名称</div>
+              <div className="grp-start">习惯名称</div>
               <div className="text-center">目标</div>
               <div className="text-right">累计</div>
-              <div className="text-right pr-3">完成率</div>
+              <div className="text-right grp-end">完成率</div>
               {monthLabels.map((m, idx) => (
                 <div key={m} className={['text-center', isCurrentMonth(idx + 1) ? 'text-accent-green font-bold' : ''].join(' ')}>
                   {m}
@@ -997,7 +997,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const isEditing = editingTargetKey === hkey;
               return (
                 <div key={hkey} className="grid habit-table px-4 py-3 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
-                  <div className="flex items-center gap-2 min-w-0 cursor-pointer mr-3" onClick={() => onAction?.('editHabit', h)}>
+                  <div className="flex items-center gap-2 min-w-0 cursor-pointer grp-start" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
@@ -1028,7 +1028,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   </div>
                   <div className="text-right font-bold tabular-nums text-ink-900">{h.val}</div>
                   {/* 完成率 - 去掉进度条，只显示百分比 */}
-                  <div className="text-right cursor-pointer pr-3" onClick={() => onAction?.('editHabit', h)}>
+                  <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
                     <span className="text-sm font-bold tabular-nums" style={{color: barColor}}>{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
@@ -1916,11 +1916,19 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- 精力表格 grid 模板：[习惯名 目标 累计 完成率 (月份×12) 删除] ---- */
+      /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- */
       .habit-table {
         grid-template-columns: 2fr 72px 64px 60px repeat(12, minmax(30px, 1fr)) 32px;
-        gap: 0 12px;
+        gap: 0 4px;
         align-items: center;
+      }
+      /* 分组间距：习惯名与统计区分组 */
+      .habit-table > .grp-start {
+        margin-right: 14px;
+      }
+      /* 分组间距：统计区与月份区分组 */
+      .habit-table > .grp-end {
+        padding-right: 14px;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */
       @keyframes fade-in-up {

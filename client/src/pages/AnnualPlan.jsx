@@ -979,7 +979,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-xs font-semibold text-ink-500">
               <div className="grp-start">习惯名称</div>
-              <div className="text-center pl-1">目标</div>
+              <div className="text-right">目标</div>
               <div className="text-right">累计</div>
               <div className="text-right grp-end">完成率</div>
               {monthLabels.map((m, idx) => (
@@ -1001,7 +1001,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
-                  <div className="text-center tabular-nums font-medium pl-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="text-right tabular-nums font-medium pr-2" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1014,7 +1014,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-14 mx-auto px-1.5 py-0.5 text-sm font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-14 ml-auto px-1.5 py-0.5 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
                       <div onClick={() => startEditTarget(h)} className="inline-flex items-center gap-1 hover:bg-ink-100 rounded-md px-1 -mx-1 transition cursor-pointer">

@@ -979,7 +979,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
             <div className="grid habit-table px-4 py-3 bg-surface-soft border-b border-ink-100 text-sm font-semibold text-ink-500">
               <div className="grp-start">习惯名称</div>
-              <div className="text-right">目标</div>
+              <div className="text-center">目标</div>
               <div className="text-right">累计</div>
               <div className="text-right grp-end">完成率</div>
               {monthLabels.map((m, idx) => (
@@ -1001,7 +1001,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-sm font-semibold text-ink-900 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
-                  <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
+                  <div className="text-center tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1014,15 +1014,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-16 ml-auto px-2 py-1 text-sm font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-16 px-2 py-1 text-sm font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
-                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-center gap-0.5 hover:bg-accent-green/8 rounded-md px-1 transition cursor-pointer w-full">
                         <span className="text-sm font-semibold text-ink-700 tabular-nums">{h.target}</span>
                         <span className="text-[10px] text-ink-400">{h.unit}</span>
-                        <svg className="w-3 h-3 text-ink-300 group-hover:text-ink-500 transition" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 1 1 3.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
                       </div>
                     )}
                   </div>

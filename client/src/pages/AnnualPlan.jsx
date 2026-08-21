@@ -2109,17 +2109,16 @@ export default function AnnualPlan({ standalone = true }) {
   const styles = (
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- 
-         调整点：
-         ① 习惯名列收窄 → 右侧 12 月整体视觉右移
-         ② 完成率列宽从 48→56px，避免「完成率」三个字竖排换行
-         ③ 12 月列权重由 0.65fr 继续砍到 0.45fr → 月份格子之间空白显著收紧
+         设计原则：12 个月格必须「紧凑成一排」，不能被 fr 拉得稀稀拉拉
+         → 月份列权重由 0.5fr 猛砍到 0.25fr（仅比 minmax(30px) 底线略大一点）
+         → 宽屏时 12 列只占用所需的最小紧凑空间，多余空白都留给习惯名列（1.3fr）自动吸收
       */
       .habit-table {
-        grid-template-columns: minmax(100px, 1.5fr) 64px 52px 60px repeat(12, minmax(30px, 0.5fr)) 30px;
+        grid-template-columns: minmax(110px, 1.5fr) 64px 52px 60px repeat(12, minmax(30px, 0.25fr)) 30px;
         gap: 0 0;
         align-items: center;
       }
-      /* 分组间距：习惯名与统计区分组（右移：首列与统计区分组缩小，月份区腾出更多右侧空间） */
+      /* 分组间距：习惯名与统计区分组 */
       .habit-table > .grp-start {
         margin-right: 4px;
       }

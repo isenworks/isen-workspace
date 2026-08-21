@@ -942,7 +942,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           <div className="grid grid-cols-3 gap-3">
             {habits.map(h => {
               const ana = getMonthAnalysis(h);
-              const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : '#f97316';
+              const achColor = ana.achievementRate >= 80 ? '#16a34a' : ana.achievementRate >= 50 ? '#22c55e' : ana.achievementRate >= 20 ? '#f97316' : '#ef4444';
               const habitColor = h.val >= h.target ? '#16a34a' : '#22c55e';
               const monthData = Array.from({ length: 12 }, (_, i) => h.month?.[i + 1] || 0);
               return (
@@ -962,13 +962,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   </div>
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-lg font-bold tabular-nums leading-none" style={{color: achColor}}>{ana.achievementRate}</span>
-                    <span className="text-[11px] font-semibold" style={{color: achColor}}>% 达标率</span>
+                    <span className="text-[11px] font-semibold text-ink-400">% 达标率</span>
                   </div>
                   <div className="text-[11px] text-ink-400 tabular-nums leading-tight">
                     {ana.curMonthVal}<span className="text-ink-300">/</span>{ana.expectedCur} <span className="text-ink-400">{h.unit}</span>
                     {ana.prevMonthVal > 0 && <span className="ml-1.5 text-ink-300">· 上月 {ana.prevMonthVal}</span>}
                   </div>
-                  <Sparkline data={monthData} color={habitColor} width={120} height={24} />
+                  <Sparkline data={monthData} color={achColor} width={120} height={24} />
                 </div>
               );
             })}
@@ -992,7 +992,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {habits.map(h => {
               const p = pct(h.val, h.target);
               const done = p >= 100;
-              const barColor = done ? '#16a34a' : p >= 50 ? '#22c55e' : '#f97316';
+              const barColor = done ? '#16a34a' : p >= 50 ? '#22c55e' : p >= 20 ? '#f97316' : '#ef4444';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (

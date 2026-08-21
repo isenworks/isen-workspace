@@ -920,24 +920,25 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionHeader
-        cat="energy"
-        title="精力 · 习惯打卡"
-        progress={energyPct}
-        right={
-          <button onClick={() => onAction?.('addHabit')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 text-accent-green text-xs font-bold hover:bg-accent-green/15 transition">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-            添加精力习惯
-          </button>
-        }
-      />
       <div className="glass-card overflow-hidden">
         {/* 月度分析概览 */}
         <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-ink-700">{curMonth}月 · 本月进度分析</span>
-            <span className="text-[11px] text-ink-400">当前已过 {daysElapsedInCurMonth} 天</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-ink-700">{curMonth}月 · 本月进度分析</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-12"><ProgressBar value={energyPct} color="#22c55e" /></div>
+                <span className="text-[11px] font-bold tabular-nums text-accent-green">{energyPct}%</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-ink-400">当前已过 {daysElapsedInCurMonth} 天</span>
+              <button onClick={() => onAction?.('addHabit')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 text-accent-green text-xs font-bold hover:bg-accent-green/15 transition">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                添加
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {habits.map(h => {
@@ -1053,6 +1054,74 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 </div>
               );
             })}
+        </div>
+        {/* 当月打卡热力图 */}
+        <div className="px-4 py-4 border-t border-ink-100">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-ink-700">{curMonth}月 · 打卡热力图</span>
+            <div className="flex items-center gap-2 text-[10px] text-ink-400">
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-[3px] bg-ink-100 border border-ink-200/50"></span>未完成
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-[3px] bg-accent-green/30"></span>弱
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-[3px] bg-accent-green/60"></span>中
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-[3px] bg-accent-green"></span>强
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {habits.map((h, hidx) => {
+              const monthVal = h.month?.[curMonth] || 0;
+              const daysTotal = monthMaxDays[curMonth - 1];
+              return (
+                <div key={h.key} className="flex items-center gap-3">
+                  <div className="w-[88px] flex-shrink-0 truncate">
+                    <span className="text-[11px] font-semibold text-ink-600 truncate">{h.label.replace(/^\S+\s?/, '')}</span>
+                  </div>
+                  <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '2px'}}>
+                    {Array.from({ length: daysTotal }, (_, d) => {
+                      const day = d + 1;
+                      const isPast = day <= daysElapsedInCurMonth;
+                      // 基于累计值投影：前 N 天为已完成，后续为未完成（Demo 模式）
+                      const completedIndex = Math.round((monthVal / Math.max(1, daysElapsedInCurMonth)) * day);
+                      const intensityDay = day <= Math.ceil(monthVal);
+                      const ratio = isPast && intensityDay ? monthVal / Math.max(1, daysElapsedInCurMonth) : 0;
+                      let bg = 'bg-ink-100';
+                      let border = '';
+                      if (!isPast) { bg = 'bg-ink-50'; border = 'border border-ink-100'; }
+                      else if (ratio >= 0.9) bg = 'bg-accent-green';
+                      else if (ratio >= 0.6) bg = 'bg-accent-green/70';
+                      else if (ratio >= 0.3) bg = 'bg-accent-green/45';
+                      else if (intensityDay && ratio > 0) bg = 'bg-accent-green/25';
+                      return (
+                        <div key={day}
+                          title={`${curMonth}月${day}日 · ${h.label.replace(/^\S+\s?/, '')}`}
+                          className={['aspect-square rounded-[3px] transition-colors', bg, border].join(' ')}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {/* 日期刻度（只显示 1 / 8 / 15 / 22 / 月末） */}
+            <div className="flex items-center gap-3">
+              <div className="w-[88px] flex-shrink-0"></div>
+              <div className="flex-1 grid text-[9px] text-ink-400 tabular-nums"
+                   style={{gridTemplateColumns: `repeat(${monthMaxDays[curMonth-1]}, minmax(0, 1fr))`, gap: '2px'}}>
+                {Array.from({ length: monthMaxDays[curMonth-1] }, (_, d) => {
+                  const day = d + 1;
+                  const show = day === 1 || day === 8 || day === 15 || day === 22 || day === monthMaxDays[curMonth-1];
+                  return <div key={day} className={['text-center', day === daysElapsedInCurMonth ? 'text-accent-green font-bold' : ''].join(' ')}>{show ? day : ''}</div>;
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

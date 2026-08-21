@@ -1037,7 +1037,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-xs font-bold tabular-nums px-0.5 py-1 rounded-md min-w-[26px] text-center transition-colors',
+                          'text-xs font-bold tabular-nums px-0 py-1 rounded-md min-w-[24px] text-center transition-colors',
                           passed ? 'bg-accent-green text-white' : isCur ? 'bg-accent-green/20 text-accent-green' : 'bg-ink-100 text-ink-500'
                         ].join(' ')}>{n}</span>
                       </div>
@@ -1915,8 +1915,8 @@ export default function AnnualPlan({ standalone = true }) {
     <style>{`
       /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- */
       .habit-table {
-        grid-template-columns: minmax(120px, 2.2fr) 68px 56px 52px repeat(12, minmax(28px, 1fr)) 28px;
-        gap: 0 2px;
+        grid-template-columns: minmax(120px, 2.2fr) 68px 56px 52px repeat(12, minmax(24px, 1fr)) 28px;
+        gap: 0 1px;
         align-items: center;
       }
       /* 分组间距：习惯名与统计区分组 */
@@ -1929,7 +1929,7 @@ export default function AnnualPlan({ standalone = true }) {
       }
       /* 统计区内：累计与完成率之间加大间距 */
       .habit-table > .cum-gap {
-        margin-right: 6px;
+        margin-right: 10px;
       }
       /* ---- P2-13: 视图淡入过渡 ---- */
       @keyframes fade-in-up {

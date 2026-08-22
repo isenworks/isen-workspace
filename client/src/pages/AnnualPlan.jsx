@@ -1170,8 +1170,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* L2 容器用 px-0，内部 grid 的 px-4 作为唯一水平padding
             → 表头/数据行内容左端 = 容器边缘 + 16px = 与L1/L3完全对齐 */}
         <div className="my-4 px-0 pb-0 rounded-xl border-t-0 border-0 bg-transparent">
-            {/* 表头：px-4与下方数据行grid padding完全统一 → 标题与习惯名左端对齐 */}
-            <div className="grid habit-table px-4 py-3 border-y border-ink-100 bg-transparent text-[14px] font-semibold text-ink-700">
+            {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
+            <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
                 {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识） */}
                 <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
@@ -1196,7 +1196,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (
-                <div key={hkey} className="grid habit-table px-4 py-2.5 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
+                <div key={hkey} className="grid habit-table px-4 py-1.5 items-center transition-colors group">
                   <div className="flex items-center gap-2 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis" onClick={() => onAction?.('editHabit', h)}>
                     {/* 统一 14px Semibold ink-700：与年度数据卡片/打卡日历习惯标题完全一致 */}
                     <span className="text-[14px] font-semibold text-ink-700 truncate">{h.label}</span>

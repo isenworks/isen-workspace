@@ -55,25 +55,58 @@ const HABITS = [
 
 /* 认知 · 书籍 */
 const BOOKS = [
-  { t: '穷查理宝典',   author: '查理·芒格', cat: '商业',  st: 'reading', pct: 65, src: '微信读书' },
-  { t: '人类简史',     author: '尤瓦尔·赫拉利', cat: '认知', st: 'reading', pct: 30, src: 'PDF' },
-  { t: '硅谷钢铁侠',   author: '阿什利·万斯', cat: '传记', st: 'reading', pct: 15, src: '微信读书' },
-  { t: '影响力',       author: '罗伯特·西奥迪尼', cat: '商业', st: 'pending', pct: 0,  src: 'PDF' },
-  { t: '非暴力沟通',   author: '马歇尔·卢森堡', cat: '认知', st: 'pending', pct: 0,  src: '微信读书' },
-  { t: '定位',         author: '艾·里斯',       cat: '商业', st: 'pending', pct: 0,  src: 'PDF' },
-  { t: '从0到1',       author: '彼得·蒂尔',     cat: '商业', st: 'pending', pct: 0,  src: '微信读书' },
-  { t: '纳瓦尔宝典',   author: 'Eric Jorgenson', cat: '认知', st: 'done',    pct: 100,src: '微信读书' },
-  { t: '原则',         author: '瑞·达利欧',     cat: '认知', st: 'done',    pct: 100,src: 'PDF' },
-  { t: '思考，快与慢', author: '丹尼尔·卡尼曼', cat: '认知', st: 'done',    pct: 100,src: '微信读书' },
-  { t: '被讨厌的勇气', author: '岸见一郎',     cat: '认知', st: 'done',    pct: 100,src: '微信读书' },
-  { t: 'Atomic Habits',author: 'James Clear',  cat: '商业', st: 'done',    pct: 100,src: 'PDF' },
+  { t: '穷查理宝典',   author: '查理·芒格', cat: '商业',  st: 'reading', pct: 65, src: '电子书' },
+  { t: '人类简史',     author: '尤瓦尔·赫拉利', cat: '认知', st: 'reading', pct: 30, src: '电子书' },
+  { t: '硅谷钢铁侠',   author: '阿什利·万斯', cat: '传记', st: 'reading', pct: 15, src: '电子书' },
+  { t: '影响力',       author: '罗伯特·西奥迪尼', cat: '商业', st: 'pending', pct: 0,  src: '纸质书' },
+  { t: '非暴力沟通',   author: '马歇尔·卢森堡', cat: '认知', st: 'pending', pct: 0,  src: '电子书' },
+  { t: '定位',         author: '艾·里斯',       cat: '商业', st: 'pending', pct: 0,  src: '纸质书' },
+  { t: '从0到1',       author: '彼得·蒂尔',     cat: '商业', st: 'pending', pct: 0,  src: '电子书' },
+  { t: '纳瓦尔宝典',   author: 'Eric Jorgenson', cat: '认知', st: 'done',    pct: 100, src: '电子书',
+    insights: [
+      { id: 'i1', text: '用专长、杠杆和判断力赚钱，而不是用时间', resonance: 9 },
+      { id: 'i2', text: '幸福是一种选择，不是一种结果', resonance: 8 },
+      { id: 'i3', text: '阅读你喜欢的，直到你喜欢阅读', resonance: 7 },
+      { id: 'i4', text: '建立具体知识，而非追求 generalized knowledge', resonance: 6 },
+    ],
+  },
+  { t: '原则',         author: '瑞·达利欧',     cat: '认知', st: 'done',    pct: 100, src: '纸质书',
+    insights: [
+      { id: 'i5', text: '痛苦+反思=进步', resonance: 9 },
+      { id: 'i6', text: '极度透明+极度真实是高效决策的基础', resonance: 8 },
+      { id: 'i7', text: '把决策过程当作机器来优化', resonance: 7 },
+    ],
+  },
+  { t: '思考，快与慢', author: '丹尼尔·卡尼曼', cat: '认知', st: 'done',    pct: 100, src: '电子书',
+    insights: [
+      { id: 'i8', text: '系统1（直觉）容易出错，重要决策必须激活系统2', resonance: 9 },
+      { id: 'i9', text: '损失厌恶：人损失100元的痛苦≈获得200元的快乐', resonance: 8 },
+      { id: 'i10', text: '锚定效应：第一印象会扭曲后续判断', resonance: 7 },
+      { id: 'i11', text: '峰终定律：体验的记忆由高峰和结尾决定', resonance: 6 },
+    ],
+  },
+  { t: '被讨厌的勇气', author: '岸见一郎',     cat: '认知', st: 'done',    pct: 100, src: '电子书',
+    insights: [
+      { id: 'i12', text: '课题分离：这是谁的课题？是我的还是他的？', resonance: 9 },
+      { id: 'i13', text: '自卑感不是来自事实，而是来自主观解释', resonance: 8 },
+    ],
+  },
+  { t: 'Atomic Habits',author: 'James Clear',  cat: '商业', st: 'done',    pct: 100, src: '纸质书',
+    insights: [
+      { id: 'i14', text: '习惯的四大定律：提示→渴望→反应→奖赏', resonance: 8 },
+      { id: 'i15', text: '1%每天进步，一年后37倍', resonance: 7 },
+      { id: 'i16', text: '身份认同驱动行为：先成为，再做', resonance: 9 },
+      { id: 'i17', text: '环境设计比意志力更有效', resonance: 8 },
+      { id: 'i18', text: '习惯叠加：在已有习惯后接入新习惯', resonance: 6 },
+    ],
+  },
 ];
-/* 知力 · OKR */
-const COG_O = { text: '每年阅读12本书并获得践行改变', year: new Date().getFullYear() };
+/* 知力 · OKR — 理念：输入量→思考量→行动量→改变量 */
+const COG_O = { text: '通过阅读获得启发，并确定实际行动目标以获得改变', year: new Date().getFullYear() };
 const COG_KRS = [
-  { id: 'kr1', lb: '读完12本书', tgt: 12, val: 5, u: '本', sub: '书架系统追踪' },
-  { id: 'kr2', lb: '每本书输出读书笔记+3条可执行改变', tgt: 12, val: 3, u: '本', sub: '笔记追踪' },
-  { id: 'kr3', lb: '至少6条改变真正落地并持续30天', tgt: 6, val: 0, u: '条', sub: '践行追踪' },
+  { id: 'kr1', lb: '输入量 · 提取60条核心观点', tgt: 60, val: 0, u: '条', sub: '每本书3-5条观点' },
+  { id: 'kr2', lb: '思考量 · 24条强共鸣观点', tgt: 24, val: 0, u: '条', sub: '共鸣≥7分' },
+  { id: 'kr3', lb: '行动量 · 12条改变承诺', tgt: 12, val: 0, u: '条', sub: '观点→行动' },
 ];
 
 /* 能力 */
@@ -336,24 +369,23 @@ function InlineEdit({
   );
 }
 
-/* ---------- P2-2: 知力 OKR 漏斗 (阅读总量 → 已阅读 → 笔记 → 践行) ---------- */
+/* ---------- P2-2: 知力 OKR 漏斗 (输入量 → 思考量 → 行动量 → 改变量) ---------- */
 function ReadingFunnel({
   total, done, notes, changes, color = '#4b63f0', embedded,
-  // 非embedded模式下支持顶部标题/备注编辑 — 调用方传值和回调，未传则走默认
   headerTitle = '阅读转化漏斗',
-  headerSub = 'KR1 → KR2 → KR3',
+  headerSub = '输入→思考→行动→改变',
   onHeaderChange,
-  // 受控模式：阶段文字（label/sub/convLabel）来自外层持久化state，回写也交给外层
-  // stageLabels: { total: {label, sub, convLabel}, done: {...}, notes: {...}, changes: {...} }
   stageLabels,
   onStageLabelsChange,
 }) {
-  // 默认四层（数据与结构定义在一处，方便以后扩展阶段顺序）
+  // 四层（严格真子集关系：每一层是前一层的有意义子集）
+  // 渐进色彩：蓝(输入) → 橙(思考) → 紫(行动) → 绿(改变)
+  const STAGE_COLORS = ['#4b63f0', '#f59e0b', '#a855f7', '#22c55e'];
   const DEFAULT_STAGES = [
-    { key: 'total',   label: '阅读总量', sub: '书架书籍',   convLabel: '转化' },
-    { key: 'done',    label: '已阅读',   sub: '已读完本数', convLabel: '转化' },
-    { key: 'notes',   label: '输出笔记', sub: '已出笔记',   convLabel: '转化' },
-    { key: 'changes', label: '践行落地', sub: '≥30天',      convLabel: '转化' },
+    { key: 'total',   label: '输入量', sub: '核心观点',   convLabel: '启发' },
+    { key: 'done',    label: '思考量', sub: '强共鸣≥7分', convLabel: '承诺' },
+    { key: 'notes',   label: '行动量', sub: '改变承诺',   convLabel: '验证' },
+    { key: 'changes', label: '改变量', sub: '30天留存',   convLabel: '闭环' },
   ];
   const countsByKey = { total, done, notes, changes };
   // stages 由【默认结构 + 自定义文字 + 外部count】合成；受控，不再自己 useState 存 label/sub/convLabel
@@ -384,7 +416,20 @@ function ReadingFunnel({
 
   const widthByCount = stages.map(s => s.count);
   const maxW = Math.max(...widthByCount, 1);
-  const convColors = ['#f97316', '#f59e0b', color];
+  // 转化率颜色：用目标层和源层的混合色
+  const convColors = STAGE_COLORS;
+
+  // CTA 文案：根据各层数据动态生成"下一步建议"
+  const ctas = [
+    // ① 输入量：有未读完的书 → 提示提取观点
+    { idx: 0, show: total < 60, text: total === 0 ? '从书架选一本书，提取3条核心观点' : `还需 ${60 - total} 条观点，去已读书里提取？` },
+    // ② 思考量：有观点但强共鸣少 → 提示打分筛选
+    { idx: 1, show: done < 24 && total > 0, text: done === 0 ? '给观点打共鸣分，筛出打动你的那批' : `${total - done} 条观点待打分，筛出强共鸣` },
+    // ③ 行动量：有强共鸣但行动少 → 提示生成行动
+    { idx: 2, show: notes < 12 && done > 0, text: notes === 0 ? '从强共鸣观点生成你的第一条行动改变' : `${done - notes} 条强共鸣待转化为行动` },
+    // ④ 改变量：有行动但留存少 → 提示坚持打卡或复盘
+    { idx: 3, show: changes < 6 && notes > 0, text: changes === 0 ? '坚持打卡30天，完成第一次复盘' : `${notes - changes} 条改变待完成30天复盘` },
+  ];
 
   const Inner = (
     <div className="flex flex-col">
@@ -392,6 +437,8 @@ function ReadingFunnel({
         const next = stages[i + 1];
         const conv = next && s.count > 0 ? Math.round((next.count / s.count) * 100) : null;
         const pctOfMax = Math.max(28, Math.round((s.count / maxW) * 100));
+        const stageColor = STAGE_COLORS[i] || color;
+        const cta = ctas.find(c => c.idx === i);
         return (
           <div key={s.key}>
             <div className="relative flex items-center pr-1">
@@ -400,8 +447,8 @@ function ReadingFunnel({
                 style={{
                   width: `${pctOfMax}%`,
                   minWidth: '150px',
-                  background: `linear-gradient(90deg, ${color} 0%, ${color}e0 100%)`,
-                  boxShadow: `0 1px 3px ${color}30`,
+                  background: `linear-gradient(90deg, ${stageColor} 0%, ${stageColor}e0 100%)`,
+                  boxShadow: `0 1px 3px ${stageColor}30`,
                 }}>
                 {/* 左：label + sub — 均复用通用InlineEdit（右键菜单：编辑/删除恢复默认） */}
                 <span className="flex items-center gap-1.5 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis mr-2">
@@ -448,11 +495,18 @@ function ReadingFunnel({
                 />
                 <span className="font-extrabold tabular-nums px-1.5 py-px rounded-full flex-shrink-0"
                   style={{
-                    color: convColors[i],
-                    background: i === 0 ? '#fff7ed' : i === 1 ? '#fefce8' : `${color}10`,
+                    color: convColors[i] || color,
+                    background: `${(convColors[i] || color)}15`,
                   }}>
                   {conv ?? 0}%
                 </span>
+              </div>
+            )}
+            {/* CTA 引导行：数据驱动下一步动作 */}
+            {cta && cta.show && (
+              <div className="flex items-center gap-1 pl-5 py-0.5 text-[10px] font-medium" style={{ color: STAGE_COLORS[i] }}>
+                <span className="opacity-60">→</span>
+                <span>{cta.text}</span>
               </div>
             )}
           </div>
@@ -1661,10 +1715,32 @@ function CognitionView({
     };
   }, [books]);
 
+  // 漏斗四层数据：基于书架 insights[] 计算（真子集关系）
+  // ① 输入量 = 所有已读完书的 insights 总数
+  // ② 思考量 = insights 中 resonance >= 7 的条数
+  // ③ 行动量 = KR3 的 val（用户手动维护，后续 MVP3 会改为从行动卡片采集）
+  // ④ 改变量 = 暂为 0（MVP4 实现后从复盘卡采集）
+  const funnelData = useMemo(() => {
+    const dynBooks = books || BOOKS;
+    const allInsights = dynBooks.flatMap(b => b.insights || []);
+    const totalInsights = allInsights.length;
+    const strongResonance = allInsights.filter(i => i.resonance >= 7).length;
+    return {
+      total: totalInsights,        // ① 输入量
+      done: strongResonance,      // ② 思考量
+      notes: 0,                    // ③ 行动量（MVP3 接入）
+      changes: 0,                 // ④ 改变量（MVP4 接入）
+    };
+  }, [books]);
+
   const finalKrs = (krs || COG_KRS).map(kr => {
-    // KR1（读完X本书）的 val 自动从书架「已读完」采集，无需手动维护
+    // KR1（输入量）= 所有已读完书的 insights 总数
     if (kr.id === 'kr1') {
-      return { ...kr, val: groups.done.length };
+      return { ...kr, val: funnelData.total };
+    }
+    // KR2（思考量）= insights 中 resonance >= 7 的条数
+    if (kr.id === 'kr2') {
+      return { ...kr, val: funnelData.done };
     }
     return kr;
   });
@@ -1971,7 +2047,7 @@ function CognitionView({
               <InlineEdit
                 value={funnelHeader.sub}
                 onChange={(v) => setFunnelHeader(p => ({ ...p, sub: v }))}
-                onDelete={() => setFunnelHeader(p => ({ ...p, sub: '阅读→笔记→践行' }))}
+                onDelete={() => setFunnelHeader(p => ({ ...p, sub: '输入→思考→行动→改变' }))}
                 mode="contextmenu"
                 className="text-[10px] text-ink-400 whitespace-nowrap"
                 inputClassName="text-[10px] font-medium text-ink-500 w-28"
@@ -1981,10 +2057,10 @@ function CognitionView({
           </div>
           <div className="flex-1 flex flex-col justify-center">
             <ReadingFunnel
-              total={groups.reading.length + groups.pending.length + groups.done.length}
-              done={groups.done.length}
-              notes={(finalKrs.find(k => k.id === 'kr2')?.val) || 0}
-              changes={(finalKrs.find(k => k.id === 'kr3')?.val) || 0}
+              total={funnelData.total}
+              done={funnelData.done}
+              notes={funnelData.notes}
+              changes={funnelData.changes}
               color={BLUE}
               embedded
               stageLabels={funnelStageLabels}
@@ -2145,6 +2221,19 @@ function CognitionView({
                                 {b.t}
                               </div>
                               {b.cat && <div className="text-[10.5px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
+                              {/* 已读完且有观点 → 显示观点/共鸣小标签 */}
+                              {b.insights?.length > 0 && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span className="text-[9.5px] font-semibold px-1.5 py-px rounded" style={{ background: 'rgba(75,99,240,0.08)', color: '#4b63f0' }}>
+                                    {b.insights.length} 观点
+                                  </span>
+                                  {b.insights.filter(i => i.resonance >= 7).length > 0 && (
+                                    <span className="text-[9.5px] font-semibold px-1.5 py-px rounded" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
+                                      {b.insights.filter(i => i.resonance >= 7).length} 共鸣
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: g.col }}>
@@ -2594,7 +2683,7 @@ export default function AnnualPlan({ standalone = true }) {
   const [cogObjective, setCogObjective] = usePersistentState('annual_cog_o', () => COG_O);
   const [cogKrs, setCogKrs] = usePersistentState('annual_cog_krs', () => COG_KRS.map(k => ({ ...k, id: k.id || uid() })));
   // 知力 · 漏斗顶部标题与备注（主标题"转化漏斗"+右侧说明"阅读→笔记→践行"），支持点击编辑
-  const [funnelHeader, setFunnelHeader] = usePersistentState('annual_cog_funnel_header', () => ({ title: '转化漏斗', sub: '阅读→笔记→践行' }));
+  const [funnelHeader, setFunnelHeader] = usePersistentState('annual_cog_funnel_header', () => ({ title: '转化漏斗', sub: '输入→思考→行动→改变' }));
   // 知力 · 漏斗四层阶段的自定义文字（label/sub/convLabel），刷新不丢
   // — 结构：{ total: {label, sub, convLabel}, done: {...}, notes: {...}, changes: {...} }
   // — 仅存文字，count 从书架/KR数据联动，不保存在这里

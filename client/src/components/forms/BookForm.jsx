@@ -32,15 +32,26 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     src: SRCS.includes(initial?.src) ? initial.src : SRCS[0],
     st: initial?.st || 'pending',
     pct: initial?.pct ?? 0,
+    insights: initial?.insights || [],  // 核心观点数组：{id, text, resonance(1-10)}
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // 观点增删改
+  const addInsight = () => {
+    setForm(f => ({ ...f, insights: [...f.insights, { id: Date.now() + Math.random(), text: '', resonance: 5 }] }));
+  };
+  const updateInsight = (id, patch) => {
+    setForm(f => ({ ...f, insights: f.insights.map(i => i.id === id ? { ...i, ...patch } : i) }));
+  };
+  const removeInsight = (id) => {
+    setForm(f => ({ ...f, insights: f.insights.filter(i => i.id !== id) }));
+  };
 
   // UI 层即时联动（视觉一致，真正规范化在入口层 normalizeBook 双保险）
   const setStatus = (stVal) => {
     const patch = { st: stVal };
     if (stVal === 'done') patch.pct = 100;
     else if (stVal === 'pending') patch.pct = 0;
-    // reading 保持原 pct 或至少 1
     else if (stVal === 'reading' && (Number(form.pct) || 0) <= 0) patch.pct = 1;
     setForm(f => ({ ...f, ...patch }));
   };
@@ -55,7 +66,8 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
 
   function submit() {
     if (!form.t.trim()) return alert('请输入书名');
-    onSaved?.({ ...form, t: form.t.trim(), id: initial?.id });
+    const cleanInsights = form.insights.filter(i => i.text && i.text.trim()).map(i => ({ ...i, text: i.text.trim() }));
+    onSaved?.({ ...form, t: form.t.trim(), insights: cleanInsights, id: initial?.id });
   }
 
   function del() {
@@ -63,6 +75,10 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     if (!confirm('确认删除这本书？')) return;
     onDelete?.(initial.id);
   }
+
+  // 共鸣分颜色：<7灰，7-8橙，9-10紫
+  const resonanceColor = (r) => r >= 9 ? '#a855f7' : r >= 7 ? '#f59e0b' : '#94a3b8';
+  const strongCount = form.insights.filter(i => i.text?.trim() && i.resonance >= 7).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -126,6 +142,63 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
             }}>{v}%</span>
           ))}
         </div>
+      </div>
+
+      {/* ===== 核心观点区（输入量数据源） ===== */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <label style={LABEL_STYLE}>核心观点（{form.insights.length} 条 · 强共鸣 {strongCount} 条）</label>
+          <button type="button" onClick={addInsight}
+            style={{ fontSize: '12px', fontWeight: 600, color: '#4b63f0', background: 'rgba(75,99,240,0.08)', border: 'none', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer' }}>
+            + 新增观点
+          </button>
+        </div>
+        {form.insights.length === 0 ? (
+          <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#94a3b8', background: 'rgba(248,250,252,0.6)', borderRadius: '8px', border: '1px dashed rgba(148,163,184,0.3)' }}>
+            还没有提取观点 — 这本书讲了什么值得记住？
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {form.insights.map((ins, idx) => {
+              const col = resonanceColor(ins.resonance);
+              return (
+                <div key={ins.id} style={{
+                  padding: '8px 10px', borderRadius: '8px',
+                  background: `${col}08`,
+                  border: `1px solid ${col}25`,
+                  display: 'flex', flexDirection: 'column', gap: '6px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: col, minWidth: '16px', paddingTop: '2px' }}>{idx + 1}.</span>
+                    <textarea
+                      value={ins.text}
+                      onChange={e => updateInsight(ins.id, { text: e.target.value })}
+                      placeholder="这条观点是什么？（如：要在自己能力圈里竞争）"
+                      rows={1}
+                      style={{
+                        flex: 1, fontSize: '12.5px', lineHeight: '1.5', color: '#1c1c1e',
+                        border: '1px solid rgba(15,23,42,0.08)', borderRadius: '6px',
+                        padding: '4px 8px', resize: 'none', minHeight: '28px', outline: 'none',
+                        background: '#fff',
+                      }}
+                    />
+                    <button type="button" onClick={() => removeInsight(ins.id)}
+                      style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: '14px', padding: '2px 4px', lineHeight: 1 }}
+                      title="删除此观点">×</button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '22px' }}>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 500, flexShrink: 0 }}>共鸣</span>
+                    <input type="range" min="1" max="10" step="1"
+                      value={ins.resonance}
+                      onChange={e => updateInsight(ins.id, { resonance: Number(e.target.value) })}
+                      style={{ flex: 1, accentColor: col, height: '4px' }} />
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: col, minWidth: '18px', textAlign: 'right', tabularNums: true }}>{ins.resonance}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>

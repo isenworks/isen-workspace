@@ -256,23 +256,32 @@ function ReadingFunnel({
   headerTitle = '阅读转化漏斗',
   headerSub = 'KR1 → KR2 → KR3',
   onHeaderChange,
+  // 受控模式：阶段文字（label/sub/convLabel）来自外层持久化state，回写也交给外层
+  // stageLabels: { total: {label, sub, convLabel}, done: {...}, notes: {...}, changes: {...} }
+  stageLabels,
+  onStageLabelsChange,
 }) {
-  // 阶段元数据从props派生为state，支持编辑label/sub/convLabel（与顶部漏斗Header共用InlineEdit）
-  const [stages, setStages] = React.useState([
-    { key: 'total', label: '阅读总量', count: total, sub: '书架书籍', convLabel: '转化' },
-    { key: 'done',  label: '已阅读',   count: done,  sub: '已读完本数', convLabel: '转化' },
-    { key: 'notes', label: '输出笔记', count: notes, sub: '已出笔记', convLabel: '转化' },
-    { key: 'changes', label: '践行落地', count: changes, sub: '≥30天', convLabel: '转化' },
-  ]);
-  // 外部count变化时同步更新（比如书架书籍数变了），但保留用户改过的label/sub/convLabel
-  React.useEffect(() => {
-    setStages(prev => prev.map((s, i) => {
-      const realCount = [total, done, notes, changes][i];
-      return realCount !== undefined && realCount !== s.count ? { ...s, count: realCount } : s;
-    }));
-  }, [total, done, notes, changes]);
-
-  const updateStage = (key, patch) => setStages(prev => prev.map(s => s.key === key ? { ...s, ...patch } : s));
+  // 默认四层（数据与结构定义在一处，方便以后扩展阶段顺序）
+  const DEFAULT_STAGES = [
+    { key: 'total',   label: '阅读总量', sub: '书架书籍',   convLabel: '转化' },
+    { key: 'done',    label: '已阅读',   sub: '已读完本数', convLabel: '转化' },
+    { key: 'notes',   label: '输出笔记', sub: '已出笔记',   convLabel: '转化' },
+    { key: 'changes', label: '践行落地', sub: '≥30天',      convLabel: '转化' },
+  ];
+  const countsByKey = { total, done, notes, changes };
+  // stages 由【默认结构 + 自定义文字 + 外部count】合成；受控，不再自己 useState 存 label/sub/convLabel
+  const stages = DEFAULT_STAGES.map(s => ({
+    ...s,
+    ...(stageLabels?.[s.key] || {}),
+    count: countsByKey[s.key] ?? s.count,
+  }));
+  const updateStageLabel = (key, patch) => {
+    const next = { ...(stageLabels || {}) };
+    const prev = next[key] || {};
+    next[key] = { ...prev, ...patch };
+    // 只保存和默认值不同的文字，避免污染存储空间（可选）
+    onStageLabelsChange?.(next);
+  };
 
   const widthByCount = stages.map(s => s.count);
   const maxW = Math.max(...widthByCount, 1);
@@ -299,7 +308,7 @@ function ReadingFunnel({
                 <span className="flex items-center gap-1.5 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis mr-2">
                   <InlineEdit
                     value={s.label}
-                    onChange={(v) => updateStage(s.key, { label: v })}
+                    onChange={(v) => updateStageLabel(s.key, { label: v })}
                     className="font-bold flex-shrink-0"
                     inputClassName="text-ink-900 text-[12px] w-20"
                     title="点击编辑阶段名"
@@ -308,7 +317,7 @@ function ReadingFunnel({
                     ·
                     <InlineEdit
                       value={s.sub}
-                      onChange={(v) => updateStage(s.key, { sub: v })}
+                      onChange={(v) => updateStageLabel(s.key, { sub: v })}
                       className="text-[10px] opacity-95"
                       inputClassName="text-ink-900 text-[11px] w-16"
                       title="点击编辑备注"
@@ -327,7 +336,7 @@ function ReadingFunnel({
                 <svg className="w-2 h-2 text-ink-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 <InlineEdit
                   value={s.convLabel}
-                  onChange={(v) => updateStage(s.key, { convLabel: v })}
+                  onChange={(v) => updateStageLabel(s.key, { convLabel: v })}
                   className="text-ink-400 font-medium flex-shrink-0"
                   inputClassName="text-ink-900 text-[10.5px] w-12"
                   title="点击编辑转化文案"
@@ -1517,6 +1526,7 @@ function CognitionView({
   objective, onObjectiveChange,
   krs, onKrAdd, onKrEdit, onKrRemove,
   funnelHeader, setFunnelHeader,
+  funnelStageLabels, setFunnelStageLabels,
   showToast,
 }) {
   const [editingObj, setEditingObj] = useState(false);
@@ -1823,6 +1833,8 @@ function CognitionView({
               changes={(finalKrs.find(k => k.id === 'kr3')?.val) || 0}
               color={BLUE}
               embedded
+              stageLabels={funnelStageLabels}
+              onStageLabelsChange={setFunnelStageLabels}
             />
           </div>
         </div>
@@ -2358,6 +2370,10 @@ export default function AnnualPlan({ standalone = true }) {
   const [cogKrs, setCogKrs] = usePersistentState('annual_cog_krs', () => COG_KRS.map(k => ({ ...k, id: k.id || uid() })));
   // 知力 · 漏斗顶部标题与备注（主标题"转化漏斗"+右侧说明"阅读→笔记→践行"），支持点击编辑
   const [funnelHeader, setFunnelHeader] = usePersistentState('annual_cog_funnel_header', () => ({ title: '转化漏斗', sub: '阅读→笔记→践行' }));
+  // 知力 · 漏斗四层阶段的自定义文字（label/sub/convLabel），刷新不丢
+  // — 结构：{ total: {label, sub, convLabel}, done: {...}, notes: {...}, changes: {...} }
+  // — 仅存文字，count 从书架/KR数据联动，不保存在这里
+  const [funnelStageLabels, setFunnelStageLabels] = usePersistentState('annual_cog_funnel_stages_labels', () => ({}));
 
   // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
   const mergedHabits = useMemo(() => {
@@ -2639,6 +2655,7 @@ export default function AnnualPlan({ standalone = true }) {
         onKrEdit={(kr) => { setCogKrs(prev => prev.map(k => k.id === kr.id ? { ...k, ...kr } : k)); showToast('KR 已更新'); }}
         onKrRemove={(id) => { setCogKrs(prev => prev.filter(k => k.id !== id)); showToast('KR 已删除'); }}
         funnelHeader={funnelHeader} setFunnelHeader={setFunnelHeader}
+        funnelStageLabels={funnelStageLabels} setFunnelStageLabels={setFunnelStageLabels}
         showToast={showToast}
       />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}

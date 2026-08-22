@@ -1537,105 +1537,132 @@ function CognitionView({
         </div>
       </div>
 
-      {/* ===== KR 卡片列表 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4">
-        {/* 区块标题 */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-            <span className="text-[16px] font-bold text-ink-900 leading-tight">
-              {objective?.year || COG_O.year}年 · 关键结果
-            </span>
-            <span className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded"
-              style={{ background: BLUE_LIGHT, color: BLUE }}>KR · {finalKrs.length}</span>
+      {/* ===== KR + 漏斗 左右双栏布局 KR 2/3 + 漏斗 1/3 (lg以上并排，以下堆叠) ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+
+        {/* ============== LEFT · 关键结果 (2/3 宽) ============== */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
+              <span className="text-[16px] font-bold text-ink-900 leading-tight">
+                {objective?.year || COG_O.year}年 · 关键结果
+              </span>
+              <span className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded"
+                style={{ background: BLUE_LIGHT, color: BLUE }}>KR · {finalKrs.length}</span>
+            </div>
+            <button
+              onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
+              style={{ background: BLUE_LIGHT, color: BLUE }}>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              新增 KR
+            </button>
           </div>
-          <button
-            onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
-            style={{ background: BLUE_LIGHT, color: BLUE }}>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-            新增 KR
-          </button>
-        </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          {finalKrs.map((kr, idx) => {
-            const p = pct(kr.val, kr.tgt);
-            const isEditing = editingKrId === kr.id;
-            return (
-              <div key={kr.id || idx}
-                onClick={() => !isEditing && !editingKrId && (setKrDraft({ ...kr }), setEditingKrId(kr.id))}
-                className="rounded-xl border p-4 flex flex-col gap-3 transition-all cursor-pointer"
-                style={{
-                  background: isEditing ? BLUE_LIGHT : '#fff',
-                  borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
-                  boxShadow: isEditing ? `0 0 0 3px ${BLUE}10` : 'none',
-                }}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[10px] font-extrabold text-white flex-shrink-0"
-                      style={{ background: BLUE, boxShadow: `0 1px 3px ${BLUE}55` }}>
-                      {idx + 1}
-                    </span>
-                    {isEditing ? (
-                      <input
-                        autoFocus
-                        value={krDraft?.lb || ''}
-                        onChange={(e) => setKrDraft({ ...krDraft, lb: e.target.value })}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 min-w-0 px-2 py-1 text-[13px] font-bold border border-ink-200 rounded-md focus:outline-none focus:border-brand-500"
-                      />
-                    ) : (
-                      <span className="text-[13px] font-bold text-ink-900 leading-snug line-clamp-2">{kr.lb}</span>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingKrId(editingKrId === kr.id ? null : kr.id); if (!isEditing) setKrDraft({ ...kr }); }}
-                    className="text-ink-300 hover:text-ink-600 p-1 -mr-1 -mt-1 rounded hover:bg-ink-50 flex-shrink-0">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
-                </div>
-
-                {isEditing ? (
-                  <div className="flex flex-col gap-2 pt-0.5" onClick={(e) => e.stopPropagation()}>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <input type="number" value={krDraft?.val || 0} onChange={(e) => setKrDraft({ ...krDraft, val: Number(e.target.value) })}
-                        className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="当前值" />
-                      <input type="number" value={krDraft?.tgt || 0} onChange={(e) => setKrDraft({ ...krDraft, tgt: Number(e.target.value) })}
-                        className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="目标" />
-                      <input value={krDraft?.u || ''} onChange={(e) => setKrDraft({ ...krDraft, u: e.target.value })}
-                        className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="单位" />
+          {/* KR 卡片网格：左栏变窄，3列 → 在宽屏仍3列，中屏自动2列，窄屏1列，响应式更自然 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 flex-1">
+            {finalKrs.map((kr, idx) => {
+              const p = pct(kr.val, kr.tgt);
+              const isEditing = editingKrId === kr.id;
+              return (
+                <div key={kr.id || idx}
+                  onClick={() => !isEditing && !editingKrId && (setKrDraft({ ...kr }), setEditingKrId(kr.id))}
+                  className="rounded-xl border p-3.5 flex flex-col gap-2.5 transition-all cursor-pointer"
+                  style={{
+                    background: isEditing ? BLUE_LIGHT : '#fff',
+                    borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
+                    boxShadow: isEditing ? `0 0 0 3px ${BLUE}10` : 'none',
+                  }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md text-[10px] font-extrabold text-white flex-shrink-0"
+                        style={{ background: BLUE, boxShadow: `0 1px 3px ${BLUE}55` }}>
+                        {idx + 1}
+                      </span>
+                      {isEditing ? (
+                        <input
+                          autoFocus
+                          value={krDraft?.lb || ''}
+                          onChange={(e) => setKrDraft({ ...krDraft, lb: e.target.value })}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-1 min-w-0 px-2 py-1 text-[12.5px] font-bold border border-ink-200 rounded-md focus:outline-none focus:border-brand-500"
+                        />
+                      ) : (
+                        <span className="text-[12.5px] font-bold text-ink-900 leading-snug line-clamp-2">{kr.lb}</span>
+                      )}
                     </div>
-                    <input value={krDraft?.sub || ''} onChange={(e) => setKrDraft({ ...krDraft, sub: e.target.value })}
-                      className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="说明（如：书架系统追踪）" />
-                    <div className="flex justify-between items-center pt-0.5">
-                      <button
-                        onClick={() => { if (confirm('确定删除此 KR？')) onKrRemove?.(kr.id); }}
-                        className="text-[11px] text-accent-red hover:underline">删除</button>
-                      <div className="flex gap-1.5">
-                        <button onClick={() => setEditingKrId(null)} className="px-2 py-0.5 text-[11px] text-ink-500 hover:text-ink-700 rounded-md bg-white border border-ink-200">取消</button>
-                        <button onClick={commitKr} className="px-2 py-0.5 text-[11px] text-white rounded-md" style={{ background: BLUE }}>保存</button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingKrId(editingKrId === kr.id ? null : kr.id); if (!isEditing) setKrDraft({ ...kr }); }}
+                      className="text-ink-300 hover:text-ink-600 p-0.5 -mr-0.5 -mt-0.5 rounded hover:bg-ink-50 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  </div>
+
+                  {isEditing ? (
+                    <div className="flex flex-col gap-2 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <input type="number" value={krDraft?.val || 0} onChange={(e) => setKrDraft({ ...krDraft, val: Number(e.target.value) })}
+                          className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="当前值" />
+                        <input type="number" value={krDraft?.tgt || 0} onChange={(e) => setKrDraft({ ...krDraft, tgt: Number(e.target.value) })}
+                          className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="目标" />
+                        <input value={krDraft?.u || ''} onChange={(e) => setKrDraft({ ...krDraft, u: e.target.value })}
+                          className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="单位" />
+                      </div>
+                      <input value={krDraft?.sub || ''} onChange={(e) => setKrDraft({ ...krDraft, sub: e.target.value })}
+                        className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="说明（可选）" />
+                      <div className="flex justify-between items-center pt-0.5">
+                        <button
+                          onClick={() => { if (confirm('确定删除此 KR？')) onKrRemove?.(kr.id); }}
+                          className="text-[11px] text-accent-red hover:underline">删除</button>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setEditingKrId(null)} className="px-2 py-0.5 text-[11px] text-ink-500 hover:text-ink-700 rounded-md bg-white border border-ink-200">取消</button>
+                          <button onClick={commitKr} className="px-2 py-0.5 text-[11px] text-white rounded-md" style={{ background: BLUE }}>保存</button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-[24px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
-                      <span className="text-[13px] text-ink-400 font-semibold">/ {kr.tgt} {kr.u}</span>
-                    </div>
-                    <ProgressBar value={p} color={BLUE} />
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-ink-500">{kr.sub}</span>
-                      <span className="font-extrabold tabular-nums" style={{ color: BLUE }}>{p}%</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="text-[20px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
+                        <span className="text-[12px] text-ink-400 font-semibold">/ {kr.tgt} {kr.u}</span>
+                      </div>
+                      <ProgressBar value={p} color={BLUE} />
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-ink-500">{kr.sub}</span>
+                        <span className="font-extrabold tabular-nums" style={{ color: BLUE }}>{p}%</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* ============== RIGHT · 阅读转化漏斗 (1/3 窄列) ============== */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+          <div className="flex items-center gap-2.5 mb-3">
+            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="text-[15px] font-bold text-ink-900 leading-tight whitespace-nowrap">转化漏斗</span>
+              <span className="text-[10.5px] text-ink-400 whitespace-nowrap">阅读→笔记→践行</span>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col justify-center">
+            <ReadingFunnel
+              total={groups.reading.length + groups.pending.length + groups.done.length}
+              reading={groups.reading.length}
+              notes={(finalKrs.find(k => k.id === 'kr2')?.val) || 0}
+              changes={(finalKrs.find(k => k.id === 'kr3')?.val) || 0}
+              color={BLUE}
+              embedded
+            />
+          </div>
+        </div>
+
       </div>
+      {/* ===== 左右双栏布局 END ===== */}
 
       {/* 添加 KR 弹窗 */}
       {addingKr && (
@@ -1665,23 +1692,6 @@ function CognitionView({
           </div>
         </div>
       )}
-
-      {/* ===== 阅读转化漏斗 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4">
-        <div className="flex items-center gap-3 mb-3.5">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-tight">阅读转化漏斗</span>
-          <span className="text-[11px] text-ink-400">阅读 → 笔记 → 践行</span>
-        </div>
-        <ReadingFunnel
-          total={groups.reading.length + groups.pending.length + groups.done.length}
-          reading={groups.reading.length}
-          notes={(finalKrs.find(k => k.id === 'kr2')?.val) || 0}
-          changes={(finalKrs.find(k => k.id === 'kr3')?.val) || 0}
-          color={BLUE}
-          embedded
-        />
-      </div>
 
       {/* ===== 书架看板 - 3列 ===== */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4">

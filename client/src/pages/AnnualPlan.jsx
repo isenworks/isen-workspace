@@ -1093,8 +1093,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             <div className="flex items-center gap-2.5">
               {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（三区块完全统一的视觉标识） */}
               <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-              {/* 标题统一规格：15px Bold ink-800，左对齐 */}
-              <span className="text-[15px] font-bold text-ink-800">{year}年 · 年度数据</span>
+              {/* 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重 */}
+              <span className="text-[16px] font-bold text-ink-800">{year}年 · 年度数据</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => onAction?.('addHabit')}
@@ -1173,8 +1173,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2 pl-1">
                 {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1完全统一的视觉标识） */}
                 <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-                {/* 标题统一规格：15px Bold ink-800，左对齐 */}
-                <span className="text-[15px] font-bold text-ink-800">{year}年 · 各月数据</span>
+                {/* L2 弱化处理：16px Semibold ink-600
+                    比 L1/L3 弱一档（字重 Bold→Semibold，颜色 ink-800→ink-600）
+                    保持与L1/L3同字号16px，但视觉权重明显降低 */}
+                <span className="text-[16px] font-semibold text-ink-600">{year}年 · 各月数据</span>
               </div>
               {/* 🔧 对齐修复：表头统计列使用 pr-2 的右侧边距，与下方 data-cell 的右边缘严格一致 */}
               <div className="text-right pr-2 whitespace-nowrap">目标</div>
@@ -1295,12 +1297,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         */}
         <div className="w-full px-4 pt-5 pb-6 mt-4 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1/L2完全统一的视觉标识）
-                标题统一规格：15px Bold ink-800，左对齐
-                文字改为「{curMonth}月数据」，更简洁 */}
+            {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">
               <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-              <span className="text-[15px] font-bold text-ink-800">{year}年 · {curMonth}月数据</span>
+              <span className="text-[16px] font-bold text-ink-800">{year}年 · {curMonth}月数据</span>
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">

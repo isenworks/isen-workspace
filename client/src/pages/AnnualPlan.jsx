@@ -1516,27 +1516,21 @@ function CognitionView({
                 {/* 色条锚点 5×18 */}
                 <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
 
-                {/* 年份·O 标签 + 编辑铅笔 —— 标签弱化，只起"定位O"作用 */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <span className="text-[11.5px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap leading-none"
-                    style={{ background: BLUE_LIGHT, color: BLUE }}>
-                    {objective?.year || COG_O.year}·O
-                  </span>
+                {/* O 主文字 + 编辑铅笔（铅笔紧贴标题左前） */}
+                <div className="flex-1 min-w-0 flex items-center gap-1">
+                  <h1 className="flex-1 min-w-0 text-[14.5px] font-bold text-ink-900 leading-tight truncate"
+                    title={objective?.text || COG_O.text}>
+                    {objective?.text || COG_O.text}
+                  </h1>
                   <button
                     onClick={() => { setObjDraft(objective?.text || COG_O.text); setEditingObj(true); }}
-                    className="text-ink-300 hover:text-brand-500 p-0.5 rounded transition"
+                    className="text-ink-300 hover:text-brand-500 p-0.5 rounded transition flex-shrink-0"
                     title="编辑目标">
                     <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
                 </div>
 
-                {/* O 主文字 —— 视觉重心 */}
-                <h1 className="flex-1 min-w-0 text-[14.5px] font-bold text-ink-900 leading-tight truncate"
-                  title={objective?.text || COG_O.text}>
-                  {objective?.text || COG_O.text}
-                </h1>
-
-                {/* 完成率徽章 —— 实心蓝底白字，强视觉锚点（替代原白底+KR徽章两个重复元素） */}
+                {/* 完成率徽章 —— 实心蓝底白字，强视觉锚点 */}
                 <div className="flex-shrink-0 px-2.5 py-1 rounded-lg whitespace-nowrap flex items-baseline gap-1"
                   style={{ background: BLUE, boxShadow: `0 2px 6px ${BLUE}40` }}>
                   <span className="text-[15px] font-extrabold tabular-nums leading-none text-white">{totalPct}</span>

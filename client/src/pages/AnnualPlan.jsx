@@ -260,7 +260,7 @@ function ReadingFunnel({
   // 阶段元数据从props派生为state，支持编辑label/sub/convLabel（与顶部漏斗Header共用InlineEdit）
   const [stages, setStages] = React.useState([
     { key: 'total',   label: '阅读总量', count: total,  sub: '书架书籍', convLabel: '转化' },
-    { key: 'reading', label: '在读中',   count: reading, sub: '正在阅读', convLabel: '转化' },
+    { key: 'reading', label: '在读中',   count: reading, sub: '正在阅读', convLabel: '已阅读' },
     { key: 'notes',   label: '输出笔记', count: notes,  sub: '已出笔记', convLabel: '转化' },
     { key: 'changes', label: '践行落地', count: changes, sub: '≥30天',    convLabel: '转化' },
   ]);

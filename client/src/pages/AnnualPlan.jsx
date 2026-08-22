@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { API } from '../api/client.js';
 import { inferGrowthType } from '../utils/uiConstants.js';
 import Modal from '../components/Modal.jsx';
@@ -570,6 +570,12 @@ function Sidebar({ active, onChange, stats }) {
 /* ---------- 通用 Sparkline 迷你折线图（带月份标注+顶点Hover Tooltip） ---------- */
 const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }) => {
   const [hoverIdx, setHoverIdx] = useState(null);
+  // 🛑 频闪修复：鼠标离开SVG时延迟120ms才隐藏Tooltip，快速移出去又移回来不会抖
+  // 🛑 显示端滞后：让最近点锁定后有"吸附感"，不会在两点边界反复横跳
+  const HIDE_DELAY_MS = 120;
+  const hideTimerRef = useRef(null);
+  const svgRef = useRef(null);
+
   if (!data || data.length === 0) return null;
   const LABEL_H = 14;     // 底部月份标签高度
   // PAD 上下边距：严格控制折线顶部安全距离
@@ -608,10 +614,66 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
     for (let i = 2; i < data.length - 1; i += 3) showIdx.add(i);
   }
 
+  // 🎯 Voronoi 就近匹配：给定鼠标SVG坐标，找到距离最近的数据点
+  // 这是 Recharts/Highcharts/Apple Health 解决频闪的标准工业级方案
+  const findNearestIdx = (mx, my) => {
+    let bestI = 0;
+    let bestDist = Infinity;
+    // 先按x坐标快速锁定候选点（减少遍历）
+    const approxIdx = Math.max(0, Math.min(pts.length - 1, Math.round(mx / stepX)));
+    const searchRadius = 2; // 检查候选点左右各2个，共5个点足够覆盖
+    for (let d = -searchRadius; d <= searchRadius; d++) {
+      const i = approxIdx + d;
+      if (i < 0 || i >= pts.length) continue;
+      const p = pts[i];
+      // 曼哈顿距离 + y轴权重1.2（y方向误差容忍度略小）
+      const dx = p.x - mx;
+      const dy = (p.y - my) * 1.2;
+      const dist = Math.abs(dx) + Math.abs(dy);
+      if (dist < bestDist) { bestDist = dist; bestI = i; }
+    }
+    // 扩大吸附半径：只要鼠标在 SVG 范围内，就认为是附近（stepX/2内100%吸附，否则降级）
+    const snapRadius = Math.max(stepX * 0.7, 20); // 至少20px 吸附半径
+    const pBest = pts[bestI];
+    if (Math.abs(pBest.x - mx) <= snapRadius) return bestI;
+    // x超界太远：认为在全图范围只要不超2倍步长还是给点
+    if (Math.abs(pBest.x - mx) <= stepX * 1.8) return bestI;
+    return null;
+  };
+
   const hp = hoverIdx !== null ? pts[hoverIdx] : null;
   return (
     <div className="relative w-full" style={{ width, height: height + LABEL_H }}>
-      <svg width={width} height={height + LABEL_H} className="overflow-visible">
+      <svg
+        ref={svgRef}
+        width={width}
+        height={height + LABEL_H}
+        className="overflow-visible"
+        style={{ cursor: 'pointer' }}
+        // ✅ 核心修复1：SVG 根级监听 mousemove，全图任意位置都触发找最近点
+        //         不再依赖小 rect 命中，鼠标在附近就能锁定
+        onMouseMove={(e) => {
+          // 先清掉 hide 定时器（鼠标还在图上，不应该消失）
+          if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+          const rect = e.currentTarget.getBoundingClientRect();
+          const mx = ((e.clientX - rect.left) / rect.width) * width;
+          const my = ((e.clientY - rect.top) / rect.height) * (height + LABEL_H);
+          const ni = findNearestIdx(mx, my);
+          if (ni !== null) setHoverIdx(ni);
+        }}
+        // ✅ 核心修复2：leave 不立即清空，给 120ms 宽限期
+        //         鼠标在 SVG 边缘 / 快速从点移到 Tooltip 都不会抖
+        onMouseLeave={() => {
+          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+          hideTimerRef.current = setTimeout(() => {
+            setHoverIdx(null);
+            hideTimerRef.current = null;
+          }, HIDE_DELAY_MS);
+        }}
+        onMouseEnter={() => {
+          if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+        }}
+      >
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -622,28 +684,27 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
         <path d={areaPath} fill={'url(#' + gid + ')'} />
         {/* 折线 */}
         <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* 每个数据点的命中检测 + 圆点（hover显示） */}
+        {/* 🔹 辅助垂直追踪线（仅 hover 时显示，强化「已吸附到最近点」的视觉反馈）*/}
+        {hp && (
+          <line x1={hp.x} y1={PAD_T - 2} x2={hp.x} y2={PAD_T + plotH}
+            stroke={color} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.35" />
+        )}
+        {/* 数据点圆点（hover显示+最后一个常显）*/}
         {pts.map((p, i) => (
-          <g key={i}>
-            {/* 命中热区（8x8方形，比圆点大） */}
-            <rect
-              x={p.x - 5} y={p.y - 5} width={10} height={10}
-              fill="transparent" style={{ cursor: 'pointer' }}
-              onMouseEnter={() => setHoverIdx(i)}
-              onMouseLeave={() => setHoverIdx(h => (h === i ? null : h))}
-            />
-            {(hoverIdx === i || i === pts.length - 1) && (
-              <circle cx={p.x} cy={p.y} r={i === pts.length - 1 && hoverIdx !== i ? 2.5 : 3.5} fill={color}
-                stroke="#fff" strokeWidth={i === pts.length - 1 && hoverIdx !== i ? 1 : 1.5} />
-            )}
-          </g>
+          <circle key={i} cx={p.x} cy={p.y}
+            r={(hoverIdx === i || i === pts.length - 1) ? (i === pts.length - 1 && hoverIdx !== i ? 2.5 : 3.5) : 2}
+            fill={hoverIdx === i ? color : (i === pts.length - 1 ? color : 'transparent')}
+            stroke={hoverIdx === i ? '#fff' : (i === pts.length - 1 ? '#fff' : color)}
+            strokeWidth={hoverIdx === i ? 1.5 : (i === pts.length - 1 ? 1 : 0)}
+            fillOpacity={(hoverIdx === i || i === pts.length - 1) ? 1 : 0}
+          />
         ))}
         {/* 底部月份标签 */}
         {labels && labels.length === data.length && pts.map((p, i) =>
           showIdx.has(i) && (
             <text key={'l'+i} x={p.x} y={labelY} textAnchor="middle"
               fontSize="11" fontWeight="600"
-              fill={i === data.length - 1 ? color : '#9ca3af'}
+              fill={i === data.length - 1 || hoverIdx === i ? color : '#9ca3af'}
               style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
               {labels[i]}
             </text>

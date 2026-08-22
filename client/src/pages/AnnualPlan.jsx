@@ -1093,8 +1093,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-4 py-3 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
-              {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（三区块完全统一的视觉标识） */}
-              <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+              {/* 🟢 统一绿色粗条锚点：4px宽 × 18px高 accent-green（三区块完全统一的视觉标识，对齐项目标准4px） */}
+              <span className="w-[4px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
               {/* 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重 */}
               <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
             </div>
@@ -1175,8 +1175,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
             <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
-                {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识） */}
-                <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+                {/* 🟢 统一绿色粗条锚点：4px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识，对齐项目标准4px） */}
+                <span className="w-[4px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
                 {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
                 <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
@@ -1210,8 +1210,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             </div>
             {habits.map(h => {
               const p = pct(h.val, h.target);
-              const done = p >= 100;
-              const barColor = done ? '#16a34a' : p >= 50 ? '#22c55e' : p >= 20 ? '#f97316' : '#ef4444';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (
@@ -1244,9 +1242,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     )}
                   </div>
                   <div className="text-right font-semibold tabular-nums text-ink-900 text-[14px] cum-gap">{h.val}</div>
-                  {/* 完成率 - 去掉进度条，只显示百分比 */}
+                  {/* 完成率 - 统一绿色显示，与L1卡片百分比颜色完全一致(#22c55e) */}
                   <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="text-[14px] font-semibold tabular-nums" style={{color: barColor}}>{p}%</span>
+                    <span className="text-[14px] font-semibold tabular-nums text-accent-green">{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
@@ -1313,7 +1311,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           <div className="flex items-center justify-between mb-4">
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">
-              <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+              {/* 🟢 统一绿色粗条锚点：4px宽 × 18px高 accent-green（与L1/L2完全统一的视觉标识，对齐项目标准4px） */}
+              <span className="w-[4px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
               <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">

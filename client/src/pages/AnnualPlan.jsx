@@ -1527,6 +1527,7 @@ function CognitionView({
   krs, onKrAdd, onKrEdit, onKrRemove,
   funnelHeader, setFunnelHeader,
   funnelStageLabels, setFunnelStageLabels,
+  bookshelfTitle, setBookshelfTitle,
   showToast,
 }) {
   const [editingObj, setEditingObj] = useState(false);
@@ -1876,7 +1877,14 @@ function CognitionView({
         <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-3">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-            <span className="text-[16px] font-bold text-ink-900 leading-tight">{objective?.year || COG_O.year}年 · 书架</span>
+            <InlineEdit
+              value={bookshelfTitle}
+              onChange={(v) => setBookshelfTitle?.(String(v || '').trim())}
+              placeholder={`${objective?.year || COG_O.year}年 · 书架`}
+              className="text-[16px] font-bold text-ink-900 leading-tight"
+              inputClassName="text-[16px] font-bold text-ink-900 w-40"
+              title="点击编辑书架标题"
+            />
             <span className="text-[11px] text-ink-400 tabular-nums">共 {groups.reading.length + groups.pending.length + groups.done.length} 本</span>
           </div>
           <button onClick={() => onBookAdd?.()}
@@ -2374,6 +2382,8 @@ export default function AnnualPlan({ standalone = true }) {
   // — 结构：{ total: {label, sub, convLabel}, done: {...}, notes: {...}, changes: {...} }
   // — 仅存文字，count 从书架/KR数据联动，不保存在这里
   const [funnelStageLabels, setFunnelStageLabels] = usePersistentState('annual_cog_funnel_stages_labels', () => ({}));
+  // 知力 · 书架标题（如"2026年 · 书架"），支持自定义
+  const [bookshelfTitle, setBookshelfTitle] = usePersistentState('annual_cog_bookshelf_title', () => '');
 
   // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
   const mergedHabits = useMemo(() => {
@@ -2656,6 +2666,7 @@ export default function AnnualPlan({ standalone = true }) {
         onKrRemove={(id) => { setCogKrs(prev => prev.filter(k => k.id !== id)); showToast('KR 已删除'); }}
         funnelHeader={funnelHeader} setFunnelHeader={setFunnelHeader}
         funnelStageLabels={funnelStageLabels} setFunnelStageLabels={setFunnelStageLabels}
+        bookshelfTitle={bookshelfTitle} setBookshelfTitle={setBookshelfTitle}
         showToast={showToast}
       />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}

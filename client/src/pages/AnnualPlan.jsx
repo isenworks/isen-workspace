@@ -1516,6 +1516,7 @@ function CognitionView({
   books, onBookAdd, onBookEdit,
   objective, onObjectiveChange,
   krs, onKrAdd, onKrEdit, onKrRemove,
+  funnelHeader, setFunnelHeader,
   showToast,
 }) {
   const [editingObj, setEditingObj] = useState(false);
@@ -2637,6 +2638,7 @@ export default function AnnualPlan({ standalone = true }) {
         krs={cogKrs} onKrAdd={(kr) => { setCogKrs(prev => [...prev, { ...kr, id: uid() }]); showToast('KR 已添加'); }}
         onKrEdit={(kr) => { setCogKrs(prev => prev.map(k => k.id === kr.id ? { ...k, ...kr } : k)); showToast('KR 已更新'); }}
         onKrRemove={(id) => { setCogKrs(prev => prev.filter(k => k.id !== id)); showToast('KR 已删除'); }}
+        funnelHeader={funnelHeader} setFunnelHeader={setFunnelHeader}
         showToast={showToast}
       />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}

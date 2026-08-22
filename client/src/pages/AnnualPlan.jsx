@@ -1173,10 +1173,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2 pl-1">
                 {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1完全统一的视觉标识） */}
                 <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-                {/* L2 弱化处理：16px Semibold ink-600
-                    比 L1/L3 弱一档（字重 Bold→Semibold，颜色 ink-800→ink-600）
-                    保持与L1/L3同字号16px，但视觉权重明显降低 */}
-                <span className="text-[16px] font-semibold text-ink-600">{year}年 · 各月数据</span>
+                {/* L2 标题：16px Semibold ink-800 — 颜色与L1/L3统一(ink-800)，
+                    仅字重Semibold比L1/L3的Bold弱一档做细微区分 */}
+                <span className="text-[16px] font-semibold text-ink-800">{year}年 · 各月数据</span>
               </div>
               {/* 🔧 对齐修复：表头统计列使用 pr-2 的右侧边距，与下方 data-cell 的右边缘严格一致 */}
               <div className="text-right pr-2 whitespace-nowrap">目标</div>

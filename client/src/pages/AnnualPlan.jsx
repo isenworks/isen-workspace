@@ -213,10 +213,10 @@ function AddButton({ label, onClick }) {
 /* ---------- P2-2: 知力 OKR 漏斗 (阅读 → 笔记 → 践行) ---------- */
 function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0', embedded }) {
   const stages = [
-    { key: 'total',   label: '阅读总量', count: total,  sub: '书架全部书籍' },
+    { key: 'total',   label: '阅读总量', count: total,  sub: '书架书籍' },
     { key: 'reading', label: '在读中',   count: reading, sub: '正在阅读' },
-    { key: 'notes',   label: '输出笔记', count: notes,  sub: '已出读书笔记' },
-    { key: 'changes', label: '践行落地', count: changes, sub: '≥30天改变' },
+    { key: 'notes',   label: '输出笔记', count: notes,  sub: '已出笔记' },
+    { key: 'changes', label: '践行落地', count: changes, sub: '≥30天' },
   ];
   const widthByCount = stages.map(s => s.count);
   const maxW = Math.max(...widthByCount, 1);
@@ -227,31 +227,35 @@ function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0', embe
       {stages.map((s, i) => {
         const next = stages[i + 1];
         const conv = next && s.count > 0 ? Math.round((next.count / s.count) * 100) : null;
-        const pctOfMax = Math.max(20, Math.round((s.count / maxW) * 100));
+        const pctOfMax = Math.max(28, Math.round((s.count / maxW) * 100));
         return (
           <div key={s.key}>
-            <div className="relative flex items-center gap-3 pr-1">
+            <div className="relative flex items-center pr-1">
               <div
-                className="flex items-center justify-between h-[28px] px-3 rounded-lg text-white font-semibold text-[12px] transition-all flex-shrink-0"
+                className="flex items-center h-[30px] px-3 rounded-lg text-white font-semibold text-[12px] transition-all"
                 style={{
                   width: `${pctOfMax}%`,
-                  minWidth: '140px',
+                  minWidth: '150px',
                   background: `linear-gradient(90deg, ${color} 0%, ${color}e0 100%)`,
                   boxShadow: `0 1px 3px ${color}30`,
                 }}>
-                <span className="flex items-center gap-1.5">
-                  <span className="font-bold">{s.label}</span>
-                  <span className="text-[10px] font-normal opacity-75">· {s.sub}</span>
+                {/* 左：label + sub — 省略号避免断词换行 */}
+                <span className="flex items-center gap-1.5 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis mr-2">
+                  <span className="font-bold flex-shrink-0">{s.label}</span>
+                  <span className="text-[10px] font-normal opacity-80 whitespace-nowrap overflow-hidden text-ellipsis">· {s.sub}</span>
                 </span>
-                <span className="tabular-nums text-[14px] font-extrabold leading-none">{s.count}</span>
+                {/* 右：count — 独立盒子 shrink-0 永远不换行 */}
+                <span className="tabular-nums text-[14px] font-extrabold leading-none flex-shrink-0 ml-auto">
+                  {s.count}
+                </span>
               </div>
             </div>
             {next && (
-              <div className="flex items-center py-0.5 pl-5 gap-1.5 text-[10.5px]">
+              <div className="flex items-center py-0.5 pl-5 gap-1.5 text-[10.5px] whitespace-nowrap">
                 <div className="w-px h-2 bg-ink-200" />
-                <svg className="w-2 h-2 text-ink-300" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                <span className="text-ink-400 font-medium">转化</span>
-                <span className="font-extrabold tabular-nums px-1.5 py-px rounded-full"
+                <svg className="w-2 h-2 text-ink-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span className="text-ink-400 font-medium flex-shrink-0">转化</span>
+                <span className="font-extrabold tabular-nums px-1.5 py-px rounded-full flex-shrink-0"
                   style={{
                     color: convColors[i],
                     background: i === 0 ? '#fff7ed' : i === 1 ? '#fefce8' : `${color}10`,
@@ -1529,12 +1533,12 @@ function CognitionView({
                       title={objective?.text || COG_O.text}>
                       {objective?.text || COG_O.text}
                     </h1>
-                    {/* 整体完成率胶囊 — inline-baseline 紧凑 */}
-                    <div className="flex-shrink-0 px-2.5 py-1 rounded-lg text-right"
+                    {/* 整体完成率胶囊 — inline 绝对不换行，字号收敛避免 % 挤行 */}
+                    <div className="flex-shrink-0 px-2.5 py-1 rounded-lg text-right whitespace-nowrap"
                       style={{ background: BLUE_LIGHT }}>
-                      <div className="flex items-baseline gap-1 leading-none">
-                        <span className="text-[9px] font-medium" style={{ color: BLUE, opacity: 0.8 }}>完成</span>
-                        <span className="text-[17px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
+                      <div className="flex items-baseline gap-1 leading-none whitespace-nowrap">
+                        <span className="text-[9px] font-medium flex-shrink-0" style={{ color: BLUE, opacity: 0.8 }}>完成</span>
+                        <span className="text-[17px] font-extrabold tabular-nums leading-none flex-shrink-0" style={{ color: BLUE }}>
                           {totalPct}
                           <span className="text-[11px] font-bold ml-0.5">%</span>
                         </span>
@@ -1569,15 +1573,16 @@ function CognitionView({
               return (
                 <div key={kr.id || idx}
                   onClick={() => !isEditing && !editingKrId && (setKrDraft({ ...kr }), setEditingKrId(kr.id))}
-                  className="rounded-xl border p-3.5 flex flex-col gap-2.5 transition-all cursor-pointer"
+                  className="rounded-xl border p-3.5 flex flex-col transition-all cursor-pointer justify-between min-h-[138px]"
                   style={{
                     background: isEditing ? BLUE_LIGHT : '#fff',
                     borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
                     boxShadow: isEditing ? `0 0 0 3px ${BLUE}10` : 'none',
                   }}>
+                  {/* 顶部：编号 + 标题 + 编辑按钮 —— 标题统一 1行，长截断 tooltip 展示 */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md text-[10px] font-extrabold text-white flex-shrink-0"
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md text-[10px] font-extrabold text-white flex-shrink-0 mt-0.5"
                         style={{ background: BLUE, boxShadow: `0 1px 3px ${BLUE}55` }}>
                         {idx + 1}
                       </span>
@@ -1590,7 +1595,7 @@ function CognitionView({
                           className="flex-1 min-w-0 px-2 py-1 text-[12.5px] font-bold border border-ink-200 rounded-md focus:outline-none focus:border-brand-500"
                         />
                       ) : (
-                        <span className="text-[12.5px] font-bold text-ink-900 leading-snug line-clamp-2">{kr.lb}</span>
+                        <span className="text-[12.5px] font-bold text-ink-900 leading-[1.35] min-h-[34px]" title={kr.lb}>{kr.lb}</span>
                       )}
                     </div>
                     <button
@@ -1601,7 +1606,7 @@ function CognitionView({
                   </div>
 
                   {isEditing ? (
-                    <div className="flex flex-col gap-2 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-col gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
                       <div className="grid grid-cols-3 gap-1.5">
                         <input type="number" value={krDraft?.val || 0} onChange={(e) => setKrDraft({ ...krDraft, val: Number(e.target.value) })}
                           className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="当前值" />
@@ -1623,17 +1628,18 @@ function CognitionView({
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <div className="flex items-baseline gap-1 mt-0.5">
+                    /* 底部：数值 + 进度 + 说明% —— 3 张卡永远保持同一水平基线 */
+                    <div className="flex flex-col gap-2 mt-1.5">
+                      <div className="flex items-baseline gap-1">
                         <span className="text-[20px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
                         <span className="text-[12px] text-ink-400 font-semibold">/ {kr.tgt} {kr.u}</span>
                       </div>
                       <ProgressBar value={p} color={BLUE} />
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-ink-500">{kr.sub}</span>
-                        <span className="font-extrabold tabular-nums" style={{ color: BLUE }}>{p}%</span>
+                        <span className="text-ink-500 truncate flex-1 mr-1">{kr.sub}</span>
+                        <span className="font-extrabold tabular-nums flex-shrink-0" style={{ color: BLUE }}>{p}%</span>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               );
@@ -1643,8 +1649,9 @@ function CognitionView({
 
         {/* ============== RIGHT · OKR 转化漏斗 (1/3 窄列) ============== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+          {/* Header 顶部对齐（和左卡片Row1顶部y一致：mb-3 左卡片也是mb-3整体header）*/}
           <div className="flex items-center gap-2.5 mb-3">
-            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
+            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0 mt-[2px]" style={{ background: BLUE }}></span>
             <div className="flex items-baseline gap-1.5 min-w-0">
               <span className="text-[15px] font-bold text-ink-900 leading-tight whitespace-nowrap">转化漏斗</span>
               <span className="text-[10.5px] text-ink-400 whitespace-nowrap">阅读→笔记→践行</span>

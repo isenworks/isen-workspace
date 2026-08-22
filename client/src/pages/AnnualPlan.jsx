@@ -210,13 +210,42 @@ function AddButton({ label, onClick }) {
   );
 }
 
-/* ---------- 通用：点击文字 → 内联输入框编辑（Enter保存/Esc取消/失焦保存） ---------- */
-function InlineEdit({ value, onChange, className, inputClassName, title, placeholder = '', style }) {
+/* ---------- 通用：文字编辑组件
+   · 默认（mode 不填）：历史遗留，点击即编辑
+   · mode="contextmenu"：右击弹出小菜单（编辑/删除），符合用户新设计；
+     此时需要额外传 onDelete 以支持"删除/恢复默认"，不传则隐藏删除项
+--------------------------------------------------------------------- */
+function InlineEdit({
+  value, onChange, onDelete,
+  className, inputClassName, title, placeholder = '', style,
+  mode, // 'contextmenu' | undefined
+  menuWidth = 140, // 右键菜单宽度，可按需覆盖
+}) {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState(value);
   const ref = React.useRef(null);
+  // 右键菜单：{x, y} 打开中；null 关闭
+  const [menu, setMenu] = React.useState(null);
+
   React.useEffect(() => { if (!editing) setDraft(value); }, [value, editing]);
   React.useEffect(() => { if (editing) setTimeout(() => ref.current?.focus(), 0); }, [editing]);
+
+  // 点击外部 / 滚动 → 关闭右键菜单
+  React.useEffect(() => {
+    if (!menu) return;
+    const hide = () => setMenu(null);
+    window.addEventListener('mousedown', hide);
+    window.addEventListener('touchstart', hide);
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('mousedown', hide);
+      window.removeEventListener('touchstart', hide);
+      window.removeEventListener('scroll', hide, true);
+      window.removeEventListener('resize', hide);
+    };
+  }, [menu]);
+
   const commit = () => {
     setEditing(false);
     const v = draft == null ? '' : String(draft).trim();
@@ -224,6 +253,21 @@ function InlineEdit({ value, onChange, className, inputClassName, title, placeho
     if (v !== origin) onChange(v);
   };
   const cancel = () => { setEditing(false); setDraft(value ?? ''); };
+
+  const openContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // 计算位置，超出右边界则左对齐
+    const pad = 12;
+    const maxX = window.innerWidth - menuWidth - pad;
+    const maxY = window.innerHeight - 92 - pad;
+    setMenu({
+      x: Math.min(e.clientX, maxX),
+      y: Math.min(e.clientY, maxY),
+    });
+  };
+
+  // -------- 编辑态：输入框 --------
   if (editing) {
     return (
       <input
@@ -238,14 +282,57 @@ function InlineEdit({ value, onChange, className, inputClassName, title, placeho
       />
     );
   }
+
+  // -------- 显示态：带 hover / contextmenu --------
+  const isCtxMode = mode === 'contextmenu';
   return (
-    <span
-      title={title || '点击编辑'}
-      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-      style={style}
-      className={`cursor-text hover:opacity-80 transition select-none ${className || ''}`}>
-      {value || <span className="opacity-40">{placeholder || '点击填写'}</span>}
-    </span>
+    <>
+      <span
+        title={title || (isCtxMode ? '右键编辑' : '点击编辑')}
+        onClick={(e) => {
+          if (isCtxMode) return; // 右键模式下禁用单击编辑
+          e.stopPropagation(); setEditing(true);
+        }}
+        onContextMenu={isCtxMode ? openContextMenu : undefined}
+        style={style}
+        className={`${isCtxMode ? 'cursor-context-menu' : 'cursor-text'} hover:opacity-80 transition select-none ${className || ''}`}>
+        {value || <span className="opacity-40">{placeholder || (isCtxMode ? '右键填写' : '点击填写')}</span>}
+      </span>
+
+      {/* ---- 右键浮层菜单：编辑 / 删除 ---- */}
+      {isCtxMode && menu && (
+        <div
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 9999, width: menuWidth }}
+          className="bg-white rounded-xl shadow-xl border border-ink-100 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenu(null); setEditing(true); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-ink-800 hover:bg-ink-50 transition">
+            <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M15.232 5.232l3.536 3.536M9 19h4l7.586-7.586a2 2 0 0 0-2.828-2.828L11 16v3z" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>编辑</span>
+          </button>
+          {onDelete && (
+            <>
+              <div className="my-0.5 h-px bg-ink-100 mx-2" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenu(null);
+                  onDelete();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-accent-red hover:bg-rose-50/70 transition">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>删除</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -282,6 +369,18 @@ function ReadingFunnel({
     // 只保存和默认值不同的文字，避免污染存储空间（可选）
     onStageLabelsChange?.(next);
   };
+  const deleteStageLabel = (key, field) => {
+    // 删除 = 从自定义中清除该字段，恢复默认值
+    const next = { ...(stageLabels || {}) };
+    if (!next[key]) return;
+    const { [field]: _ignored, ...rest } = next[key];
+    if (Object.keys(rest).length === 0) {
+      delete next[key]; // 所有字段都清了 → 把 key 也删掉，省空间
+    } else {
+      next[key] = rest;
+    }
+    onStageLabelsChange?.(next);
+  };
 
   const widthByCount = stages.map(s => s.count);
   const maxW = Math.max(...widthByCount, 1);
@@ -304,23 +403,27 @@ function ReadingFunnel({
                   background: `linear-gradient(90deg, ${color} 0%, ${color}e0 100%)`,
                   boxShadow: `0 1px 3px ${color}30`,
                 }}>
-                {/* 左：label + sub — 均复用通用InlineEdit点击编辑 */}
+                {/* 左：label + sub — 均复用通用InlineEdit（右键菜单：编辑/删除恢复默认） */}
                 <span className="flex items-center gap-1.5 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis mr-2">
                   <InlineEdit
                     value={s.label}
                     onChange={(v) => updateStageLabel(s.key, { label: v })}
+                    onDelete={() => deleteStageLabel(s.key, 'label')}
+                    mode="contextmenu"
                     className="font-bold flex-shrink-0"
                     inputClassName="text-ink-900 text-[12px] w-20"
-                    title="点击编辑阶段名"
+                    title="右键编辑阶段名"
                   />
                   <span className="text-[10px] font-normal opacity-80 whitespace-nowrap overflow-hidden text-ellipsis inline-flex items-center gap-1">
                     ·
                     <InlineEdit
                       value={s.sub}
                       onChange={(v) => updateStageLabel(s.key, { sub: v })}
+                      onDelete={() => deleteStageLabel(s.key, 'sub')}
+                      mode="contextmenu"
                       className="text-[10px] opacity-95"
                       inputClassName="text-ink-900 text-[11px] w-16"
-                      title="点击编辑备注"
+                      title="右键编辑备注"
                     />
                   </span>
                 </span>
@@ -337,9 +440,11 @@ function ReadingFunnel({
                 <InlineEdit
                   value={s.convLabel}
                   onChange={(v) => updateStageLabel(s.key, { convLabel: v })}
+                  onDelete={() => deleteStageLabel(s.key, 'convLabel')}
+                  mode="contextmenu"
                   className="text-ink-400 font-medium flex-shrink-0"
                   inputClassName="text-ink-900 text-[10.5px] w-12"
-                  title="点击编辑转化文案"
+                  title="右键编辑转化文案"
                 />
                 <span className="font-extrabold tabular-nums px-1.5 py-px rounded-full flex-shrink-0"
                   style={{
@@ -372,18 +477,22 @@ function ReadingFunnel({
             <InlineEdit
               value={headerTitle}
               onChange={(v) => onHeaderChange?.({ title: v })}
+              onDelete={() => onHeaderChange?.({ title: '' })}
+              mode="contextmenu"
               className="text-[14px] font-bold text-ink-900 whitespace-nowrap"
               inputClassName="text-[14px] font-bold text-ink-900 w-24"
-              title="点击编辑标题"
+              title="右键编辑标题"
             />
           </div>
         </div>
         <InlineEdit
           value={headerSub}
           onChange={(v) => onHeaderChange?.({ sub: v })}
+          onDelete={() => onHeaderChange?.({ sub: '' })}
+          mode="contextmenu"
           className="text-[11px] text-ink-400 whitespace-nowrap"
           inputClassName="text-[11px] font-medium text-ink-500 w-28"
-          title="点击编辑说明"
+          title="右键编辑说明"
         />
       </div>
       {Inner}
@@ -1625,7 +1734,7 @@ function CognitionView({
                 {/* 色条锚点 5×18 */}
                 <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
 
-                {/* O 主文字（InlineEdit 点击即编辑，删除铅笔图标）；
+                {/* O 主文字（右键菜单编辑/删除恢复默认，删除铅笔图标）；
                     直接调 onObjectiveChange — O对象若有year字段保留，不丢年份信息 */}
                 <InlineEdit
                   value={objective?.text || COG_O.text}
@@ -1634,9 +1743,11 @@ function CognitionView({
                     if (!t) return;
                     onObjectiveChange?.({ ...(objective || COG_O), text: t });
                   }}
+                  onDelete={() => onObjectiveChange?.({ ...(objective || COG_O), text: COG_O.text })}
+                  mode="contextmenu"
                   className="flex-1 min-w-0 text-[16px] font-bold text-ink-900 leading-tight truncate"
                   inputClassName="text-[16px] font-bold text-ink-900 w-full"
-                  title="点击编辑O目标"
+                  title="右键编辑O目标"
                   placeholder="填写O目标"
                 />
 
@@ -1723,69 +1834,97 @@ function CognitionView({
                           </span>
                         </div>
 
-                        {/* L2 文案区（flex-1撑满）：标题黑·说明灰；全部 InlineEdit 点击即编辑 */}
+                        {/* L2 文案区（flex-1撑满）：标题黑·说明灰；右键菜单 编辑/删除恢复默认 */}
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5 pr-2">
                           <InlineEdit
                             value={kr.lb}
                             onChange={(v) => onKrEdit?.({ ...kr, lb: v })}
+                            onDelete={() => {
+                              // 删除=恢复默认COG_KRS对应id的lb
+                              const def = COG_KRS.find(k => k.id === kr.id)?.lb || '';
+                              onKrEdit?.({ ...kr, lb: def });
+                            }}
+                            mode="contextmenu"
                             className="text-[13px] font-semibold text-ink-900 leading-[1.3] block truncate"
                             inputClassName="text-[13px] font-semibold text-ink-900 w-full"
-                            title="点击编辑KR标题"
+                            title="右键编辑KR标题"
                             placeholder="填写KR标题"
                           />
                           {kr.sub ? (
                             <InlineEdit
                               value={kr.sub}
                               onChange={(v) => onKrEdit?.({ ...kr, sub: v })}
+                              onDelete={() => {
+                                const def = COG_KRS.find(k => k.id === kr.id)?.sub || '';
+                                onKrEdit?.({ ...kr, sub: def });
+                              }}
+                              mode="contextmenu"
                               className="text-[10.5px] text-ink-400 font-medium leading-tight block truncate"
                               inputClassName="text-[11px] text-ink-500 font-medium w-full"
-                              title="点击编辑KR说明"
+                              title="右键编辑KR说明"
                               placeholder="填写说明（可选）"
                             />
                           ) : (
                             <InlineEdit
                               value=""
                               onChange={(v) => onKrEdit?.({ ...kr, sub: v })}
+                              mode="contextmenu"
                               className="text-[10.5px] text-ink-300 font-medium leading-tight block truncate"
                               inputClassName="text-[11px] text-ink-500 font-medium w-full"
-                              title="点击添加KR说明"
+                              title="右键添加KR说明"
                               placeholder="+ 添加说明"
                             />
                           )}
                         </div>
 
-                        {/* L3 数据区（右对齐）：val / tgt / u / pct% 全部 InlineEdit 点击即编辑
+                        {/* L3 数据区（右对齐）：val / tgt / u / pct% — 右键菜单 编辑/删除
                            - 当前值/目标/单位/百分比均可改：改数字=更新kr.val/kr.tgt/kr.u，改%无实际意义但交互统一
                            - 保持 items-baseline 数字底线对齐 + gap压缩 */}
                         <div className="flex-shrink-0 flex items-center gap-4 tabular-nums items-baseline">
-                          {/* 进度组：当前值 + 参照（/目标单位） — 全部可点击编辑 */}
+                          {/* 进度组：当前值 + 参照（/目标单位） */}
                           <div className="flex items-baseline gap-1 whitespace-nowrap">
                             <InlineEdit
                               value={String(kr.val)}
                               onChange={(v) => onKrEdit?.({ ...kr, val: Math.max(0, Number(v) || 0) })}
+                              onDelete={() => {
+                                // KR1 删除当前值时，直接触发书架联动刷新（设0后finalKrs又会用groups.done.length覆盖）
+                                const def = COG_KRS.find(k => k.id === kr.id)?.val ?? 0;
+                                onKrEdit?.({ ...kr, val: def });
+                              }}
+                              mode="contextmenu"
                               className="text-[16px] font-extrabold leading-none"
                               inputClassName="text-[16px] font-extrabold tabular-nums w-12 text-right px-1 py-0"
                               style={{ color: BLUE }}
-                              title="点击编辑当前值"
+                              title="右键编辑当前值"
                             />
                             <span className="text-[11px] font-light leading-none text-ink-300 select-none">/</span>
                             <InlineEdit
                               value={String(kr.tgt)}
                               onChange={(v) => onKrEdit?.({ ...kr, tgt: Math.max(1, Number(v) || 1) })}
+                              onDelete={() => {
+                                const def = COG_KRS.find(k => k.id === kr.id)?.tgt ?? 1;
+                                onKrEdit?.({ ...kr, tgt: def });
+                              }}
+                              mode="contextmenu"
                               className="text-[12px] font-medium leading-none text-ink-500"
                               inputClassName="text-[12px] font-medium tabular-nums w-10 text-right px-1 py-0"
-                              title="点击编辑目标值"
+                              title="右键编辑目标值"
                             />
                             <InlineEdit
                               value={kr.u}
                               onChange={(v) => onKrEdit?.({ ...kr, u: v })}
+                              onDelete={() => {
+                                const def = COG_KRS.find(k => k.id === kr.id)?.u || '';
+                                onKrEdit?.({ ...kr, u: def });
+                              }}
+                              mode="contextmenu"
                               className="text-[10.5px] font-medium leading-none text-ink-400 ml-0.5"
                               inputClassName="text-[10.5px] font-medium w-10 px-1 py-0"
-                              title="点击编辑单位"
+                              title="右键编辑单位"
                               placeholder="本/条/天"
                             />
                           </div>
-                          {/* 完成率：固定列宽 + 蓝色强强调；也是点击即编辑（用户可直接改%数字） */}
+                          {/* 完成率：蓝色强强调；右键编辑（用户可直接改%数字，自动同步val） */}
                           <InlineEdit
                             value={`${p}%`}
                             onChange={(v) => {
@@ -1794,10 +1933,11 @@ function CognitionView({
                               const newVal = Math.round((newPct / 100) * Number(kr.tgt || 1));
                               onKrEdit?.({ ...kr, val: newVal });
                             }}
+                            mode="contextmenu"
                             className="w-[44px] block text-right text-[13px] font-extrabold leading-none"
                             inputClassName="text-[13px] font-extrabold tabular-nums w-[44px] text-right px-1 py-0 border-brand-300"
                             style={{ color: BLUE }}
-                            title="点击编辑完成率（自动同步当前值）"
+                            title="右键编辑完成率（自动同步当前值）"
                           />
                         </div>
                       </div>
@@ -1812,23 +1952,27 @@ function CognitionView({
         {/* ============== RIGHT · OKR 转化漏斗 (1/3 窄列) ============== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           {/* Header 顶部对齐（和左卡片header y一致 — min-h统一20px、色条统一5×18、标题14.5px Bold）
-              标题与右侧备注文字均可点击编辑 — 使用局部InLineEdit组件 */}
+              标题与右侧备注文字：右键菜单 → 编辑/删除恢复默认 */}
           <div className="flex items-center gap-2.5 mb-3 min-h-[20px]">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
             <div className="flex items-baseline gap-1.5 min-w-0">
               <InlineEdit
                 value={funnelHeader.title}
                 onChange={(v) => setFunnelHeader(p => ({ ...p, title: v }))}
+                onDelete={() => setFunnelHeader(p => ({ ...p, title: '转化漏斗' }))}
+                mode="contextmenu"
                 className="text-[14.5px] font-bold text-ink-900 leading-none whitespace-nowrap"
                 inputClassName="text-[14.5px] font-bold text-ink-900 w-24"
-                title="点击编辑标题"
+                title="右键编辑标题"
               />
               <InlineEdit
                 value={funnelHeader.sub}
                 onChange={(v) => setFunnelHeader(p => ({ ...p, sub: v }))}
+                onDelete={() => setFunnelHeader(p => ({ ...p, sub: '阅读→笔记→践行' }))}
+                mode="contextmenu"
                 className="text-[10px] text-ink-400 whitespace-nowrap"
                 inputClassName="text-[10px] font-medium text-ink-500 w-28"
-                title="点击编辑说明"
+                title="右键编辑说明"
               />
             </div>
           </div>
@@ -1886,10 +2030,12 @@ function CognitionView({
             <InlineEdit
               value={bookshelfTitle}
               onChange={(v) => setBookshelfTitle?.(String(v || '').trim())}
+              onDelete={() => setBookshelfTitle?.('')}
+              mode="contextmenu"
               placeholder={`${objective?.year || COG_O.year}年 · 书架`}
               className="text-[16px] font-bold text-ink-900 leading-tight"
               inputClassName="text-[16px] font-bold text-ink-900 w-40"
-              title="点击编辑书架标题"
+              title="右键编辑书架标题"
             />
             <span className="text-[11px] text-ink-400 tabular-nums">共 {groups.reading.length + groups.pending.length + groups.done.length} 本</span>
           </div>

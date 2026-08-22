@@ -1683,6 +1683,166 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   );
 }
 
+/* ---------- 7.5 表单 · 行动改变（承诺本）---------- */
+function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
+  const isEdit = !!(initial && initial.id);
+  const doneBooks = (books || []).filter(b => b.st === 'done' && b.insights?.length);
+  const allInsights = doneBooks.flatMap(b => (b.insights || []).map(i => ({ ...i, bookId: b.id, bookTitle: b.t })));
+  const strongInsights = allInsights.filter(i => i.resonance >= 7);
+
+  const [form, setForm] = useState({
+    text: initial?.text || '',
+    bookId: initial?.bookId || '',
+    bookTitle: initial?.bookTitle || '',
+    insightId: initial?.insightId || '',
+    insightText: initial?.insightText || '',
+    resonance: initial?.resonance || 5,
+    startDate: initial?.startDate || new Date().toISOString().slice(0, 10),
+    targetDays: initial?.targetDays || 30,
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // 选观点时自动带出书名和共鸣分
+  const onInsightSelect = (insightId) => {
+    const found = allInsights.find(i => i.id === insightId);
+    if (found) {
+      setForm(f => ({ ...f, insightId: found.id, insightText: found.text, bookId: found.bookId, bookTitle: found.bookTitle, resonance: found.resonance }));
+    } else {
+      setForm(f => ({ ...f, insightId: '', insightText: '', bookId: '', bookTitle: '', resonance: 5 }));
+    }
+  };
+
+  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
+  const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#a855f7', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'transparent', color: '#ef4444', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* 来源观点选择 */}
+      <div>
+        <label style={LABEL}>来源观点（强共鸣 ≥7 分优先）</label>
+        {allInsights.length === 0 ? (
+          <div style={{ padding: 10, textAlign: 'center', fontSize: 12, color: '#94a3b8', background: 'rgba(248,250,252,0.6)', borderRadius: 8, border: '1px dashed rgba(148,163,184,0.3)' }}>
+            书架还没有已读完+有观点的书 — 先去提取观点
+          </div>
+        ) : (
+          <select style={INPUT} value={form.insightId} onChange={e => onInsightSelect(e.target.value)}>
+            <option value="">— 选择来源观点 —</option>
+            {strongInsights.map(i => (
+              <option key={i.id} value={i.id}>共鸣{i.resonance} · {i.text.slice(0, 30)}…（《{i.bookTitle}》）</option>
+            ))}
+            {allInsights.filter(i => i.resonance < 7).map(i => (
+              <option key={i.id} value={i.id}>共鸣{i.resonance} · {i.text.slice(0, 30)}…（《{i.bookTitle}》）</option>
+            ))}
+          </select>
+        )}
+      </div>
+      {/* 改变描述 */}
+      <div>
+        <label style={LABEL}>做什么改变</label>
+        <textarea style={{ ...INPUT, minHeight: 60, resize: 'none' }} value={form.text}
+          onChange={e => set('text', e.target.value)}
+          placeholder="例如：做决策前，先列'做这件事会失败的5个原因'并逐一检查"
+          autoFocus />
+      </div>
+      {/* 启动日 + 目标天数 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={LABEL}>启动日</label>
+          <input type="date" style={INPUT} value={form.startDate} onChange={e => set('startDate', e.target.value)} />
+        </div>
+        <div>
+          <label style={LABEL}>目标天数</label>
+          <input type="number" min="7" max="90" style={INPUT} value={form.targetDays}
+            onChange={e => set('targetDays', Number(e.target.value) || 30)} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, paddingTop: 4 }}>
+        <div>{isEdit && <button onClick={() => onDelete?.(initial.id)} style={BTN_D}>删除</button>}</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onCancel} style={BTN_G}>取消</button>
+          <button onClick={() => { if (!form.text.trim()) return alert('请描述你的改变'); onSave?.({ ...form, text: form.text.trim(), id: initial?.id }); }} style={BTN_P}>{isEdit ? '保存' : '添加'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 7.6 表单 · 复盘卡（结果区）---------- */
+function ReviewForm({ initial, onSave, onCancel, onDelete }) {
+  const [form, setForm] = useState({
+    beforeState: initial?.beforeState || '',
+    afterState: initial?.afterState || '',
+    nextStep: initial?.nextStep || '',
+    tag: initial?.tag || 'habit',
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
+  const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff', lineHeight: 1.5 };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#22c55e', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'transparent', color: '#ef4444', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+
+  const TAGS = [
+    { v: 'habit', lb: '长期习惯', color: '#22c55e' },
+    { v: 'decision', lb: '一次性决策', color: '#4b63f0' },
+    { v: 'sop', lb: '已固化SOP', color: '#a855f7' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {initial?.text && (
+        <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', fontSize: 12.5, fontWeight: 600, color: '#1c1c1e' }}>
+          {initial.text}
+        </div>
+      )}
+      <div>
+        <label style={LABEL}>改变前</label>
+        <textarea style={{ ...INPUT, minHeight: 50 }} value={form.beforeState}
+          onChange={e => set('beforeState', e.target.value)}
+          placeholder="改变前是什么状态？有什么问题？" />
+      </div>
+      <div>
+        <label style={LABEL}>改变后</label>
+        <textarea style={{ ...INPUT, minHeight: 50 }} value={form.afterState}
+          onChange={e => set('afterState', e.target.value)}
+          placeholder="改变后发生了什么？有什么效果？" />
+      </div>
+      <div>
+        <label style={LABEL}>下一步</label>
+        <textarea style={{ ...INPUT, minHeight: 40 }} value={form.nextStep}
+          onChange={e => set('nextStep', e.target.value)}
+          placeholder="如何巩固？要不要升级到团队SOP？" />
+      </div>
+      <div>
+        <label style={LABEL}>标签</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {TAGS.map(t => (
+            <button key={t.v} type="button" onClick={() => set('tag', t.v)}
+              style={{
+                flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 12, fontWeight: 600,
+                background: form.tag === t.v ? `${t.color}18` : 'rgba(120,120,128,0.08)',
+                color: form.tag === t.v ? t.color : '#8e8e93',
+                border: form.tag === t.v ? `1px solid ${t.color}40` : '1px solid transparent',
+                cursor: 'pointer',
+              }}>{t.lb}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, paddingTop: 4 }}>
+        <div><button onClick={() => onDelete?.(initial.id)} style={BTN_D}>删除</button></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onCancel} style={BTN_G}>取消</button>
+          <button onClick={() => onSave?.({ ...form, id: initial.id })} style={BTN_P}>保存复盘</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- 8. 视图 · 知力 (OKR + 书架系统) ---------- */
 function CognitionView({
   books, onBookAdd, onBookEdit, onBookMove,
@@ -1691,6 +1851,8 @@ function CognitionView({
   funnelHeader, setFunnelHeader,
   funnelStageLabels, setFunnelStageLabels,
   bookshelfTitle, setBookshelfTitle,
+  changes, onChangeAdd, onChangeUpdate, onChangeCheckIn, onChangeComplete, onChangeRemove,
+  reviews, onReviewUpdate, onReviewRemove,
   showToast,
 }) {
   const [editingObj, setEditingObj] = useState(false);
@@ -1702,6 +1864,11 @@ function CognitionView({
   // 书架拖拽
   const [dragBookId, setDragBookId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
+  // 承诺本 · 行动改变
+  const [showChangeForm, setShowChangeForm] = useState(false);
+  const [editingChange, setEditingChange] = useState(null);
+  // 结果区 · 复盘卡
+  const [editingReview, setEditingReview] = useState(null);
 
   const BLUE = '#4b63f0';
   const BLUE_LIGHT = '#eaf0ff';
@@ -1715,23 +1882,26 @@ function CognitionView({
     };
   }, [books]);
 
-  // 漏斗四层数据：基于书架 insights[] 计算（真子集关系）
+  // 漏斗四层数据：基于书架 insights[] + changes + reviews 计算（真子集关系）
   // ① 输入量 = 所有已读完书的 insights 总数
   // ② 思考量 = insights 中 resonance >= 7 的条数
-  // ③ 行动量 = KR3 的 val（用户手动维护，后续 MVP3 会改为从行动卡片采集）
-  // ④ 改变量 = 暂为 0（MVP4 实现后从复盘卡采集）
+  // ③ 行动量 = changes 数组中 status !== 'reviewed' 的条数（已启动、未完成复盘）
+  // ④ 改变量 = reviews 数组长度（已完成复盘 = 真正改变了）
   const funnelData = useMemo(() => {
     const dynBooks = books || BOOKS;
     const allInsights = dynBooks.flatMap(b => b.insights || []);
     const totalInsights = allInsights.length;
     const strongResonance = allInsights.filter(i => i.resonance >= 7).length;
+    const dynChanges = changes || [];
+    const activeChanges = dynChanges.filter(c => c.status !== 'reviewed').length;
+    const dynReviews = reviews || [];
     return {
       total: totalInsights,        // ① 输入量
       done: strongResonance,      // ② 思考量
-      notes: 0,                    // ③ 行动量（MVP3 接入）
-      changes: 0,                 // ④ 改变量（MVP4 接入）
+      notes: activeChanges,        // ③ 行动量
+      changes: dynReviews.length, // ④ 改变量
     };
-  }, [books]);
+  }, [books, changes, reviews]);
 
   const finalKrs = (krs || COG_KRS).map(kr => {
     // KR1（输入量）= 所有已读完书的 insights 总数
@@ -1741,6 +1911,10 @@ function CognitionView({
     // KR2（思考量）= insights 中 resonance >= 7 的条数
     if (kr.id === 'kr2') {
       return { ...kr, val: funnelData.done };
+    }
+    // KR3（行动量）= changes 中已启动的总数
+    if (kr.id === 'kr3') {
+      return { ...kr, val: (changes || []).length };
     }
     return kr;
   });
@@ -2249,6 +2423,212 @@ function CognitionView({
           );})}
         </div>
       </div>
+
+      {/* ===== 承诺本 · 行动改变 + 结果区 · 改变证明（左右双栏）===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 pt-4 border-t border-ink-100">
+        {/* ========== 承诺本 · 行动改变 ========== */}
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-[4px] h-[18px] rounded-full" style={{ background: '#a855f7' }} />
+            <h3 className="text-[16px] font-bold text-ink-900">承诺本</h3>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7' }}>
+              {(changes || []).filter(c => c.status !== 'reviewed').length} 进行中
+            </span>
+            <button onClick={() => setShowChangeForm(true)}
+              className="ml-auto text-[11px] font-semibold text-white px-2.5 py-1 rounded-md"
+              style={{ background: '#a855f7' }}>
+              + 新增改变
+            </button>
+          </div>
+
+          {(changes || []).length === 0 ? (
+            <div className="text-center py-8 text-[12px] text-ink-400" style={{ background: 'rgba(168,85,247,0.03)', borderRadius: 12, border: '1px dashed rgba(168,85,247,0.2)' }}>
+              还没有行动改变 — 从强共鸣观点生成你的第一条改变
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {(changes || []).map(c => {
+                const days = c.checkIns?.length || 0;
+                const pctVal = Math.min(100, Math.round((days / (c.targetDays || 30)) * 100));
+                const today = new Date().toISOString().slice(0, 10);
+                const checkedToday = c.checkIns?.includes(today);
+                const isCompleted = c.status === 'completed';
+                const isReviewed = c.status === 'reviewed';
+                // 进度条颜色：0-7橙红 / 8-21蓝 / 22-30紫 / ≥30绿
+                const barColor = days >= 30 ? '#22c55e' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
+                return (
+                  <div key={c.id}
+                    className="rounded-xl p-3 transition-all"
+                    style={{
+                      background: isReviewed ? 'rgba(34,197,94,0.04)' : 'rgba(168,85,247,0.03)',
+                      border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.2)' : 'rgba(168,85,247,0.15)'}`,
+                    }}>
+                    {/* 来源追溯 */}
+                    {c.insightText && (
+                      <div className="flex items-center gap-1 text-[10px] text-ink-400 mb-1.5">
+                        <span>💫</span>
+                        <span className="truncate">"{c.insightText}"</span>
+                        {c.bookTitle && <span className="flex-shrink-0">— 《{c.bookTitle}》</span>}
+                      </div>
+                    )}
+                    {/* 改变描述 */}
+                    <div className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-2">{c.text}</div>
+                    {/* 进度 */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pctVal}%`, background: barColor }} />
+                      </div>
+                      <span className="text-[10px] font-bold tabular-nums flex-shrink-0" style={{ color: barColor }}>
+                        {days}/{c.targetDays || 30}天
+                      </span>
+                    </div>
+                    {/* 操作按钮 */}
+                    {!isReviewed && (
+                      <div className="flex items-center gap-2">
+                        {isCompleted ? (
+                          <button onClick={() => onChangeComplete?.(c.id)}
+                            className="text-[10px] font-bold text-white px-3 py-1 rounded-md"
+                            style={{ background: '#22c55e' }}>
+                            ✓ 完成复盘
+                          </button>
+                        ) : (
+                          <button onClick={() => onChangeCheckIn?.(c.id)}
+                            disabled={checkedToday}
+                            className="text-[10px] font-bold px-3 py-1 rounded-md transition-all"
+                            style={{
+                              background: checkedToday ? 'rgba(148,163,184,0.1)' : '#a855f7',
+                              color: checkedToday ? '#94a3b8' : '#fff',
+                              cursor: checkedToday ? 'default' : 'pointer',
+                            }}>
+                            {checkedToday ? '今日已打卡' : '今天打卡'}
+                          </button>
+                        )}
+                        <span className="text-[9px] text-ink-400">启动日 {c.startDate}</span>
+                        <button onClick={() => setEditingChange(c)}
+                          className="ml-auto text-[10px] text-ink-400 hover:text-ink-700">编辑</button>
+                        <button onClick={() => onChangeRemove?.(c.id)}
+                          className="text-[10px] text-ink-300 hover:text-red-500">删除</button>
+                      </div>
+                    )}
+                    {isReviewed && (
+                      <div className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#22c55e' }}>
+                        <span>✓</span> 已完成复盘，移至结果区
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ========== 结果区 · 改变证明 ========== */}
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-[4px] h-[18px] rounded-full" style={{ background: '#22c55e' }} />
+            <h3 className="text-[16px] font-bold text-ink-900">结果区 · 改变证明</h3>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}>
+              {(reviews || []).length} 条真实改变
+            </span>
+          </div>
+
+          {(reviews || []).length === 0 ? (
+            <div className="text-center py-8 text-[12px] text-ink-400" style={{ background: 'rgba(34,197,94,0.03)', borderRadius: 12, border: '1px dashed rgba(34,197,94,0.2)' }}>
+              坚持打卡30天 → 自动生成复盘卡<br/>年底回看这里，就是你今年的真实改变
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {(reviews || []).map(r => {
+                const tagMeta = {
+                  habit: { lb: '长期习惯', color: '#22c55e' },
+                  decision: { lb: '一次性决策', color: '#4b63f0' },
+                  sop: { lb: '已固化SOP', color: '#a855f7' },
+                };
+                const tm = tagMeta[r.tag] || tagMeta.habit;
+                return (
+                  <div key={r.id}
+                    className="rounded-xl p-3"
+                    style={{ background: 'rgba(34,197,94,0.03)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#22c55e' }}>
+                          坚持 {r.daysCompleted} 天
+                        </span>
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${tm.color}15`, color: tm.color }}>
+                          {tm.lb}
+                        </span>
+                      </div>
+                      <button onClick={() => setEditingReview(r)} className="text-[10px] text-ink-400 hover:text-ink-700">编辑</button>
+                    </div>
+                    {/* 改变描述 */}
+                    <div className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-2">{r.text}</div>
+                    {/* 来源 */}
+                    {r.insightText && (
+                      <div className="text-[10px] text-ink-400 mb-2 truncate">来源："{r.insightText}" — 《{r.bookTitle}》</div>
+                    )}
+                    {/* 前后对比 */}
+                    {(r.beforeState || r.afterState) && (
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div className="p-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.1)' }}>
+                          <div className="text-[9px] font-bold text-ink-400 mb-0.5">改变前</div>
+                          <div className="text-[11px] text-ink-700 leading-snug">{r.beforeState || '—'}</div>
+                        </div>
+                        <div className="p-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.1)' }}>
+                          <div className="text-[9px] font-bold mb-0.5" style={{ color: '#22c55e' }}>改变后</div>
+                          <div className="text-[11px] text-ink-700 leading-snug">{r.afterState || '—'}</div>
+                        </div>
+                      </div>
+                    )}
+                    {/* 下一步 */}
+                    {r.nextStep && (
+                      <div className="text-[10px] text-ink-500 mt-1">
+                        <span className="font-semibold" style={{ color: tm.color }}>下一步：</span>{r.nextStep}
+                      </div>
+                    )}
+                    {/* 空状态引导填写 */}
+                    {!r.beforeState && !r.afterState && !r.nextStep && (
+                      <button onClick={() => setEditingReview(r)}
+                        className="text-[10px] font-semibold mt-1" style={{ color: '#22c55e' }}>
+                        → 填写改变前后的对比
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 行动改变新增/编辑弹窗 */}
+      {showChangeForm && (
+        <Modal open onClose={() => { setShowChangeForm(false); setEditingChange(null); }} title={editingChange ? '编辑行动改变' : '新增行动改变'}>
+          <ChangeForm
+            initial={editingChange}
+            books={books || BOOKS}
+            onSave={(data) => {
+              if (editingChange) onChangeUpdate?.(data);
+              else onChangeAdd?.(data);
+              setShowChangeForm(false);
+              setEditingChange(null);
+            }}
+            onCancel={() => { setShowChangeForm(false); setEditingChange(null); }}
+            onDelete={editingChange ? () => { onChangeRemove?.(editingChange.id); setShowChangeForm(false); setEditingChange(null); } : undefined}
+          />
+        </Modal>
+      )}
+
+      {/* 复盘卡编辑弹窗 */}
+      {editingReview && (
+        <Modal open onClose={() => setEditingReview(null)} title="编辑复盘卡">
+          <ReviewForm
+            initial={editingReview}
+            onSave={(data) => { onReviewUpdate?.(data); setEditingReview(null); }}
+            onCancel={() => setEditingReview(null)}
+            onDelete={() => { onReviewRemove?.(editingReview.id); setEditingReview(null); }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
@@ -2690,6 +3070,10 @@ export default function AnnualPlan({ standalone = true }) {
   const [funnelStageLabels, setFunnelStageLabels] = usePersistentState('annual_cog_funnel_stages_labels', () => ({}));
   // 知力 · 书架标题（如"2026年 · 书架"），支持自定义
   const [bookshelfTitle, setBookshelfTitle] = usePersistentState('annual_cog_bookshelf_title', () => '');
+  // 知力 · 行动改变（承诺本）— {id, bookId, bookTitle, insightId, insightText, resonance, text, startDate, targetDays, checkIns[], status}
+  const [cogChanges, setCogChanges] = usePersistentState('annual_cog_changes', () => []);
+  // 知力 · 改变证明（结果区·复盘卡）— {id, changeId, text, bookTitle, insightText, daysCompleted, beforeState, afterState, nextStep, tag, createdAt}
+  const [cogReviews, setCogReviews] = usePersistentState('annual_cog_reviews', () => []);
 
   // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
   const mergedHabits = useMemo(() => {
@@ -2836,6 +3220,77 @@ export default function AnnualPlan({ standalone = true }) {
       showToast(`已移至「${label}」`);
     },
     remove: (id) => { setBooks(prev => prev.filter(b => b.id !== id)); showToast('书籍已删除'); },
+  };
+  // 知力 · 行动改变（承诺本）CRUD
+  const changeOps = {
+    add: (data) => {
+      const record = {
+        id: uid(),
+        bookId: data.bookId || '',
+        bookTitle: data.bookTitle || '',
+        insightId: data.insightId || '',
+        insightText: data.insightText || '',
+        resonance: data.resonance || 5,
+        text: data.text || '',
+        startDate: data.startDate || new Date().toISOString().slice(0, 10),
+        targetDays: data.targetDays || 30,
+        checkIns: data.checkIns || [],
+        status: 'active',
+      };
+      setCogChanges(prev => [...prev, record]);
+      showToast('行动改变已添加');
+    },
+    update: (data) => {
+      if (!data?.id) return;
+      setCogChanges(prev => prev.map(c => c.id === data.id ? { ...c, ...data } : c));
+      showToast('行动改变已更新');
+    },
+    // 打卡：添加今天日期到 checkIns
+    checkIn: (id) => {
+      const today = new Date().toISOString().slice(0, 10);
+      setCogChanges(prev => prev.map(c => {
+        if (c.id !== id) return c;
+        if (c.checkIns.includes(today)) return c; // 今天已打
+        const next = [...c.checkIns, today];
+        // 达到 targetDays → 自动标完成
+        const done = next.length >= c.targetDays;
+        return { ...c, checkIns: next, status: done ? 'completed' : 'active' };
+      }));
+      showToast('✅ 已打卡');
+    },
+    // 30天完成 → 生成复盘卡
+    completeAndReview: (id) => {
+      const change = cogChanges.find(c => c.id === id);
+      if (!change) return;
+      // 标记改变已完成
+      setCogChanges(prev => prev.map(c => c.id === id ? { ...c, status: 'reviewed' } : c));
+      // 创建复盘卡（草稿）
+      const review = {
+        id: uid(),
+        changeId: id,
+        text: change.text,
+        bookTitle: change.bookTitle,
+        insightText: change.insightText,
+        daysCompleted: change.checkIns.length,
+        beforeState: '',
+        afterState: '',
+        nextStep: '',
+        tag: 'habit',
+        createdAt: new Date().toISOString(),
+      };
+      setCogReviews(prev => [...prev, review]);
+      showToast('复盘卡已生成，请填写改变前后的对比');
+    },
+    remove: (id) => { setCogChanges(prev => prev.filter(c => c.id !== id)); showToast('行动改变已删除'); },
+  };
+  // 知力 · 复盘卡（结果区）CRUD
+  const reviewOps = {
+    update: (data) => {
+      if (!data?.id) return;
+      setCogReviews(prev => prev.map(r => r.id === data.id ? { ...r, ...data } : r));
+      showToast('复盘卡已更新');
+    },
+    remove: (id) => { setCogReviews(prev => prev.filter(r => r.id !== id)); showToast('复盘卡已删除'); },
   };
   // 能力·里程碑
   const msOps = {
@@ -3020,6 +3475,8 @@ export default function AnnualPlan({ standalone = true }) {
         funnelHeader={funnelHeader} setFunnelHeader={setFunnelHeader}
         funnelStageLabels={funnelStageLabels} setFunnelStageLabels={setFunnelStageLabels}
         bookshelfTitle={bookshelfTitle} setBookshelfTitle={setBookshelfTitle}
+        changes={cogChanges} onChangeAdd={changeOps.add} onChangeUpdate={changeOps.update} onChangeCheckIn={changeOps.checkIn} onChangeComplete={changeOps.completeAndReview} onChangeRemove={changeOps.remove}
+        reviews={cogReviews} onReviewUpdate={reviewOps.update} onReviewRemove={reviewOps.remove}
         showToast={showToast}
       />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}

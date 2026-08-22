@@ -1082,11 +1082,18 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="glass-card overflow-hidden">
-        {/* 月度分析概览 */}
-        <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
+        {/* L1 区块：年度数据概览 — 视觉层级最重
+             ⭐ 三维度强化 L1 区分度：
+               1. 字号 15→16px（最大一级区块标题）
+               2. 左侧 2px 绿色竖条（强化锚点，Notion/Lark 同款区块强调方式）
+               3. 内部 padding px-4→px-5（内容不贴边，呼吸感更强）
+        */}
+        <div className="px-5 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-bold text-ink-900">{year}年 · 年度数据</span>
+            <div className="flex items-center gap-2.5">
+              {/* L1 强调竖条：视觉锚点，一眼识别这是最高层级区块 */}
+              <span className="w-[2px] h-[15px] rounded-full bg-accent-green flex-shrink-0"></span>
+              <span className="text-[16px] font-bold text-ink-900 tracking-[0.01em]">{year}年 · 年度数据</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => onAction?.('addHabit')}
@@ -1160,11 +1167,20 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             })}
           </div>
         </div>
-        {/* 详情表格 */}
-        <div className="px-1">
+        {/* L2 区块：各月数据表格（层级次于 L1）
+             三维度与 L1/L3 形成阶梯：
+               1. 颜色 ink-900→ink-700（降1色阶，不抢L1）
+               2. 左侧无绿条（只有L1有）+ 背景 surface-soft 保持
+               3. 与下方 L3 日历用 gap-4 分隔（替代硬border-t单根线）
+        */}
+        <div className="px-1 pt-3">
             {/* 列排版：习惯名 → 目标(可编辑) → 累计 → 完成率 → 月份×12 → 删除 */}
-            <div className="grid habit-table px-4 py-2.5 bg-surface-soft border-b border-ink-100 text-[14px] font-semibold text-ink-700">
-              <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis text-[14px] font-bold text-ink-800">{year}年 · 各月数据</div>
+            <div className="grid habit-table px-5 py-2.5 bg-surface-soft border-b border-ink-100 text-[14px] font-semibold text-ink-700 rounded-t-lg">
+              <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis text-[14px] font-bold text-ink-700 flex items-center gap-2">
+                {/* L2 辅助锚点：浅色小竖条，不抢L1风头但能区分 */}
+                <span className="w-[2px] h-[14px] rounded-full bg-ink-200 flex-shrink-0"></span>
+                {year}年 · 各月数据
+              </div>
               <div className="text-right pr-1 whitespace-nowrap">目标</div>
               <div className="text-right cum-gap whitespace-nowrap">累计</div>
               <div className="text-right grp-end whitespace-nowrap">完成率</div>
@@ -1250,8 +1266,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          // 统一 tabular-nums + leading-none，与打卡日历方块数字的 line-height 严格一致
-                          'text-[13px] tabular-nums text-center leading-none grid place-items-center transition-colors',
+                          // 🔝 月份格子数字与日历方块双向统一：13→12px
+                          //     保持字重统一（font-semibold/bold升级）、leading-none 统一
+                          //     方块尺寸：30×30 保持不变，数字缩小 1px → 周围多出 1px 呼吸感（刚好与 L3 整体呼吸感方案一致）
+                          'text-[12px] tabular-nums text-center leading-none grid place-items-center transition-colors',
                           'aspect-square w-[30px] h-[30px] rounded-md',
                           cellBg, cellText, cellBorder, cellRing
                         ].join(' ')}>{n}</span>
@@ -1269,39 +1287,48 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               );
             })}
         </div>
-        {/* 当月打卡日历（读取真实打卡日期） */}
-        <div className="px-4 pt-5 pb-4 mt-1 border-t border-ink-100">
+        {/* L3 区块：当月打卡日历（层级最轻，独立卡片容器形成"三段式"视觉结构）
+             ⭐ 三维度层级弱化 + 呼吸感强化：
+               1. 独立卡片容器：rounded-xl bg-surface-soft/30 px-5 py-4 mt-4（与L2表格用mt-4+背景分层，替代原来的单根border-t）
+               2. 标题：14→13.5px，字重 Bold→Semibold（降一档，最轻），颜色 ink-800→ink-700
+               3. 数字 13→12px（精致缩小），方块间距 2→3px，行间距 gap-3.5→gap-4.5，标签列 130→135px，习惯名 14→13.5px
+        */}
+        <div className="mx-2 mb-4 mt-5 rounded-xl border border-ink-100 bg-surface-soft/30 px-5 py-4 shadow-[0_1px_2px_rgba(17,24,39,0.02)]">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-[14px] font-bold text-ink-800">{year}年 · {curMonth}月打卡日历</span>
-            <div className="flex items-center gap-3 text-[13px] text-ink-500">
+            <span className="text-[13.5px] font-semibold text-ink-700 flex items-center gap-2 tracking-[0.005em]">
+              {/* L3 最轻锚点：ink-100 灰色竖条，层级最弱 */}
+              <span className="w-[2px] h-[13px] rounded-full bg-ink-100 flex-shrink-0 border border-ink-100"></span>
+              {year}年 · {curMonth}月打卡日历
+            </span>
+            <div className="flex items-center gap-3 text-[12px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-[18px] h-[18px] rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
+                <span className="w-[17px] h-[17px] rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-[18px] h-[18px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
+                <span className="w-[17px] h-[17px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-[18px] h-[18px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
+                <span className="w-[17px] h-[17px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
               </span>
             </div>
           </div>
-          <div className="flex flex-col gap-3.5">
+          {/* 行间距：gap-3.5 → gap-4.5（多1px=4px，呼吸感大幅提升） */}
+          <div className="flex flex-col gap-4.5">
             {habits.map((h, hidx) => {
               const daysTotal = monthMaxDays[curMonth - 1];
-              // 读取真实打卡日期：API 返回时 monthDates[curMonth] 是当日集合；Mock 时退化为前 N 天连续（和"累计"逻辑一致）
               const realDates = h.monthDates?.[curMonth];
               const completedDays = realDates
                 ? realDates
                 : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
                 <div key={h.key} className="flex items-center gap-3">
-                  {/* 标签列收窄：170→130px，更多空间留给31天保证整月一行 */}
-                  <div className="w-[130px] flex-shrink-0 truncate">
-                    <span className="text-[14px] font-semibold text-ink-800 truncate">{h.label}</span>
+                  {/* 标签列：130→135px，内容不再挤；习惯名 14→13.5px Semibold ink-700（整体缩小精致） */}
+                  <div className="w-[135px] flex-shrink-0 truncate">
+                    <span className="text-[13.5px] font-semibold text-ink-700 truncate">{h.label}</span>
                   </div>
-                  {/* 严格无横滚：去掉 minmax 底线 + overflow-x-auto，
-                      用 minmax(0,1fr) 让 31 格被压缩到刚好填满一行，窄屏均匀分配绝不溢出 */}
-                  <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '2px'}}>
+                  {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），
+                      数字 13→12px 精致缩小但依然保持 semibold/bold 字重统一 */}
+                  <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '3px'}}>
                     {Array.from({ length: daysTotal }, (_, d) => {
                       const day = d + 1;
                       const isPast = day <= daysElapsedInCurMonth;
@@ -1336,9 +1363,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           title={`${curMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
                           className={[
                             'aspect-square rounded-md grid place-items-center',
-                            // 🔝 统一基础样式：与表格月份格子数字 100% 对齐
-                            //   13px / tabular-nums / leading-none / semibold→bold 升级
-                            'text-[13px] tabular-nums leading-none transition-colors',
+                            // 🔝 日历数字缩小：13→12px（精致化），但保持字重统一（semibold/bold）、line-height 统一
+                            //     与表格月份格子同步缩成 12px，保证整个页面数据数字的统一感
+                            'text-[12px] tabular-nums leading-none transition-colors',
                             cellBg, cellText, cellRing, cellBorder
                           ].join(' ')}>
                           {day}

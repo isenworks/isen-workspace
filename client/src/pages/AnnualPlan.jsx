@@ -1091,8 +1091,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-5 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
-              {/* L1 强调竖条：视觉锚点，一眼识别这是最高层级区块 */}
-              <span className="w-[2px] h-[15px] rounded-full bg-accent-green flex-shrink-0"></span>
+              {/* 🟢 L1 最强锚点：3px宽 × 16px高 绿色（统一规范：宽3px 高16px） */}
+              <span className="w-[3px] h-[16px] rounded-full bg-accent-green flex-shrink-0"></span>
               <span className="text-[16px] font-bold text-ink-900 tracking-[0.01em]">{year}年 · 年度数据</span>
             </div>
             <div className="flex items-center gap-3">
@@ -1117,32 +1117,25 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               }
 
               return (
-                /* ⭐ KPI 信息簇视觉层级重构 + 进度条错位紧急修复
-                   🔴 之前进度条(100px×2px)因父容器宽度变化在左上角"横亘成一根切割线"，
-                      彻底修复：把进度条从独立 div 改为放在 % 数字的 RIGHT 边（视觉附属），
-                      并缩短到 56px（作为%数字的"下划线视觉延伸"，不抢数字的主视觉）
+                /* ⭐ KPI 信息簇视觉层级（已删除冗余进度条，%数字+累计/目标 成为核心信息链）
+                   统一：字号x字重x颜色 严格分层，消除混乱感
+                   左 习惯标题：15px 700 ink-900
+                   右 ROW1 主KPI：%数字(16px 700 绿) + %(12px ink-500)
+                   右 ROW2 次KPI：累计(14px 600 ink-900) / 分隔(ink-300) / 目标(14px 600 ink-700) 单位(12px ink-400)
                 */
                 <div key={h.key}
                   className="grid p-3 pb-2 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
                   style={{ gridTemplateRows: 'auto 1fr auto' }}>
-                  {/* ROW1: 顶级KPI信息簇 — 紧凑左列标题 + 右列 KPI矩阵（基线严格对齐）*/}
+                  {/* ROW1+ROW2 合并为一行紧凑的 KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
                   <div className="flex items-start justify-between gap-2">
                     {/* 左列：习惯名 — 1行稳定高度 15px 700，min-w-0 防挤压 */}
-                    <span className="text-[15px] font-bold text-ink-900 leading-[1.4] truncate pt-0.5 flex-shrink-1 min-w-0 max-w-[58%]">{h.label}</span>
-                    {/* 右列：双行 KPI 矩阵 — 基线严格对齐，绝对不允许错位 */}
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[42%]">
-                      {/* 🥇 主 KPI 行：% 数字为绝对核心（左），微型进度条放在右侧作为辅助视觉
-                           进度条：56px × 2px，短而贴，作为%数字的"完成度装饰"而非切割线
-                      */}
-                      <div className="flex items-center gap-2 flex-shrink-0 leading-none">
-                        <div className="flex items-baseline gap-0.5 flex-shrink-0">
-                          <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
-                          <span className="text-[12px] font-semibold text-ink-500 leading-none align-baseline">%</span>
-                        </div>
-                        <div className="w-[56px] h-0.5 rounded-full bg-ink-100 overflow-hidden flex-shrink-0 translate-y-[1px]">
-                          <div className="h-full rounded-full transition-all duration-500 ease-out"
-                            style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
-                        </div>
+                    <span className="text-[15px] font-bold text-ink-900 leading-[1.4] truncate pt-0.5 flex-shrink-1 min-w-0 max-w-[60%]">{h.label}</span>
+                    {/* 右列：双行 KPI 矩阵 — 右对齐基线严格对齐 */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[38%]">
+                      {/* 🥇 主 KPI 行：% 数字为绝对核心（唯一视觉焦点） */}
+                      <div className="flex items-baseline leading-none">
+                        <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
+                        <span className="text-[12px] font-semibold text-ink-500 leading-none align-baseline ml-0.5">%</span>
                       </div>
                       {/* 🥈 次 KPI 行：累计 / 目标 + 单位
                          ⭐ 统一 14px 字重 600，颜色分层：累计(ink-900)/目标(ink-700)/单位(12px ink-400)
@@ -1176,8 +1169,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 表头：保持直边，不再单独圆角；去掉 bg-surface-soft 避免灰度叠加 */}
             <div className="grid habit-table px-1 py-3 border-y border-ink-100 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis text-[14px] font-bold text-ink-700 flex items-center gap-2 pl-1">
-                {/* L2 辅助锚点：浅色小竖条 */}
-                <span className="w-[2px] h-[14px] rounded-full bg-ink-200 flex-shrink-0"></span>
+                {/* ⚫ L2 中等锚点：3px宽 × 16px高 ink-400 深灰（与L1同宽同高，颜色降1档） */}
+                <span className="w-[3px] h-[16px] rounded-full bg-ink-400 flex-shrink-0"></span>
                 {year}年 · 各月数据
               </div>
               {/* 🔧 对齐修复：表头统计列使用 pr-2 的右侧边距，与下方 data-cell 的右边缘严格一致 */}
@@ -1299,8 +1292,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="w-full px-4 pt-5 pb-6 mt-4 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
             <span className="text-[13.5px] font-semibold text-ink-700 flex items-center gap-2 tracking-[0.005em]">
-              {/* L3 最轻锚点：纯 bg-ink-200 小竖条（L1=绿 / L2=ink-200 14px / L3=ink-200 13px 三者有细微微差） */}
-              <span className="w-[2px] h-[13px] rounded-full bg-ink-200 flex-shrink-0"></span>
+              {/* 🔘 L3 较弱锚点：3px宽 × 16px高 ink-300 浅灰（与L1/L2同宽同高，颜色再降1档） */}
+              <span className="w-[3px] h-[16px] rounded-full bg-ink-300 flex-shrink-0"></span>
               {year}年 · {curMonth}月打卡日历
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
@@ -1315,8 +1308,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               </span>
             </div>
           </div>
-          {/* 行间距 gap-4.5：三行习惯行之间 18px 呼吸感 */}
-          <div className="flex flex-col gap-4.5">
+          {/* 行间距 gap-5：三行习惯行之间 20px 呼吸感，每个行自身 py-1 增加上下 4px 内边距 */}
+          <div className="flex flex-col gap-5">
             {habits.map((h, hidx) => {
               const daysTotal = monthMaxDays[curMonth - 1];
               const realDates = h.monthDates?.[curMonth];
@@ -1324,7 +1317,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 ? realDates
                 : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
-                <div key={h.key} className="flex items-center gap-3">
+                // 增加 py-1 (上下各4px) 让日历方块行有呼吸感，不再紧贴上下行的边界
+                <div key={h.key} className="flex items-center gap-3 py-1">
                   {/* 标签列：130→135px，内容不再挤；习惯名 14→13.5px Semibold ink-700（整体缩小精致） */}
                   <div className="w-[135px] flex-shrink-0 truncate">
                     <span className="text-[13.5px] font-semibold text-ink-700 truncate">{h.label}</span>

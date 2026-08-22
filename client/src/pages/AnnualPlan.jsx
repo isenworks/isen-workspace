@@ -572,19 +572,27 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
   const [hoverIdx, setHoverIdx] = useState(null);
   if (!data || data.length === 0) return null;
   const LABEL_H = 14;     // 底部月份标签高度
-  const PAD_T = 1;       // 图表区顶边距：由4→1，减少顶部无效留白
-  const PAD_B = 4;       // 图表区底边距：由2→4，图表整体下移，贴近月份标签
+  // PAD 上下边距：严格控制折线顶部安全距离
+  const PAD_T = 6;       // 顶部安全边距：保证折线顶点至少离 SVG 顶 6px，不撞上上方 KPI 数字
+  const PAD_B = 4;       // 图表区底边距
   const plotH = height - LABEL_H - PAD_T - PAD_B;
   const max = Math.max(10, Math.max(...data));
   const min = 0;                           // 次数=0是有意义的下限
   const range = Math.max(1, max - min);
   const stepX = data.length === 1 ? 0 : width / (data.length - 1);
+  // 🔝 安全天花板：任何情况下顶点 y 不得超过 safeCeilY，保证与 KPI 数字区 >=12px 视觉边距
+  // 设计惯例：Apple Health / Google Fit 折线图都会给顶部留 20~25% 空高，避免峰值撞头
+  const SAFE_CEIL_PCT = 0.22;
+  const safeCeilY = PAD_T + Math.max(4, plotH * SAFE_CEIL_PCT);
   const gid = 'sg-' + color.replace('#','') + '-' + Math.abs(data.reduce((s,v)=>s+v,0)).toString(36);
 
   const pts = data.map((v, i) => {
     const x = i * stepX;
-    const y = PAD_T + plotH - (((v - min) / range) * (plotH - 2)) - 1;
-    return { x, y, v };
+    // 基础 y 计算：min越高越靠上（y=PAD_T 是顶）
+    const rawY = PAD_T + plotH - (((v - min) / range) * (plotH - 2)) - 1;
+    // 强制不超过安全天花板：越小越靠上，所以取 Math.max（y值越大越靠下）
+    const y = Math.max(rawY, safeCeilY);
+    return { x, y, v, rawY };
   });
   const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
   const areaPath = 'M0,' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (width) + ',' + (PAD_T + plotH) + ' Z';
@@ -1041,21 +1049,25 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               }
 
               return (
-                /* ⭐ 终极稳定布局：grid 三区分配
-                   rows: [auto(auto-fit标题/KPI) 1fr(弹性吸空区) auto(折线图贴底)]
-                   → 无论内容多少，折线图永远 100% 贴在卡片底部，1fr 吸空区吃掉多余留白
-                   → 固定 h-[168px] 三卡严格等高，视觉对齐
+                /* ⭐ 布局结构：顶部信息簇紧凑化 + 吸空区扩大 + 折线图安全天花板
+                   关键：将KPI累计行和%行统一水平排列到标题行右侧，而非垂直堆叠 → 为折线图腾出~12px垂直呼吸空间
                 */
                 <div key={h.key}
                   className="grid p-3 pb-2 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
                   style={{ gridTemplateRows: 'auto 1fr auto' }}>
-                  {/* ROW1: 上方信息簇紧凑贴合，不再被拉开空洞 */}
-                  <div className="flex flex-col gap-1.5">
-                    {/* 行1：左=习惯全称  右=【迷你短进度条 + 百分比数字】 */}
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[15px] font-bold text-ink-900 leading-snug truncate">{h.label}</span>
+                  {/* ROW1: 单标题行 + 右侧双KPI垂直列（紧凑化改造）
+                       结构: flex justify-between
+                       ┌──────────────┬─────────────────────────────┐
+                       │ 作息·23-06/天 │ [进度条] 17px百分比%         │ ← 上：进度条+百分比
+                       │              │ 14px累计/目标行             │ ← 下：累计/目标（直接堆叠在%下方）
+                       └──────────────┴─────────────────────────────┘ */}
+                  <div className="flex items-start justify-between gap-2">
+                    {/* 左列：习惯全称，1行高度，顶部对齐 */}
+                    <span className="text-[15px] font-bold text-ink-900 leading-tight truncate pt-0.5">{h.label}</span>
+                    {/* 右列：双KPI垂直堆叠（进度条+%在上，累计/目标在下）— 两行紧凑对齐 */}
+                    <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                      {/* KPI 第一行：迷你短进度条 + 百分比 */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* 迷你短进度条：88px / 高3px / dense 风格 */}
                         <div className="w-[88px] h-0.75 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
                           <div className="h-full rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
@@ -1065,9 +1077,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           <span className="text-[12px] font-semibold text-ink-500">%</span>
                         </div>
                       </div>
-                    </div>
-                    {/* 行2：年度累计/目标 放在卡片最右侧 — 正好对齐行1的%正下方（垂直对齐右侧KPI列） */}
-                    <div className="flex justify-end">
+                      {/* KPI 第二行：年度累计/目标 — 右对齐，字号 13px，紧贴%行（gap-0.5=2px） */}
                       <div className="text-[13px] tabular-nums leading-none font-medium text-ink-600">
                         <span className="font-bold text-ink-900">{h.val}</span>
                         <span className="text-ink-300 mx-0.5">/</span>
@@ -1076,12 +1086,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     </div>
                   </div>
-                  {/* ROW2: 1fr 弹性吸空区，吃掉所有多余留白，保证折线图强制贴底
-                     （这是关键：空白藏在中间看不见的地带，而不是在折线图下方） */}
+                  {/* ROW2: 1fr 弹性吸空区，吃掉所有多余留白，保证折线图强制贴底 + 为折线峰值留安全空间 */}
                   <div className="min-h-0"></div>
-                  {/* ROW3: 折线图 auto 高度，精确贴卡片底部
-                       -mx-1 轻微溢出左右 padding，对齐卡片边缘
-                       折线图整体高 72px（58plot + 14label） */}
+                  {/* ROW3: 折线图 auto 高度，精确贴卡片底部 */}
                   <div className="-mx-1 -mb-[2px]">
                     <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={58} />
                   </div>

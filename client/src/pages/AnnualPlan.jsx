@@ -1219,27 +1219,30 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     const isFuture = monthIdx > curMonth;
                     const isCur = isCurrentMonth(monthIdx);
 
-                    // ↓↓ 月份汇总格子样式 ↔ 打卡日历小方块 三态严格一一对应（不再按达标率分4档，保持与日历图例完全一致）
+                    // ↓↓ 月份汇总格子样式 ↔ 打卡日历小方块 三态严格一一对应：
+                    //    🔝 字重规范（数据仪表盘工业惯例）：所有非重点态统一 font-semibold(600) 打底，
+                    //        重点态（已打卡/有数据）才升级为 font-bold(700)
+                    //        灰色态只通过颜色降级，绝不通过降字重来"假装隐形"
                     let cellBg = '';
                     let cellText = '';
                     let cellBorder = '';
                     let cellRing = '';
                     if (n > 0) {
-                      // 有打卡记录 → 对应日历「已打卡」态：实心绿 bg-accent-green + 白字
+                      // ✅ 已打卡 → 日历「已打卡」态：实心绿 + 白字 Bold 700（与日历方块完全一致）
                       cellBg = 'bg-accent-green';
                       cellText = 'text-white font-bold';
                     } else if (isFuture) {
-                      // 未来月份还没到 → 对应日历「未开始」态：浅灰底 + 细灰边框（图例中第三种）
+                      // 未开始 → 日历「未开始」态：浅灰底+细灰边 + ink-300 Semibold 600
                       cellBg = 'bg-ink-50';
-                      cellText = 'text-ink-300';
+                      cellText = 'text-ink-300 font-semibold';
                       cellBorder = 'border border-ink-100';
                     } else {
-                      // 已过/当前月但打卡数=0 → 对应日历「未打卡」态：中灰底（图例中第二种）
+                      // ⭕ 未打卡（已过/当前月打卡0）→ 日历「未打卡」态：中灰底 + ink-400 Semibold 600
+                      //    🔴 修复之前缺 font-semibold 导致字重掉到父级 normal(400)，与日历方块 600 差 2 档
                       cellBg = 'bg-ink-100';
-                      cellText = 'text-ink-400';
+                      cellText = 'text-ink-400 font-semibold';
                     }
                     if (isCur) {
-                      // 当前月份（=8月）→ 额外加一圈环，与今日方块的 ring 机制统一
                       cellRing = n > 0
                         ? 'ring-2 ring-accent-green/40 ring-offset-1'
                         : 'ring-2 ring-ink-300/50 ring-offset-1';
@@ -1247,8 +1250,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     return (
                       <div key={monthIdx} className="flex justify-center">
                         <span className={[
-                          'text-[13px] tabular-nums text-center transition-colors grid place-items-center',
-                          'aspect-square w-[30px] h-[30px] rounded-md',   // 月份格子同步放大，与日期尺寸成比例
+                          // 统一 tabular-nums + leading-none，与打卡日历方块数字的 line-height 严格一致
+                          'text-[13px] tabular-nums text-center leading-none grid place-items-center transition-colors',
+                          'aspect-square w-[30px] h-[30px] rounded-md',
                           cellBg, cellText, cellBorder, cellRing
                         ].join(' ')}>{n}</span>
                       </div>
@@ -1304,6 +1308,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       const isToday = day === daysElapsedInCurMonth;
                       const checked = completedDays.has(day);
                       // 三态：已打卡 / 未打卡（已过）/ 未开始（未来）
+                      // ⭐ 与表格月份格子严格双向对齐：
+                      //   基础字重统一 font-semibold(600) → 已打卡态升级为 font-bold(700)
+                      //   line-height 统一 leading-none（消除半间距差异导致的视觉重心不对齐）
                       let cellBg = '';
                       let cellText = '';
                       let cellRing = '';
@@ -1313,9 +1320,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         cellText = 'font-bold';
                       } else if (!isPast) {
                         cellBg = 'bg-ink-50 text-ink-300';
+                        cellText = 'font-semibold';
                         cellBorder = 'border border-ink-100';
                       } else {
                         cellBg = 'bg-ink-100 text-ink-400';
+                        cellText = 'font-semibold';
                       }
                       if (isToday) {
                         cellRing = checked
@@ -1327,7 +1336,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           title={`${curMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
                           className={[
                             'aspect-square rounded-md grid place-items-center',
-                            'text-[13px] tabular-nums leading-none font-semibold transition-colors',
+                            // 🔝 统一基础样式：与表格月份格子数字 100% 对齐
+                            //   13px / tabular-nums / leading-none / semibold→bold 升级
+                            'text-[13px] tabular-nums leading-none transition-colors',
                             cellBg, cellText, cellRing, cellBorder
                           ].join(' ')}>
                           {day}

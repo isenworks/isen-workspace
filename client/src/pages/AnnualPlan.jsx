@@ -572,8 +572,8 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
   const [hoverIdx, setHoverIdx] = useState(null);
   if (!data || data.length === 0) return null;
   const LABEL_H = 14;     // 底部月份标签高度
-  const PAD_T = 4;
-  const PAD_B = 2;
+  const PAD_T = 1;       // 图表区顶边距：由4→1，减少顶部无效留白
+  const PAD_B = 4;       // 图表区底边距：由2→4，图表整体下移，贴近月份标签
   const plotH = height - LABEL_H - PAD_T - PAD_B;
   const max = Math.max(10, Math.max(...data));
   const min = 0;                           // 次数=0是有意义的下限
@@ -1041,34 +1041,39 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               }
 
               return (
-                <div key={h.key} className="flex flex-col gap-2.5 p-3 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow">
-                  {/* 行1：左=习惯全称  右=【迷你短进度条 + 百分比数字】 */}
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-[15px] font-bold text-ink-900 leading-snug truncate">{h.label}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* 迷你短进度条：88px / 高3px / dense 风格 */}
-                      <div className="w-[88px] h-0.75 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
-                        <div className="h-full rounded-full transition-all duration-500 ease-out"
-                          style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
+                <div key={h.key} className="flex flex-col justify-between p-3 pb-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow min-h-[150px]">
+                  {/* 上方信息簇：标题行 + KPI行，紧凑贴合，避免拉开空洞 */}
+                  <div className="flex flex-col gap-2">
+                    {/* 行1：左=习惯全称  右=【迷你短进度条 + 百分比数字】 */}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[15px] font-bold text-ink-900 leading-snug truncate">{h.label}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* 迷你短进度条：88px / 高3px / dense 风格 */}
+                        <div className="w-[88px] h-0.75 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
+                          <div className="h-full rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
+                        </div>
+                        <div className="flex items-baseline gap-0.5 flex-shrink-0">
+                          <span className="text-[17px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
+                          <span className="text-[12px] font-semibold text-ink-500">%</span>
+                        </div>
                       </div>
-                      <div className="flex items-baseline gap-0.5 flex-shrink-0">
-                        <span className="text-[17px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
-                        <span className="text-[12px] font-semibold text-ink-500">%</span>
+                    </div>
+                    {/* 行2：年度累计/目标 放在卡片最右侧 — 正好对齐行1的%正下方（垂直对齐右侧KPI列） */}
+                    <div className="flex justify-end">
+                      <div className="text-[13px] tabular-nums leading-none font-medium text-ink-600">
+                        <span className="font-bold text-ink-900">{h.val}</span>
+                        <span className="text-ink-300 mx-0.5">/</span>
+                        <span className="text-ink-600">{h.target}</span>
+                        <span className="text-ink-400 ml-1">{h.unit}</span>
                       </div>
                     </div>
                   </div>
-                  {/* 行2：年度累计/目标 放在卡片最右侧 — 正好对齐行1的%正下方（垂直对齐右侧KPI列） */}
-                  <div className="flex justify-end">
-                    <div className="text-[13px] tabular-nums leading-none font-medium text-ink-600">
-                      <span className="font-bold text-ink-900">{h.val}</span>
-                      <span className="text-ink-300 mx-0.5">/</span>
-                      <span className="text-ink-600">{h.target}</span>
-                      <span className="text-ink-400 ml-1">{h.unit}</span>
-                    </div>
-                  </div>
-                  {/* 行3：全宽年度折线 + 月份数字 1~N (hover tooltip 保留) */}
-                  <div className="mt-0.5 -mx-1">
-                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={52} />
+                  {/* 行3：全宽年度折线 + 月份数字 1~N (hover tooltip 保留)
+                       mt-auto 推至卡片底部，justify-between 生效，折线图沉底
+                       高度 52→58 让折线更舒展，-mx-1 轻微超出padding对齐卡片边缘 */}
+                  <div className="mt-auto -mx-1">
+                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={58} />
                   </div>
                 </div>
               );

@@ -938,11 +938,11 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
       const dynBooks = books || BOOKS;
       const done = dynBooks.filter(b => b.st === 'done').length;
       const reading = dynBooks.filter(b => b.st === 'reading').length;
-      const kr1 = (cogKrs && cogKrs[0]) || COG_KRS[0];
-      const krPct = pct(kr1.val, kr1.tgt);
+      const target = COG_KRS[0]?.tgt || 12;
+      const krPct = pct(done, target);
       return (
         <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1">
-          <div>年度目标 <span className="font-semibold text-ink-900 tabular-nums">{kr1.val}</span> / {kr1.tgt} 本</div>
+          <div>年度目标 <span className="font-semibold text-ink-900 tabular-nums">{done}</span> / {target} 本</div>
           <div className="text-xs text-ink-500">完成率 {krPct}% · 在读 {reading} 本</div>
         </div>
       );

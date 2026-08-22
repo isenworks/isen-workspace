@@ -1091,9 +1091,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-5 py-3 border-b border-ink-100 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
-              {/* 🟢 L1 最强锚点：3px宽 × 16px高 绿色（统一规范：宽3px 高16px） */}
-              <span className="w-[3px] h-[16px] rounded-full bg-accent-green flex-shrink-0"></span>
-              <span className="text-[16px] font-bold text-ink-900 tracking-[0.01em]">{year}年 · 年度数据</span>
+              {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（三区块完全统一的视觉标识） */}
+              <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+              {/* 标题统一规格：15px Bold ink-800，左对齐 */}
+              <span className="text-[15px] font-bold text-ink-800">{year}年 · 年度数据</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => onAction?.('addHabit')}
@@ -1137,14 +1138,15 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
                         <span className="text-[12px] font-semibold text-ink-500 leading-none align-baseline ml-0.5">%</span>
                       </div>
-                      {/* 🥈 次 KPI 行：累计 / 目标 + 单位
-                         ⭐ 统一 14px 字重 600，颜色分层：累计(ink-900)/目标(ink-700)/单位(12px ink-400)
+                      {/* 🥈 次 KPI 行（弱化版）：累计 / 目标 + 单位
+                         ⭐ 降1档字重 Semibold→Medium + 降1号字号 14→13px + 颜色改 ink-500 灰色
+                         原则：次信息不应与主KPI（%绿色）竞争注意力，降级为"参考信息"
                       */}
                       <div className="flex items-baseline leading-none">
-                        <span className="text-[14px] font-semibold tabular-nums text-ink-900">{h.val}</span>
-                        <span className="text-[14px] font-semibold tabular-nums text-ink-300 mx-[5px]">/</span>
-                        <span className="text-[14px] font-semibold tabular-nums text-ink-700">{h.target}</span>
-                        <span className="text-[12px] font-medium tabular-nums text-ink-400 ml-1 align-baseline">{h.unit}</span>
+                        <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.val}</span>
+                        <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
+                        <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.target}</span>
+                        <span className="text-[12px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
                       </div>
                     </div>
                   </div>
@@ -1168,10 +1170,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="my-4 px-4 pb-0 rounded-xl border-t-0 border-0 bg-transparent">
             {/* 表头：保持直边，不再单独圆角；去掉 bg-surface-soft 避免灰度叠加 */}
             <div className="grid habit-table px-1 py-3 border-y border-ink-100 bg-transparent text-[14px] font-semibold text-ink-700">
-              <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis text-[14px] font-bold text-ink-700 flex items-center gap-2 pl-1">
-                {/* ⚫ L2 中等锚点：3px宽 × 16px高 ink-400 深灰（与L1同宽同高，颜色降1档） */}
-                <span className="w-[3px] h-[16px] rounded-full bg-ink-400 flex-shrink-0"></span>
-                {year}年 · 各月数据
+              <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2 pl-1">
+                {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1完全统一的视觉标识） */}
+                <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+                {/* 标题统一规格：15px Bold ink-800，左对齐 */}
+                <span className="text-[15px] font-bold text-ink-800">{year}年 · 各月数据</span>
               </div>
               {/* 🔧 对齐修复：表头统计列使用 pr-2 的右侧边距，与下方 data-cell 的右边缘严格一致 */}
               <div className="text-right pr-2 whitespace-nowrap">目标</div>
@@ -1291,10 +1294,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         */}
         <div className="w-full px-4 pt-5 pb-6 mt-4 border-t border-ink-100">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-[13.5px] font-semibold text-ink-700 flex items-center gap-2 tracking-[0.005em]">
-              {/* 🔘 L3 较弱锚点：3px宽 × 16px高 ink-300 浅灰（与L1/L2同宽同高，颜色再降1档） */}
-              <span className="w-[3px] h-[16px] rounded-full bg-ink-300 flex-shrink-0"></span>
-              {year}年 · {curMonth}月打卡日历
+            {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1/L2完全统一的视觉标识）
+                标题统一规格：15px Bold ink-800，左对齐
+                文字改为「{curMonth}月数据」，更简洁 */}
+            <span className="flex items-center gap-2">
+              <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+              <span className="text-[15px] font-bold text-ink-800">{year}年 · {curMonth}月数据</span>
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
@@ -1308,8 +1313,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               </span>
             </div>
           </div>
-          {/* 行间距 gap-5：三行习惯行之间 20px 呼吸感，每个行自身 py-1 增加上下 4px 内边距 */}
-          <div className="flex flex-col gap-5">
+          {/* 行间距 gap-3.5：三行习惯行之间 14px 间距（适度收紧，不再过松） */}
+          <div className="flex flex-col gap-3.5">
             {habits.map((h, hidx) => {
               const daysTotal = monthMaxDays[curMonth - 1];
               const realDates = h.monthDates?.[curMonth];
@@ -1317,8 +1322,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 ? realDates
                 : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
-                // 增加 py-1 (上下各4px) 让日历方块行有呼吸感，不再紧贴上下行的边界
-                <div key={h.key} className="flex items-center gap-3 py-1">
+                // 去掉 py-1 上下padding，方块行不再有额外上下内边距
+                <div key={h.key} className="flex items-center gap-3">
                   {/* 标签列：130→135px，内容不再挤；习惯名 14→13.5px Semibold ink-700（整体缩小精致） */}
                   <div className="w-[135px] flex-shrink-0 truncate">
                     <span className="text-[13.5px] font-semibold text-ink-700 truncate">{h.label}</span>

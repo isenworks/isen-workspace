@@ -1187,7 +1187,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   {m}
                 </div>
               ))}
-              <div className="w-6"></div>
             </div>
             {habits.map(h => {
               const p = pct(h.val, h.target);
@@ -1275,13 +1274,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     );
                   })}
-                  {/* 删除按钮 */}
-                  <div className="flex justify-center">
-                    <button onClick={(e) => { e.stopPropagation(); onAction?.('removeHabit', h); }}
-                      className="w-6 h-6 rounded-lg grid place-items-center text-ink-300 hover:text-accent-red hover:bg-accent-red/10 opacity-0 group-hover:opacity-100 transition-all" title="删除习惯">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                  </div>
                 </div>
               );
             })}
@@ -2238,13 +2230,13 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12 删除] ---- 
-         设计原则：12 个月格必须「紧凑成一排」，不能被 fr 拉得稀稀拉拉
-         → 月份列权重由 0.5fr 猛砍到 0.25fr（仅比 minmax(30px) 底线略大一点）
-         → 宽屏时 12 列只占用所需的最小紧凑空间，多余空白都留给习惯名列（1.3fr）自动吸收
+      /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12] ---- 
+         设计原则：删除最右30px删除列后，将释放的空间分配给月份列
+         → 月份列 minmax(30px, 0.25fr) → minmax(32px, 0.28fr)
+         → 每个月份格子增加2px宽度，数字显示更舒适，整体更紧凑
       */
       .habit-table {
-        grid-template-columns: minmax(110px, 1.5fr) 64px 52px 60px repeat(12, minmax(30px, 0.25fr)) 30px;
+        grid-template-columns: minmax(110px, 1.5fr) 64px 52px 60px repeat(12, minmax(32px, 0.28fr));
         gap: 0 0;
         align-items: center;
       }

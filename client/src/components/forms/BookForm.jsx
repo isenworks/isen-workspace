@@ -29,16 +29,33 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     t: initial?.t || '',
     author: initial?.author || '',
     cat: initial?.cat || CATS[0],
-    src: initial?.src || SRCS[0],
+    src: SRCS.includes(initial?.src) ? initial.src : SRCS[0],
     st: initial?.st || 'pending',
     pct: initial?.pct ?? 0,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  // UI 层即时联动（视觉一致，真正规范化在入口层 normalizeBook 双保险）
+  const setStatus = (stVal) => {
+    const patch = { st: stVal };
+    if (stVal === 'done') patch.pct = 100;
+    else if (stVal === 'pending') patch.pct = 0;
+    // reading 保持原 pct 或至少 1
+    else if (stVal === 'reading' && (Number(form.pct) || 0) <= 0) patch.pct = 1;
+    setForm(f => ({ ...f, ...patch }));
+  };
+  const setPct = (p) => {
+    const pNum = Math.min(100, Math.max(0, Number(p) || 0));
+    const patch = { pct: pNum };
+    if (pNum >= 100) patch.st = 'done';
+    else if (pNum > 0 && form.st !== 'reading') patch.st = 'reading';
+    else if (pNum === 0 && form.st !== 'pending') patch.st = 'pending';
+    setForm(f => ({ ...f, ...patch }));
+  };
+
   function submit() {
     if (!form.t.trim()) return alert('请输入书名');
-    const pctVal = form.st === 'done' ? 100 : Math.min(100, Math.max(0, Number(form.pct) || 0));
-    onSaved?.({ ...form, t: form.t.trim(), pct: pctVal, id: initial?.id });
+    onSaved?.({ ...form, t: form.t.trim(), id: initial?.id });
   }
 
   function del() {
@@ -82,14 +99,16 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
         <div style={{ display: 'flex', gap: '8px' }}>
           {STATUSES.map(s => {
             const on = form.st === s.v;
+            const col = s.v === 'reading' ? '#4b63f0' : s.v === 'done' ? '#22c55e' : '#64748b';
             return (
-              <button key={s.v} type="button" onClick={() => set('st', s.v)}
+              <button key={s.v} type="button" onClick={() => setStatus(s.v)}
                 style={{
                   flex: 1, padding: '7px 0', borderRadius: '9px',
-                  fontSize: '13px', fontWeight: on ? '600' : '500',
-                  background: on ? '#e0ecff' : 'rgba(120,120,128,0.08)',
-                  color: on ? '#4b63f0' : '#8e8e93',
-                  border: 'none', cursor: 'pointer', transition: 'all .15s',
+                  fontSize: '13px', fontWeight: on ? '700' : '500',
+                  background: on ? `${col}18` : 'rgba(120,120,128,0.08)',
+                  color: on ? col : '#8e8e93',
+                  border: on ? `1px solid ${col}40` : '1px solid transparent',
+                  cursor: 'pointer', transition: 'all .15s',
                 }}>{s.lb}</button>
             );
           })}
@@ -97,9 +116,16 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
       </div>
       <div>
         <label style={LABEL_STYLE}>阅读进度 ({form.pct}%)</label>
-        <input className="form-input" type="range" min="0" max="100" step="5"
-          value={form.pct} onChange={e => set('pct', Number(e.target.value))}
+        <input className="form-input" type="range" min="0" max="100" step="1"
+          value={form.pct} onChange={e => setPct(e.target.value)}
           style={{ width: '100%', accentColor: '#4b63f0' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+          {[0, 25, 50, 75, 100].map(v => (
+            <span key={v} style={{
+              fontSize: '10px', color: form.pct >= v ? '#4b63f0' : '#c7c7cc', fontWeight: 600,
+            }}>{v}%</span>
+          ))}
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>

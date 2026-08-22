@@ -1631,7 +1631,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
 
 /* ---------- 8. 视图 · 知力 (OKR + 书架系统) ---------- */
 function CognitionView({
-  books, onBookAdd, onBookEdit,
+  books, onBookAdd, onBookEdit, onBookMove,
   objective, onObjectiveChange,
   krs, onKrAdd, onKrEdit, onKrRemove,
   funnelHeader, setFunnelHeader,
@@ -2071,24 +2071,74 @@ function CognitionView({
                     暂无书籍
                   </div>
                 ) : (
-                  g.books.map((b, idx) => (
-                    <div key={idx} onClick={() => onBookEdit?.(b)}
-                      className="px-2.5 py-2 rounded-lg flex items-center justify-between gap-2 cursor-pointer hover:shadow-sm transition-all bg-white"
-                      style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)', border: '1px solid rgba(15,23,42,0.04)' }}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[13px] w-5 text-center">📖</span>
-                        <div className="min-w-0">
-                          <div className={`text-[12.5px] font-semibold truncate ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
-                            {b.t}
+                  g.books.map((b, idx) => {
+                    // 三栏定义（供快速移动菜单复用）
+                    const MOVES = [
+                      { key: 'pending', lb: '未开始', col: '#64748b' },
+                      { key: 'reading', lb: '阅读中', col: BLUE },
+                      { key: 'done',    lb: '已读完', col: '#22c55e' },
+                    ];
+                    return (
+                      <div key={b.id || idx}
+                        className="group rounded-lg bg-white transition-all hover:shadow-md relative"
+                        style={{
+                          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+                          border: `1px solid ${g.col}20`,
+                        }}>
+                        {/* 上半行：点击打开编辑弹窗（书名+分类+进度%） */}
+                        <div
+                          onClick={() => onBookEdit?.(b)}
+                          className="px-2.5 py-2 flex items-center justify-between gap-2 cursor-pointer">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[13px] w-5 text-center">📖</span>
+                            <div className="min-w-0">
+                              <div className={`text-[12.5px] font-semibold truncate ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
+                                {b.t}
+                              </div>
+                              {b.cat && <div className="text-[10.5px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
+                            </div>
                           </div>
-                          {b.cat && <div className="text-[10.5px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
+                          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: g.col }}>
+                            {b.pct}%
+                          </span>
                         </div>
+
+                        {/* 下半行：快速移动到三栏（默认隐藏，hover展开；已在该栏则禁用高亮） */}
+                        <div className="flex items-center gap-1 px-2 pb-2">
+                          {MOVES.map(m => {
+                            const active = m.key === g.key;
+                            return (
+                              <button
+                                key={m.key}
+                                type="button"
+                                disabled={active}
+                                onClick={(e) => { e.stopPropagation(); onBookMove?.(b.id, m.key); }}
+                                title={`移至「${m.lb}」`}
+                                className="flex-1 text-center text-[10.5px] font-medium rounded-md py-1 transition"
+                                style={{
+                                  color: active ? '#fff' : m.col,
+                                  background: active ? m.col : `${m.col}10`,
+                                  opacity: active ? 1 : 0,
+                                  transform: active ? 'none' : 'translateY(2px)',
+                                  pointerEvents: active ? 'none' : 'auto',
+                                }}
+                                // group-hover 时显现：用 inline style + transition，Tailwind 的 group-hover:opacity-100 同样可用
+                                // 但这里直接按"始终弱显示，hover变亮"设计更佳，降低发现门槛
+                              >
+                                {m.lb}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* 始终给 3 个按钮一个基础可见度（hover前也能隐约看到，引导用户发现；同时上面opacity:0→1被覆盖成合理的hover显亮） */}
+                        <style>{`
+                          .group > div:last-of-type button { opacity: .55; transform: none; }
+                          .group:hover > div:last-of-type button { opacity: 1; }
+                          .group > div:last-of-type button[disabled] { opacity: 1; }
+                        `}</style>
                       </div>
-                      <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: g.col }}>
-                        {b.pct}%
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -2631,9 +2681,62 @@ export default function AnnualPlan({ standalone = true }) {
 
   // ---- CRUD 操作 ----
   // 认知·书籍
+  // 单一真理源：写入前统一规范化 st ↔ pct（防止编辑只改一个没改另一个，导致分组不变）
+  //   pct >= 100         → st = 'done',    pct = 100
+  //   0 < pct < 100      → st = 'reading', pct = 原值
+  //   pct == 0 && st 任选→ st = 'pending', pct = 0
+  //   若用户显式指定 st（移动栏目的场景）则以 st 为准：
+  //     'done'   → pct 强制 100
+  //     'reading'→ pct 若为0则给 1（进入阅读中至少有进度），其他保留；不能到100（否则归done）
+  //     'pending'→ pct 强制 0
+  const normalizeBook = (b) => {
+    const out = { ...b };
+    const pctNum = Math.min(100, Math.max(0, Number(out.pct) || 0));
+    // 先按 st 显式规范 pct
+    if (out.st === 'done') {
+      out.pct = 100;
+    } else if (out.st === 'pending') {
+      out.pct = 0;
+    } else if (out.st === 'reading') {
+      // reading 下：若 pct=0（刚从 pending 移过来没填进度），默认 1% 表示"开始读了"；若 pct=100 自动升 done
+      if (pctNum >= 100) {
+        out.st = 'done';
+        out.pct = 100;
+      } else if (pctNum <= 0) {
+        out.pct = 1;
+      } else {
+        out.pct = pctNum;
+      }
+    } else {
+      // st 未知/没传（老数据兼容） → 仅按 pct 推断
+      out.pct = pctNum;
+      if (out.pct >= 100) out.st = 'done';
+      else if (out.pct > 0) out.st = 'reading';
+      else out.st = 'pending';
+    }
+    return out;
+  };
   const bookOps = {
-    add: (data) => { setBooks(prev => [...prev, { ...data, id: uid() }]); showToast('书籍已添加'); },
-    update: (data) => { setBooks(prev => prev.map(b => b.id === data.id ? { ...b, ...data } : b)); showToast('书籍已更新'); },
+    add: (data) => {
+      const record = normalizeBook({ ...data });
+      setBooks(prev => [...prev, { ...record, id: uid() }]);
+      showToast('书籍已添加');
+    },
+    update: (data) => {
+      if (!data?.id) return;
+      const record = normalizeBook({ ...data });
+      setBooks(prev => prev.map(b => b.id === record.id ? { ...b, ...record } : b));
+      showToast('书籍已更新');
+    },
+    // 快速移动（仅改变 st，其他不动；pct 会被 normalizeBook 自动同步）
+    move: (id, targetSt) => {
+      setBooks(prev => prev.map(b => {
+        if (b.id !== id) return b;
+        return normalizeBook({ ...b, st: targetSt });
+      }));
+      const label = targetSt === 'done' ? '已读完' : targetSt === 'reading' ? '阅读中' : '未开始';
+      showToast(`已移至「${label}」`);
+    },
     remove: (id) => { setBooks(prev => prev.filter(b => b.id !== id)); showToast('书籍已删除'); },
   };
   // 能力·里程碑
@@ -2811,7 +2914,7 @@ export default function AnnualPlan({ standalone = true }) {
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
       {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} timeScale={timeScale} onTimeScaleChange={setTimeScale} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
-      {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit}
+      {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} onBookMove={(id, st) => bookOps.move(id, st)}
         objective={cogObjective} onObjectiveChange={setCogObjective}
         krs={cogKrs} onKrAdd={(kr) => { setCogKrs(prev => [...prev, { ...kr, id: uid() }]); showToast('KR 已添加'); }}
         onKrEdit={(kr) => { setCogKrs(prev => prev.map(k => k.id === kr.id ? { ...k, ...kr } : k)); showToast('KR 已更新'); }}

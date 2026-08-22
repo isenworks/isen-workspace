@@ -1564,7 +1564,7 @@ function CognitionView({
               return (
                 <div key={kr.id || idx}
                   onClick={() => !isEditing && !editingKrId && (setKrDraft({ ...kr }), setEditingKrId(kr.id))}
-                  className="rounded-xl border relative overflow-hidden transition-all cursor-pointer min-h-[68px]"
+                  className="rounded-xl border relative overflow-hidden transition-all cursor-pointer"
                   style={{
                     background: isEditing ? BLUE_LIGHT : '#fff',
                     borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
@@ -1610,40 +1610,47 @@ function CognitionView({
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-3 min-h-[48px]">
-                        {/* 左侧 · 编号 + 文案区：编号·标题·说明 连成一气 */}
-                        <div className="flex-1 min-w-0 flex items-start gap-2">
-                          <span className="inline-flex items-center justify-center flex-shrink-0 mt-[2px] px-1 min-w-[26px] h-[18px] text-[11px] font-extrabold tabular-nums rounded-md"
-                            style={{ background: BLUE_LIGHT, color: BLUE }}>
+                      /* 方案B：编号色条锚点 + 文案区（flex-1） + 右下双胶囊块
+                         ┌──┬───────────────────────────────┬──────────────┐
+                         │01│标题                      读完 │ [5/12本] [42%]│
+                         │蓝│说明（书架追踪）               │  数据·完成率  │
+                         └──┴───────────────────────────────┴──────────────┘ */
+                      <div className="flex items-stretch gap-0 min-h-[64px]">
+                        {/* 左 · 编号色条块：蓝底色条 + 编号上下居中 —— 替代原独立胶囊编号，更有章节锚点感 */}
+                        <div className="flex-shrink-0 w-9 flex flex-col items-center justify-center rounded-l-xl"
+                          style={{ background: BLUE_LIGHT, borderLeft: `3px solid ${BLUE}` }}>
+                          <span className="text-[12px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
                             {padNum}
                           </span>
-                          <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <div className="text-[13px] font-bold text-ink-900 leading-[1.25] truncate"
-                              title={kr.lb}>
-                              {kr.lb}
-                            </div>
-                            {kr.sub && (
-                              <span className="text-[10.5px] text-ink-400 font-medium leading-tight truncate mt-0.5"
-                                title={kr.sub}>
-                                {kr.sub}
-                              </span>
-                            )}
-                          </div>
                         </div>
 
-                        {/* 右侧 · 数据区：三层视觉语言严格分层
-                           L1 当前值：18px 蓝·Extrabold（开放式数据，主角）
-                           L2 斜杠/目标/单位：斜杠独立(灰·轻) · 目标值降级(ink-500·12px·Medium)
-                           L3 完成率：实心蓝底白字胶囊（结论状态，与L1"色字/色块"形成对比不冲突） */}
-                        <div className="flex items-center gap-2.5 flex-shrink-0">
-                          <div className="flex items-center gap-1.5 whitespace-nowrap">
-                            <span className="text-[18px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
-                            <span className="text-[12px] font-light tabular-nums text-ink-300 leading-none select-none">/</span>
-                            <span className="text-[12px] font-medium text-ink-500 tabular-nums leading-none">{kr.tgt}</span>
-                            <span className="text-[11px] font-medium text-ink-400 leading-none ml-0.5">{kr.u}</span>
+                        {/* 中 · 文案区（flex-1撑满），标题+说明上下对齐，右侧留出铅笔空间 */}
+                        <div className="flex-1 min-w-0 px-3.5 py-2.5 flex flex-col justify-center gap-0.5">
+                          <div className="text-[13px] font-bold text-ink-900 leading-[1.25] truncate pr-5"
+                            title={kr.lb}>
+                            {kr.lb}
                           </div>
-                          <span className="inline-flex items-center justify-center min-w-[42px] px-2 py-[3px] rounded-md text-[11.5px] font-extrabold tabular-nums leading-none whitespace-nowrap text-white"
-                            style={{ background: BLUE, boxShadow: `0 1px 3px ${BLUE}30` }}>
+                          {kr.sub && (
+                            <span className="text-[10.5px] text-ink-400 font-medium leading-tight truncate"
+                              title={kr.sub}>
+                              {kr.sub}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 右 · 双胶囊数据区（右下锚定），从散碎5元素→2个视觉统一的胶囊 */}
+                        <div className="flex items-center gap-2 pr-8 pl-1 py-2.5 flex-shrink-0">
+                          {/* 胶囊1：数据胶囊 —— 把当前值/斜杠/目标/单位整合为一个统一胶囊（不再散） */}
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg whitespace-nowrap border"
+                            style={{ background: BLUE_LIGHT + '66', borderColor: `${BLUE}22` }}>
+                            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
+                            <span className="text-[11px] font-light tabular-nums leading-none select-none" style={{ color: `${BLUE}77` }}>/</span>
+                            <span className="text-[11.5px] font-semibold tabular-nums leading-none" style={{ color: BLUE, opacity: 0.78 }}>{kr.tgt}</span>
+                            <span className="text-[10.5px] font-medium leading-none ml-0.5" style={{ color: BLUE, opacity: 0.68 }}>{kr.u}</span>
+                          </div>
+                          {/* 胶囊2：完成率胶囊 —— 实心蓝底白字，保持强势结论感，和数据胶囊形成【浅块·深块】对比 */}
+                          <span className="inline-flex items-center justify-center min-w-[46px] px-2.5 py-1 rounded-lg text-[12px] font-extrabold tabular-nums leading-none whitespace-nowrap text-white"
+                            style={{ background: BLUE, boxShadow: `0 1px 4px ${BLUE}35` }}>
                             {p}%
                           </span>
                         </div>

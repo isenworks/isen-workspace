@@ -211,7 +211,7 @@ function AddButton({ label, onClick }) {
 }
 
 /* ---------- 通用：点击文字 → 内联输入框编辑（Enter保存/Esc取消/失焦保存） ---------- */
-function InlineEdit({ value, onChange, className, inputClassName, title, placeholder = '' }) {
+function InlineEdit({ value, onChange, className, inputClassName, title, placeholder = '', style }) {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState(value);
   const ref = React.useRef(null);
@@ -220,7 +220,8 @@ function InlineEdit({ value, onChange, className, inputClassName, title, placeho
   const commit = () => {
     setEditing(false);
     const v = draft == null ? '' : String(draft).trim();
-    if (v !== String(value ?? '')) onChange(v);
+    const origin = value == null ? '' : String(value);
+    if (v !== origin) onChange(v);
   };
   const cancel = () => { setEditing(false); setDraft(value ?? ''); };
   if (editing) {
@@ -241,6 +242,7 @@ function InlineEdit({ value, onChange, className, inputClassName, title, placeho
     <span
       title={title || '点击编辑'}
       onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      style={style}
       className={`cursor-text hover:opacity-80 transition select-none ${className || ''}`}>
       {value || <span className="opacity-40">{placeholder || '点击填写'}</span>}
     </span>
@@ -248,7 +250,13 @@ function InlineEdit({ value, onChange, className, inputClassName, title, placeho
 }
 
 /* ---------- P2-2: 知力 OKR 漏斗 (阅读 → 笔记 → 践行) ---------- */
-function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0', embedded }) {
+function ReadingFunnel({
+  total, reading, notes, changes, color = '#4b63f0', embedded,
+  // 非embedded模式下支持顶部标题/备注编辑 — 调用方传值和回调，未传则走默认
+  headerTitle = '阅读转化漏斗',
+  headerSub = 'KR1 → KR2 → KR3',
+  onHeaderChange,
+}) {
   // 阶段元数据从props派生为state，支持编辑label/sub/convLabel（与顶部漏斗Header共用InlineEdit）
   const [stages, setStages] = React.useState([
     { key: 'total',   label: '阅读总量', count: total,  sub: '书架书籍', convLabel: '转化' },
@@ -351,9 +359,23 @@ function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0', embe
               <path d="M7 14l4-4 4 4 5-6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-[14px] font-bold text-ink-900">阅读转化漏斗</span>
+          <div className="flex items-baseline gap-1.5 min-w-0">
+            <InlineEdit
+              value={headerTitle}
+              onChange={(v) => onHeaderChange?.({ title: v })}
+              className="text-[14px] font-bold text-ink-900 whitespace-nowrap"
+              inputClassName="text-[14px] font-bold text-ink-900 w-24"
+              title="点击编辑标题"
+            />
+          </div>
         </div>
-        <div className="text-[11px] text-ink-400">KR1 → KR2 → KR3</div>
+        <InlineEdit
+          value={headerSub}
+          onChange={(v) => onHeaderChange?.({ sub: v })}
+          className="text-[11px] text-ink-400 whitespace-nowrap"
+          inputClassName="text-[11px] font-medium text-ink-500 w-28"
+          title="点击编辑说明"
+        />
       </div>
       {Inner}
     </div>
@@ -1585,19 +1607,20 @@ function CognitionView({
                 {/* 色条锚点 5×18 */}
                 <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
 
-                {/* O 主文字 + 编辑铅笔（铅笔紧贴标题左前） */}
-                <div className="flex-1 min-w-0 flex items-center gap-1">
-                  <h1 className="flex-1 min-w-0 text-[14.5px] font-bold text-ink-900 leading-tight truncate"
-                    title={objective?.text || COG_O.text}>
-                    {objective?.text || COG_O.text}
-                  </h1>
-                  <button
-                    onClick={() => { setObjDraft(objective?.text || COG_O.text); setEditingObj(true); }}
-                    className="text-ink-300 hover:text-brand-500 p-0.5 rounded transition flex-shrink-0"
-                    title="编辑目标">
-                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
-                </div>
+                {/* O 主文字（InlineEdit 点击即编辑，删除铅笔图标）；
+                    直接调 onObjectiveChange — O对象若有year字段保留，不丢年份信息 */}
+                <InlineEdit
+                  value={objective?.text || COG_O.text}
+                  onChange={(v) => {
+                    const t = String(v || '').trim();
+                    if (!t) return;
+                    onObjectiveChange?.({ ...(objective || COG_O), text: t });
+                  }}
+                  className="flex-1 min-w-0 text-[14.5px] font-bold text-ink-900 leading-tight truncate"
+                  inputClassName="text-[14.5px] font-bold text-ink-900 w-full"
+                  title="点击编辑O目标"
+                  placeholder="填写O目标"
+                />
 
                 {/* 完成率徽章 —— 实心蓝底白字，强视觉锚点 */}
                 <div className="flex-shrink-0 px-2.5 py-1 rounded-lg whitespace-nowrap flex items-baseline gap-1"
@@ -1626,22 +1649,14 @@ function CognitionView({
               const padNum = String(idx + 1).padStart(2, '0');
               return (
                 <div key={kr.id || idx}
-                  onClick={() => !isEditing && !editingKrId && (setKrDraft({ ...kr }), setEditingKrId(kr.id))}
-                  className="rounded-xl border relative overflow-hidden transition-all cursor-pointer"
+                  className="rounded-xl border relative overflow-hidden transition-all"
                   style={{
                     background: isEditing ? BLUE_LIGHT : '#fff',
                     borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
                     boxShadow: isEditing ? `0 0 0 3px ${BLUE}10` : 'none',
                   }}>
-                  {/* 右上角编辑铅笔（永远贴角） */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingKrId(editingKrId === kr.id ? null : kr.id); if (!isEditing) setKrDraft({ ...kr }); }}
-                    className="absolute top-1.5 right-1.5 text-ink-300 hover:text-ink-600 p-0.5 rounded hover:bg-ink-50 flex-shrink-0 z-10">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
-
-                  {/* 卡内容：单列横向布局 — 左文右数，信息条形态 */}
-                  <div className="px-3 py-2.5 pr-8">
+                  {/* 卡内容：单列横向布局 — 左文右数，信息条形态；删除右上角铅笔（所有文字点击即可编辑） */}
+                  <div className="px-2.5 py-2.5">
                     {isEditing ? (
                       <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                         <input
@@ -1673,52 +1688,99 @@ function CognitionView({
                         </div>
                       </div>
                     ) : (
-                      /* 方案C（克制极简）：苹果·Things·备忘录风格 — 纯排版分层，零胶囊零色块
-                         设计准则：只用【字号·字重·颜色·缩进·间距】5个变量做层级，不用任何背景色块
-                         ┌──────────────────────────────────────────────────────────┐
-                         │ 01  读完12本书                            5  / 12 本  42% │
-                         │     书架系统追踪                          ▲          ▲    │
-                         │     (缩进24px对齐标题)                  蓝色强调1   蓝色强调2│
-                         └──────────────────────────────────────────────────────────┘
-                         蓝色仅用于：当前值（进度核心）和完成率%（结果核心）两个点，绝不滥用 */
-                      <div className="flex items-start gap-1.5 px-2.5 py-3 pr-10">
-                        {/* L1 编号：固定宽度从24→18px，gap和padding同时压缩，右对齐tabular保证数字末位竖线对齐 */}
-                        <div className="flex-shrink-0 w-[18px] pt-[1.5px] text-right select-none">
-                          <span className="text-[11px] font-bold tabular-nums leading-none text-ink-300">
+                      /* 方案C（克制极简）：纯排版分层；铅笔全部删除 → 文字全部 InlineEdit 点击编辑
+                         设计准则：只用【字号·字重·颜色·缩进·间距】5个变量做层级，零装饰色块
+                         ┌────────────────────────────────────────────────────────────┐
+                         │ 01    读完12本书                                  5  / 12 本  42% │
+                         │ ↑     ↑书架系统追踪（缩进对齐标题）              ▲           ▲   │
+                         │编号  标题+说明（点击即编辑）                 数值/目标/单位  %   │
+                         │全部可点编辑，包括val/tgt/u/pct百分比                │
+                         └────────────────────────────────────────────────────────────┘ */
+                      <div className="flex items-start gap-3 px-0 py-0.5">
+                        {/* L1 编号：顶部与标题对齐（items-start 已保证），固定宽 + 右对齐 tabular；
+                            编号↔标题间距从 gap-1.5(6px) → gap-3(12px) — 更清爽不拥挤 */}
+                        <div className="flex-shrink-0 w-[22px] pt-[1px] text-right select-none">
+                          <span className="text-[11.5px] font-bold tabular-nums leading-none text-ink-300">
                             {padNum}
                           </span>
                         </div>
 
-                        {/* L2 文案区（flex-1撑满）：标题黑·说明灰，缩进对齐自然阅读动线 */}
-                        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                          <div className="text-[13px] font-semibold text-ink-900 leading-[1.3] truncate"
-                            title={kr.lb}>
-                            {kr.lb}
-                          </div>
-                          {kr.sub && (
-                            <span className="text-[10.5px] text-ink-400 font-medium leading-tight truncate"
-                              title={kr.sub}>
-                              {kr.sub}
-                            </span>
+                        {/* L2 文案区（flex-1撑满）：标题黑·说明灰；全部 InlineEdit 点击即编辑 */}
+                        <div className="flex-1 min-w-0 flex flex-col gap-0.5 pr-2">
+                          <InlineEdit
+                            value={kr.lb}
+                            onChange={(v) => onKrEdit?.({ ...kr, lb: v })}
+                            className="text-[13px] font-semibold text-ink-900 leading-[1.3] block truncate"
+                            inputClassName="text-[13px] font-semibold text-ink-900 w-full"
+                            title="点击编辑KR标题"
+                            placeholder="填写KR标题"
+                          />
+                          {kr.sub ? (
+                            <InlineEdit
+                              value={kr.sub}
+                              onChange={(v) => onKrEdit?.({ ...kr, sub: v })}
+                              className="text-[10.5px] text-ink-400 font-medium leading-tight block truncate"
+                              inputClassName="text-[11px] text-ink-500 font-medium w-full"
+                              title="点击编辑KR说明"
+                              placeholder="填写说明（可选）"
+                            />
+                          ) : (
+                            <InlineEdit
+                              value=""
+                              onChange={(v) => onKrEdit?.({ ...kr, sub: v })}
+                              className="text-[10.5px] text-ink-300 font-medium leading-tight block truncate"
+                              inputClassName="text-[11px] text-ink-500 font-medium w-full"
+                              title="点击添加KR说明"
+                              placeholder="+ 添加说明"
+                            />
                           )}
                         </div>
 
-                        {/* L3 数据区（右对齐）：纯排版无胶囊，严格分三层视觉
-                           - 当前值：蓝色 16px Extrabold（强调点1，进度核心）
-                           - 斜杠/目标/单位：ink灰，降级参照（斜杠最淡）
-                           - 完成率：蓝色 13px Extrabold（强调点2，结果核心），固定宽度右对齐 */}
-                        <div className="flex-shrink-0 flex items-center gap-5 tabular-nums">
-                          {/* 进度组：当前值 + 参考（/目标单位），items-baseline保持数字底线对齐 */}
+                        {/* L3 数据区（右对齐）：val / tgt / u / pct% 全部 InlineEdit 点击即编辑
+                           - 当前值/目标/单位/百分比均可改：改数字=更新kr.val/kr.tgt/kr.u，改%无实际意义但交互统一
+                           - 保持 items-baseline 数字底线对齐 + gap压缩 */}
+                        <div className="flex-shrink-0 flex items-center gap-4 tabular-nums items-baseline">
+                          {/* 进度组：当前值 + 参照（/目标单位） — 全部可点击编辑 */}
                           <div className="flex items-baseline gap-1 whitespace-nowrap">
-                            <span className="text-[16px] font-extrabold leading-none" style={{ color: BLUE }}>{kr.val}</span>
+                            <InlineEdit
+                              value={String(kr.val)}
+                              onChange={(v) => onKrEdit?.({ ...kr, val: Math.max(0, Number(v) || 0) })}
+                              className="text-[16px] font-extrabold leading-none"
+                              inputClassName="text-[16px] font-extrabold tabular-nums w-12 text-right px-1 py-0"
+                              style={{ color: BLUE }}
+                              title="点击编辑当前值"
+                            />
                             <span className="text-[11px] font-light leading-none text-ink-300 select-none">/</span>
-                            <span className="text-[12px] font-medium leading-none text-ink-500">{kr.tgt}</span>
-                            <span className="text-[10.5px] font-medium leading-none text-ink-400 ml-0.5">{kr.u}</span>
+                            <InlineEdit
+                              value={String(kr.tgt)}
+                              onChange={(v) => onKrEdit?.({ ...kr, tgt: Math.max(1, Number(v) || 1) })}
+                              className="text-[12px] font-medium leading-none text-ink-500"
+                              inputClassName="text-[12px] font-medium tabular-nums w-10 text-right px-1 py-0"
+                              title="点击编辑目标值"
+                            />
+                            <InlineEdit
+                              value={kr.u}
+                              onChange={(v) => onKrEdit?.({ ...kr, u: v })}
+                              className="text-[10.5px] font-medium leading-none text-ink-400 ml-0.5"
+                              inputClassName="text-[10.5px] font-medium w-10 px-1 py-0"
+                              title="点击编辑单位"
+                              placeholder="本/条/天"
+                            />
                           </div>
-                          {/* 完成率：独立固定宽度列，右对齐保证三条KR 42%/25%/0% 小数点对齐 */}
-                          <span className="w-[44px] text-right text-[13px] font-extrabold leading-none" style={{ color: BLUE }}>
-                            {p}%
-                          </span>
+                          {/* 完成率：固定列宽 + 蓝色强强调；也是点击即编辑（用户可直接改%数字） */}
+                          <InlineEdit
+                            value={`${p}%`}
+                            onChange={(v) => {
+                              const num = String(v).replace(/[^0-9]/g, '');
+                              const newPct = Math.max(0, Math.min(100, Number(num) || 0));
+                              const newVal = Math.round((newPct / 100) * Number(kr.tgt || 1));
+                              onKrEdit?.({ ...kr, val: newVal });
+                            }}
+                            className="w-[44px] block text-right text-[13px] font-extrabold leading-none"
+                            inputClassName="text-[13px] font-extrabold tabular-nums w-[44px] text-right px-1 py-0 border-brand-300"
+                            style={{ color: BLUE }}
+                            title="点击编辑完成率（自动同步当前值）"
+                          />
                         </div>
                       </div>
                     )}

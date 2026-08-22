@@ -1186,13 +1186,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             <span className="text-[14px] font-bold text-ink-800">{year}年 · {curMonth}月打卡日历</span>
             <div className="flex items-center gap-3 text-[13px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
+                <span className="w-[18px] h-[18px] rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
+                <span className="w-[18px] h-[18px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-md bg-ink-50 border border-ink-200"></span>未开始
+                <span className="w-[18px] h-[18px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
               </span>
             </div>
           </div>
@@ -1205,12 +1205,14 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 ? realDates
                 : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
               return (
-                <div key={h.key} className="flex items-center gap-4">
-                  <div className="w-[170px] flex-shrink-0 truncate">
-                    <span className="text-[15px] font-semibold text-ink-800 truncate">{h.label}</span>
+                <div key={h.key} className="flex items-center gap-3">
+                  {/* 标签列收窄：170→130px，更多空间留给31天保证整月一行 */}
+                  <div className="w-[130px] flex-shrink-0 truncate">
+                    <span className="text-[14px] font-semibold text-ink-800 truncate">{h.label}</span>
                   </div>
-                  {/* 高密度数据格子：minmax(28px) 兜底底线尺寸，窄屏自动横滚而不是被压扁 */}
-                  <div className="flex-1 grid overflow-x-auto" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(28px, 1fr))`, gap: '4px'}}>
+                  {/* 严格无横滚：去掉 minmax 底线 + overflow-x-auto，
+                      用 minmax(0,1fr) 让 31 格被压缩到刚好填满一行，窄屏均匀分配绝不溢出 */}
+                  <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '2px'}}>
                     {Array.from({ length: daysTotal }, (_, d) => {
                       const day = d + 1;
                       const isPast = day <= daysElapsedInCurMonth;
@@ -1232,15 +1234,15 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       }
                       if (isToday) {
                         cellRing = checked
-                          ? 'ring-2 ring-accent-green/40 ring-offset-1'
-                          : 'ring-2 ring-ink-300/50 ring-offset-1';
+                          ? 'ring-2 ring-accent-green/40 ring-offset-[1px]'
+                          : 'ring-2 ring-ink-300/50 ring-offset-[1px]';
                       }
                       return (
                         <div key={day}
                           title={`${curMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
                           className={[
-                            'aspect-square rounded-md grid place-items-center min-h-[28px]',
-                            'text-[15px] tabular-nums leading-none font-semibold transition-colors',
+                            'aspect-square rounded-md grid place-items-center',
+                            'text-[13px] tabular-nums leading-none font-semibold transition-colors',
                             cellBg, cellText, cellRing, cellBorder
                           ].join(' ')}>
                           {day}

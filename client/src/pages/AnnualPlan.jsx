@@ -1196,7 +1196,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const isEditing = editingTargetKey === hkey;
               return (
                 <div key={hkey} className="grid habit-table px-4 py-1.5 items-center transition-colors group">
-                  <div className="flex items-center gap-2 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis" onClick={() => onAction?.('editHabit', h)}>
+                  <div className="flex items-center gap-2 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-2" onClick={() => onAction?.('editHabit', h)}>
                     {/* 统一 14px Semibold ink-700：与年度数据卡片/打卡日历习惯标题完全一致 */}
                     <span className="text-[14px] font-semibold text-ink-700 truncate">{h.label}</span>
                   </div>
@@ -1319,8 +1319,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               return (
                 // 去掉 py-1 上下padding，方块行不再有额外上下内边距
                 <div key={h.key} className="flex items-center gap-3">
-                  {/* 统一 14px Semibold ink-700：与年度数据卡片/各月数据表格习惯标题完全一致 */}
-                  <div className="w-[135px] flex-shrink-0 truncate">
+                  {/* 统一 14px Semibold ink-700：与年度数据卡片/各月数据表格习惯标题完全一致
+                      pl-2: 8px左缩进, 比区块大标题往里缩, 形成子级层级关系 */}
+                  <div className="w-[135px] flex-shrink-0 truncate pl-2">
                     <span className="text-[14px] font-semibold text-ink-700 truncate">{h.label}</span>
                   </div>
                   {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），

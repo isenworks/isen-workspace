@@ -1129,8 +1129,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   style={{ gridTemplateRows: 'auto 1fr auto' }}>
                   {/* ROW1+ROW2 合并为一行紧凑的 KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
                   <div className="flex items-start justify-between gap-2">
-                    {/* 左列：习惯名 — 1行稳定高度 15px 700，min-w-0 防挤压 */}
-                    <span className="text-[15px] font-bold text-ink-900 leading-[1.4] truncate pt-0.5 flex-shrink-1 min-w-0 max-w-[60%]">{h.label}</span>
+                    {/* 左列：习惯名 — 统一 14px Semibold ink-700，比区块标题(15px Bold ink-800)弱一档，层级清晰 */}
+                    <span className="text-[14px] font-semibold text-ink-700 leading-[1.4] truncate pt-0.5 flex-shrink-1 min-w-0 max-w-[60%]">{h.label}</span>
                     {/* 右列：双行 KPI 矩阵 — 右对齐基线严格对齐 */}
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[38%]">
                       {/* 🥇 主 KPI 行：% 数字为绝对核心（唯一视觉焦点） */}
@@ -1196,7 +1196,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               return (
                 <div key={hkey} className="grid habit-table px-4 py-2.5 border-b border-ink-100 last:border-b-0 items-center hover:bg-surface-soft transition-colors group">
                   <div className="flex items-center gap-2 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="text-[14px] font-semibold text-ink-900 truncate">{h.label}</span>
+                    {/* 统一 14px Semibold ink-700：与年度数据卡片/打卡日历习惯标题完全一致 */}
+                    <span className="text-[14px] font-semibold text-ink-700 truncate">{h.label}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
                   <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
@@ -1324,9 +1325,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               return (
                 // 去掉 py-1 上下padding，方块行不再有额外上下内边距
                 <div key={h.key} className="flex items-center gap-3">
-                  {/* 标签列：130→135px，内容不再挤；习惯名 14→13.5px Semibold ink-700（整体缩小精致） */}
+                  {/* 统一 14px Semibold ink-700：与年度数据卡片/各月数据表格习惯标题完全一致 */}
                   <div className="w-[135px] flex-shrink-0 truncate">
-                    <span className="text-[13.5px] font-semibold text-ink-700 truncate">{h.label}</span>
+                    <span className="text-[14px] font-semibold text-ink-700 truncate">{h.label}</span>
                   </div>
                   {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），
                       数字 13→12px 精致缩小但依然保持 semibold/bold 字重统一 */}

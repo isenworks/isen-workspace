@@ -1041,9 +1041,16 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               }
 
               return (
-                <div key={h.key} className="flex flex-col justify-between p-3 pb-2.5 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow min-h-[150px]">
-                  {/* 上方信息簇：标题行 + KPI行，紧凑贴合，避免拉开空洞 */}
-                  <div className="flex flex-col gap-2">
+                /* ⭐ 终极稳定布局：grid 三区分配
+                   rows: [auto(auto-fit标题/KPI) 1fr(弹性吸空区) auto(折线图贴底)]
+                   → 无论内容多少，折线图永远 100% 贴在卡片底部，1fr 吸空区吃掉多余留白
+                   → 固定 h-[168px] 三卡严格等高，视觉对齐
+                */
+                <div key={h.key}
+                  className="grid p-3 pb-2 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
+                  style={{ gridTemplateRows: 'auto 1fr auto' }}>
+                  {/* ROW1: 上方信息簇紧凑贴合，不再被拉开空洞 */}
+                  <div className="flex flex-col gap-1.5">
                     {/* 行1：左=习惯全称  右=【迷你短进度条 + 百分比数字】 */}
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-[15px] font-bold text-ink-900 leading-snug truncate">{h.label}</span>
@@ -1069,10 +1076,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     </div>
                   </div>
-                  {/* 行3：全宽年度折线 + 月份数字 1~N (hover tooltip 保留)
-                       mt-auto 推至卡片底部，justify-between 生效，折线图沉底
-                       高度 52→58 让折线更舒展，-mx-1 轻微超出padding对齐卡片边缘 */}
-                  <div className="mt-auto -mx-1">
+                  {/* ROW2: 1fr 弹性吸空区，吃掉所有多余留白，保证折线图强制贴底
+                     （这是关键：空白藏在中间看不见的地带，而不是在折线图下方） */}
+                  <div className="min-h-0"></div>
+                  {/* ROW3: 折线图 auto 高度，精确贴卡片底部
+                       -mx-1 轻微溢出左右 padding，对齐卡片边缘
+                       折线图整体高 72px（58plot + 14label） */}
+                  <div className="-mx-1 -mb-[2px]">
                     <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={58} />
                   </div>
                 </div>

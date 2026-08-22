@@ -1110,46 +1110,48 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               }
 
               return (
-                /* ⭐ 布局结构：顶部信息簇紧凑化 + 吸空区扩大 + 折线图安全天花板
-                   关键：将KPI累计行和%行统一水平排列到标题行右侧，而非垂直堆叠 → 为折线图腾出~12px垂直呼吸空间
+                /* ⭐ KPI 信息簇视觉层级重构（Linear/Notion 同款矩阵规范）
+                   统一：字号x字重x颜色 严格分层，消除混乱感
+                   左 习惯标题：15px 700 ink-900
+                   右上 ROW 主视觉：进度条(增高 1.5→2px 加宽 88→100px) + 主KPI%(16px 700 绿) + %(12px ink-500)
+                   右下 ROW 次KPI：累计(14px 600 ink-900) / 分隔(ink-300) / 目标(14px 600 ink-700) 单位(12px ink-400)
                 */
                 <div key={h.key}
                   className="grid p-3 pb-2 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
                   style={{ gridTemplateRows: 'auto 1fr auto' }}>
-                  {/* ROW1: 单标题行 + 右侧双KPI垂直列（紧凑化改造）
-                       结构: flex justify-between
-                       ┌──────────────┬─────────────────────────────┐
-                       │ 作息·23-06/天 │ [进度条] 17px百分比%         │ ← 上：进度条+百分比
-                       │              │ 14px累计/目标行             │ ← 下：累计/目标（直接堆叠在%下方）
-                       └──────────────┴─────────────────────────────┘ */}
-                  <div className="flex items-start justify-between gap-2">
-                    {/* 左列：习惯全称，1行高度，顶部对齐 */}
-                    <span className="text-[15px] font-bold text-ink-900 leading-tight truncate pt-0.5">{h.label}</span>
-                    {/* 右列：双KPI垂直堆叠（进度条+%在上，累计/目标在下）— 两行紧凑对齐 */}
-                    <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                      {/* KPI 第一行：迷你短进度条 + 百分比 */}
+                  {/* ROW1: 顶级KPI信息簇 — 两列对齐基线，消除视觉噪音 */}
+                  <div className="flex items-start justify-between gap-3">
+                    {/* 左列：习惯名 — 1行稳定高度 15px 700 */}
+                    <span className="text-[15px] font-bold text-ink-900 leading-[1.4] truncate pt-0.5 flex-shrink-1 min-w-0">{h.label}</span>
+                    {/* 右列：双行 KPI 矩阵 — 基线对齐 + 每行同字重/同字号规则 */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {/* 🥇 主 KPI 行：进度条 + 年度完成率 %
+                           进度条：100px × 2px（加粗40%），视觉存在感匹配数字大小 */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-[88px] h-0.75 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
+                        <div className="w-[100px] h-0.5 rounded-full bg-ink-100 overflow-hidden flex-shrink-0">
                           <div className="h-full rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${Math.min(100, yearlyPct)}%`, background: GREEN }} />
                         </div>
                         <div className="flex items-baseline gap-0.5 flex-shrink-0">
-                          <span className="text-[17px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
-                          <span className="text-[12px] font-semibold text-ink-500">%</span>
+                          <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
+                          <span className="text-[12px] font-semibold text-ink-500 leading-none align-baseline">%</span>
                         </div>
                       </div>
-                      {/* KPI 第二行：年度累计/目标 — 右对齐，字号 13px，紧贴%行（gap-0.5=2px） */}
-                      <div className="text-[13px] tabular-nums leading-none font-medium text-ink-600">
-                        <span className="font-bold text-ink-900">{h.val}</span>
-                        <span className="text-ink-300 mx-0.5">/</span>
-                        <span className="text-ink-600">{h.target}</span>
-                        <span className="text-ink-400 ml-1">{h.unit}</span>
+                      {/* 🥈 次 KPI 行：累计 / 目标 + 单位
+                         ⭐ 统一 14px 字重 600，只有颜色分 累计(ink-900 主) / 目标(ink-700 次) / 单位(12px ink-400 辅)
+                         避免之前的 13px Bold ink-900 vs 13px Medium ink-600 这种"重心歪斜"的混乱组合
+                      */}
+                      <div className="flex items-baseline leading-none">
+                        <span className="text-[14px] font-semibold tabular-nums text-ink-900">{h.val}</span>
+                        <span className="text-[14px] font-semibold tabular-nums text-ink-300 mx-[5px]">/</span>
+                        <span className="text-[14px] font-semibold tabular-nums text-ink-700">{h.target}</span>
+                        <span className="text-[12px] font-medium tabular-nums text-ink-400 ml-1 align-baseline">{h.unit}</span>
                       </div>
                     </div>
                   </div>
-                  {/* ROW2: 1fr 弹性吸空区，吃掉所有多余留白，保证折线图强制贴底 + 为折线峰值留安全空间 */}
+                  {/* ROW2: 1fr 弹性吸空区 */}
                   <div className="min-h-0"></div>
-                  {/* ROW3: 折线图 auto 高度，精确贴卡片底部 */}
+                  {/* ROW3: 折线图贴底 */}
                   <div className="-mx-1 -mb-[2px]">
                     <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={58} />
                   </div>

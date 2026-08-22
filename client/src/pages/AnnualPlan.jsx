@@ -23,7 +23,7 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
   { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#22c55e' }, /* accent-green */
-  { key: 'cognition', label: '认知', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
+  { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
   { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber/orange */
   { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' }, /* accent-red   */
   { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#8b5cf6' }, /* accent-violet/purple */
@@ -68,10 +68,12 @@ const BOOKS = [
   { t: '被讨厌的勇气', author: '岸见一郎',     cat: '认知', st: 'done',    pct: 100,src: '微信读书' },
   { t: 'Atomic Habits',author: 'James Clear',  cat: '商业', st: 'done',    pct: 100,src: 'PDF' },
 ];
-const COG_KR = [
-  { lb: 'KR1 读完12本', val: 5,  tgt: 12, sub: '已读5本' },
-  { lb: 'KR2 读书笔记', val: 3,  tgt: 12, sub: '已输出3篇' },
-  { lb: 'KR3 改变落地', val: 0,  tgt: 6,  sub: '已落地0条' },
+/* 知力 · OKR */
+const COG_O = { text: '每年阅读12本书并获得践行改变', year: new Date().getFullYear() };
+const COG_KRS = [
+  { id: 'kr1', lb: '读完12本书', tgt: 12, val: 5, u: '本', sub: '书架系统追踪' },
+  { id: 'kr2', lb: '每本书输出读书笔记+3条可执行改变', tgt: 12, val: 3, u: '本', sub: '笔记追踪' },
+  { id: 'kr3', lb: '至少6条改变真正落地并持续30天', tgt: 6, val: 0, u: '条', sub: '践行追踪' },
 ];
 
 /* 能力 */
@@ -208,61 +210,61 @@ function AddButton({ label, onClick }) {
   );
 }
 
-/* ---------- P2-2: 认知阅读漏斗图 ---------- */
-function ReadingFunnel({ pending, reading, done }) {
+/* ---------- P2-2: 知力 OKR 漏斗 (阅读 → 笔记 → 践行) ---------- */
+function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0' }) {
   const stages = [
-    { key: 'pending', label: '想读', count: pending, color: '#8e8e93', widthPct: 100 },
-    { key: 'reading', label: '在读', count: reading, color: '#4b63f0', widthPct: 68 },
-    { key: 'done',    label: '读完', count: done,    color: '#22c55e', widthPct: 42 },
+    { key: 'total',   label: '阅读总量', count: total,  desc: '书架全部书籍' },
+    { key: 'reading', label: '在读中',   count: reading, desc: '正在阅读' },
+    { key: 'notes',   label: '输出笔记', count: notes,  desc: '已输出读书笔记' },
+    { key: 'changes', label: '践行落地', count: changes, desc: '真正改变落地' },
   ];
-  const total = pending + reading + done || 1;
-  const conv1 = pending > 0 ? Math.round((reading / pending) * 100) : 0;
-  const conv2 = reading > 0 ? Math.round((done / reading) * 100) : 0;
-  const overall = Math.round((done / total) * 100);
+  const widthByCount = stages.map(s => s.count);
+  const maxW = Math.max(...widthByCount, 1);
+  const convColors = ['#f97316', '#f59e0b', '#4b63f0'];
 
   return (
-    <div className="glass-card p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+    <div className="bg-white rounded-2xl p-5 border border-ink-100">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg grid place-items-center bg-brand-500/10 text-brand-500">
+          <div className="w-7 h-7 rounded-lg grid place-items-center" style={{ background: `${color}15`, color }}>
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3 3v18h18" strokeLinecap="round"/>
+              <path d="M7 14l4-4 4 4 5-6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="text-sm font-bold text-ink-900">阅读漏斗</span>
+          <span className="text-[15px] font-bold text-ink-900">阅读转化漏斗</span>
         </div>
-        <div className="flex items-center gap-1 text-[11px] font-bold text-accent-green">
-          <span>读完率</span>
-          <span className="tabular-nums">{overall}%</span>
-        </div>
+        <div className="text-[12px] text-ink-500">对齐 KR1 → KR2 → KR3</div>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col">
         {stages.map((s, i) => {
           const next = stages[i + 1];
-          const conversion = next && s.count > 0 ? Math.round((next.count / s.count) * 100) : null;
+          const conv = next && s.count > 0 ? Math.round((next.count / s.count) * 100) : null;
+          const pctOfMax = Math.max(15, Math.round((s.count / maxW) * 100));
           return (
-            <div key={s.key} className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2.5">
-                <div className="relative w-full h-9 rounded-lg overflow-hidden bg-ink-50">
-                  <div className="h-full rounded-lg transition-all duration-500 flex items-center px-3 justify-between"
-                    style={{ width: `${s.widthPct}%`, background: `linear-gradient(90deg, ${s.color} 0%, ${s.color}dd 100%)` }}>
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span className="opacity-90">{s.label}</span>
-                    </span>
-                    <span className="text-sm font-bold text-white tabular-nums">{s.count}</span>
-                  </div>
+            <div key={s.key}>
+              <div className="relative">
+                <div
+                  className="flex items-center justify-between h-11 pl-4 pr-3 rounded-xl text-white font-semibold text-[13px] transition-all"
+                  style={{
+                    width: `${pctOfMax}%`,
+                    minWidth: '140px',
+                    background: `linear-gradient(90deg, ${color} 0%, ${color}cc 100%)`,
+                    boxShadow: `0 2px 6px ${color}33`,
+                  }}>
+                  <span className="flex items-center gap-2">
+                    <span>{s.label}</span>
+                    <span className="text-[10px] font-normal opacity-80">{s.desc}</span>
+                  </span>
+                  <span className="tabular-nums text-[15px]">{s.count}</span>
                 </div>
               </div>
-              {conversion !== null && (
-                <div className="flex items-center justify-center gap-1 py-0.5">
-                  <div className="h-3 w-px bg-ink-200" />
-                  <svg className="w-3 h-3 text-ink-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  <span className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md"
-                    style={{
-                      color: conversion >= 60 ? '#22c55e' : conversion >= 35 ? '#f97316' : '#dc2626',
-                      background: conversion >= 60 ? '#dcfce7' : conversion >= 35 ? '#fef9c3' : '#fee2e2',
-                    }}>
-                    转化率 {conversion}%
+              {next && (
+                <div className="flex items-center py-1.5 pl-6 gap-2 text-[11px]">
+                  <div className="w-px h-3 bg-ink-200" />
+                  <span className="text-ink-500">转化</span>
+                  <span className="font-bold tabular-nums" style={{ color: convColors[i] }}>
+                    {conv}%
                   </span>
                 </div>
               )}
@@ -936,11 +938,12 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
       const dynBooks = books || BOOKS;
       const done = dynBooks.filter(b => b.st === 'done').length;
       const reading = dynBooks.filter(b => b.st === 'reading').length;
-      const cogPct = pct(done, 12);
+      const kr1 = (cogKrs && cogKrs[0]) || COG_KRS[0];
+      const krPct = pct(kr1.val, kr1.tgt);
       return (
         <div className="flex flex-col gap-1.5 text-xs text-ink-500 pt-1">
-          <div>年度目标 12 本 · 已读 <span className="font-semibold text-ink-900 tabular-nums">{done}</span> 本</div>
-          <div className="text-xs text-ink-500">完成率 {cogPct}% · 正在读 {reading} 本</div>
+          <div>年度目标 <span className="font-semibold text-ink-900 tabular-nums">{kr1.val}</span> / {kr1.tgt} 本</div>
+          <div className="text-xs text-ink-500">完成率 {krPct}% · 在读 {reading} 本</div>
         </div>
       );
     }
@@ -1093,8 +1096,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="px-4 py-3 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
-              {/* 🟢 统一绿色粗条锚点：4px宽 × 18px高 accent-green（三区块完全统一的视觉标识，对齐项目标准4px） */}
-              <span className="w-[4px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+              {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（三区块完全统一的视觉标识，对齐项目标准5px） */}
+              <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
               {/* 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重 */}
               <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
             </div>
@@ -1175,8 +1178,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
             <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
-                {/* 🟢 统一绿色粗条锚点：4px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识，对齐项目标准4px） */}
-                <span className="w-[4px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+                {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识，对齐项目标准5px） */}
+                <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
                 {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
                 <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
@@ -1210,6 +1213,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             </div>
             {habits.map(h => {
               const p = pct(h.val, h.target);
+              const GREEN = '#22c55e';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               return (
@@ -1242,9 +1246,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     )}
                   </div>
                   <div className="text-right font-semibold tabular-nums text-ink-900 text-[14px] cum-gap">{h.val}</div>
-                  {/* 完成率 - 统一绿色显示，与L1卡片百分比颜色完全一致(#22c55e) */}
+                  {/* 完成率 - 内联样式确保绿色(#22c55e)，与L1卡片百分比颜色完全一致 */}
                   <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="text-[14px] font-semibold tabular-nums text-accent-green">{p}%</span>
+                    <span className="text-[14px] font-semibold tabular-nums" style={{color: GREEN}}>{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
@@ -1311,8 +1315,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           <div className="flex items-center justify-between mb-4">
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">
-              {/* 🟢 统一绿色粗条锚点：4px宽 × 18px高 accent-green（与L1/L2完全统一的视觉标识，对齐项目标准4px） */}
-              <span className="w-[4px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+              {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（与L1/L2完全统一的视觉标识，对齐项目标准5px） */}
+              <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
               <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
@@ -1401,8 +1405,23 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   );
 }
 
-/* ---------- 8. 视图 · 认知 (书架系统) ---------- */
-function CognitionView({ books, onBookAdd, onBookEdit }) {
+/* ---------- 8. 视图 · 知力 (OKR + 书架系统) ---------- */
+function CognitionView({
+  books, onBookAdd, onBookEdit,
+  objective, onObjectiveChange,
+  krs, onKrAdd, onKrEdit, onKrRemove,
+  showToast,
+}) {
+  const [editingObj, setEditingObj] = useState(false);
+  const [objDraft, setObjDraft] = useState('');
+  const [editingKrId, setEditingKrId] = useState(null);
+  const [krDraft, setKrDraft] = useState(null);
+  const [addingKr, setAddingKr] = useState(false);
+  const [newKr, setNewKr] = useState({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
+
+  const BLUE = '#4b63f0';
+  const BLUE_LIGHT = '#eaf0ff';
+
   const groups = useMemo(() => {
     const dynBooks = books || BOOKS;
     return {
@@ -1411,95 +1430,253 @@ function CognitionView({ books, onBookAdd, onBookEdit }) {
       done:    dynBooks.filter(b => b.st === 'done'),
     };
   }, [books]);
-  const groupLabels = [
-    { key: 'reading', lb: '阅读中', col: '#4b63f0', count: groups.reading.length, disabled: groups.reading.length === 0 },
-    { key: 'pending', lb: '未开始', col: '#8e8e93', count: groups.pending.length, disabled: groups.pending.length === 0 },
-    { key: 'done',    lb: '已读完', col: '#22c55e', count: groups.done.length,    disabled: groups.done.length === 0 },
-  ];
 
-  const CAT_COLOR = {
-    '商业': '#1d4ed8', '心理学': '#7c3aed', '哲学': '#047857',
-    '科技': '#0891b2', '传记': '#be185d', '文学': '#475569', '其他': '#64748b',
+  const finalKrs = krs || COG_KRS;
+
+  const totalPct = useMemo(() => {
+    if (!finalKrs.length) return 0;
+    return Math.round(finalKrs.reduce((s, kr) => s + pct(kr.val, kr.tgt), 0) / finalKrs.length);
+  }, [finalKrs]);
+
+  // 保存 O
+  const commitObj = () => {
+    const t = objDraft.trim();
+    if (!t) { setEditingObj(false); return; }
+    onObjectiveChange?.({ ...(objective || COG_O), text: t });
+    setEditingObj(false);
+    showToast?.('目标已更新');
   };
 
-  // 计算认知完成率（基于KR的加权平均）
-  const cogPct = useMemo(() => {
-    const total = COG_KR.reduce((s, kr) => s + pct(kr.val, kr.tgt), 0);
-    return Math.round(total / COG_KR.length);
-  }, []);
+  // 保存 KR
+  const commitKr = () => {
+    if (!krDraft) { setEditingKrId(null); return; }
+    onKrEdit?.(krDraft);
+    setEditingKrId(null);
+  };
+
+  // 添加 KR
+  const commitAddKr = () => {
+    if (!newKr.lb.trim()) { setAddingKr(false); return; }
+    onKrAdd?.({
+      lb: newKr.lb.trim(),
+      tgt: Number(newKr.tgt) || 0,
+      val: Number(newKr.val) || 0,
+      u: newKr.u || '',
+      sub: newKr.sub || '',
+    });
+    setAddingKr(false);
+    setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* KR */}
+    <div className="flex flex-col gap-5">
+      {/* ===== O · 目标卡片 ===== */}
+      <div className="bg-white rounded-2xl border border-ink-100 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[12px] font-bold px-2 py-0.5 rounded-md"
+              style={{ background: BLUE_LIGHT, color: BLUE }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: BLUE }}></span>
+              O · 目标
+            </span>
+            <span className="text-[11px] text-ink-400">年度</span>
+          </div>
+          <button
+            onClick={() => { setObjDraft(objective?.text || ''); setEditingObj(true); }}
+            className="text-[12px] text-ink-500 hover:text-ink-900 transition inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-ink-50">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            编辑
+          </button>
+        </div>
+        {editingObj ? (
+          <div className="flex flex-col gap-2">
+            <input
+              autoFocus
+              value={objDraft}
+              onChange={(e) => setObjDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitObj(); if (e.key === 'Escape') setEditingObj(false); }}
+              className="w-full px-3 py-2 text-[15px] font-semibold border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
+              placeholder="输入年度目标..."
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingObj(false)} className="px-3 py-1 text-[12px] text-ink-500 hover:text-ink-700">取消</button>
+              <button onClick={commitObj} className="px-3 py-1 text-[12px] text-white rounded-md" style={{ background: BLUE }}>保存</button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[17px] font-bold text-ink-900 leading-snug">
+              {objective?.text || COG_O.text}
+            </h2>
+            <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+              <span className="text-[11px] text-ink-400">整体完成</span>
+              <span className="text-[18px] font-bold tabular-nums" style={{ color: BLUE }}>{totalPct}%</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ===== KR 卡片列表 ===== */}
       <div className="grid grid-cols-3 gap-3">
-        {COG_KR.map(kr => {
+        {finalKrs.map((kr, idx) => {
           const p = pct(kr.val, kr.tgt);
+          const isEditing = editingKrId === kr.id;
           return (
-            <div key={kr.lb} className="glass-card p-4 flex flex-col gap-2.5">
-              <span className="text-sm font-bold text-ink-900 leading-snug">{kr.lb}</span>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="text-xl font-bold tabular-nums leading-none" style={{color: '#4b63f0'}}>{kr.val}</span>
-                <span className="text-xs text-ink-500">/ {kr.tgt} · {kr.sub}</span>
+            <div key={kr.id || idx} className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col gap-2.5 hover:shadow-sm transition">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold text-white flex-shrink-0" style={{ background: BLUE }}>
+                    KR{idx + 1}
+                  </span>
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      value={krDraft?.lb || ''}
+                      onChange={(e) => setKrDraft({ ...krDraft, lb: e.target.value })}
+                      className="flex-1 min-w-0 px-2 py-1 text-[13px] font-bold border border-ink-200 rounded-md focus:outline-none focus:border-brand-500"
+                    />
+                  ) : (
+                    <span className="text-[13px] font-bold text-ink-900 leading-snug line-clamp-2">{kr.lb}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setEditingKrId(editingKrId === kr.id ? null : kr.id)}
+                  className="text-ink-300 hover:text-ink-600 p-1 -mr-1 -mt-1 rounded hover:bg-ink-50">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </button>
               </div>
-              <ProgressBar value={p} color="#4b63f0" />
-              <div className="text-xs font-semibold tabular-nums" style={{color:'#4b63f0'}}>完成率 {p}%</div>
+
+              {isEditing ? (
+                <div className="flex flex-col gap-2 pt-1">
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <input type="number" value={krDraft?.val || 0} onChange={(e) => setKrDraft({ ...krDraft, val: Number(e.target.value) })}
+                      className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500" placeholder="当前值" />
+                    <input type="number" value={krDraft?.tgt || 0} onChange={(e) => setKrDraft({ ...krDraft, tgt: Number(e.target.value) })}
+                      className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500" placeholder="目标" />
+                    <input value={krDraft?.u || ''} onChange={(e) => setKrDraft({ ...krDraft, u: e.target.value })}
+                      className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500" placeholder="单位" />
+                  </div>
+                  <input value={krDraft?.sub || ''} onChange={(e) => setKrDraft({ ...krDraft, sub: e.target.value })}
+                    className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500" placeholder="说明（如：书架系统追踪）" />
+                  <div className="flex justify-between items-center pt-1">
+                    <button
+                      onClick={() => { if (confirm('确定删除此 KR？')) onKrRemove?.(kr.id); }}
+                      className="text-[11px] text-accent-red hover:underline">删除</button>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => setEditingKrId(null)} className="px-2 py-0.5 text-[11px] text-ink-500 hover:text-ink-700">取消</button>
+                      <button onClick={commitKr} className="px-2 py-0.5 text-[11px] text-white rounded-md" style={{ background: BLUE }}>保存</button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-[22px] font-bold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
+                    <span className="text-[13px] text-ink-400 font-medium">/ {kr.tgt} {kr.u}</span>
+                  </div>
+                  <ProgressBar value={p} color={BLUE} />
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-ink-500">{kr.sub}</span>
+                    <span className="font-bold tabular-nums" style={{ color: BLUE }}>{p}%</span>
+                  </div>
+                </>
+              )}
             </div>
           );
         })}
+        {/* 添加 KR 按钮 */}
+        <button
+          onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
+          className="bg-white rounded-2xl border border-dashed border-ink-200 hover:border-brand-500 hover:bg-brand-50/30 p-4 flex flex-col items-center justify-center gap-1.5 text-ink-400 hover:text-brand-500 transition min-h-[130px]">
+          <div className="w-8 h-8 rounded-full bg-ink-100 hover:bg-brand-100 grid place-items-center transition">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+          </div>
+          <span className="text-[13px] font-semibold">新增 KR</span>
+        </button>
       </div>
-      {/* P2-2: 阅读漏斗图 */}
-      <ReadingFunnel pending={groups.pending.length} reading={groups.reading.length} done={groups.done.length} />
-      {/* 书架看板 - 3列: 阅读中 / 未开始 / 已读完 */}
-      <div className="grid grid-cols-3 gap-4">
-        {groupLabels.map(g => (
-          <div key={g.key} className={`flex flex-col gap-2.5 ${g.disabled ? 'opacity-50' : ''}`}>
-            <div className="flex items-center gap-2 px-0.5">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ background: `${g.col}10`, color: g.col }}>{g.lb}</span>
-              <span className="text-xs font-bold text-ink-700 tabular-nums">{g.count}</span>
+
+      {/* 添加 KR 弹窗 */}
+      {addingKr && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setAddingKr(false)}>
+          <div className="bg-white rounded-2xl p-5 w-[420px] max-w-[90vw] shadow-cardL" onClick={(e) => e.stopPropagation()}>
+            <div className="text-[15px] font-bold text-ink-900 mb-3">新增 KR</div>
+            <div className="flex flex-col gap-2.5">
+              <input value={newKr.lb} onChange={(e) => setNewKr({ ...newKr, lb: e.target.value })}
+                placeholder="KR 描述，如：读完12本书"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" value={newKr.val} onChange={(e) => setNewKr({ ...newKr, val: Number(e.target.value) })}
+                  placeholder="当前值" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                <input type="number" value={newKr.tgt} onChange={(e) => setNewKr({ ...newKr, tgt: Number(e.target.value) })}
+                  placeholder="目标值" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                <input value={newKr.u} onChange={(e) => setNewKr({ ...newKr, u: e.target.value })}
+                  placeholder="单位" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+              </div>
+              <input value={newKr.sub} onChange={(e) => setNewKr({ ...newKr, sub: e.target.value })}
+                placeholder="说明（可选）如：书架系统追踪"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
             </div>
-            <div className="flex flex-col gap-2 flex-1 min-h-[100px]">
-              {(groups[g.key] || []).length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center py-5 px-3 rounded-xl border border-dashed border-ink-100 text-center gap-1.5">
-                  <svg className="w-7 h-7 text-ink-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" strokeLinecap="round"/>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" strokeLinecap="round"/>
-                  </svg>
-                  <div className="text-xs font-semibold text-ink-500">{g.lb}为空</div>
-                  <div className="text-[11px] text-ink-400 leading-snug">
-                    {g.key === 'reading' && '开始一本新书，养成每日阅读习惯'}
-                    {g.key === 'todo' && '把想读的书先加进来，避免书单荒'}
-                    {g.key === 'done' && '读完的书记得归档，积累成就感'}
-                  </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setAddingKr(false)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
+              <button onClick={commitAddKr} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>添加</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== 阅读转化漏斗 ===== */}
+      <ReadingFunnel
+        total={groups.reading.length + groups.pending.length + groups.done.length}
+        reading={groups.reading.length}
+        notes={(finalKrs.find(k => k.id === 'kr2')?.val) || 0}
+        changes={(finalKrs.find(k => k.id === 'kr3')?.val) || 0}
+        color={BLUE}
+      />
+
+      {/* ===== 书架看板 - 3列 ===== */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { key: 'reading', lb: '阅读中', col: BLUE,      dot: BLUE_LIGHT,      books: groups.reading },
+          { key: 'pending', lb: '未开始', col: '#64748b',   dot: '#e2e8f0',       books: groups.pending },
+          { key: 'done',    lb: '已读完', col: '#22c55e',   dot: '#dcfce7',       books: groups.done },
+        ].map(g => (
+          <div key={g.key} className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: g.col }}></span>
+                <span className="text-[13px] font-bold text-ink-900">{g.lb}</span>
+                <span className="text-[12px] text-ink-400 tabular-nums">{g.books.length}</span>
+              </div>
+              <button onClick={() => onBookAdd?.()}
+                className="w-6 h-6 rounded-md border border-ink-200 hover:border-brand-500 hover:text-brand-500 text-ink-400 grid place-items-center transition">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 flex-1 min-h-[80px]">
+              {g.books.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center py-6 text-[12px] text-ink-400 border border-dashed border-ink-100 rounded-xl">
+                  暂无书籍
                 </div>
-              )}
-              {(groups[g.key] || []).map((b, idx) => {
-                const sm = statusMeta(b.st);
-                const dim = b.st === 'done' ? 'text-ink-500' : 'text-ink-900';
-                const coverColor = CAT_COLOR[b.cat] || CAT_COLOR['其他'];
-                return (
-                  <div key={idx} onClick={() => onBookEdit?.(b)} className="glass-card p-3 hover:shadow-cardL transition cursor-pointer">
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-9 h-12 rounded-md flex-shrink-0 opacity-85"
-                        style={{ background: `linear-gradient(135deg, ${coverColor} 0%, ${coverColor}cc 100%)` }} />
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-semibold leading-snug ${dim}`}>{b.t}</div>
-                        <div className="text-[11px] text-ink-400 mt-0.5 truncate">{b.author}</div>
+              ) : (
+                g.books.map((b, idx) => (
+                  <div key={idx} onClick={() => onBookEdit?.(b)}
+                    className="px-3 py-2.5 rounded-xl flex items-center justify-between gap-2 cursor-pointer hover:bg-ink-50 transition"
+                    style={{ background: g.dot }}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[14px]">📖</span>
+                      <div className="min-w-0">
+                        <div className={`text-[13px] font-semibold truncate ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
+                          {b.t}
+                        </div>
+                        {b.cat && <div className="text-[11px] text-ink-500 truncate">{b.cat}</div>}
                       </div>
-                      <div className="text-xs font-bold tabular-nums flex-shrink-0" style={{color: g.col}}>{b.pct}%</div>
                     </div>
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center gap-1.5 flex-1">
-                        <span className="text-[11px] font-semibold text-ink-600">{b.cat}</span>
-                        <span className="text-[11px] text-ink-300">·</span>
-                        <span className="text-[11px] font-medium text-ink-400">{b.src}</span>
-                      </div>
-                      <div className="flex-1 min-w-[80px] max-w-[110px]"><ProgressBar value={b.pct} color={g.col} variant="dense" /></div>
-                    </div>
+                    <span className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: g.col }}>
+                      {b.pct}%
+                    </span>
                   </div>
-                );
-              })}
-              <AddButton label="添加书籍" onClick={() => onBookAdd?.()} />
+                ))
+              )}
             </div>
           </div>
         ))}
@@ -1934,6 +2111,9 @@ export default function AnnualPlan({ standalone = true }) {
   const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));
   // 能力自评历史 - 每月记录一次分数，key: ability.id, value: {[YYYY-MM]: score}
   const [abilityScoreHistory, setAbilityScoreHistory] = usePersistentState('annual_ability_score_history', () => ({}));
+  // 知力 OKR - O 与 KR 列表均支持编辑增删
+  const [cogObjective, setCogObjective] = usePersistentState('annual_cog_o', () => COG_O);
+  const [cogKrs, setCogKrs] = usePersistentState('annual_cog_krs', () => COG_KRS.map(k => ({ ...k, id: k.id || uid() })));
 
   // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
   const mergedHabits = useMemo(() => {
@@ -2209,7 +2389,13 @@ export default function AnnualPlan({ standalone = true }) {
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
       {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} timeScale={timeScale} onTimeScaleChange={setTimeScale} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
-      {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} />}
+      {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit}
+        objective={cogObjective} onObjectiveChange={setCogObjective}
+        krs={cogKrs} onKrAdd={(kr) => { setCogKrs(prev => [...prev, { ...kr, id: uid() }]); showToast('KR 已添加'); }}
+        onKrEdit={(kr) => { setCogKrs(prev => prev.map(k => k.id === kr.id ? { ...k, ...kr } : k)); showToast('KR 已更新'); }}
+        onKrRemove={(id) => { setCogKrs(prev => prev.filter(k => k.id !== id)); showToast('KR 已删除'); }}
+        showToast={showToast}
+      />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}
         scoreHistory={abilityScoreHistory} onSetScore={(abilityIdx, newScore) => {
           const ab = abilities[abilityIdx]; if (!ab) return;

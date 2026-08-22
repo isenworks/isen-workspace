@@ -1167,9 +1167,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                2. 去掉表头独有 rounded-t-lg：表格是表头+3行一个整体，应该给最外层容器加 rounded-xl，表头和行都保持直边
                3. 区块间距：L1-L2 之间无分隔 → 加 my-4 + border-t border-ink-100 的 12px 空白通道
         */}
-        {/* L2: mt-5(上间距) + border-t border-ink-100(灰色分割线) + pt-5(分割线下方呼吸)
-            三段式: [20px间距] → [1px灰线] → [20px内容呼吸] */}
-        <div className="mt-5 px-0 pb-0 rounded-xl border-t border-ink-100 bg-transparent pt-5">
+        {/* L2: mt-4(上间距) + border-t border-ink-100(分割线) + pt-4(下间距)
+            统一16px对称间距，与L3分割线完全一致 */}
+        <div className="mt-4 px-0 pb-0 rounded-xl border-t border-ink-100 bg-transparent pt-4">
             {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
             <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
@@ -1287,9 +1287,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                3. ✅ 替换为：mb-6（底部足够呼吸通道） + mt-5 分隔 + 与 L1/L2 同宽 + 用细线分隔 L2/L3
                4. ✅ 标题两侧锚点改为 ink-200 纯灰（不使用 border 边框条，避免 L3 最"实"，层级反而重）
         */}
-        {/* L3: border-t border-ink-100(灰色分割线) + pt-6(分割线下方呼吸)
-            三段式: [0px间距,紧贴L2] → [1px灰线] → [24px内容呼吸] */}
-        <div className="w-full px-4 pt-6 pb-6 border-t border-ink-100 bg-transparent">
+        {/* L3: mt-4(上间距) + border-t border-ink-100(分割线) + pt-4(下间距)
+            统一16px对称间距，与L2分割线完全一致 */}
+        <div className="w-full px-4 mt-4 pt-4 pb-6 border-t border-ink-100 bg-transparent">
           <div className="flex items-center justify-between mb-4">
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">

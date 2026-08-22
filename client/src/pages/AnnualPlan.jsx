@@ -1612,10 +1612,10 @@ function CognitionView({
                          │     (缩进24px对齐标题)                  蓝色强调1   蓝色强调2│
                          └──────────────────────────────────────────────────────────┘
                          蓝色仅用于：当前值（进度核心）和完成率%（结果核心）两个点，绝不滥用 */
-                      <div className="flex items-start gap-2.5 px-3.5 py-3 pr-10">
-                        {/* L1 编号：灰色弱化（不抢标题），固定宽度，tabular数字右对齐保证01/02/03的1竖线对齐 */}
-                        <div className="flex-shrink-0 w-[24px] pt-[1.5px] text-right select-none">
-                          <span className="text-[11.5px] font-bold tabular-nums leading-none text-ink-300">
+                      <div className="flex items-start gap-1.5 px-2.5 py-3 pr-10">
+                        {/* L1 编号：固定宽度从24→18px，gap和padding同时压缩，右对齐tabular保证数字末位竖线对齐 */}
+                        <div className="flex-shrink-0 w-[18px] pt-[1.5px] text-right select-none">
+                          <span className="text-[11px] font-bold tabular-nums leading-none text-ink-300">
                             {padNum}
                           </span>
                         </div>

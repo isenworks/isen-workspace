@@ -210,14 +210,62 @@ function AddButton({ label, onClick }) {
   );
 }
 
+/* ---------- 通用：点击文字 → 内联输入框编辑（Enter保存/Esc取消/失焦保存） ---------- */
+function InlineEdit({ value, onChange, className, inputClassName, title, placeholder = '' }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(value);
+  const ref = React.useRef(null);
+  React.useEffect(() => { if (!editing) setDraft(value); }, [value, editing]);
+  React.useEffect(() => { if (editing) setTimeout(() => ref.current?.focus(), 0); }, [editing]);
+  const commit = () => {
+    setEditing(false);
+    const v = draft == null ? '' : String(draft).trim();
+    if (v !== String(value ?? '')) onChange(v);
+  };
+  const cancel = () => { setEditing(false); setDraft(value ?? ''); };
+  if (editing) {
+    return (
+      <input
+        ref={ref}
+        value={draft}
+        placeholder={placeholder}
+        onChange={(e) => setDraft(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
+        className={`outline-none border border-brand-300 rounded px-1.5 py-0.5 bg-white text-left ${inputClassName || ''}`}
+      />
+    );
+  }
+  return (
+    <span
+      title={title || '点击编辑'}
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      className={`cursor-text hover:opacity-80 transition select-none ${className || ''}`}>
+      {value || <span className="opacity-40">{placeholder || '点击填写'}</span>}
+    </span>
+  );
+}
+
 /* ---------- P2-2: 知力 OKR 漏斗 (阅读 → 笔记 → 践行) ---------- */
 function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0', embedded }) {
-  const stages = [
-    { key: 'total',   label: '阅读总量', count: total,  sub: '书架书籍' },
-    { key: 'reading', label: '在读中',   count: reading, sub: '正在阅读' },
-    { key: 'notes',   label: '输出笔记', count: notes,  sub: '已出笔记' },
-    { key: 'changes', label: '践行落地', count: changes, sub: '≥30天' },
-  ];
+  // 阶段元数据从props派生为state，支持编辑label/sub/convLabel（与顶部漏斗Header共用InlineEdit）
+  const [stages, setStages] = React.useState([
+    { key: 'total',   label: '阅读总量', count: total,  sub: '书架书籍', convLabel: '转化' },
+    { key: 'reading', label: '在读中',   count: reading, sub: '正在阅读', convLabel: '转化' },
+    { key: 'notes',   label: '输出笔记', count: notes,  sub: '已出笔记', convLabel: '转化' },
+    { key: 'changes', label: '践行落地', count: changes, sub: '≥30天',    convLabel: '转化' },
+  ]);
+  // 外部count变化时同步更新（比如书架书籍数变了），但保留用户改过的label/sub/convLabel
+  React.useEffect(() => {
+    setStages(prev => prev.map((s, i) => {
+      const realCount = [total, reading, notes, changes][i];
+      return realCount !== undefined && realCount !== s.count ? { ...s, count: realCount } : s;
+    }));
+  }, [total, reading, notes, changes]);
+
+  const updateStage = (key, patch) => setStages(prev => prev.map(s => s.key === key ? { ...s, ...patch } : s));
+
   const widthByCount = stages.map(s => s.count);
   const maxW = Math.max(...widthByCount, 1);
   const convColors = ['#f97316', '#f59e0b', color];
@@ -239,10 +287,25 @@ function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0', embe
                   background: `linear-gradient(90deg, ${color} 0%, ${color}e0 100%)`,
                   boxShadow: `0 1px 3px ${color}30`,
                 }}>
-                {/* 左：label + sub — 省略号避免断词换行 */}
+                {/* 左：label + sub — 均复用通用InlineEdit点击编辑 */}
                 <span className="flex items-center gap-1.5 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis mr-2">
-                  <span className="font-bold flex-shrink-0">{s.label}</span>
-                  <span className="text-[10px] font-normal opacity-80 whitespace-nowrap overflow-hidden text-ellipsis">· {s.sub}</span>
+                  <InlineEdit
+                    value={s.label}
+                    onChange={(v) => updateStage(s.key, { label: v })}
+                    className="font-bold flex-shrink-0"
+                    inputClassName="text-ink-900 text-[12px] w-20"
+                    title="点击编辑阶段名"
+                  />
+                  <span className="text-[10px] font-normal opacity-80 whitespace-nowrap overflow-hidden text-ellipsis inline-flex items-center gap-1">
+                    ·
+                    <InlineEdit
+                      value={s.sub}
+                      onChange={(v) => updateStage(s.key, { sub: v })}
+                      className="text-[10px] opacity-95"
+                      inputClassName="text-ink-900 text-[11px] w-16"
+                      title="点击编辑备注"
+                    />
+                  </span>
                 </span>
                 {/* 右：count — 独立盒子 shrink-0 永远不换行 */}
                 <span className="tabular-nums text-[14px] font-extrabold leading-none flex-shrink-0 ml-auto">
@@ -254,7 +317,13 @@ function ReadingFunnel({ total, reading, notes, changes, color = '#4b63f0', embe
               <div className="flex items-center py-0.5 pl-5 gap-1.5 text-[10.5px] whitespace-nowrap">
                 <div className="w-px h-2 bg-ink-200" />
                 <svg className="w-2 h-2 text-ink-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                <span className="text-ink-400 font-medium flex-shrink-0">转化</span>
+                <InlineEdit
+                  value={s.convLabel}
+                  onChange={(v) => updateStage(s.key, { convLabel: v })}
+                  className="text-ink-400 font-medium flex-shrink-0"
+                  inputClassName="text-ink-900 text-[10.5px] w-12"
+                  title="点击编辑转化文案"
+                />
                 <span className="font-extrabold tabular-nums px-1.5 py-px rounded-full flex-shrink-0"
                   style={{
                     color: convColors[i],
@@ -1662,12 +1731,25 @@ function CognitionView({
 
         {/* ============== RIGHT · OKR 转化漏斗 (1/3 窄列) ============== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
-          {/* Header 顶部对齐（和左卡片header y一致 — min-h统一20px、色条统一5×18、标题14.5px Bold） */}
+          {/* Header 顶部对齐（和左卡片header y一致 — min-h统一20px、色条统一5×18、标题14.5px Bold）
+              标题与右侧备注文字均可点击编辑 — 使用局部InLineEdit组件 */}
           <div className="flex items-center gap-2.5 mb-3 min-h-[20px]">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <span className="text-[14.5px] font-bold text-ink-900 leading-none whitespace-nowrap">转化漏斗</span>
-              <span className="text-[10px] text-ink-400 whitespace-nowrap">阅读→笔记→践行</span>
+              <InlineEdit
+                value={funnelHeader.title}
+                onChange={(v) => setFunnelHeader(p => ({ ...p, title: v }))}
+                className="text-[14.5px] font-bold text-ink-900 leading-none whitespace-nowrap"
+                inputClassName="text-[14.5px] font-bold text-ink-900 w-24"
+                title="点击编辑标题"
+              />
+              <InlineEdit
+                value={funnelHeader.sub}
+                onChange={(v) => setFunnelHeader(p => ({ ...p, sub: v }))}
+                className="text-[10px] text-ink-400 whitespace-nowrap"
+                inputClassName="text-[10px] font-medium text-ink-500 w-28"
+                title="点击编辑说明"
+              />
             </div>
           </div>
           <div className="flex-1 flex flex-col justify-center">
@@ -2211,6 +2293,8 @@ export default function AnnualPlan({ standalone = true }) {
   // 知力 OKR - O 与 KR 列表均支持编辑增删
   const [cogObjective, setCogObjective] = usePersistentState('annual_cog_o', () => COG_O);
   const [cogKrs, setCogKrs] = usePersistentState('annual_cog_krs', () => COG_KRS.map(k => ({ ...k, id: k.id || uid() })));
+  // 知力 · 漏斗顶部标题与备注（主标题"转化漏斗"+右侧说明"阅读→笔记→践行"），支持点击编辑
+  const [funnelHeader, setFunnelHeader] = usePersistentState('annual_cog_funnel_header', () => ({ title: '转化漏斗', sub: '阅读→笔记→践行' }));
 
   // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
   const mergedHabits = useMemo(() => {

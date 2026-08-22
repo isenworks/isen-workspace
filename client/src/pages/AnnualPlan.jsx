@@ -1604,7 +1604,7 @@ function CognitionView({
                     value={objDraft}
                     onChange={(e) => setObjDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') commitObj(); if (e.key === 'Escape') setEditingObj(false); }}
-                    className="w-full px-2.5 py-1.5 text-[14px] font-semibold border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
+                    className="w-full px-2.5 py-1.5 text-[16px] font-bold border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
                     placeholder="输入年度目标..."
                   />
                   <div className="flex justify-end gap-1.5">
@@ -1627,8 +1627,8 @@ function CognitionView({
                     if (!t) return;
                     onObjectiveChange?.({ ...(objective || COG_O), text: t });
                   }}
-                  className="flex-1 min-w-0 text-[14.5px] font-bold text-ink-900 leading-tight truncate"
-                  inputClassName="text-[14.5px] font-bold text-ink-900 w-full"
+                  className="flex-1 min-w-0 text-[16px] font-bold text-ink-900 leading-tight truncate"
+                  inputClassName="text-[16px] font-bold text-ink-900 w-full"
                   title="点击编辑O目标"
                   placeholder="填写O目标"
                 />

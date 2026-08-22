@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { API } from '../api/client.js';
 import { inferGrowthType } from '../utils/uiConstants.js';
 import Modal from '../components/Modal.jsx';

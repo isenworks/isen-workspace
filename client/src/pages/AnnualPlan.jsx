@@ -1631,14 +1631,19 @@ function CognitionView({
                           </div>
                         </div>
 
-                        {/* 右侧 · 数据区：数值/目标 + 百分比胶囊，稳稳锚定右边缘 */}
-                        <div className="flex items-baseline gap-3 flex-shrink-0">
-                          <div className="flex items-baseline gap-1 whitespace-nowrap">
+                        {/* 右侧 · 数据区：三层视觉语言严格分层
+                           L1 当前值：18px 蓝·Extrabold（开放式数据，主角）
+                           L2 斜杠/目标/单位：斜杠独立(灰·轻) · 目标值降级(ink-500·12px·Medium)
+                           L3 完成率：实心蓝底白字胶囊（结论状态，与L1"色字/色块"形成对比不冲突） */}
+                        <div className="flex items-center gap-2.5 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <span className="text-[18px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
-                            <span className="text-[11px] text-ink-400 font-semibold">/ {kr.tgt} {kr.u}</span>
+                            <span className="text-[12px] font-light tabular-nums text-ink-300 leading-none select-none">/</span>
+                            <span className="text-[12px] font-medium text-ink-500 tabular-nums leading-none">{kr.tgt}</span>
+                            <span className="text-[11px] font-medium text-ink-400 leading-none ml-0.5">{kr.u}</span>
                           </div>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums leading-none whitespace-nowrap"
-                            style={{ background: BLUE_LIGHT, color: BLUE }}>
+                          <span className="inline-flex items-center justify-center min-w-[42px] px-2 py-[3px] rounded-md text-[11.5px] font-extrabold tabular-nums leading-none whitespace-nowrap text-white"
+                            style={{ background: BLUE, boxShadow: `0 1px 3px ${BLUE}30` }}>
                             {p}%
                           </span>
                         </div>

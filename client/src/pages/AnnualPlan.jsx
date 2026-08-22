@@ -1481,86 +1481,87 @@ function CognitionView({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* ===== O · 目标卡片（高密度单行布局：色条 + O年份标签 + 目标 + 完成率胶囊） ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 px-4 py-3">
-        <div className="flex items-start gap-2.5">
-          {/* 统一蓝色色条锚点：5px宽 × 16px高 */}
-          <span className="w-[5px] h-[16px] rounded-full flex-shrink-0 mt-1" style={{ background: BLUE }}></span>
 
-          <div className="flex-1 min-w-0 flex items-center gap-3">
-            {editingObj ? (
-              <div className="flex-1 flex flex-col gap-1.5">
-                <input
-                  autoFocus
-                  value={objDraft}
-                  onChange={(e) => setObjDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') commitObj(); if (e.key === 'Escape') setEditingObj(false); }}
-                  className="w-full px-2.5 py-1.5 text-[14px] font-semibold border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
-                  placeholder="输入年度目标..."
-                />
-                <div className="flex justify-end gap-1.5">
-                  <button onClick={() => setEditingObj(false)} className="px-2 py-0.5 text-[11px] text-ink-500 hover:text-ink-700">取消</button>
-                  <button onClick={commitObj} className="px-2 py-0.5 text-[11px] text-white rounded-md" style={{ background: BLUE }}>保存</button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* 年份标签 + O徽章 */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-[13px] font-bold text-ink-900 whitespace-nowrap">
-                    {objective?.year || COG_O.year} · O
-                  </span>
-                  <button
-                    onClick={() => { setObjDraft(objective?.text || COG_O.text); setEditingObj(true); }}
-                    className="text-ink-300 hover:text-brand-500 p-0.5 rounded transition -ml-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
-                </div>
-                {/* 目标文字 */}
-                <h2 className="flex-1 min-w-0 text-[14.5px] font-semibold text-ink-900 leading-tight truncate" title={objective?.text || COG_O.text}>
-                  {objective?.text || COG_O.text}
-                </h2>
-                {/* 整体完成率胶囊 — 压到最小高度 */}
-                <div className="flex-shrink-0 px-2.5 py-1 rounded-lg text-right"
-                  style={{ background: BLUE_LIGHT }}>
-                  <div className="flex items-baseline gap-1 leading-none">
-                    <span className="text-[9px] font-medium" style={{ color: BLUE, opacity: 0.8 }}>完成</span>
-                    <span className="text-[17px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
-                      {totalPct}
-                      <span className="text-[11px] font-bold ml-0.5">%</span>
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ===== KR + 漏斗 左右双栏布局 KR 2/3 + 漏斗 1/3 (lg以上并排，以下堆叠) ===== */}
+      {/* ===== KR + 漏斗 左右双栏布局（KR 2/3 + 漏斗 1/3），O目标合并进KR header，整体去掉独立O卡 ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
-        {/* ============== LEFT · 关键结果 (2/3 宽) ============== */}
+        {/* ============== LEFT · OKR 目标 + 关键结果 (2/3 宽) ============== */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-              <span className="text-[16px] font-bold text-ink-900 leading-tight">
-                {objective?.year || COG_O.year}年 · 关键结果
-              </span>
-              <span className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded"
-                style={{ background: BLUE_LIGHT, color: BLUE }}>KR · {finalKrs.length}</span>
+          {/* ===== Header 两行：第1行 O目标（主信息）+ 完成率胶囊 ｜ 第2行 KR徽章（次信息）+ 新增KR ===== */}
+          <div className="flex flex-col gap-2.5 mb-3">
+            {/* Row 1 · O 目标主行 — 替换掉原"2026年·关键结果"行，承载完整 O 语义 */}
+            <div className="flex items-start gap-2.5">
+              {/* 统一蓝色色条锚点 5×18，与精力页一致 */}
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0 mt-[2px]" style={{ background: BLUE }}></span>
+
+              <div className="flex-1 min-w-0 flex items-center gap-3">
+                {editingObj ? (
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <input
+                      autoFocus
+                      value={objDraft}
+                      onChange={(e) => setObjDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') commitObj(); if (e.key === 'Escape') setEditingObj(false); }}
+                      className="w-full px-2.5 py-1.5 text-[14px] font-semibold border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500"
+                      placeholder="输入年度目标..."
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <button onClick={() => setEditingObj(false)} className="px-2 py-0.5 text-[11px] text-ink-500 hover:text-ink-700">取消</button>
+                      <button onClick={commitObj} className="px-2 py-0.5 text-[11px] text-white rounded-md" style={{ background: BLUE }}>保存</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* 年 + O 徽章 + 铅笔编辑 */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-[13px] font-bold text-ink-900 whitespace-nowrap">
+                        {objective?.year || COG_O.year} · O
+                      </span>
+                      <button
+                        onClick={() => { setObjDraft(objective?.text || COG_O.text); setEditingObj(true); }}
+                        className="text-ink-300 hover:text-brand-500 p-0.5 rounded transition -ml-1"
+                        title="编辑目标">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
+                    {/* O 描述（主文字，最醒目） */}
+                    <h1 className="flex-1 min-w-0 text-[15px] font-bold text-ink-900 leading-tight truncate"
+                      title={objective?.text || COG_O.text}>
+                      {objective?.text || COG_O.text}
+                    </h1>
+                    {/* 整体完成率胶囊 — inline-baseline 紧凑 */}
+                    <div className="flex-shrink-0 px-2.5 py-1 rounded-lg text-right"
+                      style={{ background: BLUE_LIGHT }}>
+                      <div className="flex items-baseline gap-1 leading-none">
+                        <span className="text-[9px] font-medium" style={{ color: BLUE, opacity: 0.8 }}>完成</span>
+                        <span className="text-[17px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
+                          {totalPct}
+                          <span className="text-[11px] font-bold ml-0.5">%</span>
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            <button
-              onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
-              style={{ background: BLUE_LIGHT, color: BLUE }}>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-              新增 KR
-            </button>
+
+            {/* Row 2 · KR 徽章 + 新增 KR 按钮（次信息行，弱化视觉重量） */}
+            <div className="flex items-center justify-between pl-[11.5px]">
+              <span className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded"
+                style={{ background: BLUE_LIGHT, color: BLUE }}>
+                KR · {finalKrs.length}
+              </span>
+              <button
+                onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
+                style={{ background: BLUE_LIGHT, color: BLUE }}>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                新增 KR
+              </button>
+            </div>
           </div>
 
-          {/* KR 卡片网格：左栏变窄，3列 → 在宽屏仍3列，中屏自动2列，窄屏1列，响应式更自然 */}
+          {/* KR 卡片网格：col-1 / sm:2 / xl:3 响应式 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 flex-1">
             {finalKrs.map((kr, idx) => {
               const p = pct(kr.val, kr.tgt);
@@ -1640,7 +1641,7 @@ function CognitionView({
           </div>
         </div>
 
-        {/* ============== RIGHT · 阅读转化漏斗 (1/3 窄列) ============== */}
+        {/* ============== RIGHT · OKR 转化漏斗 (1/3 窄列) ============== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center gap-2.5 mb-3">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>

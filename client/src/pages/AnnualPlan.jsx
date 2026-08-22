@@ -1645,6 +1645,9 @@ function CognitionView({
   const [krDraft, setKrDraft] = useState(null);
   const [addingKr, setAddingKr] = useState(false);
   const [newKr, setNewKr] = useState({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
+  // 书架拖拽
+  const [dragBookId, setDragBookId] = useState(null);
+  const [dragOverCol, setDragOverCol] = useState(null);
 
   const BLUE = '#4b63f0';
   const BLUE_LIGHT = '#eaf0ff';
@@ -2051,9 +2054,39 @@ function CognitionView({
             { key: 'reading', lb: '阅读中', col: BLUE,      dot: BLUE_LIGHT,      books: groups.reading },
             { key: 'pending', lb: '未开始', col: '#64748b',   dot: '#f8fafc',       books: groups.pending },
             { key: 'done',    lb: '已读完', col: '#22c55e',   dot: '#f0fdf4',       books: groups.done },
-          ].map(g => (
-            <div key={g.key} className="rounded-xl p-3 flex flex-col"
-              style={{ background: g.dot, border: `1px solid ${g.col}18` }}>
+          ].map(g => {
+            const isDragOver = dragOverCol === g.key && dragBookId && (() => {
+              // 拖拽中的书是否不本来就在这栏
+              const cur = (books || BOOKS).find(x => x.id === dragBookId);
+              return cur && cur.st !== g.key;
+            })();
+            return (
+            <div key={g.key}
+              className="rounded-xl p-3 flex flex-col transition-all duration-200"
+              style={{
+                background: g.dot,
+                border: isDragOver
+                  ? `2px dashed ${g.col}`
+                  : `1px solid ${g.col}18`,
+                padding: isDragOver ? 'calc(12px - 1px)' : undefined, // 补偿 border+1 不撑大
+                boxShadow: isDragOver ? `0 0 0 4px ${g.col}12` : undefined,
+              }}
+              onDragOver={(e) => {
+                e.preventDefault(); // 允许drop
+                const cur = (books || BOOKS).find(x => x.id === dragBookId);
+                if (cur && cur.st !== g.key) setDragOverCol(g.key);
+              }}
+              onDragLeave={() => { if (dragOverCol === g.key) setDragOverCol(null); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragBookId) {
+                  const cur = (books || BOOKS).find(x => x.id === dragBookId);
+                  if (cur && cur.st !== g.key) onBookMove?.(dragBookId, g.key);
+                }
+                setDragBookId(null);
+                setDragOverCol(null);
+              }}
+            >
               <div className="flex items-center justify-between mb-2.5 px-1">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full shadow-sm" style={{ background: g.col, boxShadow: `0 0 0 3px ${g.col}22` }}></span>
@@ -2066,31 +2099,47 @@ function CognitionView({
               </div>
               <div className="flex flex-col gap-1.5 flex-1 min-h-[80px]">
                 {g.books.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center py-5 text-[12px] text-ink-400 border border-dashed rounded-lg"
-                    style={{ borderColor: `${g.col}30` }}>
-                    暂无书籍
+                  <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] transition-all rounded-lg"
+                    style={{
+                      color: isDragOver ? g.col : '#a3a3a3',
+                      border: isDragOver ? `1.5px dashed ${g.col}90` : '1px dashed rgba(15,23,42,0.10)',
+                      background: isDragOver ? `${g.col}10` : 'transparent',
+                      fontWeight: isDragOver ? 700 : 500,
+                    }}>
+                    {isDragOver ? '松手放到这里' : '暂无书籍'}
                   </div>
                 ) : (
-                  g.books.map((b, idx) => {
-                    // 三栏定义（供快速移动菜单复用）
-                    const MOVES = [
-                      { key: 'pending', lb: '未开始', col: '#64748b' },
-                      { key: 'reading', lb: '阅读中', col: BLUE },
-                      { key: 'done',    lb: '已读完', col: '#22c55e' },
-                    ];
+                  g.books.map((b) => {
+                    const isDragging = dragBookId === b.id;
                     return (
-                      <div key={b.id || idx}
-                        className="group rounded-lg bg-white transition-all hover:shadow-md relative"
+                      <div
+                        key={b.id}
+                        draggable
+                        onDragStart={(e) => {
+                          try { e.dataTransfer.setData('text/plain', String(b.id)); } catch {}
+                          e.dataTransfer.effectAllowed = 'move';
+                          setDragBookId(b.id);
+                        }}
+                        onDragEnd={() => { setDragBookId(null); setDragOverCol(null); }}
+                        className={`rounded-lg bg-white transition-all relative select-none ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-md'}`}
                         style={{
+                          cursor: isDragging ? 'grabbing' : 'grab',
                           boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
                           border: `1px solid ${g.col}20`,
                         }}>
-                        {/* 上半行：点击打开编辑弹窗（书名+分类+进度%） */}
+                        {/* 主行：点击 → 打开编辑弹窗 */}
                         <div
                           onClick={() => onBookEdit?.(b)}
-                          className="px-2.5 py-2 flex items-center justify-between gap-2 cursor-pointer">
+                          className="px-2.5 py-2 flex items-center justify-between gap-2"
+                          style={{ cursor: 'pointer' }}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[13px] w-5 text-center">📖</span>
+                            {/* 拖拽把手：暗示可拖 */}
+                            <span className="text-[9px] leading-none text-ink-200 group-hover:text-ink-400 transition flex-shrink-0"
+                              title="按住拖到其他栏目"
+                              style={{ letterSpacing: '-0.5px', paddingRight: '2px' }}>
+                              ⋮⋮
+                            </span>
+                            <span className="text-[13px] w-5 text-center flex-shrink-0">📖</span>
                             <div className="min-w-0">
                               <div className={`text-[12.5px] font-semibold truncate ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
                                 {b.t}
@@ -2102,47 +2151,13 @@ function CognitionView({
                             {b.pct}%
                           </span>
                         </div>
-
-                        {/* 下半行：快速移动到三栏（默认隐藏，hover展开；已在该栏则禁用高亮） */}
-                        <div className="flex items-center gap-1 px-2 pb-2">
-                          {MOVES.map(m => {
-                            const active = m.key === g.key;
-                            return (
-                              <button
-                                key={m.key}
-                                type="button"
-                                disabled={active}
-                                onClick={(e) => { e.stopPropagation(); onBookMove?.(b.id, m.key); }}
-                                title={`移至「${m.lb}」`}
-                                className="flex-1 text-center text-[10.5px] font-medium rounded-md py-1 transition"
-                                style={{
-                                  color: active ? '#fff' : m.col,
-                                  background: active ? m.col : `${m.col}10`,
-                                  opacity: active ? 1 : 0,
-                                  transform: active ? 'none' : 'translateY(2px)',
-                                  pointerEvents: active ? 'none' : 'auto',
-                                }}
-                                // group-hover 时显现：用 inline style + transition，Tailwind 的 group-hover:opacity-100 同样可用
-                                // 但这里直接按"始终弱显示，hover变亮"设计更佳，降低发现门槛
-                              >
-                                {m.lb}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {/* 始终给 3 个按钮一个基础可见度（hover前也能隐约看到，引导用户发现；同时上面opacity:0→1被覆盖成合理的hover显亮） */}
-                        <style>{`
-                          .group > div:last-of-type button { opacity: .55; transform: none; }
-                          .group:hover > div:last-of-type button { opacity: 1; }
-                          .group > div:last-of-type button[disabled] { opacity: 1; }
-                        `}</style>
                       </div>
                     );
                   })
                 )}
               </div>
             </div>
-          ))}
+          );})}
         </div>
       </div>
     </div>

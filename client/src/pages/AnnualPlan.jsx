@@ -1002,6 +1002,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   // 正在编辑目标的行 habit key，null = 不编辑
   const [editingTargetKey, setEditingTargetKey] = useState(null);
   const [targetDraft, setTargetDraft] = useState('');
+  // 联动状态：L2各月数据点击月份 → L3日历切换到对应月
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
   if (loading && !realHabits) {
     return (
@@ -1182,11 +1184,29 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div className="text-right pr-2 whitespace-nowrap">目标</div>
               <div className="text-right pr-2 whitespace-nowrap">累计</div>
               <div className="text-right pr-2 whitespace-nowrap grp-end">完成率</div>
-              {monthLabels.map((m, idx) => (
-                <div key={m} className={['text-center whitespace-nowrap', isCurrentMonth(idx + 1) ? 'text-accent-green font-bold' : ''].join(' ')}>
-                  {m}
-                </div>
-              ))}
+              {monthLabels.map((m, idx) => {
+                const monthNum = idx + 1;
+                const isCur = isCurrentMonth(monthNum);
+                const isSelected = selectedMonth === monthNum;
+                const isFuture = monthNum > curMonth;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => !isFuture && setSelectedMonth(monthNum)}
+                    disabled={isFuture}
+                    className={[
+                      'text-center whitespace-nowrap tabular-nums transition-colors rounded px-1 py-0.5',
+                      isSelected
+                        ? 'text-accent-green font-bold bg-accent-green/10 cursor-pointer'
+                        : isFuture
+                          ? 'text-ink-300 cursor-not-allowed'
+                          : 'text-ink-600 font-medium hover:text-accent-green hover:bg-accent-green/5 cursor-pointer'
+                    ].join(' ')}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
             </div>
             {habits.map(h => {
               const p = pct(h.val, h.target);
@@ -1294,7 +1314,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">
               <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-              <span className="text-[16px] font-bold text-ink-900">{year}年 · {curMonth}月数据</span>
+              <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
@@ -1311,11 +1331,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           {/* 行间距 gap-3.5：三行习惯行之间 14px 间距（适度收紧，不再过松） */}
           <div className="flex flex-col gap-3.5">
             {habits.map((h, hidx) => {
-              const daysTotal = monthMaxDays[curMonth - 1];
-              const realDates = h.monthDates?.[curMonth];
+              const daysTotal = monthMaxDays[selectedMonth - 1];
+              const realDates = h.monthDates?.[selectedMonth];
               const completedDays = realDates
                 ? realDates
-                : new Set(Array.from({ length: h.month?.[curMonth] || 0 }, (_, i) => i + 1));
+                : new Set(Array.from({ length: h.month?.[selectedMonth] || 0 }, (_, i) => i + 1));
               return (
                 // 去掉 py-1 上下padding，方块行不再有额外上下内边距
                 <div key={h.key} className="flex items-center gap-3">
@@ -1329,8 +1349,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '3px'}}>
                     {Array.from({ length: daysTotal }, (_, d) => {
                       const day = d + 1;
-                      const isPast = day <= daysElapsedInCurMonth;
-                      const isToday = day === daysElapsedInCurMonth;
+                      // 选中月=当前月时用真实天数判断，否则历史月全部视为"已过"
+                      const isPast = selectedMonth < curMonth ? true : selectedMonth === curMonth ? day <= daysElapsedInCurMonth : false;
+                      const isToday = selectedMonth === curMonth && day === daysElapsedInCurMonth;
                       const checked = completedDays.has(day);
                       // 三态：已打卡 / 未打卡（已过）/ 未开始（未来）
                       // ⭐ 与表格月份格子严格双向对齐：
@@ -1358,7 +1379,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       }
                       return (
                         <div key={day}
-                          title={`${curMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
+                          title={`${selectedMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
                           className={[
                             'aspect-square rounded-md grid place-items-center',
                             // 🔝 日历数字缩小：13→12px（精致化），但保持字重统一（semibold/bold）、line-height 统一

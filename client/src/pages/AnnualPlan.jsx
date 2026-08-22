@@ -1549,7 +1549,13 @@ function CognitionView({
     };
   }, [books]);
 
-  const finalKrs = krs || COG_KRS;
+  const finalKrs = (krs || COG_KRS).map(kr => {
+    // KR1（读完X本书）的 val 自动从书架「已读完」采集，无需手动维护
+    if (kr.id === 'kr1') {
+      return { ...kr, val: groups.done.length };
+    }
+    return kr;
+  });
 
   const totalPct = useMemo(() => {
     if (!finalKrs.length) return 0;

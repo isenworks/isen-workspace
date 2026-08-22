@@ -249,9 +249,9 @@ function InlineEdit({ value, onChange, className, inputClassName, title, placeho
   );
 }
 
-/* ---------- P2-2: 知力 OKR 漏斗 (阅读 → 笔记 → 践行) ---------- */
+/* ---------- P2-2: 知力 OKR 漏斗 (阅读总量 → 已阅读 → 笔记 → 践行) ---------- */
 function ReadingFunnel({
-  total, reading, notes, changes, color = '#4b63f0', embedded,
+  total, done, notes, changes, color = '#4b63f0', embedded,
   // 非embedded模式下支持顶部标题/备注编辑 — 调用方传值和回调，未传则走默认
   headerTitle = '阅读转化漏斗',
   headerSub = 'KR1 → KR2 → KR3',
@@ -259,18 +259,18 @@ function ReadingFunnel({
 }) {
   // 阶段元数据从props派生为state，支持编辑label/sub/convLabel（与顶部漏斗Header共用InlineEdit）
   const [stages, setStages] = React.useState([
-    { key: 'total',   label: '阅读总量', count: total,  sub: '书架书籍', convLabel: '转化' },
-    { key: 'reading', label: '在读中',   count: reading, sub: '正在阅读', convLabel: '已阅读' },
-    { key: 'notes',   label: '输出笔记', count: notes,  sub: '已出笔记', convLabel: '转化' },
-    { key: 'changes', label: '践行落地', count: changes, sub: '≥30天',    convLabel: '转化' },
+    { key: 'total', label: '阅读总量', count: total, sub: '书架书籍', convLabel: '转化' },
+    { key: 'done',  label: '已阅读',   count: done,  sub: '已读完本数', convLabel: '转化' },
+    { key: 'notes', label: '输出笔记', count: notes, sub: '已出笔记', convLabel: '转化' },
+    { key: 'changes', label: '践行落地', count: changes, sub: '≥30天', convLabel: '转化' },
   ]);
   // 外部count变化时同步更新（比如书架书籍数变了），但保留用户改过的label/sub/convLabel
   React.useEffect(() => {
     setStages(prev => prev.map((s, i) => {
-      const realCount = [total, reading, notes, changes][i];
+      const realCount = [total, done, notes, changes][i];
       return realCount !== undefined && realCount !== s.count ? { ...s, count: realCount } : s;
     }));
-  }, [total, reading, notes, changes]);
+  }, [total, done, notes, changes]);
 
   const updateStage = (key, patch) => setStages(prev => prev.map(s => s.key === key ? { ...s, ...patch } : s));
 
@@ -1818,7 +1818,7 @@ function CognitionView({
           <div className="flex-1 flex flex-col justify-center">
             <ReadingFunnel
               total={groups.reading.length + groups.pending.length + groups.done.length}
-              reading={groups.reading.length}
+              done={groups.done.length}
               notes={(finalKrs.find(k => k.id === 'kr2')?.val) || 0}
               changes={(finalKrs.find(k => k.id === 'kr3')?.val) || 0}
               color={BLUE}

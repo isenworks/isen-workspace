@@ -1610,23 +1610,25 @@ function CognitionView({
                         </div>
                       </div>
                     ) : (
-                      /* 方案B：编号色条锚点 + 文案区（flex-1） + 右下双胶囊块
-                         ┌──┬───────────────────────────────┬──────────────┐
-                         │01│标题                      读完 │ [5/12本] [42%]│
-                         │蓝│说明（书架追踪）               │  数据·完成率  │
-                         └──┴───────────────────────────────┴──────────────┘ */
-                      <div className="flex items-stretch gap-0 min-h-[64px]">
-                        {/* 左 · 编号色条块：蓝底色条 + 编号上下居中 —— 替代原独立胶囊编号，更有章节锚点感 */}
-                        <div className="flex-shrink-0 w-9 flex flex-col items-center justify-center rounded-l-xl"
-                          style={{ background: BLUE_LIGHT, borderLeft: `3px solid ${BLUE}` }}>
-                          <span className="text-[12px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
+                      /* 方案C（克制极简）：苹果·Things·备忘录风格 — 纯排版分层，零胶囊零色块
+                         设计准则：只用【字号·字重·颜色·缩进·间距】5个变量做层级，不用任何背景色块
+                         ┌──────────────────────────────────────────────────────────┐
+                         │ 01  读完12本书                            5  / 12 本  42% │
+                         │     书架系统追踪                          ▲          ▲    │
+                         │     (缩进24px对齐标题)                  蓝色强调1   蓝色强调2│
+                         └──────────────────────────────────────────────────────────┘
+                         蓝色仅用于：当前值（进度核心）和完成率%（结果核心）两个点，绝不滥用 */
+                      <div className="flex items-start gap-2.5 px-3.5 py-3 pr-10">
+                        {/* L1 编号：灰色弱化（不抢标题），固定宽度，tabular数字右对齐保证01/02/03的1竖线对齐 */}
+                        <div className="flex-shrink-0 w-[24px] pt-[1.5px] text-right select-none">
+                          <span className="text-[11.5px] font-bold tabular-nums leading-none text-ink-300">
                             {padNum}
                           </span>
                         </div>
 
-                        {/* 中 · 文案区（flex-1撑满），标题+说明上下对齐，右侧留出铅笔空间 */}
-                        <div className="flex-1 min-w-0 px-3.5 py-2.5 flex flex-col justify-center gap-0.5">
-                          <div className="text-[13px] font-bold text-ink-900 leading-[1.25] truncate pr-5"
+                        {/* L2 文案区（flex-1撑满）：标题黑·说明灰，缩进对齐自然阅读动线 */}
+                        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                          <div className="text-[13px] font-semibold text-ink-900 leading-[1.3] truncate"
                             title={kr.lb}>
                             {kr.lb}
                           </div>
@@ -1638,19 +1640,20 @@ function CognitionView({
                           )}
                         </div>
 
-                        {/* 右 · 双胶囊数据区（右下锚定），从散碎5元素→2个视觉统一的胶囊 */}
-                        <div className="flex items-center gap-2 pr-8 pl-1 py-2.5 flex-shrink-0">
-                          {/* 胶囊1：数据胶囊 —— 把当前值/斜杠/目标/单位整合为一个统一胶囊（不再散） */}
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg whitespace-nowrap border"
-                            style={{ background: BLUE_LIGHT + '66', borderColor: `${BLUE}22` }}>
-                            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
-                            <span className="text-[11px] font-light tabular-nums leading-none select-none" style={{ color: `${BLUE}77` }}>/</span>
-                            <span className="text-[11.5px] font-semibold tabular-nums leading-none" style={{ color: BLUE, opacity: 0.78 }}>{kr.tgt}</span>
-                            <span className="text-[10.5px] font-medium leading-none ml-0.5" style={{ color: BLUE, opacity: 0.68 }}>{kr.u}</span>
+                        {/* L3 数据区（右对齐）：纯排版无胶囊，严格分三层视觉
+                           - 当前值：蓝色 16px Extrabold（强调点1，进度核心）
+                           - 斜杠/目标/单位：ink灰，降级参照（斜杠最淡）
+                           - 完成率：蓝色 13px Extrabold（强调点2，结果核心），固定宽度右对齐 */}
+                        <div className="flex-shrink-0 flex items-center gap-5 tabular-nums">
+                          {/* 进度组：当前值 + 参考（/目标单位），items-baseline保持数字底线对齐 */}
+                          <div className="flex items-baseline gap-1 whitespace-nowrap">
+                            <span className="text-[16px] font-extrabold leading-none" style={{ color: BLUE }}>{kr.val}</span>
+                            <span className="text-[11px] font-light leading-none text-ink-300 select-none">/</span>
+                            <span className="text-[12px] font-medium leading-none text-ink-500">{kr.tgt}</span>
+                            <span className="text-[10.5px] font-medium leading-none text-ink-400 ml-0.5">{kr.u}</span>
                           </div>
-                          {/* 胶囊2：完成率胶囊 —— 实心蓝底白字，保持强势结论感，和数据胶囊形成【浅块·深块】对比 */}
-                          <span className="inline-flex items-center justify-center min-w-[46px] px-2.5 py-1 rounded-lg text-[12px] font-extrabold tabular-nums leading-none whitespace-nowrap text-white"
-                            style={{ background: BLUE, boxShadow: `0 1px 4px ${BLUE}35` }}>
+                          {/* 完成率：独立固定宽度列，右对齐保证三条KR 42%/25%/0% 小数点对齐 */}
+                          <span className="w-[44px] text-right text-[13px] font-extrabold leading-none" style={{ color: BLUE }}>
                             {p}%
                           </span>
                         </div>

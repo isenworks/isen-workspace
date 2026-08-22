@@ -1555,8 +1555,8 @@ function CognitionView({
             )}
           </div>
 
-          {/* KR 卡片网格：col-1 / sm:2 / xl:3 响应式 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 flex-1">
+          {/* KR 卡片：从三列并排→单列三行垂直堆叠，适配左栏2/3全宽；内部横向布局=左（编号·标题·说明）｜右（数据·%胶囊） */}
+          <div className="flex flex-col gap-2 flex-1">
             {finalKrs.map((kr, idx) => {
               const p = pct(kr.val, kr.tgt);
               const isEditing = editingKrId === kr.id;
@@ -1564,7 +1564,7 @@ function CognitionView({
               return (
                 <div key={kr.id || idx}
                   onClick={() => !isEditing && !editingKrId && (setKrDraft({ ...kr }), setEditingKrId(kr.id))}
-                  className="rounded-xl border relative overflow-hidden transition-all cursor-pointer min-h-[104px] flex flex-col"
+                  className="rounded-xl border relative overflow-hidden transition-all cursor-pointer min-h-[68px]"
                   style={{
                     background: isEditing ? BLUE_LIGHT : '#fff',
                     borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
@@ -1577,8 +1577,8 @@ function CognitionView({
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
 
-                  {/* 卡内容：三行结构 + justify-between = 上中下均匀分布，底部不再空荡失重 */}
-                  <div className="px-3 py-2.5 flex flex-col justify-between h-full flex-1 gap-0">
+                  {/* 卡内容：单列横向布局 — 左文右数，信息条形态 */}
+                  <div className="px-3 py-2.5 pr-8">
                     {isEditing ? (
                       <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                         <input
@@ -1610,41 +1610,39 @@ function CognitionView({
                         </div>
                       </div>
                     ) : (
-                      <>
-                        {/* 行1（What）：编号·标题 —— 卡顶部，定义"要做什么" */}
-                        <div className="flex items-start gap-1.5 pr-5">
-                          <span className="inline-flex items-center justify-center flex-shrink-0 mt-[1px] px-1 min-w-[22px] h-[16px] text-[10px] font-extrabold tabular-nums rounded"
+                      <div className="flex items-center gap-3 min-h-[48px]">
+                        {/* 左侧 · 编号 + 文案区：编号·标题·说明 连成一气 */}
+                        <div className="flex-1 min-w-0 flex items-start gap-2">
+                          <span className="inline-flex items-center justify-center flex-shrink-0 mt-[2px] px-1 min-w-[26px] h-[18px] text-[11px] font-extrabold tabular-nums rounded-md"
                             style={{ background: BLUE_LIGHT, color: BLUE }}>
                             {padNum}
                           </span>
-                          <div className="flex-1 min-w-0 text-[12.5px] font-bold text-ink-900 leading-[1.3] line-clamp-2"
-                            title={kr.lb}>
-                            {kr.lb}
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <div className="text-[13px] font-bold text-ink-900 leading-[1.25] truncate"
+                              title={kr.lb}>
+                              {kr.lb}
+                            </div>
+                            {kr.sub && (
+                              <span className="text-[10.5px] text-ink-400 font-medium leading-tight truncate mt-0.5"
+                                title={kr.sub}>
+                                {kr.sub}
+                              </span>
+                            )}
                           </div>
                         </div>
 
-                        {/* 行2（How）：说明文字 —— 居中，解释"怎么追踪"，灰色弱化 · 与标题同左缩进 */}
-                        {kr.sub && (
-                          <div className="pl-[23.5px] my-1">
-                            <span className="inline-block text-[10.5px] text-ink-400 font-medium leading-tight truncate w-full"
-                              title={kr.sub}>
-                              {kr.sub}
-                            </span>
+                        {/* 右侧 · 数据区：数值/目标 + 百分比胶囊，稳稳锚定右边缘 */}
+                        <div className="flex items-baseline gap-3 flex-shrink-0">
+                          <div className="flex items-baseline gap-1 whitespace-nowrap">
+                            <span className="text-[18px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
+                            <span className="text-[11px] text-ink-400 font-semibold">/ {kr.tgt} {kr.u}</span>
                           </div>
-                        )}
-
-                        {/* 行3（Progress）：核心数据 —— 卡底部，数值/目标/单位 + 百分比胶囊，视觉压底 */}
-                        <div className="flex items-baseline justify-between gap-2 pl-[23.5px]">
-                          <div className="flex items-baseline gap-1 flex-shrink-0 whitespace-nowrap">
-                            <span className="text-[16px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>{kr.val}</span>
-                            <span className="text-[10.5px] text-ink-400 font-semibold">/ {kr.tgt} {kr.u}</span>
-                          </div>
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-extrabold tabular-nums leading-none flex-shrink-0 whitespace-nowrap"
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums leading-none whitespace-nowrap"
                             style={{ background: BLUE_LIGHT, color: BLUE }}>
                             {p}%
                           </span>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>

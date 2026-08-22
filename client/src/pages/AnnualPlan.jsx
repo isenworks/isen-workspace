@@ -1088,7 +1088,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                2. 左侧 2px 绿色竖条（强化锚点，Notion/Lark 同款区块强调方式）
                3. 内部 padding px-4→px-5（内容不贴边，呼吸感更强）
         */}
-        <div className="px-4 py-3 border-b border-ink-100 bg-surface-soft/50">
+        <div className="px-4 py-3 bg-surface-soft/50">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
               {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（三区块完全统一的视觉标识） */}
@@ -1167,9 +1167,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                2. 去掉表头独有 rounded-t-lg：表格是表头+3行一个整体，应该给最外层容器加 rounded-xl，表头和行都保持直边
                3. 区块间距：L1-L2 之间无分隔 → 加 my-4 + border-t border-ink-100 的 12px 空白通道
         */}
-        {/* L2 容器用 px-0，内部 grid 的 px-4 作为唯一水平padding
-            → 表头/数据行内容左端 = 容器边缘 + 16px = 与L1/L3完全对齐 */}
-        <div className="my-4 px-0 pb-0 rounded-xl border-t-0 border-0 bg-transparent">
+        {/* L2 用 mt-6(24px) 提供与L1之间的间距, 不再用my-4双重margin
+            与L3之间的间距由L3的pt-6(24px)内部padding提供 → 对称统一 */}
+        <div className="mt-6 px-0 pb-0 rounded-xl border-t-0 border-0 bg-transparent">
             {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
             <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
@@ -1295,7 +1295,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                3. ✅ 替换为：mb-6（底部足够呼吸通道） + mt-5 分隔 + 与 L1/L2 同宽 + 用细线分隔 L2/L3
                4. ✅ 标题两侧锚点改为 ink-200 纯灰（不使用 border 边框条，避免 L3 最"实"，层级反而重）
         */}
-        <div className="w-full px-4 pt-5 pb-6 mt-4 border-t border-ink-100">
+        {/* L3: mt-0(无额外上间距, 紧贴L2底部) + pt-6(24px内部padding)
+            → L2底部到L3标题的视觉距离 = 24px, 与L1→L2间距完全对称统一 */}
+        <div className="w-full px-4 pt-6 pb-6 bg-transparent">
           <div className="flex items-center justify-between mb-4">
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">

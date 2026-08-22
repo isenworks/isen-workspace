@@ -2697,33 +2697,27 @@ export default function AnnualPlan({ standalone = true }) {
   // ---- CRUD 操作 ----
   // 认知·书籍
   // 单一真理源：写入前统一规范化 st ↔ pct（防止编辑只改一个没改另一个，导致分组不变）
-  //   pct >= 100         → st = 'done',    pct = 100
-  //   0 < pct < 100      → st = 'reading', pct = 原值
-  //   pct == 0 && st 任选→ st = 'pending', pct = 0
-  //   若用户显式指定 st（移动栏目的场景）则以 st 为准：
-  //     'done'   → pct 强制 100
-  //     'reading'→ pct 若为0则给 1（进入阅读中至少有进度），其他保留；不能到100（否则归done）
-  //     'pending'→ pct 强制 0
+  //   · 规则优先级：用户【显式指定的 st】（例如从 done 拖回 reading）> 【st 与 pct 双向同步】
+  //     （避免出现"已读完→拖回阅读中，但pct还是100被auto-升回done导致动不了"的问题）
+  //   · pct 边界规则：
+  //     done    → 强制 pct = 100
+  //     pending → 强制 pct = 0
+  //     reading → pct 必须在 (0, 100) 开区间：
+  //                 · 0 进来默认 1%（表示"开始读了"）
+  //                 · ≥ 100 进来压到 99%（尊重用户要放reading的意图）
+  //     无 st / 老数据兼容 → 仅按 pct 反推
   const normalizeBook = (b) => {
     const out = { ...b };
     const pctNum = Math.min(100, Math.max(0, Number(out.pct) || 0));
-    // 先按 st 显式规范 pct
     if (out.st === 'done') {
       out.pct = 100;
     } else if (out.st === 'pending') {
       out.pct = 0;
     } else if (out.st === 'reading') {
-      // reading 下：若 pct=0（刚从 pending 移过来没填进度），默认 1% 表示"开始读了"；若 pct=100 自动升 done
-      if (pctNum >= 100) {
-        out.st = 'done';
-        out.pct = 100;
-      } else if (pctNum <= 0) {
-        out.pct = 1;
-      } else {
-        out.pct = pctNum;
-      }
+      if (pctNum >= 100) out.pct = 99;     // 用户显式要求reading：哪怕100%也压到99，防止被下面逻辑反弹回done
+      else if (pctNum <= 0) out.pct = 1;
+      else out.pct = pctNum;
     } else {
-      // st 未知/没传（老数据兼容） → 仅按 pct 推断
       out.pct = pctNum;
       if (out.pct >= 100) out.st = 'done';
       else if (out.pct > 0) out.st = 'reading';

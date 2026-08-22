@@ -1094,7 +1094,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（三区块完全统一的视觉标识） */}
               <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
               {/* 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重 */}
-              <span className="text-[16px] font-bold text-ink-800">{year}年 · 年度数据</span>
+              <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => onAction?.('addHabit')}
@@ -1175,8 +1175,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
                 {/* 🟢 统一绿色粗条锚点：3px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识） */}
                 <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-                {/* L2 标题统一 font-bold text-ink-800，与L1/L3完全一致 */}
-                <span className="text-[16px] font-bold text-ink-800">{year}年 · 各月数据</span>
+                {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
+                <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
               {/* 🔧 对齐修复：表头统计列使用 pr-2 的右侧边距，与下方 data-cell 的右边缘严格一致 */}
               <div className="text-right pr-2 whitespace-nowrap">目标</div>
@@ -1300,7 +1300,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">
               <span className="w-[3px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-              <span className="text-[16px] font-bold text-ink-800">{year}年 · {curMonth}月数据</span>
+              <span className="text-[16px] font-bold text-ink-900">{year}年 · {curMonth}月数据</span>
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">

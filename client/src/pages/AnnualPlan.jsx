@@ -1185,7 +1185,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           const v = Math.round(stats.perCat[i]);
           return (
             <button key={c.key} onClick={() => onNav(c.key)}
-              className="bg-white border border-ink-100 rounded-xl p-4 text-left flex flex-col gap-3 hover:shadow-[0_4px_14px_rgba(17,24,39,0.06)] hover:border-ink-200 transition-all group">
+              className="bg-white border border-ink-100 rounded-2xl p-4 text-left flex flex-col gap-3 hover:shadow-[0_4px_14px_rgba(17,24,39,0.06)] hover:border-ink-200 transition-all group">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg grid place-items-center bg-ink-100 text-ink-500"
                   style={{ color: c.color, background: `${c.color}10` }}>
@@ -1239,7 +1239,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             const delta = curMonth > 1 ? months12[curMonth - 1] - months12[curMonth - 2] : 0;
             const deltaSign = delta > 0 ? '+' : '';
             return (
-              <div key={c.key} className="rounded-xl border border-ink-100 p-3 flex flex-col gap-2 bg-white hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.05)] transition-all">
+              <div key={c.key} className="rounded-2xl border border-ink-100 p-3 flex flex-col gap-2 bg-white hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.05)] transition-all">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-md grid place-items-center text-[10px]"
                     style={{ color: c.color, background: `${c.color}14` }}>
@@ -1492,7 +1492,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                    右 ROW2 次KPI：累计(14px 600 ink-900) / 分隔(ink-300) / 目标(14px 600 ink-700) 单位(12px ink-400)
                 */
                 <div key={h.key}
-                  className="grid p-3 pb-2 rounded-xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
+                  className="grid p-3 pb-2 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
                   style={{ gridTemplateRows: 'auto 1fr auto' }}>
                   {/* ROW1+ROW2 合并为一行紧凑的 KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
                   <div className="flex items-start justify-between gap-2">
@@ -2534,7 +2534,7 @@ function CognitionView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* ============== LEFT · OKR 目标 + 关键结果 (2/3 宽) ============== */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
           {/* ===== Header 单一行化：色条 | O 文案 · KR·3 | 22% 徽章 | +新增KR —— 省掉一整行垂直空间 ===== */}
           <div className="mb-3">
             {editingObj ? (
@@ -2604,7 +2604,7 @@ function CognitionView({
               const padNum = String(idx + 1).padStart(2, '0');
               return (
                 <div key={kr.id || idx}
-                  className="rounded-xl border relative overflow-hidden transition-all"
+                  className="rounded-2xl border relative overflow-hidden transition-all"
                   style={{
                     background: isEditing ? BLUE_LIGHT : '#fff',
                     borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
@@ -2776,7 +2776,7 @@ function CognitionView({
         </div>
 
         {/* ============== RIGHT · OKR 转化漏斗 (1/3 窄列) ============== */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+        <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
           {/* Header 顶部对齐（和左卡片header y一致 — min-h统一20px、色条统一5×18、标题14.5px Bold）
               标题与右侧备注文字：右键菜单 → 编辑/删除恢复默认 */}
           <div className="flex items-center gap-2.5 mb-3 min-h-[20px]">
@@ -2849,7 +2849,7 @@ function CognitionView({
       )}
 
       {/* ===== 书架看板 - 3列 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4">
+      <div className="bg-white rounded-2xl border border-ink-100 p-5">
         <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-3">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
@@ -2885,7 +2885,7 @@ function CognitionView({
             })();
             return (
             <div key={g.key}
-              className="rounded-xl p-3 flex flex-col transition-all duration-200"
+              className="rounded-2xl p-3 flex flex-col transition-all duration-200"
               style={{
                 background: g.dot,
                 border: isDragOver
@@ -3002,8 +3002,8 @@ function CognitionView({
         {/* ========== 承诺本 · 行动改变 ========== */}
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-[4px] h-[18px] rounded-full" style={{ background: '#a855f7' }} />
-            <h3 className="text-[16px] font-bold text-ink-900">承诺本</h3>
+            <span className="w-[5px] h-[18px] rounded-full" style={{ background: '#a855f7' }} />
+            <h3 className="text-[15px] font-semibold text-ink-900">承诺本</h3>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7' }}>
               {(changes || []).filter(c => c.status !== 'reviewed').length} 进行中
             </span>
@@ -3031,7 +3031,7 @@ function CognitionView({
                 const barColor = days >= 30 ? '#22c55e' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
                 return (
                   <div key={c.id}
-                    className="rounded-xl p-3 transition-all"
+                    className="rounded-2xl p-3 transition-all"
                     style={{
                       background: isReviewed ? 'rgba(34,197,94,0.04)' : 'rgba(168,85,247,0.03)',
                       border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.2)' : 'rgba(168,85,247,0.15)'}`,
@@ -3098,8 +3098,8 @@ function CognitionView({
         {/* ========== 结果区 · 改变证明 ========== */}
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-[4px] h-[18px] rounded-full" style={{ background: '#22c55e' }} />
-            <h3 className="text-[16px] font-bold text-ink-900">结果区 · 改变证明</h3>
+            <span className="w-[5px] h-[18px] rounded-full" style={{ background: '#22c55e' }} />
+            <h3 className="text-[15px] font-semibold text-ink-900">结果区 · 改变证明</h3>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}>
               {(reviews || []).length} 条真实改变
             </span>
@@ -3120,7 +3120,7 @@ function CognitionView({
                 const tm = tagMeta[r.tag] || tagMeta.habit;
                 return (
                   <div key={r.id}
-                    className="rounded-xl p-3"
+                    className="rounded-2xl p-3"
                     style={{ background: 'rgba(34,197,94,0.03)', border: '1px solid rgba(34,197,94,0.15)' }}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
@@ -3247,7 +3247,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
   return (
     <div className="flex flex-col gap-4">
       {/* L1 标题区块（与精力/知力一致规范）：5×18 橙条 + 16px Bold 标题 + 右侧完成率胶囊 + 本月自评CTA */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4">
+      <div className="bg-white rounded-2xl border border-ink-100 p-5">
         <div className="flex items-center gap-2.5 mb-3">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 能力成长</span>
@@ -3278,12 +3278,12 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
             const trendDelta = series.length >= 2 && firstScore !== undefined
               ? Math.round(((lastScore - firstScore) / Math.max(1, firstScore)) * 100) : null;
             return (
-              <div key={a.title} className="bg-white border border-ink-100 rounded-xl p-4 flex flex-col gap-3.5 hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
+              <div key={a.title} className="bg-white border border-ink-100 rounded-2xl p-4 flex flex-col gap-3.5 hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-bold text-ink-900 leading-tight mb-1">{a.title}</h3>
-                  <div className="text-xs text-ink-500 leading-snug">
-                    <span className="font-semibold text-ink-700">每日：</span>{a.daily}
+                  <h3 className="text-[15px] font-semibold text-ink-900 leading-tight mb-1">{a.title}</h3>
+                  <div className="text-[13px] text-ink-500 leading-snug">
+                    <span className="font-medium text-ink-700">每日：</span>{a.daily}
                   </div>
                 </div>
                 {/* 自评 - 点击可编辑 */}
@@ -3348,7 +3348,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
               </div>
               {/* 里程碑列表 */}
               <div className="flex flex-col gap-1.5">
-                <div className="text-xs font-bold uppercase tracking-wide text-ink-500 px-0.5">里程碑</div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-ink-500 px-0.5">里程碑</div>
                 {a.mstones.map((m, i) => {
                   const sm = statusMeta(m.st);
                   const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
@@ -3356,7 +3356,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
                     <div key={i} onClick={() => onMsEdit?.(ai, i, m)} className="p-2.5 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
                       <div className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold tabular-nums flex-shrink-0 text-ink-700">{i + 1}</div>
                       <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-semibold leading-tight ${m.st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{m.lb}</div>
+                        <div className={`text-[13px] font-semibold leading-tight ${m.st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{m.lb}</div>
                         <div className="mt-1"><ProgressBar value={m.pct} color={msCol} variant="dense" /></div>
                       </div>
                       <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{color: msCol}}>{sm.lb} · {m.pct}%</span>
@@ -3466,7 +3466,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
     const urgent = dl <= 30;
     const overdue = dl < 0;
     return (
-      <div key={label} className="bg-white border border-ink-100 rounded-xl flex flex-col p-4 gap-3.5 hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
+      <div key={label} className="bg-white border border-ink-100 rounded-2xl flex flex-col p-4 gap-3.5 hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
         <div>
           <div className="flex items-baseline gap-2 mb-1">
             {/* Step1-3：标签升级从 xs uppercase → 14px Semibold + 彩块徽章，与能力卡标题对齐 */}
@@ -3487,7 +3487,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
               <span className="text-xs font-bold text-ink-500">%</span>
             </div>
           </div>
-          <h3 className="text-base font-bold text-ink-900 leading-snug">{o.title}</h3>
+          <h3 className="text-[15px] font-semibold text-ink-900 leading-snug">{o.title}</h3>
         </div>
         <ProgressBar value={p} color={color} />
         <Risk4QuadSummary krs={o.krs} goalDeadline={o.deadline} goalStart={o.start} />
@@ -3506,7 +3506,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 <div className="text-[11px] font-bold tabular-nums text-ink-500 text-center flex-shrink-0">{i + 1}</div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <div className={`text-sm font-semibold leading-tight min-w-0 flex-1 truncate ${st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
+                    <div className={`text-[13px] font-semibold leading-tight min-w-0 flex-1 truncate ${st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
                       {kr.t}
                     </div>
                     <span
@@ -3562,7 +3562,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
   return (
     <div className="flex flex-col gap-4">
       {/* Step1-3 L1区块：5×18红条 + 16px标题 + 总完成率胶囊，与能力/知力一致 */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4">
+      <div className="bg-white rounded-2xl border border-ink-100 p-5">
         <div className="flex items-center gap-2.5 mb-3">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 工作 OKR</span>
@@ -3592,7 +3592,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
   return (
     <div className="flex flex-col gap-4">
       {/* Step1-4 L1区块：紫条 + 16px标题 + 紫胶囊%，与其他4模块一致 */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col gap-3">
+      <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活珍藏</span>
@@ -3617,12 +3617,12 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
         <LifeStatsBar categories={dynLife.map(c => ({ key: c.key, label: c.lb, count: c.entries.length, color: c.color }))} />
         <div className="grid grid-cols-5 gap-3 annual-life-grid">
           {dynLife.map((c, ci) => (
-            <div key={c.key} className="bg-white border border-ink-100 rounded-xl p-4 flex flex-col hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
+            <div key={c.key} className="bg-white border border-ink-100 rounded-2xl p-4 flex flex-col hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
               {/* Step1-4：类目标题头部统一加 4×16 紫条，字号从sm→14px Semibold ink-900（子类目标层级） */}
               <div className="flex items-center gap-2 mb-3">
-                <span className="w-[4px] h-[16px] rounded-full flex-shrink-0" style={{ background: c.color }}></span>
-                <span className="text-[14px] font-semibold text-ink-900 leading-none">{c.lb}</span>
-                <span className="text-xs font-bold tabular-nums ml-auto" style={{color: c.color}}>
+                <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: c.color }}></span>
+                <span className="text-[15px] font-semibold text-ink-900 leading-none">{c.lb}</span>
+                <span className="text-[11px] font-bold tabular-nums ml-auto" style={{color: c.color}}>
                   {c.entries.length}
                 </span>
               </div>
@@ -3695,7 +3695,7 @@ function SectionHeader({ cat, title, progress, right }) {
       {typeof progress === 'number' && (
         <div className="flex items-center gap-2">
           <div className="w-16"><ProgressBar value={progress} color={c.color} /></div>
-          <span className="text-xs font-bold tabular-nums" style={{color: c.color}}>{progress}%</span>
+          <span className="text-[11px] font-bold tabular-nums" style={{color: c.color}}>{progress}%</span>
         </div>
       )}
       {right}

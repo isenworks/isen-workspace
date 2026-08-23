@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export default function Modal({ open, onClose, title, children, footer }) {
+export default function Modal({ open, onClose, title, children, footer, maxWidth }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
@@ -21,8 +21,9 @@ export default function Modal({ open, onClose, title, children, footer }) {
 
       {/* 模态内容 */}
       <div
-        className="relative w-full max-w-[480px] max-h-[90vh] flex flex-col"
+        className="relative w-full max-h-[90vh] flex flex-col"
         style={{
+          maxWidth: maxWidth || 480,
           background: 'rgba(255,255,255,0.88)',
           backdropFilter: 'saturate(180%) blur(24px)',
           WebkitBackdropFilter: 'saturate(180%) blur(24px)',

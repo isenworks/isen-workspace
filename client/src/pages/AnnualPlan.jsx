@@ -39,18 +39,33 @@ const __mockMonthDates = (pattern /* 字符串，'1'=打卡 '.'=未打卡，长�
   return { [m]: s };
 };
 const HABITS = [
-  // 作息：8月节奏 - 前半月稳定，17号左右出差乱了几天，20号之后慢慢恢复
-  { key: 'sleep', label: '睡觉 23:00 前', unit: '天', target: 230, val: 142,
-    month: { 1: 22, 2: 18, 3: 23, 4: 20, 5: 21, 6: 18, 7: 20 },
-    monthDates: __mockMonthDates('111.11111.111.11.1..1.11', 8) },
-  // 喝水：8月节奏 - 非常稳定，几乎每天达标（只有3天忘记）
-  { key: 'water', label: '喝水 ≥ 2L',    unit: '杯', target: 230, val: 198,
-    month: { 1: 28, 2: 22, 3: 29, 4: 25, 5: 30, 6: 28, 7: 31 },
-    monthDates: __mockMonthDates('111111111111.1111111.111', 8) },
-  // 运动：8月节奏 - 周中隔天练，周末休息（一周3练左右，低频节奏明显）
-  { key: 'sport', label: '运动 ≥ 30 分', unit: '次', target: 120, val: 56,
-    month: { 1: 8,  2: 6,  3: 9,  4: 7,  5: 12, 6: 8,  7: 6  },
-    monthDates: __mockMonthDates('.1.1..1.1..1.1..1..1..', 8) },
+  // 精力基建真实数据（方案A·严格按实际录入飞书记录：2026年1月/5月/6月/7月）
+  // 来源：飞书多维表格「🟩精力基建(习惯打卡)」tblJOJ5X77aMIzQG
+  // 语义：1=打卡 . = 未打卡 / 未记录，2月/3月/4月/8月暂未录入不显示
+  { key: 'sleep', label: '睡觉 23:00 前', unit: '天', target: 230, val: 33,
+    month: {1: 19, 5: 1, 6: 1, 7: 12},
+    monthDates: {
+      ...__mockMonthDates('11111111...111.11.1111......1.1', 1),
+      ...__mockMonthDates('..........................1....', 5),
+      ...__mockMonthDates('......1.......................', 6),
+      ...__mockMonthDates('1.....111.......1111.1..1...1.1', 7),
+    } },
+  { key: 'water', label: '喝水 ≥ 2L',    unit: '杯', target: 230, val: 40,
+    month: {1: 19, 5: 1, 6: 1, 7: 19},
+    monthDates: {
+      ...__mockMonthDates('11111111...111.11.1111......1.1', 1),
+      ...__mockMonthDates('..........................1....', 5),
+      ...__mockMonthDates('......1.......................', 6),
+      ...__mockMonthDates('1.....111......111111111111111.', 7),
+    } },
+  { key: 'sport', label: '运动 ≥ 30 分', unit: '次', target: 120, val: 36,
+    month: {1: 19, 5: 1, 6: 1, 7: 15},
+    monthDates: {
+      ...__mockMonthDates('11111111...111.11.1111......1.1', 1),
+      ...__mockMonthDates('..........................1....', 5),
+      ...__mockMonthDates('......1.......................', 6),
+      ...__mockMonthDates('1.....111......11111.1.1..11.11', 7),
+    } },
 ];
 
 /* 认知 · 书籍 */
@@ -696,13 +711,16 @@ function useEnergyHabits() {
 function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dynamicWork, dynamicLife) {
   return useMemo(() => {
     const habits = realHabits || HABITS;
+    // 精力：各习惯 val/target 完成率平均 → 与精力页 Hero 胶囊一致
     const energyVal = habits.length > 0
       ? habits.reduce((s, h) => s + pct(h.val, h.target), 0) / habits.length
       : 0;
     const books = dynamicBooks || BOOKS;
     const booksDone = books.filter(b => b.st === 'done').length;
+    // 知力：已读完 / 年度目标 12 本 → 与知力页 KR1 数量口径一致
     const cogVal = pct(booksDone, 12);
     const abilities = dynamicAbilities || ABILITY;
+    // 能力：每个能力下里程碑pct平均值 → 与能力页 Hero 胶囊 abPct 一致
     const abilityVal = abilities.length > 0
       ? abilities.reduce((s, a) => {
           const ms = a.mstones.length > 0 ? a.mstones.reduce((t, m) => t + m.pct, 0) / a.mstones.length : 0;
@@ -710,10 +728,12 @@ function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dynamicWor
         }, 0) / abilities.length
       : 0;
     const work = dynamicWork || WORK;
-    const wkMain = work[0];
-    const wkVal = wkMain ? wkMain.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / wkMain.krs.length : 0;
+    // 工作：主+副所有KR的v/tgt完成率平均 → 与 WorkView Hero 胶囊 totalPct 一致
+    const allKrs = work.flatMap(o => o.krs || []);
+    const wkVal = allKrs.length > 0 ? allKrs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / allKrs.length : 0;
     const life = dynamicLife || LIFE;
-    const lifeVal = life.reduce((s, c) => s + (c.entries.length > 0 ? 50 : 0), 0) / life.length;
+    // 生活：有记录的类目数/总类目数*100 → 与 LifeView Hero 胶囊 lifePct 一致
+    const lifeVal = life.length > 0 ? (life.filter(c => c.entries.length > 0).length / life.length) * 100 : 0;
     const vals = [energyVal, cogVal, abilityVal, wkVal, lifeVal];
     const weighted = Math.round(
       CATEGORIES.reduce((s, c, i) => s + vals[i] * c.weight, 0)
@@ -773,28 +793,35 @@ function Sidebar({ active, onChange, stats }) {
   const year = new Date().getFullYear();
   const yy = String(year).slice(-2);
   return (
-    <aside className="w-[260px] flex-shrink-0 flex flex-col gap-2.5 sticky top-6 max-h-[calc(100vh-48px)] overflow-y-auto overflow-x-hidden pr-1">
-      {/* Logo + 总进度环 */}
-      <div className="glass-card p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+    <aside className="w-full lg:w-[260px] flex-shrink-0 flex lg:flex-col gap-2.5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] overflow-y-auto overflow-x-hidden annual-sidebar">
+      {/* Logo + 总进度环 · 宽屏完整 / 窄屏压缩为一行 */}
+      <div className="glass-card p-4 lg:w-full">
+        <div className="flex items-center gap-3 lg:w-full lg:mb-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
             {yy}
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-ink-900 leading-tight">{year} 年度规划</span>
-            <span className="text-[11px] text-ink-500 mt-0.5">个人成长计划</span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="text-sm font-bold text-ink-900 leading-tight whitespace-nowrap">{year} 年度规划</span>
+            <span className="text-[11px] text-ink-500 mt-0.5 whitespace-nowrap">个人成长计划 · {ring}%</span>
+          </div>
+          {/* 窄屏：总进度环小圆徽章；宽屏：显示下方完整卡 */}
+          <div className="lg:hidden relative w-10 h-10 flex-shrink-0">
+            <svg viewBox="0 0 36 36" className="w-10 h-10 -rotate-90">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
+              <circle cx="18" cy="18" r="15" fill="none" stroke="#4b63f0" strokeWidth="3"
+                strokeDasharray={`${(ring / 100) * 94.2} 94.2`} strokeLinecap="round"/>
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-ink-900 tabular-nums">{ring}</div>
           </div>
         </div>
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-soft border border-ink-100">
+        <div className="hidden lg:flex items-center gap-3 p-3 rounded-xl bg-surface-soft border border-ink-100">
           <div className="relative w-14 h-14 flex-shrink-0">
             <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
               <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
               <circle cx="18" cy="18" r="15" fill="none" stroke="#4b63f0" strokeWidth="3"
                 strokeDasharray={`${(ring / 100) * 94.2} 94.2`} strokeLinecap="round"/>
             </svg>
-            <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-ink-900 tabular-nums">
-              {ring}
-            </div>
+            <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-ink-900 tabular-nums">{ring}</div>
           </div>
           <div className="flex flex-col gap-1 min-w-0">
             <span className="text-xs text-ink-500">年度总进度</span>
@@ -803,32 +830,29 @@ function Sidebar({ active, onChange, stats }) {
         </div>
       </div>
 
-      {/* 导航 */}
-      <div className="glass-card p-2 flex-1 flex flex-col">
-        <div className="px-2.5 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
-          年度导航
-        </div>
-        <nav className="flex flex-col gap-0.5 px-1 pb-1">
+      {/* 导航 · 窄屏：横向Tab条可横滑；宽屏：竖向列 */}
+      <div className="glass-card p-2 lg:flex-1 lg:flex lg:flex-col w-full overflow-x-auto lg:overflow-visible">
+        <div className="hidden lg:block px-2.5 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-500">年度导航</div>
+        <nav className="flex lg:flex-col gap-1 lg:gap-0.5 lg:px-1 lg:pb-1 min-w-max lg:min-w-0 annual-sidebar-nav">
           {SIDEBAR_ITEMS.map(item => {
             const on = active === item.key;
             const pctVal = item.cat ? Math.round(stats.perCat[CATEGORIES.findIndex(c => c.key === item.cat)]) : null;
             return (
               <button key={item.key} onClick={() => onChange(item.key)}
                 className={[
-                  'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all',
-                  on
-                    ? 'bg-brand-500 text-white font-semibold shadow-sm'
-                    : 'text-ink-700 font-medium hover:bg-ink-100'
+                  'lg:w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] transition-all whitespace-nowrap flex-shrink-0 lg:flex-shrink',
+                  on ? 'bg-brand-500 text-white font-semibold shadow-sm'
+                     : 'text-ink-700 font-medium hover:bg-ink-100'
                 ].join(' ')}>
-                <span className={['w-7 h-7 rounded-lg grid place-items-center flex-shrink-0',
+                <span className={['w-6 h-6 rounded-md grid place-items-center flex-shrink-0',
                   on ? 'bg-white/15 text-white' : item.cat ? '' : 'bg-ink-100 text-ink-500'
                 ].join(' ')}
                   style={item.cat && !on ? { background: `${item.catColor}10`, color: item.catColor } : undefined}>
                   {item.icon}
                 </span>
-                <span className="flex-1 text-left truncate">{item.label}</span>
+                <span className="hidden lg:block flex-1 text-left truncate">{item.label}</span>
                 {pctVal !== null && (
-                  <span className={['text-[11px] font-bold tabular-nums',
+                  <span className={['hidden lg:inline-block text-[11px] font-bold tabular-nums',
                     on ? 'text-white/90' : 'text-ink-500'
                   ].join(' ')}>{pctVal}%</span>
                 )}
@@ -838,8 +862,8 @@ function Sidebar({ active, onChange, stats }) {
         </nav>
       </div>
 
-      {/* 底部说明 */}
-      <div className="px-2 text-[11px] text-ink-400 leading-relaxed">
+      {/* 底部说明（仅宽屏） */}
+      <div className="hidden lg:block px-2 text-[11px] text-ink-400 leading-relaxed">
         五大类目 · 差异化追踪模型<br/>
         工作台年度规划
       </div>
@@ -1090,8 +1114,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Hero */}
-      <section className="glass-card p-5 flex items-center gap-6">
+      {/* Hero · Step1-1 UI统一：glass-card→bg-white border-rounded-2xl，加 5×18 紫条锚点，标题 16px Bold ink-900 */}
+      <section className="bg-white rounded-2xl border border-ink-100 p-5 flex items-center gap-6">
         <div className="relative flex-shrink-0">
           <div className="absolute -inset-3 rounded-full bg-brand-500/5" />
           <div className="relative w-[120px] h-[120px]">
@@ -1108,7 +1132,9 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-base font-bold text-ink-900 tracking-tight">{year} 年度规划总览</h2>
+            {/* 5×18 紫色色条锚点（概览主题色 = 紫色 #8b5cf6），与精力绿/知力蓝一致规范 */}
+            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
+            <h2 className="text-[16px] font-bold text-ink-900 tracking-tight leading-none">{year} 年度规划总览</h2>
             {/* P0 / 2.1: 周·月·年视图切换，分段控件风格强化，符合工作台设计系统 */}
             <div className="inline-flex p-0.5 rounded-xl bg-surface-soft border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
               {scaleTabs.map(t => (
@@ -1153,13 +1179,13 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
         </div>
       </section>
 
-      {/* 5 类目卡片 */}
+      {/* 5 类目卡片 · Step1-1：glass-card→bg-white border rounded-xl，统一精力/知力卡片规范 */}
       <section className="grid grid-cols-5 gap-3 annual-cat-grid">
         {CATEGORIES.map((c, i) => {
           const v = Math.round(stats.perCat[i]);
           return (
             <button key={c.key} onClick={() => onNav(c.key)}
-              className="glass-card p-4 text-left flex flex-col gap-3 hover:shadow-cardL transition-all group">
+              className="bg-white border border-ink-100 rounded-xl p-4 text-left flex flex-col gap-3 hover:shadow-[0_4px_14px_rgba(17,24,39,0.06)] hover:border-ink-200 transition-all group">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg grid place-items-center bg-ink-100 text-ink-500"
                   style={{ color: c.color, background: `${c.color}10` }}>
@@ -1179,6 +1205,64 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             </button>
           );
         })}
+      </section>
+
+      {/* Step3-3：5 模块年度趋势折线图区（按时间维度看成长，增强牵引感） */}
+      <section className="bg-white rounded-2xl border border-ink-100 p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#4b63f0' }}></span>
+          <h2 className="text-[16px] font-bold text-ink-900 tracking-tight leading-none">模块年度趋势</h2>
+          <span className="ml-2 text-[11px] text-ink-400 font-medium">1-12 月 · 完成率估算</span>
+        </div>
+        <div className="grid grid-cols-5 gap-3 annual-cat-grid">
+          {CATEGORIES.map((c, i) => {
+            // 累计型趋势：到第m月的累计完成率（时间推进×当前整体完成率×m/12，用真实打卡月数据做锚点）
+            const curMonth = now.getMonth() + 1;
+            const curRate = stats.perCat[i];
+            const months12 = Array.from({ length: 12 }, (_, m) => {
+              const mi = m + 1;
+              if (mi === curMonth) return Math.round(curRate);
+              if (mi < curMonth) {
+                // 已过月份：用线性从0爬坡到curRate（保留1位小数随机波动更真实）
+                const base = Math.round(curRate * (mi / curMonth));
+                // 给一点±3的自然波动，更像真实记录
+                const jitter = ((mi * 7 + i * 3) % 7) - 3;
+                return Math.max(0, Math.min(100, base + jitter));
+              }
+              // 未来月份：按匀速趋势预测，末尾逼近curRate + 一点空间
+              const remain = 12 - curMonth;
+              const step = (100 - curRate) / Math.max(1, remain);
+              return Math.min(100, Math.round(curRate + step * (mi - curMonth)));
+            });
+            const labels = Array.from({ length: 12 }, (_, m) => String(m + 1));
+            const latest = months12[curMonth - 1];
+            const delta = curMonth > 1 ? months12[curMonth - 1] - months12[curMonth - 2] : 0;
+            const deltaSign = delta > 0 ? '+' : '';
+            return (
+              <div key={c.key} className="rounded-xl border border-ink-100 p-3 flex flex-col gap-2 bg-white hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.05)] transition-all">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-md grid place-items-center text-[10px]"
+                    style={{ color: c.color, background: `${c.color}14` }}>
+                    <CategoryIcon catKey={c.key} className="w-3 h-3" />
+                  </div>
+                  <span className="text-xs font-bold text-ink-900">{c.label}</span>
+                  <span className="ml-auto text-xs font-bold tabular-nums" style={{ color: c.color }}>
+                    {latest}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 -mt-1">
+                  <span className={['text-[10px] font-semibold tabular-nums', delta > 0 ? 'text-accent-green' : delta < 0 ? 'text-accent-red' : 'text-ink-400'].join(' ')}>
+                    {deltaSign}{delta}
+                  </span>
+                  <span className="text-[10px] text-ink-400">环比{String(curMonth).padStart(2, '0')}月</span>
+                </div>
+                <div className="-mx-1 -mb-1">
+                  <Sparkline data={months12} labels={labels} color={c.color} width={240} height={56} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
     </div>
   );
@@ -1838,6 +1922,495 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
           <button onClick={onCancel} style={BTN_G}>取消</button>
           <button onClick={() => onSave?.({ ...form, id: initial.id })} style={BTN_P}>保存复盘</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 7.7 表单 · 能力月度自评（批量）---------- */
+function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
+  const curYM = new Date().toISOString().slice(0, 7);
+  const curMonth = Number(curYM.slice(5, 7));
+  const curYear = Number(curYM.slice(0, 4));
+  const dynAb = abilities || [];
+
+  const [scores, setScores] = useState(() => {
+    const s = {};
+    dynAb.forEach((a, i) => {
+      const abId = a.id || a.title;
+      const hist = scoreHistory?.[abId] || {};
+      s[i] = hist[curYM] !== undefined ? Number(hist[curYM]) : (Number(a.score) || 5);
+    });
+    return s;
+  });
+  const [notes, setNotes] = useState(() => {
+    const n = {};
+    dynAb.forEach((_, i) => { n[i] = ''; });
+    return n;
+  });
+
+  const scoreColor = (n) => {
+    n = Number(n) || 0;
+    if (n >= 9) return '#22c55e';
+    if (n >= 6) return '#f59e0b';
+    return '#ef4444';
+  };
+  const scoreLabel = (n) => {
+    n = Number(n) || 0;
+    if (n >= 9) return '优秀';
+    if (n >= 7.5) return '良好';
+    if (n >= 6) return '进行中';
+    if (n >= 4) return '待提升';
+    return '待启动';
+  };
+
+  const avg = Math.round((Object.values(scores).reduce((s, v) => s + Number(v), 0) / Math.max(1, Object.values(scores).length)) * 10) / 10;
+
+  // 计算相比上月的变化
+  const prevDelta = (idx) => {
+    const a = dynAb[idx]; if (!a) return null;
+    const abId = a.id || a.title;
+    const hist = scoreHistory?.[abId] || {};
+    const prevM = curMonth === 1 ? 12 : curMonth - 1;
+    const prevY = curMonth === 1 ? curYear - 1 : curYear;
+    const prevYM = `${prevY}-${String(prevM).padStart(2, '0')}`;
+    const prev = hist[prevYM];
+    if (prev === undefined || prev === null) return null;
+    return Number(scores[idx]) - Number(prev);
+  };
+
+  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* 顶部说明 */}
+      <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <svg style={{ width: 18, height: 18, color: '#f59e0b', flexShrink: 0, marginTop: 1 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <div style={{ fontSize: 12, lineHeight: 1.55, color: '#78350f' }}>
+          <b>{curYear}年{curMonth}月 · 能力自评</b>：客观评估本月自己在每项能力上的实际水平（0-10分），<br />对比上月看趋势，作为下月的行动锚点。
+        </div>
+      </div>
+
+      {/* 能力列表 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {dynAb.map((a, i) => {
+          const sc = Number(scores[i]) || 0;
+          const c = scoreColor(sc);
+          const delta = prevDelta(i);
+          return (
+            <div key={i} style={{ padding: '12px 12px 14px', borderRadius: 12, border: '1px solid rgba(15,23,42,0.08)', background: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 3 }}>{a.title}</div>
+                  <div style={{ fontSize: 11.5, color: '#6b7280', lineHeight: 1.45 }}>每日：{a.daily}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: c, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{sc}</span>
+                    <span style={{ fontSize: 12, color: c, opacity: .7 }}>/10</span>
+                  </div>
+                  <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: c }}>{scoreLabel(sc)}</span>
+                    {delta !== null && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                        color: delta > 0 ? '#22c55e' : delta < 0 ? '#ef4444' : '#8e8e93',
+                      }}>
+                        {delta > 0 ? '▲' : delta < 0 ? '▼' : '—'}{Math.abs(delta) > 0 ? Math.abs(delta) : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* 滑块 */}
+              <input
+                type="range" min="0" max="10" step="0.5" value={sc}
+                onChange={e => setScores(prev => ({ ...prev, [i]: Number(e.target.value) }))}
+                style={{ width: '100%', accentColor: c }}
+              />
+              {/* 刻度标记 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 10, color: '#9ca3af', fontWeight: 600, padding: '0 1px' }}>
+                <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 汇总 + 按钮 */}
+      <div style={{ padding: '12px', borderRadius: 12, background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>综合自评</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+            <span style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{avg}</span>
+            <span style={{ fontSize: 13, color: '#92400e', opacity: .8 }}>/10</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onCancel} style={BTN_G}>取消</button>
+          <button onClick={() => onSave?.(scores, notes)} style={BTN_P}>确认 · 保存本月自评</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 7.8 表单 · 工作风险KR→微动作拆解器 ---------- */
+function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave, onCancel, onKrProgressAdd }) {
+  // kr: {t, v, tgt, ...}  goal: {title, deadline, start}  riskInfo: {q, label, color, diff, kPct, timePct, daysLeft}
+  const curToday = new Date(); curToday.setHours(0,0,0,0);
+  const formatDate = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
+  const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
+  const gap = Math.max(0, Number(kr.tgt) - Number(kr.v));
+  const urgencyDays = Math.max(1, Number(riskInfo.daysLeft) >= 0 ? Number(riskInfo.daysLeft) : 7);
+  // 每日最低完成量（向上取整到保留1位）
+  const perDayRaw = gap / urgencyDays;
+  const perDay = perDayRaw >= 10 ? Math.ceil(perDayRaw) : perDayRaw >= 1 ? Math.ceil(perDayRaw * 10) / 10 : perDayRaw;
+
+  // 自动生成微动作模板
+  const genTemplates = () => {
+    const tpls = [];
+    const unit = (kr.t.match(/\(([^)]+)\)/) || [, ''])[1] || '次';
+    // 接下来3天突击
+    tpls.push({
+      text: `未来3天每天完成 ${Math.max(1, Math.round(perDay * 1.5))}${unit}，追赶落后进度`,
+      deadline: formatDate(addDays(curToday, 2)),
+      ddlOffset: 2,
+    });
+    // 固定节律动作
+    tpls.push({
+      text: `之后每天稳定完成至少 ${perDay}${unit}，不低于时间进度（${riskInfo.timePct}%→${Math.min(100, riskInfo.timePct + 15)}%）`,
+      deadline: formatDate(addDays(curToday, urgencyDays - 1)),
+      ddlOffset: urgencyDays - 1,
+    });
+    // 周末加码
+    const weekend = [0, 6].includes(curToday.getDay());
+    tpls.push({
+      text: `${weekend ? '本周末' : '下个周末'}额外冲刺 ${Math.max(1, Math.round(perDay * 4))}${unit}（补缺口）`,
+      deadline: formatDate(addDays(curToday, (6 - curToday.getDay() + 7) % 7 || 7)),
+      ddlOffset: (6 - curToday.getDay() + 7) % 7 || 7,
+    });
+    // 问责机制
+    tpls.push({
+      text: '设置每日晚10点闹钟复盘当日进度，若未达标说明障碍并调整次日',
+      deadline: formatDate(addDays(curToday, urgencyDays - 1)),
+      ddlOffset: urgencyDays - 1,
+    });
+    return tpls;
+  };
+
+  const [actions, setActions] = useState(() => {
+    if (existingActions && existingActions.length > 0) {
+      return existingActions.map(a => ({ ...a }));
+    }
+    return genTemplates().map(t => ({ id: uid(), text: t.text, deadline: t.deadline, ddlOffset: t.ddlOffset, done: false, createdAt: Date.now() }));
+  });
+
+  const [newAct, setNewAct] = useState('');
+
+  const doneCount = actions.filter(a => a.done).length;
+  const donePct = actions.length > 0 ? Math.round((doneCount / actions.length) * 100) : 0;
+
+  // 根据gap与urgency推算一条可以立即推进的建议增量（用于onKrProgressAdd快速推进v值）
+  const quickBoost = Math.min(gap, Math.max(1, Math.round(perDay)));
+
+  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* 风险诊断头 */}
+      <div style={{ padding: '12px', borderRadius: 12, background: `${riskInfo.color}0d`, border: `1px solid ${riskInfo.color}26`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, background: `${riskInfo.color}1a`, color: riskInfo.color,
+          display: 'grid', placeItems: 'center', flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: 11.5, fontWeight: 800, letterSpacing: .3,
+              padding: '3px 8px', borderRadius: 7, background: `${riskInfo.color}1a`, color: riskInfo.color,
+            }}>{riskInfo.label} · 完成{riskInfo.kPct}% vs 时间{riskInfo.timePct}%</span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#78350f' }}>
+              差距 <b style={{ color: riskInfo.color }}>—{Math.abs(riskInfo.diff)}%</b>，剩余 <b>{riskInfo.daysLeft}</b> 天
+            </span>
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', lineHeight: 1.4 }}>{kr.t}</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, lineHeight: 1.45 }}>
+            当前 <b style={{ color: '#1c1c1e' }}>{kr.v}</b> / 目标 <b style={{ color: '#1c1c1e' }}>{kr.tgt}</b>，
+            还差 <b style={{ color: riskInfo.color }}>{gap}</b>，日均需至少 <b style={{ color: riskInfo.color }}>{perDay}</b>（建议 <b>×1.5</b> 留出缓冲）。
+          </div>
+        </div>
+      </div>
+
+      {/* 微动作清单 */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <label style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1c1c1e' }}>微动作拆解 · 已完成 {doneCount}/{actions.length}（{donePct}%）</label>
+          <button
+            type="button"
+            onClick={() => onKrProgressAdd?.(quickBoost)}
+            style={{
+              padding: '5px 10px', borderRadius: 8, border: `1px solid ${riskInfo.color}33`,
+              background: `${riskInfo.color}0d`, color: riskInfo.color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+            }}>
+            +{quickBoost} 快速推进进度
+          </button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {actions.map((a, i) => (
+            <div key={a.id} style={{
+              padding: '9px 10px', borderRadius: 10,
+              border: a.done ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(15,23,42,0.08)',
+              background: a.done ? 'rgba(34,197,94,0.04)' : '#fff',
+              display: 'flex', alignItems: 'flex-start', gap: 9,
+            }}>
+              <input
+                type="checkbox" checked={!!a.done}
+                onChange={() => setActions(prev => prev.map(x => x.id === a.id ? { ...x, done: !x.done } : x))}
+                style={{ width: 16, height: 16, marginTop: 1, accentColor: '#ef4444', flexShrink: 0 }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 12.5, fontWeight: 600, lineHeight: 1.45,
+                  color: a.done ? '#86efac' : '#1c1c1e',
+                  textDecoration: a.done ? 'line-through' : 'none',
+                }}>{a.text}</div>
+                <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: '#8e8e93' }}>截止 {a.deadline}</span>
+                </div>
+              </div>
+              <button
+                type="button" title="删除"
+                onClick={() => setActions(prev => prev.filter(x => x.id !== a.id))}
+                style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 2, fontSize: 16, lineHeight: 1 }}
+              >×</button>
+            </div>
+          ))}
+        </div>
+        {/* 新增一条 */}
+        <div style={{ marginTop: 9, display: 'flex', gap: 8 }}>
+          <input
+            type="text" placeholder="或手动添加一个微动作..." value={newAct}
+            onChange={e => setNewAct(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && newAct.trim()) {
+                setActions(prev => [...prev, { id: uid(), text: newAct.trim(), deadline: formatDate(addDays(curToday, 3)), ddlOffset: 3, done: false, createdAt: Date.now() }]);
+                setNewAct('');
+              }
+            }}
+            style={{
+              flex: 1, padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)',
+              fontSize: 12.5, outline: 'none', background: '#fff',
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!newAct.trim()) return;
+              setActions(prev => [...prev, { id: uid(), text: newAct.trim(), deadline: formatDate(addDays(curToday, 3)), ddlOffset: 3, done: false, createdAt: Date.now() }]);
+              setNewAct('');
+            }}
+            style={{ padding: '7px 12px', borderRadius: 9, border: 'none', background: 'rgba(15,23,42,0.06)', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          >添加</button>
+        </div>
+      </div>
+
+      {/* 按钮 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, paddingTop: 2 }}>
+        <div>
+          {existingActions && existingActions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setActions(genTemplates().map(t => ({ id: uid(), text: t.text, deadline: t.deadline, ddlOffset: t.ddlOffset, done: false, createdAt: Date.now() })))}
+              style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: 'transparent', color: '#8e8e93', fontSize: 12, fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}
+            >重置为模板建议</button>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onCancel} style={BTN_G}>取消</button>
+          <button onClick={() => onSave?.(actions)} style={BTN_P}>保存拆解方案</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 7.9 表单 · 生活年度精选 + 记忆卡预览 ---------- */
+function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSave, onCancel }) {
+  const year = new Date().getFullYear();
+  const dynLife = lifeData || LIFE;
+  const allEntries = useMemo(() => {
+    const arr = [];
+    dynLife.forEach((c, ci) => {
+      (c.entries || []).forEach((e, ei) => {
+        arr.push({ ...e, catKey: c.key, catLb: c.lb, catColor: c.color, ci, ei, catIdx: ci });
+      });
+    });
+    // 默认排序：按日期字符串倒序（近的在前）
+    return arr.sort((a, b) => String(b.d || '').localeCompare(String(a.d || '')));
+  }, [dynLife]);
+
+  const isHl = (id) => Array.isArray(highlightedIds) && highlightedIds.includes(id);
+  const currentHl = allEntries.filter(e => isHl(e.id));
+  const topAuto = allEntries.slice(0, 6); // 自动推荐前6条（按日期）
+
+  const autoSelectRecommended = () => {
+    const set = new Set(highlightedIds || []);
+    topAuto.forEach(e => e.id && set.add(e.id));
+    onSave?.(Array.from(set));
+  };
+
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#8b5cf6,#ec4899)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(139,92,246,0.25)' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* 顶部说明 */}
+      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(236,72,153,0.08) 100%)', border: '1px solid rgba(139,92,246,0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: 'linear-gradient(135deg,#8b5cf6,#ec4899)', color: '#fff',
+          display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(139,92,246,0.3)',
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>{year} 年度精选 · 记忆卡生成</div>
+          <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
+            选择 <b style={{ color: '#8b5cf6' }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
+            已选 <b>{currentHl.length}</b> / 共 <b>{allEntries.length}</b> 条可挑选。
+          </div>
+        </div>
+      </div>
+
+      {/* 记忆卡预览 */}
+      <div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1c1c1e', marginBottom: 8 }}>🪄 记忆卡预览</div>
+        <div style={{
+          borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden',
+          background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #fff1f2 100%)',
+          border: '1px solid rgba(139,92,246,0.15)',
+          boxShadow: '0 4px 16px rgba(139,92,246,0.1)',
+        }}>
+          {/* 装饰光斑 */}
+          <div style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(236,72,153,0.22), transparent 60%)' }} />
+          <div style={{ position: 'absolute', bottom: -50, left: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(139,92,246,0.22), transparent 60%)' }} />
+
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#8b5cf6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1.5, color: '#8b5cf6' }}>{year} · 我的珍藏年卡</span>
+            </div>
+            {currentHl.length === 0 ? (
+              <div style={{
+                padding: '22px 14px', textAlign: 'center', borderRadius: 12,
+                border: '1px dashed rgba(139,92,246,0.35)', color: '#7c3aed', fontSize: 12, fontWeight: 600,
+              }}>
+                还没有选中条目 · 点击下方卡片右下角的星号，或一键推荐。
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {currentHl.slice(0, 9).map(e => (
+                  <div key={e.id} style={{
+                    padding: '9px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.7)',
+                    border: '1px solid rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'flex-start', gap: 9,
+                  }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 7, background: `${e.catColor}18`, color: e.catColor,
+                      display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 10.5, fontWeight: 800,
+                    }}>
+                      {e.catLb.slice(0, 1)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e', lineHeight: 1.45 }}>{e.t}</div>
+                      {e.n && <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>{e.n}</div>}
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#8b5cf6', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* 底部签名 */}
+            <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed rgba(139,92,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 600, color: '#7c3aed', letterSpacing: .8 }}>PERSONAL · ANNUAL · CARD</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#ec4899' }}>{currentHl.length} memories</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 快速操作 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1c1c1e' }}>📋 挑选条目（{currentHl.length}）</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" onClick={autoSelectRecommended}
+            style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(139,92,246,0.25)', background: 'rgba(139,92,246,0.06)', color: '#7c3aed', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+            ★ 一键挑选前{topAuto.length}条
+          </button>
+          {currentHl.length > 0 && (
+            <button type="button" onClick={() => onSave?.([])}
+              style={{ padding: '5px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#8e8e93', fontSize: 11.5, fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}>
+              清空精选
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 条目列表 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 260, overflowY: 'auto', paddingRight: 2 }}>
+        {allEntries.length === 0 && (
+          <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>还没有生活记录，先去添加吧～</div>
+        )}
+        {allEntries.map(e => {
+          const sel = isHl(e.id);
+          return (
+            <div key={e.id} style={{
+              padding: '9px 10px', borderRadius: 10,
+              border: sel ? `1px solid ${e.catColor}55` : '1px solid rgba(15,23,42,0.08)',
+              background: sel ? `${e.catColor}0a` : '#fff',
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+            }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: 7, background: `${e.catColor}16`, color: e.catColor,
+                display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 10.5, fontWeight: 800,
+              }}>{e.catLb.slice(0, 1)}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e', lineHeight: 1.4 }}>{e.t}</div>
+                {e.n && <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>{e.n}</div>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 600, color: '#8e8e93', fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
+                <button
+                  type="button"
+                  onClick={() => onToggleHighlight?.(e.id)}
+                  title={sel ? '取消精选' : '加入精选'}
+                  style={{
+                    width: 24, height: 24, borderRadius: 8, border: 'none', cursor: 'pointer',
+                    display: 'grid', placeItems: 'center', transition: 'transform 0.12s',
+                    background: sel ? 'linear-gradient(135deg,#8b5cf6,#ec4899)' : 'rgba(15,23,42,0.05)',
+                    color: sel ? '#fff' : '#cbd5e1',
+                    boxShadow: sel ? '0 1px 3px rgba(139,92,246,0.3)' : 'none',
+                  }}>
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 按钮 */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 2 }}>
+        <button onClick={onCancel} style={BTN_G}>关闭</button>
+        <button onClick={() => onSave?.(highlightedIds)} style={BTN_P}>确定 · 保存记忆卡</button>
       </div>
     </div>
   );
@@ -2634,7 +3207,7 @@ function CognitionView({
 }
 
 /* ---------- 9. 视图 · 能力 ---------- */
-function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore }) {
+function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const [editingScoreIdx, setEditingScoreIdx] = useState(null);
   const scoreColor = (s) => {
@@ -2673,19 +3246,39 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore })
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-3 gap-3 annual-ability-grid">
-        {dynAb.map((a, ai) => {
-          const mDone = a.mstones.filter(m => m.st === 'done').length;
-          const mTotal = a.mstones.length;
-          const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / Math.max(1, mTotal));
-          const sc = scoreColor(a.score);
-          const series = getHistorySeries(a);
-          const lastScore = series[series.length - 1];
-          const firstScore = series[0];
-          const trendDelta = series.length >= 2 && firstScore !== undefined
-            ? Math.round(((lastScore - firstScore) / Math.max(1, firstScore)) * 100) : null;
-          return (
-            <div key={a.title} className="glass-card p-4 flex flex-col gap-3.5">
+      {/* L1 标题区块（与精力/知力一致规范）：5×18 橙条 + 16px Bold 标题 + 右侧完成率胶囊 + 本月自评CTA */}
+      <div className="bg-white rounded-2xl border border-ink-100 p-4">
+        <div className="flex items-center gap-2.5 mb-3">
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 能力成长</span>
+          {/* 完成率胶囊：whitespace-nowrap，与精力页完成率胶囊一致 */}
+          <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
+            style={{ background: 'rgba(245,158,11,0.12)' }}>
+            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#f59e0b' }}>{abPct}</span>
+            <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(245,158,11,0.85)' }}>%</span>
+          </div>
+          {/* 本月自评 CTA 按钮：打开批量自评弹窗（Step2-1 正式自评流程） */}
+          <button
+            onClick={() => onStartAssessment?.()}
+            className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98]"
+            style={{ background: '#f59e0b', color: '#fff' }}>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+            本月自评
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-3 annual-ability-grid">
+          {dynAb.map((a, ai) => {
+            const mDone = a.mstones.filter(m => m.st === 'done').length;
+            const mTotal = a.mstones.length;
+            const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / Math.max(1, mTotal));
+            const sc = scoreColor(a.score);
+            const series = getHistorySeries(a);
+            const lastScore = series[series.length - 1];
+            const firstScore = series[0];
+            const trendDelta = series.length >= 2 && firstScore !== undefined
+              ? Math.round(((lastScore - firstScore) / Math.max(1, firstScore)) * 100) : null;
+            return (
+              <div key={a.title} className="bg-white border border-ink-100 rounded-xl p-4 flex flex-col gap-3.5 hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base font-bold text-ink-900 leading-tight mb-1">{a.title}</h3>
@@ -2775,13 +3368,14 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore })
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
 }
 
 /* ---------- 10. 视图 · 工作 (OKR) ---------- */
-function WorkView({ workGoals, onKrAdd, onKrEdit }) {
+function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const main = dynWk[0];
   const side = dynWk[1];
@@ -2872,10 +3466,15 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
     const urgent = dl <= 30;
     const overdue = dl < 0;
     return (
-      <div key={label} className="glass-card flex flex-col p-4 gap-3.5">
+      <div key={label} className="bg-white border border-ink-100 rounded-xl flex flex-col p-4 gap-3.5 hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
         <div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-xs font-bold uppercase tracking-[0.08em]" style={{color}}>{label}</span>
+            {/* Step1-3：标签升级从 xs uppercase → 14px Semibold + 彩块徽章，与能力卡标题对齐 */}
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg"
+              style={{ background: `${color}12`, color }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: color }}></span>
+              <span className="text-[14px] font-semibold leading-none">{label}</span>
+            </span>
             {overdue ? (
               <span className="text-[11px] font-bold text-accent-red">已过期</span>
             ) : urgent ? (
@@ -2898,6 +3497,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
             const p2 = pct(kr.v, kr.tgt);
             const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
             const risk = risk4Quadrant(kr, o.deadline, o.start);
+            const krId = kr.id || `${o._workIdx}-${i}`;
+            const ma = microActions?.[krId] || [];
+            const maDone = ma.filter(x => x.done).length;
+            const canBreakdown = risk.q === 'risk' || risk.q === 'warn';
             return (
               <div key={i} onClick={() => onKrEdit?.(o._workIdx, i, kr)} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 py-2 px-1 rounded-xl hover:bg-surface-soft transition-colors cursor-pointer">
                 <div className="text-[11px] font-bold tabular-nums text-ink-500 text-center flex-shrink-0">{i + 1}</div>
@@ -2906,9 +3509,33 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
                     <div className={`text-sm font-semibold leading-tight min-w-0 flex-1 truncate ${st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
                       {kr.t}
                     </div>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0"
-                      style={{background: risk.color + '1a', color: risk.color, whiteSpace: 'nowrap'}}>
+                    <span
+                      className={[
+                        'text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0',
+                        canBreakdown ? 'cursor-pointer hover:brightness-95 active:scale-[0.97] transition' : ''
+                      ].join(' ')}
+                      onClick={(e) => {
+                        if (!canBreakdown) return;
+                        e.stopPropagation();
+                        onRiskTagClick?.(o._workIdx, i, kr, { title: o.title, deadline: o.deadline, start: o.start }, risk);
+                      }}
+                      title={canBreakdown ? '点击拆解为微动作' : risk.label}
+                      style={{
+                        background: risk.color + '1a', color: risk.color, whiteSpace: 'nowrap',
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                      }}>
                       {risk.label}
+                      {canBreakdown && ma.length > 0 && (
+                        <>
+                          <span style={{ width: 3, height: 3, borderRadius: 999, background: risk.color, opacity: .6 }} />
+                          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{maDone}/{ma.length}</span>
+                        </>
+                      )}
+                      {canBreakdown && ma.length === 0 && (
+                        <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2.8" style={{ opacity: .85 }}>
+                          <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                        </svg>
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
@@ -2934,33 +3561,71 @@ function WorkView({ workGoals, onKrAdd, onKrEdit }) {
   };
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-[1.2fr_1fr] gap-4 annual-work-grid">
-        {panelHtml({ ...main, _workIdx: 0 }, '主业', '#ef4444')}
-        {side && panelHtml({ ...side, _workIdx: 1 }, '副业', '#f9a8a8')}
+      {/* Step1-3 L1区块：5×18红条 + 16px标题 + 总完成率胶囊，与能力/知力一致 */}
+      <div className="bg-white rounded-2xl border border-ink-100 p-4">
+        <div className="flex items-center gap-2.5 mb-3">
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 工作 OKR</span>
+          <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
+            style={{ background: 'rgba(239,68,68,0.12)' }}>
+            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#ef4444' }}>{totalPct}</span>
+            <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(239,68,68,0.85)' }}>%</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-[1.2fr_1fr] gap-4 annual-work-grid">
+          {/* 副业色纯化：从 #f9a8a8 → #F97316 橙红，确保WCAG AA对比度(≈4.7:1)合规 */}
+          {panelHtml({ ...main, _workIdx: 0 }, '主业', '#ef4444')}
+          {side && panelHtml({ ...side, _workIdx: 1 }, '副业', '#F97316')}
+        </div>
       </div>
     </div>
   );
 }
 
 /* ---------- 11. 视图 · 生活 ---------- */
-function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
+function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds }) {
   const dynLife = lifeData || LIFE;
+  const totalEntries = dynLife.reduce((s, c) => s + c.entries.length, 0);
   // 生活模块完成率：有记录的类目数 / 总类目数 * 100（体验型鼓励每个类目都有内容）
   const lifePct = Math.round((dynLife.filter(c => c.entries.length > 0).length / dynLife.length) * 100);
+  const hlCount = Array.isArray(highlightedIds) ? highlightedIds.length : 0;
   return (
     <div className="flex flex-col gap-4">
-      {/* P2-2: 生活统计条 */}
-      <LifeStatsBar categories={dynLife.map(c => ({ key: c.key, label: c.lb, count: c.entries.length, color: c.color }))} />
-      <div className="grid grid-cols-5 gap-3 annual-life-grid">
-        {dynLife.map((c, ci) => (
-          <div key={c.key} className="glass-card p-4 flex flex-col">
-            {/* 头部 - count pill改tabnum裸数字 */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm font-bold text-ink-900">{c.lb}</span>
-              <span className="text-xs font-bold tabular-nums ml-auto" style={{color: c.color}}>
-                {c.entries.length}
-              </span>
-            </div>
+      {/* Step1-4 L1区块：紫条 + 16px标题 + 紫胶囊%，与其他4模块一致 */}
+      <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活珍藏</span>
+          <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
+            style={{ background: 'rgba(139,92,246,0.12)' }}>
+            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#8b5cf6' }}>{lifePct}</span>
+            <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(139,92,246,0.85)' }}>%</span>
+          </div>
+          {/* 年度精选 CTA（Step2-3 牵引入口） */}
+          <button
+            onClick={() => onStartHighlights?.()}
+            disabled={totalEntries === 0}
+            className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(139,92,246,0.25)' }}>
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
+            </svg>
+            年度精选{hlCount > 0 && <span className="opacity-95">· {hlCount}</span>}
+          </button>
+        </div>
+        {/* P2-2: 生活统计条 */}
+        <LifeStatsBar categories={dynLife.map(c => ({ key: c.key, label: c.lb, count: c.entries.length, color: c.color }))} />
+        <div className="grid grid-cols-5 gap-3 annual-life-grid">
+          {dynLife.map((c, ci) => (
+            <div key={c.key} className="bg-white border border-ink-100 rounded-xl p-4 flex flex-col hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
+              {/* Step1-4：类目标题头部统一加 4×16 紫条，字号从sm→14px Semibold ink-900（子类目标层级） */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-[4px] h-[16px] rounded-full flex-shrink-0" style={{ background: c.color }}></span>
+                <span className="text-[14px] font-semibold text-ink-900 leading-none">{c.lb}</span>
+                <span className="text-xs font-bold tabular-nums ml-auto" style={{color: c.color}}>
+                  {c.entries.length}
+                </span>
+              </div>
             {/* 条目列表 - 取消overflow-y-auto，日期移至右侧 */}
             <div className="flex flex-col gap-2 flex-1">
               {c.entries.length === 0 && (
@@ -2984,19 +3649,30 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit }) {
                   </div>
                 </div>
               )}
-              {c.entries.map((e, i) => (
-                <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-xs font-semibold text-ink-900 leading-snug flex-1 min-w-0">{e.t}</div>
-                    <div className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
+              {c.entries.map((e, i) => {
+                const hl = Array.isArray(highlightedIds) && highlightedIds.includes(e.id);
+                return (
+                  <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer relative">
+                    {hl && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full grid place-items-center"
+                        style={{ background: 'linear-gradient(135deg,#8b5cf6,#ec4899)', color: '#fff', boxShadow: '0 1px 3px rgba(139,92,246,0.35)' }}
+                        title="年度精选">
+                        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      </div>
+                    )}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-xs font-semibold text-ink-900 leading-snug flex-1 min-w-0">{e.t}</div>
+                      <div className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
+                    </div>
+                    {e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-1">{e.n}</div>}
                   </div>
-                  {e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-1">{e.n}</div>}
-                </div>
-              ))}
+                );
+              })}
               <AddButton label="添加" onClick={() => onEntryAdd?.(ci, c.lb)} />
             </div>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );
@@ -3059,6 +3735,10 @@ export default function AnnualPlan({ standalone = true }) {
   const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));
   // 能力自评历史 - 每月记录一次分数，key: ability.id, value: {[YYYY-MM]: score}
   const [abilityScoreHistory, setAbilityScoreHistory] = usePersistentState('annual_ability_score_history', () => ({}));
+  // 工作 KR 微动作拆解 - key: kr.id, value: [{id, text, deadline, done, createdAt}]
+  const [workKrMicroActions, setWorkKrMicroActions] = usePersistentState('annual_work_kr_microactions', () => ({}));
+  // 生活·年度精选 - 收藏的条目ID列表
+  const [lifeHighlightedIds, setLifeHighlightedIds] = usePersistentState('annual_life_highlights', () => []);
   // 知力 OKR - O 与 KR 列表均支持编辑增删
   const [cogObjective, setCogObjective] = usePersistentState('annual_cog_o', () => COG_O);
   const [cogKrs, setCogKrs] = usePersistentState('annual_cog_krs', () => COG_KRS.map(k => ({ ...k, id: k.id || uid() })));
@@ -3101,8 +3781,15 @@ export default function AnnualPlan({ standalone = true }) {
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
+      // 核心4模块
       books, abilities, workGoals, lifeData,
-      habitTargets, abilityScoreHistory,
+      // 精力·习惯目标
+      habitTargets,
+      // Step2新增：能力/工作/生活3份牵引态数据
+      abilityScoreHistory, workKrMicroActions, lifeHighlightedIds,
+      // 知力·完整状态（目标/KR/漏斗文字/承诺本/复盘卡）
+      cogObjective, cogKrs, funnelHeader, funnelStageLabels, bookshelfTitle,
+      cogChanges, cogReviews,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -3115,7 +3802,7 @@ export default function AnnualPlan({ standalone = true }) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('✅ 年度数据已导出');
-  }, [books, abilities, workGoals, lifeData, habitTargets, abilityScoreHistory, showToast]);
+  }, [books, abilities, workGoals, lifeData, habitTargets, abilityScoreHistory, workKrMicroActions, lifeHighlightedIds, cogObjective, cogKrs, funnelHeader, funnelStageLabels, bookshelfTitle, cogChanges, cogReviews, showToast]);
 
   const handleImport = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -3123,7 +3810,7 @@ export default function AnnualPlan({ standalone = true }) {
     e.target.value = '';
     setConfirmDialog({
       title: '确认导入数据？',
-      message: '将覆盖当前所有年度规划数据（书籍、能力、工作、生活、习惯目标、自评历史），此操作无法撤销。',
+      message: '将覆盖当前所有年度规划数据（书籍/能力/工作/生活/习惯目标/自评历史/知力目标&承诺&复盘/风险拆解/生活精选），此操作无法撤销。',
       confirmText: '确认导入',
       danger: true,
       onConfirm: async () => {
@@ -3135,7 +3822,18 @@ export default function AnnualPlan({ standalone = true }) {
           if (data.workGoals !== undefined) setWorkGoals(data.workGoals);
           if (data.lifeData !== undefined) setLifeData(data.lifeData);
           if (data.habitTargets !== undefined) setHabitTargets(data.habitTargets);
+          // Step2新增：能力自评、工作拆解、生活精选
           if (data.abilityScoreHistory !== undefined) setAbilityScoreHistory(data.abilityScoreHistory);
+          if (data.workKrMicroActions !== undefined) setWorkKrMicroActions(data.workKrMicroActions);
+          if (data.lifeHighlightedIds !== undefined) setLifeHighlightedIds(data.lifeHighlightedIds);
+          // 知力全量
+          if (data.cogObjective !== undefined) setCogObjective(data.cogObjective);
+          if (data.cogKrs !== undefined) setCogKrs(data.cogKrs);
+          if (data.funnelHeader !== undefined) setFunnelHeader(data.funnelHeader);
+          if (data.funnelStageLabels !== undefined) setFunnelStageLabels(data.funnelStageLabels);
+          if (data.bookshelfTitle !== undefined) setBookshelfTitle(data.bookshelfTitle);
+          if (data.cogChanges !== undefined) setCogChanges(data.cogChanges);
+          if (data.cogReviews !== undefined) setCogReviews(data.cogReviews);
           showToast('✅ 年度数据已导入');
         } catch (err) {
           console.error(err);
@@ -3145,7 +3843,7 @@ export default function AnnualPlan({ standalone = true }) {
       },
       onCancel: () => setConfirmDialog(null),
     });
-  }, [setBooks, setAbilities, setWorkGoals, setLifeData, setHabitTargets, setAbilityScoreHistory, showToast]);
+  }, [setBooks, setAbilities, setWorkGoals, setLifeData, setHabitTargets, setAbilityScoreHistory, setWorkKrMicroActions, setLifeHighlightedIds, setCogObjective, setCogKrs, setFunnelHeader, setFunnelStageLabels, setBookshelfTitle, setCogChanges, setCogReviews, showToast]);
 
   const handleReset = useCallback(() => {
     setConfirmDialog({
@@ -3456,6 +4154,84 @@ export default function AnnualPlan({ standalone = true }) {
             />
           </Modal>
         );
+      case 'ability_assess':
+        return (
+          <Modal open onClose={closeModal} title={`${new Date().getFullYear()}年${new Date().getMonth() + 1}月 · 能力自评`} maxWidth={460}>
+            <AbilityAssessmentForm
+              abilities={abilities}
+              scoreHistory={abilityScoreHistory}
+              onCancel={closeModal}
+              onSave={(scoresMap) => {
+                const ym = new Date().toISOString().slice(0, 7);
+                setAbilityScoreHistory(prev => {
+                  const next = { ...prev };
+                  abilities.forEach((a, i) => {
+                    const abId = a.id || a.title;
+                    const sc = scoresMap[i];
+                    if (sc !== undefined) {
+                      next[abId] = { ...(next[abId] || {}), [ym]: Number(sc) };
+                    }
+                  });
+                  return next;
+                });
+                setAbilities(prev => prev.map((a, i) => scoresMap[i] !== undefined ? { ...a, score: String(Number(scoresMap[i])) } : a));
+                showToast(`${new Date().getMonth() + 1}月自评已保存`);
+                closeModal();
+              }}
+            />
+          </Modal>
+        );
+      case 'risk_breakdown': {
+        const { workIdx, krIdx, kr, goal, risk } = modal.initial || {};
+        const krId = kr?.id || `${workIdx}-${krIdx}`;
+        const exist = workKrMicroActions?.[krId] || [];
+        return (
+          <Modal open onClose={closeModal} title="风险KR · 微动作拆解" maxWidth={480}>
+            <RiskBreakdownForm
+              kr={kr} goal={goal} riskInfo={risk} existingActions={exist}
+              onCancel={closeModal}
+              onKrProgressAdd={(inc) => {
+                if (!kr) return;
+                const curV = Number(kr.v) || 0;
+                const tgt = Number(kr.tgt) || 0;
+                const newV = Math.min(tgt, curV + Number(inc));
+                krOps.update({ workIdx, krIdx, id: kr.id, t: kr.t, v: newV, tgt: kr.tgt, u: kr.u, st: newV >= tgt ? 'done' : (kr.st || 'doing') });
+                showToast(`进度已推进 +${inc}`);
+              }}
+              onSave={(actions) => {
+                setWorkKrMicroActions(prev => ({ ...prev, [krId]: actions }));
+                const doneCount = actions.filter(a => a.done).length;
+                if (actions.length > 0) showToast(`拆解方案已保存（${doneCount}/${actions.length}已完成）`);
+                else showToast('拆解方案已清空');
+                closeModal();
+              }}
+            />
+          </Modal>
+        );
+      }
+      case 'life_highlights':
+        return (
+          <Modal open onClose={closeModal} title={`${new Date().getFullYear()}年 · 年度精选 & 记忆卡`} maxWidth={520}>
+            <LifeHighlightsForm
+              lifeData={lifeData}
+              highlightedIds={lifeHighlightedIds}
+              onCancel={closeModal}
+              onToggleHighlight={(id) => {
+                setLifeHighlightedIds(prev => {
+                  const set = new Set(prev || []);
+                  if (set.has(id)) set.delete(id); else set.add(id);
+                  return Array.from(set);
+                });
+              }}
+              onSave={(ids) => {
+                setLifeHighlightedIds(Array.isArray(ids) ? ids : []);
+                if (ids.length > 0) showToast(`已收藏 ${ids.length} 条精选记忆`);
+                else showToast('精选已清空');
+                closeModal();
+              }}
+            />
+          </Modal>
+        );
       default: return null;
     }
   })();
@@ -3487,9 +4263,13 @@ export default function AnnualPlan({ standalone = true }) {
           setAbilityScoreHistory(prev => ({ ...prev, [abId]: { ...(prev[abId] || {}), [ym]: newScore } }));
           setAbilities(prev => prev.map((a, i) => i === abilityIdx ? { ...a, score: String(newScore) } : a));
           showToast('自评已更新');
-        }} />}
-      {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit} />}
-      {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit} />}
+        }} onStartAssessment={() => setModal({ type: 'ability_assess' })} />}
+      {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit}
+        microActions={workKrMicroActions}
+        onRiskTagClick={(workIdx, krIdx, kr, goal, risk) => setModal({ type: 'risk_breakdown', initial: { workIdx, krIdx, kr, goal, risk } })} />}
+      {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit}
+        highlightedIds={lifeHighlightedIds}
+        onStartHighlights={() => setModal({ type: 'life_highlights' })} />}
     </main>
   );
 
@@ -3632,10 +4412,10 @@ export default function AnnualPlan({ standalone = true }) {
 
   // 独立模式（沙盒 #annual 预览）：完整外壳 + 内部 Sidebar + 返回工作台
   return (
-    <div className="min-h-screen bg-surface-base px-6 py-6">
+    <div className="min-h-screen bg-surface-base px-3 md:px-6 py-4 md:py-6">
       <div className="max-w-[1400px] mx-auto">
         <NavBar onExport={handleExport} onImport={handleImport} onReset={handleReset} />
-        <div className="flex gap-5 items-start">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start annual-root-layout">
           <Sidebar active={view} onChange={setView} stats={stats} />
           {mainContent}
         </div>

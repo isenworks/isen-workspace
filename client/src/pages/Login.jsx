@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { API } from '../api/client.js';
+import { IS_D1_BACKEND } from '../api/client.js';
 
 export default function Login() {
   const { login, register } = useAuth();
@@ -13,19 +14,36 @@ export default function Login() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // D1 模式：自动检测是否需要解锁密码 → 不需要则一键进入
+  const [needUnlock, setNeedUnlock] = useState(false);
+  useEffect(() => {
+    if (!IS_D1_BACKEND) return;
+    (async () => {
+      try {
+        const res = await API.auth.login('', '');
+        setNeedUnlock(!res || !res.user);
+      } catch {
+        setNeedUnlock(true);
+      }
+    })();
+  }, []);
+
   async function submit(e) {
     e.preventDefault();
     setErr('');
     setMsg('');
-    if (!email.trim()) return setErr('请输入邮箱');
-    if (!password || password.length < 6) return setErr('密码至少 6 位');
-
     setBusy(true);
     try {
+      if (IS_D1_BACKEND) {
+        await login('', password);
+        return;
+      }
+      if (!email.trim()) return setErr('请输入邮箱');
+      if (!password || password.length < 6) return setErr('密码至少 6 位');
+
       if (mode === 'login') {
         await login(email.trim(), password);
       } else {
-        // 注册流程：先预留邀请码
         if (!inviteCode.trim()) {
           setErr('请输入邀请码');
           setBusy(false);
@@ -39,14 +57,10 @@ export default function Login() {
         }
         const codeId = reserveResult.codeId;
 
-        // 执行注册
         const u = await register(email.trim(), password, {
           username: username.trim() || email.trim().split('@')[0],
         });
-
-        // 注册成功后绑定邀请码使用者
         await API.inviteCodes.link(codeId);
-
         if (!u) {
           setMsg('注册成功！请登录。');
           setMode('login');
@@ -59,6 +73,65 @@ export default function Login() {
     }
   }
 
+  // ============================================================
+  // D1 模式：单人解锁页（免邮箱 / 免注册）
+  // ============================================================
+  if (IS_D1_BACKEND) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-brand-50 via-white to-brand-100">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500 text-white text-2xl font-bold mb-3 shadow-card">
+              ⌘
+            </div>
+            <h1 className="text-2xl font-semibold text-ink-900">个人工作台</h1>
+            <p className="text-sm text-ink-500 mt-1">日程 · 任务 · 习惯 · 复盘，一站式管理</p>
+          </div>
+
+          <form onSubmit={submit} className="card p-6 space-y-4">
+            {needUnlock ? (
+              <>
+                <div>
+                  <label className="block text-xs text-ink-500 mb-1">解锁密码</label>
+                  <input
+                    className="input"
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="请输入解锁密码"
+                    autoFocus
+                  />
+                </div>
+                <p className="text-xs text-ink-400">
+                  密码由部署者在 Cloudflare Pages Variables 中设置 `UNLOCK_PASSWORD_HASH`。
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-ink-600">
+                当前未设置解锁密码，点击按钮直接进入工作台。
+              </p>
+            )}
+
+            {err && (
+              <div className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{err}</div>
+            )}
+
+            <button type="submit" disabled={busy} className="btn-primary w-full py-2.5 disabled:opacity-50">
+              {busy ? '进入中...' : (needUnlock ? '解 锁' : '进入工作台')}
+            </button>
+          </form>
+
+          <p className="text-center text-xs text-ink-300 mt-6">
+            数据存储于 Cloudflare D1 · 多设备同步 · Powered by Cloudflare Pages
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // Supabase 模式：原有登录 / 注册
+  // ============================================================
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-brand-50 via-white to-brand-100">
       <div className="w-full max-w-md">

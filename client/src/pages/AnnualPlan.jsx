@@ -2829,12 +2829,21 @@ function CognitionView({
                 placeholder="KR 描述，如：读完12本书"
                 className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
               <div className="grid grid-cols-3 gap-2">
-                <input type="number" value={newKr.val} onChange={(e) => setNewKr({ ...newKr, val: Number(e.target.value) })}
-                  placeholder="当前值" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                <input type="number" value={newKr.tgt} onChange={(e) => setNewKr({ ...newKr, tgt: Number(e.target.value) })}
-                  placeholder="目标值" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                <input value={newKr.u} onChange={(e) => setNewKr({ ...newKr, u: e.target.value })}
-                  placeholder="单位" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
+                  <input type="number" value={newKr.val} onChange={(e) => setNewKr({ ...newKr, val: Number(e.target.value) })}
+                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">目标值</label>
+                  <input type="number" value={newKr.tgt} onChange={(e) => setNewKr({ ...newKr, tgt: Number(e.target.value) })}
+                    placeholder="12" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">单位</label>
+                  <input value={newKr.u} onChange={(e) => setNewKr({ ...newKr, u: e.target.value })}
+                    placeholder="本" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
               </div>
               <input value={newKr.sub} onChange={(e) => setNewKr({ ...newKr, sub: e.target.value })}
                 placeholder="说明（可选）如：书架系统追踪"

@@ -32,26 +32,50 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     src: SRCS.includes(initial?.src) ? initial.src : SRCS[0],
     st: initial?.st || 'pending',
     pct: initial?.pct ?? 0,
-    insights: initial?.insights || [],  // 核心观点数组：{id, text, resonance(1-10)}
+    insights: initial?.insights || [],
+    hasInsights: initial?.hasInsights ?? false,
+    hasAction: initial?.hasAction ?? false,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // 观点增删改
-  const addInsight = () => {
-    setForm(f => ({ ...f, insights: [...f.insights, { id: Date.now() + Math.random(), text: '', resonance: 5 }] }));
-  };
-  const updateInsight = (id, patch) => {
-    setForm(f => ({ ...f, insights: f.insights.map(i => i.id === id ? { ...i, ...patch } : i) }));
-  };
-  const removeInsight = (id) => {
-    setForm(f => ({ ...f, insights: f.insights.filter(i => i.id !== id) }));
+  const insightCount = form.insights.filter(i => i.text?.trim()).length;
+  const isDone = form.st === 'done';
+
+  const syncHasInsights = (currentInsights) => {
+    const hasValid = currentInsights.some(i => i.text?.trim());
+    setForm(f => ({ ...f, hasInsights: hasValid }));
   };
 
-  // UI 层即时联动（视觉一致，真正规范化在入口层 normalizeBook 双保险）
+  const addInsight = () => {
+    setForm(f => {
+      const next = { ...f, insights: [...f.insights, { id: Date.now() + Math.random(), text: '', resonance: 5 }] };
+      return next;
+    });
+  };
+  const updateInsight = (id, patch) => {
+    setForm(f => {
+      const next = { ...f, insights: f.insights.map(i => i.id === id ? { ...i, ...patch } : i) };
+      if (patch.text !== undefined) syncHasInsights(next.insights);
+      return next;
+    });
+  };
+  const removeInsight = (id) => {
+    setForm(f => {
+      const next = { ...f, insights: f.insights.filter(i => i.id !== id) };
+      syncHasInsights(next.insights);
+      return next;
+    });
+  };
+
+  const toggleInsights = () => set('hasInsights', !form.hasInsights);
+  const toggleAction = () => set('hasAction', !form.hasAction);
+
   const setStatus = (stVal) => {
     const patch = { st: stVal };
-    if (stVal === 'done') patch.pct = 100;
-    else if (stVal === 'pending') patch.pct = 0;
+    if (stVal === 'done') {
+      patch.pct = 100;
+      if (insightCount > 0) patch.hasInsights = true;
+    } else if (stVal === 'pending') patch.pct = 0;
     else if (stVal === 'reading' && (Number(form.pct) || 0) <= 0) patch.pct = 1;
     setForm(f => ({ ...f, ...patch }));
   };
@@ -67,7 +91,8 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
   function submit() {
     if (!form.t.trim()) return alert('请输入书名');
     const cleanInsights = form.insights.filter(i => i.text && i.text.trim()).map(i => ({ ...i, text: i.text.trim() }));
-    onSaved?.({ ...form, t: form.t.trim(), insights: cleanInsights, id: initial?.id });
+    const hasInsights = form.hasInsights || cleanInsights.length > 0;
+    onSaved?.({ ...form, t: form.t.trim(), insights: cleanInsights, hasInsights, hasAction: form.hasAction, id: initial?.id });
   }
 
   function del() {
@@ -76,7 +101,6 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     onDelete?.(initial.id);
   }
 
-  // 共鸣分颜色：<7灰，7-8橙，9-10紫
   const resonanceColor = (r) => r >= 9 ? '#a855f7' : r >= 7 ? '#f59e0b' : '#94a3b8';
   const strongCount = form.insights.filter(i => i.text?.trim() && i.resonance >= 7).length;
 
@@ -144,7 +168,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
         </div>
       </div>
 
-      {/* ===== 核心观点区（输入量数据源） ===== */}
+      {/* ===== 核心观点区 ===== */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <label style={LABEL_STYLE}>核心观点（{form.insights.length} 条 · 强共鸣 {strongCount} 条）</label>
@@ -200,6 +224,49 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
           </div>
         )}
       </div>
+
+      {/* ===== 行动闭环区（仅已读完时显示） ===== */}
+      {isDone && (
+        <div style={{
+          padding: '10px 12px', borderRadius: '10px',
+          background: 'rgba(75,99,240,0.04)',
+          border: '1px solid rgba(75,99,240,0.12)',
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#4b63f0', marginBottom: 8 }}>
+            行动闭环（影响漏斗数据）
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={form.hasInsights}
+                onChange={toggleInsights}
+                style={{ width: 16, height: 16, accentColor: '#4b63f0' }}
+              />
+              <span style={{ fontSize: 13, color: '#1c1c1e', fontWeight: 500 }}>
+                已输出核心洞察
+              </span>
+              <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 'auto' }}>
+                {insightCount} 条观点
+              </span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={form.hasAction}
+                onChange={toggleAction}
+                style={{ width: 16, height: 16, accentColor: '#a855f7' }}
+              />
+              <span style={{ fontSize: 13, color: '#1c1c1e', fontWeight: 500 }}>
+                已转化为行动承诺
+              </span>
+              <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 'auto' }}>
+                链接到「承诺本」
+              </span>
+            </label>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>
         <div>{isEdit && <button onClick={del} style={BTN_DANGER}>删除</button>}</div>

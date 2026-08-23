@@ -84,6 +84,8 @@ const BOOKS = [
       { id: 'i3', text: '阅读你喜欢的，直到你喜欢阅读', resonance: 7 },
       { id: 'i4', text: '建立具体知识，而非追求 generalized knowledge', resonance: 6 },
     ],
+    hasInsights: true,
+    hasAction: false,
   },
   { t: '原则',         author: '瑞·达利欧',     cat: '认知', st: 'done',    pct: 100, src: '纸质书',
     insights: [
@@ -91,6 +93,8 @@ const BOOKS = [
       { id: 'i6', text: '极度透明+极度真实是高效决策的基础', resonance: 8 },
       { id: 'i7', text: '把决策过程当作机器来优化', resonance: 7 },
     ],
+    hasInsights: true,
+    hasAction: true,
   },
   { t: '思考，快与慢', author: '丹尼尔·卡尼曼', cat: '认知', st: 'done',    pct: 100, src: '电子书',
     insights: [
@@ -99,12 +103,16 @@ const BOOKS = [
       { id: 'i10', text: '锚定效应：第一印象会扭曲后续判断', resonance: 7 },
       { id: 'i11', text: '峰终定律：体验的记忆由高峰和结尾决定', resonance: 6 },
     ],
+    hasInsights: true,
+    hasAction: false,
   },
   { t: '被讨厌的勇气', author: '岸见一郎',     cat: '认知', st: 'done',    pct: 100, src: '电子书',
     insights: [
       { id: 'i12', text: '课题分离：这是谁的课题？是我的还是他的？', resonance: 9 },
       { id: 'i13', text: '自卑感不是来自事实，而是来自主观解释', resonance: 8 },
     ],
+    hasInsights: true,
+    hasAction: true,
   },
   { t: 'Atomic Habits',author: 'James Clear',  cat: '商业', st: 'done',    pct: 100, src: '纸质书',
     insights: [
@@ -114,14 +122,16 @@ const BOOKS = [
       { id: 'i17', text: '环境设计比意志力更有效', resonance: 8 },
       { id: 'i18', text: '习惯叠加：在已有习惯后接入新习惯', resonance: 6 },
     ],
+    hasInsights: true,
+    hasAction: false,
   },
 ];
 /* 知力 · OKR — 理念：输入量→思考量→行动量→改变量 */
 const COG_O = { text: '通过阅读获得启发，并确定实际行动目标以获得改变', year: new Date().getFullYear() };
 const COG_KRS = [
-  { id: 'kr1', lb: '输入量 · 提取60条核心观点', tgt: 60, val: 0, u: '条', sub: '每本书3-5条观点' },
-  { id: 'kr2', lb: '思考量 · 24条强共鸣观点', tgt: 24, val: 0, u: '条', sub: '共鸣≥7分' },
-  { id: 'kr3', lb: '行动量 · 12条改变承诺', tgt: 12, val: 0, u: '条', sub: '观点→行动' },
+  { id: 'kr1', lb: '输入量 · 读完12本书', tgt: 12, val: 0, u: '本', sub: '已读完' },
+  { id: 'kr2', lb: '思考量 · 8本书有洞察', tgt: 8, val: 0, u: '本', sub: '有洞察' },
+  { id: 'kr3', lb: '行动量 · 6本书有承诺', tgt: 6, val: 0, u: '本', sub: '有承诺' },
 ];
 
 /* 能力 */
@@ -399,13 +409,13 @@ function ReadingFunnel({
   onStageLabelsChange,
 }) {
   // 四层（严格真子集关系：每一层是前一层的有意义子集）
-  // 渐进色彩：蓝(输入) → 橙(思考) → 紫(行动) → 绿(改变)
-  const STAGE_COLORS = ['#4b63f0', '#f59e0b', '#a855f7', '#22c55e'];
+  // 统一蓝色主题：浅→深渐变
+  const STAGE_COLORS = ['#A5B4FC', '#60A5FA', '#4B63F0', '#312E81'];
   const DEFAULT_STAGES = [
-    { key: 'total',   label: '输入量', sub: '核心观点',   convLabel: '启发' },
-    { key: 'done',    label: '思考量', sub: '强共鸣≥7分', convLabel: '承诺' },
-    { key: 'notes',   label: '行动量', sub: '改变承诺',   convLabel: '验证' },
-    { key: 'changes', label: '改变量', sub: '30天留存',   convLabel: '闭环' },
+    { key: 'total',   label: '输入量', sub: '已读完',   convLabel: '' },
+    { key: 'done',    label: '思考量', sub: '有洞察',   convLabel: '' },
+    { key: 'notes',   label: '行动量', sub: '有承诺',   convLabel: '' },
+    { key: 'changes', label: '改变量', sub: '有复盘',   convLabel: '' },
   ];
   const countsByKey = { total, done, notes, changes };
   // stages 由【默认结构 + 自定义文字 + 外部count】合成；受控，不再自己 useState 存 label/sub/convLabel
@@ -441,14 +451,14 @@ function ReadingFunnel({
 
   // CTA 文案：根据各层数据动态生成"下一步建议"
   const ctas = [
-    // ① 输入量：有未读完的书 → 提示提取观点
-    { idx: 0, show: total < 60, text: total === 0 ? '从书架选一本书，提取3条核心观点' : `还需 ${60 - total} 条观点，去已读书里提取？` },
-    // ② 思考量：有观点但强共鸣少 → 提示打分筛选
-    { idx: 1, show: done < 24 && total > 0, text: done === 0 ? '给观点打共鸣分，筛出打动你的那批' : `${total - done} 条观点待打分，筛出强共鸣` },
-    // ③ 行动量：有强共鸣但行动少 → 提示生成行动
-    { idx: 2, show: notes < 12 && done > 0, text: notes === 0 ? '从强共鸣观点生成你的第一条行动改变' : `${done - notes} 条强共鸣待转化为行动` },
-    // ④ 改变量：有行动但留存少 → 提示坚持打卡或复盘
-    { idx: 3, show: changes < 6 && notes > 0, text: changes === 0 ? '坚持打卡30天，完成第一次复盘' : `${notes - changes} 条改变待完成30天复盘` },
+    // ① 输入量：有未读完的书 → 提示读完
+    { idx: 0, show: total < 12, text: total === 0 ? '书架还没已读完的书，去完成第一本' : `还差 ${12 - total} 本，继续阅读` },
+    // ② 思考量：读完了但没输出洞察 → 提示提取
+    { idx: 1, show: done < total && total > 0, text: done === 0 ? '已读完的书还没写洞察，点击书籍添加' : `${total - done} 本书还没输出洞察` },
+    // ③ 行动量：有洞察但没转化承诺 → 提示生成
+    { idx: 2, show: notes < done && done > 0, text: notes === 0 ? '有洞察但没行动，生成你的第一条改变承诺' : `${done - notes} 本书还没转化为行动` },
+    // ④ 改变量：有行动但没完成复盘 → 提示坚持
+    { idx: 3, show: changes < notes && notes > 0, text: changes === 0 ? '有承诺但没复盘，完成第一次复盘' : `${notes - changes} 条改变还没完成复盘` },
   ];
 
   const Inner = (
@@ -458,75 +468,60 @@ function ReadingFunnel({
         const conv = next && s.count > 0 ? Math.round((next.count / s.count) * 100) : null;
         const pctOfMax = Math.max(28, Math.round((s.count / maxW) * 100));
         const stageColor = STAGE_COLORS[i] || color;
-        const cta = ctas.find(c => c.idx === i);
         return (
           <div key={s.key}>
             <div className="relative flex items-center pr-1">
               <div
-                className="flex items-center h-[30px] px-3 rounded-lg text-white font-semibold text-[12px] transition-all"
+                className="flex items-center h-[34px] px-3.5 rounded-xl text-white font-semibold text-[13px] transition-all"
                 style={{
                   width: `${pctOfMax}%`,
                   minWidth: '150px',
-                  background: `linear-gradient(90deg, ${stageColor} 0%, ${stageColor}e0 100%)`,
-                  boxShadow: `0 1px 3px ${stageColor}30`,
+                  background: `linear-gradient(135deg, ${stageColor} 0%, ${STAGE_COLORS[Math.min(i + 1, 3)]}dd 100%)`,
+                  boxShadow: `0 2px 6px ${stageColor}25`,
                 }}>
-                {/* 左：label + sub — 均复用通用InlineEdit（右键菜单：编辑/删除恢复默认） */}
-                <span className="flex items-center gap-1.5 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis mr-2">
+                {/* 左：label + sub */}
+                <span className="flex items-center gap-2 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
                   <InlineEdit
                     value={s.label}
                     onChange={(v) => updateStageLabel(s.key, { label: v })}
                     onDelete={() => deleteStageLabel(s.key, 'label')}
                     mode="contextmenu"
                     className="font-bold flex-shrink-0"
-                    inputClassName="text-ink-900 text-[12px] w-20"
+                    inputClassName="text-ink-900 text-[13px] w-20"
                     title="右键编辑阶段名"
                   />
-                  <span className="text-[10px] font-normal opacity-80 whitespace-nowrap overflow-hidden text-ellipsis inline-flex items-center gap-1">
-                    ·
+                  <span className="text-[10px] opacity-75 whitespace-nowrap flex-shrink-0">
                     <InlineEdit
                       value={s.sub}
                       onChange={(v) => updateStageLabel(s.key, { sub: v })}
                       onDelete={() => deleteStageLabel(s.key, 'sub')}
                       mode="contextmenu"
                       className="text-[10px] opacity-95"
-                      inputClassName="text-ink-900 text-[11px] w-16"
+                      inputClassName="text-ink-900 text-[11px] w-14"
                       title="右键编辑备注"
                     />
                   </span>
                 </span>
-                {/* 右：count — 独立盒子 shrink-0 永远不换行 */}
-                <span className="tabular-nums text-[14px] font-extrabold leading-none flex-shrink-0 ml-auto">
+                {/* 右：count — 大号数字 */}
+                <span className="tabular-nums text-[16px] font-extrabold leading-none flex-shrink-0 ml-auto">
                   {s.count}
                 </span>
               </div>
             </div>
+            {/* 连接线 + 转化率 */}
             {next && (
-              <div className="flex items-center py-0.5 pl-5 gap-1.5 text-[10.5px] whitespace-nowrap">
-                <div className="w-px h-2 bg-ink-200" />
-                <svg className="w-2 h-2 text-ink-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                <InlineEdit
-                  value={s.convLabel}
-                  onChange={(v) => updateStageLabel(s.key, { convLabel: v })}
-                  onDelete={() => deleteStageLabel(s.key, 'convLabel')}
-                  mode="contextmenu"
-                  className="text-ink-400 font-medium flex-shrink-0"
-                  inputClassName="text-ink-900 text-[10.5px] w-12"
-                  title="右键编辑转化文案"
-                />
-                <span className="font-extrabold tabular-nums px-1.5 py-px rounded-full flex-shrink-0"
+              <div className="flex items-center py-1 pl-6 gap-1.5 text-[11px] whitespace-nowrap">
+                <div className="flex flex-col items-center">
+                  <div className="w-[2px] h-1.5 rounded-full" style={{ background: `${STAGE_COLORS[i]}88` }} />
+                </div>
+                <svg className="w-3 h-3 flex-shrink-0" style={{ color: STAGE_COLORS[i] }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span className="font-bold tabular-nums px-2 py-px rounded-md flex-shrink-0"
                   style={{
-                    color: convColors[i] || color,
-                    background: `${(convColors[i] || color)}15`,
+                    color: STAGE_COLORS[Math.min(i + 1, 3)],
+                    background: `${STAGE_COLORS[Math.min(i + 1, 3)]}12`,
                   }}>
                   {conv ?? 0}%
                 </span>
-              </div>
-            )}
-            {/* CTA 引导行：数据驱动下一步动作 */}
-            {cta && cta.show && (
-              <div className="flex items-center gap-1 pl-5 py-0.5 text-[10px] font-medium" style={{ color: STAGE_COLORS[i] }}>
-                <span className="opacity-60">→</span>
-                <span>{cta.text}</span>
               </div>
             )}
           </div>
@@ -2423,7 +2418,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
 
 /* ---------- 8. 视图 · 知力 (OKR + 书架系统) ---------- */
 function CognitionView({
-  books, onBookAdd, onBookEdit, onBookMove,
+  books, onBookAdd, onBookEdit, onBookMove, onBookUpdate,
   objective, onObjectiveChange,
   krs, onKrAdd, onKrEdit, onKrRemove,
   funnelHeader, setFunnelHeader,
@@ -2461,39 +2456,38 @@ function CognitionView({
     };
   }, [books]);
 
-  // 漏斗四层数据：基于书架 insights[] + changes + reviews 计算（真子集关系）
-  // ① 输入量 = 所有已读完书的 insights 总数
-  // ② 思考量 = insights 中 resonance >= 7 的条数
-  // ③ 行动量 = changes 数组中 status !== 'reviewed' 的条数（已启动、未完成复盘）
+  // 漏斗四层数据：基于书架 st + hasInsights + hasAction + changes/reviews 计算（严格真子集关系）
+  // ① 输入量 = 已读完书籍数量
+  // ② 思考量 = 已读完且 hasInsights=true 的书籍数量
+  // ③ 行动量 = 已读完且 hasAction=true 的书籍数量
   // ④ 改变量 = reviews 数组长度（已完成复盘 = 真正改变了）
   const funnelData = useMemo(() => {
     const dynBooks = books || BOOKS;
-    const allInsights = dynBooks.flatMap(b => b.insights || []);
-    const totalInsights = allInsights.length;
-    const strongResonance = allInsights.filter(i => i.resonance >= 7).length;
-    const dynChanges = changes || [];
-    const activeChanges = dynChanges.filter(c => c.status !== 'reviewed').length;
+    const doneBooks = dynBooks.filter(b => b.st === 'done');
+    const total = doneBooks.length;
+    const hasInsights = doneBooks.filter(b => b.hasInsights || (b.insights && b.insights.length > 0)).length;
+    const hasAction = doneBooks.filter(b => b.hasAction).length;
     const dynReviews = reviews || [];
     return {
-      total: totalInsights,        // ① 输入量
-      done: strongResonance,      // ② 思考量
-      notes: activeChanges,        // ③ 行动量
-      changes: dynReviews.length, // ④ 改变量
+      total,           // ① 输入量：已读完书籍数量
+      done: hasInsights, // ② 思考量：有洞察的书籍数量
+      notes: hasAction,  // ③ 行动量：有行动承诺的书籍数量
+      changes: dynReviews.length, // ④ 改变量：已复盘的改变数量
     };
-  }, [books, changes, reviews]);
+  }, [books, reviews]);
 
   const finalKrs = (krs || COG_KRS).map(kr => {
-    // KR1（输入量）= 所有已读完书的 insights 总数
+    // KR1（输入量）= 已读完书籍数量
     if (kr.id === 'kr1') {
       return { ...kr, val: funnelData.total };
     }
-    // KR2（思考量）= insights 中 resonance >= 7 的条数
+    // KR2（思考量）= 有洞察的书籍数量
     if (kr.id === 'kr2') {
       return { ...kr, val: funnelData.done };
     }
-    // KR3（行动量）= changes 中已启动的总数
+    // KR3（行动量）= 有行动承诺的书籍数量
     if (kr.id === 'kr3') {
-      return { ...kr, val: (changes || []).length };
+      return { ...kr, val: funnelData.notes };
     }
     return kr;
   });
@@ -2971,6 +2965,7 @@ function CognitionView({
                 ) : (
                   g.books.map((b) => {
                     const isDragging = dragBookId === b.id;
+                    const isDone = g.key === 'done';
                     return (
                       <div
                         key={b.id}
@@ -3005,17 +3000,55 @@ function CognitionView({
                                 {b.t}
                               </div>
                               {b.cat && <div className="text-[10.5px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
-                              {/* 已读完且有观点 → 显示观点/共鸣小标签 */}
-                              {b.insights?.length > 0 && (
+                              {/* 已读完书籍：洞察+行动状态可视化 */}
+                              {isDone && (() => {
+                                const ins = b.insights || [];
+                                const validIns = ins.filter(i => i.text?.trim());
+                                const strongIns = validIns.filter(i => (i.resonance || 0) >= 7);
+                                const hasIns = b.hasInsights || validIns.length > 0;
+                                const hasAct = b.hasAction;
+                                return (
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                                    {hasIns ? (
+                                      <>
+                                        <span className="text-[9px] font-bold px-1.5 py-px rounded" style={{ background: 'rgba(75,99,240,0.1)', color: '#4b63f0' }}>
+                                          💡 {validIns.length} 洞察
+                                        </span>
+                                        {strongIns.length > 0 && (
+                                          <span className="text-[9px] font-bold px-1.5 py-px rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                                            ⚡ {strongIns.length} 强共鸣
+                                          </span>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className="text-[9px] text-ink-400 italic">无洞察</span>
+                                    )}
+                                    {hasAct && (
+                                      <span className="text-[9px] font-bold px-1.5 py-px rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
+                                        🎯 已行动
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasInsights: !hasIns }); }}
+                                      className="text-[9px] text-ink-300 hover:text-blue-500 ml-0.5"
+                                      title={hasIns ? '标记为无洞察' : '标记为有洞察'}>
+                                      {hasIns ? '✓' : '○'}
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasAction: !hasAct }); }}
+                                      className="text-[9px] text-ink-300 hover:text-purple-500"
+                                      title={hasAct ? '取消行动标记' : '标记为已行动'}>
+                                      {hasAct ? '✓' : '○'}
+                                    </button>
+                                  </div>
+                                );
+                              })()}
+                              {/* 进行中/待读书籍的观点小标签 */}
+                              {!isDone && b.insights?.length > 0 && (
                                 <div className="flex items-center gap-1.5 mt-1">
                                   <span className="text-[9.5px] font-semibold px-1.5 py-px rounded" style={{ background: 'rgba(75,99,240,0.08)', color: '#4b63f0' }}>
                                     {b.insights.length} 观点
                                   </span>
-                                  {b.insights.filter(i => i.resonance >= 7).length > 0 && (
-                                    <span className="text-[9.5px] font-semibold px-1.5 py-px rounded" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
-                                      {b.insights.filter(i => i.resonance >= 7).length} 共鸣
-                                    </span>
-                                  )}
                                 </div>
                               )}
                             </div>
@@ -3982,6 +4015,9 @@ export default function AnnualPlan({ standalone = true }) {
         status: 'active',
       };
       setCogChanges(prev => [...prev, record]);
+      if (data.bookId) {
+        setBooks(prev => prev.map(b => b.id === data.bookId ? { ...b, hasAction: true } : b));
+      }
       showToast('行动改变已添加');
     },
     update: (data) => {
@@ -4290,6 +4326,7 @@ export default function AnnualPlan({ standalone = true }) {
       {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} timeScale={timeScale} onTimeScaleChange={setTimeScale} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} onBookMove={(id, st) => bookOps.move(id, st)}
+        onBookUpdate={(id, patch) => { setBooks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b)); showToast('书籍已更新'); }}
         objective={cogObjective} onObjectiveChange={setCogObjective}
         krs={cogKrs} onKrAdd={(kr) => { setCogKrs(prev => [...prev, { ...kr, id: uid() }]); showToast('KR 已添加'); }}
         onKrEdit={(kr) => { setCogKrs(prev => prev.map(k => k.id === kr.id ? { ...k, ...kr } : k)); showToast('KR 已更新'); }}

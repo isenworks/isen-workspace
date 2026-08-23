@@ -91,6 +91,62 @@ function toBoolInt(v) {
 }
 
 // ------------------------------------------------------------
+// 日期格式验证与规范化（date 字段为 TEXT，必须保证 ISO 格式）
+// ------------------------------------------------------------
+const ISO_DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+// 规范化日期：接受 '2026-7-1' / '2026/07/01' / '2026-07-01' 等格式，输出 '2026-07-01'
+function normalizeDate(input) {
+  if (!input || typeof input !== 'string') return null;
+  const s = input.trim();
+  
+  // 已经是合法 ISO 格式
+  if (ISO_DATE_RE.test(s)) {
+    // 额外验证日期有效性（如 2026-02-30 不合法）
+    const d = new Date(s);
+    if (d.getFullYear() === Number(s.slice(0, 4)) && 
+        d.getMonth() + 1 === Number(s.slice(5, 7)) && 
+        d.getDate() === Number(s.slice(8, 10))) {
+      return s;
+    }
+    return null;
+  }
+  
+  // 尝试规范化：把 '/' 替换成 '-'
+  let normalized = s.replace(/\//g, '-');
+  
+  // 尝试解析 YYYY-M-D 格式（补零）
+  const parts = normalized.split('-');
+  if (parts.length === 3) {
+    const y = parts[0];
+    const m = parts[1].padStart(2, '0');
+    const d = parts[2].padStart(2, '0');
+    const candidate = `${y}-${m}-${d}`;
+    
+    if (ISO_DATE_RE.test(candidate)) {
+      // 验证日期有效性
+      const dt = new Date(candidate);
+      if (dt.getFullYear() === Number(y) && 
+          dt.getMonth() + 1 === Number(m) && 
+          dt.getDate() === Number(d)) {
+        return candidate;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// 验证日期：必须是合法的 YYYY-MM-DD 格式
+function validateDate(input) {
+  const normalized = normalizeDate(input);
+  if (!normalized) {
+    return { valid: false, error: `日期格式无效：${input}，必须为 YYYY-MM-DD 格式（如 2026-07-01）` };
+  }
+  return { valid: true, value: normalized };
+}
+
+// ------------------------------------------------------------
 // 请求分发器
 // ------------------------------------------------------------
 export async function onRequest(context) {
@@ -371,7 +427,10 @@ async function handleHabitsRemove(env, body) {
 async function handleHabitsToggle(env, body) {
   const userId = uid(env);
   const habitId = Number(body?.habit_id || body?.id);
-  const today = body?.date || getLocalDate();
+  const dateRaw = body?.date || getLocalDate();
+  const dateCheck = validateDate(dateRaw);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+  const today = dateCheck.value;
   const targetDone = body?.targetDone !== undefined ? (body.targetDone ? 1 : 0) : undefined;
   if (!habitId) return json({ error: '缺少 habit_id' }, 400);
 
@@ -394,7 +453,10 @@ async function handleHabitsToggle(env, body) {
 async function handleHabitsLogSleep(env, body) {
   const userId = uid(env);
   const habitId = Number(body?.habit_id);
-  const today = body?.date || getLocalDate();
+  const dateRaw = body?.date || getLocalDate();
+  const dateCheck = validateDate(dateRaw);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+  const today = dateCheck.value;
   const { sleep_start, sleep_end, energy_state, mood_state, sleep_note } = body || {};
   if (!habitId) return json({ error: '缺少 habit_id' }, 400);
 
@@ -441,7 +503,10 @@ async function handleHabitsLogSleep(env, body) {
 async function handleHabitsLogCount(env, body) {
   const userId = uid(env);
   const habitId = Number(body?.habit_id);
-  const today = body?.date || getLocalDate();
+  const dateRaw = body?.date || getLocalDate();
+  const dateCheck = validateDate(dateRaw);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+  const today = dateCheck.value;
   const add_value = Number(body?.add_value || 0);
   const note = body?.note || null;
   if (!habitId) return json({ error: '缺少 habit_id' }, 400);
@@ -510,10 +575,12 @@ async function handleTasksList(env, q) {
 async function handleTasksCreate(env, body) {
   const data = body || {};
   const userId = uid(env);
+  const dateCheck = validateDate(data.date);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
   const info = await env.DB.prepare(
     `INSERT INTO ethan_tasks (user_id,title,date,priority,is_done,due_time,sort_order) VALUES (?,?,?,?,?,?,?)`
   )
-    .bind(userId, data.title, data.date, toInt(data.priority, 2), 0, data.due_time || null, toInt(data.sort_order, 0))
+    .bind(userId, data.title, dateCheck.value, toInt(data.priority, 2), 0, data.due_time || null, toInt(data.sort_order, 0))
     .run();
   const task = await dbFirst(env.DB, `SELECT * FROM ethan_tasks WHERE id=?`, [Number(info.meta.last_row_id)]);
   return json({ task });
@@ -521,6 +588,11 @@ async function handleTasksCreate(env, body) {
 async function handleTasksUpdate(env, body) {
   const id = Number(body?.id);
   if (!id) return json({ error: '缺少 id' }, 400);
+  if (body.date !== undefined) {
+    const dateCheck = validateDate(body.date);
+    if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+    body.date = dateCheck.value;
+  }
   const sets = [];
   const params = [];
   [
@@ -570,6 +642,8 @@ async function handleSchedulesList(env, q) {
 async function handleSchedulesCreate(env, body) {
   const data = body || {};
   const userId = uid(env);
+  const dateCheck = validateDate(data.date);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
   const cat = data.category !== undefined ? Number(data.category) : null;
   const syncIsKey = cat === null ? (data.is_key ? 1 : 0) : cat === 1 || cat === 2 ? 1 : 0;
   const finalCat = cat === null ? (syncIsKey ? 2 : 3) : cat;
@@ -577,7 +651,7 @@ async function handleSchedulesCreate(env, body) {
     `INSERT INTO ethan_schedules (user_id,title,date,start_time,end_time,duration_min,is_key,category,is_done,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?)`
   )
     .bind(
-      userId, data.title, data.date,
+      userId, data.title, dateCheck.value,
       data.start_time || null, data.end_time || null,
       data.duration_min != null ? Number(data.duration_min) : null,
       syncIsKey, finalCat, 0, toInt(data.sort_order, 0)
@@ -588,6 +662,11 @@ async function handleSchedulesCreate(env, body) {
 async function handleSchedulesUpdate(env, body) {
   const id = Number(body?.id);
   if (!id) return json({ error: '缺少 id' }, 400);
+  if (body.date !== undefined) {
+    const dateCheck = validateDate(body.date);
+    if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+    body.date = dateCheck.value;
+  }
   const sets = [];
   const params = [];
   [
@@ -624,9 +703,11 @@ async function handleSchedulesRemove(env, body) {
 }
 async function handleSchedulesSync(env, body) {
   const userId = uid(env);
-  const date = body?.date;
+  const dateRaw = body?.date;
+  const dateCheck = validateDate(dateRaw);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+  const date = dateCheck.value;
   const items = Array.isArray(body?.items) ? body.items : [];
-  if (!date) return json({ error: '缺少 date' }, 400);
   await dbRun(env.DB, `DELETE FROM ethan_schedules WHERE user_id=? AND date=?`, [userId, date]);
   if (items.length > 0) {
     const stmt = env.DB.prepare(
@@ -669,8 +750,10 @@ async function handleSummariesRange(env, q) {
 }
 async function handleSummariesUpsert(env, body) {
   const userId = uid(env);
-  const date = body?.date;
-  if (!date) return json({ error: '缺少 date' }, 400);
+  const dateRaw = body?.date;
+  const dateCheck = validateDate(dateRaw);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+  const date = dateCheck.value;
   const existing = await dbFirst(env.DB, `SELECT id FROM ethan_summaries WHERE user_id=? AND date=?`, [userId, date]);
   const content = body?.content || '';
   const mood = body?.mood || null;
@@ -684,8 +767,10 @@ async function handleSummariesUpsert(env, body) {
   return json({ summary: await dbFirst(env.DB, `SELECT * FROM ethan_summaries WHERE id=?`, [Number(info.meta.last_row_id)]) });
 }
 async function handleSummariesRemove(env, body) {
-  const date = body?.date;
-  if (!date) return json({ error: '缺少 date' }, 400);
+  const dateRaw = body?.date;
+  const dateCheck = validateDate(dateRaw);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+  const date = dateCheck.value;
   await dbRun(env.DB, `DELETE FROM ethan_summaries WHERE user_id=? AND date=?`, [uid(env), date]);
   return json({ ok: true });
 }
@@ -800,6 +885,8 @@ function insertHabitRow(db, userId, r) {
 }
 
 function insertScheduleRow(db, userId, r) {
+  const date = normalizeDate(r.date);
+  if (!date) throw new Error(`无效日期格式: ${r.date}`);
   return db
     .prepare(
       `INSERT OR REPLACE INTO ethan_schedules
@@ -810,7 +897,7 @@ function insertScheduleRow(db, userId, r) {
       Number(r.id),
       r.user_id || userId,
       r.title,
-      r.date,
+      date,
       r.start_time || null,
       r.end_time || null,
       r.duration_min != null ? Number(r.duration_min) : null,
@@ -824,6 +911,8 @@ function insertScheduleRow(db, userId, r) {
 }
 
 function insertTaskRow(db, userId, r) {
+  const date = normalizeDate(r.date);
+  if (!date) throw new Error(`无效日期格式: ${r.date}`);
   return db
     .prepare(
       `INSERT OR REPLACE INTO ethan_tasks
@@ -834,7 +923,7 @@ function insertTaskRow(db, userId, r) {
       Number(r.id),
       r.user_id || userId,
       r.title,
-      r.date,
+      date,
       toInt(r.priority, 2),
       toInt(r.is_done, 0),
       r.due_time || null,
@@ -845,6 +934,8 @@ function insertTaskRow(db, userId, r) {
 }
 
 function insertLogRow(db, userId, r) {
+  const date = normalizeDate(r.date);
+  if (!date) throw new Error(`无效日期格式: ${r.date}`);
   return db
     .prepare(
       `INSERT OR REPLACE INTO ethan_habit_logs
@@ -855,7 +946,7 @@ function insertLogRow(db, userId, r) {
       Number(r.id),
       Number(r.habit_id),
       r.user_id || userId,
-      r.date,
+      date,
       toInt(r.done, 1),
       r.sleep_start || null,
       r.sleep_end || null,
@@ -871,6 +962,8 @@ function insertLogRow(db, userId, r) {
 }
 
 function insertSummaryRow(db, userId, r) {
+  const date = normalizeDate(r.date);
+  if (!date) throw new Error(`无效日期格式: ${r.date}`);
   return db
     .prepare(
       `INSERT OR REPLACE INTO ethan_summaries

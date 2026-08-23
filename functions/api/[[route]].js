@@ -99,6 +99,8 @@ export async function onRequest(context) {
   if (method !== 'GET' && method !== 'OPTIONS' && request.headers.get('content-type')?.toLowerCase().includes('application/json')) {
     body = await request.json().catch(() => ({}));
   }
+  // list 类接口兼容 GET/POST：POST 时把 body 参数合并到 q
+  const qOrBody = method === 'GET' ? q : (body || {});
 
   try {
     // ------------------------------------------------------------
@@ -114,7 +116,7 @@ export async function onRequest(context) {
     if (path === '/api/auth/logout' && method === 'POST') return json({ ok: true });
 
     // ------------------------------------------------------------
-    // /api/migrate  — 批量写入 6 张表（Supabase→D1 一次性）
+    // /api/migrate  — 批量写入 6 表（Supabase→D1 一次性）
     // 入参：{ ethan_habits: [], ethan_habit_logs: [], ethan_schedules: [], ethan_tasks: [], ethan_summaries: [], ethan_fixed_schedules: [] }
     // ------------------------------------------------------------
     if (path === '/api/migrate' && method === 'POST') {
@@ -124,8 +126,8 @@ export async function onRequest(context) {
     // ------------------------------------------------------------
     // /api/habits/*
     // ------------------------------------------------------------
-    if (path === '/api/habits/list' && method === 'GET') return handleHabitsList(env, q);
-    if (path === '/api/habits/archivedList' && method === 'GET') return handleHabitsArchivedList(env);
+    if ((path === '/api/habits/list') && (method === 'GET' || method === 'POST')) return handleHabitsList(env, qOrBody);
+    if ((path === '/api/habits/archivedList') && (method === 'GET' || method === 'POST')) return handleHabitsArchivedList(env);
     if (path === '/api/habits/create' && method === 'POST') return handleHabitsCreate(env, body);
     if (path === '/api/habits/update' && method === 'POST') return handleHabitsUpdate(env, body);
     if (path === '/api/habits/reorder' && method === 'POST') return handleHabitsReorder(env, body);
@@ -135,12 +137,12 @@ export async function onRequest(context) {
     if (path === '/api/habits/toggle' && method === 'POST') return handleHabitsToggle(env, body);
     if (path === '/api/habits/logSleep' && method === 'POST') return handleHabitsLogSleep(env, body);
     if (path === '/api/habits/logCount' && method === 'POST') return handleHabitsLogCount(env, body);
-    if (path === '/api/habits/stats' && method === 'GET') return handleHabitsStats(env, q);
+    if ((path === '/api/habits/stats') && (method === 'GET' || method === 'POST')) return handleHabitsStats(env, qOrBody);
 
     // ------------------------------------------------------------
     // /api/tasks/*
     // ------------------------------------------------------------
-    if (path === '/api/tasks/list' && method === 'GET') return handleTasksList(env, q);
+    if ((path === '/api/tasks/list') && (method === 'GET' || method === 'POST')) return handleTasksList(env, qOrBody);
     if (path === '/api/tasks/create' && method === 'POST') return handleTasksCreate(env, body);
     if (path === '/api/tasks/update' && method === 'POST') return handleTasksUpdate(env, body);
     if (path === '/api/tasks/remove' && method === 'POST') return handleTasksRemove(env, body);
@@ -148,7 +150,7 @@ export async function onRequest(context) {
     // ------------------------------------------------------------
     // /api/schedules/*
     // ------------------------------------------------------------
-    if (path === '/api/schedules/list' && method === 'GET') return handleSchedulesList(env, q);
+    if ((path === '/api/schedules/list') && (method === 'GET' || method === 'POST')) return handleSchedulesList(env, qOrBody);
     if (path === '/api/schedules/create' && method === 'POST') return handleSchedulesCreate(env, body);
     if (path === '/api/schedules/update' && method === 'POST') return handleSchedulesUpdate(env, body);
     if (path === '/api/schedules/remove' && method === 'POST') return handleSchedulesRemove(env, body);
@@ -157,15 +159,15 @@ export async function onRequest(context) {
     // ------------------------------------------------------------
     // /api/summaries/*
     // ------------------------------------------------------------
-    if (path === '/api/summaries/get' && method === 'GET') return handleSummariesGet(env, q);
-    if (path === '/api/summaries/range' && method === 'GET') return handleSummariesRange(env, q);
+    if ((path === '/api/summaries/get') && (method === 'GET' || method === 'POST')) return handleSummariesGet(env, qOrBody);
+    if ((path === '/api/summaries/range') && (method === 'GET' || method === 'POST')) return handleSummariesRange(env, qOrBody);
     if (path === '/api/summaries/upsert' && method === 'POST') return handleSummariesUpsert(env, body);
     if (path === '/api/summaries/remove' && method === 'POST') return handleSummariesRemove(env, body);
 
     // ------------------------------------------------------------
     // /api/fixedSchedules/*
     // ------------------------------------------------------------
-    if (path === '/api/fixedSchedules/list' && method === 'GET') return handleFixedSchedulesList(env);
+    if ((path === '/api/fixedSchedules/list') && (method === 'GET' || method === 'POST')) return handleFixedSchedulesList(env);
     if (path === '/api/fixedSchedules/create' && method === 'POST') return handleFixedSchedulesCreate(env, body);
     if (path === '/api/fixedSchedules/update' && method === 'POST') return handleFixedSchedulesUpdate(env, body);
     if (path === '/api/fixedSchedules/remove' && method === 'POST') return handleFixedSchedulesRemove(env, body);

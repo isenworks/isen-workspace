@@ -33,18 +33,31 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+// 获取中国时区（UTC+8）的 YYYY-MM-DD 日期
+function getLocalDate(offsetDays = 0) {
+  const d = new Date();
+  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+  const local = new Date(utc + 8 * 3600000); // UTC+8
+  local.setDate(local.getDate() + offsetDays);
+  return local.toISOString().slice(0, 10);
+}
+
 // 计算连续天数：logs 按 date 降序传入 [{ date, done }]
 function calcStreak(logs) {
   const doneDates = new Set(logs.filter((l) => l.done).map((l) => l.date));
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const today = getLocalDate(0);
+  const yesterday = getLocalDate(-1);
   let cursor = doneDates.has(today) ? today : yesterday;
   let streak = 0;
   while (doneDates.has(cursor)) {
     streak++;
     const d = new Date(cursor);
     d.setDate(d.getDate() - 1);
-    cursor = d.toISOString().slice(0, 10);
+    // 直接用日期字符串操作，避免时区问题
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    cursor = `${y}-${m}-${day}`;
   }
   return streak;
 }
@@ -358,7 +371,7 @@ async function handleHabitsRemove(env, body) {
 async function handleHabitsToggle(env, body) {
   const userId = uid(env);
   const habitId = Number(body?.habit_id || body?.id);
-  const today = body?.date || new Date().toISOString().slice(0, 10);
+  const today = body?.date || getLocalDate();
   const targetDone = body?.targetDone !== undefined ? (body.targetDone ? 1 : 0) : undefined;
   if (!habitId) return json({ error: '缺少 habit_id' }, 400);
 
@@ -381,7 +394,7 @@ async function handleHabitsToggle(env, body) {
 async function handleHabitsLogSleep(env, body) {
   const userId = uid(env);
   const habitId = Number(body?.habit_id);
-  const today = body?.date || new Date().toISOString().slice(0, 10);
+  const today = body?.date || getLocalDate();
   const { sleep_start, sleep_end, energy_state, mood_state, sleep_note } = body || {};
   if (!habitId) return json({ error: '缺少 habit_id' }, 400);
 
@@ -428,7 +441,7 @@ async function handleHabitsLogSleep(env, body) {
 async function handleHabitsLogCount(env, body) {
   const userId = uid(env);
   const habitId = Number(body?.habit_id);
-  const today = body?.date || new Date().toISOString().slice(0, 10);
+  const today = body?.date || getLocalDate();
   const add_value = Number(body?.add_value || 0);
   const note = body?.note || null;
   if (!habitId) return json({ error: '缺少 habit_id' }, 400);

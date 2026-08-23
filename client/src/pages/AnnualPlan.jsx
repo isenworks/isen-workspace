@@ -2629,14 +2629,15 @@ function CognitionView({
               const padNum = String(idx + 1).padStart(2, '0');
               return (
                 <div key={kr.id || idx}
-                  className="rounded-2xl border relative overflow-hidden transition-all"
+                  className="rounded-2xl border relative overflow-hidden transition-all group"
                   style={{
                     background: isEditing ? BLUE_LIGHT : '#fff',
                     borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
                     boxShadow: isEditing ? `0 0 0 3px ${BLUE}10` : 'none',
-                  }}>
-                  {/* 卡内容：单列横向布局 — 左文右数，信息条形态；删除右上角铅笔（所有文字点击即可编辑） */}
-                  <div className="px-2.5 py-2.5">
+                  }}
+                  onMouseEnter={(e) => { if (!isEditing) { e.currentTarget.style.borderColor = `${BLUE}66`; e.currentTarget.style.boxShadow = '0 4px 12px rgba(75,99,240,0.08)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                  onMouseLeave={(e) => { if (!isEditing) { e.currentTarget.style.borderColor = '#f1f5f9'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; } }}>
+                  <div className="px-3 py-3">
                     {isEditing ? (
                       <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                         <input
@@ -2668,130 +2669,93 @@ function CognitionView({
                         </div>
                       </div>
                     ) : (
-                      /* 方案C（克制极简）：纯排版分层；铅笔全部删除 → 文字全部 InlineEdit 点击编辑
-                         设计准则：只用【字号·字重·颜色·缩进·间距】5个变量做层级，零装饰色块
-                         ┌────────────────────────────────────────────────────────────┐
-                         │ 01    读完12本书                                  5  / 12 本  42% │
-                         │ ↑     ↑书架系统追踪（缩进对齐标题）              ▲           ▲   │
-                         │编号  标题+说明（点击即编辑）                 数值/目标/单位  %   │
-                         │全部可点编辑，包括val/tgt/u/pct百分比                │
-                         └────────────────────────────────────────────────────────────┘ */
-                      <div className="flex items-start gap-3 px-0 py-0.5">
-                        {/* L1 编号：顶部与标题对齐（items-start 已保证），固定宽 + 右对齐 tabular；
-                            编号↔标题间距从 gap-1.5(6px) → gap-3(12px) — 更清爽不拥挤 */}
-                        <div className="flex-shrink-0 w-[22px] pt-[1px] text-right select-none">
-                          <span className="text-[11.5px] font-bold tabular-nums leading-none text-ink-300">
-                            {padNum}
-                          </span>
-                        </div>
-
-                        {/* L2 文案区（flex-1撑满）：标题黑·说明灰；右键菜单 编辑/删除恢复默认 */}
-                        <div className="flex-1 min-w-0 flex flex-col gap-0.5 pr-2">
-                          <InlineEdit
-                            value={kr.lb}
-                            onChange={(v) => onKrEdit?.({ ...kr, lb: v })}
-                            onDelete={() => {
-                              // 删除=恢复默认COG_KRS对应id的lb
-                              const def = COG_KRS.find(k => k.id === kr.id)?.lb || '';
-                              onKrEdit?.({ ...kr, lb: def });
-                            }}
-                            onEditClick={() => openEditKrModal(kr)}
-                            mode="contextmenu"
-                            className="text-[13px] font-semibold text-ink-900 leading-[1.3] block truncate"
-                            inputClassName="text-[13px] font-semibold text-ink-900 w-full"
-                            title="右键编辑KR（弹窗）"
-                            placeholder="填写KR标题"
-                          />
-                          {kr.sub ? (
-                            <InlineEdit
-                              value={kr.sub}
-                              onChange={(v) => onKrEdit?.({ ...kr, sub: v })}
-                              onDelete={() => {
-                                const def = COG_KRS.find(k => k.id === kr.id)?.sub || '';
-                                onKrEdit?.({ ...kr, sub: def });
-                              }}
-                              mode="contextmenu"
-                              className="text-[10.5px] text-ink-400 font-medium leading-tight block truncate"
-                              inputClassName="text-[11px] text-ink-500 font-medium w-full"
-                              title="右键编辑KR说明"
-                              placeholder="填写说明（可选）"
-                            />
-                          ) : (
-                            <InlineEdit
-                              value=""
-                              onChange={(v) => onKrEdit?.({ ...kr, sub: v })}
-                              mode="contextmenu"
-                              className="text-[10.5px] text-ink-300 font-medium leading-tight block truncate"
-                              inputClassName="text-[11px] text-ink-500 font-medium w-full"
-                              title="右键添加KR说明"
-                              placeholder="+ 添加说明"
-                            />
-                          )}
-                        </div>
-
-                        {/* L3 数据区（右对齐）：val / tgt / u / pct% — 右键菜单 编辑/删除
-                           - 当前值/目标/单位/百分比均可改：改数字=更新kr.val/kr.tgt/kr.u，改%无实际意义但交互统一
-                           - 保持 items-baseline 数字底线对齐 + gap压缩 */}
-                        <div className="flex-shrink-0 flex items-center gap-4 tabular-nums items-baseline">
-                          {/* 进度组：当前值 + 参照（/目标单位） */}
-                          <div className="flex items-baseline gap-1 whitespace-nowrap">
-                            <InlineEdit
-                              value={String(kr.val)}
-                              onChange={(v) => onKrEdit?.({ ...kr, val: Math.max(0, Number(v) || 0) })}
-                              onDelete={() => {
-                                // KR1 删除当前值时，直接触发书架联动刷新（设0后finalKrs又会用groups.done.length覆盖）
-                                const def = COG_KRS.find(k => k.id === kr.id)?.val ?? 0;
-                                onKrEdit?.({ ...kr, val: def });
-                              }}
-                              mode="contextmenu"
-                              className="text-[16px] font-extrabold leading-none"
-                              inputClassName="text-[16px] font-extrabold tabular-nums w-12 text-right px-1 py-0"
-                              style={{ color: BLUE }}
-                              title="右键编辑当前值"
-                            />
-                            <span className="text-[11px] font-light leading-none text-ink-300 select-none">/</span>
-                            <InlineEdit
-                              value={String(kr.tgt)}
-                              onChange={(v) => onKrEdit?.({ ...kr, tgt: Math.max(1, Number(v) || 1) })}
-                              onDelete={() => {
-                                const def = COG_KRS.find(k => k.id === kr.id)?.tgt ?? 1;
-                                onKrEdit?.({ ...kr, tgt: def });
-                              }}
-                              mode="contextmenu"
-                              className="text-[12px] font-medium leading-none text-ink-500"
-                              inputClassName="text-[12px] font-medium tabular-nums w-10 text-right px-1 py-0"
-                              title="右键编辑目标值"
-                            />
-                            <InlineEdit
-                              value={kr.u}
-                              onChange={(v) => onKrEdit?.({ ...kr, u: v })}
-                              onDelete={() => {
-                                const def = COG_KRS.find(k => k.id === kr.id)?.u || '';
-                                onKrEdit?.({ ...kr, u: def });
-                              }}
-                              mode="contextmenu"
-                              className="text-[10.5px] font-medium leading-none text-ink-400 ml-0.5"
-                              inputClassName="text-[10.5px] font-medium w-10 px-1 py-0"
-                              title="右键编辑单位"
-                              placeholder="本/条/天"
-                            />
-                          </div>
-                          {/* 完成率：蓝色强强调；右键编辑（用户可直接改%数字，自动同步val） */}
-                          <InlineEdit
-                            value={`${p}%`}
-                            onChange={(v) => {
-                              const num = String(v).replace(/[^0-9]/g, '');
-                              const newPct = Math.max(0, Math.min(100, Number(num) || 0));
-                              const newVal = Math.round((newPct / 100) * Number(kr.tgt || 1));
-                              onKrEdit?.({ ...kr, val: newVal });
-                            }}
-                            mode="contextmenu"
-                            className="w-[44px] block text-right text-[13px] font-extrabold leading-none"
-                            inputClassName="text-[13px] font-extrabold tabular-nums w-[44px] text-right px-1 py-0 border-brand-300"
-                            style={{ color: BLUE }}
-                            title="右键编辑完成率（自动同步当前值）"
-                          />
-                        </div>
+                      /* 仪表盘式设计：3 层结构
+                         L1: 编号 + 标题 + 说明（左） | 大号当前值 / 目标 + 百分比胶囊（右）
+                         L2: 细进度条（状态色）
+                         L3: 类型标签 + 还差 X 本（左） | CTA「+ 添加记录」（右） */
+                      <div>
+                        {(() => {
+                          const remaining = Math.max(0, (kr.tgt || 0) - (kr.val || 0));
+                          const isDone = p >= 100;
+                          const isNear = p >= 70 && p < 100;
+                          const krTypeMap = { goal: '目标量', thinking: '思考量', action: '行动量', change: '改变量' };
+                          const krType = kr.type ? (krTypeMap[kr.type] || kr.type) : '';
+                          return (
+                            <>
+                              {/* L1 主体行 */}
+                              <div className="flex items-baseline gap-3">
+                                <div className="flex-shrink-0 w-[22px] pt-[2px] text-right select-none">
+                                  <span className="text-[11px] font-bold tabular-nums leading-none text-ink-300">{padNum}</span>
+                                </div>
+                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                  <InlineEdit
+                                    value={kr.lb}
+                                    onChange={(v) => onKrEdit?.({ ...kr, lb: v })}
+                                    onDelete={() => { const def = COG_KRS.find(k => k.id === kr.id)?.lb || ''; onKrEdit?.({ ...kr, lb: def }); }}
+                                    onEditClick={() => openEditKrModal(kr)}
+                                    mode="contextmenu"
+                                    className="text-[13px] font-semibold text-ink-900 leading-[1.3] block truncate"
+                                    inputClassName="text-[13px] font-semibold text-ink-900 w-full"
+                                    title="右键编辑KR（弹窗）"
+                                    placeholder="填写KR标题"
+                                  />
+                                  {kr.sub ? (
+                                    <span className="text-[10.5px] text-ink-400 font-medium leading-tight truncate">
+                                      {kr.sub}{krType ? ` · ${krType}` : ''}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10.5px] text-ink-300 font-medium leading-tight">
+                                      {krType || '+ 添加说明'}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                                  <div className="flex items-baseline gap-0.5 tabular-nums">
+                                    <span className="text-[20px] font-extrabold leading-none" style={{ color: isDone ? '#111827' : BLUE }}>{kr.val}</span>
+                                    <span className="text-[11px] font-medium leading-none text-ink-400 ml-0.5">/ {kr.tgt} {kr.u}</span>
+                                  </div>
+                                  <div
+                                    className="inline-flex items-baseline gap-0 px-2 py-[2px] rounded-lg"
+                                    style={{
+                                      background: isDone ? '#111827' : isNear ? `linear-gradient(135deg, ${BLUE} 0%, #6d7df5 100%)` : BLUE,
+                                      color: '#fff',
+                                    }}>
+                                    <span className="text-[11px] font-bold tabular-nums leading-none">{p}</span>
+                                    <span className="text-[9px] font-semibold opacity-80 leading-none ml-[1px]">%</span>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* L2 进度条 */}
+                              <div className="mt-2 h-[3px] bg-ink-100 rounded-full overflow-hidden" style={{ marginLeft: '22px' }}>
+                                <div
+                                  className="h-full rounded-full transition-all duration-300"
+                                  style={{
+                                    width: `${Math.min(100, p)}%`,
+                                    background: isDone ? '#111827' : isNear ? `linear-gradient(90deg, ${BLUE} 0%, #6d7df5 100%)` : BLUE,
+                                  }}
+                                />
+                              </div>
+                              {/* L3 底部操作栏 */}
+                              <div className="mt-2 flex items-center justify-between" style={{ marginLeft: '22px' }}>
+                                <div className="flex items-center gap-3 text-[10.5px]">
+                                  <span className="flex items-center gap-1 text-ink-500 font-medium">
+                                    <span className="w-[5px] h-[5px] rounded-full" style={{ background: isDone ? '#111827' : BLUE }}></span>
+                                    {isDone ? '已完成' : `${krType || '目标'} · ${remaining > 0 ? `还差 ${remaining}${kr.u}` : '已达成'}`}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => openEditKrModal(kr)}
+                                  className="flex items-center gap-0.5 text-[10.5px] font-semibold transition cursor-pointer"
+                                  style={{ color: BLUE }}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                                  添加记录
+                                </button>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

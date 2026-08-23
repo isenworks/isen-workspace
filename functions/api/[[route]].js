@@ -723,16 +723,22 @@ async function handleFixedSchedulesRemove(env, body) {
 async function handleMigrate(env, body) {
   const userId = uid(env);
   const tables = [
-    { key: 'ethan_habits', insert: insertHabitRow },
-    { key: 'ethan_schedules', insert: insertScheduleRow },
-    { key: 'ethan_tasks', insert: insertTaskRow },
-    { key: 'ethan_habit_logs', insert: insertLogRow, order: 2 },
-    { key: 'ethan_summaries', insert: insertSummaryRow },
-    { key: 'ethan_fixed_schedules', insert: insertFixedScheduleRow },
+    { key: 'ethan_habits', aliases: ['habits'], insert: insertHabitRow },
+    { key: 'ethan_schedules', aliases: ['schedules'], insert: insertScheduleRow },
+    { key: 'ethan_tasks', aliases: ['tasks'], insert: insertTaskRow },
+    { key: 'ethan_habit_logs', aliases: ['habit_logs'], insert: insertLogRow, order: 2 },
+    { key: 'ethan_summaries', aliases: ['summaries'], insert: insertSummaryRow },
+    { key: 'ethan_fixed_schedules', aliases: ['fixed_schedules'], insert: insertFixedScheduleRow },
   ];
   const result = {};
   for (const t of tables) {
-    const arr = Array.isArray(body?.[t.key]) ? body[t.key] : [];
+    let arr = Array.isArray(body?.[t.key]) ? body[t.key] : null;
+    if (!arr) {
+      for (const a of t.aliases) {
+        if (Array.isArray(body?.[a])) { arr = body[a]; break; }
+      }
+    }
+    arr = arr || [];
     let count = 0;
     for (const row of arr) {
       try {

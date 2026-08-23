@@ -268,6 +268,7 @@ function InlineEdit({
   className, inputClassName, title, placeholder = '', style,
   mode, // 'contextmenu' | undefined
   menuWidth = 140, // 右键菜单宽度，可按需覆盖
+  onEditClick, // 可选：右键"编辑"时的自定义回调（用于弹窗编辑而非行内编辑）
 }) {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState(value);
@@ -354,7 +355,11 @@ function InlineEdit({
           style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 9999, width: menuWidth }}
           className="bg-white rounded-xl shadow-xl border border-ink-100 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           <button
-            onClick={(e) => { e.stopPropagation(); setMenu(null); setEditing(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenu(null);
+              if (onEditClick) { onEditClick(); } else { setEditing(true); }
+            }}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-ink-800 hover:bg-ink-50 transition">
             <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M15.232 5.232l3.536 3.536M9 19h4l7.586-7.586a2 2 0 0 0-2.828-2.828L11 16v3z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -2434,6 +2439,7 @@ function CognitionView({
   const [krDraft, setKrDraft] = useState(null);
   const [addingKr, setAddingKr] = useState(false);
   const [newKr, setNewKr] = useState({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
+  const [editingKrModal, setEditingKrModal] = useState(null);
   // 书架拖拽
   const [dragBookId, setDragBookId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
@@ -2525,6 +2531,25 @@ function CognitionView({
     });
     setAddingKr(false);
     setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
+  };
+
+  // 编辑 KR（弹窗模式）
+  const commitEditKr = () => {
+    if (!editingKrModal) return;
+    const { kr, draft } = editingKrModal;
+    if (!draft.lb.trim()) return;
+    onKrEdit?.({
+      ...kr,
+      lb: draft.lb.trim(),
+      tgt: Number(draft.tgt) || 0,
+      val: Number(draft.val) || 0,
+      u: draft.u || '',
+      sub: draft.sub || '',
+    });
+    setEditingKrModal(null);
+  };
+  const openEditKrModal = (kr) => {
+    setEditingKrModal({ kr, draft: { lb: kr.lb, tgt: kr.tgt, val: kr.val, u: kr.u, sub: kr.sub } });
   };
 
   return (
@@ -2670,10 +2695,11 @@ function CognitionView({
                               const def = COG_KRS.find(k => k.id === kr.id)?.lb || '';
                               onKrEdit?.({ ...kr, lb: def });
                             }}
+                            onEditClick={() => openEditKrModal(kr)}
                             mode="contextmenu"
                             className="text-[13px] font-semibold text-ink-900 leading-[1.3] block truncate"
                             inputClassName="text-[13px] font-semibold text-ink-900 w-full"
-                            title="右键编辑KR标题"
+                            title="右键编辑KR（弹窗）"
                             placeholder="填写KR标题"
                           />
                           {kr.sub ? (
@@ -2852,6 +2878,44 @@ function CognitionView({
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setAddingKr(false)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
               <button onClick={commitAddKr} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>添加</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑 KR 弹窗 */}
+      {editingKrModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setEditingKrModal(null)}>
+          <div className="bg-white rounded-2xl p-5 w-[420px] max-w-[90vw] shadow-cardL" onClick={(e) => e.stopPropagation()}>
+            <div className="text-[15px] font-bold text-ink-900 mb-3">编辑 KR</div>
+            <div className="flex flex-col gap-2.5">
+              <input value={editingKrModal.draft.lb} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, lb: e.target.value } })}
+                placeholder="KR 描述，如：读完12本书"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
+                  <input type="number" value={editingKrModal.draft.val} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, val: Number(e.target.value) } })}
+                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">目标值</label>
+                  <input type="number" value={editingKrModal.draft.tgt} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, tgt: Number(e.target.value) } })}
+                    placeholder="12" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">单位</label>
+                  <input value={editingKrModal.draft.u} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, u: e.target.value } })}
+                    placeholder="本" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+              </div>
+              <input value={editingKrModal.draft.sub} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, sub: e.target.value } })}
+                placeholder="说明（可选）如：书架系统追踪"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setEditingKrModal(null)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
+              <button onClick={commitEditKr} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>保存</button>
             </div>
           </div>
         </div>

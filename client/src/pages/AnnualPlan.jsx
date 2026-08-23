@@ -2685,7 +2685,7 @@ function CognitionView({
                               {/* L1 主体行 */}
                               <div className="flex items-baseline gap-3">
                                 <div className="flex-shrink-0 w-[22px] pt-[2px] text-right select-none">
-                                  <span className="text-[11px] font-bold tabular-nums leading-none text-ink-300">{padNum}</span>
+                                  <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: `${BLUE}88` }}>{padNum}</span>
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                                   <InlineEdit

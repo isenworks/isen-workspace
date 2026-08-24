@@ -356,7 +356,7 @@ function InlineEdit({
         onContextMenu={isCtxMode ? openContextMenu : undefined}
         style={style}
         className={`${isCtxMode ? 'cursor-context-menu' : 'cursor-text'} hover:opacity-80 transition select-none ${className || ''}`}>
-        {value || <span className="opacity-40">{placeholder || (isCtxMode ? '右键填写' : '点击填写')}</span>}
+        {(value || placeholder) ? <span className="opacity-40">{value || placeholder}</span> : null}
       </span>
 
       {/* ---- 右键浮层菜单：编辑 / 删除（通过 portal 输出到 body，避免被容器裁剪）---- */}
@@ -3310,19 +3310,19 @@ function CognitionView({
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#a855f7' }}></span>
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
             <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
               className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
-              style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}
+              style={{ background: BLUE_LIGHT, color: BLUE }}
               title="新增行动">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
             </button>
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
             {(changes || []).length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(168,85,247,0.05)', borderRadius: 12 }}>
+              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
                 还没有行动计划<br/>点击右上角 + 添加
               </div>
             ) : (
@@ -3333,13 +3333,13 @@ function CognitionView({
                 const checkedToday = c.checkIns?.includes(today);
                 const isCompleted = c.status === 'completed';
                 const isReviewed = c.status === 'reviewed';
-                const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
+                const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? BLUE : days >= 8 ? BLUE : '#f97316';
                 return (
                   <div key={c.id}
                     className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
                     style={{
-                      background: isReviewed ? 'rgba(34,197,94,0.05)' : 'rgba(168,85,247,0.05)',
-                      border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.15)' : 'rgba(168,85,247,0.15)'}`,
+                      background: isReviewed ? 'rgba(34,197,94,0.05)' : BLUE_LIGHT,
+                      border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.15)' : BLUE + '20'}`,
                     }}
                     onClick={(e) => { e.stopPropagation(); setEditingChange(c); setShowChangeForm(true); }}>
                     <div className="flex items-center justify-between mb-1">
@@ -3366,7 +3366,7 @@ function CognitionView({
                           disabled={checkedToday}
                           className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-all"
                           style={{
-                            background: checkedToday ? 'rgba(148,163,184,0.1)' : '#a855f7',
+                            background: checkedToday ? 'rgba(148,163,184,0.1)' : BLUE,
                             color: checkedToday ? '#94a3b8' : '#fff',
                             cursor: checkedToday ? 'default' : 'pointer',
                           }}>
@@ -3388,11 +3388,11 @@ function CognitionView({
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#22c55e' }}></span>
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
                 {(reviews || []).length} 条真实改变
               </span>
               <button onClick={() => {
@@ -3410,7 +3410,7 @@ function CognitionView({
                 });
               }}
                 className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
-                style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}
+                style={{ background: BLUE_LIGHT, color: BLUE }}
                 title="新增复盘">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -3418,13 +3418,13 @@ function CognitionView({
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
             {(reviews || []).length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(34,197,94,0.04)', borderRadius: 12 }}>
+              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
                 还没有复盘记录<br/>点击右上角 + 手动添加
               </div>
             ) : (
               (reviews || []).slice(0, 5).map(r => {
                 const tagMeta = {
-                  habit: { lb: '长期习惯', color: '#22c55e' },
+                  habit: { lb: '长期习惯', color: BLUE },
                   decision: { lb: '一次性决策', color: '#4b63f0' },
                   sop: { lb: '已固化SOP', color: '#a855f7' },
                 };
@@ -3432,11 +3432,11 @@ function CognitionView({
                 return (
                   <div key={r.id}
                     className="rounded-xl p-2.5 hover:shadow-md transition-all cursor-pointer"
-                    style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}
+                    style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
                     onClick={() => setEditingReview(r)}>
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: '#22c55e' }}>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: BLUE }}>
                           坚持 {r.daysCompleted} 天
                         </span>
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${tm.color}15`, color: tm.color }}>
@@ -4048,7 +4048,7 @@ export default function AnnualPlan({ standalone = true }) {
   // — 仅存文字，count 从书架/KR数据联动，不保存在这里
   const [funnelStageLabels, setFunnelStageLabels] = usePersistentState('annual_cog_funnel_stages_labels', () => ({}));
   // 知力 · 书架标题（如"2026年 · 书架"），支持自定义
-  const [bookshelfTitle, setBookshelfTitle] = usePersistentState('annual_cog_bookshelf_title', () => '');
+  const [bookshelfTitle, setBookshelfTitle] = usePersistentState('annual_cog_bookshelf_title', () => `${new Date().getFullYear()}年 · 书架`);
   // 知力 · 行动改变（承诺本）— {id, bookId, bookTitle, insightId, insightText, resonance, text, startDate, targetDays, checkIns[], status}
   const [cogChanges, setCogChanges] = usePersistentState('annual_cog_changes', () => []);
   // 知力 · 改变证明（结果区·复盘卡）— {id, changeId, text, bookTitle, insightText, daysCompleted, beforeState, afterState, nextStep, tag, createdAt}

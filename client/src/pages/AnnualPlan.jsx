@@ -1524,17 +1524,17 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     </div>
                     {/* 右列：双行 KPI 矩阵 — 右对齐基线严格对齐 */}
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[38%]">
-                      {/* 🥇 主 KPI 行：% 数字为绝对核心（唯一视觉焦点） */}
+                      {/* 🥇 主 KPI 行：% 数字为绝对核心（唯一视觉焦点）
+                           ✅ %符号改为 GREEN（精力绿），不再是灰色半透明 — 与数字同绿成为一个视觉整体 */}
                       <div className="flex items-baseline leading-none">
                         <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
-                        <span className="text-[12px] font-semibold text-ink-500 leading-none align-baseline ml-0.5">%</span>
+                        <span className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5" style={{color: GREEN}}>%</span>
                       </div>
                       {/* 🥈 次 KPI 行（弱化版）：累计 / 目标 + 单位
-                         ⭐ 降1档字重 Semibold→Medium + 降1号字号 14→13px + 颜色改 ink-500 灰色
-                         原则：次信息不应与主KPI（%绿色）竞争注意力，降级为"参考信息"
-                      */}
+                         ✅ 累计 h.val 颜色升级为 ink-700（与习惯标题同色，视觉不被"目标和%压得看不见"）
+                            目标降阶为 ink-500 · 单位 ink-400 */}
                       <div className="flex items-baseline leading-none">
-                        <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.val}</span>
+                        <span className="text-[13px] font-semibold tabular-nums text-ink-700">{h.val}</span>
                         <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
                         <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.target}</span>
                         <span className="text-[12px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
@@ -1642,10 +1642,15 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     )}
                   </div>
-                  <div className="text-right font-semibold tabular-nums text-ink-900 text-[14px] cum-gap">{h.val}</div>
-                  {/* 完成率 - 内联样式确保绿色(#22c55e)，与L1卡片百分比颜色完全一致 */}
+                  {/* 完成率 - 内联样式确保绿色(#22c55e)，与L1卡片百分比颜色完全一致
+                       ✅ %符号改为独立 span，颜色 = GREEN（精力绿），不再被浏览器渲染成灰色
+                          累计列颜色：text-ink-700 Semibold（与习惯标题同色） */}
+                  <div className="text-right font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
                   <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="text-[14px] font-semibold tabular-nums" style={{color: GREEN}}>{p}%</span>
+                    <span className="flex items-baseline justify-end leading-none">
+                      <span className="text-[14px] font-bold tabular-nums" style={{color: GREEN}}>{p}</span>
+                      <span className="text-[12px] font-bold tabular-nums ml-[2px] align-baseline" style={{color: GREEN}}>%</span>
+                    </span>
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
@@ -1790,7 +1795,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     {monthlyTarget > 0 ? (
                       <>
                         <div className="flex items-baseline leading-none flex-shrink-0">
-                          <span className="text-[12.5px] font-bold tabular-nums text-ink-900">{doneCount}</span>
+                          {/* ✅ 累计 doneCount 颜色：ink-700 Semibold（与左侧习惯标题同色，视觉节奏一致） */}
+                          <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
                           <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
                           <span className="text-[11px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
                           <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>

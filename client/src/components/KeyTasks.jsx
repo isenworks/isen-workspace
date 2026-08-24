@@ -14,9 +14,9 @@ function dateLabel(dateStr) {
 
 // 预设模板：3 个空白模板，点击直接打开新建弹窗
 const PRESET_TEMPLATES = [
-  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#ff3b30', bg: '#ffe8e8' },
-  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#ff3b30', bg: '#ffe8e8' },
-  { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#ff9500', bg: '#fff4d8' },
+  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#ff3b30', bg: '#ffe8e8', titlePlaceholder: '例如：客户需求对接' },
+  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#ff3b30', bg: '#ffe8e8', titlePlaceholder: '例如：公众号内容创作' },
+  { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#ff9500', bg: '#fff4d8', titlePlaceholder: '例如：AI 工具学习' },
 ];
 
 // category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫)
@@ -354,7 +354,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
             key={tpl.key}
             className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-pointer group"
             style={{background: `linear-gradient(90deg,${tpl.bg} 0%,transparent 70%)`}}
-            onClick={() => { onNew?.(tpl.category); }}
+            onClick={() => { onNew?.({ category: tpl.category, titlePlaceholder: tpl.titlePlaceholder }); }}
           >
             <div
               className="cb-square flex-shrink-0"

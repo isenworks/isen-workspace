@@ -200,7 +200,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
           }}
           value={form.title}
           onChange={e => set('title', e.target.value)}
-          placeholder="例如：简历项目经历撰写"
+          placeholder={initial?.titlePlaceholder || '例如：简历项目经历撰写'}
           autoFocus
         />
       </div>

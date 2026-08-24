@@ -484,7 +484,7 @@ function ReadingFunnel({
                   background: stageColor,  // 统一纯色，不再渐变（用户要求"统一一个颜色"）
                   boxShadow: `0 2px 6px ${stageColor}25`,
                 }}>
-                {/* 左：label + sub */}
+                {/* 左：label + sub — 显式空 placeholder，禁止显示默认"右键填写" */}
                 <span className="flex items-center gap-2 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
                   <InlineEdit
                     value={s.label}
@@ -494,6 +494,7 @@ function ReadingFunnel({
                     className="font-bold flex-shrink-0"
                     inputClassName="text-ink-900 text-[13px] w-20"
                     title="右键编辑阶段名"
+                    placeholder=""
                   />
                   <span className="text-[10px] opacity-75 whitespace-nowrap flex-shrink-0">
                     <InlineEdit
@@ -504,6 +505,7 @@ function ReadingFunnel({
                       className="text-[10px] opacity-95"
                       inputClassName="text-ink-900 text-[11px] w-14"
                       title="右键编辑备注"
+                      placeholder=""
                     />
                   </span>
                 </span>
@@ -2614,25 +2616,28 @@ function CognitionView({
   // ⑤ 复盘量 = reviews 数组长度（已完成复盘数量）
   const funnelData = useMemo(() => {
     const dynBooks = books || BOOKS;
+    const dynKrs = krs || COG_KRS;
     const doneBooks = dynBooks.filter(b => b.st === 'done');
-    const total = doneBooks.length;
     const hasInsights = doneBooks.filter(b => b.hasInsights || (b.insights && b.insights.length > 0)).length;
     const hasAction = doneBooks.filter(b => b.hasAction).length;
     const dynChanges = changes || [];
     const dynReviews = reviews || [];
+    // 第一层（目标量）数据 = 左边第一条 KR 的目标量 tgt
+    const kr1Target = (dynKrs && dynKrs[0])?.tgt ?? COG_KRS[0]?.tgt ?? 12;
     return {
-      total,              // ① 输入量：已读完书籍数量
-      done: hasInsights,  // ② 思考量：有洞察的书籍数量
-      notes: hasAction,   // ③ 行动量：有行动承诺的书籍数量
+      total: kr1Target,     // ① 目标量：KR1 的目标值（默认12本）
+      doneBooksCount: doneBooks.length, // 保留实际已读完数量供 KR1 使用
+      done: hasInsights,    // ② 思考量：有洞察的书籍数量
+      notes: hasAction,     // ③ 行动量：有行动承诺的书籍数量
       changes: dynChanges.length, // ④ 改变量：改变条数量
       reviews: dynReviews.length, // ⑤ 复盘量：已复盘的改变数量
     };
-  }, [books, changes, reviews]);
+  }, [books, krs, changes, reviews]);
 
   const finalKrs = (krs || COG_KRS).map(kr => {
-    // KR1（输入量）= 已读完书籍数量
+    // KR1（输入量）= 已读完书籍实际数量（不要用 funnelData.total 的目标值！）
     if (kr.id === 'kr1') {
-      return { ...kr, val: funnelData.total };
+      return { ...kr, val: funnelData.doneBooksCount };
     }
     // KR2（思考量）= 有洞察的书籍数量
     if (kr.id === 'kr2') {

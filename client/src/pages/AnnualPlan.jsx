@@ -22,7 +22,7 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
-  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#22c55e' }, /* accent-green */
+  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#16a34a' }, /* accent-green */
   { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
   { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber/orange */
   { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' }, /* accent-red   */
@@ -873,7 +873,7 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 通用 Sparkline 迷你折线图（带月份标注+顶点Hover Tooltip） ---------- */
-const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }) => {
+const Sparkline = ({ data, labels, color = '#16a34a', width = 260, height = 60 }) => {
   const [hoverIdx, setHoverIdx] = useState(null);
   // 🛑 频闪修复：鼠标离开SVG时延迟120ms才隐藏Tooltip，快速移出去又移回来不会抖
   // 🛑 显示端滞后：让最近点锁定后有"吸附感"，不会在两点边界反复横跳
@@ -1076,7 +1076,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       const weekDaysLeft = Math.max(0, 7 - (curDay - weekStart + 1));
       return {
         periodLabel: `${curMonth}月${weekStart}-${weekEnd}日`,
-        stat1: { label: '本周打卡', v: weekCheckins, u: '次', color: '#22c55e' },
+        stat1: { label: '本周打卡', v: weekCheckins, u: '次', color: '#16a34a' },
         stat2: { label: '周完成率', v: Math.round(stats.weighted * 0.25), u: '%', color: '#4b63f0' },
         stat3: { label: '剩余天数', v: weekDaysLeft, u: '天', color: '#f59e0b' },
         subtitle: '本周进度',
@@ -1088,7 +1088,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       const monthBooks = dynBooks.filter(b => b.st === 'done').length;
       return {
         periodLabel: `${curMonth}月`,
-        stat1: { label: '本月打卡', v: monthCheckins, u: '次', color: '#22c55e' },
+        stat1: { label: '本月打卡', v: monthCheckins, u: '次', color: '#16a34a' },
         stat2: { label: '月度完成', v: Math.round(stats.weighted * (curDay / monthDaysInYear[curMonth - 1])), u: '%', color: '#4b63f0' },
         stat3: { label: '剩余天数', v: monthDaysLeft, u: '天', color: '#f59e0b' },
         subtitle: '本月进度',
@@ -1104,7 +1104,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     return {
       periodLabel: `${year}年度`,
       stat1: { label: '完成目标', v: booksDone + abilityDoneMs + workDoneKrs, u: '个', color: '#4b63f0' },
-      stat2: { label: '累计打卡', v: totalCheckins, u: '次', color: '#22c55e' },
+      stat2: { label: '累计打卡', v: totalCheckins, u: '次', color: '#16a34a' },
       stat3: { label: '今年剩余', v: daysLeft, u: '天', color: '#f59e0b' },
       subtitle: '已完成',
     };
@@ -1483,7 +1483,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           <div className="grid grid-cols-3 gap-3">
             {habits.map((h, hIdx) => {
               const yearlyPct = pct(h.val, h.target);
-              const GREEN = '#22c55e';
+              const GREEN = '#16a34a';
               const GREEN_LIGHT = '#86efac'; // 与知力KR序号 80%透明度蓝色同级的"浅绿"：700蓝→500绿同级对应
               const padNum = String(hIdx + 1).padStart(2, '0');
               // 清理 label 中可能残留的 emoji/前置空白字符（API返回 fallback 保护）
@@ -1511,11 +1511,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   <div className="flex items-center justify-between gap-2">
                     {/* 左列：KR同款 [序号(浅绿)] [标题(黑色)]
                          ✅ 基线对齐：items-center + 两个 span 都 leading-none — 序号中线与标题字框中线严格重合
-                         ✅ 颜色：序号保留浅绿（#22c55e80），标题改回 ink-900 黑色，与 L2/L3 表格/日历 标题黑色一致 */}
+                         ✅ 颜色：序号保留浅绿（#16a34a80），标题改回 ink-900 黑色，与 L2/L3 表格/日历 标题黑色一致 */}
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span
                         className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
-                        style={{ color: `${GREEN}88` /* 70%透明度浅绿，与知力KR BLUE 80% 同权重 */ }}>
+                        style={{ color: `${GREEN}99` /* 62%透明度浅绿，基色加深后补偿保持视觉层级 */ }}>
                         {padNum}
                       </span>
                       <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-700">
@@ -1601,7 +1601,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             </div>
             {habits.map((h, hIdx) => {
               const p = pct(h.val, h.target);
-              const GREEN = '#22c55e';
+              const GREEN = '#16a34a';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
               const padNum = String(hIdx + 1).padStart(2, '0');
@@ -1613,12 +1613,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                          序号 11px Bold tabular w-22px 右对齐，items-center + leading-none 基线对齐 */}
                     <span
                       className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
-                      style={{ color: `${GREEN}88` }}>
+                      style={{ color: `${GREEN}99` }}>
                       {padNum}
                     </span>
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
                   </div>
-                  {/* 完成率 - L3同款绿色胶囊样式：56px宽、实心绿#22c55e、白字、6px圆角、1px阴影
+                  {/* 完成率 - L3同款绿色胶囊样式：56px宽、实心绿#16a34a、白字、6px圆角、1px阴影
                        列内flex justify-center items-center，与表头"完成率"严格居中对齐
                        rate-gap 类增加与累计列的视觉呼吸感（右侧间距） */}
                   <div className="flex justify-center items-center cursor-pointer rate-gap" onClick={() => onAction?.('editHabit', h)}>
@@ -1757,7 +1757,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const completedDays = realDates
                 ? realDates
                 : new Set(Array.from({ length: h.month?.[selectedMonth] || 0 }, (_, i) => i + 1));
-              const GREEN = '#22c55e';
+              const GREEN = '#16a34a';
               const padNum = String(hidx + 1).padStart(2, '0');
               const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
 
@@ -1795,7 +1795,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   <div className="flex items-center gap-1.5 w-full">
                     <span
                       className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
-                      style={{ color: `${GREEN}88` }}>
+                      style={{ color: `${GREEN}99` }}>
                       {padNum}
                     </span>
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700 min-w-0 flex-1">
@@ -1994,12 +1994,12 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff', lineHeight: 1.5 };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#22c55e', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
   const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'transparent', color: '#ef4444', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   const TAGS = [
-    { v: 'habit', lb: '长期习惯', color: '#22c55e' },
+    { v: 'habit', lb: '长期习惯', color: '#16a34a' },
     { v: 'decision', lb: '一次性决策', color: '#4b63f0' },
     { v: 'sop', lb: '已固化SOP', color: '#a855f7' },
   ];
@@ -2079,7 +2079,7 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
 
   const scoreColor = (n) => {
     n = Number(n) || 0;
-    if (n >= 9) return '#22c55e';
+    if (n >= 9) return '#16a34a';
     if (n >= 6) return '#f59e0b';
     return '#ef4444';
   };
@@ -2144,7 +2144,7 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
                     {delta !== null && (
                       <span style={{
                         fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                        color: delta > 0 ? '#22c55e' : delta < 0 ? '#ef4444' : '#8e8e93',
+                        color: delta > 0 ? '#16a34a' : delta < 0 ? '#ef4444' : '#8e8e93',
                       }}>
                         {delta > 0 ? '▲' : delta < 0 ? '▼' : '—'}{Math.abs(delta) > 0 ? Math.abs(delta) : ''}
                       </span>
@@ -2862,7 +2862,7 @@ function CognitionView({
                               <span className="w-[3px] h-[3px] rounded-full flex-shrink-0" style={{ background: '#e2e8f0' }} />
                               <span
                                 className="text-[10.5px] font-medium leading-none whitespace-nowrap flex-shrink-0"
-                                style={{ color: isDone ? '#22c55e' : '#94a3b8' }}>
+                                style={{ color: isDone ? '#16a34a' : '#94a3b8' }}>
                                 {isDone
                                   ? `✓ 已完成（达到${kr.tgt}${kr.u}）`
                                   : remaining > 0
@@ -3027,7 +3027,7 @@ function CognitionView({
           {[
             { key: 'reading', lb: '阅读中', col: BLUE,      dot: BLUE_LIGHT,      books: groups.reading },
             { key: 'pending', lb: '未开始', col: '#64748b',   dot: '#f8fafc',       books: groups.pending },
-            { key: 'done',    lb: '已读完', col: '#22c55e',   dot: '#f0fdf4',       books: groups.done },
+            { key: 'done',    lb: '已读完', col: '#16a34a',   dot: '#f0fdf4',       books: groups.done },
           ].map(g => {
             const isDragOver = dragOverCol === g.key && dragBookId && (() => {
               // 拖拽中的书是否不本来就在这栏
@@ -3218,7 +3218,7 @@ function CognitionView({
                 const isCompleted = c.status === 'completed';
                 const isReviewed = c.status === 'reviewed';
                 // 进度条颜色：0-7橙红 / 8-21蓝 / 22-30紫 / ≥30绿
-                const barColor = days >= 30 ? '#22c55e' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
+                const barColor = days >= 30 ? '#16a34a' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
                 return (
                   <div key={c.id}
                     className="rounded-2xl p-3 transition-all"
@@ -3251,7 +3251,7 @@ function CognitionView({
                         {isCompleted ? (
                           <button onClick={() => onChangeComplete?.(c.id)}
                             className="text-[10px] font-bold text-white px-3 py-1 rounded-md"
-                            style={{ background: '#22c55e' }}>
+                            style={{ background: '#16a34a' }}>
                             ✓ 完成复盘
                           </button>
                         ) : (
@@ -3274,7 +3274,7 @@ function CognitionView({
                       </div>
                     )}
                     {isReviewed && (
-                      <div className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#22c55e' }}>
+                      <div className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#16a34a' }}>
                         <span>✓</span> 已完成复盘，移至结果区
                       </div>
                     )}
@@ -3288,9 +3288,9 @@ function CognitionView({
         {/* ========== 结果区 · 改变证明 ========== */}
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-[5px] h-[18px] rounded-full" style={{ background: '#22c55e' }} />
+            <span className="w-[5px] h-[18px] rounded-full" style={{ background: '#16a34a' }} />
             <h3 className="text-[15px] font-semibold text-ink-900">结果区 · 改变证明</h3>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#16a34a' }}>
               {(reviews || []).length} 条真实改变
             </span>
           </div>
@@ -3303,7 +3303,7 @@ function CognitionView({
             <div className="flex flex-col gap-2.5">
               {(reviews || []).map(r => {
                 const tagMeta = {
-                  habit: { lb: '长期习惯', color: '#22c55e' },
+                  habit: { lb: '长期习惯', color: '#16a34a' },
                   decision: { lb: '一次性决策', color: '#4b63f0' },
                   sop: { lb: '已固化SOP', color: '#a855f7' },
                 };
@@ -3314,7 +3314,7 @@ function CognitionView({
                     style={{ background: 'rgba(34,197,94,0.03)', border: '1px solid rgba(34,197,94,0.15)' }}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#22c55e' }}>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#16a34a' }}>
                           坚持 {r.daysCompleted} 天
                         </span>
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${tm.color}15`, color: tm.color }}>
@@ -3337,7 +3337,7 @@ function CognitionView({
                           <div className="text-[11px] text-ink-700 leading-snug">{r.beforeState || '—'}</div>
                         </div>
                         <div className="p-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.1)' }}>
-                          <div className="text-[9px] font-bold mb-0.5" style={{ color: '#22c55e' }}>改变后</div>
+                          <div className="text-[9px] font-bold mb-0.5" style={{ color: '#16a34a' }}>改变后</div>
                           <div className="text-[11px] text-ink-700 leading-snug">{r.afterState || '—'}</div>
                         </div>
                       </div>
@@ -3351,7 +3351,7 @@ function CognitionView({
                     {/* 空状态引导填写 */}
                     {!r.beforeState && !r.afterState && !r.nextStep && (
                       <button onClick={() => setEditingReview(r)}
-                        className="text-[10px] font-semibold mt-1" style={{ color: '#22c55e' }}>
+                        className="text-[10px] font-semibold mt-1" style={{ color: '#16a34a' }}>
                         → 填写改变前后的对比
                       </button>
                     )}
@@ -3402,7 +3402,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
   const [editingScoreIdx, setEditingScoreIdx] = useState(null);
   const scoreColor = (s) => {
     const n = Number(s) || 0;
-    if (n >= 9) return '#22c55e';
+    if (n >= 9) return '#16a34a';
     if (n >= 6) return '#f59e0b';
     return '#ef4444';
   };
@@ -3541,7 +3541,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
                 <div className="text-[11px] font-bold uppercase tracking-wide text-ink-500 px-0.5">里程碑</div>
                 {a.mstones.map((m, i) => {
                   const sm = statusMeta(m.st);
-                  const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
+                  const msCol = m.st === 'done' ? '#16a34a' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
                   return (
                     <div key={i} onClick={() => onMsEdit?.(ai, i, m)} className="p-2.5 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
                       <div className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold tabular-nums flex-shrink-0 text-ink-700">{i + 1}</div>
@@ -3596,7 +3596,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
     const kPct = pct(kr.v, kr.tgt);
     const diff = kPct - timePct;
     let q, label, color;
-    if (kr.st === 'done' || kPct >= 100) { q = 'done'; label = '已完成'; color = '#22c55e'; }
+    if (kr.st === 'done' || kPct >= 100) { q = 'done'; label = '已完成'; color = '#16a34a'; }
     else if (diff <= -20) { q = 'risk'; label = '严重落后'; color = '#ef4444'; }
     else if (diff <= -5) { q = 'warn'; label = '略落后'; color = '#f59e0b'; }
     else if (diff >= 20) { q = 'ahead'; label = '超额'; color = '#10b981'; }
@@ -3620,7 +3620,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
       { k: 'warn',  lb: '需关注', col: '#f59e0b', n: stats.warn },
       { k: 'normal',lb: '正常',   col: '#3b82f6', n: stats.normal },
       { k: 'ahead', lb: '超额',   col: '#10b981', n: stats.ahead },
-      { k: 'done',  lb: '已完成', col: '#22c55e', n: stats.done },
+      { k: 'done',  lb: '已完成', col: '#16a34a', n: stats.done },
     ].filter(i => i.n > 0);
     return (
       <div className="rounded-xl bg-surface-soft p-3 flex items-center justify-between gap-3 flex-wrap">
@@ -3685,7 +3685,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           {o.krs.map((kr, i) => {
             const st = kr.st === 'done' ? 'done' : kr.st === 'doing' ? 'doing' : 'tg';
             const p2 = pct(kr.v, kr.tgt);
-            const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
+            const statusDot = st === 'done' ? '#16a34a' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
             const risk = risk4Quadrant(kr, o.deadline, o.start);
             const krId = kr.id || `${o._workIdx}-${i}`;
             const ma = microActions?.[krId] || [];
@@ -4246,7 +4246,7 @@ export default function AnnualPlan({ standalone = true }) {
   const handleEnergyAction = useCallback(async (action, habit) => {
     if (action === 'addHabit') {
       // 新建精力类习惯
-      setModal({ type: 'habit', initial: { growth_type: 'energy', accent_color: '#22c55e' } });
+      setModal({ type: 'habit', initial: { growth_type: 'energy', accent_color: '#16a34a' } });
     }
     if (action === 'editHabit' && habit) {
       const rawHabit = {
@@ -4254,7 +4254,7 @@ export default function AnnualPlan({ standalone = true }) {
         name: habit.name,
         emoji: habit.emoji,
         growth_type: 'energy',
-        accent_color: '#22c55e',
+        accent_color: '#16a34a',
         target_mode: habit.unit === '次' ? 'count' : 'check',
         target_unit: habit.unit === '次' ? '次' : habit.unit,
         target_value: habit.unit === '次' ? '1' : null,

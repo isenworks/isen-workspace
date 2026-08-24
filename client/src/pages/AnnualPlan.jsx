@@ -1786,14 +1786,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       {cleanLabel}
                     </span>
                   </div>
-                  {/* ========== 列②：KPI列（%胶囊在LEFT · 累计/目标在RIGHT）
-                        🎯 左右翻转：完成率%胶囊作为第一视觉焦点放左侧，累计/目标数字放右侧
-                        其它一切不变：胶囊 h-full 继承方块高度、宽度56px、实心绿、白字
-                        justify-start：让%胶囊贴左边（紧挨着标签列的右边沿），累计数字贴右边紧挨着日历方块 */}
-                  <div className="flex items-center justify-between gap-2 w-full h-full">
+                  {/* ========== 列②：KPI列（%胶囊 + 累计数字 全部左端对齐）
+                        🎯 justify-start + gap-[10px]：%胶囊和累计数字都贴标签列右边沿
+                        不再两端对齐（justify-between），视觉上三行的"完成率+累计"都从同一个x坐标开始，形成整齐的阅读轴 */}
+                  <div className="flex items-center justify-start gap-[10px] w-full h-full">
                     {monthlyTarget > 0 ? (
                       <>
-                        {/* ⭐ LEFT 第一视觉：%胶囊（56px × h-full 与方块等高） */}
+                        {/* ⭐ 第一视觉：%胶囊（56px × h-full 与方块等高） */}
                         <span
                           className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-full"
                           style={{
@@ -1807,7 +1806,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                             <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
                           </span>
                         </span>
-                        {/* ⭐ RIGHT 次级信息：累计 / 目标 + 单位（ink-700与习惯标题同色） */}
+                        {/* ⭐ 次级信息：累计 / 目标 + 单位（ink-700与习惯标题同色）
+                             与%胶囊 gap-[10px] 紧挨，整体贴左边 */}
                         <div className="flex items-baseline leading-none flex-shrink-0">
                           <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
                           <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>

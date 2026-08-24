@@ -3563,7 +3563,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
         </div>
 
         {/* L2 能力卡片：横向卡片布局 */}
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {dynAb.map((a, ai) => {
             const mDone = a.mstones.filter(m => m.st === 'done').length;
             const mTotal = a.mstones.length;
@@ -3877,7 +3877,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
         </div>
 
         {/* L2 主次业务横向卡片 */}
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {renderGoalCard(main, '主业', '#ef4444', 0)}
           {side && renderGoalCard(side, '副业', '#F97316', 1)}
         </div>

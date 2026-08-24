@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
 import { inferGrowthType } from '../utils/uiConstants.js';
 import Modal from '../components/Modal.jsx';
@@ -358,12 +359,12 @@ function InlineEdit({
         {value || <span className="opacity-40">{placeholder || (isCtxMode ? '右键填写' : '点击填写')}</span>}
       </span>
 
-      {/* ---- 右键浮层菜单：编辑 / 删除 ---- */}
-      {isCtxMode && menu && (
+      {/* ---- 右键浮层菜单：编辑 / 删除（通过 portal 输出到 body，避免被容器裁剪）---- */}
+      {isCtxMode && menu && typeof document !== 'undefined' && document.body && createPortal(
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 99999, width: menuWidth, backgroundColor: '#ffffff' }}
-          className="rounded-xl shadow-xl border border-ink-100 py-1 overflow-hidden">
+          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 999999, width: menuWidth, backgroundColor: '#ffffff' }}
+          className="rounded-xl shadow-2xl border border-ink-100 py-1 overflow-hidden">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -393,7 +394,8 @@ function InlineEdit({
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
@@ -479,7 +481,7 @@ function ReadingFunnel({
                 style={{
                   width: `${pctOfMax}%`,
                   minWidth: '150px',
-                  background: `linear-gradient(135deg, ${stageColor} 0%, ${STAGE_COLORS[Math.min(i + 1, 4)]}dd 100%)`,
+                  background: stageColor,  // 统一纯色，不再渐变（用户要求"统一一个颜色"）
                   boxShadow: `0 2px 6px ${stageColor}25`,
                 }}>
                 {/* 左：label + sub */}
@@ -2584,8 +2586,8 @@ function CognitionView({
   // 结果区 · 复盘卡
   const [editingReview, setEditingReview] = useState(null);
 
-  const BLUE = '#4b63f0';
-  const BLUE_LIGHT = '#eaf0ff';
+  const BLUE = '#007aff';       // 计划总结页"今日按钮"填充蓝（Apple system blue）
+  const BLUE_LIGHT = 'rgba(0,122,255,0.08)'; // 对应今日页浅色背景 rgba(0,122,255,0.08)
   const year = new Date().getFullYear();
 
   const groups = useMemo(() => {
@@ -3199,7 +3201,7 @@ function CognitionView({
       </div>
 
       {/* ===== 读后思考 · 思后行动 · 行后改变（三栏横向布局）===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3 pt-3 border-t border-ink-100">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-[-6px] pt-2 border-t border-ink-100">
 
         {/* ========== 卡片一：读后思考 ========== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">

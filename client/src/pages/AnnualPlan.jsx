@@ -1505,9 +1505,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                    右 ROW2 次KPI：累计(14px 600 ink-900) / 分隔(ink-300) / 目标(14px 600 ink-700) 单位(12px ink-400)
                 */
                 <div key={h.key}
-                  className="grid p-3 pb-2 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
-                  style={{ gridTemplateRows: 'auto 1fr auto' }}>
-                  {/* ROW1+ROW2 合并为一行紧凑的 KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
+                  className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
+                  style={{ gridTemplateRows: 'auto 1fr' }}>
+                  {/* ROW1: KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
                   <div className="flex items-center justify-between gap-2">
                     {/* 左列：KR同款 [序号(浅绿)] [标题(黑色)]
                          ✅ 基线对齐：items-center + 两个 span 都 leading-none — 序号中线与标题字框中线严格重合
@@ -1530,24 +1530,19 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN}}>{yearlyPct}</span>
                         <span className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5" style={{color: GREEN}}>%</span>
                       </div>
-                      {/* 🥈 次 KPI 行（弱化版）：累计 / 目标 + 单位
-                         ✅ 累计 h.val 颜色升级为 ink-700（与习惯标题同色，视觉不被"目标和%压得看不见"）
-                            目标降阶为 ink-500 · 单位 ink-400 */}
+                      {/* 🥈 次 KPI 行：累计 / 目标 + 单位 — 字号统一13px，与主数字形成和谐层级 */}
                       <div className="flex items-baseline leading-none">
                         <span className="text-[13px] font-semibold tabular-nums text-ink-700">{h.val}</span>
                         <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
                         <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.target}</span>
-                        <span className="text-[12px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
+                        <span className="text-[13px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
                       </div>
                     </div>
                   </div>
-                  {/* ROW2: 1fr 弹性吸空区，吃掉多余空白，保证折线图贴底
-                       mt-2 拉开 KPI 信息与折线之间的呼吸通道，折线图通过 pb-0 mb-[-2px] 贴底到卡片底边缘 */}
-                  <div className="min-h-0 mt-2"></div>
-                  {/* ROW3: 折线图极致贴底 —— pb-0 + mb-[-2px] 把 SVG 底部月份标签 1-8 直接贴到卡片底边缘
-                       -mx-1 保持 1px 横向溢出通道，不被圆角裁剪 */}
-                  <div className="-mx-1 pb-0 mb-[-2px]">
-                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={58} />
+                  {/* ROW2: 折线图区 — 用 self-end mt-auto 推到底部，与KPI信息保留 mt-3 间距
+                       这样折线图真正贴着卡片底边缘，不再被吸空区顶在中间 */}
+                  <div className="self-end mt-3 -mx-1 pb-0">
+                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={60} />
                   </div>
                 </div>
               );
@@ -1829,9 +1824,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                              与%胶囊 gap-[10px] 紧挨，整体贴左边 */}
                         <div className="flex items-baseline leading-none flex-shrink-0">
                           <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
-                          <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
-                          <span className="text-[11px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
-                          <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>
+                          <span className="text-[12.5px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
+                          <span className="text-[12.5px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
+                          <span className="text-[12.5px] font-medium tabular-nums text-ink-400 ml-[2px]">{h.unit || '天'}</span>
                         </div>
                       </>
                     ) : (

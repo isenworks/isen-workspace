@@ -348,25 +348,21 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
     return (
       <div className="space-y-1.5">
-        {/* 预设模板行 */}
+        {/* 预设模板行：纯文字形式，关键词加粗 */}
         {PRESET_TEMPLATES.map(tpl => (
           <div
             key={tpl.key}
-            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-pointer group border border-dashed transition-colors hover:opacity-80"
-            style={{ borderColor: tpl.borderColor, background: `${tpl.bg}60` }}
+            className="flex items-center gap-3 px-3 py-1.5 cursor-pointer group transition-colors hover:opacity-70"
             onClick={() => { onNew?.(tpl.category); }}
           >
-            <div className="w-4 h-4 flex-shrink-0" style={{ background: tpl.bg, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg className="w-2.5 h-2.5" fill="none" stroke={tpl.dotColor} strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeLinecap="round"/></svg>
-            </div>
+            <div className="w-4 h-4 flex-shrink-0 rounded-[3px] border-2 transition-colors"
+                 style={{ borderColor: tpl.dotColor, background: 'transparent' }}></div>
             <div className="flex-1 min-w-0">
               <p className="text-[14px] text-[#1c1c1e]">
-                <span style={{ color: tpl.dotColor, fontWeight: 600 }}>{tpl.bold}</span>
-                <span className="text-[#636366] ml-0.5">{tpl.hint.replace(tpl.bold, '')}</span>
+                今天做什么来<span style={{ color: tpl.dotColor, fontWeight: 700 }}>{tpl.bold}</span>？
               </p>
-              <p className="text-[11px] mt-0.5" style={{ color: tpl.borderColor }}>{tpl.label} · 点击填写</p>
             </div>
-            <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: tpl.dotColor }}></span>
+            <span className="w-2 h-2 flex-shrink-0 rounded-[2px]" style={{ background: tpl.dotColor }}></span>
           </div>
         ))}
         {/* 真实事项 */}

@@ -401,23 +401,24 @@ function InlineEdit({
 
 /* ---------- P2-2: 知力 OKR 漏斗 (输入量 → 思考量 → 行动量 → 改变量) ---------- */
 function ReadingFunnel({
-  total, done, notes, changes, color = '#4b63f0', embedded,
+  total, done, notes, changes, reviews, color = '#4b63f0', embedded,
   headerTitle = '阅读转化漏斗',
-  headerSub = '输入→思考→行动→改变',
+  headerSub = '输入→思考→行动→改变→复盘',
   onHeaderChange,
   stageLabels,
   onStageLabelsChange,
 }) {
-  // 四层（严格真子集关系：每一层是前一层的有意义子集）
-  // 统一蓝色主题：浅→深渐变
-  const STAGE_COLORS = ['#A5B4FC', '#60A5FA', '#4B63F0', '#312E81'];
+  // 五层漏斗（严格真子集关系）：输入→思考→行动→改变→复盘
+  // 统一蓝色渐变主题：浅→中→深，视觉层次清晰
+  const STAGE_COLORS = ['#93C5FD', '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8'];
   const DEFAULT_STAGES = [
     { key: 'total',   label: '输入量', sub: '已读完',   convLabel: '' },
     { key: 'done',    label: '思考量', sub: '有洞察',   convLabel: '' },
     { key: 'notes',   label: '行动量', sub: '有承诺',   convLabel: '' },
-    { key: 'changes', label: '改变量', sub: '有复盘',   convLabel: '' },
+    { key: 'changes', label: '改变量', sub: '有行动',   convLabel: '' },
+    { key: 'reviews', label: '复盘量', sub: '已复盘',   convLabel: '' },
   ];
-  const countsByKey = { total, done, notes, changes };
+  const countsByKey = { total, done, notes, changes, reviews };
   // stages 由【默认结构 + 自定义文字 + 外部count】合成；受控，不再自己 useState 存 label/sub/convLabel
   const stages = DEFAULT_STAGES.map(s => ({
     ...s,
@@ -457,8 +458,10 @@ function ReadingFunnel({
     { idx: 1, show: done < total && total > 0, text: done === 0 ? '已读完的书还没写洞察，点击书籍添加' : `${total - done} 本书还没输出洞察` },
     // ③ 行动量：有洞察但没转化承诺 → 提示生成
     { idx: 2, show: notes < done && done > 0, text: notes === 0 ? '有洞察但没行动，生成你的第一条改变承诺' : `${done - notes} 本书还没转化为行动` },
-    // ④ 改变量：有行动但没完成复盘 → 提示坚持
-    { idx: 3, show: changes < notes && notes > 0, text: changes === 0 ? '有承诺但没复盘，完成第一次复盘' : `${notes - changes} 条改变还没完成复盘` },
+    // ④ 改变量：有行动但没生成改变 → 提示创建
+    { idx: 3, show: changes < notes && notes > 0, text: changes === 0 ? '有承诺但没生成改变，创建你的第一条改变' : `${notes - changes} 本书还没生成改变` },
+    // ⑤ 复盘量：有改变但没完成复盘 → 提示坚持
+    { idx: 4, show: reviews < changes && changes > 0, text: reviews === 0 ? '有改变但没复盘，完成第一次复盘' : `${changes - reviews} 条改变还没完成复盘` },
   ];
 
   const Inner = (
@@ -476,7 +479,7 @@ function ReadingFunnel({
                 style={{
                   width: `${pctOfMax}%`,
                   minWidth: '150px',
-                  background: `linear-gradient(135deg, ${stageColor} 0%, ${STAGE_COLORS[Math.min(i + 1, 3)]}dd 100%)`,
+                  background: `linear-gradient(135deg, ${stageColor} 0%, ${STAGE_COLORS[Math.min(i + 1, 4)]}dd 100%)`,
                   boxShadow: `0 2px 6px ${stageColor}25`,
                 }}>
                 {/* 左：label + sub */}
@@ -517,8 +520,8 @@ function ReadingFunnel({
                 <svg className="w-3 h-3 flex-shrink-0" style={{ color: STAGE_COLORS[i] }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 <span className="font-bold tabular-nums px-2 py-px rounded-md flex-shrink-0"
                   style={{
-                    color: STAGE_COLORS[Math.min(i + 1, 3)],
-                    background: `${STAGE_COLORS[Math.min(i + 1, 3)]}12`,
+                    color: STAGE_COLORS[Math.min(i + 1, 4)],
+                    background: `${STAGE_COLORS[Math.min(i + 1, 4)]}12`,
                   }}>
                   {conv ?? 0}%
                 </span>
@@ -2583,35 +2586,46 @@ function CognitionView({
 
   const BLUE = '#4b63f0';
   const BLUE_LIGHT = '#eaf0ff';
+  const year = new Date().getFullYear();
 
   const groups = useMemo(() => {
     const dynBooks = books || BOOKS;
     return {
-      reading: dynBooks.filter(b => b.st === 'reading'),
-      pending: dynBooks.filter(b => b.st === 'pending'),
-      done:    dynBooks.filter(b => b.st === 'done'),
+      reading:   dynBooks.filter(b => b.st === 'reading'),
+      pending:   dynBooks.filter(b => b.st === 'pending'),
+      done:      dynBooks.filter(b => b.st === 'done'),
+      abandoned: dynBooks.filter(b => b.st === 'abandoned'),
     };
   }, [books]);
 
-  // 漏斗四层数据：基于书架 st + hasInsights + hasAction + changes/reviews 计算（严格真子集关系）
+  // 已读完且有洞察的书籍（用于"读后思考"卡片）
+  const doneBooksWithInsights = useMemo(() => {
+    const dynBooks = books || BOOKS;
+    return dynBooks.filter(b => b.st === 'done' && (b.hasInsights || (b.insights && b.insights.length > 0)));
+  }, [books]);
+
+  // 漏斗五层数据：严格真子集关系
   // ① 输入量 = 已读完书籍数量
   // ② 思考量 = 已读完且 hasInsights=true 的书籍数量
   // ③ 行动量 = 已读完且 hasAction=true 的书籍数量
-  // ④ 改变量 = reviews 数组长度（已完成复盘 = 真正改变了）
+  // ④ 改变量 = changes 数组长度（改变条数量）
+  // ⑤ 复盘量 = reviews 数组长度（已完成复盘数量）
   const funnelData = useMemo(() => {
     const dynBooks = books || BOOKS;
     const doneBooks = dynBooks.filter(b => b.st === 'done');
     const total = doneBooks.length;
     const hasInsights = doneBooks.filter(b => b.hasInsights || (b.insights && b.insights.length > 0)).length;
     const hasAction = doneBooks.filter(b => b.hasAction).length;
+    const dynChanges = changes || [];
     const dynReviews = reviews || [];
     return {
-      total,           // ① 输入量：已读完书籍数量
-      done: hasInsights, // ② 思考量：有洞察的书籍数量
-      notes: hasAction,  // ③ 行动量：有行动承诺的书籍数量
-      changes: dynReviews.length, // ④ 改变量：已复盘的改变数量
+      total,              // ① 输入量：已读完书籍数量
+      done: hasInsights,  // ② 思考量：有洞察的书籍数量
+      notes: hasAction,   // ③ 行动量：有行动承诺的书籍数量
+      changes: dynChanges.length, // ④ 改变量：改变条数量
+      reviews: dynReviews.length, // ⑤ 复盘量：已复盘的改变数量
     };
-  }, [books, reviews]);
+  }, [books, changes, reviews]);
 
   const finalKrs = (krs || COG_KRS).map(kr => {
     // KR1（输入量）= 已读完书籍数量
@@ -2740,13 +2754,13 @@ function CognitionView({
                   <span className="text-[10.5px] font-bold text-white/85 leading-none">%</span>
                 </div>
 
-                {/* + 新增 KR 按钮 */}
+                {/* + 新增 KR 按钮 — 只保留加号图标 */}
                 <button
                   onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-md transition flex-shrink-0 whitespace-nowrap border"
-                  style={{ borderColor: `${BLUE}33`, color: BLUE, background: BLUE_LIGHT }}>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-                  新增
+                  className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-md transition flex-shrink-0 border"
+                  style={{ borderColor: `${BLUE}33`, color: BLUE, background: BLUE_LIGHT }}
+                  title="新增KR">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
                 </button>
               </div>
             )}
@@ -2825,42 +2839,40 @@ function CognitionView({
                                   placeholder="填写KR标题"
                                 />
                               </div>
-                              {/* 右：数据区 — 与精力页统一：值/目标/单位全13px，主值semibold深色，目标+单位medium灰色 */}
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {/* 数值块：与精力页完全一致的字号/字重/颜色 */}
-                                <div className="flex items-baseline leading-none tabular-nums">
-                                  <span
-                                    className="text-[13px] font-semibold tabular-nums"
-                                    style={{ color: isDone ? '#111827' : 'text-ink-700' }}>
-                                    {kr.val}
-                                  </span>
+                              {/* 右：数据区 — 参考精力页折线图的双行KPI布局：上%+下值/目标/单位 */}
+                              <div className="flex flex-col items-end gap-0.5 flex-shrink-0 min-w-[35%]">
+                                {/* Row 1: 大%数字 + 编辑按钮 */}
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex items-baseline leading-none">
+                                    <span
+                                      className="text-[16px] font-bold tabular-nums leading-none"
+                                      style={{ color: isDone ? '#111827' : BLUE }}>
+                                      {p}
+                                    </span>
+                                    <span
+                                      className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5"
+                                      style={{ color: isDone ? '#111827' : BLUE }}>
+                                      %
+                                    </span>
+                                  </div>
+                                  {/* 编辑按钮 — 灰色圆形，hover变蓝 */}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); openEditKrModal(kr); }}
+                                    className="grid place-items-center rounded-md transition-colors flex-shrink-0"
+                                    style={{ color: '#cbd5e1', width: '22px', height: '22px' }}
+                                    title="编辑KR"
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = BLUE_LIGHT; e.currentTarget.style.color = BLUE; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cbd5e1'; }}>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                                  </button>
+                                </div>
+                                {/* Row 2: 累计 / 目标 + 单位 — 与精力页完全一致 */}
+                                <div className="flex items-baseline leading-none">
+                                  <span className="text-[13px] font-semibold tabular-nums text-ink-700">{kr.val}</span>
                                   <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
                                   <span className="text-[13px] font-medium tabular-nums text-ink-500">{kr.tgt}</span>
                                   <span className="text-[13px] font-medium tabular-nums text-ink-400 ml-0.5">{kr.u}</span>
                                 </div>
-                                {/* 百分比胶囊 — 与精力页统一：56px宽、圆角6px、白字、阴影 */}
-                                <span
-                                  className="inline-flex items-baseline justify-center rounded-md"
-                                  style={{
-                                    width: '56px',
-                                    height: '24px',
-                                    background: isDone ? '#111827' : BLUE,
-                                    color: '#fff',
-                                    boxShadow: '0 1px 2px rgba(75,99,240,0.25)',
-                                  }}>
-                                  <span className="text-[12px] font-bold tabular-nums leading-none">{p}</span>
-                                  <span className="text-[9px] font-semibold opacity-85 leading-none ml-[1px]">%</span>
-                                </span>
-                                {/* 编辑按钮 — 灰色圆形，hover变蓝 */}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); openEditKrModal(kr); }}
-                                  className="w-5.5 h-5.5 grid place-items-center rounded-md transition-colors flex-shrink-0"
-                                  style={{ color: '#cbd5e1', width: '22px', height: '22px' }}
-                                  title="编辑KR"
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = BLUE_LIGHT; e.currentTarget.style.color = BLUE; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cbd5e1'; }}>
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-                                </button>
                               </div>
                             </div>
                             {/* ========== Row 2 · 辅助信息行（灰色，缩进与上方标题首字严格对齐） ========== */}
@@ -2921,6 +2933,7 @@ function CognitionView({
               done={funnelData.done}
               notes={funnelData.notes}
               changes={funnelData.changes}
+              reviews={funnelData.reviews}
               color={BLUE}
               embedded
               stageLabels={funnelStageLabels}
@@ -3032,11 +3045,12 @@ function CognitionView({
             添加书籍
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {[
-            { key: 'reading', lb: '阅读中', col: BLUE,      dot: BLUE_LIGHT,      books: groups.reading },
-            { key: 'pending', lb: '未开始', col: '#64748b',   dot: '#f8fafc',       books: groups.pending },
-            { key: 'done',    lb: '已读完', col: '#22c55e',   dot: '#f0fdf4',       books: groups.done },
+            { key: 'reading',   lb: '阅读中', col: BLUE,    dot: BLUE_LIGHT,    books: groups.reading },
+            { key: 'pending',   lb: '未开始', col: '#64748b', dot: '#f8fafc',     books: groups.pending },
+            { key: 'done',      lb: '已读完', col: '#22c55e', dot: '#f0fdf4',     books: groups.done },
+            { key: 'abandoned', lb: '已弃读', col: '#94a3b8', dot: '#f1f5f9',     books: groups.abandoned },
           ].map(g => {
             const isDragOver = dragOverCol === g.key && dragBookId && (() => {
               // 拖拽中的书是否不本来就在这栏
@@ -3196,121 +3210,141 @@ function CognitionView({
         </div>
       </div>
 
-      {/* ===== 承诺本 · 行动改变 + 结果区 · 改变证明（左右双栏）===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 pt-4 border-t border-ink-100">
-        {/* ========== 承诺本 · 行动改变 ========== */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-[5px] h-[18px] rounded-full" style={{ background: '#a855f7' }} />
-            <h3 className="text-[15px] font-semibold text-ink-900">承诺本</h3>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7' }}>
-              {(changes || []).filter(c => c.status !== 'reviewed').length} 进行中
+      {/* ===== 读后思考 · 思后行动 · 行后改变（三栏横向布局）===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-4 pt-4 border-t border-ink-100">
+
+        {/* ========== 卡片一：读后思考 ========== */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
+              <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
+            </div>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
+              {doneBooksWithInsights.length} 本有思考
             </span>
+          </div>
+          <div className="flex-1 flex flex-col gap-1.5">
+            {doneBooksWithInsights.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
+                已读完的书还没写思考<br/>点击书籍添加你的第一条洞察
+              </div>
+            ) : (
+              doneBooksWithInsights.slice(0, 5).map(b => {
+                const ins = b.insights || [];
+                const validIns = ins.filter(i => i.text?.trim());
+                return (
+                  <div key={b.id}
+                    className="rounded-xl p-2.5 transition-all"
+                    style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
+                    onClick={() => onBookEdit?.(b)}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[12.5px] font-semibold text-ink-900 truncate">{b.t}</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: BLUE, color: '#fff', flexShrink: 0 }}>
+                        {validIns.length} 条
+                      </span>
+                    </div>
+                    {validIns.length > 0 && (
+                      <div className="text-[11px] text-ink-600 leading-snug line-clamp-2">
+                        "{validIns[0].text}"
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+            {doneBooksWithInsights.length > 5 && (
+              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {doneBooksWithInsights.length - 5} 本 · 点击书籍查看</div>
+            )}
+          </div>
+        </div>
+
+        {/* ========== 卡片二：思后行动 ========== */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#a855f7' }}></span>
+              <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
+            </div>
             <button onClick={() => setShowChangeForm(true)}
-              className="ml-auto text-[11px] font-semibold text-white px-2.5 py-1 rounded-md"
-              style={{ background: '#a855f7' }}>
-              + 新增改变
+              className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
+              style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}
+              title="新增行动">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
             </button>
           </div>
-
-          {(changes || []).length === 0 ? (
-            <div className="text-center py-8 text-[12px] text-ink-400" style={{ background: 'rgba(168,85,247,0.03)', borderRadius: 12, border: '1px dashed rgba(168,85,247,0.2)' }}>
-              还没有行动改变 — 从强共鸣观点生成你的第一条改变
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {(changes || []).map(c => {
+          <div className="flex-1 flex flex-col gap-1.5">
+            {(changes || []).length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(168,85,247,0.05)', borderRadius: 12 }}>
+                还没有行动计划<br/>从强共鸣观点生成你的第一条改变
+              </div>
+            ) : (
+              (changes || []).slice(0, 5).map(c => {
                 const days = c.checkIns?.length || 0;
                 const pctVal = Math.min(100, Math.round((days / (c.targetDays || 30)) * 100));
                 const today = new Date().toISOString().slice(0, 10);
                 const checkedToday = c.checkIns?.includes(today);
                 const isCompleted = c.status === 'completed';
                 const isReviewed = c.status === 'reviewed';
-                // 进度条颜色：0-7橙红 / 8-21蓝 / 22-30紫 / ≥30绿
-                const barColor = days >= 30 ? '#22c55e' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
+                const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
                 return (
                   <div key={c.id}
-                    className="rounded-2xl p-3 transition-all"
+                    className="rounded-xl p-2.5 transition-all"
                     style={{
-                      background: isReviewed ? 'rgba(34,197,94,0.04)' : 'rgba(168,85,247,0.03)',
-                      border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.2)' : 'rgba(168,85,247,0.15)'}`,
+                      background: isReviewed ? 'rgba(34,197,94,0.05)' : 'rgba(168,85,247,0.05)',
+                      border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.15)' : 'rgba(168,85,247,0.15)'}`,
                     }}>
-                    {/* 来源追溯 */}
-                    {c.insightText && (
-                      <div className="flex items-center gap-1 text-[10px] text-ink-400 mb-1.5">
-                        <span>💫</span>
-                        <span className="truncate">"{c.insightText}"</span>
-                        {c.bookTitle && <span className="flex-shrink-0">— 《{c.bookTitle}》</span>}
-                      </div>
-                    )}
-                    {/* 改变描述 */}
-                    <div className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-2">{c.text}</div>
-                    {/* 进度 */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-ink-100 overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pctVal}%`, background: barColor }} />
-                      </div>
-                      <span className="text-[10px] font-bold tabular-nums flex-shrink-0" style={{ color: barColor }}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-[12.5px] font-semibold truncate ${isReviewed ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{c.text}</span>
+                      <span className="text-[10px] font-bold tabular-nums flex-shrink-0 ml-1" style={{ color: barColor }}>
                         {days}/{c.targetDays || 30}天
                       </span>
                     </div>
-                    {/* 操作按钮 */}
-                    {!isReviewed && (
-                      <div className="flex items-center gap-2">
-                        {isCompleted ? (
-                          <button onClick={() => onChangeComplete?.(c.id)}
-                            className="text-[10px] font-bold text-white px-3 py-1 rounded-md"
-                            style={{ background: '#22c55e' }}>
-                            ✓ 完成复盘
-                          </button>
-                        ) : (
-                          <button onClick={() => onChangeCheckIn?.(c.id)}
-                            disabled={checkedToday}
-                            className="text-[10px] font-bold px-3 py-1 rounded-md transition-all"
-                            style={{
-                              background: checkedToday ? 'rgba(148,163,184,0.1)' : '#a855f7',
-                              color: checkedToday ? '#94a3b8' : '#fff',
-                              cursor: checkedToday ? 'default' : 'pointer',
-                            }}>
-                            {checkedToday ? '今日已打卡' : '今天打卡'}
-                          </button>
-                        )}
-                        <span className="text-[9px] text-ink-400">启动日 {c.startDate}</span>
-                        <button onClick={() => setEditingChange(c)}
-                          className="ml-auto text-[10px] text-ink-400 hover:text-ink-700">编辑</button>
-                        <button onClick={() => onChangeRemove?.(c.id)}
-                          className="text-[10px] text-ink-300 hover:text-red-500">删除</button>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pctVal}%`, background: barColor }} />
                       </div>
-                    )}
-                    {isReviewed && (
-                      <div className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#22c55e' }}>
-                        <span>✓</span> 已完成复盘，移至结果区
-                      </div>
-                    )}
+                      {!isReviewed && (
+                        <button onClick={(e) => { e.stopPropagation(); onChangeCheckIn?.(c.id); }}
+                          disabled={checkedToday}
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-all"
+                          style={{
+                            background: checkedToday ? 'rgba(148,163,184,0.1)' : '#a855f7',
+                            color: checkedToday ? '#94a3b8' : '#fff',
+                            cursor: checkedToday ? 'default' : 'pointer',
+                          }}>
+                          {checkedToday ? '✓' : '打卡'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+            {(changes || []).length > 5 && (
+              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {(changes || []).length - 5} 条 · 点击编辑管理</div>
+            )}
+          </div>
         </div>
 
-        {/* ========== 结果区 · 改变证明 ========== */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-[5px] h-[18px] rounded-full" style={{ background: '#22c55e' }} />
-            <h3 className="text-[15px] font-semibold text-ink-900">结果区 · 改变证明</h3>
+        {/* ========== 卡片三：行后改变 ========== */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#22c55e' }}></span>
+              <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
+            </div>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}>
               {(reviews || []).length} 条真实改变
             </span>
           </div>
-
-          {(reviews || []).length === 0 ? (
-            <div className="text-center py-8 text-[12px] text-ink-400" style={{ background: 'rgba(34,197,94,0.03)', borderRadius: 12, border: '1px dashed rgba(34,197,94,0.2)' }}>
-              坚持打卡30天 → 自动生成复盘卡<br/>年底回看这里，就是你今年的真实改变
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {(reviews || []).map(r => {
+          <div className="flex-1 flex flex-col gap-1.5">
+            {(reviews || []).length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(34,197,94,0.04)', borderRadius: 12 }}>
+                坚持打卡30天 → 自动生成复盘<br/>年底回看这里，就是你今年的真实改变
+              </div>
+            ) : (
+              (reviews || []).slice(0, 5).map(r => {
                 const tagMeta = {
                   habit: { lb: '长期习惯', color: '#22c55e' },
                   decision: { lb: '一次性决策', color: '#4b63f0' },
@@ -3319,60 +3353,30 @@ function CognitionView({
                 const tm = tagMeta[r.tag] || tagMeta.habit;
                 return (
                   <div key={r.id}
-                    className="rounded-2xl p-3"
-                    style={{ background: 'rgba(34,197,94,0.03)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                    <div className="flex items-center justify-between mb-2">
+                    className="rounded-xl p-2.5"
+                    style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                    <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#22c55e' }}>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: '#22c55e' }}>
                           坚持 {r.daysCompleted} 天
                         </span>
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${tm.color}15`, color: tm.color }}>
                           {tm.lb}
                         </span>
                       </div>
-                      <button onClick={() => setEditingReview(r)} className="text-[10px] text-ink-400 hover:text-ink-700">编辑</button>
                     </div>
-                    {/* 改变描述 */}
-                    <div className="text-[12.5px] font-semibold text-ink-900 leading-snug mb-2">{r.text}</div>
-                    {/* 来源 */}
-                    {r.insightText && (
-                      <div className="text-[10px] text-ink-400 mb-2 truncate">来源："{r.insightText}" — 《{r.bookTitle}》</div>
-                    )}
-                    {/* 前后对比 */}
-                    {(r.beforeState || r.afterState) && (
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <div className="p-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.1)' }}>
-                          <div className="text-[9px] font-bold text-ink-400 mb-0.5">改变前</div>
-                          <div className="text-[11px] text-ink-700 leading-snug">{r.beforeState || '—'}</div>
-                        </div>
-                        <div className="p-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.1)' }}>
-                          <div className="text-[9px] font-bold mb-0.5" style={{ color: '#22c55e' }}>改变后</div>
-                          <div className="text-[11px] text-ink-700 leading-snug">{r.afterState || '—'}</div>
-                        </div>
-                      </div>
-                    )}
-                    {/* 下一步 */}
-                    {r.nextStep && (
-                      <div className="text-[10px] text-ink-500 mt-1">
-                        <span className="font-semibold" style={{ color: tm.color }}>下一步：</span>{r.nextStep}
-                      </div>
-                    )}
-                    {/* 空状态引导填写 */}
-                    {!r.beforeState && !r.afterState && !r.nextStep && (
-                      <button onClick={() => setEditingReview(r)}
-                        className="text-[10px] font-semibold mt-1" style={{ color: '#22c55e' }}>
-                        → 填写改变前后的对比
-                      </button>
-                    )}
+                    <div className="text-[12px] font-semibold text-ink-900 leading-snug truncate">{r.text}</div>
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+            {(reviews || []).length > 5 && (
+              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {(reviews || []).length - 5} 条 · 点击编辑查看</div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 行动改变新增/编辑弹窗 */}
       {showChangeForm && (
         <Modal open onClose={() => { setShowChangeForm(false); setEditingChange(null); }} title={editingChange ? '编辑行动改变' : '新增行动改变'}>
           <ChangeForm

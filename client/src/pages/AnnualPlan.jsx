@@ -1179,7 +1179,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
               <div key={s.label} className="flex flex-col gap-0.5 pr-6">
                 <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.label}</span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-xl font-bold text-ink-900 tabular-nums leading-none">{s.v}</span>
+                  <span className="text-[16px] font-bold text-ink-900 tabular-nums leading-none">{s.v}</span>
                   <span className="text-xs text-ink-500">{s.u}</span>
                 </div>
               </div>
@@ -1201,10 +1201,10 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                   <CategoryIcon catKey={c.key} className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-ink-900 leading-tight">{c.label}</span>
+                  <span className="text-[15px] font-semibold text-ink-900 leading-tight">{c.label}</span>
                   <span className="text-xs text-ink-500">{c.type}</span>
                 </div>
-                <span className="ml-auto text-xs font-bold tabular-nums group-hover:opacity-80 transition"
+                <span className="ml-auto text-[13px] font-bold tabular-nums group-hover:opacity-80 transition"
                   style={{ color: c.color }}>
                   {v}%
                 </span>
@@ -2807,7 +2807,7 @@ function CognitionView({
                         {/* ========== Row 1 · 主信息行 ========== */}
                             <div className="flex items-center gap-2.5">
                               <span
-                                className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[2px]"
+                                className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none pt-[2px]"
                                 style={{ color: `${BLUE}88` }}>
                                 {padNum}
                               </span>
@@ -2830,11 +2830,11 @@ function CognitionView({
                                 {/* 数值块：当前值突出 + 目标弱化 */}
                                 <div className="flex items-baseline gap-0.5 tabular-nums">
                                   <span
-                                    className="text-[16px] font-extrabold leading-none"
+                                    className="text-[16px] font-bold leading-none"
                                     style={{ color: isDone ? '#111827' : BLUE }}>
                                     {kr.val}
                                   </span>
-                                  <span className="text-[11px] font-medium text-ink-400 leading-none">
+                                  <span className="text-[11px] font-medium text-ink-500 leading-none">
                                     / {kr.tgt}
                                   </span>
                                   <span className="text-[10px] text-ink-300 leading-none ml-0.5">

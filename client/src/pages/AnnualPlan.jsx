@@ -1739,24 +1739,38 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const GREEN = '#22c55e';
               const padNum = String(hidx + 1).padStart(2, '0');
               const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
-              // 🎯 L3 当月小结（与L1卡片KPI镜像对齐：累计天数 / 当月总天数 · 完成率%）
-              //    信息架构理由：L3日历视图用户看不到L2表格的当月数字，此处做"即时感知的镜像KPI"
+
+              // =====================================================
+              // 🎯 月度目标拆分（按年度目标 h.target 平均分摊到每月）
+              //   根因修复：之前"分母=已过24天"是错误的时间分母（日历过了≠目标该到）
+              //   正确：以全年365天为权重把年度目标分配给每个月
+              //   例：
+              //     睡觉 365天/年  → 8月应达 = 31/365 × 365 = 31天（当月总天数）
+              //     喝水 365天/年  → 8月应达 = 31/365 × 365 = 31天
+              //     运动 104次/年  → 8月应达 = 31/365 × 104 ≈ 9次（非整数向上取整，不降低要求）
+              // =====================================================
+              const YEAR_DAYS = 365;
+              // 计算该月占全年的"目标权重"（每个月应该承担多少年度目标）
+              const monthWeight = daysTotal / YEAR_DAYS;
+              // 按年度目标做加权分摊 → 得到"本月理论应达数"
+              //   Math.ceil 取整原则：宁高勿低，不降低全年标准
+              const monthlyTarget = Math.max(1, Math.ceil((h.target || 0) * monthWeight));
+
+              // 🎯 L3 当月小结（已完成 / 月度应达目标 · 完成率%）
               const doneCount = completedDays.size;
-              const elapsedDays = selectedMonth < curMonth
-                ? daysTotal                             // 历史月：当月全过，分母=全月天数
-                : selectedMonth === curMonth
-                  ? daysElapsedInCurMonth                // 当前月：分母=已过天数
-                  : 0;                                    // 未来月：无统计意义
-              const monthRate = elapsedDays > 0 ? Math.round((doneCount / elapsedDays) * 100) : 0;
+              // 完成率口径："已完成 / 本月应达目标数"
+              //   进度感：当前月如果还没到"全月过完"，进度上限不会强制卡100%
+              const monthRate = monthlyTarget > 0 ? Math.min(100, Math.round((doneCount / monthlyTarget) * 100)) : 0;
               return (
                 // ⭐ 固定三列 Grid（3条视觉基线严格对齐）
+                //   items-stretch = 三列高度统一撑满"行高"，列②的%胶囊就会自动跟列③的日历方块严格等高
                 //   列① [标签 145px]  → 序号22px + 习惯名117px，三行习惯名首字/尾字对齐
-                //   列② [KPI  130px]  → 「X/Y天 · %胶囊」，三行的 %胶囊 在同一条纵向轴上（核心视觉修正）
-                //   列③ [日历 flex-1] → 31方块，三行左起点/右起点严格对齐
+                //   列② [KPI  130px]  → 「X/Y天 · %胶囊」，内部 flex flex-col justify-center 自动居中
+                //   列③ [日历 flex-1] → 31方块，aspect-square，高度由"日历方块"决定 → 反向撑高整行
                 <div key={h.key}
-                  className="grid items-center"
+                  className="grid items-stretch"
                   style={{ gridTemplateColumns: '145px 130px minmax(0, 1fr)', columnGap: '14px' }}>
-                  {/* ========== 列①：标签列（145px 固定宽度） ========== */}
+                  {/* ========== 列①：标签列（145px 固定宽度） — 自动垂直居中到行高 */}
                   <div className="flex items-center gap-1.5 w-full">
                     <span
                       className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
@@ -1767,31 +1781,40 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       {cleanLabel}
                     </span>
                   </div>
-                  {/* ========== 列②：KPI列（130px 固定宽度，三行 %胶囊 纵向成一条线） ========== */}
-                  <div className="flex items-center justify-end gap-2 w-full">
-                    {elapsedDays > 0 ? (
+                  {/* ========== 列②：KPI列（130px 固定宽度，%胶囊 与日历方块严格等高）
+                        实现原理：h-full 继承行高 → 因为行高=列③方块高度 → 胶囊自动拉伸到"方块同高"
+                        rounded-[6px] 与 日历方块 rounded-md(≈6px) 统一圆角语言
+                        显示口径：doneCount / monthlyTarget（按年度目标分摊到月的当月应达数）
+                                   单位用 h.unit（天/次）与习惯年度目标单位一致 */}
+                  <div className="flex items-center justify-end gap-2 w-full h-full">
+                    {monthlyTarget > 0 ? (
                       <>
                         <div className="flex items-baseline leading-none flex-shrink-0">
                           <span className="text-[12.5px] font-bold tabular-nums text-ink-900">{doneCount}</span>
                           <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
-                          <span className="text-[11px] font-medium tabular-nums text-ink-500">{elapsedDays}</span>
-                          <span className="text-[10px] font-medium text-ink-400 ml-[2px]">天</span>
+                          <span className="text-[11px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
+                          <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>
                         </div>
+                        {/* ✅ 胶囊与日历方块同高同圆角：relative + h-full + w-[56px] + rounded-[6px]
+                             方块 aspect-square → 高度=宽度 → 胶囊继承 → 严格一致 */}
                         <span
-                          className="inline-flex items-baseline justify-center min-w-[42px] px-2 py-[3px] rounded-[5px] leading-none flex-shrink-0"
+                          className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-full"
                           style={{
+                            width: '56px',
                             background: monthRate >= 100 ? '#111827' : GREEN,
                             color: '#fff',
                             boxShadow: monthRate >= 100
                               ? '0 1px 2px rgba(17,24,39,0.25)'
                               : '0 1px 2px rgba(34,197,94,0.25)',
                           }}>
-                          <span className="text-[11px] font-bold tabular-nums leading-none">{monthRate}</span>
-                          <span className="text-[8.5px] font-semibold opacity-85 leading-none ml-[1px]">%</span>
+                          <span className="flex items-baseline leading-none">
+                            <span className="text-[12px] font-bold tabular-nums">{monthRate}</span>
+                            <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
+                          </span>
                         </span>
                       </>
                     ) : (
-                      <span className="text-[11px] text-ink-300 font-medium leading-none pr-1">未开始</span>
+                      <span className="text-[11px] text-ink-300 font-medium leading-none pr-1 self-center">未设置</span>
                     )}
                   </div>
                   {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），

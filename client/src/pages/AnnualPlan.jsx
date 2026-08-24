@@ -4053,7 +4053,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v2', () => BOOKS.map(b => ({ ...b, id: uid() })));
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));

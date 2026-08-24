@@ -348,12 +348,12 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
     return (
       <div className="space-y-1.5">
-        {/* 预设模板行：与真实事项同款纯白背景，无副标题 */}
+        {/* 预设模板行：与真实事项同款渐变背景+复选框+小圆点+删除占位 */}
         {PRESET_TEMPLATES.map(tpl => (
           <div
             key={tpl.key}
             className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-pointer group"
-            style={{background: '#fff'}}
+            style={{background: `linear-gradient(90deg,${tpl.bg} 0%,transparent 70%)`}}
             onClick={() => { onNew?.(tpl.category); }}
           >
             <div
@@ -370,6 +370,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
               </p>
             </div>
             <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: tpl.dotColor }}></span>
+            {/* 占位：与真实事项删除按钮完全同结构，仅不可见不交互 */}
+            <button className="opacity-0 text-[#8e8e93] text-xs px-1 pointer-events-none" tabIndex={-1}>×</button>
           </div>
         ))}
         {/* 真实事项 */}

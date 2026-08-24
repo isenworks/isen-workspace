@@ -1567,8 +1567,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
               {/* 🔧 统计列顺序：完成率 → 累计 → 目标，表头与数据严格居中对齐（三列全部居中，视觉基线一致）
-                   所有列统一使用 text-center + 列内内容居中，消除左右padding不对称导致的偏移 */}
-              <div className="text-center whitespace-nowrap">完成率</div>
+                   所有列统一使用 text-center + 列内内容居中，消除左右padding不对称导致的偏移
+                   rate-gap 类为完成率列增加右侧间距（与累计列拉开视觉呼吸感） */}
+              <div className="text-center whitespace-nowrap rate-gap">完成率</div>
               <div className="text-center whitespace-nowrap cum-gap">累计</div>
               <div className="text-center whitespace-nowrap grp-end">目标</div>
               {monthLabels.map((m, idx) => {
@@ -1618,8 +1619,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
                   </div>
                   {/* 完成率 - L3同款绿色胶囊样式：56px宽、实心绿#22c55e、白字、6px圆角、1px阴影
-                       列内flex justify-center items-center，与表头"完成率"严格居中对齐 */}
-                  <div className="flex justify-center items-center cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                       列内flex justify-center items-center，与表头"完成率"严格居中对齐
+                       rate-gap 类增加与累计列的视觉呼吸感（右侧间距） */}
+                  <div className="flex justify-center items-center cursor-pointer rate-gap" onClick={() => onAction?.('editHabit', h)}>
                     {h.target > 0 ? (
                       <span
                         className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-[28px]"
@@ -4505,7 +4507,7 @@ export default function AnnualPlan({ standalone = true }) {
          设计原则：完成率绿胶囊（56px）作为第一视觉焦点，与L3日历KPI设计一致
       */
       .habit-table {
-        grid-template-columns: minmax(110px, 1.5fr) 56px 52px 64px repeat(12, minmax(32px, 0.28fr));
+        grid-template-columns: minmax(110px, 1.5fr) 68px 52px 64px repeat(12, minmax(32px, 0.28fr));
         gap: 0 0;
         align-items: center;
       }
@@ -4516,6 +4518,10 @@ export default function AnnualPlan({ standalone = true }) {
       /* 分组间距：统计区与月份区分组（目标列是最后一个统计列） */
       .habit-table > .grp-end {
         padding-right: 12px;
+      }
+      /* 统计区内：完成率与累计之间间距 */
+      .habit-table > .rate-gap {
+        margin-right: 10px;
       }
       /* 统计区内：累计与目标之间间距 */
       .habit-table > .cum-gap {

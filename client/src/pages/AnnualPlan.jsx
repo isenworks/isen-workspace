@@ -1569,10 +1569,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
                 <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
-              {/* 🔧 对齐修复：表头统计列使用 pr-2 的右侧边距，与下方 data-cell 的右边缘严格一致 */}
-              <div className="text-right pr-2 whitespace-nowrap">目标</div>
-              <div className="text-right pr-2 whitespace-nowrap">累计</div>
-              <div className="text-right pr-2 whitespace-nowrap grp-end">完成率</div>
+              {/* 🔧 统计列顺序：完成率 → 累计 → 目标，与L3日历KPI展示逻辑一致 */}
+              <div className="text-left whitespace-nowrap pl-1">完成率</div>
+              <div className="text-right pr-2 whitespace-nowrap cum-gap">累计</div>
+              <div className="text-right pr-2 whitespace-nowrap grp-end">目标</div>
               {monthLabels.map((m, idx) => {
                 const monthNum = idx + 1;
                 const isCur = isCurrentMonth(monthNum);
@@ -1619,8 +1619,31 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     </span>
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
                   </div>
-                  {/* 目标 - inline 编辑 */}
-                  <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
+                  {/* 完成率 - L3同款绿色胶囊样式：56px宽、实心绿#22c55e、白字、6px圆角、1px阴影
+                       作为第一视觉焦点，与L3日历KPI设计100%统一 */}
+                  <div className="flex items-center cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                    {h.target > 0 ? (
+                      <span
+                        className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-[28px]"
+                        style={{
+                          width: '56px',
+                          background: GREEN,
+                          color: '#fff',
+                          boxShadow: '0 1px 2px rgba(34,197,94,0.25)',
+                        }}>
+                        <span className="flex items-baseline leading-none">
+                          <span className="text-[12px] font-bold tabular-nums">{p}</span>
+                          <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-ink-300 font-medium leading-none pl-1">未设置</span>
+                    )}
+                  </div>
+                  {/* 累计 - 与习惯标题同色 text-ink-700 Semibold */}
+                  <div className="text-right font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
+                  {/* 目标 - inline 编辑，最后一个统计列带 grp-end */}
+                  <div className="text-right tabular-nums font-medium grp-end" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1641,16 +1664,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         <span className="text-[12px] text-ink-500 ml-1">{h.unit}</span>
                       </div>
                     )}
-                  </div>
-                  {/* 完成率 - 内联样式确保绿色(#22c55e)，与L1卡片百分比颜色完全一致
-                       ✅ %符号改为独立 span，颜色 = GREEN（精力绿），不再被浏览器渲染成灰色
-                          累计列颜色：text-ink-700 Semibold（与习惯标题同色） */}
-                  <div className="text-right font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
-                  <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
-                    <span className="flex items-baseline justify-end leading-none">
-                      <span className="text-[14px] font-bold tabular-nums" style={{color: GREEN}}>{p}</span>
-                      <span className="text-[12px] font-bold tabular-nums ml-[2px] align-baseline" style={{color: GREEN}}>%</span>
-                    </span>
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
@@ -4485,13 +4498,11 @@ export default function AnnualPlan({ standalone = true }) {
 
   const styles = (
     <style>{`
-      /* ---- 精力表格 grid 模板：[习惯名] [目标 累计 完成率] [月份×12] ---- 
-         设计原则：删除最右30px删除列后，将释放的空间分配给月份列
-         → 月份列 minmax(30px, 0.25fr) → minmax(32px, 0.28fr)
-         → 每个月份格子增加2px宽度，数字显示更舒适，整体更紧凑
+      /* ---- 精力表格 grid 模板：[习惯名] [完成率 累计 目标] [月份×12] ---- 
+         设计原则：完成率绿胶囊（56px）作为第一视觉焦点，与L3日历KPI设计一致
       */
       .habit-table {
-        grid-template-columns: minmax(110px, 1.5fr) 64px 52px 60px repeat(12, minmax(32px, 0.28fr));
+        grid-template-columns: minmax(110px, 1.5fr) 56px 52px 64px repeat(12, minmax(32px, 0.28fr));
         gap: 0 0;
         align-items: center;
       }
@@ -4499,11 +4510,11 @@ export default function AnnualPlan({ standalone = true }) {
       .habit-table > .grp-start {
         margin-right: 4px;
       }
-      /* 分组间距：统计区与月份区分组 */
+      /* 分组间距：统计区与月份区分组（目标列是最后一个统计列） */
       .habit-table > .grp-end {
         padding-right: 12px;
       }
-      /* 统计区内：累计与完成率之间间距 */
+      /* 统计区内：累计与目标之间间距 */
       .habit-table > .cum-gap {
         margin-right: 6px;
       }

@@ -3464,13 +3464,15 @@ function CognitionView({
 function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const [editingScoreIdx, setEditingScoreIdx] = useState(null);
+  const [expandedIdx, setExpandedIdx] = useState(null);
+
   const scoreColor = (s) => {
     const n = Number(s) || 0;
     if (n >= 9) return '#22c55e';
     if (n >= 6) return '#f59e0b';
     return '#ef4444';
   };
-  // 生成本年 1-12 月的自评历史数据
+
   const getHistorySeries = (ab) => {
     const abId = ab.id || ab.title;
     const hist = scoreHistory?.[abId] || {};
@@ -3478,13 +3480,11 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
     const curYM = new Date().toISOString().slice(0,7);
     const year = new Date().getFullYear();
     const series = [];
-    const months = [];
     for (let m = 1; m <= 12; m++) {
       const ym = `${year}-${String(m).padStart(2,'0')}`;
-      months.push(ym);
       const v = hist[ym];
       if (v !== undefined && v !== null) series.push(Number(v));
-      else if (ym <= curYM) series.push(curScore); // 当前月前用现有分回补
+      else if (ym <= curYM) series.push(curScore);
       else break;
     }
     return series;
@@ -3498,130 +3498,156 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
     return Math.round(total / dynAb.length);
   }, [dynAb]);
 
+  const year = new Date().getFullYear();
+
   return (
     <div className="flex flex-col gap-4">
-      {/* L1 标题区块（与精力/知力一致规范）：5×18 橙条 + 16px Bold 标题 + 右侧完成率胶囊 + 本月自评CTA */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-5">
-        <div className="flex items-center gap-2.5 mb-3">
+      {/* 玻璃卡片容器 */}
+      <div className="glass-card p-5">
+        {/* L1 标题：与精力页完全一致 — 5px×18px 橙色色条 + 16px Bold 标题 + 完成率胶囊 + CTA */}
+        <div className="flex items-center gap-2.5 mb-4">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 能力成长</span>
-          {/* 完成率胶囊：whitespace-nowrap，与精力页完成率胶囊一致 */}
+          <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 能力成长</span>
           <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
             style={{ background: 'rgba(245,158,11,0.12)' }}>
             <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#f59e0b' }}>{abPct}</span>
             <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(245,158,11,0.85)' }}>%</span>
           </div>
-          {/* 本月自评 CTA 按钮：打开批量自评弹窗（Step2-1 正式自评流程） */}
           <button
             onClick={() => onStartAssessment?.()}
             className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98]"
             style={{ background: '#f59e0b', color: '#fff' }}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
             本月自评
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-3 annual-ability-grid">
+
+        {/* L2 能力列表：纵向列表，点击行展开里程碑 */}
+        <div className="flex flex-col gap-2.5">
           {dynAb.map((a, ai) => {
             const mDone = a.mstones.filter(m => m.st === 'done').length;
             const mTotal = a.mstones.length;
-            const mPct = Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / Math.max(1, mTotal));
+            const mPct = mTotal > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal) : 0;
             const sc = scoreColor(a.score);
             const series = getHistorySeries(a);
             const lastScore = series[series.length - 1];
             const firstScore = series[0];
-            const trendDelta = series.length >= 2 && firstScore !== undefined
-              ? Math.round(((lastScore - firstScore) / Math.max(1, firstScore)) * 100) : null;
+            const trendDelta = series.length >= 2 && firstScore !== undefined && firstScore > 0
+              ? Math.round(((lastScore - firstScore) / firstScore) * 100) : null;
+            const isOpen = expandedIdx === ai;
+            const levelLabel = Number(a.score) >= 9 ? '优秀' : Number(a.score) >= 6 ? '进行中' : '待启动';
+
             return (
-              <div key={a.title} className="bg-white border border-ink-100 rounded-2xl p-4 flex flex-col gap-3.5 hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[15px] font-semibold text-ink-900 leading-tight mb-1">{a.title}</h3>
-                  <div className="text-[13px] text-ink-500 leading-snug">
-                    <span className="font-medium text-ink-700">每日：</span>{a.daily}
-                  </div>
-                </div>
-                {/* 自评 - 点击可编辑 */}
-                {editingScoreIdx === ai ? (
-                  <div className="flex flex-col items-end flex-shrink-0 gap-1">
-                    <div className="flex items-center gap-1">
-                      <input type="range" min="0" max="10" step="1" defaultValue={a.score}
-                        style={{accentColor: sc, width:'72px'}}
-                        onDoubleClick={e => e.target.blur()}
-                        onChange={e => {
-                          const n = Number(e.target.value);
-                          if (document.getElementById('ab-score-'+ai)) document.getElementById('ab-score-'+ai).textContent = n;
-                        }}
-                        onMouseUp={e => {
-                          const n = Number(e.target.value);
-                          onSetScore?.(ai, n);
-                          setEditingScoreIdx(null);
-                        }}
-                      />
-                    </div>
-                    <span id={'ab-score-'+ai} className="text-[11px] font-semibold" style={{color:sc}}>拖动·当前 {a.score}</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-end flex-shrink-0 cursor-pointer hover:opacity-80 transition"
-                    title="点击调整自评分数" onClick={() => setEditingScoreIdx(ai)}>
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-xl font-bold tabular-nums leading-none" style={{color: sc}}>{a.score}</span>
-                      <span className="text-xs" style={{color: sc, opacity:.7}}>/10</span>
-                    </div>
-                    <span className="text-xs font-semibold mt-0.5" style={{color: sc, opacity:.9}}>
-                      {Number(a.score) >= 9 ? '优秀' : Number(a.score) >= 6 ? '进行中' : '待启动'}
+              <div key={a.title} className="rounded-xl border border-ink-100 bg-white/80 overflow-hidden transition-all">
+                {/* 主行 */}
+                <div
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-soft transition-colors"
+                  onClick={() => setExpandedIdx(isOpen ? null : ai)}
+                >
+                  {/* 序号 + 名称 + 描述 */}
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <span className="text-[13px] font-bold tabular-nums w-[28px] text-right flex-shrink-0" style={{ color: '#f59e0b', opacity: 0.6 }}>
+                      {String(ai + 1).padStart(2, '0')}
                     </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-semibold text-ink-900 truncate">{a.title}</span>
+                        <span className="text-[11px] text-ink-500 truncate">{a.daily}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 自评分数 + 趋势 */}
+                  <div className="flex items-center gap-2.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {editingScoreIdx === ai ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="range" min="0" max="10" step="1" defaultValue={a.score}
+                          style={{ accentColor: sc, width: '64px' }}
+                          onChange={e => {
+                            const n = Number(e.target.value);
+                            const el = document.getElementById('ab-score-' + ai);
+                            if (el) el.textContent = n;
+                          }}
+                          onMouseUp={e => {
+                            onSetScore?.(ai, Number(e.target.value));
+                            setEditingScoreIdx(null);
+                          }}
+                        />
+                        <span id={'ab-score-' + ai} className="text-[13px] font-bold tabular-nums" style={{ color: sc }}>{a.score}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 cursor-pointer hover:opacity-80"
+                        title="点击调整自评分数" onClick={() => setEditingScoreIdx(ai)}>
+                        <span className="text-[15px] font-bold tabular-nums leading-none" style={{ color: sc }}>{a.score}</span>
+                        <span className="text-[11px]" style={{ color: sc, opacity: 0.7 }}>/10</span>
+                        <span className="text-[10px] font-semibold" style={{ color: sc, opacity: 0.85 }}>{levelLabel}</span>
+                      </div>
+                    )}
+                    {trendDelta !== null && (
+                      <span className={`text-[11px] font-bold tabular-nums ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {trendDelta >= 0 ? '↑' : '↓'}{Math.abs(trendDelta)}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 进度 + 完成数 */}
+                  <div className="flex items-center gap-2 flex-shrink-0 w-[160px]">
+                    <ProgressBar value={mPct} color="#f59e0b" />
+                    <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b' }}>
+                      {mPct}%
+                    </span>
+                    <span className="text-[10px] text-ink-500 flex-shrink-0">({mDone}/{mTotal})</span>
+                  </div>
+
+                  {/* 展开箭头 */}
+                  <svg className={`w-4 h-4 text-ink-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                    fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+
+                {/* 展开：里程碑列表 */}
+                {isOpen && (
+                  <div className="px-4 pb-3 pt-1 border-t border-ink-100 bg-surface-soft/40">
+                    {a.mstones.length === 0 ? (
+                      <div className="text-[12px] text-ink-400 py-2 text-center">
+                        暂无里程碑，点击添加第一个
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        {a.mstones.map((m, i) => {
+                          const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
+                          return (
+                            <div
+                              key={i}
+                              onClick={() => onMsEdit?.(ai, i, m)}
+                              className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white cursor-pointer transition-colors"
+                            >
+                              <span className="text-[11px] font-bold tabular-nums w-[20px] text-center text-ink-500 flex-shrink-0">
+                                {i + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-[13px] font-medium truncate ${m.st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                                  {m.lb}
+                                </div>
+                              </div>
+                              <ProgressBar value={m.pct} color={msCol} variant="dense" />
+                              <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: msCol }}>
+                                {m.pct}%
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <AddButton label="添加里程碑" onClick={() => onMsAdd?.(ai)} />
+                    </div>
                   </div>
                 )}
               </div>
-              {/* 自评历史 Sparkline */}
-              <div className="rounded-xl bg-surface-soft px-3 py-2 flex items-center justify-between gap-3">
-                <div className="flex flex-col flex-1 min-w-0">
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-ink-400 mb-1">自评趋势</div>
-                  {series.length >= 2 && (
-                    <div className="flex items-center gap-2">
-                      <Sparkline data={series} color={sc} width={140} height={30} />
-                      {trendDelta !== null && (
-                        <span className={`text-xs font-bold tabular-nums ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {trendDelta >= 0 ? '↑' : '↓'}{Math.abs(trendDelta)}%
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {series.length < 2 && (
-                    <div className="text-[11px] text-ink-400 italic">数据积累中，每月初更新一次自评</div>
-                  )}
-                </div>
-              </div>
-              {/* 总进度条 */}
-              <div>
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-ink-500">整体进度</span>
-                  <span className="font-bold tabular-nums" style={{color:'#f59e0b'}}>{mPct}% · {mDone}/{mTotal}</span>
-                </div>
-                <ProgressBar value={mPct} color="#f59e0b" />
-              </div>
-              {/* 里程碑列表 */}
-              <div className="flex flex-col gap-1.5">
-                <div className="text-[11px] font-bold uppercase tracking-wide text-ink-500 px-0.5">里程碑</div>
-                {a.mstones.map((m, i) => {
-                  const sm = statusMeta(m.st);
-                  const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
-                  return (
-                    <div key={i} onClick={() => onMsEdit?.(ai, i, m)} className="p-2.5 rounded-xl border border-ink-100 flex items-center gap-3 hover:bg-surface-soft transition cursor-pointer">
-                      <div className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold tabular-nums flex-shrink-0 text-ink-700">{i + 1}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-[13px] font-semibold leading-tight ${m.st === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{m.lb}</div>
-                        <div className="mt-1"><ProgressBar value={m.pct} color={msCol} variant="dense" /></div>
-                      </div>
-                      <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{color: msCol}}>{sm.lb} · {m.pct}%</span>
-                    </div>
-                  );
-                })}
-                <AddButton label="添加里程碑" onClick={() => onMsAdd?.(ai)} />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       </div>
     </div>

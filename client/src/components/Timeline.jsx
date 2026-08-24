@@ -220,12 +220,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       if (!rect) return;
 
       const y = e.clientY - rect.top;
-      // 基准参数：06:00 – 24:00，每小时 60px → 1min = 1px
       const HOUR_START = 6;
       const PX_PER_MIN = 1;
       const baseMin = HOUR_START * 60;
 
-      // 将像素位置转换为时间（吸附到15分钟）
       const totalMin = Math.round(y / PX_PER_MIN);
       const snappedMin = Math.round(totalMin / 15) * 15;
       const startMin = Math.max(baseMin, snappedMin);
@@ -233,31 +231,45 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       const startM = startMin % 60;
       const startTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
 
-      // 计算结束时间（默认30分钟）
       const durMin = data.duration_min || 30;
       const endMin = startMin + durMin;
       const endH = Math.floor(endMin / 60);
       const endM = endMin % 60;
       const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
-      // 创建新的日程
-      const newSchedule = {
-        title: data.title,
-        category: data.category || 3,
-        emoji: data.emoji || '',
-        start_time: startTime,
-        end_time: endTime,
-        duration_min: durMin,
-        date: date,
-        is_key: true,
-      };
-
-      const result = await API.schedules.create(newSchedule);
-      if (result?.schedule) {
-        setSchedules(ss => [...ss, { ...result.schedule, isHabit: false, isTask: false }]);
-        store.broadcast({ type: 'reload' });
-        onChange?.();
-        toast.success(`已添加到 ${startTime}`);
+      if (data.scheduleId) {
+        const updateResult = await API.schedules.update(data.scheduleId, {
+          start_time: startTime,
+          end_time: endTime,
+          duration_min: durMin,
+        });
+        if (updateResult?.schedule) {
+          setSchedules(ss => ss.map(s => s.id === data.scheduleId
+            ? { ...s, start_time: startTime, end_time: endTime, duration_min: durMin, top: (startMin - baseMin) * PX_PER_MIN, hPx: durMin * PX_PER_MIN }
+            : s
+          ));
+          store.broadcast({ type: 'reload' });
+          onChange?.();
+          toast.success(`已移动到 ${startTime}`);
+        }
+      } else {
+        const newSchedule = {
+          title: data.title,
+          category: data.category || 3,
+          emoji: data.emoji || '',
+          start_time: startTime,
+          end_time: endTime,
+          duration_min: durMin,
+          date: date,
+          is_key: true,
+        };
+        const result = await API.schedules.create(newSchedule);
+        if (result?.schedule) {
+          setSchedules(ss => [...ss, { ...result.schedule, isHabit: false, isTask: false }]);
+          store.broadcast({ type: 'reload' });
+          onChange?.();
+          toast.success(`已添加到 ${startTime}`);
+        }
       }
     } catch (err) {
       console.error('Drop failed:', err);

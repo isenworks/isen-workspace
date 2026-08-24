@@ -267,7 +267,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
             category: s.category || cat,
             emoji: s.emoji,
             duration_min: s.duration_min || 30,
-            isPreset: false
+            isPreset: false,
+            scheduleId: s.id
           };
           e.dataTransfer.setData('application/json', JSON.stringify(data));
           e.dataTransfer.effectAllowed = 'move';

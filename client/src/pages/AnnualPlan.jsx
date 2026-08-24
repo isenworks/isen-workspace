@@ -362,8 +362,8 @@ function InlineEdit({
       {isCtxMode && menu && (
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 9999, width: menuWidth }}
-          className="bg-white rounded-xl shadow-xl border border-ink-100 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 99999, width: menuWidth, backgroundColor: '#ffffff' }}
+          className="rounded-xl shadow-xl border border-ink-100 py-1 overflow-hidden">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -409,8 +409,8 @@ function ReadingFunnel({
   onStageLabelsChange,
 }) {
   // 五层漏斗（严格真子集关系）：输入→思考→行动→改变→复盘
-  // 统一蓝色渐变主题：浅→中→深，视觉层次清晰
-  const STAGE_COLORS = ['#93C5FD', '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8'];
+  // 统一蓝色：全部使用计划总结页主色 #4b63f0
+  const STAGE_COLORS = [color, color, color, color, color];
   const DEFAULT_STAGES = [
     { key: 'total',   label: '输入量', sub: '已读完',   convLabel: '' },
     { key: 'done',    label: '思考量', sub: '有洞察',   convLabel: '' },
@@ -2833,38 +2833,26 @@ function CognitionView({
                                   onDelete={() => { const def = COG_KRS.find(k => k.id === kr.id)?.lb || ''; onKrEdit?.({ ...kr, lb: def }); }}
                                   onEditClick={() => openEditKrModal(kr)}
                                   mode="contextmenu"
-                                  className="text-[13.5px] font-semibold text-ink-900 truncate leading-tight"
-                                  inputClassName="text-[13.5px] font-semibold text-ink-900 w-48"
+                                  className="text-[14px] font-semibold text-ink-700 truncate leading-tight"
+                                  inputClassName="text-[14px] font-semibold text-ink-700 w-48"
                                   title="右键编辑KR（弹窗）"
                                   placeholder="填写KR标题"
                                 />
                               </div>
                               {/* 右：数据区 — 参考精力页折线图的双行KPI布局：上%+下值/目标/单位 */}
-                              <div className="flex flex-col items-end gap-0.5 flex-shrink-0 min-w-[35%]">
-                                {/* Row 1: 大%数字 + 编辑按钮 */}
-                                <div className="flex items-center gap-1.5">
-                                  <div className="flex items-baseline leading-none">
-                                    <span
-                                      className="text-[16px] font-bold tabular-nums leading-none"
-                                      style={{ color: isDone ? '#111827' : BLUE }}>
-                                      {p}
-                                    </span>
-                                    <span
-                                      className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5"
-                                      style={{ color: isDone ? '#111827' : BLUE }}>
-                                      %
-                                    </span>
-                                  </div>
-                                  {/* 编辑按钮 — 灰色圆形，hover变蓝 */}
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); openEditKrModal(kr); }}
-                                    className="grid place-items-center rounded-md transition-colors flex-shrink-0"
-                                    style={{ color: '#cbd5e1', width: '22px', height: '22px' }}
-                                    title="编辑KR"
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = BLUE_LIGHT; e.currentTarget.style.color = BLUE; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cbd5e1'; }}>
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-                                  </button>
+                              <div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-auto">
+                                {/* Row 1: 大%数字（右端对齐，去除加号按钮） */}
+                                <div className="flex items-baseline leading-none">
+                                  <span
+                                    className="text-[16px] font-bold tabular-nums leading-none"
+                                    style={{ color: isDone ? '#111827' : BLUE }}>
+                                    {p}
+                                  </span>
+                                  <span
+                                    className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5"
+                                    style={{ color: isDone ? '#111827' : BLUE }}>
+                                    %
+                                  </span>
                                 </div>
                                 {/* Row 2: 累计 / 目标 + 单位 — 与精力页完全一致 */}
                                 <div className="flex items-baseline leading-none">
@@ -3087,7 +3075,7 @@ function CognitionView({
               <div className="flex items-center justify-between mb-2.5 px-1">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full shadow-sm" style={{ background: g.col, boxShadow: `0 0 0 3px ${g.col}22` }}></span>
-                  <span className="text-[13px] font-bold" style={{ color: g.col }}>{g.lb}</span>
+                  <span className="text-[13px] font-bold text-ink-900">{g.lb}</span>
                   <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-extrabold tabular-nums"
                     style={{ background: '#fff', color: g.col, boxShadow: `0 1px 2px rgba(0,0,0,0.06)` }}>
                     {g.books.length}
@@ -3211,7 +3199,7 @@ function CognitionView({
       </div>
 
       {/* ===== 读后思考 · 思后行动 · 行后改变（三栏横向布局）===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-4 pt-4 border-t border-ink-100">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3 pt-3 border-t border-ink-100">
 
         {/* ========== 卡片一：读后思考 ========== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
@@ -3220,14 +3208,22 @@ function CognitionView({
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
             </div>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
-              {doneBooksWithInsights.length} 本有思考
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
+                {doneBooksWithInsights.length} 本有思考
+              </span>
+              <button onClick={() => onBookAdd?.()}
+                className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
+                style={{ background: BLUE_LIGHT, color: BLUE }}
+                title="新增书籍">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              </button>
+            </div>
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
             {doneBooksWithInsights.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
-                已读完的书还没写思考<br/>点击书籍添加你的第一条洞察
+                已读完的书还没写思考<br/>点击右上角 + 添加书籍
               </div>
             ) : (
               doneBooksWithInsights.slice(0, 5).map(b => {
@@ -3235,14 +3231,16 @@ function CognitionView({
                 const validIns = ins.filter(i => i.text?.trim());
                 return (
                   <div key={b.id}
-                    className="rounded-xl p-2.5 transition-all"
+                    className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
                     style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
                     onClick={() => onBookEdit?.(b)}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[12.5px] font-semibold text-ink-900 truncate">{b.t}</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: BLUE, color: '#fff', flexShrink: 0 }}>
-                        {validIns.length} 条
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: BLUE, color: '#fff', flexShrink: 0 }}>
+                          {validIns.length} 条
+                        </span>
+                      </div>
                     </div>
                     {validIns.length > 0 && (
                       <div className="text-[11px] text-ink-600 leading-snug line-clamp-2">
@@ -3254,7 +3252,7 @@ function CognitionView({
               })
             )}
             {doneBooksWithInsights.length > 5 && (
-              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {doneBooksWithInsights.length - 5} 本 · 点击书籍查看</div>
+              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {doneBooksWithInsights.length - 5} 本 · 点击书籍编辑</div>
             )}
           </div>
         </div>
@@ -3266,7 +3264,7 @@ function CognitionView({
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#a855f7' }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
-            <button onClick={() => setShowChangeForm(true)}
+            <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
               className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
               style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}
               title="新增行动">
@@ -3276,7 +3274,7 @@ function CognitionView({
           <div className="flex-1 flex flex-col gap-1.5">
             {(changes || []).length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(168,85,247,0.05)', borderRadius: 12 }}>
-                还没有行动计划<br/>从强共鸣观点生成你的第一条改变
+                还没有行动计划<br/>点击右上角 + 添加
               </div>
             ) : (
               (changes || []).slice(0, 5).map(c => {
@@ -3289,18 +3287,28 @@ function CognitionView({
                 const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? '#a855f7' : days >= 8 ? '#4b63f0' : '#f97316';
                 return (
                   <div key={c.id}
-                    className="rounded-xl p-2.5 transition-all"
+                    className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
                     style={{
                       background: isReviewed ? 'rgba(34,197,94,0.05)' : 'rgba(168,85,247,0.05)',
                       border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.15)' : 'rgba(168,85,247,0.15)'}`,
-                    }}>
+                    }}
+                    onClick={(e) => { e.stopPropagation(); setEditingChange(c); setShowChangeForm(true); }}>
                     <div className="flex items-center justify-between mb-1">
                       <span className={`text-[12.5px] font-semibold truncate ${isReviewed ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{c.text}</span>
-                      <span className="text-[10px] font-bold tabular-nums flex-shrink-0 ml-1" style={{ color: barColor }}>
-                        {days}/{c.targetDays || 30}天
-                      </span>
+                      <div className="flex items-center gap-1 flex-shrink-0 ml-1">
+                        <span className="text-[10px] font-bold tabular-nums" style={{ color: barColor }}>
+                          {days}/{c.targetDays || 30}天
+                        </span>
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
+                          className="text-ink-300 hover:text-red-500 transition"
+                          title="删除">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${pctVal}%`, background: barColor }} />
                       </div>
@@ -3334,14 +3342,35 @@ function CognitionView({
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#22c55e' }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}>
-              {(reviews || []).length} 条真实改变
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}>
+                {(reviews || []).length} 条真实改变
+              </span>
+              <button onClick={() => {
+                // 新增复盘：生成新ID，打开编辑弹窗
+                const newId = 'rv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+                setEditingReview({
+                  id: newId,
+                  text: '',
+                  beforeState: '',
+                  afterState: '',
+                  nextStep: '',
+                  tag: 'habit',
+                  daysCompleted: 30,
+                  __isNew: true,
+                });
+              }}
+                className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
+                style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e' }}
+                title="新增复盘">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              </button>
+            </div>
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
             {(reviews || []).length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(34,197,94,0.04)', borderRadius: 12 }}>
-                坚持打卡30天 → 自动生成复盘<br/>年底回看这里，就是你今年的真实改变
+                还没有复盘记录<br/>点击右上角 + 手动添加
               </div>
             ) : (
               (reviews || []).slice(0, 5).map(r => {
@@ -3353,10 +3382,11 @@ function CognitionView({
                 const tm = tagMeta[r.tag] || tagMeta.habit;
                 return (
                   <div key={r.id}
-                    className="rounded-xl p-2.5"
-                    style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
+                    className="rounded-xl p-2.5 hover:shadow-md transition-all cursor-pointer"
+                    style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}
+                    onClick={() => setEditingReview(r)}>
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: '#22c55e' }}>
                           坚持 {r.daysCompleted} 天
                         </span>
@@ -3364,8 +3394,15 @@ function CognitionView({
                           {tm.lb}
                         </span>
                       </div>
+                      <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条复盘？')) onReviewRemove?.(r.id); }}
+                        className="text-ink-300 hover:text-red-500 transition flex-shrink-0 ml-1"
+                        title="删除">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
+                        </svg>
+                      </button>
                     </div>
-                    <div className="text-[12px] font-semibold text-ink-900 leading-snug truncate">{r.text}</div>
+                    <div className="text-[12px] font-semibold text-ink-900 leading-snug line-clamp-2">{r.text}</div>
                   </div>
                 );
               })
@@ -3383,25 +3420,32 @@ function CognitionView({
             initial={editingChange}
             books={books || BOOKS}
             onSave={(data) => {
-              if (editingChange) onChangeUpdate?.(data);
+              if (editingChange && !editingChange.__isNew) onChangeUpdate?.(data);
               else onChangeAdd?.(data);
               setShowChangeForm(false);
               setEditingChange(null);
             }}
             onCancel={() => { setShowChangeForm(false); setEditingChange(null); }}
-            onDelete={editingChange ? () => { onChangeRemove?.(editingChange.id); setShowChangeForm(false); setEditingChange(null); } : undefined}
+            onDelete={editingChange && !editingChange.__isNew ? () => { onChangeRemove?.(editingChange.id); setShowChangeForm(false); setEditingChange(null); } : undefined}
           />
         </Modal>
       )}
 
       {/* 复盘卡编辑弹窗 */}
       {editingReview && (
-        <Modal open onClose={() => setEditingReview(null)} title="编辑复盘卡">
+        <Modal open onClose={() => setEditingReview(null)} title={editingReview.__isNew ? '新增复盘卡' : '编辑复盘卡'}>
           <ReviewForm
             initial={editingReview}
-            onSave={(data) => { onReviewUpdate?.(data); setEditingReview(null); }}
+            onSave={(data) => {
+              // 新增复盘没有 changeId，补一个 text/daysCompleted 兜底
+              const final = { ...data };
+              if (!final.text) final.text = '未命名复盘';
+              if (!final.daysCompleted) final.daysCompleted = 30;
+              onReviewUpdate?.(final);
+              setEditingReview(null);
+            }}
             onCancel={() => setEditingReview(null)}
-            onDelete={() => { onReviewRemove?.(editingReview.id); setEditingReview(null); }}
+            onDelete={!editingReview.__isNew ? () => { onReviewRemove?.(editingReview.id); setEditingReview(null); } : undefined}
           />
         </Modal>
       )}
@@ -4102,6 +4146,9 @@ export default function AnnualPlan({ standalone = true }) {
       if (pctNum >= 100) out.pct = 99;     // 用户显式要求reading：哪怕100%也压到99，防止被下面逻辑反弹回done
       else if (pctNum <= 0) out.pct = 1;
       else out.pct = pctNum;
+    } else if (out.st === 'abandoned') {
+      // 显式弃读：保留原值，不自动跳状态
+      out.pct = pctNum;
     } else {
       out.pct = pctNum;
       if (out.pct >= 100) out.st = 'done';
@@ -4128,8 +4175,8 @@ export default function AnnualPlan({ standalone = true }) {
         if (b.id !== id) return b;
         return normalizeBook({ ...b, st: targetSt });
       }));
-      const label = targetSt === 'done' ? '已读完' : targetSt === 'reading' ? '阅读中' : '未开始';
-      showToast(`已移至「${label}」`);
+      const labelMap = { done: '已读完', reading: '阅读中', pending: '未开始', abandoned: '已弃读' };
+      showToast(`已移至「${labelMap[targetSt] || targetSt}」`);
     },
     remove: (id) => { setBooks(prev => prev.filter(b => b.id !== id)); showToast('书籍已删除'); },
   };

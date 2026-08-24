@@ -12,7 +12,14 @@ function dateLabel(dateStr) {
   return `${d.getMonth() + 1}月${d.getDate()}日 周${weekLabels[d.getDay()]}`;
 }
 
-// category: 1=重要紧急(红), 2=重要不紧急(琥珀), 3=常规(灰), 4=习惯(绿)
+// 预设模板：3 个空白模板，点击直接打开新建弹窗
+const PRESET_TEMPLATES = [
+  { key: 't1', category: 1, label: '工作', hint: '今天做什么来增现金流？', bold: '增现金流', dotColor: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30' },
+  { key: 't2', category: 1, label: '工作', hint: '今天做什么来建资产？', bold: '建资产', dotColor: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30' },
+  { key: 't3', category: 2, label: '能力', hint: '今天做什么来提能力？', bold: '提能力', dotColor: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500' },
+];
+
+// category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫)
 // cat=4 的习惯类日程不展示在重点事项，独立习惯统一由 HabitsPanel 管理，避免重复
 function isDisplayInKeyTasks(s) {
   return catOf(s) !== 4;
@@ -124,7 +131,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   // ====== 排序函数 ======
   function sortByPriority(items) {
     return [...items].sort((a, b) => {
-      // 1) 重要性：1(重要紧急) < 2(重要不紧急) < 3(常规)
+      // 1) 重要性：1(工作) < 2(能力) < 3(常规)
       //    注意：is_done 放在最后，勾选后不跨分类挪动位置
       const catA = catOf(a);
       const catB = catOf(b);
@@ -334,20 +341,35 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     );
   }
 
-  // === Today 视图：所有事项按 sortBy 控制排序，默认按重要性(重要紧急→重要不紧急→常规) ===
+  // === Today 视图：所有事项按 sortBy 控制排序，默认按重要性 ===
   function renderTodayView() {
     const todayList = list.filter(s => s.date === date);
-    if (todayList.length === 0) {
-      return (
-        <div className="text-center py-6 text-sm text-[#8e8e93]">
-          <div className="text-2xl mb-2">📋</div>
-          还没有事项
-        </div>
-      );
-    }
     const sorted = applySort(todayList);
+
     return (
       <div className="space-y-1.5">
+        {/* 预设模板行 */}
+        {PRESET_TEMPLATES.map(tpl => (
+          <div
+            key={tpl.key}
+            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-pointer group border border-dashed transition-colors hover:opacity-80"
+            style={{ borderColor: tpl.borderColor, background: `${tpl.bg}60` }}
+            onClick={() => { onNew?.(tpl.category); }}
+          >
+            <div className="w-4 h-4 flex-shrink-0" style={{ background: tpl.bg, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg className="w-2.5 h-2.5" fill="none" stroke={tpl.dotColor} strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeLinecap="round"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] text-[#1c1c1e]">
+                <span style={{ color: tpl.dotColor, fontWeight: 600 }}>{tpl.bold}</span>
+                <span className="text-[#636366] ml-0.5">{tpl.hint.replace(tpl.bold, '')}</span>
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: tpl.borderColor }}>{tpl.label} · 点击填写</p>
+            </div>
+            <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: tpl.dotColor }}></span>
+          </div>
+        ))}
+        {/* 真实事项 */}
         {sorted.map(renderItem)}
       </div>
     );

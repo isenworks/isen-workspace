@@ -418,7 +418,7 @@ export default function Workspace({ user: propUser }) {
                 range={range}
                 refreshSignal={refreshKey}
                 onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
-                onNew={() => setModal({ type: 'schedule' })}
+                onNew={(category) => setModal({ type: 'schedule', data: category ? { category } : undefined })}
                 onChange={refresh}
               />
               <HabitsPanel

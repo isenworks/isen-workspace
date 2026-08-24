@@ -2615,12 +2615,16 @@ function CognitionView({
             )}
           </div>
 
-          {/* KR 卡片：紧凑单行布局，删除进度条和独立操作栏 */}
+          {/* KR 卡片：标准两行布局 — R1主信息（标题+数据），R2辅助（灰色说明+差距） */}
           <div className="flex flex-col gap-1.5 flex-1">
             {finalKrs.map((kr, idx) => {
               const p = pct(kr.val, kr.tgt);
               const isEditing = editingKrId === kr.id;
               const padNum = String(idx + 1).padStart(2, '0');
+              const remaining = Math.max(0, (kr.tgt || 0) - (kr.val || 0));
+              const isDone = p >= 100;
+              const krTypeMap = { goal: '目标量', thinking: '思考量', action: '行动量', change: '改变量' };
+              const krType = kr.type ? (krTypeMap[kr.type] || kr.type) : '';
               return (
                 <div key={kr.id || idx}
                   className="rounded-xl border relative overflow-hidden transition-all group"
@@ -2628,7 +2632,7 @@ function CognitionView({
                     background: isEditing ? BLUE_LIGHT : '#fff',
                     borderColor: isEditing ? `${BLUE}55` : '#f1f5f9',
                   }}
-                  onMouseEnter={(e) => { if (!isEditing) { e.currentTarget.style.borderColor = `${BLUE}66`; } }}
+                  onMouseEnter={(e) => { if (!isEditing) { e.currentTarget.style.borderColor = `${BLUE}55`; } }}
                   onMouseLeave={(e) => { if (!isEditing) { e.currentTarget.style.borderColor = '#f1f5f9'; } } }>
                   <div className="px-3 py-2.5">
                     {isEditing ? (
@@ -2662,61 +2666,83 @@ function CognitionView({
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2.5">
-                        {(() => {
-                          const remaining = Math.max(0, (kr.tgt || 0) - (kr.val || 0));
-                          const isDone = p >= 100;
-                          const krTypeMap = { goal: '目标量', thinking: '思考量', action: '行动量', change: '改变量' };
-                          const krType = kr.type ? (krTypeMap[kr.type] || kr.type) : '';
-                          return (
-                            <>
-                              <span className="text-[11px] font-bold tabular-nums w-[20px] text-right flex-shrink-0" style={{ color: `${BLUE}88` }}>{padNum}</span>
-                              <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <div className="flex flex-col gap-1">
+                        {/* ========== Row 1 · 主信息行 ========== */}
+                            <div className="flex items-center gap-2.5">
+                              <span
+                                className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[2px]"
+                                style={{ color: `${BLUE}88` }}>
+                                {padNum}
+                              </span>
+                              {/* 左：KR标题（主信息） */}
+                              <div className="flex-1 min-w-0">
                                 <InlineEdit
                                   value={kr.lb}
                                   onChange={(v) => onKrEdit?.({ ...kr, lb: v })}
                                   onDelete={() => { const def = COG_KRS.find(k => k.id === kr.id)?.lb || ''; onKrEdit?.({ ...kr, lb: def }); }}
                                   onEditClick={() => openEditKrModal(kr)}
                                   mode="contextmenu"
-                                  className="text-[13px] font-semibold text-ink-900 truncate"
-                                  inputClassName="text-[13px] font-semibold text-ink-900 w-32"
+                                  className="text-[13.5px] font-semibold text-ink-900 truncate leading-tight"
+                                  inputClassName="text-[13.5px] font-semibold text-ink-900 w-48"
                                   title="右键编辑KR（弹窗）"
                                   placeholder="填写KR标题"
                                 />
-                                <span className="text-[10px] text-ink-400 font-medium whitespace-nowrap flex-shrink-0">
-                                  {kr.sub}{krType ? ` · ${krType}` : ''}
-                                </span>
-                                <span className="text-[9.5px] text-ink-300 font-medium whitespace-nowrap flex-shrink-0">·</span>
-                                <span className="text-[10px] font-medium whitespace-nowrap flex-shrink-0" style={{ color: isDone ? '#22c55e' : '#94a3b8' }}>
-                                  {isDone ? '✓ 已完成' : `还差 ${remaining}${kr.u}`}
-                                </span>
                               </div>
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: isDone ? '#111827' : BLUE }}>{kr.val}</span>
-                                <span className="text-[10px] text-ink-400 font-medium leading-none">/ {kr.tgt}</span>
+                              {/* 右：数据区 — 合理排版：数值/目标 + 胶囊 + 按钮 */}
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {/* 数值块：当前值突出 + 目标弱化 */}
+                                <div className="flex items-baseline gap-0.5 tabular-nums">
+                                  <span
+                                    className="text-[16px] font-extrabold leading-none"
+                                    style={{ color: isDone ? '#111827' : BLUE }}>
+                                    {kr.val}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-ink-400 leading-none">
+                                    / {kr.tgt}
+                                  </span>
+                                  <span className="text-[10px] text-ink-300 leading-none ml-0.5">
+                                    {kr.u}
+                                  </span>
+                                </div>
+                                {/* 百分比胶囊 — 紧凑但清晰 */}
                                 <span
-                                  className="inline-flex items-baseline gap-0 px-1.5 py-[2px] rounded-md"
+                                  className="inline-flex items-baseline justify-center min-w-[40px] px-1.5 py-[2px] rounded-md"
                                   style={{
                                     background: isDone ? '#111827' : BLUE,
                                     color: '#fff',
                                   }}>
                                   <span className="text-[10px] font-bold tabular-nums leading-none">{p}</span>
-                                  <span className="text-[8px] font-semibold opacity-80 leading-none">%</span>
+                                  <span className="text-[8px] font-semibold opacity-80 leading-none ml-[1px]">%</span>
                                 </span>
+                                {/* 编辑按钮 — 灰色圆形，hover变蓝 */}
                                 <button
-                                  onClick={() => openEditKrModal(kr)}
-                                  className="w-5 h-5 grid place-items-center rounded transition-colors"
-                                  style={{ color: '#94a3b8' }}
+                                  onClick={(e) => { e.stopPropagation(); openEditKrModal(kr); }}
+                                  className="w-5.5 h-5.5 grid place-items-center rounded-md transition-colors flex-shrink-0"
+                                  style={{ color: '#cbd5e1', width: '22px', height: '22px' }}
                                   title="编辑KR"
                                   onMouseEnter={(e) => { e.currentTarget.style.background = BLUE_LIGHT; e.currentTarget.style.color = BLUE; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}>
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#cbd5e1'; }}>
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
                                 </button>
                               </div>
-                            </>
-                          );
-                        })()}
-                      </div>
+                            </div>
+                            {/* ========== Row 2 · 辅助信息行（灰色，缩进对齐标题） ========== */}
+                            <div className="flex items-center gap-2 pl-[22px + 10px]">
+                              <span className="text-[10.5px] text-ink-400 font-medium leading-none whitespace-nowrap flex-shrink-0">
+                                {kr.sub || krType || '目标'}
+                              </span>
+                              <span className="w-[3px] h-[3px] rounded-full flex-shrink-0" style={{ background: '#e2e8f0' }} />
+                              <span
+                                className="text-[10.5px] font-medium leading-none whitespace-nowrap flex-shrink-0"
+                                style={{ color: isDone ? '#22c55e' : '#94a3b8' }}>
+                                {isDone
+                                  ? `✓ 已完成（达到${kr.tgt}${kr.u}）`
+                                  : remaining > 0
+                                    ? `还差 ${remaining}${kr.u} · 进度 ${p}%`
+                                    : '目标已达成'}
+                              </span>
+                            </div>
+                          </div>
                     )}
                   </div>
                 </div>

@@ -14,9 +14,9 @@ function dateLabel(dateStr) {
 
 // 预设模板：3 个空白模板，点击直接打开新建弹窗
 const PRESET_TEMPLATES = [
-  { key: 't1', category: 1, label: '工作', hint: '今天做什么来增现金流？', bold: '增现金流', dotColor: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30' },
-  { key: 't2', category: 1, label: '工作', hint: '今天做什么来建资产？', bold: '建资产', dotColor: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30' },
-  { key: 't3', category: 2, label: '能力', hint: '今天做什么来提能力？', bold: '提能力', dotColor: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500' },
+  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#ff3b30', bg: '#ffe8e8' },
+  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#ff3b30', bg: '#ffe8e8' },
+  { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#ff9500', bg: '#fff4d8' },
 ];
 
 // category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫)
@@ -348,23 +348,31 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
     return (
       <div className="space-y-1.5">
-        {/* 预设模板行：纯文字形式，关键词加粗 */}
-        {PRESET_TEMPLATES.map(tpl => (
-          <div
-            key={tpl.key}
-            className="flex items-center gap-3 px-3 py-1.5 cursor-pointer group transition-colors hover:opacity-70"
-            onClick={() => { onNew?.(tpl.category); }}
-          >
-            <div className="w-4 h-4 flex-shrink-0 rounded-[3px] border-2 transition-colors"
-                 style={{ borderColor: tpl.dotColor, background: 'transparent' }}></div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] text-[#1c1c1e]">
-                今天做什么来<span style={{ color: tpl.dotColor, fontWeight: 700 }}>{tpl.bold}</span>？
-              </p>
+        {/* 预设模板行：与真实事项同款卡片样式，关键词加粗不加彩 */}
+        {PRESET_TEMPLATES.map(tpl => {
+          const st = {
+            bg: tpl.bg,
+            borderColor: tpl.dotColor,
+            dotColor: tpl.dotColor,
+          };
+          return (
+            <div
+              key={tpl.key}
+              className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 group"
+              style={{ background: `linear-gradient(90deg,${tpl.bg} 0%,transparent 70%)`, cursor: 'pointer' }}
+              onClick={() => { onNew?.(tpl.category); }}
+            >
+              <div className="w-[15px] h-[15px] rounded-[3px] border-[1.5px] flex-shrink-0" style={{ borderColor: st.borderColor, background: 'transparent' }}></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] text-[#1c1c1e]">
+                  今天做什么来<span style={{ fontWeight: 700 }}>{tpl.bold}</span>？
+                </p>
+                <p className="text-[12px] mt-0.5 text-[#8e8e93]">{tpl.label} · 点击填写</p>
+              </div>
+              <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: st.dotColor }}></span>
             </div>
-            <span className="w-2 h-2 flex-shrink-0 rounded-[2px]" style={{ background: tpl.dotColor }}></span>
-          </div>
-        ))}
+          );
+        })}
         {/* 真实事项 */}
         {sorted.map(renderItem)}
       </div>

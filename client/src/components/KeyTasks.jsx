@@ -352,10 +352,18 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         {PRESET_TEMPLATES.map(tpl => (
           <div
             key={tpl.key}
-            className="flex items-center gap-3 px-3 py-1.5 cursor-pointer group"
+            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-pointer group"
+            style={{background: '#fff'}}
             onClick={() => { onNew?.(tpl.category); }}
           >
-            <div className="w-[15px] h-[15px] rounded-[3px] border-[1.5px] flex-shrink-0" style={{ borderColor: tpl.dotColor, background: 'transparent' }}></div>
+            <div
+              className="cb-square flex-shrink-0"
+              style={{
+                '--cb-border': tpl.dotColor,
+                '--cb-color': tpl.dotColor,
+                pointerEvents: 'none',
+              }}
+            ></div>
             <div className="flex-1 min-w-0">
               <p className="text-[14px] text-[#1c1c1e]">
                 今天做什么来<span style={{ fontWeight: 700 }}>{tpl.bold}</span>？

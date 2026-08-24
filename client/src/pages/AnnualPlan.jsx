@@ -1796,16 +1796,16 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>
                         </div>
                         {/* ✅ 胶囊与日历方块同高同圆角：relative + h-full + w-[56px] + rounded-[6px]
-                             方块 aspect-square → 高度=宽度 → 胶囊继承 → 严格一致 */}
+                             方块 aspect-square → 高度=宽度 → 胶囊继承 → 严格一致
+                             🎯 颜色统一：精力主题绿 GREEN（#22c55e），不做"100%变黑"的分层
+                                 保持与 L1 卡片 / L2 表格 / 日历绿格子 的视觉一致性 */}
                         <span
                           className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-full"
                           style={{
                             width: '56px',
-                            background: monthRate >= 100 ? '#111827' : GREEN,
+                            background: GREEN,
                             color: '#fff',
-                            boxShadow: monthRate >= 100
-                              ? '0 1px 2px rgba(17,24,39,0.25)'
-                              : '0 1px 2px rgba(34,197,94,0.25)',
+                            boxShadow: '0 1px 2px rgba(34,197,94,0.25)',
                           }}>
                           <span className="flex items-baseline leading-none">
                             <span className="text-[12px] font-bold tabular-nums">{monthRate}</span>

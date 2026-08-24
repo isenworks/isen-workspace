@@ -1786,25 +1786,14 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       {cleanLabel}
                     </span>
                   </div>
-                  {/* ========== 列②：KPI列（130px 固定宽度，%胶囊 与日历方块严格等高）
-                        实现原理：h-full 继承行高 → 因为行高=列③方块高度 → 胶囊自动拉伸到"方块同高"
-                        rounded-[6px] 与 日历方块 rounded-md(≈6px) 统一圆角语言
-                        显示口径：doneCount / monthlyTarget（按年度目标分摊到月的当月应达数）
-                                   单位用 h.unit（天/次）与习惯年度目标单位一致 */}
-                  <div className="flex items-center justify-end gap-2 w-full h-full">
+                  {/* ========== 列②：KPI列（%胶囊在LEFT · 累计/目标在RIGHT）
+                        🎯 左右翻转：完成率%胶囊作为第一视觉焦点放左侧，累计/目标数字放右侧
+                        其它一切不变：胶囊 h-full 继承方块高度、宽度56px、实心绿、白字
+                        justify-start：让%胶囊贴左边（紧挨着标签列的右边沿），累计数字贴右边紧挨着日历方块 */}
+                  <div className="flex items-center justify-between gap-2 w-full h-full">
                     {monthlyTarget > 0 ? (
                       <>
-                        <div className="flex items-baseline leading-none flex-shrink-0">
-                          {/* ✅ 累计 doneCount 颜色：ink-700 Semibold（与左侧习惯标题同色，视觉节奏一致） */}
-                          <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
-                          <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
-                          <span className="text-[11px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
-                          <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>
-                        </div>
-                        {/* ✅ 胶囊与日历方块同高同圆角：relative + h-full + w-[56px] + rounded-[6px]
-                             方块 aspect-square → 高度=宽度 → 胶囊继承 → 严格一致
-                             🎯 颜色统一：精力主题绿 GREEN（#22c55e），不做"100%变黑"的分层
-                                 保持与 L1 卡片 / L2 表格 / 日历绿格子 的视觉一致性 */}
+                        {/* ⭐ LEFT 第一视觉：%胶囊（56px × h-full 与方块等高） */}
                         <span
                           className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-full"
                           style={{
@@ -1818,9 +1807,16 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                             <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
                           </span>
                         </span>
+                        {/* ⭐ RIGHT 次级信息：累计 / 目标 + 单位（ink-700与习惯标题同色） */}
+                        <div className="flex items-baseline leading-none flex-shrink-0">
+                          <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
+                          <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
+                          <span className="text-[11px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
+                          <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>
+                        </div>
                       </>
                     ) : (
-                      <span className="text-[11px] text-ink-300 font-medium leading-none pr-1 self-center">未设置</span>
+                      <span className="text-[11px] text-ink-300 font-medium leading-none pl-1 self-center">未设置</span>
                     )}
                   </div>
                   {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），

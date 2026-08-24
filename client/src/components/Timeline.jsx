@@ -79,8 +79,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const [fixedSchedules, setFixedSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
+  const [dragOverY, setDragOverY] = useState(null);
+  const [resizingEvent, setResizingEvent] = useState(null);
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
+  const contentColRef = useRef(null);
 
   function load() {
     const cacheKey = `tl:${range.from}:${range.to}:${date}`;
@@ -183,6 +186,161 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       store.broadcast({ type: 'habit', id: h.id, done_today: h.done_today });
       toast.error(e.message);
     }
+  }
+
+  // === 拖拽功能：将重点事项拖入时间线 ===
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = contentColRef.current?.getBoundingClientRect();
+    if (rect) {
+      const y = e.clientY - rect.top;
+      setDragOverY(y);
+    }
+    e.dataTransfer.dropEffect = 'move';
+  }
+
+  function handleDragLeave(e) {
+    if (!contentColRef.current?.contains(e.relatedTarget)) {
+      setDragOverY(null);
+    }
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverY(null);
+
+    const dataStr = e.dataTransfer.getData('application/json');
+    if (!dataStr) return;
+
+    try {
+      const data = JSON.parse(dataStr);
+      const rect = contentColRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const y = e.clientY - rect.top;
+      // 基准参数：06:00 – 24:00，每小时 60px → 1min = 1px
+      const HOUR_START = 6;
+      const PX_PER_MIN = 1;
+      const baseMin = HOUR_START * 60;
+
+      // 将像素位置转换为时间（吸附到15分钟）
+      const totalMin = Math.round(y / PX_PER_MIN);
+      const snappedMin = Math.round(totalMin / 15) * 15;
+      const startMin = Math.max(baseMin, snappedMin);
+      const startH = Math.floor(startMin / 60);
+      const startM = startMin % 60;
+      const startTime = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`;
+
+      // 计算结束时间（默认30分钟）
+      const durMin = data.duration_min || 30;
+      const endMin = startMin + durMin;
+      const endH = Math.floor(endMin / 60);
+      const endM = endMin % 60;
+      const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+      // 创建新的日程
+      const newSchedule = {
+        title: data.title,
+        category: data.category || 3,
+        emoji: data.emoji || '',
+        start_time: startTime,
+        end_time: endTime,
+        duration_min: durMin,
+        date: date,
+        is_key: true,
+      };
+
+      const result = await API.schedules.create(newSchedule);
+      if (result?.schedule) {
+        setSchedules(ss => [...ss, { ...result.schedule, isHabit: false, isTask: false }]);
+        store.broadcast({ type: 'reload' });
+        onChange?.();
+        toast.success(`已添加到 ${startTime}`);
+      }
+    } catch (err) {
+      console.error('Drop failed:', err);
+      toast.error('添加失败');
+    }
+  }
+
+  // === 拉伸调整时间块 ===
+  function startResize(e, eventInfo, type) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startY = e.clientY;
+    const startTop = eventInfo.top;
+    const startHeight = eventInfo.hPx;
+    const item = eventInfo.item;
+    const HOUR_START = 6;
+    const PX_PER_MIN = 1;
+    const baseMin = HOUR_START * 60;
+
+    function onMove(ev) {
+      const deltaY = ev.clientY - startY;
+      const deltaMin = deltaY * PX_PER_MIN;
+
+      if (type === 'top') {
+        // 调整上边缘 → 改变开始时间
+        let newStartMin = startTop - baseMin + deltaMin;
+        newStartMin = Math.round(newStartMin / 15) * 15;
+        newStartMin = Math.max(baseMin, newStartMin);
+        const newStartH = Math.floor(newStartMin / 60);
+        const newStartM = newStartMin % 60;
+        const newStart = `${String(newStartH).padStart(2, '0')}:${String(newStartM).padStart(2, '0')}`;
+
+        const oldStartMin = startTop - baseMin;
+        const newEndMin = oldStartMin + startHeight + deltaMin;
+        const newEndH = Math.floor(newEndMin / 60);
+        const newEndM = newEndMin % 60;
+        const newEnd = `${String(newEndH).padStart(2, '0')}:${String(newEndM).padStart(2, '0')}`;
+
+        setResizingEvent({
+          ...eventInfo,
+          top: newStartMin - baseMin,
+          hPx: newEndMin - newStartMin,
+          tempStart: newStart,
+          tempEnd: newEnd
+        });
+      } else {
+        // 调整下边缘 → 改变结束时间
+        let newEndMin = (startTop + startHeight) - baseMin + deltaMin;
+        newEndMin = Math.round(newEndMin / 15) * 15;
+        newEndMin = Math.min(24 * 60, newEndMin);
+        const newEndH = Math.floor(newEndMin / 60);
+        const newEndM = newEndMin % 60;
+        const newEnd = `${String(newEndH).padStart(2, '0')}:${String(newEndM).padStart(2, '0')}`;
+
+        setResizingEvent({
+          ...eventInfo,
+          hPx: Math.max(22, startHeight + deltaMin),
+          tempEnd: newEnd
+        });
+      }
+    }
+
+    function onUp(ev) {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+
+      if (resizingEvent && !item.isHabit && !item.isFixed) {
+        const updates = {};
+        if (resizingEvent.tempStart) updates.start_time = resizingEvent.tempStart;
+        if (resizingEvent.tempEnd) updates.end_time = resizingEvent.tempEnd;
+        updates.duration_min = Math.round(resizingEvent.hPx / PX_PER_MIN);
+
+        API.schedules.update(item.id, updates).then(() => {
+          setSchedules(ss => ss.map(x => x.id === item.id ? { ...x, ...updates } : x));
+          store.broadcast({ type: 'reload' });
+          onChange?.();
+        }).catch(err => toast.error('更新失败'));
+      }
+      setResizingEvent(null);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 
   function getCat(s) {
@@ -609,7 +767,40 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           </div>
 
           {/* —— 网格 + 事件列 —— */}
-          <div className="tl-content-col" style={{ minHeight: TOTAL_HEIGHT }}>
+          <div
+            ref={contentColRef}
+            className="tl-content-col"
+            style={{ minHeight: TOTAL_HEIGHT }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {/* 拖拽指示器 */}
+            {dragOverY !== null && (
+              <div
+                className="absolute left-0 right-0 pointer-events-none"
+                style={{
+                  top: `${dragOverY}px`,
+                  height: '2px',
+                  background: '#007aff',
+                  boxShadow: '0 0 8px rgba(0,122,255,0.5)',
+                  zIndex: 1000,
+                }}
+              >
+                <span
+                  className="absolute right-2 -translate-y-full text-[10px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ background: '#007aff', color: '#fff' }}
+                >
+                  {(() => {
+                    const min = Math.max(360, Math.round(dragOverY));
+                    const snapped = Math.round(min / 15) * 15;
+                    const h = Math.floor(snapped / 60);
+                    const m = snapped % 60;
+                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                  })()}
+                </span>
+              </div>
+            )}
             {/* 背景层：18 条 60px 小时分隔线 + 半小时虚线（第18条没有半小时线） */}
             <div className="tl-content-col-grid" style={{ minHeight: TOTAL_HEIGHT }}>
               {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => (
@@ -695,16 +886,23 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 onEdit?.(item);
               };
               // 双保险：除了 cat-N 的 CSS class，再直接写 inline backgroundImage
-              // 这样即使 CSS 类因缓存/优先级/加载问题不生效，渐变也能正确显示
               const inlineBg = `linear-gradient(90deg,${theme.bg || '#e5e5ea'} 0%,transparent 70%)`;
+
+              // 应用实时调整状态
+              const isResizing = resizingEvent && resizingEvent.id === ev.id;
+              const displayTop = isResizing ? resizingEvent.top : top;
+              const displayH = isResizing ? resizingEvent.hPx : hPx;
+              const displaySub = isResizing && (resizingEvent.tempStart || resizingEvent.tempEnd)
+                ? `${resizingEvent.tempStart || subText.split('–')[0].trim()} – ${resizingEvent.tempEnd || subText.split('–')[1].trim().split('·')[0].trim()} · ${Math.round(displayH)}m`
+                : subText;
 
               return (
                 <div
                   key={ev.id}
                   className={`tl-event cat-${clsCat} ${done ? 'done' : ''} ${hPx < 48 ? 'compact' : ''}`}
                   style={{
-                    top: `${top}px`,
-                    height: `${hPx}px`,
+                    top: `${displayTop}px`,
+                    height: `${displayH}px`,
                     left: 0,
                     right: `${rightOffsetPx}px`,
                     backgroundImage: inlineBg,
@@ -717,6 +915,21 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     else window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
                   }}
                 >
+                  {/* 上边缘拉伸手柄 */}
+                  {!isFixed && !item.isHabit && (
+                    <div
+                      className="absolute top-0 left-0 right-0 h-[6px] cursor-ns-resize z-10"
+                      style={{ background: 'transparent' }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        startResize(e, ev, 'top');
+                      }}
+                      title="拖动调整开始时间"
+                    >
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-ink-200 opacity-0 hover:opacity-100 transition" style={{ top: 0 }}></div>
+                    </div>
+                  )}
                   <div className="tl-event-line" style={{ background: lineColor }} />
                   <div className="tl-event-content">
                     <input
@@ -735,7 +948,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       <div className={`tl-event-title ${done ? 'done' : ''}`}>
                         {item.emoji ? item.emoji + ' ' : ''}{item.title}
                       </div>
-                      <div className="tl-event-sub">{subText}</div>
+                      <div className="tl-event-sub">{displaySub}</div>
                     </div>
                     <span
                       className={`tl-event-dot ${dotClass}`}
@@ -743,6 +956,21 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
+                  {/* 下边缘拉伸手柄 */}
+                  {!isFixed && !item.isHabit && (
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-[6px] cursor-ns-resize z-10"
+                      style={{ background: 'transparent' }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        startResize(e, ev, 'bottom');
+                      }}
+                      title="拖动调整结束时间"
+                    >
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-t-full bg-ink-200 opacity-0 hover:opacity-100 transition"></div>
+                    </div>
+                  )}
                 </div>
               );
             })}

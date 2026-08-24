@@ -259,7 +259,19 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       <div
         key={s.id}
         className={`task-row rounded-xl px-3 py-1.5 flex items-center gap-3 group ${isHabitSchedule ? 'habit-row' : ''}`}
-        style={{background: st.bg}}
+        style={{background: st.bg, cursor: 'grab'}}
+        draggable
+        onDragStart={(e) => {
+          const data = {
+            title: s.title,
+            category: s.category || cat,
+            emoji: s.emoji,
+            duration_min: s.duration_min || 30,
+            isPreset: false
+          };
+          e.dataTransfer.setData('application/json', JSON.stringify(data));
+          e.dataTransfer.effectAllowed = 'move';
+        }}
         onClick={() => {
           if (isHabitSchedule) return;
           onEdit?.(s);
@@ -352,8 +364,20 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         {PRESET_TEMPLATES.map(tpl => (
           <div
             key={tpl.key}
-            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-pointer group"
+            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-grab group"
             style={{background: `linear-gradient(90deg,${tpl.bg} 0%,transparent 70%)`}}
+            draggable
+            onDragStart={(e) => {
+              const data = {
+                title: `今天做什么来${tpl.bold}？`,
+                category: tpl.category,
+                emoji: '',
+                duration_min: 30,
+                isPreset: true
+              };
+              e.dataTransfer.setData('application/json', JSON.stringify(data));
+              e.dataTransfer.effectAllowed = 'move';
+            }}
             onClick={() => { onNew?.({ category: tpl.category, title: `今天做什么来${tpl.bold}？` }); }}
           >
             <div

@@ -2726,8 +2726,8 @@ function CognitionView({
                                 </button>
                               </div>
                             </div>
-                            {/* ========== Row 2 · 辅助信息行（灰色，缩进对齐标题） ========== */}
-                            <div className="flex items-center gap-2 pl-[22px + 10px]">
+                            {/* ========== Row 2 · 辅助信息行（灰色，缩进与上方标题首字严格对齐） ========== */}
+                            <div className="flex items-center gap-2 pl-[32px]">
                               <span className="text-[10.5px] text-ink-400 font-medium leading-none whitespace-nowrap flex-shrink-0">
                                 {kr.sub || krType || '目标'}
                               </span>

@@ -1507,8 +1507,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 <div key={h.key}
                   className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
                   style={{ gridTemplateRows: 'auto 1fr' }}>
-                  {/* ROW1: KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
-                  <div className="flex items-center justify-between gap-2">
+                  {/* ROW1: KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI**顶端对齐**
+                       items-start 让左列标题顶边与右列百分比数字顶边严格重合（不再居中错位） */}
+                  <div className="flex items-start justify-between gap-2">
                     {/* 左列：KR同款 [序号(浅绿)] [标题(黑色)]
                          ✅ 基线对齐：items-center + 两个 span 都 leading-none — 序号中线与标题字框中线严格重合
                          ✅ 颜色：序号保留浅绿（#22c55e80），标题改回 ink-900 黑色，与 L2/L3 表格/日历 标题黑色一致 */}

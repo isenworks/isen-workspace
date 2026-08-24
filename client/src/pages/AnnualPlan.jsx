@@ -882,10 +882,11 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
   const svgRef = useRef(null);
 
   if (!data || data.length === 0) return null;
-  const LABEL_H = 14;     // 底部月份标签高度
+  const LABEL_H = 16;     // 底部月份标签高度（从14→16，多出2px底部降阶通道防止字体baseline超出）
   // PAD 上下边距：严格控制折线顶部安全距离
   const PAD_T = 6;       // 顶部安全边距：保证折线顶点至少离 SVG 顶 6px，不撞上上方 KPI 数字
   const PAD_B = 4;       // 图表区底边距
+  const EXTRA_BOTTOM = 2; // 额外底部空高（emoji/中文数字都有 1-2px descent，防止 SVG 裁剪）
   const plotH = height - LABEL_H - PAD_T - PAD_B;
   const max = Math.max(10, Math.max(...data));
   const min = 0;                           // 次数=0是有意义的下限
@@ -948,13 +949,12 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
 
   const hp = hoverIdx !== null ? pts[hoverIdx] : null;
   return (
-    <div className="relative w-full" style={{ width, height: height + LABEL_H }}>
+    <div className="relative w-full" style={{ width, height: height + LABEL_H + EXTRA_BOTTOM, overflow: 'visible' }}>
       <svg
         ref={svgRef}
         width={width}
-        height={height + LABEL_H}
-        className="overflow-visible"
-        style={{ cursor: 'pointer' }}
+        height={height + LABEL_H + EXTRA_BOTTOM}
+        style={{ cursor: 'pointer', overflow: 'visible', display: 'block' }}
         // ✅ 核心修复1：SVG 根级监听 mousemove，全图任意位置都触发找最近点
         //         不再依赖小 rect 命中，鼠标在附近就能锁定
         onMouseMove={(e) => {
@@ -1518,7 +1518,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         style={{ color: `${GREEN}88` /* 70%透明度浅绿，与知力KR BLUE 80% 同权重 */ }}>
                         {padNum}
                       </span>
-                      <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-900">
+                      <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-700">
                         {cleanLabel}
                       </span>
                     </div>
@@ -1543,8 +1543,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   </div>
                   {/* ROW2: 1fr 弹性吸空区，吃掉多余空白，保证折线图贴底 */}
                   <div className="min-h-0"></div>
-                  {/* ROW3: 折线图贴底 — -mb-2px 压到卡片底线附近 */}
-                  <div className="-mx-1 -mb-[2px]">
+                  {/* ROW3: 折线图贴底，overflow 可见 + 不加负mb避免被父卡片圆角裁剪 */}
+                  <div className="-mx-1 pb-1">
                     <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={58} />
                   </div>
                 </div>
@@ -1617,7 +1617,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       style={{ color: `${GREEN}88` }}>
                       {padNum}
                     </span>
-                    <span className="text-[14px] font-semibold truncate leading-none text-ink-900">{cleanLabel}</span>
+                    <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
                   <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
@@ -1739,21 +1739,54 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const GREEN = '#22c55e';
               const padNum = String(hidx + 1).padStart(2, '0');
               const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
+              // 🎯 L3 当月小结（与L1卡片KPI镜像对齐：累计天数 / 当月总天数 · 完成率%）
+              //    信息架构理由：L3日历视图用户看不到L2表格的当月数字，此处做"即时感知的镜像KPI"
+              const doneCount = completedDays.size;
+              const elapsedDays = selectedMonth < curMonth
+                ? daysTotal                             // 历史月：当月全过，分母=全月天数
+                : selectedMonth === curMonth
+                  ? daysElapsedInCurMonth                // 当前月：分母=已过天数
+                  : 0;                                    // 未来月：无统计意义
+              const monthRate = elapsedDays > 0 ? Math.round((doneCount / elapsedDays) * 100) : 0;
               return (
                 // 去掉 py-1 上下padding，方块行不再有额外上下内边距
-                <div key={h.key} className="flex items-center gap-2">
-                  {/* 习惯名左列：KR同款序号(浅绿) + 黑色标题，三区块完全统一
-                      items-center + leading-none 保证序号与标题字中线严格对齐
-                      宽度 155px = 22(序号) + 6(间距) + 127(标题)，与L2表格的"序号+标题"合成宽度视觉对齐 */}
-                  <div className="w-[155px] flex-shrink-0 flex items-center gap-1.5 pl-0">
+                <div key={h.key} className="flex items-center gap-3">
+                  {/* 习惯名左列：KR同款序号(浅绿) + 黑色标题 */}
+                  <div className="flex items-center gap-1.5 pl-0 flex-shrink-0">
                     <span
                       className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
                       style={{ color: `${GREEN}88` }}>
                       {padNum}
                     </span>
-                    <span className="text-[14px] font-semibold truncate flex-1 min-w-0 leading-none text-ink-900">
+                    <span className="text-[14px] font-semibold truncate leading-none text-ink-700" style={{ maxWidth: '110px' }}>
                       {cleanLabel}
                     </span>
+                  </div>
+                  {/* 🥈 当月微型 KPI：累计天数 · 完成率% （右侧对齐到习惯名，与L1卡片双列同构）
+                       结构：累计/总天数 灰色 + 胶囊 完成率%（精力绿/已达100变黑）
+                       与L1卡片「13px累计/目标 · 16px%数字」视觉一致但缩小 1px 适配 L3 密度层级 */}
+                  <div className="flex items-center gap-2 flex-shrink-0" style={{ minWidth: '95px' }}>
+                    {elapsedDays > 0 ? (
+                      <>
+                        <div className="flex items-baseline leading-none">
+                          <span className="text-[12px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
+                          <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
+                          <span className="text-[11px] font-medium tabular-nums text-ink-500">{elapsedDays}</span>
+                          <span className="text-[10px] font-medium text-ink-400 ml-[2px]">天</span>
+                        </div>
+                        <span
+                          className="inline-flex items-baseline justify-center min-w-[38px] px-1.5 py-[2px] rounded-md leading-none"
+                          style={{
+                            background: monthRate >= 100 ? '#111827' : GREEN,
+                            color: '#fff',
+                          }}>
+                          <span className="text-[10px] font-bold tabular-nums leading-none">{monthRate}</span>
+                          <span className="text-[8px] font-semibold opacity-80 leading-none ml-[1px]">%</span>
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[10.5px] text-ink-300 font-medium leading-none">未开始</span>
+                    )}
                   </div>
                   {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），
                       数字 13→12px 精致缩小但依然保持 semibold/bold 字重统一 */}

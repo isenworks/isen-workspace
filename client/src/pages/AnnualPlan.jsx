@@ -1515,7 +1515,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                          ✅ 颜色：序号保留浅绿（#22c55e80），标题改回 ink-900 黑色，与 L2/L3 表格/日历 标题黑色一致 */}
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span
-                        className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
+                        className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
                         style={{ color: `${GREEN}99` /* 62%透明度浅绿，基色加深后补偿保持视觉层级 */ }}>
                         {padNum}
                       </span>
@@ -1615,8 +1615,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     {/* KR同款序号+黑色标题：01/02/03 浅绿，标题 ink-900 黑色（与L1卡片一致）
                          序号 11px Bold tabular w-22px 右对齐，items-center + leading-none 基线对齐 */}
                     <span
-                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
-                      style={{ color: `${GREEN}88` }}>>
+                      className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
+                      style={{ color: `${GREEN}88` }}>
                       {padNum}
                     </span>
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
@@ -1801,8 +1801,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   {/* ========== 列①：标签列（145px 固定宽度） — 自动垂直居中到行高 */}
                   <div className="flex items-center gap-1.5 w-full">
                     <span
-                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
-                      style={{ color: `${GREEN}88` }}>>
+                      className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
+                      style={{ color: `${GREEN}88` }}>
                       {padNum}
                     </span>
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700 min-w-0 flex-1">

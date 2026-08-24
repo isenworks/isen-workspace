@@ -1569,8 +1569,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
                 <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
-              {/* 🔧 统计列顺序：完成率 → 累计 → 目标，与L3日历KPI展示逻辑一致 */}
-              <div className="text-left whitespace-nowrap pl-1">完成率</div>
+              {/* 🔧 统计列顺序：完成率 → 累计 → 目标，表头与数据严格居中对齐
+                   完成率列：表头居中 ↔ 绿胶囊格子内居中（56px列对齐）
+                   累计/目标列：表头右对齐pr-2 ↔ 数据右对齐pr-2（右边界严格对齐） */}
+              <div className="text-center whitespace-nowrap">完成率</div>
               <div className="text-right pr-2 whitespace-nowrap cum-gap">累计</div>
               <div className="text-right pr-2 whitespace-nowrap grp-end">目标</div>
               {monthLabels.map((m, idx) => {
@@ -1620,8 +1622,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
                   </div>
                   {/* 完成率 - L3同款绿色胶囊样式：56px宽、实心绿#22c55e、白字、6px圆角、1px阴影
-                       作为第一视觉焦点，与L3日历KPI设计100%统一 */}
-                  <div className="flex items-center cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
+                       列内居中对齐，与表头"完成率"严格居中 */}
+                  <div className="flex justify-center items-center cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
                     {h.target > 0 ? (
                       <span
                         className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-[28px]"
@@ -1637,13 +1639,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         </span>
                       </span>
                     ) : (
-                      <span className="text-[11px] text-ink-300 font-medium leading-none pl-1">未设置</span>
+                      <span className="text-[11px] text-ink-300 font-medium leading-none">未设置</span>
                     )}
                   </div>
-                  {/* 累计 - 与习惯标题同色 text-ink-700 Semibold */}
-                  <div className="text-right font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
-                  {/* 目标 - inline 编辑，最后一个统计列带 grp-end */}
-                  <div className="text-right tabular-nums font-medium grp-end" onClick={(e) => e.stopPropagation()}>
+                  {/* 累计 - 与表头累计同pr-2右内边距，右边界严格对齐 */}
+                  <div className="text-right pr-2 font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
+                  {/* 目标 - 与表头目标同pr-2右内边距+grp-end分组间距，右边界严格对齐 */}
+                  <div className="text-right pr-2 tabular-nums font-medium grp-end" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1679,9 +1681,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     let cellBorder = '';
                     let cellRing = '';
                     if (n > 0) {
-                      // ✅ 已打卡 → 日历「已打卡」态：实心绿 + 白字 Bold 700（与日历方块完全一致）
-                      cellBg = 'bg-accent-green';
-                      cellText = 'text-white font-bold';
+                      // ✅ 已打卡（配角）→ 15%透明绿背景 + accent-green绿字 Bold
+                      //    方案A：配角透明度降级，完成率胶囊（主角）为唯一实心底色块，视觉层级明确
+                      cellBg = 'bg-accent-green/15';
+                      cellText = 'text-accent-green font-bold';
                     } else if (isFuture) {
                       // 未开始 → 日历「未开始」态：浅灰底+细灰边 + ink-300 Semibold 600
                       cellBg = 'bg-ink-50';
@@ -1736,7 +1739,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-[17px] h-[17px] rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
+                <span className="w-[17px] h-[17px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(34,197,94,0.25)'}}>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>已打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-[17px] h-[17px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
@@ -1850,7 +1855,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       let cellRing = '';
                       let cellBorder = '';
                       if (checked) {
-                        cellBg = 'bg-accent-green text-white';
+                        // ✅ 已打卡（配角）→ 15%透明绿背景 + accent-green绿字 Bold
+                        //    方案A：配角透明度降级，KPI完成率胶囊（主角）为唯一实心底色块
+                        cellBg = 'bg-accent-green/15 text-accent-green';
                         cellText = 'font-bold';
                       } else if (!isPast) {
                         cellBg = 'bg-ink-50 text-ink-300';

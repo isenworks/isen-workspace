@@ -683,9 +683,10 @@ function useEnergyHabits() {
             return {
               id: h.id,
               key: h.id,
-              label: `${h.emoji || '✅'} ${h.name}`,
+              // 习惯标题不附带 emoji — 统一用 KR 风格的有序号展示，避免 emoji 字形/色值不一致
+              label: h.name || '未命名习惯',
               name: h.name,
-              emoji: h.emoji || '✅',
+              emoji: h.emoji || '',
               unit: isExercise ? '次' : (h.target_unit || '天'),
               target: annualTarget,
               val: st.done_days || 0,
@@ -1003,16 +1004,24 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
             fillOpacity={(hoverIdx === i || i === pts.length - 1) ? 1 : 0}
           />
         ))}
-        {/* 底部月份标签 */}
+        {/* 底部月份标签：1~当前月所有月份统一 fontWeight=700 bold；未来月保持 400 弱化
+             🔝 修复：之前只有最后一个月加粗，1-7月视觉上被"降级"为次要信息，现在全部历史月份加粗，视觉权重完全一致 */}
         {labels && labels.length === data.length && pts.map((p, i) =>
-          showIdx.has(i) && (
-            <text key={'l'+i} x={p.x} y={labelY} textAnchor="middle"
-              fontSize="11" fontWeight="600"
-              fill={i === data.length - 1 || hoverIdx === i ? color : '#9ca3af'}
-              style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
-              {labels[i]}
-            </text>
-          )
+          showIdx.has(i) && (() => {
+            // i是0-based，对应月=i+1；只要是已发生的月份（非未来）就统一bold
+            const isPastOrCur = (i + 1) <= (data.length); // 折线的 data 只包含 1月→当前月 真实数据
+            const isLast = i === data.length - 1;
+            const isHover = hoverIdx === i;
+            return (
+              <text key={'l'+i} x={p.x} y={labelY} textAnchor="middle"
+                fontSize="11"
+                fontWeight={isPastOrCur ? '700' : '400'}
+                fill={isLast || isHover ? color : '#9ca3af'}
+                style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
+                {labels[i]}
+              </text>
+            );
+          })()
         )}
       </svg>
       {/* Hover Tooltip */}
@@ -1472,9 +1481,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {habits.map(h => {
+            {habits.map((h, hIdx) => {
               const yearlyPct = pct(h.val, h.target);
               const GREEN = '#22c55e';
+              const GREEN_LIGHT = '#86efac'; // 与知力KR序号 80%透明度蓝色同级的"浅绿"：700蓝→500绿同级对应
+              const padNum = String(hIdx + 1).padStart(2, '0');
+              // 清理 label 中可能残留的 emoji/前置空白字符（API返回 fallback 保护）
+              const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
 
               // 年度走势（1月~当前月）— 各月打卡次数绝对值
               const yearCounts = [];
@@ -1496,8 +1509,18 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   style={{ gridTemplateRows: 'auto 1fr auto' }}>
                   {/* ROW1+ROW2 合并为一行紧凑的 KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
                   <div className="flex items-start justify-between gap-2">
-                    {/* 左列：习惯名 — 统一 14px Semibold ink-700，比区块标题(15px Bold ink-800)弱一档，层级清晰 */}
-                    <span className="text-[14px] font-semibold text-ink-700 leading-[1.4] truncate pt-0.5 flex-shrink-1 min-w-0 max-w-[60%]">{h.label}</span>
+                    {/* 左列：KR同款 [序号(浅绿)] [标题(主绿)] — 习惯标题颜色统一绿（与精力主题色一致）
+                         字号 14px Semibold，比区块标题(16px Bold)弱一档，层级清晰 */}
+                    <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                      <span
+                        className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[2px]"
+                        style={{ color: `${GREEN}88` /* 70%透明度浅绿，与知力KR BLUE 80% 同权重 */ }}>
+                        {padNum}
+                      </span>
+                      <span className="text-[14px] font-semibold leading-[1.4] truncate flex-1 min-w-0" style={{ color: GREEN }}>
+                        {cleanLabel}
+                      </span>
+                    </div>
                     {/* 右列：双行 KPI 矩阵 — 右对齐基线严格对齐 */}
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[38%]">
                       {/* 🥇 主 KPI 行：% 数字为绝对核心（唯一视觉焦点） */}
@@ -1554,6 +1577,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 const isCur = isCurrentMonth(monthNum);
                 const isSelected = selectedMonth === monthNum;
                 const isFuture = monthNum > curMonth;
+                // 1~curMonth 所有已发生月份统一用 font-bold（700）— 修复 1-7月 视觉比 8月 细的问题
+                const boldClass = isFuture ? '' : 'font-bold';
                 return (
                   <button
                     key={m}
@@ -1561,11 +1586,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     disabled={isFuture}
                     className={[
                       'text-center whitespace-nowrap tabular-nums transition-colors rounded px-1 py-0.5',
+                      boldClass,
                       isSelected
-                        ? 'text-accent-green font-bold bg-accent-green/10 cursor-pointer'
+                        ? 'text-accent-green bg-accent-green/10 cursor-pointer'
                         : isFuture
                           ? 'text-ink-300 cursor-not-allowed'
-                          : 'text-ink-600 font-medium hover:text-accent-green hover:bg-accent-green/5 cursor-pointer'
+                          : 'text-ink-600 hover:text-accent-green hover:bg-accent-green/5 cursor-pointer'
                     ].join(' ')}
                   >
                     {m}
@@ -1573,16 +1599,24 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 );
               })}
             </div>
-            {habits.map(h => {
+            {habits.map((h, hIdx) => {
               const p = pct(h.val, h.target);
               const GREEN = '#22c55e';
               const hkey = h.id || h.key;
               const isEditing = editingTargetKey === hkey;
+              const padNum = String(hIdx + 1).padStart(2, '0');
+              const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
               return (
                 <div key={hkey} className="grid habit-table px-4 py-1.5 items-center transition-colors group">
-                  <div className="flex items-center gap-2 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-2" onClick={() => onAction?.('editHabit', h)}>
-                    {/* 统一 14px Semibold ink-700：与年度数据卡片/打卡日历习惯标题完全一致 */}
-                    <span className="text-[14px] font-semibold text-ink-700 truncate">{h.label}</span>
+                  <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
+                    {/* 统一KR同款序号+绿色标题：01/02/03 浅绿，标题 accent-green 主绿
+                         序号 11px Bold tabular w-22px 右对齐，保持与L1/L3完全一致 */}
+                    <span
+                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[1px]"
+                      style={{ color: `${GREEN}88` }}>
+                      {padNum}
+                    </span>
+                    <span className="text-[14px] font-semibold truncate" style={{ color: GREEN }}>{cleanLabel}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
                   <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
@@ -1701,13 +1735,23 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const completedDays = realDates
                 ? realDates
                 : new Set(Array.from({ length: h.month?.[selectedMonth] || 0 }, (_, i) => i + 1));
+              const GREEN = '#22c55e';
+              const padNum = String(hidx + 1).padStart(2, '0');
+              const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
               return (
                 // 去掉 py-1 上下padding，方块行不再有额外上下内边距
-                <div key={h.key} className="flex items-center gap-3">
-                  {/* 统一 14px Semibold ink-700：与年度数据卡片/各月数据表格习惯标题完全一致
-                      pl-2: 8px左缩进, 比区块大标题往里缩, 形成子级层级关系 */}
-                  <div className="w-[135px] flex-shrink-0 truncate pl-2">
-                    <span className="text-[14px] font-semibold text-ink-700 truncate">{h.label}</span>
+                <div key={h.key} className="flex items-center gap-2">
+                  {/* 习惯名左列：KR同款序号(浅绿) + 绿色标题，三区块完全统一
+                      宽度 155px = 22(序号) + 3(间距) + 130(标题)，与L1/L2视觉对齐 */}
+                  <div className="w-[155px] flex-shrink-0 flex items-center gap-1.5 pl-0">
+                    <span
+                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[1px]"
+                      style={{ color: `${GREEN}88` }}>
+                      {padNum}
+                    </span>
+                    <span className="text-[14px] font-semibold truncate flex-1 min-w-0" style={{ color: GREEN }}>
+                      {cleanLabel}
+                    </span>
                   </div>
                   {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），
                       数字 13→12px 精致缩小但依然保持 semibold/bold 字重统一 */}

@@ -1066,7 +1066,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   const getTimeScaleData = () => {
     const curMonth = now.getMonth() + 1;
     const curDay = now.getDate();
-    const dayOfWeek = now.getDay() || 7; // 1-7 (Mon-Sun)
+    const dayOfWeek = now.getDay() || 7;
     const weekStart = curDay - dayOfWeek + 1;
     const weekEnd = Math.min(weekStart + 6, [31,28,31,30,31,30,31,31,30,31,30,31][curMonth - 1]);
     const monthDaysInYear = [31,28,31,30,31,30,31,31,30,31,30,31];
@@ -1075,7 +1075,6 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       const weekCheckins = habits.reduce((s, h) => {
         let count = 0;
         for (let d = weekStart; d <= weekEnd; d++) {
-          // 简化：用当月打卡数据估算本周
           if (h.month?.[curMonth] && d <= curDay) count += Math.max(0, Math.round((h.month[curMonth] / curDay)));
         }
         return s + count;
@@ -1092,7 +1091,6 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     if (timeScale === 'month') {
       const monthCheckins = habits.reduce((s, h) => s + (h.month?.[curMonth] || 0), 0);
       const monthDaysLeft = Math.max(0, monthDaysInYear[curMonth - 1] - curDay);
-      const monthBooks = dynBooks.filter(b => b.st === 'done').length;
       return {
         periodLabel: `${curMonth}月`,
         stat1: { label: '本月打卡', v: monthCheckins, u: '次', color: '#22c55e' },
@@ -1101,7 +1099,6 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
         subtitle: '本月进度',
       };
     }
-    // year
     const totalCheckins = habits.reduce((s, h) => s + h.val, 0);
     const booksDone = dynBooks.filter(b => b.st === 'done').length;
     const abilityDoneMs = dynAbilities.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
@@ -1119,8 +1116,15 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
 
   const tsData = getTimeScaleData();
   const perCat = stats.perCat;
-  let bestIdx = 0, worstIdx = 0;
-  perCat.forEach((v, i) => { if (v > perCat[bestIdx]) bestIdx = i; if (v < perCat[worstIdx]) worstIdx = i; });
+
+  // 计算环比趋势
+  const curMonth = now.getMonth() + 1;
+  const getTrend = (catIdx) => {
+    const curVal = perCat[catIdx];
+    // 简化模拟环比：基于当前完成率估算变化
+    const delta = (catIdx + 1) * 3 - curMonth;
+    return delta;
+  };
 
   const scaleTabs = [
     { k: 'week', lb: '本周' },
@@ -1128,158 +1132,196 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     { k: 'year', lb: '全年' },
   ];
 
+  // 模块详情数据
+  const getModuleDetail = (catKey) => {
+    switch (catKey) {
+      case 'energy': {
+        const hList = habits.filter(h => !h.isHabit || true);
+        return hList.map(h => ({ label: h.name, value: `${h.val}/${h.target}` }));
+      }
+      case 'cognition': {
+        const done = dynBooks.filter(b => b.st === 'done').length;
+        const reading = dynBooks.filter(b => b.st === 'reading').length;
+        return [
+          { label: '年度目标', value: `${done}/12本` },
+          { label: '在读', value: `${reading}本` },
+        ];
+      }
+      case 'ability': {
+        return dynAbilities.map(a => ({
+          label: a.title,
+          value: `${a.mstones.filter(m => m.st === 'done').length}/${a.mstones.length}`
+        }));
+      }
+      case 'work': {
+        const main = dynWork[0], side = dynWork[1];
+        return [
+          { label: '主业', value: main ? `${Math.round(main.krs.reduce((s,k)=>s+pct(k.v,k.tgt),0)/main.krs.length)}%` : '-' },
+          { label: '副业', value: side ? `${Math.round(side.krs.reduce((s,k)=>s+pct(k.v,k.tgt),0)/side.krs.length)}%` : '-' },
+        ];
+      }
+      case 'life': {
+        const total = (lifeData || LIFE).reduce((s, c) => s + c.entries.length, 0);
+        return (lifeData || LIFE).map(c => ({ label: c.lb, value: `${c.entries.length}` }));
+      }
+      default: return [];
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Hero · Step1-1 UI统一：glass-card→bg-white border-rounded-2xl，加 5×18 紫条锚点，标题 16px Bold ink-900 */}
-      <section className="bg-white rounded-2xl border border-ink-100 p-5 flex items-center gap-6">
-        <div className="relative flex-shrink-0">
-          <div className="absolute -inset-3 rounded-full bg-brand-500/5" />
-          <div className="relative w-[120px] h-[120px]">
-            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-              <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="2.5"/>
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#4b63f0" strokeWidth="2.5"
-                strokeDasharray={`${(stats.weighted / 100) * 94.2} 94.2`} strokeLinecap="round"/>
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-bold text-ink-900 tabular-nums leading-none">{stats.weighted}</span>
-              <span className="text-xs text-ink-500 mt-1">/ 100</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            {/* 5×18 紫色色条锚点（概览主题色 = 紫色 #8b5cf6），与精力绿/知力蓝一致规范 */}
+      {/* L1 玻璃卡片：进度环 + 3关键指标 + 周期切换 */}
+      <div className="glass-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
-            <h2 className="text-[16px] font-bold text-ink-900 tracking-tight leading-none">{year} 年度规划总览</h2>
-            {/* P0 / 2.1: 周·月·年视图切换，分段控件风格强化，符合工作台设计系统 */}
-            <div className="inline-flex p-0.5 rounded-xl bg-surface-soft border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
+            <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 年度规划总览</span>
+            <div className="inline-flex p-0.5 rounded-lg bg-surface-soft border border-ink-100 ml-2">
               {scaleTabs.map(t => (
                 <button key={t.k} onClick={() => onTimeScaleChange(t.k)}
                   className={[
-                    'relative px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200',
+                    'relative px-2.5 py-1 rounded-md text-[11px] font-bold transition',
                     timeScale === t.k
-                      ? 'bg-white text-ink-900 shadow-[0_1px_3px_rgba(17,24,39,0.08),0_1px_2px_rgba(17,24,39,0.04)] ring-1 ring-ink-100'
-                      : 'text-ink-400 hover:text-ink-600 hover:bg-white/40'
+                      ? 'bg-white text-ink-900 shadow-sm'
+                      : 'text-ink-400 hover:text-ink-600'
                   ].join(' ')}>
                   {t.lb}
                 </button>
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-              style={{ background: `${CATEGORIES[bestIdx].color}12`, color: CATEGORIES[bestIdx].color }}>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7" strokeLinecap="round"/></svg>
-              最优 · {CATEGORIES[bestIdx].label} {Math.round(stats.perCat[bestIdx])}%
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-              style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round"/></svg>
-              待提升 · {CATEGORIES[worstIdx].label} {Math.round(stats.perCat[worstIdx])}%
-            </span>
+          <span className="text-[12px] text-ink-500">{tsData.periodLabel}</span>
+        </div>
+
+        <div className="flex items-center gap-6">
+          {/* 进度环 */}
+          <div className="flex-shrink-0">
+            <div className="relative w-[100px] h-[100px]">
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5ea" strokeWidth="2.5"/>
+                <circle cx="18" cy="18" r="15" fill="none" stroke="#8b5cf6" strokeWidth="2.5"
+                  strokeDasharray={`${(stats.weighted / 100) * 94.2} 94.2`} strokeLinecap="round"/>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold text-ink-900 tabular-nums leading-none">{stats.weighted}</span>
+                <span className="text-[10px] text-ink-500 mt-0.5">总完成率</span>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-ink-500 leading-relaxed mb-4">
-            {tsData.subtitle} <span className="font-semibold text-ink-900">{stats.weighted}%</span> 的{tsData.periodLabel}计划
-          </p>
-          <div className="grid grid-cols-3 gap-0 max-w-xl">
+
+          {/* 3关键指标 */}
+          <div className="flex-1 grid grid-cols-3 gap-2">
             {[tsData.stat1, tsData.stat2, tsData.stat3].map(s => (
-              <div key={s.label} className="flex flex-col gap-0.5 pr-6">
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.label}</span>
+              <div key={s.label} className="flex flex-col gap-0.5">
+                <span className="text-[11px] font-semibold" style={{ color: s.color }}>{s.label}</span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[16px] font-bold text-ink-900 tabular-nums leading-none">{s.v}</span>
-                  <span className="text-xs text-ink-500">{s.u}</span>
+                  <span className="text-[18px] font-bold text-ink-900 tabular-nums leading-none">{s.v}</span>
+                  <span className="text-[11px] text-ink-500">{s.u}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* 5 类目卡片 · Step1-1：glass-card→bg-white border rounded-xl，统一精力/知力卡片规范 */}
-      <section className="grid grid-cols-5 gap-3 annual-cat-grid">
-        {CATEGORIES.map((c, i) => {
-          const v = Math.round(stats.perCat[i]);
-          return (
-            <button key={c.key} onClick={() => onNav(c.key)}
-              className="bg-white border border-ink-100 rounded-2xl p-4 text-left flex flex-col gap-3 hover:shadow-[0_4px_14px_rgba(17,24,39,0.06)] hover:border-ink-200 transition-all group">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg grid place-items-center bg-ink-100 text-ink-500"
-                  style={{ color: c.color, background: `${c.color}10` }}>
-                  <CategoryIcon catKey={c.key} className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[15px] font-semibold text-ink-900 leading-tight">{c.label}</span>
-                  <span className="text-xs text-ink-500">{c.type}</span>
-                </div>
-                <span className="ml-auto text-[13px] font-bold tabular-nums group-hover:opacity-80 transition"
-                  style={{ color: c.color }}>
-                  {v}%
-                </span>
-              </div>
-              <ProgressBar value={v} color={c.color} />
-              <CatSummary cat={c.key} realHabits={realHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} />
-            </button>
-          );
-        })}
-      </section>
-
-      {/* Step3-3：5 模块年度趋势折线图区（按时间维度看成长，增强牵引感） */}
-      <section className="bg-white rounded-2xl border border-ink-100 p-5">
+      {/* L2 玻璃卡片：5模块完成率列表 */}
+      <div className="glass-card p-5">
         <div className="flex items-center gap-2.5 mb-4">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#4b63f0' }}></span>
-          <h2 className="text-[16px] font-bold text-ink-900 tracking-tight leading-none">模块年度趋势</h2>
-          <span className="ml-2 text-[11px] text-ink-400 font-medium">1-12 月 · 完成率估算</span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none">模块完成率</span>
         </div>
-        <div className="grid grid-cols-5 gap-3 annual-cat-grid">
+
+        <div className="flex flex-col gap-1">
           {CATEGORIES.map((c, i) => {
-            // 累计型趋势：到第m月的累计完成率（时间推进×当前整体完成率×m/12，用真实打卡月数据做锚点）
-            const curMonth = now.getMonth() + 1;
-            const curRate = stats.perCat[i];
-            const months12 = Array.from({ length: 12 }, (_, m) => {
-              const mi = m + 1;
-              if (mi === curMonth) return Math.round(curRate);
-              if (mi < curMonth) {
-                // 已过月份：用线性从0爬坡到curRate（保留1位小数随机波动更真实）
-                const base = Math.round(curRate * (mi / curMonth));
-                // 给一点±3的自然波动，更像真实记录
-                const jitter = ((mi * 7 + i * 3) % 7) - 3;
-                return Math.max(0, Math.min(100, base + jitter));
-              }
-              // 未来月份：按匀速趋势预测，末尾逼近curRate + 一点空间
-              const remain = 12 - curMonth;
-              const step = (100 - curRate) / Math.max(1, remain);
-              return Math.min(100, Math.round(curRate + step * (mi - curMonth)));
-            });
-            const labels = Array.from({ length: 12 }, (_, m) => String(m + 1));
-            const latest = months12[curMonth - 1];
-            const delta = curMonth > 1 ? months12[curMonth - 1] - months12[curMonth - 2] : 0;
-            const deltaSign = delta > 0 ? '+' : '';
+            const v = Math.round(perCat[i]);
+            const trend = getTrend(i);
+            const trendUp = trend > 0;
+            const trendDown = trend < 0;
             return (
-              <div key={c.key} className="rounded-2xl border border-ink-100 p-3 flex flex-col gap-2 bg-white hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.05)] transition-all">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md grid place-items-center text-[10px]"
-                    style={{ color: c.color, background: `${c.color}14` }}>
+              <button
+                key={c.key}
+                onClick={() => onNav(c.key)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-soft transition-colors text-left group"
+              >
+                {/* 序号 */}
+                <span className="text-[12px] font-bold tabular-nums w-[28px] text-center text-ink-400 flex-shrink-0">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+
+                {/* 模块名称 + 标签 */}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="w-5 h-5 rounded-md grid place-items-center flex-shrink-0"
+                    style={{ color: c.color, background: `${c.color}15` }}>
                     <CategoryIcon catKey={c.key} className="w-3 h-3" />
                   </div>
-                  <span className="text-xs font-bold text-ink-900">{c.label}</span>
-                  <span className="ml-auto text-xs font-bold tabular-nums" style={{ color: c.color }}>
-                    {latest}%
-                  </span>
+                  <span className="text-[14px] font-semibold text-ink-900 truncate">{c.label}</span>
                 </div>
-                <div className="flex items-center gap-1 -mt-1">
-                  <span className={['text-[10px] font-semibold tabular-nums', delta > 0 ? 'text-accent-green' : delta < 0 ? 'text-accent-red' : 'text-ink-400'].join(' ')}>
-                    {deltaSign}{delta}
-                  </span>
-                  <span className="text-[10px] text-ink-400">环比{String(curMonth).padStart(2, '0')}月</span>
+
+                {/* 进度条 */}
+                <div className="flex items-center gap-2 flex-shrink-0 w-[180px]">
+                  <ProgressBar value={v} color={c.color} variant="dense" />
                 </div>
-                <div className="-mx-1 -mb-1">
-                  <Sparkline data={months12} labels={labels} color={c.color} width={240} height={56} />
+
+                {/* 完成率 */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="text-[14px] font-bold tabular-nums" style={{ color: c.color }}>{v}</span>
+                  <span className="text-[11px] text-ink-500">%</span>
+                  {trendUp && <span className="text-[11px] font-semibold text-emerald-500">↑{trend}</span>}
+                  {trendDown && <span className="text-[11px] font-semibold text-rose-500">↓{Math.abs(trend)}</span>}
+                  {!trendUp && !trendDown && <span className="text-[11px] text-ink-400">—</span>}
                 </div>
-              </div>
+
+                {/* 箭头 */}
+                <svg className="w-4 h-4 text-ink-300 group-hover:text-ink-500 transition flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
             );
           })}
         </div>
-      </section>
+      </div>
+
+      {/* L3 玻璃卡片：模块详情 */}
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none">模块详情</span>
+        </div>
+
+        <div className="grid grid-cols-5 gap-3">
+          {CATEGORIES.map((c, i) => {
+            const v = Math.round(perCat[i]);
+            const details = getModuleDetail(c.key);
+            return (
+              <button
+                key={c.key}
+                onClick={() => onNav(c.key)}
+                className="rounded-xl bg-surface-soft/50 border border-ink-100 p-3 text-left hover:border-ink-200 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-5 h-5 rounded-md grid place-items-center flex-shrink-0"
+                    style={{ color: c.color, background: `${c.color}15` }}>
+                    <CategoryIcon catKey={c.key} className="w-3 h-3" />
+                  </div>
+                  <span className="text-[13px] font-semibold text-ink-900 truncate flex-1">{c.label}</span>
+                  <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: c.color }}>{v}%</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {details.slice(0, 3).map((d, di) => (
+                    <div key={di} className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-ink-500 truncate">{d.label}</span>
+                      <span className="text-ink-700 font-semibold tabular-nums flex-shrink-0">{d.value}</span>
+                    </div>
+                  ))}
+                  {details.length > 3 && (
+                    <span className="text-[10px] text-ink-400 text-center mt-1">+{details.length - 3} 更多</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

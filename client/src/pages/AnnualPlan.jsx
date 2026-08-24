@@ -1749,43 +1749,49 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   : 0;                                    // 未来月：无统计意义
               const monthRate = elapsedDays > 0 ? Math.round((doneCount / elapsedDays) * 100) : 0;
               return (
-                // 去掉 py-1 上下padding，方块行不再有额外上下内边距
-                <div key={h.key} className="flex items-center gap-3">
-                  {/* 习惯名左列：KR同款序号(浅绿) + 黑色标题 */}
-                  <div className="flex items-center gap-1.5 pl-0 flex-shrink-0">
+                // ⭐ 固定三列 Grid（3条视觉基线严格对齐）
+                //   列① [标签 145px]  → 序号22px + 习惯名117px，三行习惯名首字/尾字对齐
+                //   列② [KPI  130px]  → 「X/Y天 · %胶囊」，三行的 %胶囊 在同一条纵向轴上（核心视觉修正）
+                //   列③ [日历 flex-1] → 31方块，三行左起点/右起点严格对齐
+                <div key={h.key}
+                  className="grid items-center"
+                  style={{ gridTemplateColumns: '145px 130px minmax(0, 1fr)', columnGap: '14px' }}>
+                  {/* ========== 列①：标签列（145px 固定宽度） ========== */}
+                  <div className="flex items-center gap-1.5 w-full">
                     <span
                       className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
                       style={{ color: `${GREEN}88` }}>
                       {padNum}
                     </span>
-                    <span className="text-[14px] font-semibold truncate leading-none text-ink-700" style={{ maxWidth: '110px' }}>
+                    <span className="text-[14px] font-semibold truncate leading-none text-ink-700 min-w-0 flex-1">
                       {cleanLabel}
                     </span>
                   </div>
-                  {/* 🥈 当月微型 KPI：累计天数 · 完成率% （右侧对齐到习惯名，与L1卡片双列同构）
-                       结构：累计/总天数 灰色 + 胶囊 完成率%（精力绿/已达100变黑）
-                       与L1卡片「13px累计/目标 · 16px%数字」视觉一致但缩小 1px 适配 L3 密度层级 */}
-                  <div className="flex items-center gap-2 flex-shrink-0" style={{ minWidth: '95px' }}>
+                  {/* ========== 列②：KPI列（130px 固定宽度，三行 %胶囊 纵向成一条线） ========== */}
+                  <div className="flex items-center justify-end gap-2 w-full">
                     {elapsedDays > 0 ? (
                       <>
-                        <div className="flex items-baseline leading-none">
-                          <span className="text-[12px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
+                        <div className="flex items-baseline leading-none flex-shrink-0">
+                          <span className="text-[12.5px] font-bold tabular-nums text-ink-900">{doneCount}</span>
                           <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
                           <span className="text-[11px] font-medium tabular-nums text-ink-500">{elapsedDays}</span>
                           <span className="text-[10px] font-medium text-ink-400 ml-[2px]">天</span>
                         </div>
                         <span
-                          className="inline-flex items-baseline justify-center min-w-[38px] px-1.5 py-[2px] rounded-md leading-none"
+                          className="inline-flex items-baseline justify-center min-w-[42px] px-2 py-[3px] rounded-[5px] leading-none flex-shrink-0"
                           style={{
                             background: monthRate >= 100 ? '#111827' : GREEN,
                             color: '#fff',
+                            boxShadow: monthRate >= 100
+                              ? '0 1px 2px rgba(17,24,39,0.25)'
+                              : '0 1px 2px rgba(34,197,94,0.25)',
                           }}>
-                          <span className="text-[10px] font-bold tabular-nums leading-none">{monthRate}</span>
-                          <span className="text-[8px] font-semibold opacity-80 leading-none ml-[1px]">%</span>
+                          <span className="text-[11px] font-bold tabular-nums leading-none">{monthRate}</span>
+                          <span className="text-[8.5px] font-semibold opacity-85 leading-none ml-[1px]">%</span>
                         </span>
                       </>
                     ) : (
-                      <span className="text-[10.5px] text-ink-300 font-medium leading-none">未开始</span>
+                      <span className="text-[11px] text-ink-300 font-medium leading-none pr-1">未开始</span>
                     )}
                   </div>
                   {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），

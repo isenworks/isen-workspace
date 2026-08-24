@@ -1541,10 +1541,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       </div>
                     </div>
                   </div>
-                  {/* ROW2: 1fr 弹性吸空区，吃掉多余空白，保证折线图贴底 */}
-                  <div className="min-h-0"></div>
-                  {/* ROW3: 折线图贴底，overflow 可见 + 不加负mb避免被父卡片圆角裁剪 */}
-                  <div className="-mx-1 pb-1">
+                  {/* ROW2: 1fr 弹性吸空区，吃掉多余空白，保证折线图贴底
+                       mt-2 拉开 KPI 信息与折线之间的呼吸通道，折线图通过 pb-0 mb-[-2px] 贴底到卡片底边缘 */}
+                  <div className="min-h-0 mt-2"></div>
+                  {/* ROW3: 折线图极致贴底 —— pb-0 + mb-[-2px] 把 SVG 底部月份标签 1-8 直接贴到卡片底边缘
+                       -mx-1 保持 1px 横向溢出通道，不被圆角裁剪 */}
+                  <div className="-mx-1 pb-0 mb-[-2px]">
                     <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={58} />
                   </div>
                 </div>
@@ -1569,12 +1571,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
                 <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
-              {/* 🔧 统计列顺序：完成率 → 累计 → 目标，表头与数据严格居中对齐
-                   完成率列：表头居中 ↔ 绿胶囊格子内居中（56px列对齐）
-                   累计/目标列：表头右对齐pr-2 ↔ 数据右对齐pr-2（右边界严格对齐） */}
+              {/* 🔧 统计列顺序：完成率 → 累计 → 目标，表头与数据严格居中对齐（三列全部居中，视觉基线一致）
+                   所有列统一使用 text-center + 列内内容居中，消除左右padding不对称导致的偏移 */}
               <div className="text-center whitespace-nowrap">完成率</div>
-              <div className="text-right pr-2 whitespace-nowrap cum-gap">累计</div>
-              <div className="text-right pr-2 whitespace-nowrap grp-end">目标</div>
+              <div className="text-center whitespace-nowrap cum-gap">累计</div>
+              <div className="text-center whitespace-nowrap grp-end">目标</div>
               {monthLabels.map((m, idx) => {
                 const monthNum = idx + 1;
                 const isCur = isCurrentMonth(monthNum);
@@ -1622,7 +1623,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
                   </div>
                   {/* 完成率 - L3同款绿色胶囊样式：56px宽、实心绿#22c55e、白字、6px圆角、1px阴影
-                       列内居中对齐，与表头"完成率"严格居中 */}
+                       列内flex justify-center items-center，与表头"完成率"严格居中对齐 */}
                   <div className="flex justify-center items-center cursor-pointer" onClick={() => onAction?.('editHabit', h)}>
                     {h.target > 0 ? (
                       <span
@@ -1642,10 +1643,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       <span className="text-[11px] text-ink-300 font-medium leading-none">未设置</span>
                     )}
                   </div>
-                  {/* 累计 - 与表头累计同pr-2右内边距，右边界严格对齐 */}
-                  <div className="text-right pr-2 font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
-                  {/* 目标 - 与表头目标同pr-2右内边距+grp-end分组间距，右边界严格对齐 */}
-                  <div className="text-right pr-2 tabular-nums font-medium grp-end" onClick={(e) => e.stopPropagation()}>
+                  {/* 累计 - 列内严格居中 text-center，与表头"累计"字中线重合 */}
+                  <div className="text-center font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
+                  {/* 目标 - 列内严格居中 text-center，与表头"目标"字中线重合；点击事件不阻止父级冒泡居中对齐 */}
+                  <div className="text-center tabular-nums font-medium grp-end" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
                       <input
                         autoFocus
@@ -1658,11 +1659,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
                         }}
                         onBlur={() => commitTarget(h)}
-                        className="w-16 ml-auto px-2 py-1 text-[14px] font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        className="w-16 mx-auto px-2 py-1 text-[14px] font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                       />
                     ) : (
-                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer w-full pr-0">
-                        <span className="text-[14px] font-semibold text-ink-700 tabular-nums text-right ml-1">{h.target}</span>
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-center gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer px-2">
+                        <span className="text-[14px] font-semibold text-ink-700 tabular-nums text-center">{h.target}</span>
                         <span className="text-[12px] text-ink-500 ml-1">{h.unit}</span>
                       </div>
                     )}

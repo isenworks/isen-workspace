@@ -3506,7 +3506,6 @@ function CognitionView({
 function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const [editingScoreIdx, setEditingScoreIdx] = useState(null);
-  const [expandedIdx, setExpandedIdx] = useState(null);
 
   const scoreColor = (s) => {
     const n = Number(s) || 0;
@@ -3546,7 +3545,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
     <div className="flex flex-col gap-4">
       {/* 玻璃卡片容器 */}
       <div className="glass-card p-5">
-        {/* L1 标题：与精力页完全一致 — 5px×18px 橙色色条 + 16px Bold 标题 + 完成率胶囊 + CTA */}
+        {/* L1 标题 */}
         <div className="flex items-center gap-2.5 mb-4">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 能力成长</span>
@@ -3563,8 +3562,8 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
           </button>
         </div>
 
-        {/* L2 能力列表：纵向列表，点击行展开里程碑 */}
-        <div className="flex flex-col gap-2.5">
+        {/* L2 能力卡片：横向卡片布局 */}
+        <div className="flex flex-col gap-3">
           {dynAb.map((a, ai) => {
             const mDone = a.mstones.filter(m => m.st === 'done').length;
             const mTotal = a.mstones.length;
@@ -3575,36 +3574,33 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
             const firstScore = series[0];
             const trendDelta = series.length >= 2 && firstScore !== undefined && firstScore > 0
               ? Math.round(((lastScore - firstScore) / firstScore) * 100) : null;
-            const isOpen = expandedIdx === ai;
             const levelLabel = Number(a.score) >= 9 ? '优秀' : Number(a.score) >= 6 ? '进行中' : '待启动';
 
             return (
-              <div key={a.title} className="rounded-xl border border-ink-100 bg-white/80 overflow-hidden transition-all">
-                {/* 主行 */}
-                <div
-                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-soft transition-colors"
-                  onClick={() => setExpandedIdx(isOpen ? null : ai)}
-                >
-                  {/* 序号 + 名称 + 描述 */}
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <span className="text-[13px] font-bold tabular-nums w-[28px] text-right flex-shrink-0" style={{ color: '#f59e0b', opacity: 0.6 }}>
-                      {String(ai + 1).padStart(2, '0')}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-semibold text-ink-900 truncate">{a.title}</span>
-                        <span className="text-[11px] text-ink-500 truncate">{a.daily}</span>
-                      </div>
+              <div key={a.title} className="rounded-xl border border-ink-100 bg-white/80 overflow-hidden">
+                {/* 横向布局：左侧信息 + 右侧里程碑 */}
+                <div className="flex flex-col md:flex-row">
+                  {/* 左侧：能力信息 */}
+                  <div className="md:w-[200px] flex-shrink-0 p-4 border-b md:border-b-0 md:border-r border-ink-100 bg-surface-soft/30">
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-[11px] font-bold tabular-nums" style={{ color: '#f59e0b', opacity: 0.6 }}>
+                        {String(ai + 1).padStart(2, '0')}
+                      </span>
+                      {trendDelta !== null && (
+                        <span className={`text-[10px] font-bold ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {trendDelta >= 0 ? '↑' : '↓'}{Math.abs(trendDelta)}%
+                        </span>
+                      )}
                     </div>
-                  </div>
-
-                  {/* 自评分数 + 趋势 */}
-                  <div className="flex items-center gap-2.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="text-[14px] font-semibold text-ink-900 mb-0.5 truncate">{a.title}</div>
+                    <div className="text-[11px] text-ink-500 mb-3 truncate">{a.daily}</div>
+                    
+                    {/* 自评分数 */}
                     {editingScoreIdx === ai ? (
                       <div className="flex items-center gap-1.5">
                         <input
                           type="range" min="0" max="10" step="1" defaultValue={a.score}
-                          style={{ accentColor: sc, width: '64px' }}
+                          style={{ accentColor: sc, width: '80px' }}
                           onChange={e => {
                             const n = Number(e.target.value);
                             const el = document.getElementById('ab-score-' + ai);
@@ -3618,42 +3614,32 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
                         <span id={'ab-score-' + ai} className="text-[13px] font-bold tabular-nums" style={{ color: sc }}>{a.score}</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 cursor-pointer hover:opacity-80"
-                        title="点击调整自评分数" onClick={() => setEditingScoreIdx(ai)}>
-                        <span className="text-[15px] font-bold tabular-nums leading-none" style={{ color: sc }}>{a.score}</span>
-                        <span className="text-[11px]" style={{ color: sc, opacity: 0.7 }}>/10</span>
-                        <span className="text-[10px] font-semibold" style={{ color: sc, opacity: 0.85 }}>{levelLabel}</span>
+                      <div className="cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(ai)}>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[24px] font-extrabold tabular-nums leading-none" style={{ color: sc }}>{a.score}</span>
+                          <span className="text-[12px] font-semibold" style={{ color: sc, opacity: 0.7 }}>/10</span>
+                        </div>
+                        <span className="text-[11px] font-semibold" style={{ color: sc, opacity: 0.85 }}>{levelLabel}</span>
                       </div>
                     )}
-                    {trendDelta !== null && (
-                      <span className={`text-[11px] font-bold tabular-nums ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {trendDelta >= 0 ? '↑' : '↓'}{Math.abs(trendDelta)}%
-                      </span>
-                    )}
                   </div>
 
-                  {/* 进度 + 完成数 */}
-                  <div className="flex items-center gap-2 flex-shrink-0 w-[160px]">
-                    <ProgressBar value={mPct} color="#f59e0b" />
-                    <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b' }}>
-                      {mPct}%
-                    </span>
-                    <span className="text-[10px] text-ink-500 flex-shrink-0">({mDone}/{mTotal})</span>
-                  </div>
-
-                  {/* 展开箭头 */}
-                  <svg className={`w-4 h-4 text-ink-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`}
-                    fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-
-                {/* 展开：里程碑列表 */}
-                {isOpen && (
-                  <div className="px-4 pb-3 pt-1 border-t border-ink-100 bg-surface-soft/40">
+                  {/* 右侧：里程碑列表 */}
+                  <div className="flex-1 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[12px] font-semibold text-ink-600">里程碑进度</span>
+                      <div className="flex items-center gap-2">
+                        <ProgressBar value={mPct} color="#f59e0b" variant="dense" />
+                        <span className="text-[11px] font-bold tabular-nums" style={{ color: '#f59e0b' }}>
+                          {mPct}%
+                        </span>
+                        <span className="text-[10px] text-ink-500">({mDone}/{mTotal})</span>
+                      </div>
+                    </div>
+                    
                     {a.mstones.length === 0 ? (
-                      <div className="text-[12px] text-ink-400 py-2 text-center">
-                        暂无里程碑，点击添加第一个
+                      <div className="text-[12px] text-ink-400 py-4 text-center">
+                        暂无里程碑
                       </div>
                     ) : (
                       <div className="flex flex-col gap-1.5">
@@ -3663,15 +3649,19 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
                             <div
                               key={i}
                               onClick={() => onMsEdit?.(ai, i, m)}
-                              className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white cursor-pointer transition-colors"
+                              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors"
                             >
-                              <span className="text-[11px] font-bold tabular-nums w-[20px] text-center text-ink-500 flex-shrink-0">
-                                {i + 1}
+                              <span className="w-5 h-5 rounded flex-shrink-0 grid place-items-center" style={{ background: `${msCol}20` }}>
+                                {m.st === 'done' ? (
+                                  <svg className="w-3 h-3" style={{ color: msCol }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                ) : m.st === 'doing' ? (
+                                  <span className="w-2 h-2 rounded-full" style={{ background: msCol }}></span>
+                                ) : (
+                                  <span className="w-2 h-2 rounded-full border-2" style={{ borderColor: msCol }}></span>
+                                )}
                               </span>
-                              <div className="flex-1 min-w-0">
-                                <div className={`text-[13px] font-medium truncate ${m.st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
-                                  {m.lb}
-                                </div>
+                              <div className={`flex-1 min-w-0 text-[13px] truncate ${m.st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                                {m.lb}
                               </div>
                               <ProgressBar value={m.pct} color={msCol} variant="dense" />
                               <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: msCol }}>
@@ -3686,7 +3676,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
                       <AddButton label="添加里程碑" onClick={() => onMsAdd?.(ai)} />
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -3742,105 +3732,129 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
 
   const year = new Date().getFullYear();
 
-  const renderGoalSection = (o, label, color, goalIdx) => {
+  const renderGoalCard = (o, label, color, goalIdx) => {
     const pctVal = calcPct(o);
-    const { days, timePct } = daysAndTimePct(o.deadline, o.start);
+    const { days } = daysAndTimePct(o.deadline, o.start);
     const isUrgent = days <= 30 && days >= 0;
     const isOverdue = days < 0;
 
     return (
       <div className="rounded-xl border border-ink-100 bg-white/80 overflow-hidden">
-        {/* 目标标题行 */}
-        <div className="flex items-center gap-3 px-4 py-3 bg-surface-soft/50 border-b border-ink-100">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg flex-shrink-0"
-            style={{ background: `${color}12`, color }}>
-            <span className="w-2 h-2 rounded-full" style={{ background: color }}></span>
-            <span className="text-[14px] font-semibold leading-none">{label}</span>
-          </span>
-          <span className="text-[14px] font-semibold text-ink-900 truncate flex-1">{o.title}</span>
-          <span className={`text-[11px] font-bold flex-shrink-0 ${isOverdue ? 'text-rose-500' : isUrgent ? 'text-amber-500' : 'text-ink-500'}`}>
-            {isOverdue ? `已过期 ${Math.abs(days)}天` : `剩 ${days}天`}
-          </span>
-          <div className="flex items-baseline gap-0.5 flex-shrink-0">
-            <span className="text-[15px] font-bold tabular-nums leading-none" style={{ color }}>{pctVal}</span>
-            <span className="text-[11px] font-bold text-ink-500 leading-none">%</span>
+        {/* 横向布局：左侧目标信息 + 右侧KR列表 */}
+        <div className="flex flex-col md:flex-row">
+          {/* 左侧：目标信息 */}
+          <div className="md:w-[180px] flex-shrink-0 p-4 border-b md:border-b-0 md:border-r border-ink-100 bg-surface-soft/30">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg"
+                style={{ background: `${color}15`, color }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
+                <span className="text-[12px] font-bold leading-none">{label}</span>
+              </span>
+            </div>
+            <div className="text-[14px] font-semibold text-ink-900 mb-3 truncate">{o.title}</div>
+            
+            {/* 完成率 */}
+            <div className="flex items-baseline gap-0.5 mb-1">
+              <span className="text-[28px] font-extrabold tabular-nums leading-none" style={{ color }}>{pctVal}</span>
+              <span className="text-[14px] font-bold leading-none" style={{ color, opacity: 0.7 }}>%</span>
+            </div>
+            <div className="text-[11px] font-semibold mb-3" style={{ color: pctVal >= 80 ? '#22c55e' : pctVal >= 50 ? '#f59e0b' : '#ef4444' }}>
+              {pctVal >= 80 ? '进展顺利' : pctVal >= 50 ? '推进中' : '需加速'}
+            </div>
+            
+            {/* 截止日期 */}
+            <div className="flex items-center gap-1 text-[11px]">
+              <svg className="w-3 h-3 text-ink-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <span className={`font-semibold ${isOverdue ? 'text-rose-500' : isUrgent ? 'text-amber-500' : 'text-ink-500'}`}>
+                {isOverdue ? `过期${Math.abs(days)}天` : `剩${days}天`}
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* KR 列表 */}
-        <div className="flex flex-col gap-1">
-          {o.krs.map((kr, i) => {
-            const st = kr.st === 'done' ? 'done' : kr.st === 'doing' ? 'doing' : 'tg';
-            const krPct = pct(kr.v, kr.tgt);
-            const rm = riskMeta(kr, o.deadline, o.start);
-            const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
-            const krId = kr.id || `${goalIdx}-${i}`;
-            const ma = microActions?.[krId] || [];
-            const maDone = ma.filter(x => x.done).length;
-            const canBreakdown = rm.q === 'risk' || rm.q === 'warn';
+          {/* 右侧：KR列表 */}
+          <div className="flex-1 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[12px] font-semibold text-ink-600">关键结果 (KR)</span>
+              <span className="text-[11px] text-ink-400">{o.krs.length}项</span>
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              {o.krs.map((kr, i) => {
+                const st = kr.st === 'done' ? 'done' : kr.st === 'doing' ? 'doing' : 'tg';
+                const krPct = pct(kr.v, kr.tgt);
+                const rm = riskMeta(kr, o.deadline, o.start);
+                const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
+                const krId = kr.id || `${goalIdx}-${i}`;
+                const ma = microActions?.[krId] || [];
+                const maDone = ma.filter(x => x.done).length;
+                const canBreakdown = rm.q === 'risk' || rm.q === 'warn';
 
-            return (
-              <div key={i}
-                className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-surface-soft transition-colors border-b border-ink-50 last:border-b-0"
-                onClick={() => onKrEdit?.(goalIdx, i, kr)}
-              >
-                {/* 序号 */}
-                <span className="text-[12px] font-bold tabular-nums w-[24px] text-center text-ink-400 flex-shrink-0">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-
-                {/* KR 标题 */}
-                <div className="flex-1 min-w-0">
-                  <div className={`text-[14px] font-semibold truncate ${st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
-                    {kr.t}
-                  </div>
-                </div>
-
-                {/* 进度条 */}
-                <div className="flex items-center gap-2 flex-shrink-0 w-[140px]">
-                  <ProgressBar value={krPct} color={statusDot} variant="dense" />
-                  <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: statusDot }}>
-                    {krPct}%
-                  </span>
-                </div>
-
-                {/* 数值 */}
-                <div className="flex items-baseline gap-0.5 flex-shrink-0">
-                  <span className="text-[13px] font-bold tabular-nums text-ink-700">{kr.v}</span>
-                  <span className="text-[11px] text-ink-400">/</span>
-                  <span className="text-[13px] font-medium text-ink-500 tabular-nums">{kr.tgt}</span>
-                </div>
-
-                {/* 状态标签 */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap transition hover:brightness-95 active:scale-[0.97]"
-                    style={{ background: rm.color + '1a', color: rm.color }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (canBreakdown) {
-                        onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, start: o.start }, rm);
-                      }
-                    }}
-                    title={canBreakdown ? '点击拆解为微动作' : rm.label}
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors"
+                    onClick={() => onKrEdit?.(goalIdx, i, kr)}
                   >
-                    {rm.label}
-                    {canBreakdown && ma.length > 0 && (
-                      <span className="ml-1 opacity-75 tabular-nums">{maDone}/{ma.length}</span>
-                    )}
-                    {canBreakdown && ma.length === 0 && (
-                      <span className="ml-1 text-[8px] opacity-60">+</span>
-                    )}
-                  </button>
-                  {st === 'done' && <span className="text-[10px] text-emerald-500">✓</span>}
-                </div>
-              </div>
-            );
-          })}
+                    {/* 状态标志 */}
+                    <span className="w-5 h-5 rounded flex-shrink-0 grid place-items-center" style={{ background: `${statusDot}20` }}>
+                      {st === 'done' ? (
+                        <svg className="w-3 h-3" style={{ color: statusDot }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      ) : (
+                        <span className="w-2 h-2 rounded-full" style={{ background: statusDot }}></span>
+                      )}
+                    </span>
 
-          {/* 添加 KR */}
-          <div className="px-4 py-2">
-            <AddButton label="添加 KR" onClick={() => onKrAdd?.(goalIdx)} />
+                    {/* KR标题 */}
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[13px] font-medium truncate ${st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                        {kr.t}
+                      </div>
+                    </div>
+
+                    {/* 进度条 + 百分比 */}
+                    <div className="flex items-center gap-2 flex-shrink-0 w-[120px]">
+                      <ProgressBar value={krPct} color={statusDot} variant="dense" />
+                      <span className="text-[11px] font-bold tabular-nums" style={{ color: statusDot }}>
+                        {krPct}%
+                      </span>
+                    </div>
+
+                    {/* 数值 */}
+                    <div className="flex items-baseline gap-0.5 flex-shrink-0 text-[11px]">
+                      <span className="font-bold tabular-nums text-ink-700">{kr.v}</span>
+                      <span className="text-ink-400">/</span>
+                      <span className="font-medium text-ink-500 tabular-nums">{kr.tgt}</span>
+                    </div>
+
+                    {/* 状态标签 */}
+                    <button
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap transition hover:brightness-95 active:scale-[0.97] flex-shrink-0"
+                      style={{ background: rm.color + '1a', color: rm.color }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (canBreakdown) {
+                          onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, start: o.start }, rm);
+                        }
+                      }}
+                      title={canBreakdown ? '点击拆解为微动作' : rm.label}
+                    >
+                      {rm.label}
+                      {canBreakdown && ma.length > 0 && (
+                        <span className="ml-1 opacity-75 tabular-nums">{maDone}/{ma.length}</span>
+                      )}
+                      {canBreakdown && ma.length === 0 && (
+                        <span className="ml-1 text-[8px] opacity-60">+</span>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 添加 KR */}
+            <div className="mt-2">
+              <AddButton label="添加 KR" onClick={() => onKrAdd?.(goalIdx)} />
+            </div>
           </div>
         </div>
       </div>
@@ -3851,7 +3865,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
     <div className="flex flex-col gap-4">
       {/* 玻璃卡片容器 */}
       <div className="glass-card p-5">
-        {/* L1 标题：5px×18px 红条 + 16px Bold 标题 + 完成率胶囊 */}
+        {/* L1 标题 */}
         <div className="flex items-center gap-2.5 mb-4">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 工作 OKR</span>
@@ -3862,10 +3876,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           </div>
         </div>
 
-        {/* L2 主次业务分区 */}
+        {/* L2 主次业务横向卡片 */}
         <div className="flex flex-col gap-3">
-          {renderGoalSection(main, '主业', '#ef4444', 0)}
-          {side && renderGoalSection(side, '副业', '#F97316', 1)}
+          {renderGoalCard(main, '主业', '#ef4444', 0)}
+          {side && renderGoalCard(side, '副业', '#F97316', 1)}
         </div>
       </div>
     </div>

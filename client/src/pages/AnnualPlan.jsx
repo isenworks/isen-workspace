@@ -1508,16 +1508,17 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   className="grid p-3 pb-2 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
                   style={{ gridTemplateRows: 'auto 1fr auto' }}>
                   {/* ROW1+ROW2 合并为一行紧凑的 KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
-                  <div className="flex items-start justify-between gap-2">
-                    {/* 左列：KR同款 [序号(浅绿)] [标题(主绿)] — 习惯标题颜色统一绿（与精力主题色一致）
-                         字号 14px Semibold，比区块标题(16px Bold)弱一档，层级清晰 */}
-                    <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    {/* 左列：KR同款 [序号(浅绿)] [标题(黑色)]
+                         ✅ 基线对齐：items-center + 两个 span 都 leading-none — 序号中线与标题字框中线严格重合
+                         ✅ 颜色：序号保留浅绿（#22c55e80），标题改回 ink-900 黑色，与 L2/L3 表格/日历 标题黑色一致 */}
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span
-                        className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[2px]"
+                        className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
                         style={{ color: `${GREEN}88` /* 70%透明度浅绿，与知力KR BLUE 80% 同权重 */ }}>
                         {padNum}
                       </span>
-                      <span className="text-[14px] font-semibold leading-[1.4] truncate flex-1 min-w-0" style={{ color: GREEN }}>
+                      <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-900">
                         {cleanLabel}
                       </span>
                     </div>
@@ -1609,14 +1610,14 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               return (
                 <div key={hkey} className="grid habit-table px-4 py-1.5 items-center transition-colors group">
                   <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
-                    {/* 统一KR同款序号+绿色标题：01/02/03 浅绿，标题 accent-green 主绿
-                         序号 11px Bold tabular w-22px 右对齐，保持与L1/L3完全一致 */}
+                    {/* KR同款序号+黑色标题：01/02/03 浅绿，标题 ink-900 黑色（与L1卡片一致）
+                         序号 11px Bold tabular w-22px 右对齐，items-center + leading-none 基线对齐 */}
                     <span
-                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[1px]"
+                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
                       style={{ color: `${GREEN}88` }}>
                       {padNum}
                     </span>
-                    <span className="text-[14px] font-semibold truncate" style={{ color: GREEN }}>{cleanLabel}</span>
+                    <span className="text-[14px] font-semibold truncate leading-none text-ink-900">{cleanLabel}</span>
                   </div>
                   {/* 目标 - inline 编辑 */}
                   <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
@@ -1741,15 +1742,16 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               return (
                 // 去掉 py-1 上下padding，方块行不再有额外上下内边距
                 <div key={h.key} className="flex items-center gap-2">
-                  {/* 习惯名左列：KR同款序号(浅绿) + 绿色标题，三区块完全统一
-                      宽度 155px = 22(序号) + 3(间距) + 130(标题)，与L1/L2视觉对齐 */}
+                  {/* 习惯名左列：KR同款序号(浅绿) + 黑色标题，三区块完全统一
+                      items-center + leading-none 保证序号与标题字中线严格对齐
+                      宽度 155px = 22(序号) + 6(间距) + 127(标题)，与L2表格的"序号+标题"合成宽度视觉对齐 */}
                   <div className="w-[155px] flex-shrink-0 flex items-center gap-1.5 pl-0">
                     <span
-                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none pt-[1px]"
+                      className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
                       style={{ color: `${GREEN}88` }}>
                       {padNum}
                     </span>
-                    <span className="text-[14px] font-semibold truncate flex-1 min-w-0" style={{ color: GREEN }}>
+                    <span className="text-[14px] font-semibold truncate flex-1 min-w-0 leading-none text-ink-900">
                       {cleanLabel}
                     </span>
                   </div>

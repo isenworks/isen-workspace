@@ -1733,8 +1733,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* L3: mt-4(上间距) + pt-4(下间距)
             mx-[-16px] 抵消 px-4 内边距，让 border-t 延伸到容器边缘，两端直线
             内容仍保留 px-4 内边距 */}
-        <div className="w-full px-4 mt-4 pt-4 pb-6 mx-[-16px] border-t border-ink-100 bg-transparent">
-          <div className="flex items-center justify-between mb-4">
+        <div className="relative w-full mt-4 pt-4 pb-6 bg-transparent">
+          <div className="absolute left-0 right-0 top-0 border-t border-ink-100"></div>
+          <div className="flex items-center justify-between mb-4 px-4">
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">
               {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（与L1/L2完全统一的视觉标识，对齐项目标准5px） */}
@@ -1755,8 +1756,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               </span>
             </div>
           </div>
-          {/* 行间距 gap-3.5：三行习惯行之间 14px 间距（适度收紧，不再过松） */}
-          <div className="flex flex-col gap-3.5">
+          {/* 行间距 gap-3.5：三行习惯行之间 14px 间距（适度收紧，不再过松）
+               px-4 与标题行保持相同左边距，三行习惯的文字起点严格对齐 L2 各月数据 */}
+          <div className="flex flex-col gap-3.5 px-4">
             {habits.map((h, hidx) => {
               const daysTotal = monthMaxDays[selectedMonth - 1];
               const realDates = h.monthDates?.[selectedMonth];

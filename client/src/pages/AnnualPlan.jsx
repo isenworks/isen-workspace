@@ -1060,70 +1060,151 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   const dynBooks = books || BOOKS;
   const dynAbilities = abilities || ABILITY;
   const dynWork = workGoals || WORK;
+  const dynLife = lifeData || LIFE;
   const now = new Date();
+  const curMonth = now.getMonth() + 1;
+  const curDay = now.getDate();
 
-  // 时间维度数据计算
-  const getTimeScaleData = () => {
-    const curMonth = now.getMonth() + 1;
-    const curDay = now.getDate();
-    const dayOfWeek = now.getDay() || 7;
-    const weekStart = curDay - dayOfWeek + 1;
-    const weekEnd = Math.min(weekStart + 6, [31,28,31,30,31,30,31,31,30,31,30,31][curMonth - 1]);
+  // 计算各模块的详细数据
+  const energyStats = (() => {
+    const totalVal = habits.reduce((s, h) => s + h.val, 0);
+    const totalTarget = habits.reduce((s, h) => s + h.target, 0);
+    const completedHabitDays = habits.reduce((s, h) => s + (h.month?.[curMonth] || 0), 0);
+    return {
+      totalVal,  // 累计打卡天数
+      totalTarget,  // 年度目标天数
+      completedHabitDays,  // 本月已打卡次数
+      habitCount: habits.length,  // 习惯数量
+    };
+  })();
+
+  const cognitionStats = (() => {
+    const done = dynBooks.filter(b => b.st === 'done').length;
+    const reading = dynBooks.filter(b => b.st === 'reading').length;
+    return { done, reading, target: 12 };
+  })();
+
+  const abilityStats = (() => {
+    const totalMs = dynAbilities.reduce((s, a) => s + a.mstones.length, 0);
+    const doneMs = dynAbilities.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
+    return { totalMs, doneMs, abilityCount: dynAbilities.length };
+  })();
+
+  const workStats = (() => {
+    const allKrs = dynWork.flatMap(o => o.krs || []);
+    const doneKrs = allKrs.filter(k => k.st === 'done').length;
+    const main = dynWork[0], side = dynWork[1];
+    const mainPct = main && main.krs.length > 0 ? Math.round(main.krs.reduce((s,k)=>s+pct(k.v,k.tgt),0)/main.krs.length) : 0;
+    const sidePct = side && side.krs.length > 0 ? Math.round(side.krs.reduce((s,k)=>s+pct(k.v,k.tgt),0)/side.krs.length) : 0;
+    return { totalKrs: allKrs.length, doneKrs, mainPct, sidePct };
+  })();
+
+  const lifeStats = (() => {
+    const total = dynLife.reduce((s, c) => s + c.entries.length, 0);
+    const categoriesWithEntries = dynLife.filter(c => c.entries.length > 0).length;
+    return { total, categoryCount: dynLife.length, categoriesWithEntries };
+  })();
+
+  // 年度总体数据
+  const totalCheckins = energyStats.totalVal;
+  const allGoalsDone = cognitionStats.done + abilityStats.doneMs + workStats.doneKrs;
+  const endOfYear = new Date(year, 11, 31);
+  const daysLeft = Math.max(0, Math.ceil((endOfYear - now) / 86400000));
+
+  // 时间周期数据
+  const getPeriodData = () => {
     const monthDaysInYear = [31,28,31,30,31,30,31,31,30,31,30,31];
-
+    
     if (timeScale === 'week') {
-      const weekCheckins = habits.reduce((s, h) => {
-        let count = 0;
-        for (let d = weekStart; d <= weekEnd; d++) {
-          if (h.month?.[curMonth] && d <= curDay) count += Math.max(0, Math.round((h.month[curMonth] / curDay)));
-        }
-        return s + count;
-      }, 0);
+      const dayOfWeek = now.getDay() || 7;
+      const weekStart = curDay - dayOfWeek + 1;
+      const weekEnd = Math.min(weekStart + 6, monthDaysInYear[curMonth - 1]);
+      const weekCheckins = energyStats.completedHabitDays;
       const weekDaysLeft = Math.max(0, 7 - (curDay - weekStart + 1));
       return {
         periodLabel: `${curMonth}月${weekStart}-${weekEnd}日`,
-        stat1: { label: '本周打卡', v: weekCheckins, u: '次', color: '#22c55e' },
-        stat2: { label: '周完成率', v: Math.round(stats.weighted * 0.25), u: '%', color: '#4b63f0' },
-        stat3: { label: '剩余天数', v: weekDaysLeft, u: '天', color: '#f59e0b' },
-        subtitle: '本周进度',
+        stat1: { label: '本周打卡', sub: '习惯完成', v: weekCheckins, u: '次', color: '#22c55e' },
+        stat2: { label: '完成目标', sub: '书籍/里程碑/KR', v: allGoalsDone, u: '个', color: '#4b63f0' },
+        stat3: { label: '剩余天数', sub: '本周', v: weekDaysLeft, u: '天', color: '#f59e0b' },
       };
     }
     if (timeScale === 'month') {
-      const monthCheckins = habits.reduce((s, h) => s + (h.month?.[curMonth] || 0), 0);
       const monthDaysLeft = Math.max(0, monthDaysInYear[curMonth - 1] - curDay);
       return {
         periodLabel: `${curMonth}月`,
-        stat1: { label: '本月打卡', v: monthCheckins, u: '次', color: '#22c55e' },
-        stat2: { label: '月度完成', v: Math.round(stats.weighted * (curDay / monthDaysInYear[curMonth - 1])), u: '%', color: '#4b63f0' },
-        stat3: { label: '剩余天数', v: monthDaysLeft, u: '天', color: '#f59e0b' },
-        subtitle: '本月进度',
+        stat1: { label: '本月打卡', sub: '习惯完成', v: energyStats.completedHabitDays, u: '次', color: '#22c55e' },
+        stat2: { label: '累计打卡', sub: '今年累计', v: totalCheckins, u: '天', color: '#4b63f0' },
+        stat3: { label: '剩余天数', sub: '本月', v: monthDaysLeft, u: '天', color: '#f59e0b' },
       };
     }
-    const totalCheckins = habits.reduce((s, h) => s + h.val, 0);
-    const booksDone = dynBooks.filter(b => b.st === 'done').length;
-    const abilityDoneMs = dynAbilities.reduce((s, a) => s + a.mstones.filter(m => m.st === 'done').length, 0);
-    const workDoneKrs = dynWork.reduce((s, o) => s + o.krs.filter(k => k.st === 'done').length, 0);
-    const endOfYear = new Date(year, 11, 31);
-    const daysLeft = Math.max(0, Math.ceil((endOfYear - now) / 86400000));
     return {
       periodLabel: `${year}年度`,
-      stat1: { label: '完成目标', v: booksDone + abilityDoneMs + workDoneKrs, u: '个', color: '#4b63f0' },
-      stat2: { label: '累计打卡', v: totalCheckins, u: '次', color: '#22c55e' },
-      stat3: { label: '今年剩余', v: daysLeft, u: '天', color: '#f59e0b' },
-      subtitle: '已完成',
+      stat1: { label: '累计打卡', sub: '习惯完成天数', v: totalCheckins, u: '天', color: '#22c55e' },
+      stat2: { label: '完成目标', sub: '书籍+里程碑+KR', v: allGoalsDone, u: '个', color: '#4b63f0' },
+      stat3: { label: '今年剩余', sub: '距离年底', v: daysLeft, u: '天', color: '#f59e0b' },
     };
   };
 
-  const tsData = getTimeScaleData();
+  const tsData = getPeriodData();
   const perCat = stats.perCat;
 
-  // 计算环比趋势
-  const curMonth = now.getMonth() + 1;
-  const getTrend = (catIdx) => {
-    const curVal = perCat[catIdx];
-    // 简化模拟环比：基于当前完成率估算变化
-    const delta = (catIdx + 1) * 3 - curMonth;
-    return delta;
+  // 模块进度详细数据
+  const getModuleProgress = (catKey) => {
+    switch (catKey) {
+      case 'energy': {
+        const pct = Math.round(perCat[0]);
+        const val = energyStats.totalVal;
+        const target = energyStats.totalTarget;
+        return { 
+          pct, 
+          completed: val, 
+          target, 
+          detail: `打卡 ${val}/${target}天`,
+          status: pct >= 80 ? '达标' : pct >= 50 ? '推进中' : '需加速'
+        };
+      }
+      case 'cognition': {
+        const pct = Math.round(perCat[1]);
+        return { 
+          pct, 
+          completed: cognitionStats.done, 
+          target: cognitionStats.target, 
+          detail: `读完 ${cognitionStats.done}/${cognitionStats.target}本，在读 ${cognitionStats.reading}本`,
+          status: pct >= 80 ? '达标' : pct >= 50 ? '推进中' : '需加速'
+        };
+      }
+      case 'ability': {
+        const pct = Math.round(perCat[2]);
+        return { 
+          pct, 
+          completed: abilityStats.doneMs, 
+          target: abilityStats.totalMs, 
+          detail: `完成里程碑 ${abilityStats.doneMs}/${abilityStats.totalMs}`,
+          status: pct >= 80 ? '达标' : pct >= 50 ? '推进中' : '需加速'
+        };
+      }
+      case 'work': {
+        const pct = Math.round(perCat[3]);
+        return { 
+          pct, 
+          completed: workStats.doneKrs, 
+          target: workStats.totalKrs, 
+          detail: `主业 ${workStats.mainPct}%，副业 ${workStats.sidePct}%`,
+          status: pct >= 80 ? '达标' : pct >= 50 ? '推进中' : '需加速'
+        };
+      }
+      case 'life': {
+        const pct = Math.round(perCat[4]);
+        return { 
+          pct, 
+          completed: lifeStats.categoriesWithEntries, 
+          target: lifeStats.categoryCount, 
+          detail: `记录 ${lifeStats.total} 条，覆盖 ${lifeStats.categoriesWithEntries}/${lifeStats.categoryCount} 类目`,
+          status: pct >= 80 ? '达标' : pct >= 50 ? '推进中' : '需加速'
+        };
+      }
+      default: return { pct: 0, completed: 0, target: 0, detail: '', status: '未知' };
+    }
   };
 
   const scaleTabs = [
@@ -1132,45 +1213,9 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     { k: 'year', lb: '全年' },
   ];
 
-  // 模块详情数据
-  const getModuleDetail = (catKey) => {
-    switch (catKey) {
-      case 'energy': {
-        const hList = habits.filter(h => !h.isHabit || true);
-        return hList.map(h => ({ label: h.name, value: `${h.val}/${h.target}` }));
-      }
-      case 'cognition': {
-        const done = dynBooks.filter(b => b.st === 'done').length;
-        const reading = dynBooks.filter(b => b.st === 'reading').length;
-        return [
-          { label: '年度目标', value: `${done}/12本` },
-          { label: '在读', value: `${reading}本` },
-        ];
-      }
-      case 'ability': {
-        return dynAbilities.map(a => ({
-          label: a.title,
-          value: `${a.mstones.filter(m => m.st === 'done').length}/${a.mstones.length}`
-        }));
-      }
-      case 'work': {
-        const main = dynWork[0], side = dynWork[1];
-        return [
-          { label: '主业', value: main ? `${Math.round(main.krs.reduce((s,k)=>s+pct(k.v,k.tgt),0)/main.krs.length)}%` : '-' },
-          { label: '副业', value: side ? `${Math.round(side.krs.reduce((s,k)=>s+pct(k.v,k.tgt),0)/side.krs.length)}%` : '-' },
-        ];
-      }
-      case 'life': {
-        const total = (lifeData || LIFE).reduce((s, c) => s + c.entries.length, 0);
-        return (lifeData || LIFE).map(c => ({ label: c.lb, value: `${c.entries.length}` }));
-      }
-      default: return [];
-    }
-  };
-
   return (
     <div className="flex flex-col gap-4">
-      {/* L1 玻璃卡片：进度环 + 3关键指标 + 周期切换 */}
+      {/* L1 玻璃卡片：年度进度总览 */}
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
@@ -1193,18 +1238,18 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           <span className="text-[12px] text-ink-500">{tsData.periodLabel}</span>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-5">
           {/* 进度环 */}
           <div className="flex-shrink-0">
-            <div className="relative w-[100px] h-[100px]">
+            <div className="relative w-[88px] h-[88px]">
               <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
                 <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5ea" strokeWidth="2.5"/>
                 <circle cx="18" cy="18" r="15" fill="none" stroke="#8b5cf6" strokeWidth="2.5"
                   strokeDasharray={`${(stats.weighted / 100) * 94.2} 94.2`} strokeLinecap="round"/>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-ink-900 tabular-nums leading-none">{stats.weighted}</span>
-                <span className="text-[10px] text-ink-500 mt-0.5">总完成率</span>
+                <span className="text-xl font-bold text-ink-900 tabular-nums leading-none">{stats.weighted}%</span>
+                <span className="text-[9px] text-ink-500 mt-0.5">整体完成率</span>
               </div>
             </div>
           </div>
@@ -1213,43 +1258,39 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           <div className="flex-1 grid grid-cols-3 gap-2">
             {[tsData.stat1, tsData.stat2, tsData.stat3].map(s => (
               <div key={s.label} className="flex flex-col gap-0.5">
-                <span className="text-[11px] font-semibold" style={{ color: s.color }}>{s.label}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-semibold" style={{ color: s.color }}>{s.label}</span>
+                </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[18px] font-bold text-ink-900 tabular-nums leading-none">{s.v}</span>
+                  <span className="text-[20px] font-bold text-ink-900 tabular-nums leading-none">{s.v}</span>
                   <span className="text-[11px] text-ink-500">{s.u}</span>
                 </div>
+                <span className="text-[10px] text-ink-400">{s.sub}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* L2 玻璃卡片：5模块完成率列表 */}
+      {/* L2 玻璃卡片：模块进度 */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-2.5 mb-4">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none">模块完成率</span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none">模块进度</span>
+          <span className="text-[11px] text-ink-400 ml-2">点击进入详情</span>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           {CATEGORIES.map((c, i) => {
-            const v = Math.round(perCat[i]);
-            const trend = getTrend(i);
-            const trendUp = trend > 0;
-            const trendDown = trend < 0;
+            const progress = getModuleProgress(c.key);
             return (
               <button
                 key={c.key}
                 onClick={() => onNav(c.key)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-soft transition-colors text-left group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-soft transition-colors text-left group border border-transparent hover:border-ink-100"
               >
-                {/* 序号 */}
-                <span className="text-[12px] font-bold tabular-nums w-[28px] text-center text-ink-400 flex-shrink-0">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-
-                {/* 模块名称 + 标签 */}
-                <div className="flex items-center gap-2 flex-1 min-w-0">
+                {/* 模块标识 */}
+                <div className="flex items-center gap-2 w-[100px] flex-shrink-0">
                   <div className="w-5 h-5 rounded-md grid place-items-center flex-shrink-0"
                     style={{ color: c.color, background: `${c.color}15` }}>
                     <CategoryIcon catKey={c.key} className="w-3 h-3" />
@@ -1258,65 +1299,33 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                 </div>
 
                 {/* 进度条 */}
-                <div className="flex items-center gap-2 flex-shrink-0 w-[180px]">
-                  <ProgressBar value={v} color={c.color} variant="dense" />
+                <div className="flex-1 min-w-0">
+                  <div className="relative h-2 bg-ink-100 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute inset-y-0 left-0 rounded-full transition-all"
+                      style={{ 
+                        width: `${Math.min(100, progress.pct)}%`,
+                        backgroundColor: c.color 
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* 完成率 */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-[14px] font-bold tabular-nums" style={{ color: c.color }}>{v}</span>
-                  <span className="text-[11px] text-ink-500">%</span>
-                  {trendUp && <span className="text-[11px] font-semibold text-emerald-500">↑{trend}</span>}
-                  {trendDown && <span className="text-[11px] font-semibold text-rose-500">↓{Math.abs(trend)}</span>}
-                  {!trendUp && !trendDown && <span className="text-[11px] text-ink-400">—</span>}
+                <div className="flex items-center gap-2 w-[140px] flex-shrink-0">
+                  <span className="text-[14px] font-bold tabular-nums" style={{ color: c.color }}>{progress.pct}%</span>
+                  <span className="text-[10px] text-ink-400 w-[50px] text-left">{progress.status}</span>
+                </div>
+
+                {/* 详情描述 */}
+                <div className="text-[11px] text-ink-500 truncate flex-1 min-w-0">
+                  {progress.detail}
                 </div>
 
                 {/* 箭头 */}
                 <svg className="w-4 h-4 text-ink-300 group-hover:text-ink-500 transition flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* L3 玻璃卡片：模块详情 */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-2.5 mb-4">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none">模块详情</span>
-        </div>
-
-        <div className="grid grid-cols-5 gap-3">
-          {CATEGORIES.map((c, i) => {
-            const v = Math.round(perCat[i]);
-            const details = getModuleDetail(c.key);
-            return (
-              <button
-                key={c.key}
-                onClick={() => onNav(c.key)}
-                className="rounded-xl bg-surface-soft/50 border border-ink-100 p-3 text-left hover:border-ink-200 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-5 h-5 rounded-md grid place-items-center flex-shrink-0"
-                    style={{ color: c.color, background: `${c.color}15` }}>
-                    <CategoryIcon catKey={c.key} className="w-3 h-3" />
-                  </div>
-                  <span className="text-[13px] font-semibold text-ink-900 truncate flex-1">{c.label}</span>
-                  <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: c.color }}>{v}%</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {details.slice(0, 3).map((d, di) => (
-                    <div key={di} className="flex items-center justify-between gap-2 text-[11px]">
-                      <span className="text-ink-500 truncate">{d.label}</span>
-                      <span className="text-ink-700 font-semibold tabular-nums flex-shrink-0">{d.value}</span>
-                    </div>
-                  ))}
-                  {details.length > 3 && (
-                    <span className="text-[10px] text-ink-400 text-center mt-1">+{details.length - 3} 更多</span>
-                  )}
-                </div>
               </button>
             );
           })}

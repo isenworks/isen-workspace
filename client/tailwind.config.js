@@ -42,7 +42,10 @@ export default {
           blue:   '#4b63f0',
           gray:   '#9ca3af',
           pink:   '#f9a8a8'
-        }
+        },
+        // 🎯 打卡方块主题色（浅绿背景 + 深绿数字）：用于 L3日历日格子 / L2月份格子 / L1热力图格子
+        //   checked-green = rgba(34,197,94,0.16)  精力绿16%透明度浅底
+        'checked-green': 'rgba(34,197,94,0.16)',
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif']

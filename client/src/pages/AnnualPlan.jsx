@@ -1666,9 +1666,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     let cellBorder = '';
                     let cellRing = '';
                     if (n > 0) {
-                      // ✅ 已打卡 → 日历「已打卡」态：实心绿 + 白字 Bold 700（与日历方块完全一致）
-                      cellBg = 'bg-accent-green';
-                      cellText = 'text-white font-bold';
+                      // ✅ 已打卡 → 三区块统一主题：浅绿背景(rgba(34,197,94,0.16)) + 深绿数字(#15803d, text-green-700) + Bold
+                      cellBg = 'bg-checked-green';
+                      cellText = 'text-green-700 font-bold';
                     } else if (isFuture) {
                       // 未开始 → 日历「未开始」态：浅灰底+细灰边 + ink-300 Semibold 600
                       cellBg = 'bg-ink-50';
@@ -1723,7 +1723,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             </span>
             <div className="flex items-center gap-3 text-[12px] text-ink-500">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-[17px] h-[17px] rounded-md bg-accent-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)]"></span>已打卡
+                {/* 🎯 图例与真实方块统一：浅绿背景 + 深绿数字圆点（代替纯实心绿） */}
+                <span className="relative w-[17px] h-[17px] rounded-md bg-checked-green shadow-[0_0_0_1px_rgba(34,197,94,0.15)] grid place-items-center">
+                  <span className="text-[9.5px] font-bold tabular-nums text-green-700 leading-none">✓</span>
+                </span>已打卡
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-[17px] h-[17px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
@@ -1786,39 +1789,47 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       {cleanLabel}
                     </span>
                   </div>
-                  {/* ========== 列②：KPI列（130px 固定宽度，%胶囊 与日历方块严格等高）
-                        实现原理：h-full 继承行高 → 因为行高=列③方块高度 → 胶囊自动拉伸到"方块同高"
-                        rounded-[6px] 与 日历方块 rounded-md(≈6px) 统一圆角语言
-                        显示口径：doneCount / monthlyTarget（按年度目标分摊到月的当月应达数）
-                                   单位用 h.unit（天/次）与习惯年度目标单位一致 */}
-                  <div className="flex items-center justify-end gap-2 w-full h-full">
+                  {/* ========== 列②：KPI列（固定宽度，%进度条 与日历方块严格等高）
+                        🎯 左右翻转：%进度条在 LEFT（用户第一视线锚点），累计/目标数字在 RIGHT（次要）
+                        进度条设计：
+                          · 外层 track：浅绿底 + rounded-[6px]（与方块圆角一致）
+                          · 内层 fill：#22c55e 实绿条，width = rate%，100% 才完全填满（严格不超过100%）
+                          · %数字：覆盖在进度条内部靠左（fill上为白字，空白部分为深绿字）
+                        累计/目标：进度条右侧 inline，ink-700 / ink-500 */}
+                  <div className="flex items-center justify-start gap-2 w-full h-full flex-row-reverse">
+                    {/* 🎯 累计 / 目标 数字（右对齐） */}
                     {monthlyTarget > 0 ? (
-                      <>
-                        <div className="flex items-baseline leading-none flex-shrink-0">
-                          {/* ✅ 累计 doneCount 颜色：ink-700 Semibold（与左侧习惯标题同色，视觉节奏一致） */}
-                          <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
-                          <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
-                          <span className="text-[11px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
-                          <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>
-                        </div>
-                        {/* ✅ 胶囊与日历方块同高同圆角：relative + h-full + w-[56px] + rounded-[6px]
-                             方块 aspect-square → 高度=宽度 → 胶囊继承 → 严格一致
-                             🎯 颜色统一：精力主题绿 GREEN（#22c55e），不做"100%变黑"的分层
-                                 保持与 L1 卡片 / L2 表格 / 日历绿格子 的视觉一致性 */}
-                        <span
-                          className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-full"
-                          style={{
-                            width: '56px',
-                            background: GREEN,
-                            color: '#fff',
-                            boxShadow: '0 1px 2px rgba(34,197,94,0.25)',
-                          }}>
+                      <div className="flex items-baseline leading-none flex-shrink-0">
+                        <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
+                        <span className="text-[11px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
+                        <span className="text-[11px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
+                        <span className="text-[10px] font-medium text-ink-400 ml-[2px]">{h.unit || '天'}</span>
+                      </div>
+                    ) : null}
+                    {/* ⭐ 线性进度条（LEFT）：
+                           · h-full 继承行高 = 日历方块高度 → 与方块严格等高
+                           · track 背景 = 精力绿 12% 透明度（浅绿底色）
+                           · fill 宽度 = clamp(monthRate, 0, 100)% → 100%才完全填满，超出不再拉长
+                           · %数字：absolute 垂直居中 左侧6px，背景白时写深绿(#15803d)，覆盖绿条时写白 */}
+                    {monthlyTarget > 0 ? (
+                      <div className="relative flex-shrink-0 rounded-[6px] w-full max-w-[120px] h-full overflow-hidden flex items-center"
+                           style={{ background: 'rgba(34,197,94,0.12)' }}>
+                        {/* 进度填充：宽度 min(monthRate, 100)%，100% 才完全填满 */}
+                        <div className="h-full rounded-[6px]"
+                             style={{
+                               width: `${Math.min(100, monthRate)}%`,
+                               background: GREEN,
+                               boxShadow: '0 1px 2px rgba(34,197,94,0.25)',
+                               transition: 'width .25s ease',
+                             }} />
+                        {/* %数字 absolute 左对齐 */}
+                        <div className="absolute inset-0 flex items-center pl-[8px] leading-none">
                           <span className="flex items-baseline leading-none">
-                            <span className="text-[12px] font-bold tabular-nums">{monthRate}</span>
-                            <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
+                            <span className="text-[12.5px] font-bold tabular-nums text-white drop-shadow-sm">{monthRate}</span>
+                            <span className="text-[9.5px] font-semibold text-white opacity-90 ml-[1px]">%</span>
                           </span>
-                        </span>
-                      </>
+                        </div>
+                      </div>
                     ) : (
                       <span className="text-[11px] text-ink-300 font-medium leading-none pr-1 self-center">未设置</span>
                     )}
@@ -1833,15 +1844,16 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       const isToday = selectedMonth === curMonth && day === daysElapsedInCurMonth;
                       const checked = completedDays.has(day);
                       // 三态：已打卡 / 未打卡（已过）/ 未开始（未来）
-                      // ⭐ 与表格月份格子严格双向对齐：
-                      //   基础字重统一 font-semibold(600) → 已打卡态升级为 font-bold(700)
-                      //   line-height 统一 leading-none（消除半间距差异导致的视觉重心不对齐）
+                      // ⭐ 主题统一（浅绿背景 + 深绿数字）：
+                      //   bg = rgba(34,197,94,0.16)  浅绿（16%透明度）
+                      //   fg = #15803d  深绿（green-700，最平衡饱和，不发蓝不发黄）
                       let cellBg = '';
                       let cellText = '';
                       let cellRing = '';
                       let cellBorder = '';
                       if (checked) {
-                        cellBg = 'bg-accent-green text-white';
+                        // ✅ 已打卡态：浅绿背景 + 深绿数字 + Bold
+                        cellBg = 'bg-checked-green text-green-700';
                         cellText = 'font-bold';
                       } else if (!isPast) {
                         cellBg = 'bg-ink-50 text-ink-300';
@@ -1853,7 +1865,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       }
                       if (isToday) {
                         cellRing = checked
-                          ? 'ring-2 ring-accent-green/40 ring-offset-[1px]'
+                          // 🎯 今日已打卡：深绿(#15803d)描边 + 浅绿内底，保持主题一致性
+                          ? 'ring-2 ring-green-700/50 ring-offset-[1px]'
                           : 'ring-2 ring-ink-300/50 ring-offset-[1px]';
                       }
                       return (

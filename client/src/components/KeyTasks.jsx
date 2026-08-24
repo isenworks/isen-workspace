@@ -348,31 +348,22 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
     return (
       <div className="space-y-1.5">
-        {/* 预设模板行：与真实事项同款卡片样式，关键词加粗不加彩 */}
-        {PRESET_TEMPLATES.map(tpl => {
-          const st = {
-            bg: tpl.bg,
-            borderColor: tpl.dotColor,
-            dotColor: tpl.dotColor,
-          };
-          return (
-            <div
-              key={tpl.key}
-              className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 group"
-              style={{ background: `linear-gradient(90deg,${tpl.bg} 0%,transparent 70%)`, cursor: 'pointer' }}
-              onClick={() => { onNew?.(tpl.category); }}
-            >
-              <div className="w-[15px] h-[15px] rounded-[3px] border-[1.5px] flex-shrink-0" style={{ borderColor: st.borderColor, background: 'transparent' }}></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] text-[#1c1c1e]">
-                  今天做什么来<span style={{ fontWeight: 700 }}>{tpl.bold}</span>？
-                </p>
-                <p className="text-[12px] mt-0.5 text-[#8e8e93]">{tpl.label} · 点击填写</p>
-              </div>
-              <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: st.dotColor }}></span>
+        {/* 预设模板行：与真实事项同款纯白背景，无副标题 */}
+        {PRESET_TEMPLATES.map(tpl => (
+          <div
+            key={tpl.key}
+            className="flex items-center gap-3 px-3 py-1.5 cursor-pointer group"
+            onClick={() => { onNew?.(tpl.category); }}
+          >
+            <div className="w-[15px] h-[15px] rounded-[3px] border-[1.5px] flex-shrink-0" style={{ borderColor: tpl.dotColor, background: 'transparent' }}></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] text-[#1c1c1e]">
+                今天做什么来<span style={{ fontWeight: 700 }}>{tpl.bold}</span>？
+              </p>
             </div>
-          );
-        })}
+            <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: tpl.dotColor }}></span>
+          </div>
+        ))}
         {/* 真实事项 */}
         {sorted.map(renderItem)}
       </div>

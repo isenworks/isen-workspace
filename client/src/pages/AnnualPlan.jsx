@@ -2825,31 +2825,31 @@ function CognitionView({
                                   placeholder="填写KR标题"
                                 />
                               </div>
-                              {/* 右：数据区 — 合理排版：数值/目标 + 胶囊 + 按钮 */}
+                              {/* 右：数据区 — 与精力页统一：值/目标/单位全13px，主值semibold深色，目标+单位medium灰色 */}
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                {/* 数值块：当前值突出 + 目标弱化 */}
-                                <div className="flex items-baseline gap-0.5 tabular-nums">
+                                {/* 数值块：与精力页完全一致的字号/字重/颜色 */}
+                                <div className="flex items-baseline leading-none tabular-nums">
                                   <span
-                                    className="text-[16px] font-bold leading-none"
-                                    style={{ color: isDone ? '#111827' : BLUE }}>
+                                    className="text-[13px] font-semibold tabular-nums"
+                                    style={{ color: isDone ? '#111827' : 'text-ink-700' }}>
                                     {kr.val}
                                   </span>
-                                  <span className="text-[11px] font-medium text-ink-500 leading-none">
-                                    / {kr.tgt}
-                                  </span>
-                                  <span className="text-[10px] text-ink-300 leading-none ml-0.5">
-                                    {kr.u}
-                                  </span>
+                                  <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
+                                  <span className="text-[13px] font-medium tabular-nums text-ink-500">{kr.tgt}</span>
+                                  <span className="text-[13px] font-medium tabular-nums text-ink-400 ml-0.5">{kr.u}</span>
                                 </div>
-                                {/* 百分比胶囊 — 紧凑但清晰 */}
+                                {/* 百分比胶囊 — 与精力页统一：56px宽、圆角6px、白字、阴影 */}
                                 <span
-                                  className="inline-flex items-baseline justify-center min-w-[40px] px-1.5 py-[2px] rounded-md"
+                                  className="inline-flex items-baseline justify-center rounded-md"
                                   style={{
+                                    width: '56px',
+                                    height: '24px',
                                     background: isDone ? '#111827' : BLUE,
                                     color: '#fff',
+                                    boxShadow: '0 1px 2px rgba(75,99,240,0.25)',
                                   }}>
-                                  <span className="text-[10px] font-bold tabular-nums leading-none">{p}</span>
-                                  <span className="text-[8px] font-semibold opacity-80 leading-none ml-[1px]">%</span>
+                                  <span className="text-[12px] font-bold tabular-nums leading-none">{p}</span>
+                                  <span className="text-[9px] font-semibold opacity-85 leading-none ml-[1px]">%</span>
                                 </span>
                                 {/* 编辑按钮 — 灰色圆形，hover变蓝 */}
                                 <button
@@ -3681,9 +3681,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
             ) : (
               <span className="text-[11px] font-semibold text-ink-500">剩余 {dl} 天</span>
             )}
-            <div className="ml-auto flex items-baseline gap-0.5">
-              <span className="text-xl font-bold tabular-nums text-ink-900 leading-none">{p}</span>
-              <span className="text-xs font-bold text-ink-500">%</span>
+            <div className="ml-auto flex items-baseline leading-none">
+              <span className="text-[16px] font-bold tabular-nums text-ink-900 leading-none">{p}</span>
+              <span className="text-[12px] font-bold text-ink-500 leading-none align-baseline ml-0.5">%</span>
             </div>
           </div>
           <h3 className="text-[15px] font-semibold text-ink-900 leading-snug">{o.title}</h3>
@@ -3742,9 +3742,11 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                  <span className="text-xs font-bold tabular-nums text-ink-700 whitespace-nowrap">
-                    {kr.v}<span className="text-[11px] font-semibold text-ink-500">/{kr.tgt}</span>
-                  </span>
+                  <div className="flex items-baseline leading-none tabular-nums">
+                    <span className="text-[13px] font-semibold text-ink-700">{kr.v}</span>
+                    <span className="text-[13px] font-medium text-ink-400 mx-[4px]">/</span>
+                    <span className="text-[13px] font-medium text-ink-500">{kr.tgt}</span>
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-semibold tabular-nums text-ink-400">时间{risk.timePct}%</span>
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: statusDot}} />

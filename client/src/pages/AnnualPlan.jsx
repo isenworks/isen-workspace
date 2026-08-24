@@ -1561,8 +1561,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         {/* L2: mt-4(上间距) + border-t border-ink-100(分割线) + pt-4(下间距)
             统一16px对称间距，与L3分割线完全一致 */}
         <div className="mt-4 px-0 pb-0 rounded-xl border-t border-ink-100 bg-transparent pt-4">
-            {/* 表头：py-2收紧垂直间距，去掉border-y分割线
-                 ⭐ 方案C：3统计列合并为1 KPI列，列头统一「年度KPI」让用户一眼理解下面两行绿%+灰累计/目标的组合含义 */}
+            {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
             <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
                 {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识，对齐项目标准5px） */}
@@ -1570,14 +1569,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
                 <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
               </div>
-              {/* 🔧 方案C：合并的 KPI 年度列（右对齐）
-                   主标题：年度KPI · ink-700
-                   次级副标题：% / 累计·目标  —  小字灰，提示用户下面双行内容
-                   这个列头放在 176px 合并列里，右对齐 */}
-              <div className="flex flex-col items-end justify-center grp-end gap-0 pr-2 leading-tight">
-                <div className="text-right whitespace-nowrap text-[14px] font-semibold text-ink-700 leading-none">年度KPI</div>
-                <div className="text-right whitespace-nowrap text-[10.5px] font-medium text-ink-400 leading-none mt-[2px]">完成率 · 累计/目标</div>
-              </div>
+              {/* 🔧 对齐修复：表头统计列使用 pr-2 的右侧边距，与下方 data-cell 的右边缘严格一致 */}
+              <div className="text-right pr-2 whitespace-nowrap">目标</div>
+              <div className="text-right pr-2 whitespace-nowrap">累计</div>
+              <div className="text-right pr-2 whitespace-nowrap grp-end">完成率</div>
               {monthLabels.map((m, idx) => {
                 const monthNum = idx + 1;
                 const isCur = isCurrentMonth(monthNum);
@@ -1613,9 +1608,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               const padNum = String(hIdx + 1).padStart(2, '0');
               const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
               return (
-                <div key={hkey} className="grid habit-table px-4 py-2 items-center transition-colors group">
+                <div key={hkey} className="grid habit-table px-4 py-1.5 items-center transition-colors group">
                   <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
-                    {/* KR同款序号+黑色标题：01/02/03 浅绿，标题 ink-700 深灰（与L1/L3完全一致）
+                    {/* KR同款序号+黑色标题：01/02/03 浅绿，标题 ink-900 黑色（与L1卡片一致）
                          序号 11px Bold tabular w-22px 右对齐，items-center + leading-none 基线对齐 */}
                     <span
                       className="text-[11px] font-bold tabular-nums w-[22px] text-right flex-shrink-0 select-none leading-none"
@@ -1624,56 +1619,33 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     </span>
                     <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
                   </div>
-
-                  {/* =====================================================================
-                       ⭐ 方案C：双行KPI合并列（右对齐 · 年度KPI）
-                       严格统一的信息优先级骨架（与 L1 卡片 / L3 日历完全同构）：
-                       ┌─────────────────────────────┐ 176px
-                       │  Row1（主视觉）：13% 绿 Bold    │ → 第一视线落点（精力绿 Bold）
-                       │  Row2（次信息）：46/365 天 灰    │ → 累计 加粗黑 / 目标 中灰 / 单位浅灰
-                       └─────────────────────────────┘
-                       （Row1比 Row2 大 1.5px 字重差 2 档，形成明确的主次层级）
-                     ===================================================================== */}
-                  <div
-                    className="flex flex-col items-end justify-center grp-end cursor-pointer pr-2"
-                    onClick={(e) => { e.stopPropagation(); onAction?.('editHabit', h); }}>
-                    {/* Row1 主视觉：完成率%（绿 Bold 13px） — 永远是视线第一落点 */}
-                    <div className="flex items-baseline leading-none">
-                      <span className="text-[13px] font-bold tabular-nums" style={{ color: GREEN }}>{p}</span>
-                      <span className="text-[10px] font-semibold text-ink-400 leading-none ml-[2px] align-baseline">%</span>
-                    </div>
-                    {/* Row2 次信息：累计 / 目标 + 单位
-                         🎯 点击累计/目标区域 → 触发 目标 inline 编辑（原目标列的点击交互）
-                         累计：ink-900 Bold（当前的"实际值"视觉更重）
-                         目标：ink-500 Medium + inline 点击编辑
-                         单位：ink-400 Medium */}
-                    <div
-                      className="flex items-baseline leading-none mt-[5px]"
-                      onClick={(e) => { e.stopPropagation(); startEditTarget(h); }}>
-                      <span className="text-[12px] font-semibold tabular-nums text-ink-900">{h.val}</span>
-                      <span className="text-[11px] font-medium tabular-nums text-ink-300 mx-[3px]">/</span>
-                      {/* 目标 inline 编辑输入框（原目标列逻辑完整保留） */}
-                      {isEditing ? (
-                        <input
-                          autoFocus
-                          type="number"
-                          min="1"
-                          value={targetDraft}
-                          onChange={(e) => setTargetDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') commitTarget(h);
-                            if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
-                          }}
-                          onBlur={() => commitTarget(h)}
-                          className="w-14 px-1.5 py-[1px] text-[11.5px] font-bold border border-accent-green rounded outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white text-center"
-                        />
-                      ) : (
-                        <span className="inline-flex items-center gap-[2px] hover:bg-accent-green/8 rounded px-[3px] py-[1px] transition cursor-pointer">
-                          <span className="text-[11.5px] font-medium tabular-nums text-ink-600">{h.target}</span>
-                          <span className="text-[10.5px] font-medium text-ink-400">{h.unit}</span>
-                        </span>
-                      )}
-                    </div>
+                  {/* 目标 - inline 编辑 */}
+                  <div className="text-right tabular-nums font-medium" onClick={(e) => e.stopPropagation()}>
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        type="number"
+                        min="1"
+                        value={targetDraft}
+                        onChange={(e) => setTargetDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitTarget(h);
+                          if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
+                        }}
+                        onBlur={() => commitTarget(h)}
+                        className="w-16 ml-auto px-2 py-1 text-[14px] font-bold text-right border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                      />
+                    ) : (
+                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-end gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer w-full pr-0">
+                        <span className="text-[14px] font-semibold text-ink-700 tabular-nums text-right ml-1">{h.target}</span>
+                        <span className="text-[12px] text-ink-500 ml-1">{h.unit}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right font-semibold tabular-nums text-ink-900 text-[14px] cum-gap">{h.val}</div>
+                  {/* 完成率 - 内联样式确保绿色(#22c55e)，与L1卡片百分比颜色完全一致 */}
+                  <div className="text-right cursor-pointer grp-end" onClick={() => onAction?.('editHabit', h)}>
+                    <span className="text-[14px] font-semibold tabular-nums" style={{color: GREEN}}>{p}%</span>
                   </div>
                   {monthIndices.map((monthIdx) => {
                     const n = h.month?.[monthIdx] || 0;
@@ -4517,10 +4489,7 @@ export default function AnnualPlan({ standalone = true }) {
          → 每个月份格子增加2px宽度，数字显示更舒适，整体更紧凑
       */
       .habit-table {
-        /* ⭐ 方案C：3 统计列合并成 1 列「KPI 年度 · 合并列」（176px）
-           原：目标64 + 累计52 + 完成率60 = 176px → 合并后宽度丝毫不减，月份列完全不用动
-           新结构：[习惯列 1.5fr] [KPI合并 176px: 双行 → 行1%大绿 行2累计/目标小字灰] [12月份列] */
-        grid-template-columns: minmax(110px, 1.5fr) 176px repeat(12, minmax(32px, 0.28fr));
+        grid-template-columns: minmax(110px, 1.5fr) 64px 52px 60px repeat(12, minmax(32px, 0.28fr));
         gap: 0 0;
         align-items: center;
       }

@@ -1556,8 +1556,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                3. 区块间距：L1-L2 之间无分隔 → 加 my-4 + border-t border-ink-100 的 12px 空白通道
         */}
         {/* L2: mt-4(上间距) + border-t border-ink-100(分割线) + pt-4(下间距)
-            统一16px对称间距，与L3分割线完全一致 */}
-        <div className="mt-4 px-0 pb-0 rounded-xl border-t border-ink-100 bg-transparent pt-4">
+            去掉 rounded-xl：分割线两端必须是直线，不能被圆角裁剪
+            内部表格容器单独保留 rounded-xl 做卡片圆角 */}
+        <div className="mt-4 px-0 pb-0 border-t border-ink-100 bg-transparent pt-4">
             {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
             <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
               <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
@@ -1727,7 +1728,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         */}
         {/* L3: mt-4(上间距) + border-t border-ink-100(分割线) + pt-4(下间距)
             统一16px对称间距，与L2分割线完全一致 */}
-        <div className="w-full px-4 mt-4 pt-4 pb-6 border-t border-ink-100 bg-transparent">
+        {/* L3: mt-4(上间距) + pt-4(下间距)
+            mx-[-16px] 抵消 px-4 内边距，让 border-t 延伸到容器边缘，两端直线
+            内容仍保留 px-4 内边距 */}
+        <div className="w-full px-4 mt-4 pt-4 pb-6 mx-[-16px] border-t border-ink-100 bg-transparent">
           <div className="flex items-center justify-between mb-4">
             {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
             <span className="flex items-center gap-2">

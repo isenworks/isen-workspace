@@ -2991,7 +2991,7 @@ function CognitionView({
           </div>
           <div className="flex-1 flex flex-col justify-center">
             <ReadingFunnel
-              total={funnelData.total}
+              total={funnelData.doneBooksCount}
               done={funnelData.done}
               notes={funnelData.notes}
               changes={funnelData.changes}

@@ -3601,11 +3601,12 @@ function CognitionView({
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full shadow-sm flex-shrink-0" style={{ background: g.col, boxShadow: `0 0 0 3px ${g.col}22` }}></span>
                   <span className="text-[12.5px] font-bold text-ink-900 leading-none">{g.lb}</span>
-                  <span className="inline-flex items-center justify-center min-w-[17px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold tabular-nums leading-none"
-                    style={{ background: '#fff', color: g.col, boxShadow: `0 1px 2px rgba(0,0,0,0.06)` }}>
-                    {g.books.length}
-                  </span>
                 </div>
+                {/* 数量移到最右侧（取代原"+号"位置）*/}
+                <span className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full text-[10.5px] font-extrabold tabular-nums leading-none"
+                  style={{ background: '#fff', color: g.col, boxShadow: `0 1px 2px rgba(0,0,0,0.06)`, border: `1px solid ${g.col}18` }}>
+                  {g.books.length}
+                </span>
               </div>
               <div className="flex flex-col gap-1 flex-1 min-h-[80px]">
                 {g.books.length === 0 ? (
@@ -3654,6 +3655,47 @@ function CognitionView({
                       || rawCover.startsWith('./')
                     );
                     const realCover = isRealCover ? rawCover : '';
+                    // 状态语义 Pill（左下角）
+                    let statusPill = { label: statusDot.lb, col: statusDot.col, bg: `${statusDot.col}14` };
+                    if (b.st === 'reading') {
+                      statusPill = { label: '正在阅读', col: BLUE, bg: BLUE_LIGHT };
+                    } else if (b.st === 'done') {
+                      const落地 = (validActs.length > 0) ? ` · 落地 ${Math.min(validActs.length, 2)} 条` : '';
+                      statusPill = { label: hasAct ? `已践行${落地}` : '已读完', col: '#22c55e', bg: '#dcfce7' };
+                    } else if (b.st === 'abandoned') {
+                      statusPill = { label: '归档', col: '#64748b', bg: '#f1f5f9' };
+                    } else {
+                      // pending → 根据日期状态文字
+                      if (b.startDate) statusPill = { label: `计划 ${b.startDate?.slice(0,7).replace('-','/')}`, col: '#f59e0b', bg: '#fef3c7' };
+                      else statusPill = { label: '待开启', col: '#64748b', bg: '#f8fafc' };
+                    }
+                    // 右侧 Chip 1：日期 Chip（截图右下方 "08/15" 位置 = 月/日简洁格式）
+                    const dateChipText = (() => {
+                      if (b.st === 'done' && b.endDate) {
+                        // 已读完：结束日期 MM/DD
+                        return String(b.endDate).slice(5).replace('-', '/');
+                      }
+                      const d = b.startDate || b.endDate || b.updatedAt || b.createdAt;
+                      if (d) {
+                        // 统一 MM/DD 简洁格式（对齐截图 "08/15"）
+                        const s = String(d);
+                        const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                        if (m) return `${String(+m[2]).padStart(2,'0')}/${String(+m[3]).padStart(2,'0')}`;
+                        const s2 = s.replace(/\//g, '-');
+                        const m2 = s2.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                        if (m2) return `${String(+m2[2]).padStart(2,'0')}/${String(+m2[3]).padStart(2,'0')}`;
+                      }
+                      return '';
+                    })();
+                    const coverInitBg = (() => {
+                      switch (b.cat) {
+                        case '认知成长': return 'linear-gradient(135deg,#eff6ff,#dbeafe)';
+                        case '人际沟通': return 'linear-gradient(135deg,#faf5ff,#ede9fe)';
+                        case '商业职场': return 'linear-gradient(135deg,#fff7ed,#ffedd5)';
+                        case '人文叙事': return 'linear-gradient(135deg,#f0fdf4,#bbf7d0)';
+                        default: return `linear-gradient(135deg, ${catCol}1A, ${catCol}33)`;
+                      }
+                    })();
                     return (
                       <div
                         key={b.id}
@@ -3665,30 +3707,58 @@ function CognitionView({
                         }}
                         onDragEnd={() => { setDragBookId(null); setDragOverCol(null); }}
                         onClick={() => onBookEdit?.(b)}
-                        className={`rounded-xl bg-white transition-all relative select-none overflow-hidden group ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_3px_14px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
+                        onContextMenu={(e) => { e.preventDefault(); onBookContextMenu?.(e, b); }}
+                        className={`rounded-2xl bg-white transition-all relative select-none overflow-hidden group ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_5px_16px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
                         style={{
                           cursor: isDragging ? 'grabbing' : 'pointer',
-                          boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
+                          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
                           border: `1px solid rgba(15,23,42,0.06)`,
                         }}>
-                        {/* 左侧分类色条（身份锚点 + 拖拽暗示）*/}
-                        <div className="absolute left-0 top-0 bottom-0 w-[4px] transition-all duration-200 group-hover:w-[5px]"
+                        {/* 左侧状态栏位色条（替代原分类色条，按阅读/未开始/已读完/归档上色）*/}
+                        <div className="absolute left-0 top-0 bottom-0 w-[3px] transition-all duration-200 group-hover:w-[4px]"
                           style={{
-                            background: catCol,
-                            opacity: 0.9,
-                            boxShadow: isDragging ? `2px 0 10px ${catCol}66` : undefined,
+                            background: statusDot.col,
+                            opacity: 0.95,
+                            borderRadius: '0 2px 2px 0',
                           }} />
 
-                        {/* 主体：左封面 + 右文本 flex 布局 */}
-                        <div className="flex w-full min-w-0">
-                          {/* 左：方案 A 封面 42×56 装饰块 */}
-                          <div className="flex-shrink-0 pl-[10px] pt-[9px] pr-[9px]">
+                        {/* ============ Linear 紧凑结构：5 行 ============ */}
+                        <div className="w-full min-w-0 flex flex-col gap-[5px]" style={{ padding: '8px 9px 8px 10px' }}>
+
+                          {/* R1：日历图标 + 状态日期辅助信息 + 右上角⋯菜单 */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 min-w-0 flex-1">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                              </svg>
+                              <span className="text-[10.5px] font-medium text-ink-400 leading-none truncate">
+                                {b.st === 'done'
+                                  ? `已读完${b.endDate ? ' · ' + String(b.endDate).replace(/-/g,'/').slice(2) : ''}${b.startDate ? ' · 用时 ' + Math.max(1, Math.round((+new Date(b.endDate||Date.now()) - +new Date(b.startDate))/86400000)) + ' 天' : ''}`
+                                  : b.startDate
+                                    ? `预计 ${String(b.startDate).replace(/-/g,'/')}${b.st === 'reading' ? ' 读完' : ' 开启'}`
+                                    : `${statusPill.label}状态`
+                                }
+                              </span>
+                            </div>
+                            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="w-[18px] h-[18px] rounded flex items-center justify-center text-ink-300 hover:text-ink-500 hover:bg-ink-50"
+                                onClick={(e) => { e.preventDefault(); onBookContextMenu?.(e, b); }}
+                                title="更多操作(编辑/移动/删除)"
+                                style={{ lineHeight: 1 }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* R2：封面 42×56 + 书名(粗) + 分类Pill + 作者简介 —— 对齐截图标题/副标题/分类块 */}
+                          <div className="flex items-start gap-[10px] min-w-0">
                             <div style={{
-                              width: '42px', height: '56px', borderRadius: '5px', overflow: 'hidden',
-                              border: `1px solid ${catCol}40`,
-                              background: realCover ? '#fff' : `linear-gradient(135deg, ${catCol}1A 0%, ${catCol}33 100%)`,
-                              boxShadow: '0 2px 4px rgba(15,23,42,0.06)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              width:'42px', height:'56px', borderRadius:'6px', overflow:'hidden', flex:'0 0 42px',
+                              border: `1px solid ${catCol}33`,
+                              background: realCover ? '#fff' : coverInitBg,
+                              boxShadow: '0 2px 5px rgba(15,23,42,0.06)',
+                              display: 'flex', alignItems:'center', justifyContent:'center',
                             }}>
                               {realCover ? (
                                 <CoverImg
@@ -3696,149 +3766,166 @@ function CognitionView({
                                   bookId={b.id}
                                   coverSource={b.coverSource}
                                   onPersist={(dataUrl) => {
-                                    // 首次加载成功后：把 /api/cover/proxy?... 转成 base64 dataURL 写回，
-                                    // 下次直接从 localStorage 读，不需要再走网络请求+防盗链代理（秒开）
                                     if (typeof onBookUpdate !== 'function') return;
-                                    try {
-                                      onBookUpdate(b.id, { coverUrl: dataUrl, coverSource: 'local-base64' });
-                                    } catch (_) { /* 配额或失败时忽略，下次继续用代理 */ }
+                                    try { onBookUpdate(b.id, { coverUrl: dataUrl, coverSource: 'local-base64' }); }
+                                    catch (_) {}
                                   }}
                                   catCol={catCol}
                                   fallbackChar={(b.t||'书').charAt(0)}
                                 />
                               ) : (
-                                <span style={{ color: catCol, fontSize: '18px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22` }}>
+                                <span style={{ color: catCol, fontSize: '19px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22`, lineHeight: 1 }}>
                                   {(b.t||'书').charAt(0)}
                                 </span>
                               )}
                             </div>
-                          </div>
-                          {/* 右：文本容器（flex-1 堆叠 L1+L2）*/}
-                          <div className="flex-1 min-w-0 flex flex-col pt-[9px] pr-[9px] pb-0">
-                        {/* L1：状态点 + 书名 + 进度%胶囊 */}
-                        <div className="flex items-start justify-between gap-1.5 w-full min-w-0">
-                          <div className="min-w-0 flex-1 flex items-start gap-1.5">
-                            {/* 状态圆点（未开始灰空心/阅读中蓝呼吸/已读完绿实心/弃读灰斜）*/}
-                            <span className="flex-shrink-0 mt-[4px] inline-block rounded-full"
-                              style={{
-                                width: '7px', height: '7px',
-                                background: statusDot.solid ? statusDot.col : 'transparent',
-                                border: statusDot.solid ? 'none' : `1.5px solid ${statusDot.col}`,
-                                animation: statusDot.pulse ? 'pulse 2.2s ease-in-out infinite' : undefined,
-                                boxShadow: statusDot.pulse ? `0 0 0 3px ${BLUE}1A` : undefined,
-                              }}
-                              title={statusDot.lb} />
-                            <div className="min-w-0 flex-1">
-                              <div className={`text-[12.5px] font-bold truncate leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
-                                style={{ color: isDone ? '#64748b' : '#0f172a' }}>
-                                {b.t}
+                            <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                              <div className="flex items-start justify-between gap-2 min-w-0">
+                                <div className={`min-w-0 flex-1 truncate text-[14.5px] font-bold leading-[1.28] ${statusDot.strike ? 'line-through' : ''}`}
+                                  style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
+                                  {b.t}
+                                </div>
+                                <span className="inline-flex flex-shrink-0 items-center px-[7px] h-[18px] rounded-full text-[10.5px] font-bold leading-none"
+                                  style={{
+                                    background: (() => {
+                                      switch (b.cat) {
+                                        case '认知成长': return BLUE_LIGHT;
+                                        case '人际沟通': return '#ede9fe';
+                                        case '商业职场': return '#fef3c7';
+                                        case '人文叙事': return '#dcfce7';
+                                        default: return '#f1f5f9';
+                                      }
+                                    })(),
+                                    color: catCol,
+                                  }}>
+                                  {b.cat || '未分类'}
+                                </span>
+                              </div>
+                              <div className="min-w-0 text-[11.5px] text-ink-400 font-medium leading-[1.45] truncate" style={{ marginTop: '-1px' }}>
+                                <span>{b.author || '佚名作者'}</span>
+                                {b.summary ? <span className="text-ink-300"> · {b.summary}</span> : null}
                               </div>
                             </div>
                           </div>
-                          {/* 百分比胶囊：右对齐，颜色按状态 */}
-                          <span className="flex-shrink-0 tabular-nums px-1.5 py-[2px] rounded-md font-extrabold text-[11px] leading-none"
-                            style={{
-                              color: isDone ? '#16a34a' : statusDot.col,
-                              background: isDone ? 'rgba(34,197,94,0.08)' : `color-mix(in srgb, ${statusDot.col} 10%, white)`,
-                            }}>
-                            {pct}%
-                          </span>
-                        </div>
 
-                        {/* L2：分类色标 + 洞察/行动勾号 + 电子书↗跳转（右下）*/}
-                        <div className="pl-0 pr-0 pt-[5px] pb-[7px] flex items-center justify-between gap-1 min-w-0 w-full flex-1">
-                          {/* 分类身份：小色方块+文字（最小字号，与顶部信息区分层级）*/}
-                          <div className="flex items-center gap-1 min-w-0 flex-1">
-                            <span className="flex-shrink-0 rounded-[3px]" style={{ width: '7px', height: '7px', background: catCol }} />
-                            <span className="truncate text-[10.5px] font-medium leading-none"
-                              style={{ color: catCol }}>{b.cat || '未分类'}</span>
-                            {/* 次要洞察数（非已读完才展示；已读完用右下✓体现）*/}
-                            {!isDone && (hasIns || hasAct) && (
-                              <span className="text-[9.5px] font-semibold px-1 py-0.5 rounded flex items-center gap-0.5"
-                                style={{ color: '#64748b', background: '#f1f5f9' }}>
-                                {hasIns && <span style={{ color: BLUE }}>💡{validIns.length}</span>}
-                                {hasIns && hasAct && <span className="text-ink-300">·</span>}
-                                {hasAct && <span style={{ color: '#f59e0b' }}>●{validActs.length}</span>}
-                              </span>
-                            )}
+                          {/* R3：阅读进度行（左：时钟图标+文字 / 右：% + 4px bar）—— 对齐截图 "阅读进度 60% ━━" */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1 min-w-0 flex-1">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+                              </svg>
+                              <span className="text-[10.5px] font-medium text-ink-400 leading-none">阅读进度</span>
+                            </div>
+                            <div className="flex items-center gap-[6px] flex-shrink-0">
+                              <span className={`text-[10.5px] font-bold tabular-nums leading-none ${b.st==='done' ? 'text-green-600' : ''}`}
+                                style={{ color: b.st==='done' ? '#16a34a' : statusDot.col }}>{pct}%</span>
+                              <div style={{ width: '52px', height:'4px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden' }}>
+                                <div style={{
+                                  width: `${Math.max(0, pct)}%`, height: '100%', borderRadius: '999px',
+                                  background: b.st === 'done'
+                                    ? '#22c55e'
+                                    : b.st === 'abandoned'
+                                      ? '#94a3b8'
+                                      : pct <= 0 ? 'transparent' : statusDot.col,
+                                  transition: 'width 300ms ease-out',
+                                }}/>
+                              </div>
+                            </div>
                           </div>
-                          {/* 右侧控件：漏斗勾（已读完） + 电子书↗按钮（右下角）*/}
-                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            {isDone && (
-                              <>
-                                <button
-                                  onClick={() => onBookUpdate?.(b.id, { hasInsights: !hasIns })}
-                                  className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
-                                  style={{
-                                    background: hasIns ? BLUE : 'transparent',
-                                    color: hasIns ? '#fff' : '#cbd5e1',
-                                    border: hasIns ? 'none' : '1px solid #e2e8f0',
-                                    fontSize: '10px', fontWeight: 800, lineHeight: 1,
-                                  }}
-                                  title={hasIns ? '有洞察（漏斗思考量）' : '点击标记为有洞察'}>
-                                  {hasIns ? '✓' : 'I'}
-                                </button>
-                                <button
-                                  onClick={() => onBookUpdate?.(b.id, { hasAction: !hasAct })}
-                                  className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
-                                  style={{
-                                    background: hasAct ? '#22c55e' : 'transparent',
-                                    color: hasAct ? '#fff' : '#cbd5e1',
-                                    border: hasAct ? 'none' : '1px solid #e2e8f0',
-                                    fontSize: '10px', fontWeight: 800, lineHeight: 1,
-                                  }}
-                                  title={hasAct ? '有行动（漏斗行动量）' : '点击标记为有行动'}>
-                                  {hasAct ? '✓' : 'A'}
-                                </button>
-                              </>
-                            )}
-                            {isEbookLink && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
-                                  catch { onBookEdit?.(b); }
-                                }}
-                                title="点击打开电子书（点击卡片其他位置为编辑）"
-                                className="flex items-center justify-center rounded-md transition-all duration-150 flex-shrink-0"
+
+                          {/* R4：核心闭环行（洞察 ✔ 几组 / 行动 □ 几条）—— 前面无 "核心闭环" 四字，直接勾选组合 */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <div className={`flex items-center justify-center w-[13px] h-[13px] rounded-[3px]`}
                                 style={{
-                                  width: '18px', height: '18px',
-                                  background: BLUE,
-                                  color: '#fff',
-                                  fontSize: '10px',
-                                  fontWeight: 900,
-                                  lineHeight: 1,
-                                  boxShadow: `0 2px 6px rgba(0,122,255,0.28)`,
+                                  background: hasIns ? BLUE : 'transparent',
+                                  border: hasIns ? 'none' : '1.5px solid #cbd5e1',
                                 }}>
-                                ↗
-                              </button>
-                            )}
+                                {hasIns && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                              </div>
+                              <span className="text-[10.5px] font-semibold text-ink-500 leading-none">洞察 {validIns.length} 组</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className={`flex items-center justify-center w-[13px] h-[13px] rounded-[3px]`}
+                                style={{
+                                  background: hasAct ? '#22c55e' : 'transparent',
+                                  border: hasAct ? 'none' : '1.5px solid #cbd5e1',
+                                }}>
+                                {hasAct && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                              </div>
+                              <span className="text-[10.5px] font-semibold text-ink-500 leading-none">行动 {validActs.length} 条</span>
+                            </div>
                           </div>
-                        </div>
 
+                          {/* R5：左下语义 Pill + 右下 Chip（Chip1=时间  Chip2=跳转图标=电子书打开） */}
+                          <div className="flex items-center justify-between gap-2" style={{ marginTop: '1px' }}>
+                            <span className="inline-flex items-center gap-[3px] px-[7px] h-[19px] rounded-full text-[10.5px] font-bold leading-none"
+                              style={{ background: statusPill.bg, color: statusPill.col }}>
+                              {b.st === 'reading' && (
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M2 12l2-2v7h18v3H2V10z"/></svg>
+                              )}
+                              {b.st === 'done' && (
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                              )}
+                              {b.st === 'pending' && !b.startDate && (
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="8"/></svg>
+                              )}
+                              {b.st === 'pending' && b.startDate && (
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a9 9 0 1 0 9 9c0-4.97-4.03-9-9-9zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
+                              )}
+                              {b.st === 'abandoned' && (
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                              )}
+                              {statusPill.label}
+                            </span>
+                            <div className="flex items-center gap-[10px]" onClick={(e) => e.stopPropagation()}>
+                              {/* Chip 1：日期/状态 Chip（截图日历数字 Chip 位置） */}
+                              {dateChipText && (
+                                <span className="inline-flex items-center gap-[3px] text-[10.5px] font-semibold text-ink-400 leading-none">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                                  {dateChipText}
+                                </span>
+                              )}
+                              {/* Chip 2：电子书跳转（纯图标 ↗ 不用文字） */}
+                              {isEbookLink && (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
+                                    catch { onBookEdit?.(b); }
+                                  }}
+                                  title="打开电子书"
+                                  className="inline-flex items-center justify-center transition-all duration-150"
+                                  style={{
+                                    width: '18px', height: '18px', borderRadius:'6px',
+                                    background: BLUE, color:'#fff',
+                                    boxShadow: `0 2px 6px rgba(2,132,199,0.32)`,
+                                  }}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M7 17 17 7M7 7h10v10"/>
+                                  </svg>
+                                </button>
+                              )}
+                              {/* Chip 2-备选：没电子书的 done 书 → 复盘笔记图标 */}
+                              {!isEbookLink && b.st === 'done' && hasIns && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onBookEdit?.(b); }}
+                                  title="查看笔记/复盘"
+                                  className="inline-flex items-center justify-center transition-all duration-150"
+                                  style={{
+                                    width: '18px', height: '18px', borderRadius:'6px',
+                                    background: '#22c55e', color:'#fff',
+                                    boxShadow: `0 2px 6px rgba(34,197,94,0.28)`,
+                                  }}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-
-                        {/* L3：底部进度带（3px，贯穿整卡宽；核心感知层）*/}
-                        <div className="w-full h-[3px] relative" style={{ background: '#f1f5f9' }}>
-                          {b.st === 'abandoned' ? (
-                            <div className="absolute left-0 top-0 h-full" style={{
-                              width: '100%',
-                              background: 'repeating-linear-gradient(45deg,#cbd5e1 0 4px,#e2e8f0 4px 8px)',
-                              opacity: 0.5,
-                            }} />
-                          ) : (
-                            <div className="absolute left-0 top-0 h-full transition-all duration-500 ease-out" style={{
-                              width: `${pct}%`,
-                              background: isDone
-                                ? 'linear-gradient(90deg,#22c55e 0%,#16a34a 100%)'
-                                : pct <= 0
-                                  ? 'transparent'
-                                  : `linear-gradient(90deg, ${BLUE}4D 0%, ${BLUE} 100%)`,
-                              borderTopRightRadius: pct >= 99 ? 0 : '3px',
-                            }} />
-                          )}
                         </div>
                       </div>
                     );

@@ -4538,17 +4538,23 @@ export default function AnnualPlan({ standalone = true }) {
             />
           </Modal>
         );
-      case 'book':
+      case 'book': {
+        const isBookEdit = !!(modal.initial && modal.initial.id);
         return (
-          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑书籍' : '添加书籍'}>
+          <Modal open onClose={closeModal} title={isBookEdit ? '编辑书籍' : '添加书籍'} maxWidth={560}>
             <BookForm
               initial={modal.initial}
-              onSaved={(data) => { modal.initial?.id ? bookOps.update(data) : bookOps.add(data); }}
-              {...props}
-              onDelete={modal.initial?.id ? (id) => { bookOps.remove(id); closeModal(); } : undefined}
+              onCancel={closeModal}
+              onSaved={(data) => {
+                if (isBookEdit) bookOps.update(data); else bookOps.add(data);
+                closeModal();
+                showToast(isBookEdit ? '书籍已更新' : '书籍已添加');
+              }}
+              onDelete={isBookEdit ? (id) => { bookOps.remove(id); closeModal(); showToast('书籍已删除'); } : undefined}
             />
           </Modal>
         );
+      }
       case 'milestone':
         return (
           <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑里程碑' : '添加里程碑'}>

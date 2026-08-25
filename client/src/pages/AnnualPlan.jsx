@@ -2679,15 +2679,63 @@ function CognitionView({
     }
   };
 
-  const doWereadSync = async () => {
+  // 注意：同步按钮 SHIFT + 点击 = 调试模式（在 Console 打印 weread 返回的首本书真实结构，便于排查字段名）
+  const doWereadSync = async (event) => {
+    const debug = !!(event && event.shiftKey);
     if (!wereadCfgOk) { setShowWereadSettings(true); return; }
     setWereadSyncing(true);
     try {
-      const r = await fetch('/api/weread/sync');
+      const r = await fetch('/api/weread/sync' + (debug ? '?debug=1' : ''));
       const j = await r.json().catch(() => ({}));
+      if (debug) {
+        // eslint-disable-next-line no-console
+        console.group('[DEBUG] 微信读书返回结构');
+        console.log('HTTP 响应 j=', j);
+        // eslint-disable-next-line no-console
+        if (Array.isArray(j.books) && j.books.length > 0) console.log('wereadBooks[0] =', JSON.stringify(j.books[0], null, 2));
+        // eslint-disable-next-line no-console
+        console.groupEnd();
+      }
       if (!j?.ok) throw new Error(j?.error || '同步失败');
       const wereadBooks = j.books || [];
       if (wereadBooks.length === 0) { showToast?.('微信读书书架为空'); return; }
+      // 提取封面字段：weread 不同接口字段名不一致(cover/coverImg/coverUrl/pic/img/bookCover)，做兼容
+      const pickCover = (wb) => {
+        const candidate = wb.cover || wb.coverImg || wb.coverUrl || wb.pic || wb.img || wb.bookCover
+          || wb.book_cover || wb.bookInfo?.cover || wb.book_info?.cover
+          || wb.bookInfo?.coverImg || wb.book_info?.cover_img;
+        // 可能是对象 {url,https} 等，把里层取出来
+        if (typeof candidate === 'string') return candidate;
+        if (candidate && typeof candidate === 'object') {
+          return candidate.url || candidate.https || candidate.src || candidate.href || '';
+        }
+        return '';
+      };
+      const pickField = (wb, keys, fb = '') => {
+        for (const k of keys) {
+          const parts = k.split('.');
+          let cur = wb, miss = false;
+          for (const p of parts) {
+            if (cur == null || typeof cur !== 'object') { miss = true; break; }
+            cur = cur[p];
+          }
+          if (!miss && cur != null && cur !== '') return cur;
+        }
+        return fb;
+      };
+      // 统一字段
+      const books = wereadBooks.map(wbRaw => {
+        const wb = Object.assign({}, wbRaw);
+        wb.title = pickField(wb, ['title','bookTitle','name','bookName','book_title'],'未知书名');
+        wb.author = pickField(wb, ['author','authors','bookAuthor','book_author'],'');
+        wb.status = Number(pickField(wb, ['status','readingStatus','readStatus','reading_status'], 0));
+        wb.progress = Number(pickField(wb, ['progress','readingProgress','readProgress','pct','percent'], 0));
+        wb.bookId = pickField(wb, ['bookId','book_id','id','bid'],'');
+        wb.cover = pickCover(wb);
+        wb.startDate = pickField(wb, ['startDate','start_date','readingStart','reading_start'],'');
+        wb.endDate = pickField(wb, ['endDate','finishDate','finish_date','readingEnd','reading_end'],'');
+        return wb;
+      });
       // 合并策略：匹配优先级（从高到低）
       //   1) 书名+作者 完全匹配（去空格/大小写/标点 + 作者别名中英文对照）
       //   2) 书名 匹配（忽略副标题）+ （没有作者信息时也能匹配）
@@ -2733,7 +2781,7 @@ function CognitionView({
       const updater = (prev) => {
         const curr = Array.isArray(prev) ? [...prev] : [];
         let updated = 0, added = 0;
-        for (const wb of wereadBooks) {
+        for (const wb of books) {
           const wFullTitle = norm(wb.title);
           const wMainTitle = normTitleOnly(wb.title);
           // 依次尝试 3 种匹配策略，命中第一个就 break
@@ -3430,7 +3478,14 @@ function CognitionView({
                     const validActs = acts.filter(a => a.text?.trim());
                     const hasIns = validIns.length > 0;
                     const hasAct = validActs.length > 0;
-                    const realCover = b.coverUrl && String(b.coverUrl).startsWith('http') ? String(b.coverUrl) : '';
+                    const rawCover = String(b.coverUrl || '').trim();
+                    // 支持三类真实封面：① 完整 URL(http/https) ② 同源代理路径(/api/cover/proxy?...)  ③ 绝对路径(/xxx)
+                    const isRealCover = rawCover && (
+                      /^https?:\/\//i.test(rawCover)
+                      || rawCover.startsWith('/')
+                      || rawCover.startsWith('./')
+                    );
+                    const realCover = isRealCover ? rawCover : '';
                     return (
                       <div
                         key={b.id}

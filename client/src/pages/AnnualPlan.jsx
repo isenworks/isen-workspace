@@ -72,6 +72,8 @@ const HABITS = [
 /* 认知 · 书籍 */
 const BOOKS = [
   { t: '纳瓦尔宝典',   author: 'Eric Jorgenson', cat: '认知成长', st: 'reading', pct: 60, src: '电子书',
+    bookId: 'e1e32b00729fc94fe1e824d',
+    ebookUrl: 'https://weread.qq.com/web/reader/e1e32b00729fc94fe1e824d',
     insights: [
       { id: 'n1', text: '财富=专长*杠杆*长期投入', resonance: 9, scene: '用在个人专长识别与自媒体长期内容产出节奏规划' },
     ],
@@ -83,12 +85,16 @@ const BOOKS = [
     action: '确定自己的专长（视觉化），利用自媒体杠杆，坚持长期投入形成复利',
   },
   { t: '思考，快与慢', author: '丹尼尔·卡尼曼', cat: '认知成长', st: 'pending', pct: 0, src: '电子书',
+    bookId: '97132350813ab9e65g0129cb',
+    ebookUrl: 'https://weread.qq.com/web/reader/97132350813ab9e65g0129cb',
     insights: [],
     hasInsights: false,
     hasAction: false,
     actions: [],
   },
   { t: '认知觉醒',     author: '周岭', cat: '认知成长', st: 'done',    pct: 100, src: '电子书',
+    bookId: '6a732ce07201202c6a7b30a',
+    ebookUrl: 'https://weread.qq.com/web/reader/6a732ce07201202c6a7b30a',
     insights: [
       { id: 'c1', text: '大脑分为本能脑、情绪脑和理智脑，情绪脑更强大，不要用所谓的意志力跟它对抗', resonance: 9, scene: '遇到情绪干扰时先安抚情绪脑再处理理性目标' },
       { id: 'c2', text: '看书学习时关注改变量而输入量', resonance: 8, scene: '读书计划不追求读完数量，追求实际落地行动条数' },
@@ -101,30 +107,48 @@ const BOOKS = [
     action: '建立自己的认知成长体系，每日反思输出',
   },
   { t: '非暴力沟通',   author: '马歇尔·卢森堡', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
+    bookId: 'b7d32470813ab7e0eg015e3f',
+    ebookUrl: 'https://weread.qq.com/web/reader/b7d32470813ab7e0eg015e3f',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '超级沟通者',   author: 'Lisa B. Marshall', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
+    bookId: '65632ab0813ab9992g0180d2',
+    ebookUrl: 'https://weread.qq.com/web/reader/65632ab0813ab9992g0180d2',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '影响力',       author: '罗伯特·西奥迪尼', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
+    bookId: '9ad32d40727950039add092',
+    ebookUrl: 'https://weread.qq.com/web/reader/9ad32d40727950039add092',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '高效能人士的七个习惯', author: '史蒂芬·柯维', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    bookId: '56d325907203e8a856def7f',
+    ebookUrl: 'https://weread.qq.com/web/reader/56d325907203e8a856def7f',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '创始人：新管理者如何度过第一个90天', author: 'Michael Lopp', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    bookId: '226324d071b126082268c98',
+    ebookUrl: 'https://weread.qq.com/web/reader/226324d071b126082268c98',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '增长黑客',     author: 'Sean Ellis', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    bookId: '0c8326e05e12740c876a134',
+    ebookUrl: 'https://weread.qq.com/web/reader/0c8326e05e12740c876a134',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '上瘾',         author: 'Nir Eyal', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    bookId: '78232c00813ab9f6fg014655',
+    ebookUrl: 'https://weread.qq.com/web/reader/78232c00813ab9f6fg014655',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '金字塔原理',   author: '芭芭拉·明托', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    bookId: 'ff4323b0813ab6e84g018832',
+    ebookUrl: 'https://weread.qq.com/web/reader/ff4323b0813ab6e84g018832',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '曾国藩传',     author: '张宏杰', cat: '人文叙事', st: 'done',    pct: 100, src: '电子书',
+    bookId: '66032040716ac50b660b6c7',
+    ebookUrl: 'https://weread.qq.com/web/reader/66032040716ac50b660b6c7',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
 ];
@@ -4772,7 +4796,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v10', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v11', () => BOOKS.map(b => ({ ...b, id: uid() })));
   // 安全网：防止 books 被意外清空
   useEffect(() => {
     if (Array.isArray(books) && books.length === 0) {

@@ -3121,13 +3121,13 @@ function CognitionView({
             })();
             return (
             <div key={g.key}
-              className="rounded-2xl p-3 flex flex-col transition-all duration-200"
+              className="rounded-2xl py-3 px-2.5 flex flex-col transition-all duration-200"
               style={{
                 background: g.dot,
                 border: isDragOver
                   ? `2px dashed ${g.col}`
                   : `1px solid ${g.col}18`,
-                padding: isDragOver ? 'calc(12px - 1px)' : undefined, // 补偿 border+1 不撑大
+                padding: isDragOver ? 'calc(12px - 1px) calc(10px - 1px)' : undefined,
                 boxShadow: isDragOver ? `0 0 0 4px ${g.col}12` : undefined,
               }}
               onDragOver={(e) => {
@@ -3146,19 +3146,19 @@ function CognitionView({
                 setDragOverCol(null);
               }}
             >
-              <div className="flex items-center justify-between mb-2.5 px-1">
+              <div className="flex items-center justify-between mb-2 px-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full shadow-sm" style={{ background: g.col, boxShadow: `0 0 0 3px ${g.col}22` }}></span>
-                  <span className="text-[13px] font-bold text-ink-900">{g.lb}</span>
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-extrabold tabular-nums"
+                  <span className="w-2 h-2 rounded-full shadow-sm flex-shrink-0" style={{ background: g.col, boxShadow: `0 0 0 3px ${g.col}22` }}></span>
+                  <span className="text-[12.5px] font-bold text-ink-900 leading-none">{g.lb}</span>
+                  <span className="inline-flex items-center justify-center min-w-[17px] h-[17px] px-1.5 rounded-full text-[10px] font-extrabold tabular-nums leading-none"
                     style={{ background: '#fff', color: g.col, boxShadow: `0 1px 2px rgba(0,0,0,0.06)` }}>
                     {g.books.length}
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5 flex-1 min-h-[80px]">
+              <div className="flex flex-col gap-1 flex-1 min-h-[80px]">
                 {g.books.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] transition-all rounded-lg"
+                  <div className="flex-1 flex flex-col items-center justify-center py-5 text-[11.5px] transition-all rounded-lg"
                     style={{
                       color: isDragOver ? g.col : '#a3a3a3',
                       border: isDragOver ? `1.5px dashed ${g.col}90` : '1px dashed rgba(15,23,42,0.10)',
@@ -3190,21 +3190,20 @@ function CognitionView({
                         {/* 主行：点击 → 打开编辑弹窗 */}
                         <div
                           onClick={() => onBookEdit?.(b)}
-                          className="px-2.5 py-2 flex items-center justify-between gap-2"
+                          className="px-2 py-1.5 flex items-center justify-between gap-1.5"
                           style={{ cursor: 'pointer' }}>
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             {/* 拖拽把手：暗示可拖 */}
-                            <span className="text-[9px] leading-none text-ink-200 group-hover:text-ink-400 transition flex-shrink-0"
+                            <span className="text-[8.5px] leading-none text-ink-200 group-hover:text-ink-400 transition flex-shrink-0"
                               title="按住拖到其他栏目"
-                              style={{ letterSpacing: '-0.5px', paddingRight: '2px' }}>
+                              style={{ letterSpacing: '-0.5px' }}>
                               ⋮⋮
                             </span>
-                            <span className="text-[13px] w-5 text-center flex-shrink-0">📖</span>
-                            <div className="min-w-0">
-                              <div className={`text-[12.5px] font-semibold truncate ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
+                            <div className="min-w-0 flex-1">
+                              <div className={`text-[12px] font-semibold truncate leading-tight ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
                                 {b.t}
                               </div>
-                              {b.cat && <div className="text-[10.5px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
+                              {b.cat && <div className="text-[10px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
                               {/* 已读完书籍：洞察+行动状态可视化 */}
                               {isDone && (() => {
                                 const ins = b.insights || [];
@@ -3213,35 +3212,35 @@ function CognitionView({
                                 const hasIns = b.hasInsights || validIns.length > 0;
                                 const hasAct = b.hasAction;
                                 return (
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex flex-wrap items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
                                     {hasIns ? (
                                       <>
-                                        <span className="text-[9px] font-bold px-1.5 py-px rounded" style={{ background: 'rgba(75,99,240,0.1)', color: '#4b63f0' }}>
-                                          💡 {validIns.length} 洞察
+                                        <span className="text-[8.5px] font-bold px-1 py-px rounded leading-none" style={{ background: 'rgba(75,99,240,0.1)', color: '#4b63f0' }}>
+                                          💡 {validIns.length}洞察
                                         </span>
                                         {strongIns.length > 0 && (
-                                          <span className="text-[9px] font-bold px-1.5 py-px rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
-                                            ⚡ {strongIns.length} 强共鸣
+                                          <span className="text-[8.5px] font-bold px-1 py-px rounded leading-none" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                                            ⚡{strongIns.length}共鸣
                                           </span>
                                         )}
                                       </>
                                     ) : (
-                                      <span className="text-[9px] text-ink-400 italic">无洞察</span>
+                                      <span className="text-[8.5px] text-ink-400 italic leading-none">无洞察</span>
                                     )}
                                     {hasAct && (
-                                      <span className="text-[9px] font-bold px-1.5 py-px rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
-                                        🎯 已行动
+                                      <span className="text-[8.5px] font-bold px-1 py-px rounded leading-none" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
+                                        🎯已行动
                                       </span>
                                     )}
                                     <button
                                       onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasInsights: !hasIns }); }}
-                                      className="text-[9px] text-ink-300 hover:text-blue-500 ml-0.5"
+                                      className="text-[8.5px] text-ink-300 hover:text-blue-500 leading-none"
                                       title={hasIns ? '标记为无洞察' : '标记为有洞察'}>
                                       {hasIns ? '✓' : '○'}
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasAction: !hasAct }); }}
-                                      className="text-[9px] text-ink-300 hover:text-purple-500"
+                                      className="text-[8.5px] text-ink-300 hover:text-purple-500 leading-none"
                                       title={hasAct ? '取消行动标记' : '标记为已行动'}>
                                       {hasAct ? '✓' : '○'}
                                     </button>
@@ -3250,15 +3249,15 @@ function CognitionView({
                               })()}
                               {/* 进行中/待读书籍的观点小标签 */}
                               {!isDone && b.insights?.length > 0 && (
-                                <div className="flex items-center gap-1.5 mt-1">
-                                  <span className="text-[9.5px] font-semibold px-1.5 py-px rounded" style={{ background: 'rgba(75,99,240,0.08)', color: '#4b63f0' }}>
-                                    {b.insights.length} 观点
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className="text-[9px] font-semibold px-1 py-px rounded leading-none" style={{ background: 'rgba(75,99,240,0.08)', color: '#4b63f0' }}>
+                                    {b.insights.length}观点
                                   </span>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: g.col }}>
+                          <span className="text-[11.5px] font-extrabold tabular-nums flex-shrink-0 leading-none" style={{ color: g.col }}>
                             {b.pct}%
                           </span>
                         </div>

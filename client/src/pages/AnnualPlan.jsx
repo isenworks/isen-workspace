@@ -71,72 +71,61 @@ const HABITS = [
 
 /* 认知 · 书籍 */
 const BOOKS = [
-  { t: '纳瓦尔宝典',   author: 'Eric Jorgenson', cat: '财富观', st: 'reading', pct: 60, src: '电子书',
+  { t: '纳瓦尔宝典',   author: 'Eric Jorgenson', cat: '认知成长', st: 'reading', pct: 60, src: '电子书',
     insights: [
-      { id: 'n1', text: '财富=专长*杠杆*长期投入', resonance: 9 },
+      { id: 'n1', text: '财富=专长*杠杆*长期投入', resonance: 9, scene: '用在个人专长识别与自媒体长期内容产出节奏规划' },
     ],
     hasInsights: true,
     hasAction: true,
+    actions: [
+      { id: 'na1', text: '确定自己的专长（视觉化），利用自媒体杠杆，坚持长期投入形成复利', done: false },
+    ],
     action: '确定自己的专长（视觉化），利用自媒体杠杆，坚持长期投入形成复利',
   },
-  { t: '认知觉醒',     author: '周岭', cat: '底层认知', st: 'done',    pct: 100, src: '电子书',
+  { t: '思考，快与慢', author: '丹尼尔·卡尼曼', cat: '认知成长', st: 'pending', pct: 0, src: '电子书',
+    insights: [],
+    hasInsights: false,
+    hasAction: false,
+    actions: [],
+  },
+  { t: '认知觉醒',     author: '周岭', cat: '认知成长', st: 'done',    pct: 100, src: '电子书',
     insights: [
-      { id: 'c1', text: '大脑分为本能脑、情绪脑和理智脑，情绪脑更强大，不要用所谓的意志力跟它对抗', resonance: 9 },
-      { id: 'c2', text: '看书学习时关注改变量而输入量', resonance: 8 },
+      { id: 'c1', text: '大脑分为本能脑、情绪脑和理智脑，情绪脑更强大，不要用所谓的意志力跟它对抗', resonance: 9, scene: '遇到情绪干扰时先安抚情绪脑再处理理性目标' },
+      { id: 'c2', text: '看书学习时关注改变量而输入量', resonance: 8, scene: '读书计划不追求读完数量，追求实际落地行动条数' },
     ],
     hasInsights: true,
     hasAction: true,
+    actions: [
+      { id: 'ca1', text: '建立自己的认知成长体系，每日反思输出', done: false },
+    ],
     action: '建立自己的认知成长体系，每日反思输出',
   },
-  { t: '曾国藩传',     author: '张宏杰', cat: '传记', st: 'done',    pct: 100, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '非暴力沟通',   author: '马歇尔·卢森堡', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '非暴力沟通',   author: '马歇尔·卢森堡', cat: '沟通', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '超级沟通者',   author: 'Lisa B. Marshall', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '超级沟通者',   author: 'Lisa B. Marshall', cat: '沟通', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '影响力',       author: '罗伯特·西奥迪尼', cat: '人际沟通', st: 'pending', pct: 0, src: '纸质书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '高效能人士的七个习惯', author: '史蒂芬·柯维', cat: '自我管理', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '高效能人士的七个习惯', author: '史蒂芬·柯维', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '创始人：新管理者如何度过第一个90天', author: 'Michael Lopp', cat: '管理', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '创始人：新管理者如何度过第一个90天', author: 'Michael Lopp', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '影响力',       author: '罗伯特·西奥迪尼', cat: '人性判断', st: 'pending', pct: 0, src: '纸质书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '增长黑客',     author: 'Sean Ellis', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '思考，快与慢', author: '丹尼尔·卡尼曼', cat: '决策', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '上瘾',         author: 'Nir Eyal', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '增长黑客',     author: 'Sean Ellis', cat: '增长', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '金字塔原理',   author: '芭芭拉·明托', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '上瘾',         author: 'Nir Eyal', cat: '运营', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
-  },
-  { t: '金字塔原理',   author: '芭芭拉·明托', cat: '表达', st: 'pending', pct: 0, src: '电子书',
-    insights: [],
-    hasInsights: false,
-    hasAction: false,
+  { t: '曾国藩传',     author: '张宏杰', cat: '人文叙事', st: 'done',    pct: 100, src: '电子书',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
   },
 ];
 /* 知力 · OKR — 理念：输入量→思考量→行动量→改变量 */
@@ -2669,34 +2658,65 @@ function CognitionView({
     };
   }, [books]);
 
-  // 已读完且有洞察的书籍（用于"读后思考"卡片）
+  // 已读完且有洞察的书籍（用于"读后思考"卡片）— 要求 text & scene 都填写（至少1组）
   const doneBooksWithInsights = useMemo(() => {
     const dynBooks = books || BOOKS;
-    return dynBooks.filter(b => b.st === 'done' && (b.hasInsights || (b.insights && b.insights.length > 0)));
+    return dynBooks.filter(b => {
+      if (b.st !== 'done') return false;
+      const ins = b.insights || [];
+      return ins.some(i => i.text?.trim() && i.scene?.trim());
+    });
+  }, [books]);
+
+  // 所有书籍中聚合出来的「思后行动」条目（替代旧的独立changes）— 格式保持兼容旧 cogChanges 渲染
+  const bookActionsList = useMemo(() => {
+    const dynBooks = books || BOOKS;
+    const out = [];
+    dynBooks.forEach(b => {
+      const acts = b.actions || [];
+      acts.forEach((a, idx) => {
+        if (!a.text?.trim()) return;
+        out.push({
+          id: `${b.id || 'bk'}_act_${a.id || idx}`,
+          bookId: b.id,
+          bookTitle: b.t,
+          text: a.text.trim(),
+          done: !!a.done,
+          startDate: b.startDate || '',
+          targetDays: 30,
+          checkIns: [],
+          status: a.done ? 'completed' : 'active',
+          __fromBook: true,
+        });
+      });
+    });
+    return out;
   }, [books]);
 
   // 漏斗五层数据：严格真子集关系
   // ① 输入量 = 已读完书籍数量
-  // ② 思考量 = 已读完且 hasInsights=true 的书籍数量
-  // ③ 行动量 = 已读完且 hasAction=true 的书籍数量
-  // ④ 改变量 = changes 数组长度（改变条数量）
+  // ② 思考量 = 已读完且至少有1组「核心触动+应用场景」完整填写的书籍数量（即 validInsights.some(text+scene)）
+  // ③ 行动量 = 已读完且至少有1条「思后行动」文字填写的书籍数量（即 actions.some(text)）
+  // ④ 改变量 = changes 数组长度 + books.actions 中 done=true 条数
   // ⑤ 复盘量 = reviews 数组长度（已完成复盘数量）
   const funnelData = useMemo(() => {
     const dynBooks = books || BOOKS;
     const dynKrs = krs || COG_KRS;
     const doneBooks = dynBooks.filter(b => b.st === 'done');
-    const hasInsights = doneBooks.filter(b => b.hasInsights || (b.insights && b.insights.length > 0)).length;
-    const hasAction = doneBooks.filter(b => b.hasAction).length;
-    const dynChanges = changes || [];
+    const hasInsights = doneBooks.filter(b => (b.insights || []).some(i => i.text?.trim() && i.scene?.trim())).length;
+    const hasAction = doneBooks.filter(b => (b.actions || []).some(a => a.text?.trim())).length;
+    // 合并「独立changes」+「书籍思后行动中已完成(done)的条目」都算"已改变"
+    const fromBooksChanges = dynBooks.reduce((s, b) => s + ((b.actions || []).filter(a => a.done && a.text?.trim()).length), 0);
+    const dynChanges = (changes || []).length + fromBooksChanges;
     const dynReviews = reviews || [];
     // 第一层（目标量）数据 = 左边第一条 KR 的目标量 tgt
     const kr1Target = (dynKrs && dynKrs[0])?.tgt ?? COG_KRS[0]?.tgt ?? 12;
     return {
       total: kr1Target,     // ① 目标量：KR1 的目标值（默认12本）
       doneBooksCount: doneBooks.length, // 保留实际已读完数量供 KR1 使用
-      done: hasInsights,    // ② 思考量：有洞察的书籍数量
-      notes: hasAction,     // ③ 行动量：有行动承诺的书籍数量
-      changes: dynChanges.length, // ④ 改变量：改变条数量
+      done: hasInsights,    // ② 思考量：有「核心触动+应用场景」完整填写的书籍数量
+      notes: hasAction,     // ③ 行动量：有思后行动承诺的书籍数量
+      changes: dynChanges,  // ④ 改变量：独立changes + 书籍中已完成行动
       reviews: dynReviews.length, // ⑤ 复盘量：已复盘的改变数量
     };
   }, [books, krs, changes, reviews]);
@@ -3187,9 +3207,17 @@ function CognitionView({
                           boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
                           border: `1px solid ${g.col}20`,
                         }}>
-                        {/* 主行：点击 → 打开编辑弹窗 */}
+                        {/* 主行：点击 → 打开编辑弹窗；如果是电子书有链接→左键新标签打开，右键才编辑 */}
                         <div
-                          onClick={() => onBookEdit?.(b)}
+                          onClick={(e) => {
+                            if (b.src === '电子书' && b.ebookUrl && b.ebookUrl.trim()) {
+                              e.stopPropagation();
+                              try { window.open(b.ebookUrl.trim(), '_blank', 'noopener,noreferrer'); }
+                              catch { onBookEdit?.(b); }
+                            } else {
+                              onBookEdit?.(b);
+                            }
+                          }}
                           className="px-2 py-1.5 flex items-center justify-between gap-1.5"
                           style={{ cursor: 'pointer' }}>
                           <div className="flex items-center gap-1.5 min-w-0">
@@ -3200,17 +3228,26 @@ function CognitionView({
                               ⋮⋮
                             </span>
                             <div className="min-w-0 flex-1">
-                              <div className={`text-[12px] font-semibold truncate leading-tight ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
+                              <div className={`text-[12px] font-semibold truncate leading-tight flex items-center gap-1 ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
                                 {b.t}
+                                {b.src === '电子书' && b.ebookUrl && b.ebookUrl.trim() && (
+                                  <span title="左键打开电子书链接，右键菜单可编辑"
+                                    className="leading-none inline-flex items-center text-[9px] font-bold px-1 rounded"
+                                    style={{ background: 'rgba(75,99,240,0.10)', color: '#4b63f0' }}>
+                                    ↗
+                                  </span>
+                                )}
                               </div>
                               {b.cat && <div className="text-[10px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
                               {/* 已读完书籍：洞察+行动状态可视化 */}
                               {isDone && (() => {
                                 const ins = b.insights || [];
-                                const validIns = ins.filter(i => i.text?.trim());
+                                const validIns = ins.filter(i => i.text?.trim() && i.scene?.trim());
                                 const strongIns = validIns.filter(i => (i.resonance || 0) >= 7);
-                                const hasIns = b.hasInsights || validIns.length > 0;
-                                const hasAct = b.hasAction;
+                                const hasIns = validIns.length > 0;
+                                const acts = b.actions || [];
+                                const validActs = acts.filter(a => a.text?.trim());
+                                const hasAct = validActs.length > 0;
                                 return (
                                   <div className="flex flex-wrap items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
                                     {hasIns ? (
@@ -3229,7 +3266,7 @@ function CognitionView({
                                     )}
                                     {hasAct && (
                                       <span className="text-[8.5px] font-bold px-1 py-px rounded leading-none" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
-                                        🎯已行动
+                                        🎯{validActs.length}行动
                                       </span>
                                     )}
                                     <button
@@ -3248,13 +3285,27 @@ function CognitionView({
                                 );
                               })()}
                               {/* 进行中/待读书籍的观点小标签 */}
-                              {!isDone && b.insights?.length > 0 && (
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <span className="text-[9px] font-semibold px-1 py-px rounded leading-none" style={{ background: 'rgba(75,99,240,0.08)', color: '#4b63f0' }}>
-                                    {b.insights.length}观点
-                                  </span>
-                                </div>
-                              )}
+                              {!isDone && (() => {
+                                const ins = b.insights || [];
+                                const validIns = ins.filter(i => i.text?.trim() && i.scene?.trim());
+                                const acts = b.actions || [];
+                                const validActs = acts.filter(a => a.text?.trim());
+                                if (validIns.length === 0 && validActs.length === 0) return null;
+                                return (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    {validIns.length > 0 && (
+                                      <span className="text-[9px] font-semibold px-1 py-px rounded leading-none" style={{ background: 'rgba(75,99,240,0.08)', color: '#4b63f0' }}>
+                                        {validIns.length}思考
+                                      </span>
+                                    )}
+                                    {validActs.length > 0 && (
+                                      <span className="text-[9px] font-semibold px-1 py-px rounded leading-none" style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7' }}>
+                                        {validActs.length}承诺
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                           <span className="text-[11.5px] font-extrabold tabular-nums flex-shrink-0 leading-none" style={{ color: g.col }}>
@@ -3330,82 +3381,125 @@ function CognitionView({
           </div>
         </div>
 
-        {/* ========== 卡片二：思后行动 ========== */}
+        {/* ========== 卡片二：思后行动（合并书籍中思后行动 + 旧独立changes）========== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
-            <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
-              className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
-              style={{ background: BLUE_LIGHT, color: BLUE }}
-              title="新增行动">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
+                {[...(bookActionsList || []), ...(changes || [])].length} 条承诺
+              </span>
+              <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
+                className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
+                style={{ background: BLUE_LIGHT, color: BLUE }}
+                title="新增独立行动">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              </button>
+            </div>
           </div>
-          <div className="flex-1 flex flex-col gap-1.5">
-            {(changes || []).length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
-                还没有行动计划<br/>点击右上角 + 添加
-              </div>
-            ) : (
-              (changes || []).slice(0, 5).map(c => {
-                const days = c.checkIns?.length || 0;
-                const pctVal = Math.min(100, Math.round((days / (c.targetDays || 30)) * 100));
-                const today = new Date().toISOString().slice(0, 10);
-                const checkedToday = c.checkIns?.includes(today);
-                const isCompleted = c.status === 'completed';
-                const isReviewed = c.status === 'reviewed';
-                const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? BLUE : days >= 8 ? BLUE : '#f97316';
-                return (
-                  <div key={c.id}
-                    className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
-                    style={{
-                      background: isReviewed ? 'rgba(34,197,94,0.05)' : BLUE_LIGHT,
-                      border: `1px solid ${isReviewed ? 'rgba(34,197,94,0.15)' : BLUE + '20'}`,
-                    }}
-                    onClick={(e) => { e.stopPropagation(); setEditingChange(c); setShowChangeForm(true); }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-[12.5px] font-semibold truncate ${isReviewed ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{c.text}</span>
-                      <div className="flex items-center gap-1 flex-shrink-0 ml-1">
-                        <span className="text-[10px] font-bold tabular-nums" style={{ color: barColor }}>
-                          {days}/{c.targetDays || 30}天
-                        </span>
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
-                          className="text-ink-300 hover:text-red-500 transition"
-                          title="删除">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pctVal}%`, background: barColor }} />
-                      </div>
-                      {!isReviewed && (
-                        <button onClick={(e) => { e.stopPropagation(); onChangeCheckIn?.(c.id); }}
-                          disabled={checkedToday}
-                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-all"
-                          style={{
-                            background: checkedToday ? 'rgba(148,163,184,0.1)' : BLUE,
-                            color: checkedToday ? '#94a3b8' : '#fff',
-                            cursor: checkedToday ? 'default' : 'pointer',
-                          }}>
-                          {checkedToday ? '✓' : '打卡'}
-                        </button>
-                      )}
-                    </div>
+          {(() => {
+            const mergedActions = [...(bookActionsList || []), ...(changes || [])];
+            return (
+              <div className="flex-1 flex flex-col gap-1.5">
+                {mergedActions.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
+                    还没有行动承诺<br/>编辑书籍→思后行动板块填写
                   </div>
-                );
-              })
-            )}
-            {(changes || []).length > 5 && (
-              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {(changes || []).length - 5} 条 · 点击编辑管理</div>
-            )}
-          </div>
+                ) : (
+                  mergedActions.slice(0, 6).map(c => {
+                    const fromBook = !!c.__fromBook;
+                    const days = c.checkIns?.length || 0;
+                    const pctVal = Math.min(100, Math.round((days / (c.targetDays || 30)) * 100));
+                    const today = new Date().toISOString().slice(0, 10);
+                    const checkedToday = c.checkIns?.includes(today);
+                    const isCompleted = c.done || c.status === 'completed' || c.status === 'reviewed';
+                    const isReviewed = c.status === 'reviewed';
+                    const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? BLUE : days >= 8 ? BLUE : '#f97316';
+                    return (
+                      <div key={c.id}
+                        className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
+                        style={{
+                          background: isCompleted ? 'rgba(34,197,94,0.05)' : BLUE_LIGHT,
+                          border: `1px solid ${isCompleted ? 'rgba(34,197,94,0.15)' : BLUE + '20'}`,
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (fromBook) {
+                            // 来自书籍：打开对应书籍编辑
+                            const targetBook = (books || BOOKS).find(b => b.id === c.bookId);
+                            if (targetBook) onBookEdit?.(targetBook);
+                          } else {
+                            setEditingChange(c); setShowChangeForm(true);
+                          }
+                        }}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="min-w-0 flex-1">
+                            <span className={`text-[12.5px] font-semibold truncate block ${isCompleted ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{c.text}</span>
+                            {c.bookTitle && (
+                              <span className="text-[10px] text-ink-400 truncate block leading-tight mt-0.5">— 出自《{c.bookTitle}》</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                            {fromBook ? (
+                              <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded"
+                                style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
+                                书籍
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold tabular-nums" style={{ color: barColor }}>
+                                {days}/{c.targetDays || 30}天
+                              </span>
+                            )}
+                            {!fromBook && (
+                              <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
+                                className="text-ink-300 hover:text-red-500 transition"
+                                title="删除">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {!fromBook && (
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
+                              <div className="h-full rounded-full transition-all" style={{ width: `${pctVal}%`, background: barColor }} />
+                            </div>
+                            {!isReviewed && (
+                              <button onClick={(e) => { e.stopPropagation(); onChangeCheckIn?.(c.id); }}
+                                disabled={checkedToday}
+                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-all"
+                                style={{
+                                  background: checkedToday ? 'rgba(148,163,184,0.1)' : BLUE,
+                                  color: checkedToday ? '#94a3b8' : '#fff',
+                                  cursor: checkedToday ? 'default' : 'pointer',
+                                }}>
+                                {checkedToday ? '✓' : '打卡'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {fromBook && (
+                          <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
+                              <div className="h-full rounded-full transition-all" style={{ width: isCompleted ? '100%' : '8%', background: isCompleted ? '#22c55e' : BLUE }} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+                {mergedActions.length > 6 && (
+                  <div className="text-center text-[11px] text-ink-400 mt-1">还有 {mergedActions.length - 6} 条 · 点击书籍/条目编辑管理</div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* ========== 卡片三：行后改变 ========== */}
@@ -4056,7 +4150,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v2', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v3', () => BOOKS.map(b => ({ ...b, id: uid() })));
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
@@ -4587,7 +4681,8 @@ export default function AnnualPlan({ standalone = true }) {
         funnelHeader={funnelHeader} setFunnelHeader={setFunnelHeader}
         funnelStageLabels={funnelStageLabels} setFunnelStageLabels={setFunnelStageLabels}
         bookshelfTitle={bookshelfTitle} setBookshelfTitle={setBookshelfTitle}
-        changes={cogChanges} onChangeAdd={changeOps.add} onChangeUpdate={changeOps.update} onChangeCheckIn={changeOps.checkIn} onChangeComplete={changeOps.completeAndReview} onChangeRemove={changeOps.remove}
+        changes={cogChanges}
+        onChangeAdd={changeOps.add} onChangeUpdate={changeOps.update} onChangeCheckIn={changeOps.checkIn} onChangeComplete={changeOps.completeAndReview} onChangeRemove={changeOps.remove}
         reviews={cogReviews} onReviewUpdate={reviewOps.update} onReviewRemove={reviewOps.remove}
         showToast={showToast}
       />}

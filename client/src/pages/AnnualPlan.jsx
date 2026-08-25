@@ -3597,16 +3597,27 @@ function CognitionView({
                 setDragOverCol(null);
               }}
             >
-              <div className="flex items-center justify-between mb-2 px-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full shadow-sm flex-shrink-0" style={{ background: g.col, boxShadow: `0 0 0 3px ${g.col}22` }}></span>
-                  <span className="text-[12.5px] font-bold text-ink-900 leading-none">{g.lb}</span>
+              {/* 栏目表头：◎ + 标题 + 紧随数字胶囊（截图极简风格） */}
+              <div className="flex items-center justify-between mb-2 px-[3px] py-[6px] rounded-[10px]"
+                style={{ background: g.col + '10' }}>
+                <div className="flex items-center gap-2 min-w-0">
+                  {/* ◎ 大圆点 + 光圈 */}
+                  <span className="relative w-[16px] h-[16px] rounded-full flex-shrink-0 flex items-center justify-center"
+                    style={{
+                      background: g.col + '22',
+                      boxShadow: `0 0 0 1px ${g.col}18`,
+                    }}>
+                    <span className="w-[8px] h-[8px] rounded-full" style={{ background: g.col }}></span>
+                  </span>
+                  <span className="text-[13px] font-bold text-ink-900 leading-none">{g.lb}</span>
+                  {/* 数字胶囊：紧挨标题 */}
+                  <span className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full text-[10.5px] font-bold tabular-nums leading-none flex-shrink-0"
+                    style={{ background: '#fff', color: '#64748b', boxShadow: `0 1px 1px rgba(15,23,42,0.05)`, border: `1px solid rgba(15,23,42,0.06)` }}>
+                    {g.books.length}
+                  </span>
                 </div>
-                {/* 数量移到最右侧（取代原"+号"位置）*/}
-                <span className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full text-[10.5px] font-extrabold tabular-nums leading-none"
-                  style={{ background: '#fff', color: g.col, boxShadow: `0 1px 2px rgba(0,0,0,0.06)`, border: `1px solid ${g.col}18` }}>
-                  {g.books.length}
-                </span>
+                {/* 占位（不再有独立右侧数量）*/}
+                <span className="w-[16px] flex-shrink-0"></span>
               </div>
               <div className="flex flex-col gap-1 flex-1 min-h-[80px]">
                 {g.books.length === 0 ? (
@@ -3708,36 +3719,26 @@ function CognitionView({
                         onDragEnd={() => { setDragBookId(null); setDragOverCol(null); }}
                         onClick={() => onBookEdit?.(b)}
                         onContextMenu={(e) => { e.preventDefault(); onBookContextMenu?.(e, b); }}
-                        className={`rounded-2xl bg-white transition-all relative select-none overflow-hidden group ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_5px_16px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
+                        className={`rounded-2xl bg-white transition-all select-none overflow-hidden ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_5px_16px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
                         style={{
                           cursor: isDragging ? 'grabbing' : 'pointer',
                           boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
                           border: `1px solid rgba(15,23,42,0.06)`,
                         }}>
-                        {/* 左侧状态栏位色条（替代原分类色条，按阅读/未开始/已读完/归档上色）*/}
-                        <div className="absolute left-0 top-0 bottom-0 w-[3px] transition-all duration-200 group-hover:w-[4px]"
-                          style={{
-                            background: statusDot.col,
-                            opacity: 0.95,
-                            borderRadius: '0 2px 2px 0',
-                          }} />
+                        {/* ============ 新结构：按截图纵向重排 ============ */}
+                        <div className="w-full min-w-0 flex flex-col gap-[8px]" style={{ padding: '10px 11px' }}>
 
-                        {/* ============ Linear 紧凑结构：5 行 ============ */}
-                        <div className="w-full min-w-0 flex flex-col gap-[5px]" style={{ padding: '8px 9px 8px 10px' }}>
-
-                          {/* R1：日历图标 + 状态日期辅助信息 + 右上角⋯菜单 */}
+                          {/* R1：日历图标 + 正在阅读状态（标题） + 右上角⋯菜单 */}
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1 min-w-0 flex-1">
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <div className="flex items-center gap-[6px] min-w-0 flex-1">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
                               </svg>
-                              <span className="text-[10.5px] font-medium text-ink-400 leading-none truncate">
-                                {b.st === 'done'
-                                  ? `已读完${b.endDate ? ' · ' + String(b.endDate).replace(/-/g,'/').slice(2) : ''}${b.startDate ? ' · 用时 ' + Math.max(1, Math.round((+new Date(b.endDate||Date.now()) - +new Date(b.startDate))/86400000)) + ' 天' : ''}`
-                                  : b.startDate
-                                    ? `预计 ${String(b.startDate).replace(/-/g,'/')}${b.st === 'reading' ? ' 读完' : ' 开启'}`
-                                    : `${statusPill.label}状态`
-                                }
+                              <span className="text-[11.5px] font-semibold text-ink-500 leading-none truncate">
+                                {b.st === 'done' ? '已读完状态'
+                                 : b.st === 'abandoned' ? '已归档'
+                                 : b.st === 'pending' ? '未开始状态'
+                                 : '正在阅读状态'}
                               </span>
                             </div>
                             <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -3751,8 +3752,9 @@ function CognitionView({
                             </div>
                           </div>
 
-                          {/* R2：封面 42×56 + 书名(粗) + 分类Pill + 作者简介 —— 对齐截图标题/副标题/分类块 */}
+                          {/* R2：封面 42×56 左 / 右侧两列：上=书名+分类Pill；下=作者+链接↗（放在分类Pill下面） */}
                           <div className="flex items-start gap-[10px] min-w-0">
+                            {/* 左：封面 */}
                             <div style={{
                               width:'42px', height:'56px', borderRadius:'6px', overflow:'hidden', flex:'0 0 42px',
                               border: `1px solid ${catCol}33`,
@@ -3779,13 +3781,15 @@ function CognitionView({
                                 </span>
                               )}
                             </div>
-                            <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
+                            {/* 右：上下两行 = 上（书名+分类Pill） / 下（作者+↗跳转）*/}
+                            <div className="flex-1 min-w-0 flex flex-col gap-[6px]">
+                              {/* 右上：书名左 + 分类Pill右 */}
                               <div className="flex items-start justify-between gap-2 min-w-0">
-                                <div className={`min-w-0 flex-1 truncate text-[14.5px] font-bold leading-[1.28] ${statusDot.strike ? 'line-through' : ''}`}
+                                <div className={`min-w-0 flex-1 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
                                   style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
                                   {b.t}
                                 </div>
-                                <span className="inline-flex flex-shrink-0 items-center px-[7px] h-[18px] rounded-full text-[10.5px] font-bold leading-none"
+                                <span className="inline-flex flex-shrink-0 items-center px-[8px] h-[19px] rounded-full text-[11px] font-bold leading-none"
                                   style={{
                                     background: (() => {
                                       switch (b.cat) {
@@ -3801,25 +3805,67 @@ function CognitionView({
                                   {b.cat || '未分类'}
                                 </span>
                               </div>
-                              <div className="min-w-0 text-[11.5px] text-ink-400 font-medium leading-[1.45] truncate" style={{ marginTop: '-1px' }}>
-                                <span>{b.author || '佚名作者'}</span>
-                                {b.summary ? <span className="text-ink-300"> · {b.summary}</span> : null}
+                              {/* 右下：作者左 + 跳转图标↗（放在分类Pill下面=右侧） */}
+                              <div className="flex items-center justify-between gap-2 min-w-0">
+                                <div className="min-w-0 text-[11.5px] text-ink-400 font-medium leading-none truncate flex-1">
+                                  {b.author || '佚名作者'}
+                                </div>
+                                <div className="flex items-center gap-[8px] flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                  {/* 电子书跳转 ↗（分类Pill正下方） */}
+                                  {isEbookLink && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
+                                        catch { onBookEdit?.(b); }
+                                      }}
+                                      title="打开电子书"
+                                      className="inline-flex items-center justify-center transition-all duration-150"
+                                      style={{
+                                        width: '22px', height: '22px', borderRadius:'7px',
+                                        background: BLUE, color:'#fff',
+                                        boxShadow: `0 2px 6px rgba(2,132,199,0.32)`,
+                                      }}>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M7 17 17 7M7 7h10v10"/>
+                                      </svg>
+                                    </button>
+                                  )}
+                                  {/* 无电子书但已读完且有洞察 → 复盘笔记图标 */}
+                                  {!isEbookLink && b.st === 'done' && hasIns && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); onBookEdit?.(b); }}
+                                      title="查看笔记/复盘"
+                                      className="inline-flex items-center justify-center transition-all duration-150"
+                                      style={{
+                                        width: '22px', height: '22px', borderRadius:'7px',
+                                        background: '#22c55e', color:'#fff',
+                                        boxShadow: `0 2px 6px rgba(34,197,94,0.28)`,
+                                      }}>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
 
-                          {/* R3：阅读进度行（左：时钟图标+文字 / 右：% + 4px bar）—— 对齐截图 "阅读进度 60% ━━" */}
+                          {/* R3：阅读进度行 —— 时钟图标「阅读进度」左 / 右 %+bar */}
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1 min-w-0 flex-1">
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <div className="flex items-center gap-[6px] min-w-0 flex-1">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
                               </svg>
-                              <span className="text-[10.5px] font-medium text-ink-400 leading-none">阅读进度</span>
+                              <span className="text-[11.5px] font-medium text-ink-500 leading-none">阅读进度</span>
                             </div>
-                            <div className="flex items-center gap-[6px] flex-shrink-0">
-                              <span className={`text-[10.5px] font-bold tabular-nums leading-none ${b.st==='done' ? 'text-green-600' : ''}`}
+                            <div className="flex items-center gap-[8px] flex-shrink-0">
+                              <span className={`text-[12px] font-bold tabular-nums leading-none ${b.st==='done' ? 'text-green-600' : ''}`}
                                 style={{ color: b.st==='done' ? '#16a34a' : statusDot.col }}>{pct}%</span>
-                              <div style={{ width: '52px', height:'4px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden' }}>
+                              <div style={{ width: '56px', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden' }}>
                                 <div style={{
                                   width: `${Math.max(0, pct)}%`, height: '100%', borderRadius: '999px',
                                   background: b.st === 'done'
@@ -3833,97 +3879,27 @@ function CognitionView({
                             </div>
                           </div>
 
-                          {/* R4：核心闭环行（洞察 ✔ 几组 / 行动 □ 几条）—— 前面无 "核心闭环" 四字，直接勾选组合 */}
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex items-center gap-1">
-                              <div className={`flex items-center justify-center w-[13px] h-[13px] rounded-[3px]`}
+                          {/* R4：思考X组 + 行动X条 勾选组（原"洞察"改"思考"） */}
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="flex items-center gap-[6px]">
+                              <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
                                 style={{
                                   background: hasIns ? BLUE : 'transparent',
                                   border: hasIns ? 'none' : '1.5px solid #cbd5e1',
                                 }}>
-                                {hasIns && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                                {hasIns && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
                               </div>
-                              <span className="text-[10.5px] font-semibold text-ink-500 leading-none">洞察 {validIns.length} 组</span>
+                              <span className="text-[11.5px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <div className={`flex items-center justify-center w-[13px] h-[13px] rounded-[3px]`}
+                            <div className="flex items-center gap-[6px]">
+                              <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
                                 style={{
                                   background: hasAct ? '#22c55e' : 'transparent',
                                   border: hasAct ? 'none' : '1.5px solid #cbd5e1',
                                 }}>
-                                {hasAct && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                                {hasAct && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
                               </div>
-                              <span className="text-[10.5px] font-semibold text-ink-500 leading-none">行动 {validActs.length} 条</span>
-                            </div>
-                          </div>
-
-                          {/* R5：左下语义 Pill + 右下 Chip（Chip1=时间  Chip2=跳转图标=电子书打开） */}
-                          <div className="flex items-center justify-between gap-2" style={{ marginTop: '1px' }}>
-                            <span className="inline-flex items-center gap-[3px] px-[7px] h-[19px] rounded-full text-[10.5px] font-bold leading-none"
-                              style={{ background: statusPill.bg, color: statusPill.col }}>
-                              {b.st === 'reading' && (
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M2 12l2-2v7h18v3H2V10z"/></svg>
-                              )}
-                              {b.st === 'done' && (
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
-                              )}
-                              {b.st === 'pending' && !b.startDate && (
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="8"/></svg>
-                              )}
-                              {b.st === 'pending' && b.startDate && (
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a9 9 0 1 0 9 9c0-4.97-4.03-9-9-9zm1 13h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
-                              )}
-                              {b.st === 'abandoned' && (
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                              )}
-                              {statusPill.label}
-                            </span>
-                            <div className="flex items-center gap-[10px]" onClick={(e) => e.stopPropagation()}>
-                              {/* Chip 1：日期/状态 Chip（截图日历数字 Chip 位置） */}
-                              {dateChipText && (
-                                <span className="inline-flex items-center gap-[3px] text-[10.5px] font-semibold text-ink-400 leading-none">
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                                  {dateChipText}
-                                </span>
-                              )}
-                              {/* Chip 2：电子书跳转（纯图标 ↗ 不用文字） */}
-                              {isEbookLink && (
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
-                                    catch { onBookEdit?.(b); }
-                                  }}
-                                  title="打开电子书"
-                                  className="inline-flex items-center justify-center transition-all duration-150"
-                                  style={{
-                                    width: '18px', height: '18px', borderRadius:'6px',
-                                    background: BLUE, color:'#fff',
-                                    boxShadow: `0 2px 6px rgba(2,132,199,0.32)`,
-                                  }}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M7 17 17 7M7 7h10v10"/>
-                                  </svg>
-                                </button>
-                              )}
-                              {/* Chip 2-备选：没电子书的 done 书 → 复盘笔记图标 */}
-                              {!isEbookLink && b.st === 'done' && hasIns && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); onBookEdit?.(b); }}
-                                  title="查看笔记/复盘"
-                                  className="inline-flex items-center justify-center transition-all duration-150"
-                                  style={{
-                                    width: '18px', height: '18px', borderRadius:'6px',
-                                    background: '#22c55e', color:'#fff',
-                                    boxShadow: `0 2px 6px rgba(34,197,94,0.28)`,
-                                  }}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-                                  </svg>
-                                </button>
-                              )}
+                              <span className="text-[11.5px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
                             </div>
                           </div>
                         </div>

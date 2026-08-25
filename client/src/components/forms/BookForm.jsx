@@ -425,7 +425,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
               }}>
                 <input type="checkbox" checked={!!a.done}
                   onChange={e => updateAction(a.id, { done: e.target.checked })}
-                  style={{ width: '14px', height: '14px', marginTop: '2px', accentColor: a.done ? SUCCESS : BLUE_DARK }} />
+                  style={{ width: '14px', height: '14px', marginTop: '2px', accentColor: SUCCESS }} />
                 <textarea
                   value={a.text}
                   onChange={e => updateAction(a.id, { text: e.target.value })}

@@ -368,7 +368,11 @@ function InlineEdit({
         onContextMenu={isCtxMode ? openContextMenu : undefined}
         style={style}
         className={`${isCtxMode ? 'cursor-context-menu' : 'cursor-text'} hover:opacity-80 transition select-none ${className || ''}`}>
-        {(value || placeholder) ? <span className="opacity-40">{value || placeholder}</span> : null}
+        {value ? (
+          <span className="opacity-100">{value}</span>
+        ) : placeholder ? (
+          <span className="opacity-40">{placeholder}</span>
+        ) : null}
       </span>
 
       {/* ---- 右键浮层菜单：编辑 / 删除（通过 portal 输出到 body，避免被容器裁剪）---- */}

@@ -2843,23 +2843,11 @@ function CognitionView({
             curr[idx] = merged;
             updated++;
           } else {
-            // 全新书 → 默认丢进「所有书籍」栏（abandoned）
-            const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-            curr.push({
-              id: uid(),
-              cat: '认知成长',
-              insights: [],
-              actions: [],
-              hasInsights: false,
-              hasAction: false,
-              st: 'abandoned', // 新增：默认放到所有书籍
-              pct: Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0))),
-              ...patch,
-            });
-            added++;
+            // 用户明确：不同步导入 weread 全部书架，只更新本地已存在的书
+            // → 未匹配的 weread 新书直接跳过，保持书架只有你手动/添加的 12 本
           }
         }
-        showToast?.(`微信读书同步完成 · 匹配更新${updated}本 + 归入「所有书籍」${added}本`);
+        showToast?.(`微信读书同步完成 · 已匹配更新 ${updated} 本（未导入 weread 新书）`);
         return curr;
       };
       if (typeof onBooksReplace === 'function') {

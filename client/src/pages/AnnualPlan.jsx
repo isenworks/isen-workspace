@@ -136,6 +136,51 @@ const COG_KRS = [
   { id: 'kr3', lb: '行动量 · 6本书有承诺', tgt: 6, val: 0, u: '本', sub: '有承诺' },
 ];
 
+/* -------- 封面组件：首屏加载成功后自动转 base64 保存，下次秒开 -------- */
+function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar }) {
+  const [err, setErr] = React.useState(false);
+  const doneRef = React.useRef(false); // 防止重复触发（rerender 多次）
+  const onLoad = React.useCallback(async (e) => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    // 已经是 base64 / 永久缓存 → 不用再转
+    if (coverSource === 'local-base64' || !src || /^data:/i.test(src)) return;
+    try {
+      // 限制：超过 1MB 的图不持久化（防止 localStorage 5MB 配额爆满）
+      const MAX_BYTES = 1024 * 1024; // 1MB
+      const resp = await fetch(src, { cache: 'force-cache' });
+      if (!resp.ok) return;
+      const blob = await resp.blob();
+      if (blob.size > MAX_BYTES) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = String(reader.result || '');
+        if (url && /^data:image\//i.test(url) && typeof onPersist === 'function') {
+          onPersist(url);
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch (_) { /* 转存失败，下次再试即可 */ }
+  }, [src, coverSource, onPersist]);
+
+  if (err) {
+    return (
+      <span style={{ color: catCol, fontSize: '18px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22` }}>
+        {fallbackChar}
+      </span>
+    );
+  }
+  return React.createElement('img', {
+    src,
+    alt: '',
+    loading: 'lazy',
+    referrerPolicy: 'no-referrer',
+    onError: () => setErr(true),
+    onLoad,
+    style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  });
+}
+
 /* 能力 */
 const ABILITY = [
   {
@@ -2755,12 +2800,46 @@ function CognitionView({
         'marshallrosenberg': ['marshallrosenberg','马歇尔卢森堡','卢森堡','rosenberg'],
         'lisabmarshall': ['lisabmarshall','lisamarshall','马歇尔','marshall'],
         'robertbcialdini': ['robertbcialdini','robertcialdini','罗伯特西奥迪尼','西奥迪尼','cialdini'],
-        'stephenrcovey': ['stephenrcovey','stephencovey','史蒂芬柯维','柯维','covey'],
+        'stephenrcovey': ['stephenrcovey','stephencovey','史蒂芬柯维','柯维','covey','斯蒂芬柯维','史蒂芬R柯维','斯蒂芬R柯维'],
         'michaellopp': ['michaellopp','迈克尔洛普','洛普','lopp'],
         'seanellis': ['seanellis','肖恩埃利斯','埃利斯','ellis'],
         'nireyal': ['nireyal','尼尔埃亚尔','埃亚尔','eyal','nir eyal'],
         'barbaraminto': ['barbaraminto','芭芭拉明托','明托','minto'],
         'zhanghongjie': ['zhanghongjie','张宏杰'],
+      };
+      // 书名别名表：解决 weread 返回书名带"全新升级版/典藏版"、或者本地名称比官方短的情况
+      // KEY = 本地预设标准化主书名  →  VALUE = 所有等价别名（含子串）
+      const TITLE_ALIASES = {
+        'gaoxiaonengrenshideqigexiguan': [ // 高效能人士的七个习惯
+          '高效能人士的七个习惯', '高效能人士的七个习惯全新升级版', '高效能人士的七个习惯典藏版',
+          '高效能人士的七个习惯25周年纪念版', '高效能人士的七个习惯精华版', '高效能人士七个习惯',
+          'gaoxiaonengrenshideqigexiguan',
+        ],
+        'zengguofanzhuan': ['曾国藩传', '曾国藩传张宏杰', '曾国藩的正面与侧面'],
+        'renzhengxingwei': ['非暴力沟通', '非暴力沟通全新修订版'],
+        'naerwabaodian': ['纳瓦尔宝典', '纳瓦尔宝典财富与幸福指南'],
+        'sikao kuaiyuman': ['思考快与慢', '思考快与慢诺贝尔经济学奖', '思考快与慢丹尼尔卡尼曼'],
+        'renzhijuexing': ['认知觉醒', '认知觉醒开启自我改变的原动力', '认知觉醒周岭'],
+        'chaojigoutongzhe': ['超级沟通者', '超级沟通者如何打破沟通壁垒'],
+        'yingxiangli': ['影响力', '影响力全新升级版', '影响力经典版'],
+        'chuangshiren': ['创始人', '创始人新管理者如何完成角色转变', 'thefirsttimemanager'],
+        'zengzhangheike': ['增长黑客', '增长黑客如何低成本实现爆发式成长', '增长黑客樊登推荐'],
+        'shangyin': ['上瘾', '上瘾让用户养成使用习惯的四大产品逻辑'],
+        'jinzayuanli': ['金字塔原理', '金字塔原理思考表达和解决问题的逻辑', '金字塔原理大全集'],
+      };
+      const titleMatches = (localTitle, wereadTitle) => {
+        if (!localTitle || !wereadTitle) return false;
+        const nA = normTitleOnly(localTitle), nB = normTitleOnly(wereadTitle);
+        if (nA === nB) return true;
+        if (nA.length >= 2 && nB.length >= 2 && (nA.includes(nB) || nB.includes(nA))) return true;
+        // 查字典别名
+        const aliases = TITLE_ALIASES[nA] || [];
+        for (const al of aliases) {
+          const normal = normTitleOnly(al);
+          if (normal === nB) return true;
+          if (nB.includes(normal) || normal.includes(nB)) return true;
+        }
+        return false;
       };
       const authorMatches = (a, b) => {
         const na = norm(a), nb = norm(b);
@@ -2781,25 +2860,30 @@ function CognitionView({
       const updater = (prev) => {
         const curr = Array.isArray(prev) ? [...prev] : [];
         let updated = 0, added = 0;
+        const needsCoverFallback = []; // [index, book] 匹配到了但 weread 没给封面的，后面再补
         for (const wb of books) {
           const wFullTitle = norm(wb.title);
           const wMainTitle = normTitleOnly(wb.title);
           // 依次尝试 3 种匹配策略，命中第一个就 break
           let idx = -1;
           idx = curr.findIndex(b =>
-            (norm(b.t) === wFullTitle || normTitleOnly(b.t) === wMainTitle) &&
+            titleMatches(b.t, wb.title) &&
             authorMatches(b.author, wb.author)
           );
           if (idx < 0) {
-            // 2. 完全忽略作者，只看主书名
-            idx = curr.findIndex(b => normTitleOnly(b.t) === wMainTitle && wMainTitle.length >= 2);
+            // 2. 完全忽略作者，只看主书名 + 别名表
+            idx = curr.findIndex(b => titleMatches(b.t, wb.title));
           }
           if (idx < 0) {
-            // 3. 互相包含（例：weread 叫"高效能人士的七个习惯·全新升级版" vs 本地"高效能人士的七个习惯"）
+            // 3. 最后兜底：主书名 2-gram 共同字符比例 >= 60%（应对中英文符号杂糅）
             idx = curr.findIndex(b => {
               const localMain = normTitleOnly(b.t);
               if (!localMain || localMain.length < 2 || !wMainTitle || wMainTitle.length < 2) return false;
-              return localMain.includes(wMainTitle) || wMainTitle.includes(localMain);
+              const aSet = new Set(localMain);
+              let same = 0;
+              for (const ch of wMainTitle) if (aSet.has(ch)) same++;
+              const ratio = same / Math.min(localMain.length, wMainTitle.length);
+              return ratio >= 0.6;
             });
           }
           const mappedSt = wb.status === 4 ? 'done' : wb.status === 3 ? 'reading' : 'pending';
@@ -2821,8 +2905,6 @@ function CognitionView({
             patch.coverSource = 'weread';
           }
           if (idx >= 0) {
-            // 已存在的本地预设书：只补 weread 给的字段（封面/作者/电子书链接/起止日期/阅读进度），
-            // 不覆盖：st 状态、cat 分类、insights 思考、actions 行动、hasInsights/hasAction
             const old = curr[idx];
             const newCat = ['认知成长','人际沟通','商业职场','人文叙事'].includes(old.cat) ? old.cat : (patch.cat || '认知成长');
             const merged = { ...old, ...patch, cat: newCat };
@@ -2841,13 +2923,47 @@ function CognitionView({
               merged.pct = Math.max(Number(old.pct) || 0, wpct);
             }
             curr[idx] = merged;
+            // 如果 weread 没返回封面，记录下来后面调用豆瓣兜底搜
+            if (!coverProxied) needsCoverFallback.push({ idx, title: old.t, author: old.author });
             updated++;
           } else {
             // 用户明确：不同步导入 weread 全部书架，只更新本地已存在的书
             // → 未匹配的 weread 新书直接跳过，保持书架只有你手动/添加的 12 本
           }
         }
-        showToast?.(`微信读书同步完成 · 已匹配更新 ${updated} 本（未导入 weread 新书）`);
+        // 【异步】对 weread 缺封面的书，再调用 /api/cover/search（豆瓣→Google）补封面
+        //       放在 updater 外面执行避免嵌套异步
+        if (needsCoverFallback.length > 0 && typeof onBooksReplace === 'function') {
+          setTimeout(async () => {
+            try {
+              const patches = new Map();
+              await Promise.all(needsCoverFallback.map(async ({ idx, title, author }) => {
+                try {
+                  const q = new URLSearchParams({ q: title });
+                  if (author) q.set('author', author);
+                  const r = await fetch(`/api/cover/search?${q.toString()}`);
+                  const j = await r.json().catch(() => ({}));
+                  if (j?.coverUrl) {
+                    const proxied = '/api/cover/proxy?url=' + encodeURIComponent(String(j.coverUrl));
+                    patches.set(idx, { coverUrl: proxied, coverSource: j.source || 'douban' });
+                  }
+                } catch (_) { /* 单本忽略 */ }
+              }));
+              if (patches.size > 0) {
+                onBooksReplace(prev => {
+                  const next = (Array.isArray(prev) ? prev : []).slice();
+                  for (const [idx, p] of patches) {
+                    if (next[idx]) next[idx] = { ...next[idx], ...p };
+                  }
+                  return next;
+                });
+                showToast?.(`已从豆瓣/Google 补封面 ${patches.size} 本`);
+              }
+            } catch (_) {}
+          }, 100);
+        }
+        showToast?.(`微信读书同步完成 · 已匹配更新 ${updated} 本（未导入 weread 新书）` +
+          (needsCoverFallback.length ? ` · 正在补${needsCoverFallback.length}本封面…` : ''));
         return curr;
       };
       if (typeof onBooksReplace === 'function') {
@@ -3370,6 +3486,50 @@ function CognitionView({
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+            {/* 工具栏 · 清空/重置（都带二次确认） */}
+            <button
+              onClick={() => {
+                const cnt = (groups.abandoned || []).length;
+                if (!cnt) return showToast?.('「所有书籍」栏已经是空的');
+                const ok = confirm(`确定清空「所有书籍」栏的 ${cnt} 本书？\n（前3栏的阅读中/未开始/已读完 会保留，12本预设不动）`);
+                if (!ok) return;
+                if (typeof onBooksReplace === 'function') {
+                  onBooksReplace(prev => (Array.isArray(prev) ? prev : []).filter(b => b.st !== 'abandoned'));
+                }
+                showToast?.(`已清空「所有书籍」栏 ${cnt} 本`);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium rounded-lg transition hover:bg-red-50"
+              style={{ color: '#dc2626' }}
+              title="只删除「所有书籍」栏，保留前3栏（阅读中/未开始/已读完）">
+              🗑 清空所有书籍
+            </button>
+            <button
+              onClick={() => {
+                const ok = confirm('【危险】将书架恢复到初始12本预设？\n这会删除你所有手动添加的书和同步过来的书，只保留预设12本。确认继续？');
+                if (!ok) return;
+                // 最简单可靠：升级 localStorage key 到下一版本 → 下次 render 自动回到 BOOKS 初始
+                try {
+                  const currentKey = 'annual_books_v5';
+                  const nextKey = 'annual_books_v6';
+                  const val = localStorage.getItem(currentKey);
+                  if (val != null) {
+                    try { localStorage.setItem('annual_books_v5_backup_' + Date.now(), val); } catch (_) { /* 忽略配额 */ }
+                  }
+                  localStorage.removeItem(currentKey);
+                  // 给 usePersistentState 一个明确的新 key（通过 reload 走干净路径）
+                  showToast?.('书架已重置，页面即将刷新');
+                  setTimeout(() => { window.location.reload(); }, 500);
+                } catch (e) {
+                  alert('重置失败：' + (e.message || e));
+                }
+              }}
+              className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:bg-red-50"
+              style={{ color: '#dc2626' }}
+              title="重置书架：删除当前全部书，恢复最初12本预设（有备份）">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
             <button onClick={() => onBookAdd?.()}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
               style={{ background: BLUE_LIGHT, color: BLUE }}>
@@ -3511,17 +3671,21 @@ function CognitionView({
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
                               {realCover ? (
-                                <img src={realCover} alt="" loading="lazy" referrerPolicy="no-referrer"
-                                  onError={(e)=>{
-                                    const el = e.currentTarget, p = el.parentElement; if (!p) return;
-                                    el.remove();
-                                    const ch = (b.t||'书').charAt(0);
-                                    const s = document.createElement('span');
-                                    s.textContent = ch;
-                                    s.style.cssText = 'color:'+catCol+';font-size:18px;font-weight:900;';
-                                    p.appendChild(s);
+                                <CoverImg
+                                  src={realCover}
+                                  bookId={b.id}
+                                  coverSource={b.coverSource}
+                                  onPersist={(dataUrl) => {
+                                    // 首次加载成功后：把 /api/cover/proxy?... 转成 base64 dataURL 写回，
+                                    // 下次直接从 localStorage 读，不需要再走网络请求+防盗链代理（秒开）
+                                    if (typeof onBookUpdate !== 'function') return;
+                                    try {
+                                      onBookUpdate(b.id, { coverUrl: dataUrl, coverSource: 'local-base64' });
+                                    } catch (_) { /* 配额或失败时忽略，下次继续用代理 */ }
                                   }}
-                                  style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                                  catCol={catCol}
+                                  fallbackChar={(b.t||'书').charAt(0)}
+                                />
                               ) : (
                                 <span style={{ color: catCol, fontSize: '18px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22` }}>
                                   {(b.t||'书').charAt(0)}
@@ -4521,7 +4685,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v5', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v6', () => BOOKS.map(b => ({ ...b, id: uid() })));
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));

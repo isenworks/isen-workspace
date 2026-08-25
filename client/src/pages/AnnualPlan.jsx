@@ -3675,54 +3675,15 @@ function CognitionView({
                           boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
                           border: `1px solid rgba(15,23,42,0.06)`,
                         }}>
-                        <div className="w-full min-w-0 flex flex-col gap-[9px]" style={{ padding: '11px 12px' }}>
-                          {/* 顶部右侧：分类Pill + 电子书跳转↗（原⋯菜单删除）*/}
-                          <div className="flex justify-end items-center gap-[6px] min-w-0" onClick={(e) => e.stopPropagation()}>
-                            <span className="inline-flex items-center px-[8px] h-[19px] rounded-full text-[11px] font-bold leading-none"
-                              style={{
-                                background: (() => {
-                                  switch (b.cat) {
-                                    case '认知成长': return BLUE_LIGHT;
-                                    case '人际沟通': return '#ede9fe';
-                                    case '商业职场': return '#fef3c7';
-                                    case '人文叙事': return '#dcfce7';
-                                    default: return '#f1f5f9';
-                                  }
-                                })(),
-                                color: catCol,
-                              }}>
-                              {b.cat || '未分类'}
-                            </span>
-                            {isEbookLink && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
-                                  catch { onBookEdit?.(b); }
-                                }}
-                                title="打开电子书"
-                                className="inline-flex items-center justify-center transition-all duration-150"
-                                style={{
-                                  width: '22px', height: '22px', borderRadius:'7px',
-                                  background: BLUE, color:'#fff',
-                                  boxShadow: `0 2px 6px rgba(2,132,199,0.32)`,
-                                }}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M7 17 17 7M7 7h10v10"/>
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-
-                          {/* 封面置顶 + 右侧：书名→作者→思考+行动 */}
-                          <div className="flex items-start gap-[10px] min-w-0">
-                            {/* 左：封面 42×56 */}
+                        <div className="w-full min-w-0 flex flex-col gap-[8px]" style={{ padding: '12px 13px' }}>
+                          {/* 主行：封面48×64左 + 右侧5行信息流 */}
+                          <div className="flex items-start gap-[11px] min-w-0">
+                            {/* 封面 48×64 */}
                             <div style={{
-                              width:'42px', height:'56px', borderRadius:'6px', overflow:'hidden', flex:'0 0 42px',
+                              width:'48px', height:'64px', borderRadius:'7px', overflow:'hidden', flex:'0 0 48px',
                               border: `1px solid ${catCol}33`,
                               background: realCover ? '#fff' : coverInitBg,
-                              boxShadow: '0 2px 5px rgba(15,23,42,0.06)',
+                              boxShadow: '0 2px 6px rgba(15,23,42,0.07)',
                               display: 'flex', alignItems:'center', justifyContent:'center',
                             }}>
                               {realCover ? (
@@ -3739,122 +3700,175 @@ function CognitionView({
                                   fallbackChar={(b.t||'书').charAt(0)}
                                 />
                               ) : (
-                                <span style={{ color: catCol, fontSize: '19px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22`, lineHeight: 1 }}>
+                                <span style={{ color: catCol, fontSize: '22px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22`, lineHeight: 1 }}>
                                   {(b.t||'书').charAt(0)}
                                 </span>
                               )}
                             </div>
-                            {/* 右：书名 → 作者 → 思考+行动 */}
-                            <div className="flex-1 min-w-0 flex flex-col gap-[5px]">
-                              <div className={`min-w-0 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
-                                style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
-                                {b.t}
+                            {/* 右侧：书名+↗ / 作者 / 分类Pill / 进度 / 日期 */}
+                            <div className="flex-1 min-w-0 flex flex-col gap-[4px]">
+                              {/* 书名 + 跳转↗ */}
+                              <div className="flex items-start justify-between gap-2 min-w-0">
+                                <div className={`min-w-0 flex-1 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
+                                  style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
+                                  {b.t}
+                                </div>
+                                {isEbookLink && (
+                                  <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
+                                        catch { onBookEdit?.(b); }
+                                      }}
+                                      title="打开电子书"
+                                      className="inline-flex items-center justify-center transition-all duration-150"
+                                      style={{
+                                        width: '22px', height: '22px', borderRadius:'7px',
+                                        background: BLUE, color:'#fff',
+                                        boxShadow: `0 2px 6px rgba(2,132,199,0.32)`,
+                                      }}>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M7 17 17 7M7 7h10v10"/>
+                                      </svg>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
+                              {/* 作者 */}
                               <div className="text-[11.5px] text-ink-400 font-medium leading-none truncate">
                                 {b.author || '佚名作者'}
                               </div>
-                              {/* 思考+行动（复选框统一绿色）*/}
-                              <div className="flex items-center gap-4 min-w-0 mt-[1px]">
-                                <div className="flex items-center gap-[6px]">
-                                  <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                    style={{
-                                      background: hasIns ? '#22c55e' : 'transparent',
-                                      border: hasIns ? 'none' : '1.5px solid #cbd5e1',
-                                    }}>
-                                    {hasIns && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
-                                  </div>
-                                  <span className="text-[11.5px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
-                                </div>
-                                <div className="flex items-center gap-[6px]">
-                                  <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                    style={{
-                                      background: hasAct ? '#22c55e' : 'transparent',
-                                      border: hasAct ? 'none' : '1.5px solid #cbd5e1',
-                                    }}>
-                                    {hasAct && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
-                                  </div>
-                                  <span className="text-[11.5px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 阅读进度 */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-[6px] min-w-0 flex-1">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
-                              </svg>
-                              <span className="text-[11.5px] font-medium text-ink-500 leading-none">阅读进度</span>
-                            </div>
-                            <div className="flex items-center gap-[8px] flex-shrink-0">
-                              <span className={`text-[12px] font-bold tabular-nums leading-none ${b.st==='done' ? 'text-green-600' : ''}`}
-                                style={{ color: b.st==='done' ? '#16a34a' : statusDot.col }}>{pct}%</span>
-                              <div style={{ width: '56px', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden' }}>
-                                <div style={{
-                                  width: `${Math.max(0, pct)}%`, height: '100%', borderRadius: '999px',
-                                  background: b.st === 'done'
-                                    ? '#22c55e'
-                                    : b.st === 'abandoned'
-                                      ? '#94a3b8'
-                                      : pct <= 0 ? 'transparent' : statusDot.col,
-                                  transition: 'width 300ms ease-out',
-                                }}/>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 阅读时间（日期+已读天数）— 移到阅读进度下面 */}
-                          <div className="flex items-center gap-[4px] min-w-0">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                              <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-                            </svg>
-                            {(() => {
-                              const fmtShort = (d) => {
-                                if (!d) return '';
-                                const s = String(d);
-                                const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                                if (m) return `${m[1].slice(2)}/${String(+m[2]).padStart(2,'0')}/${String(+m[3]).padStart(2,'0')}`;
-                                const m2 = s.replace(/\//g, '-').match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                                if (m2) return `${m2[1].slice(2)}/${String(+m2[2]).padStart(2,'0')}/${String(+m2[3]).padStart(2,'0')}`;
-                                return s;
-                              };
-                              const dayDiff = (a, b) => {
-                                try {
-                                  const da = new Date(String(a).replace(/-/g,'/'));
-                                  const db = new Date(String(b).replace(/-/g,'/'));
-                                  if (isNaN(+da) || isNaN(+db)) return 0;
-                                  return Math.max(0, Math.round((db - da) / 86400000));
-                                } catch { return 0; }
-                              };
-                              const today = new Date().toISOString().slice(0, 10);
-                              let dateLabel = '';
-                              if (b.st === 'reading') {
-                                if (b.startDate) {
-                                  const d = dayDiff(b.startDate, today);
-                                  dateLabel = `${fmtShort(b.startDate)} → 今天 · 已读 ${d + 1} 天`;
-                                } else {
-                                  dateLabel = '未设置开始日期 · 点卡片设置';
-                                }
-                              } else if (b.st === 'done') {
-                                if (b.startDate && b.endDate) {
-                                  const d = dayDiff(b.startDate, b.endDate);
-                                  dateLabel = `${fmtShort(b.startDate)} → ${fmtShort(b.endDate)} · 共读 ${d + 1} 天`;
-                                } else if (b.endDate) {
-                                  dateLabel = `${fmtShort(b.endDate)} 读完`;
-                                } else {
-                                  dateLabel = '已读完';
-                                }
-                              } else if (b.st === 'abandoned') {
-                                dateLabel = b.endDate ? `${fmtShort(b.endDate)} 归档` : '已归档';
-                              } else {
-                                if (b.startDate) dateLabel = `计划 ${fmtShort(b.startDate)} 开启`;
-                                else dateLabel = '待开启 · 点卡片设置日期';
-                              }
-                              return (
-                                <span className="text-[11px] font-medium text-ink-400 leading-none truncate">
-                                  {dateLabel}
+                              {/* 分类Pill */}
+                              <div>
+                                <span className="inline-flex items-center px-[8px] h-[18px] rounded-full text-[10.5px] font-bold leading-none"
+                                  style={{
+                                    background: (() => {
+                                      switch (b.cat) {
+                                        case '认知成长': return BLUE_LIGHT;
+                                        case '人际沟通': return '#ede9fe';
+                                        case '商业职场': return '#fef3c7';
+                                        case '人文叙事': return '#dcfce7';
+                                        default: return '#f1f5f9';
+                                      }
+                                    })(),
+                                    color: catCol,
+                                  }}>
+                                  {b.cat || '未分类'}
                                 </span>
+                              </div>
+                              {/* 进度：⏱图标 + % + bar */}
+                              <div className="flex items-center gap-[6px] min-w-0">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+                                </svg>
+                                <span className="text-[12px] font-bold tabular-nums leading-none flex-shrink-0"
+                                  style={{ color: b.st==='done' ? '#16a34a' : statusDot.col }}>{pct}%</span>
+                                <div style={{ width: '100%', maxWidth: '120px', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden', flex: '1 1 auto' }}>
+                                  <div style={{
+                                    width: `${Math.max(0, pct)}%`, height: '100%', borderRadius:'999px',
+                                    background: b.st === 'done' ? '#22c55e' : b.st === 'abandoned' ? '#94a3b8' : pct <= 0 ? 'transparent' : statusDot.col,
+                                    transition: 'width 300ms ease-out',
+                                  }}/>
+                                </div>
+                              </div>
+                              {/* 日期+已读天数 */}
+                              <div className="flex items-center gap-[4px] min-w-0">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                                </svg>
+                                {(() => {
+                                  const fmtShort = (d) => {
+                                    if (!d) return '';
+                                    const s = String(d);
+                                    const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                                    if (m) return `${m[1].slice(2)}/${String(+m[2]).padStart(2,'0')}/${String(+m[3]).padStart(2,'0')}`;
+                                    const m2 = s.replace(/\//g, '-').match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                                    if (m2) return `${m2[1].slice(2)}/${String(+m2[2]).padStart(2,'0')}/${String(+m2[3]).padStart(2,'0')}`;
+                                    return s;
+                                  };
+                                  const dayDiff = (a, b) => {
+                                    try {
+                                      const da = new Date(String(a).replace(/-/g,'/'));
+                                      const db = new Date(String(b).replace(/-/g,'/'));
+                                      if (isNaN(+da) || isNaN(+db)) return 0;
+                                      return Math.max(0, Math.round((db - da) / 86400000));
+                                    } catch { return 0; }
+                                  };
+                                  const today = new Date().toISOString().slice(0, 10);
+                                  let dateLabel = '';
+                                  if (b.st === 'reading') {
+                                    if (b.startDate) {
+                                      const d = dayDiff(b.startDate, today);
+                                      dateLabel = `${fmtShort(b.startDate)} → 今天 · 已读 ${d + 1} 天`;
+                                    } else {
+                                      dateLabel = '未设置开始日期 · 点卡片设置';
+                                    }
+                                  } else if (b.st === 'done') {
+                                    if (b.startDate && b.endDate) {
+                                      const d = dayDiff(b.startDate, b.endDate);
+                                      dateLabel = `${fmtShort(b.startDate)} → ${fmtShort(b.endDate)} · 共读 ${d + 1} 天`;
+                                    } else if (b.endDate) {
+                                      dateLabel = `${fmtShort(b.endDate)} 读完`;
+                                    } else {
+                                      dateLabel = '已读完';
+                                    }
+                                  } else if (b.st === 'abandoned') {
+                                    dateLabel = b.endDate ? `${fmtShort(b.endDate)} 归档` : '已归档';
+                                  } else {
+                                    if (b.startDate) dateLabel = `计划 ${fmtShort(b.startDate)} 开启`;
+                                    else dateLabel = '待开启 · 点卡片设置日期';
+                                  }
+                                  return (
+                                    <span className="text-[10.5px] font-medium text-ink-400 leading-none truncate">
+                                      {dateLabel}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 分割线 */}
+                          <div style={{ height: 1, background: '#f1f5f9', margin: '1px 0' }}></div>
+
+                          {/* 底部：✔思考X组  ✔行动X条  ✔改变X个（统一绿色）*/}
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="flex items-center gap-[5px]">
+                              <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
+                                style={{
+                                  background: hasIns ? '#22c55e' : 'transparent',
+                                  border: hasIns ? 'none' : '1.5px solid #cbd5e1',
+                                }}>
+                                {hasIns && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                              </div>
+                              <span className="text-[11px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
+                            </div>
+                            <div className="flex items-center gap-[5px]">
+                              <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
+                                style={{
+                                  background: hasAct ? '#22c55e' : 'transparent',
+                                  border: hasAct ? 'none' : '1.5px solid #cbd5e1',
+                                }}>
+                                {hasAct && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                              </div>
+                              <span className="text-[11px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
+                            </div>
+                            {(() => {
+                              const changeCount = (changes || []).filter(c => c.bookId === b.id).length;
+                              const hasChange = changeCount > 0;
+                              return (
+                                <div className="flex items-center gap-[5px]">
+                                  <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
+                                    style={{
+                                      background: hasChange ? '#22c55e' : 'transparent',
+                                      border: hasChange ? 'none' : '1.5px solid #cbd5e1',
+                                    }}>
+                                    {hasChange && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                                  </div>
+                                  <span className="text-[11px] font-semibold text-ink-600 leading-none">改变 {changeCount} 个</span>
+                                </div>
                               );
                             })()}
                           </div>

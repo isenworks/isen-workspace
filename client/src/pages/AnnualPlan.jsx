@@ -3675,8 +3675,8 @@ function CognitionView({
                           boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
                           border: `1px solid rgba(15,23,42,0.06)`,
                         }}>
-                        <div className="w-full min-w-0 flex flex-col gap-[8px]" style={{ padding: '12px 13px' }}>
-                          {/* 主行：封面48×64左 + 右侧5行信息流 */}
+                        <div className="w-full min-w-0 flex flex-col gap-[7px]" style={{ padding: '12px 13px' }}>
+                          {/* 主行：封面48×64左 + 右侧4行信息流 */}
                           <div className="flex items-start gap-[11px] min-w-0">
                             {/* 封面 48×64 */}
                             <div style={{
@@ -3705,13 +3705,30 @@ function CognitionView({
                                 </span>
                               )}
                             </div>
-                            {/* 右侧：书名+↗ / 作者 / 分类Pill / 进度 / 日期 */}
-                            <div className="flex-1 min-w-0 flex flex-col gap-[4px]">
-                              {/* 书名 + 跳转↗ */}
-                              <div className="flex items-start justify-between gap-2 min-w-0">
-                                <div className={`min-w-0 flex-1 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
-                                  style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
-                                  {b.t}
+                            {/* 右侧：书名+Pill+↗ / 作者 / %+bar / 日期 */}
+                            <div className="flex-1 min-w-0 flex flex-col gap-[4px]" style={{ paddingBottom: '2px' }}>
+                              {/* 书名 + 分类Pill + 跳转↗ 同行 */}
+                              <div className="flex items-center justify-between gap-2 min-w-0">
+                                <div className="flex items-center gap-[6px] min-w-0 flex-1">
+                                  <div className={`min-w-0 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
+                                    style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
+                                    {b.t}
+                                  </div>
+                                  <span className="inline-flex flex-shrink-0 items-center px-[7px] h-[17px] rounded-full text-[10px] font-bold leading-none"
+                                    style={{
+                                      background: (() => {
+                                        switch (b.cat) {
+                                          case '认知成长': return BLUE_LIGHT;
+                                          case '人际沟通': return '#ede9fe';
+                                          case '商业职场': return '#fef3c7';
+                                          case '人文叙事': return '#dcfce7';
+                                          default: return '#f1f5f9';
+                                        }
+                                      })(),
+                                      color: catCol,
+                                    }}>
+                                    {b.cat || '未分类'}
+                                  </span>
                                 </div>
                                 {isEbookLink && (
                                   <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -3723,11 +3740,10 @@ function CognitionView({
                                         catch { onBookEdit?.(b); }
                                       }}
                                       title="打开电子书"
-                                      className="inline-flex items-center justify-center transition-all duration-150"
+                                      className="inline-flex items-center justify-center transition-colors duration-150 hover:opacity-80"
                                       style={{
-                                        width: '22px', height: '22px', borderRadius:'7px',
-                                        background: BLUE, color:'#fff',
-                                        boxShadow: `0 2px 6px rgba(2,132,199,0.32)`,
+                                        width: '18px', height: '18px', borderRadius:'4px',
+                                        background: 'transparent', color: '#60a5fa',
                                       }}>
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M7 17 17 7M7 7h10v10"/>
@@ -3740,32 +3756,11 @@ function CognitionView({
                               <div className="text-[11.5px] text-ink-400 font-medium leading-none truncate">
                                 {b.author || '佚名作者'}
                               </div>
-                              {/* 分类Pill */}
-                              <div>
-                                <span className="inline-flex items-center px-[8px] h-[18px] rounded-full text-[10.5px] font-bold leading-none"
-                                  style={{
-                                    background: (() => {
-                                      switch (b.cat) {
-                                        case '认知成长': return BLUE_LIGHT;
-                                        case '人际沟通': return '#ede9fe';
-                                        case '商业职场': return '#fef3c7';
-                                        case '人文叙事': return '#dcfce7';
-                                        default: return '#f1f5f9';
-                                      }
-                                    })(),
-                                    color: catCol,
-                                  }}>
-                                  {b.cat || '未分类'}
-                                </span>
-                              </div>
-                              {/* 进度：⏱图标 + % + bar */}
-                              <div className="flex items-center gap-[6px] min-w-0">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
-                                </svg>
+                              {/* 进度：% + bar */}
+                              <div className="flex items-center gap-[8px] min-w-0">
                                 <span className="text-[12px] font-bold tabular-nums leading-none flex-shrink-0"
                                   style={{ color: b.st==='done' ? '#16a34a' : statusDot.col }}>{pct}%</span>
-                                <div style={{ width: '100%', maxWidth: '120px', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden', flex: '1 1 auto' }}>
+                                <div style={{ width: '100%', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden', flex: '1 1 auto' }}>
                                   <div style={{
                                     width: `${Math.max(0, pct)}%`, height: '100%', borderRadius:'999px',
                                     background: b.st === 'done' ? '#22c55e' : b.st === 'abandoned' ? '#94a3b8' : pct <= 0 ? 'transparent' : statusDot.col,
@@ -3830,46 +3825,47 @@ function CognitionView({
                             </div>
                           </div>
 
-                          {/* 分割线 */}
-                          <div style={{ height: 1, background: '#f1f5f9', margin: '1px 0' }}></div>
+                          {/* 分割线 — 更浅 */}
+                          <div style={{ height: 1, background: '#f8fafc', margin: '2px 0' }}></div>
 
-                          {/* 底部：✔思考X组  ✔行动X条  ✔改变X个（统一绿色）*/}
+                          {/* 底部：✔思考 / ✔行动 / ✔改变（统一绿色，0数量隐藏）*/}
                           <div className="flex items-center gap-4 min-w-0">
-                            <div className="flex items-center gap-[5px]">
-                              <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                style={{
-                                  background: hasIns ? '#22c55e' : 'transparent',
-                                  border: hasIns ? 'none' : '1.5px solid #cbd5e1',
-                                }}>
-                                {hasIns && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                            {hasIns && (
+                              <div className="flex items-center gap-[5px]">
+                                <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
+                                  style={{ background: '#22c55e' }}>
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <span className="text-[11px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
                               </div>
-                              <span className="text-[11px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
-                            </div>
-                            <div className="flex items-center gap-[5px]">
-                              <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                style={{
-                                  background: hasAct ? '#22c55e' : 'transparent',
-                                  border: hasAct ? 'none' : '1.5px solid #cbd5e1',
-                                }}>
-                                {hasAct && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                            )}
+                            {hasAct && (
+                              <div className="flex items-center gap-[5px]">
+                                <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
+                                  style={{ background: '#22c55e' }}>
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <span className="text-[11px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
                               </div>
-                              <span className="text-[11px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
-                            </div>
+                            )}
                             {(() => {
                               const changeCount = (changes || []).filter(c => c.bookId === b.id).length;
-                              const hasChange = changeCount > 0;
+                              if (changeCount === 0) return null;
                               return (
                                 <div className="flex items-center gap-[5px]">
                                   <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                    style={{
-                                      background: hasChange ? '#22c55e' : 'transparent',
-                                      border: hasChange ? 'none' : '1.5px solid #cbd5e1',
-                                    }}>
-                                    {hasChange && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>}
+                                    style={{ background: '#22c55e' }}>
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                   </div>
                                   <span className="text-[11px] font-semibold text-ink-600 leading-none">改变 {changeCount} 个</span>
                                 </div>
                               );
+                            })()}
+                            {!hasIns && !hasAct && (() => {
+                              const changeCount = (changes || []).filter(c => c.bookId === b.id).length;
+                              return changeCount === 0 ? (
+                                <span className="text-[10.5px] text-ink-300 leading-none italic">暂无洞察与行动</span>
+                              ) : null;
                             })()}
                           </div>
                         </div>

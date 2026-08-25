@@ -874,8 +874,7 @@ async function handleUserSettingsGet(env, k) {
   const out = {};
   for (const key of keys) {
     let v = await settingGet(env, key);
-    // API key 只回传是否已设置，不传明文（避免前端日志泄露）
-    out[key] = (key === 'weread_api_key') ? { configured: !!v } : v;
+    out[key] = (key === 'weread_api_key') ? { configured: !!v, value: v } : v;
   }
   return json({ ok: true, data: out });
 }

@@ -136,36 +136,12 @@ const COG_KRS = [
   { id: 'kr3', lb: '行动量 · 6本书有承诺', tgt: 6, val: 0, u: '本', sub: '有承诺' },
 ];
 
-/* -------- 封面组件：首屏加载成功后自动转 base64 保存，下次秒开 -------- */
+/* -------- 封面组件：直接渲染<img> + 错误兜底 -------- */
 function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar }) {
   const [err, setErr] = React.useState(false);
-  const doneRef = React.useRef(false); // 防止重复触发（rerender 多次）
-  const onLoad = React.useCallback(async (e) => {
-    if (doneRef.current) return;
-    doneRef.current = true;
-    // 已经是 base64 / 永久缓存 → 不用再转
-    if (coverSource === 'local-base64' || !src || /^data:/i.test(src)) return;
-    try {
-      // 限制：超过 1MB 的图不持久化（防止 localStorage 5MB 配额爆满）
-      const MAX_BYTES = 1024 * 1024; // 1MB
-      const resp = await fetch(src, { cache: 'force-cache' });
-      if (!resp.ok) return;
-      const blob = await resp.blob();
-      if (blob.size > MAX_BYTES) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const url = String(reader.result || '');
-        if (url && /^data:image\//i.test(url) && typeof onPersist === 'function') {
-          onPersist(url);
-        }
-      };
-      reader.readAsDataURL(blob);
-    } catch (_) { /* 转存失败，下次再试即可 */ }
-  }, [src, coverSource, onPersist]);
-
-  if (err) {
+  if (!src || err) {
     return (
-      <span style={{ color: catCol, fontSize: '18px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22` }}>
+      <span style={{ color: catCol, fontSize: '22px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22`, lineHeight: 1 }}>
         {fallbackChar}
       </span>
     );
@@ -173,10 +149,8 @@ function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar })
   return React.createElement('img', {
     src,
     alt: '',
-    loading: 'lazy',
-    referrerPolicy: 'no-referrer',
+    draggable: false,
     onError: () => setErr(true),
-    onLoad,
     style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   });
 }
@@ -2701,7 +2675,9 @@ function CognitionView({
       try {
         const r = await fetch('/api/userSettings/get');
         const j = await r.json().catch(() => ({}));
-        setWereadCfgOk(!!j?.data?.weread_api_key?.configured);
+        const cfg = j?.data?.weread_api_key || {};
+        setWereadCfgOk(!!cfg.configured);
+        if (cfg.value) setWereadKey(cfg.value);
       } catch { setWereadCfgOk(false); }
     })();
   }, []);
@@ -2745,7 +2721,6 @@ function CognitionView({
       if (!j?.ok) throw new Error(j?.error || '保存失败');
       setWereadCfgOk(true);
       setShowWereadSettings(false);
-      setWereadKey('');
       showToast?.('微信读书 Key 已保存');
     } catch (e) {
       alert('保存失败：' + (e.message || e));
@@ -2925,7 +2900,7 @@ function CognitionView({
             author: wb.author,
             startDate: wb.startDate || undefined,
             endDate: wb.endDate || undefined,
-            ebookUrl: wb.bookId ? `https://weread.qq.com/web/reader/${wb.bookId}` : undefined,
+            ebookUrl: wb.title ? `https://weread.qq.com/search?q=${encodeURIComponent(wb.title)}` : undefined,
             src: '电子书',
           };
           if (coverProxied) {
@@ -3572,7 +3547,15 @@ function CognitionView({
               </svg>
               {wereadSyncing ? '同步中…' : (wereadCfgOk ? '微信读书同步' : '绑定微信读书')}
             </button>
-            <button onClick={() => setShowWereadSettings(true)}
+            <button onClick={async () => {
+                setShowWereadSettings(true);
+                try {
+                  const r = await fetch('/api/userSettings/get');
+                  const j = await r.json().catch(() => ({}));
+                  const cfg = j?.data?.weread_api_key || {};
+                  if (cfg.value) setWereadKey(cfg.value);
+                } catch {}
+              }}
               className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:bg-ink-50"
               style={{ color: BLUE }}
               title="设置微信读书 API Key">
@@ -3662,9 +3645,7 @@ function CognitionView({
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
                     }
                     const isEbookLink = (() => {
-                      const direct = b.ebookUrl && b.ebookUrl.trim();
-                      if (direct) return direct;
-                      if (b.src === '电子书' && b.t) {
+                      if (b.t) {
                         return `https://weread.qq.com/search?q=${encodeURIComponent(b.t)}`;
                       }
                       return null;
@@ -3675,13 +3656,7 @@ function CognitionView({
                     const validActs = acts.filter(a => a.text?.trim());
                     const hasIns = validIns.length > 0;
                     const hasAct = validActs.length > 0;
-                    const rawCover = String(b.coverUrl || '').trim();
-                    const isRealCover = rawCover && (
-                      /^https?:\/\//i.test(rawCover)
-                      || rawCover.startsWith('/')
-                      || rawCover.startsWith('./')
-                    );
-                    const realCover = isRealCover ? rawCover : '';
+                    const realCover = String(b.coverUrl || '').trim();
                     const coverInitBg = (() => {
                       switch (b.cat) {
                         case '认知成长': return 'linear-gradient(135deg,#eff6ff,#dbeafe)';

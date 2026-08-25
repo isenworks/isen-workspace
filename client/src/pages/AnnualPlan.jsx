@@ -2645,7 +2645,17 @@ function CognitionView({
   const [editingReview, setEditingReview] = useState(null);
 
   const BLUE = '#007aff';       // 计划总结页"今日按钮"填充蓝（Apple system blue）
+  const BLUE_DARK = '#0062cc';  // 深蓝
   const BLUE_LIGHT = 'rgba(0,122,255,0.08)'; // 对应今日页浅色背景 rgba(0,122,255,0.08)
+  const BLUE_BG = 'rgba(0,122,255,0.12)';
+  // 分类色标：4 大类固定颜色（身份识别）
+  const CAT_COLORS = {
+    '认知成长': '#007aff', // 蓝（知力主色）
+    '人际沟通': '#a855f7', // 紫（人际/感性）
+    '商业职场': '#f59e0b', // 橙（商业/行动力）
+    '人文叙事': '#10b981', // 绿（叙事/成长感）
+  };
+  const catColorOf = (c) => CAT_COLORS[c] || BLUE;
   const year = new Date().getFullYear();
 
   const groups = useMemo(() => {
@@ -3191,6 +3201,30 @@ function CognitionView({
                   g.books.map((b) => {
                     const isDragging = dragBookId === b.id;
                     const isDone = g.key === 'done';
+                    const catCol = catColorOf(b.cat);
+                    // 进度/状态样式
+                    const pct = Math.min(100, Math.max(0, Number(b.pct) || 0));
+                    let statusDot;
+                    switch (b.st) {
+                      case 'reading':
+                        statusDot = { col: BLUE, solid: true, pulse: true, lb: '阅读中' };
+                        break;
+                      case 'done':
+                        statusDot = { col: '#22c55e', solid: true, pulse: false, lb: '已读完' };
+                        break;
+                      case 'abandoned':
+                        statusDot = { col: '#94a3b8', solid: false, pulse: false, strike: true, lb: '已弃读' };
+                        break;
+                      default:
+                        statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
+                    }
+                    const isEbookLink = b.src === '电子书' && b.ebookUrl && b.ebookUrl.trim();
+                    const insights = b.insights || [];
+                    const validIns = insights.filter(i => i.text?.trim() && i.scene?.trim());
+                    const acts = b.actions || [];
+                    const validActs = acts.filter(a => a.text?.trim());
+                    const hasIns = validIns.length > 0;
+                    const hasAct = validActs.length > 0;
                     return (
                       <div
                         key={b.id}
@@ -3201,116 +3235,135 @@ function CognitionView({
                           setDragBookId(b.id);
                         }}
                         onDragEnd={() => { setDragBookId(null); setDragOverCol(null); }}
-                        className={`rounded-lg bg-white transition-all relative select-none ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-md'}`}
+                        className={`rounded-xl bg-white transition-all relative select-none overflow-hidden group ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_3px_14px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
                         style={{
                           cursor: isDragging ? 'grabbing' : 'grab',
-                          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-                          border: `1px solid ${g.col}20`,
+                          boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
+                          border: `1px solid rgba(15,23,42,0.06)`,
                         }}>
-                        {/* 主行：点击 → 打开编辑弹窗；如果是电子书有链接→左键新标签打开，右键才编辑 */}
+                        {/* 左侧分类色条（身份锚点 + 拖拽暗示）*/}
+                        <div className="absolute left-0 top-0 bottom-0 w-[4px] transition-all duration-200 group-hover:w-[5px]"
+                          style={{
+                            background: catCol,
+                            opacity: 0.9,
+                            boxShadow: isDragging ? `2px 0 10px ${catCol}66` : undefined,
+                          }} />
+
+                        {/* L1：状态点 + 书名 + 电子书↗ 跳链 + 进度%胶囊 */}
                         <div
                           onClick={(e) => {
-                            if (b.src === '电子书' && b.ebookUrl && b.ebookUrl.trim()) {
+                            if (isEbookLink) {
                               e.stopPropagation();
-                              try { window.open(b.ebookUrl.trim(), '_blank', 'noopener,noreferrer'); }
+                              try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
                               catch { onBookEdit?.(b); }
                             } else {
                               onBookEdit?.(b);
                             }
                           }}
-                          className="px-2 py-1.5 flex items-center justify-between gap-1.5"
+                          className="pl-[11px] pr-[9px] pt-[9px] pb-0 flex items-start justify-between gap-1.5"
                           style={{ cursor: 'pointer' }}>
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            {/* 拖拽把手：暗示可拖 */}
-                            <span className="text-[8.5px] leading-none text-ink-200 group-hover:text-ink-400 transition flex-shrink-0"
-                              title="按住拖到其他栏目"
-                              style={{ letterSpacing: '-0.5px' }}>
-                              ⋮⋮
-                            </span>
+                          <div className="min-w-0 flex-1 flex items-start gap-1.5">
+                            {/* 状态圆点（未开始灰空心/阅读中蓝呼吸/已读完绿实心/弃读灰斜）*/}
+                            <span className="flex-shrink-0 mt-[4px] inline-block rounded-full"
+                              style={{
+                                width: '7px', height: '7px',
+                                background: statusDot.solid ? statusDot.col : 'transparent',
+                                border: statusDot.solid ? 'none' : `1.5px solid ${statusDot.col}`,
+                                animation: statusDot.pulse ? 'pulse 2.2s ease-in-out infinite' : undefined,
+                                boxShadow: statusDot.pulse ? `0 0 0 3px ${BLUE}1A` : undefined,
+                              }}
+                              title={statusDot.lb} />
                             <div className="min-w-0 flex-1">
-                              <div className={`text-[12px] font-semibold truncate leading-tight flex items-center gap-1 ${g.key === 'done' ? 'text-ink-500 line-through' : 'text-ink-900'}`}>
+                              <div className={`text-[12.5px] font-bold truncate leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
+                                style={{ color: isDone ? '#64748b' : '#0f172a' }}>
                                 {b.t}
-                                {b.src === '电子书' && b.ebookUrl && b.ebookUrl.trim() && (
-                                  <span title="左键打开电子书链接，右键菜单可编辑"
-                                    className="leading-none inline-flex items-center text-[9px] font-bold px-1 rounded"
-                                    style={{ background: 'rgba(75,99,240,0.10)', color: '#4b63f0' }}>
+                                {isEbookLink && (
+                                  <span title="左键打开电子书，右键可编辑"
+                                    className="ml-1 leading-none inline-flex items-center"
+                                    style={{ color: BLUE, fontWeight: 800, fontSize: '9.5px' }}>
                                     ↗
                                   </span>
                                 )}
                               </div>
-                              {b.cat && <div className="text-[10px] text-ink-500 truncate leading-tight mt-0.5">{b.cat}</div>}
-                              {/* 已读完书籍：洞察+行动状态可视化 */}
-                              {isDone && (() => {
-                                const ins = b.insights || [];
-                                const validIns = ins.filter(i => i.text?.trim() && i.scene?.trim());
-                                const strongIns = validIns.filter(i => (i.resonance || 0) >= 7);
-                                const hasIns = validIns.length > 0;
-                                const acts = b.actions || [];
-                                const validActs = acts.filter(a => a.text?.trim());
-                                const hasAct = validActs.length > 0;
-                                return (
-                                  <div className="flex flex-wrap items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
-                                    {hasIns ? (
-                                      <>
-                                        <span className="text-[8.5px] font-bold px-1 py-px rounded leading-none" style={{ background: 'rgba(75,99,240,0.1)', color: '#4b63f0' }}>
-                                          💡 {validIns.length}洞察
-                                        </span>
-                                        {strongIns.length > 0 && (
-                                          <span className="text-[8.5px] font-bold px-1 py-px rounded leading-none" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
-                                            ⚡{strongIns.length}共鸣
-                                          </span>
-                                        )}
-                                      </>
-                                    ) : (
-                                      <span className="text-[8.5px] text-ink-400 italic leading-none">无洞察</span>
-                                    )}
-                                    {hasAct && (
-                                      <span className="text-[8.5px] font-bold px-1 py-px rounded leading-none" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
-                                        🎯{validActs.length}行动
-                                      </span>
-                                    )}
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasInsights: !hasIns }); }}
-                                      className="text-[8.5px] text-ink-300 hover:text-blue-500 leading-none"
-                                      title={hasIns ? '标记为无洞察' : '标记为有洞察'}>
-                                      {hasIns ? '✓' : '○'}
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasAction: !hasAct }); }}
-                                      className="text-[8.5px] text-ink-300 hover:text-purple-500 leading-none"
-                                      title={hasAct ? '取消行动标记' : '标记为已行动'}>
-                                      {hasAct ? '✓' : '○'}
-                                    </button>
-                                  </div>
-                                );
-                              })()}
-                              {/* 进行中/待读书籍的观点小标签 */}
-                              {!isDone && (() => {
-                                const ins = b.insights || [];
-                                const validIns = ins.filter(i => i.text?.trim() && i.scene?.trim());
-                                const acts = b.actions || [];
-                                const validActs = acts.filter(a => a.text?.trim());
-                                if (validIns.length === 0 && validActs.length === 0) return null;
-                                return (
-                                  <div className="flex items-center gap-1 mt-0.5">
-                                    {validIns.length > 0 && (
-                                      <span className="text-[9px] font-semibold px-1 py-px rounded leading-none" style={{ background: 'rgba(75,99,240,0.08)', color: '#4b63f0' }}>
-                                        {validIns.length}思考
-                                      </span>
-                                    )}
-                                    {validActs.length > 0 && (
-                                      <span className="text-[9px] font-semibold px-1 py-px rounded leading-none" style={{ background: 'rgba(168,85,247,0.08)', color: '#a855f7' }}>
-                                        {validActs.length}承诺
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })()}
                             </div>
                           </div>
-                          <span className="text-[11.5px] font-extrabold tabular-nums flex-shrink-0 leading-none" style={{ color: g.col }}>
-                            {b.pct}%
+                          {/* 百分比胶囊：右对齐，颜色按状态 */}
+                          <span className="flex-shrink-0 tabular-nums px-1.5 py-[2px] rounded-md font-extrabold text-[11px] leading-none"
+                            style={{
+                              color: isDone ? '#16a34a' : statusDot.col,
+                              background: isDone ? 'rgba(34,197,94,0.08)' : `color-mix(in srgb, ${statusDot.col} 10%, white)`,
+                            }}>
+                            {pct}%
                           </span>
+                        </div>
+
+                        {/* L2：分类色标 + 洞察/行动勾号（右下浮层）*/}
+                        <div className="pl-[11px] pr-[9px] pt-[5px] pb-[7px] flex items-center justify-between gap-1 min-w-0">
+                          {/* 分类身份：小色方块+文字（最小字号，与顶部信息区分层级）*/}
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="flex-shrink-0 rounded-[3px]" style={{ width: '7px', height: '7px', background: catCol }} />
+                            <span className="truncate text-[10.5px] font-medium leading-none"
+                              style={{ color: catCol }}>{b.cat || '未分类'}</span>
+                            {/* 次要洞察数（非已读完才展示；已读完用右下✓体现）*/}
+                            {!isDone && (hasIns || hasAct) && (
+                              <span className="text-[9.5px] font-semibold px-1 py-0.5 rounded flex items-center gap-0.5"
+                                style={{ color: '#64748b', background: '#f1f5f9' }}>
+                                {hasIns && <span style={{ color: BLUE }}>💡{validIns.length}</span>}
+                                {hasIns && hasAct && <span className="text-ink-300">·</span>}
+                                {hasAct && <span style={{ color: '#f59e0b' }}>●{validActs.length}</span>}
+                              </span>
+                            )}
+                          </div>
+                          {/* 已读完：漏斗状态双勾可视化（右下）*/}
+                          {isDone && (
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasInsights: !hasIns }); }}
+                                className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
+                                style={{
+                                  background: hasIns ? BLUE : 'transparent',
+                                  color: hasIns ? '#fff' : '#cbd5e1',
+                                  border: hasIns ? 'none' : '1px solid #e2e8f0',
+                                  fontSize: '10px', fontWeight: 800, lineHeight: 1,
+                                }}
+                                title={hasIns ? '有洞察（漏斗思考量）' : '点击标记为有洞察'}>
+                                {hasIns ? '✓' : 'I'}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasAction: !hasAct }); }}
+                                className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
+                                style={{
+                                  background: hasAct ? '#22c55e' : 'transparent',
+                                  color: hasAct ? '#fff' : '#cbd5e1',
+                                  border: hasAct ? 'none' : '1px solid #e2e8f0',
+                                  fontSize: '10px', fontWeight: 800, lineHeight: 1,
+                                }}
+                                title={hasAct ? '有行动（漏斗行动量）' : '点击标记为有行动'}>
+                                {hasAct ? '✓' : 'A'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* L3：底部进度带（3px，贯穿整卡宽；核心感知层）*/}
+                        <div className="w-full h-[3px] relative" style={{ background: '#f1f5f9' }}>
+                          {b.st === 'abandoned' ? (
+                            <div className="absolute left-0 top-0 h-full" style={{
+                              width: '100%',
+                              background: 'repeating-linear-gradient(45deg,#cbd5e1 0 4px,#e2e8f0 4px 8px)',
+                              opacity: 0.5,
+                            }} />
+                          ) : (
+                            <div className="absolute left-0 top-0 h-full transition-all duration-500 ease-out" style={{
+                              width: `${pct}%`,
+                              background: isDone
+                                ? 'linear-gradient(90deg,#22c55e 0%,#16a34a 100%)'
+                                : pct <= 0
+                                  ? 'transparent'
+                                  : `linear-gradient(90deg, ${BLUE}4D 0%, ${BLUE} 100%)`,
+                              borderTopRightRadius: pct >= 99 ? 0 : '3px',
+                            }} />
+                          )}
                         </div>
                       </div>
                     );

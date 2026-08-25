@@ -3660,7 +3660,7 @@ function CognitionView({
                     if (b.st === 'reading') {
                       statusPill = { label: '正在阅读', col: BLUE, bg: BLUE_LIGHT };
                     } else if (b.st === 'done') {
-                      const落地 = (validActs.length > 0) ? ` · 落地 ${Math.min(validActs.length, 2)} 条` : '';
+                      const 落地 = (validActs.length > 0) ? ` · 落地 ${Math.min(validActs.length, 2)} 条` : '';
                       statusPill = { label: hasAct ? `已践行${落地}` : '已读完', col: '#22c55e', bg: '#dcfce7' };
                     } else if (b.st === 'abandoned') {
                       statusPill = { label: '归档', col: '#64748b', bg: '#f1f5f9' };

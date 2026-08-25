@@ -334,7 +334,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
                 value={form.bookId}
                 onChange={e => {
                   const bid = e.target.value.trim();
-                  const valid = /^[a-f0-9]{20,}$/i.test(bid.replace(/-/g, ''));
+                  const valid = /^[a-z0-9]{20,}$/i.test(bid.replace(/-/g, ''));
                   const autoUrl = valid ? `https://weread.qq.com/web/reader/${bid}` : '';
                   setForm(f => ({ ...f, bookId: bid, ebookUrl: autoUrl || f.ebookUrl }));
                 }}

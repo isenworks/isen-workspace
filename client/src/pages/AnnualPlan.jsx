@@ -2860,7 +2860,7 @@ function CognitionView({
         for (const x of bagB) if (x && na.includes(x)) return true;
         return false;
       };
-      const isValidBookId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
+      const isValidBookId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
       // ---- 同步合并 weread 数据到本地 ----
       const mergedResult = (() => {
         const curr = Array.isArray(books) ? [...books] : [];
@@ -3661,7 +3661,7 @@ function CognitionView({
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
                     }
                     const isEbookLink = (() => {
-                      const validId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
+                      const validId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
                       if (b.ebookUrl && b.ebookUrl.startsWith('http')) {
                         const m = b.ebookUrl.match(/\/reader\/([^/?#]+)/);
                         if (m && validId(m[1])) return b.ebookUrl;

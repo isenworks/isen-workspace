@@ -977,7 +977,7 @@ async function handleWereadSync(env, q) {
 
   // 2) 对每本书调用 /book/info 补封面 + 作者 + 详情（batch 5 本并行）
   //    先把列表里已经有的字段填好，没有 cover/author 的再补
-  const isHashBookId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
+  const isHashBookId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
   const books = bookList.map(x => {
     const rawId = x.bookId || x.book_id || x.id || x.bookid || '';
     const bookId = isHashBookId(rawId) ? rawId : '';
@@ -1032,8 +1032,14 @@ async function handleWereadSearch(env, q) {
 
   const GATEWAY = 'https://i.weread.qq.com/api/agent/gateway';
 
-  async function callWeread(apiName, extra = {}) {
-    const body = { api_name: apiName, skill_version: '1.0.3', ...extra };
+  try {
+    const body = {
+      api_name: '/store/search',
+      skill_version: '1.0.3',
+      keyword: query,
+      scope: 10,
+      count: 5,
+    };
     const r = await fetch(GATEWAY, {
       method: 'POST',
       headers: {
@@ -1051,32 +1057,28 @@ async function handleWereadSearch(env, q) {
       const msg = (data && (data.message || data.statusMessage || data.error)) || text || `HTTP ${r.status}`;
       throw new Error(`${r.status}: ${JSON.stringify(msg).slice(0, 200)}`);
     }
-    return data;
-  }
 
-  try {
-    let resp = null;
-    let lastErr = null;
-    for (const apiName of ['/search/book', '/book/search', '/search', '/search/books']) {
-      try {
-        resp = await callWeread(apiName, { q: query, count: 5 });
-        if (resp) break;
-      } catch (e) { lastErr = e.message; resp = null; }
+    // Parse: results[].books[].bookInfo -> extract hashId from deepLink
+    const isHashId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
+    const results = [];
+    const resultGroups = data?.results || [];
+    for (const group of resultGroups) {
+      const books = group?.books || [];
+      for (const item of books) {
+        const info = item?.bookInfo || {};
+        const deepLink = info.deepLink || '';
+        const hashMatch = deepLink.match(/v=([a-z0-9]+)/);
+        const hashId = hashMatch ? hashMatch[1] : '';
+        if (!hashId || !isHashId(hashId)) continue;
+        results.push({
+          title: String(info.title || '').trim(),
+          author: String(info.author || '').trim(),
+          bookId: hashId,
+          cover: info.cover || '',
+          rating: info.newRating ? String(info.newRating) : '',
+        });
+      }
     }
-    if (!resp) throw new Error(lastErr || '所有 weread 搜索接口均失败');
-
-    const isHashId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
-    const items = resp.books || resp.data?.books || resp.data || resp.results || resp.bookList || [];
-    const results = (Array.isArray(items) ? items : []).map(x => {
-      const rawId = x.bookId || x.book_id || x.id || x.bid || x.bookid || '';
-      return {
-        title: String(x.title || x.bookTitle || x.name || x.book_name || '').trim(),
-        author: String(x.author || x.bookAuthor || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
-        bookId: isHashId(rawId) ? rawId : '',
-        cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
-        rating: x.rating || x.rate || x.score || '',
-      };
-    });
     return json({ ok: true, results, total: results.length });
   } catch (e) {
     return json({ error: e.message || '搜索失败' }, 502);
@@ -1102,23 +1104,38 @@ async function handleCoverSearch(env, q) {
           'User-Agent': 'Ethan-Workbench/1.0',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ api_name: '/search/book', skill_version: '1.0.3', q: query, count: 3 }),
+        body: JSON.stringify({ api_name: '/store/search', skill_version: '1.0.3', keyword: query, scope: 10, count: 3 }),
       });
       if (resp.ok) {
         const data = await resp.json().catch(() => null);
-        const items = data?.books || data?.data?.books || data?.data || data?.results || [];
-        if (Array.isArray(items) && items.length > 0) {
+        // Parse: results[].books[].bookInfo
+        const resultGroups = data?.results || [];
+        const items = [];
+        for (const group of resultGroups) {
+          const books = group?.books || [];
+          for (const item of books) {
+            const info = item?.bookInfo || {};
+            if (info.cover) {
+              items.push({
+                title: info.title || '',
+                author: info.author || '',
+                cover: info.cover,
+              });
+            }
+          }
+        }
+        if (items.length > 0) {
           let pick = null;
           if (author) {
             pick = items.find(x =>
-              String(x.title || x.bookTitle || '').includes(query.slice(0, 2)) &&
-              String(x.author || x.bookAuthor || '').includes(author.slice(0, 2))
+              String(x.title || '').includes(query.slice(0, 2)) &&
+              String(x.author || '').includes(author.slice(0, 2))
             );
           }
-          if (!pick) pick = items.find(x => String(x.title || x.bookTitle || '').includes(query.slice(0, 2)));
+          if (!pick) pick = items.find(x => String(x.title || '').includes(query.slice(0, 2)));
           if (!pick) pick = items[0];
-          if (pick && (pick.cover || pick.coverUrl)) {
-            const rawCover = pick.cover || pick.coverUrl || '';
+          if (pick && pick.cover) {
+            const rawCover = pick.cover;
             const proxied = '/api/cover/proxy?url=' + encodeURIComponent(String(rawCover));
             return json({ ok: true, coverUrl: proxied, source: 'weread', title: pick.title, author: pick.author });
           }

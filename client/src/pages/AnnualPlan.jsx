@@ -2900,7 +2900,8 @@ function CognitionView({
             author: wb.author,
             startDate: wb.startDate || undefined,
             endDate: wb.endDate || undefined,
-            ebookUrl: wb.title ? `https://weread.qq.com/search?q=${encodeURIComponent(wb.title)}` : undefined,
+            bookId: wb.bookId || undefined,
+            ebookUrl: wb.bookId ? `https://weread.qq.com/web/reader/${wb.bookId}` : undefined,
             src: '电子书',
           };
           if (coverProxied) {
@@ -3645,8 +3646,9 @@ function CognitionView({
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
                     }
                     const isEbookLink = (() => {
+                      if (b.ebookUrl && b.ebookUrl.startsWith('http')) return b.ebookUrl;
                       if (b.t) {
-                        return `https://weread.qq.com/search?q=${encodeURIComponent(b.t)}`;
+                        return `https://www.google.com/search?q=weread.qq.com+${encodeURIComponent(b.t)}`;
                       }
                       return null;
                     })();
@@ -3714,30 +3716,15 @@ function CognitionView({
                                 </span>
                               )}
                             </div>
-                            {/* 右侧：书名+Pill+↗ / 作者 / %+bar / 日期 */}
+                            {/* 右侧：书名+↗ / 作者+Pill / %+bar / 日期 */}
                             <div className="flex-1 min-w-0 flex flex-col gap-[4px]" style={{ paddingBottom: '2px' }}>
-                              {/* 书名 + 分类Pill + 跳转↗ 同行 */}
-                              <div className="flex items-center justify-between gap-2 min-w-0">
-                                <div className="flex items-center gap-[6px] min-w-0 flex-1">
+                              {/* 行1：书名 左 + 跳转↗ 右 */}
+                              <div className="flex items-start justify-between gap-2 min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <div className={`min-w-0 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
                                     style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
                                     {b.t}
                                   </div>
-                                  <span className="inline-flex flex-shrink-0 items-center px-[7px] h-[17px] rounded-full text-[10px] font-bold leading-none"
-                                    style={{
-                                      background: (() => {
-                                        switch (b.cat) {
-                                          case '认知成长': return BLUE_LIGHT;
-                                          case '人际沟通': return '#ede9fe';
-                                          case '商业职场': return '#fef3c7';
-                                          case '人文叙事': return '#dcfce7';
-                                          default: return '#f1f5f9';
-                                        }
-                                      })(),
-                                      color: catCol,
-                                    }}>
-                                    {b.cat || '未分类'}
-                                  </span>
                                 </div>
                                 {isEbookLink && (
                                   <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -3749,10 +3736,18 @@ function CognitionView({
                                         catch { onBookEdit?.(b); }
                                       }}
                                       title="打开电子书"
-                                      className="inline-flex items-center justify-center transition-colors duration-150 hover:opacity-80"
+                                      className="group inline-flex items-center justify-center transition-colors duration-150"
                                       style={{
-                                        width: '18px', height: '18px', borderRadius:'4px',
+                                        width: '20px', height: '20px', borderRadius:'5px',
                                         background: 'transparent', color: '#60a5fa',
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = BLUE;
+                                        e.currentTarget.style.color = '#fff';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'transparent';
+                                        e.currentTarget.style.color = '#60a5fa';
                                       }}>
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M7 17 17 7M7 7h10v10"/>
@@ -3761,9 +3756,26 @@ function CognitionView({
                                   </div>
                                 )}
                               </div>
-                              {/* 作者 */}
-                              <div className="text-[11.5px] text-ink-400 font-medium leading-none truncate">
-                                {b.author || '佚名作者'}
+                              {/* 行2：作者 左 + 分类Pill 右 */}
+                              <div className="flex items-center justify-between gap-2 min-w-0">
+                                <div className="text-[11.5px] text-ink-400 font-medium leading-none truncate flex-1">
+                                  {b.author || '佚名作者'}
+                                </div>
+                                <span className="inline-flex flex-shrink-0 items-center px-[7px] h-[17px] rounded-full text-[10px] font-bold leading-none"
+                                  style={{
+                                    background: (() => {
+                                      switch (b.cat) {
+                                        case '认知成长': return BLUE_LIGHT;
+                                        case '人际沟通': return '#ede9fe';
+                                        case '商业职场': return '#fef3c7';
+                                        case '人文叙事': return '#dcfce7';
+                                        default: return '#f1f5f9';
+                                      }
+                                    })(),
+                                    color: catCol,
+                                  }}>
+                                  {b.cat || '未分类'}
+                                </span>
                               </div>
                               {/* 进度：% + bar */}
                               <div className="flex items-center gap-[8px] min-w-0">

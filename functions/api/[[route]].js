@@ -241,6 +241,24 @@ export async function onRequest(context) {
     if (path === '/api/fixedSchedules/update' && method === 'POST') return handleFixedSchedulesUpdate(env, body);
     if (path === '/api/fixedSchedules/remove' && method === 'POST') return handleFixedSchedulesRemove(env, body);
 
+    // ------------------------------------------------------------
+    // /api/userSettings/*  — 用户级配置（weread key 等）D1 ethan_user_settings
+    // ------------------------------------------------------------
+    if (path === '/api/userSettings/get' && method === 'GET') return handleUserSettingsGet(env, q.k || '');
+    if (path === '/api/userSettings/set' && method === 'POST') return handleUserSettingsSet(env, body);
+
+    // ------------------------------------------------------------
+    // /api/weread/*  — 微信读书 Skills 官方 API（wrk-xxx）
+    // ------------------------------------------------------------
+    if (path === '/api/weread/sync' && method === 'GET') return handleWereadSync(env, q);
+
+    // ------------------------------------------------------------
+    // /api/cover/search  — 封面兜底：豆瓣 → Google Books
+    //              /proxy — 豆瓣/微信读书 图片防盗链同源代理
+    // ------------------------------------------------------------
+    if (path === '/api/cover/search' && method === 'GET') return handleCoverSearch(env, q);
+    if (path === '/api/cover/proxy' && method === 'GET') return handleCoverProxy(env, q.url || '');
+
     // 404
     return json({ error: 'Not Found: ' + method + ' ' + path }, 404);
   } catch (err) {
@@ -817,6 +835,187 @@ async function handleFixedSchedulesRemove(env, body) {
   if (!id) return json({ error: '缺少 id' }, 400);
   await dbRun(env.DB, `DELETE FROM ethan_fixed_schedules WHERE id=?`, [id]);
   return json({ ok: true });
+}
+
+// ============================================================================
+// ethan_user_settings 表辅助：确保表存在；KV 结构 (user_id, k, v, updated_at)
+// ============================================================================
+async function ensureUserSettingsTable(env) {
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_user_settings (
+      user_id TEXT NOT NULL,
+      k TEXT NOT NULL,
+      v TEXT,
+      updated_at TEXT,
+      PRIMARY KEY (user_id, k)
+    )`).run();
+  } catch (_) {}
+}
+async function settingGet(env, k) {
+  await ensureUserSettingsTable(env);
+  const r = await dbFirst(env.DB, `SELECT v FROM ethan_user_settings WHERE user_id=? AND k=?`, [uid(env), k]);
+  return r ? (r.v || '') : '';
+}
+async function settingSet(env, k, v) {
+  await ensureUserSettingsTable(env);
+  await env.DB.prepare(`INSERT INTO ethan_user_settings(user_id,k,v,updated_at) VALUES(?,?,?,?)
+    ON CONFLICT(user_id,k) DO UPDATE SET v=excluded.v, updated_at=excluded.updated_at`)
+    .bind(uid(env), String(k), String(v == null ? '' : v), nowIso()).run();
+}
+// ---------------- userSettings.get / set
+async function handleUserSettingsGet(env, k) {
+  const keys = k ? [k] : ['weread_api_key'];
+  const out = {};
+  for (const key of keys) {
+    let v = await settingGet(env, key);
+    // API key 只回传是否已设置，不传明文（避免前端日志泄露）
+    out[key] = (key === 'weread_api_key') ? { configured: !!v } : v;
+  }
+  return json({ ok: true, data: out });
+}
+async function handleUserSettingsSet(env, body) {
+  if (!body || typeof body.k !== 'string') return json({ error: '缺少 k' }, 400);
+  await settingSet(env, body.k, body.v == null ? '' : String(body.v));
+  return json({ ok: true });
+}
+
+// ---------------- weread.sync：用官方 Weread Skills key 拉书架
+// 文档入口：weread.qq.com/r/weread-skills → 创建 Skill → Bearer wrk-xxx
+// 官方 endpoint（实际以返回为主）：
+async function handleWereadSync(env, q) {
+  const key = await settingGet(env, 'weread_api_key');
+  if (!key) return json({ error: '未配置 Weread Skills API Key。请到书架右上角「设置」填入 wrk- 开头的 key。' }, 400);
+
+  // Weread Skills 开放平台常见两种 baseURL，我们依次尝（先/weread-skills，再/v1）
+  const bases = [
+    'https://weread.qq.com/api/open/skills/shelf/list',
+    'https://weread.qq.com/api/v1/skills/shelf/sync',
+  ];
+  const headers = {
+    'Authorization': 'Bearer ' + key,
+    'User-Agent': 'Ethan-Workbench/1.0',
+    'Accept': 'application/json',
+  };
+  let resp = null;
+  let lastErr = null;
+  for (const u of bases) {
+    try {
+      const r = await fetch(u, { headers, method: 'GET' });
+      if (r.ok) { resp = await r.json(); break; }
+      lastErr = `HTTP ${r.status}: ${await r.text().catch(() => '')}`;
+    } catch (e) { lastErr = e.message; }
+  }
+  if (!resp) return json({ error: '微信读书接口未返回，最后错误：' + (lastErr || 'unknown') }, 502);
+
+  // 统一不同返回结构为 books[]
+  const shelf = (resp.books || resp.data?.books || resp.data || []);
+  const books = Array.isArray(shelf) ? shelf : (Array.isArray(resp) ? resp : []);
+  const out = books.map(x => ({
+    title: x.title || x.bookTitle || x.name || '',
+    author: x.author || x.bookAuthor || '',
+    cover: x.cover || x.coverUrl || x.cover_img || '',
+    bookId: x.bookId || x.book_id || x.id || '',
+    status: x.readStatus ?? x.read_status ?? (x.finishedReading ? 4 : x.reading ? 3 : 1), // 1未读 3在读 4已读
+    progress: Number(x.readingProgress ?? x.progress ?? x.pct ?? 0),
+    startDate: x.startDate || x.start_read_date || '',
+    endDate: x.endDate || x.finish_date || '',
+  })).filter(b => b.title);
+
+  return json({ ok: true, books: out, total: out.length, rawDebug: (q.debug === '1') ? resp : undefined });
+}
+
+// ---------------- cover.search：豆瓣 subject_suggest → Google Books fallback
+async function handleCoverSearch(env, q) {
+  const query = String(q.q || '').trim();
+  const author = String(q.author || '').trim();
+  if (!query) return json({ error: '缺少 q' }, 400);
+
+  // 1) 豆瓣建议搜索（中文书首选）
+  try {
+    const s = encodeURIComponent(query + (author ? ' ' + author : ''));
+    const douban = await fetch(`https://book.douban.com/j/subject_suggest?q=${s}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://book.douban.com/',
+      }
+    });
+    if (douban.ok) {
+      const arr = (await douban.json().catch(() => [])) || [];
+      // 优先匹配书名+作者精确，否则取第一条
+      let pick = null;
+      if (author) {
+        pick = arr.find(x => String(x.title || '').includes(query) && String(x.author || '').includes(author));
+      }
+      if (!pick) pick = arr.find(x => String(x.title || '').includes(query));
+      if (!pick) pick = arr[0];
+      if (pick && pick.img) {
+        // 豆瓣有防盗链，前端必须走同源代理
+        const proxied = '/api/cover/proxy?url=' + encodeURIComponent(String(pick.img));
+        return json({ ok: true, coverUrl: proxied, source: 'douban', title: pick.title, author: pick.author });
+      }
+    }
+  } catch (e) {
+    // ignore, fallthrough
+  }
+
+  // 2) Google Books fallback（英文书/漏网译著）
+  try {
+    const s = encodeURIComponent(`intitle:${query}${author ? ' inauthor:' + author : ''}`);
+    const gbUrl = `https://www.googleapis.com/books/v1/volumes?q=${s}&country=CN&maxResults=3&printType=books&fields=items(volumeInfo(imageLinks/thumbnail,title,authors))`;
+    const r = await fetch(gbUrl);
+    if (r.ok) {
+      const d = await r.json().catch(() => ({}));
+      const it = (d.items || []).find(x => x?.volumeInfo?.imageLinks?.thumbnail);
+      if (it) {
+        let u = it.volumeInfo.imageLinks.thumbnail;
+        // Google 默认 zoom=1 缩略，升到 zoom=2
+        u = u.replace(/&zoom=\d+/, '&zoom=2').replace(/(http:\/\/|^\/\/)/, 'https://');
+        return json({ ok: true, coverUrl: u, source: 'google', title: it.volumeInfo.title, author: (it.volumeInfo.authors || []).join('/') });
+      }
+    }
+  } catch (e) { /* ignore */ }
+
+  return json({ ok: false, error: '豆瓣 & Google Books 均未匹配到封面；可手动粘贴图片链接' });
+}
+
+// ---------------- cover.proxy：豆瓣/杂项图片防盗链同源代理
+async function handleCoverProxy(env, url) {
+  if (!url || typeof url !== 'string') return new Response('missing url', { status: 400 });
+  let safeUrl = url;
+  // 协议归一
+  if (safeUrl.startsWith('//')) safeUrl = 'https:' + safeUrl;
+  if (!/^https?:\/\//i.test(safeUrl)) return new Response('bad url', { status: 400 });
+
+  // 允许的域名白名单（防止 SSRF）
+  const u = new URL(safeUrl);
+  const ALLOWED = /(doubanio\.com|douban\.com|weread\.qq\.com|qq\.com|google\.com|googleapis\.com|res\.weread\.qq\.com|img[0-9]+\.doubanio\.com)$/i;
+  if (!ALLOWED.test(u.hostname)) return new Response('domain not allowed', { status: 403 });
+
+  try {
+    const r = await fetch(safeUrl, {
+      headers: {
+        // 伪装 Referer 解防盗链
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+        'Referer': /douban/.test(u.hostname) ? 'https://book.douban.com/' : (u.origin + '/'),
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      },
+      cf: { cacheTtl: 60 * 60 * 24 * 14, cacheEverything: true },
+    });
+    const ct = r.headers.get('content-type') || 'image/jpeg';
+    const buf = await r.arrayBuffer();
+    return new Response(buf, {
+      status: r.status,
+      headers: {
+        'Content-Type': ct,
+        'Content-Length': String(buf.byteLength),
+        'Cache-Control': 'public, max-age=1209600, stale-while-revalidate=86400',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  } catch (e) {
+    return new Response('proxy error: ' + e.message, { status: 502 });
+  }
 }
 
 // ----------------------------- migrate（一次性批量写入 6 表，前端点按钮调用）

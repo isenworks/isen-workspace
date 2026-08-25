@@ -45,6 +45,8 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     st: initial?.st || 'pending',
     pct: initial?.pct ?? 0,
     ebookUrl: initial?.ebookUrl || '',
+    coverUrl: initial?.coverUrl || '',
+    coverSource: initial?.coverSource || 'placeholder',
     startDate: initial?.startDate || '',
     endDate: initial?.endDate || '',
     insights: (initial?.insights && initial.insights.length)
@@ -57,6 +59,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     hasAction: initial?.hasAction ?? false,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const [coverFetching, setCoverFetching] = useState(false);
 
   const validInsights = form.insights.filter(i => i.text?.trim() && i.scene?.trim());
   const validActions = form.actions.filter(a => a.text?.trim());
@@ -140,6 +143,8 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
       t: form.t.trim(),
       author: form.author.trim(),
       ebookUrl: form.ebookUrl.trim(),
+      coverUrl: form.coverUrl.trim(),
+      coverSource: form.coverUrl.trim() ? (form.coverSource || 'manual') : 'placeholder',
       insights: cleanInsights,
       actions: cleanActions,
       action: cleanActions.find(a => !a.done)?.text || cleanActions[0]?.text || '',
@@ -158,6 +163,27 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
   const resonanceColor = (r) => r >= 9 ? BLUE_DARK : r >= 7 ? BLUE : INK_LIGHT;
   const isEbook = form.src === '电子书';
 
+  // 从豆瓣+Google兜底搜索封面（用户没配weread key时手动触发）
+  async function searchCover() {
+    if (!form.t.trim()) return alert('请先输入书名');
+    setCoverFetching(true);
+    try {
+      const params = new URLSearchParams({ q: form.t.trim() });
+      if (form.author.trim()) params.set('author', form.author.trim());
+      const res = await fetch(`/api/cover/search?${params.toString()}`);
+      const data = await res.json().catch(() => ({}));
+      if (data?.coverUrl) {
+        setForm(f => ({ ...f, coverUrl: data.coverUrl, coverSource: data.source || 'douban' }));
+        return;
+      }
+      alert(data?.error || '暂无匹配封面，请手动粘贴URL');
+    } catch (e) {
+      alert('搜索失败：' + (e.message || e));
+    } finally {
+      setCoverFetching(false);
+    }
+  }
+
   // select 样式（统一蓝色系）
   const SELECT_STYLE = {
     ...INPUT_STYLE,
@@ -174,33 +200,77 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
       {/* ===== 📚 第1块：基础信息（身份识别卡 · WHO）===== */}
       <InfoGroupCard title="📚 基础信息" tone="white">
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1.5fr 1.15fr 1fr 0.9fr',
-          gap: '8px',
-        }}>
-          <FieldRow label="书名">
-            <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12.5px', fontWeight: 600 }}
-              value={form.t} onChange={e => set('t', e.target.value)}
-              placeholder="书名" autoFocus />
-          </FieldRow>
-          <FieldRow label="作者">
-            <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-              value={form.author} onChange={e => set('author', e.target.value)}
-              placeholder="作者" />
-          </FieldRow>
-          <FieldRow label="分类">
-            <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
-              value={form.cat} onChange={e => set('cat', e.target.value)}>
-              {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </FieldRow>
-          <FieldRow label="来源">
-            <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
-              value={form.src} onChange={e => set('src', e.target.value)}>
-              {SRCS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </FieldRow>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+          {/* 封面预览：42×56 装饰块（点击可粘贴 URL） */}
+          <div style={{
+            width: '52px', height: '70px', borderRadius: '7px',
+            flexShrink: 0, overflow: 'hidden',
+            border: `1px solid ${BLUE_BORDER}`,
+            background: BLUE_LIGHT,
+            boxShadow: '0 2px 6px rgba(15,23,42,0.06)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+          }}>
+            {form.coverUrl ? (
+              <img src={form.coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            ) : (
+              <span style={{ fontSize: '18px', fontWeight: 900, color: BLUE_DARK, opacity: 0.45 }}>
+                {(form.t || '书').charAt(0)}
+              </span>
+            )}
+          </div>
+
+          {/* 右侧：表单字段 2行4列 */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* 行 A：书名 · 作者 · 分类 · 来源 */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1.5fr 1.15fr 1fr 0.9fr',
+              gap: '8px',
+            }}>
+              <FieldRow label="书名">
+                <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12.5px', fontWeight: 600 }}
+                  value={form.t} onChange={e => set('t', e.target.value)}
+                  placeholder="书名" autoFocus />
+              </FieldRow>
+              <FieldRow label="作者">
+                <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
+                  value={form.author} onChange={e => set('author', e.target.value)}
+                  placeholder="作者" />
+              </FieldRow>
+              <FieldRow label="分类">
+                <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
+                  value={form.cat} onChange={e => set('cat', e.target.value)}>
+                  {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </FieldRow>
+              <FieldRow label="来源">
+                <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
+                  value={form.src} onChange={e => set('src', e.target.value)}>
+                  {SRCS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </FieldRow>
+            </div>
+
+            {/* 行 B：封面URL + 搜封面按钮（占整行宽度）*/}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '7px' }}>
+              <FieldRow label="封面链接（微信读书/豆瓣/Google 图书图链接）">
+                <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
+                  value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)}
+                  placeholder="https://…cover_1.jpg（留空则显示分类占位图）" />
+              </FieldRow>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={searchCover} disabled={coverFetching}
+                  style={{
+                    ...BTN_GHOST, padding: '5px 11px', height: '32px', fontSize: '11px',
+                    opacity: coverFetching ? 0.7 : 1, cursor: coverFetching ? 'not-allowed' : 'pointer',
+                  }}>
+                  {coverFetching ? '搜索中…' : '🔍 搜封面'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </InfoGroupCard>
 

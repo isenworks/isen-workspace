@@ -2643,6 +2643,96 @@ function CognitionView({
   const [editingChange, setEditingChange] = useState(null);
   // 结果区 · 复盘卡
   const [editingReview, setEditingReview] = useState(null);
+  // 微信读书设置弹窗 + 同步状态
+  const [showWereadSettings, setShowWereadSettings] = useState(false);
+  const [wereadKey, setWereadKey] = useState('');
+  const [wereadCfgOk, setWereadCfgOk] = useState(null); // null=未查,true/false=已配置
+  const [wereadSyncing, setWereadSyncing] = useState(false);
+  // 一次性查 weread key 是否已配置
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/userSettings/get');
+        const j = await r.json().catch(() => ({}));
+        setWereadCfgOk(!!j?.data?.weread_api_key?.configured);
+      } catch { setWereadCfgOk(false); }
+    })();
+  }, []);
+
+  const doWereadSave = async () => {
+    const k = wereadKey.trim();
+    if (!k.startsWith('wrk-')) return alert('API Key 需要以 wrk- 开头（登录 weread.qq.com/r/weread-skills 申请）');
+    try {
+      const r = await fetch('/api/userSettings/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ k: 'weread_api_key', v: k }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!j?.ok) throw new Error(j?.error || '保存失败');
+      setWereadCfgOk(true);
+      setShowWereadSettings(false);
+      setWereadKey('');
+      showToast?.('微信读书 Key 已保存');
+    } catch (e) {
+      alert('保存失败：' + (e.message || e));
+    }
+  };
+
+  const doWereadSync = async () => {
+    if (!wereadCfgOk) { setShowWereadSettings(true); return; }
+    setWereadSyncing(true);
+    try {
+      const r = await fetch('/api/weread/sync');
+      const j = await r.json().catch(() => ({}));
+      if (!j?.ok) throw new Error(j?.error || '同步失败');
+      const wereadBooks = j.books || [];
+      if (wereadBooks.length === 0) { showToast?.('微信读书书架为空'); return; }
+      // 合并策略：按 书名+作者 精确匹配（都去空格/大小写）
+      const norm = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
+      setBooks(prev => {
+        const curr = Array.isArray(prev) ? [...prev] : [];
+        let updated = 0, added = 0;
+        for (const wb of wereadBooks) {
+          const key = norm(wb.title) + '|' + norm(wb.author);
+          const idx = curr.findIndex(b => norm(b.t) + '|' + norm(b.author) === key);
+          const mappedSt = wb.status === 4 ? 'done' : wb.status === 3 ? 'reading' : 'pending';
+          const patch = {
+            t: wb.title,
+            author: wb.author,
+            st: mappedSt,
+            pct: Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0))),
+            startDate: wb.startDate || undefined,
+            endDate: wb.endDate || undefined,
+            ebookUrl: wb.bookId ? `weread://book/${wb.bookId}` : undefined,
+            src: '电子书',
+          };
+          if (wb.cover) {
+            patch.coverUrl = wb.cover;
+            patch.coverSource = 'weread';
+          }
+          if (idx >= 0) {
+            // 只更新微信读书能提供的字段，不动手动写的 insights/actions/cat
+            const old = curr[idx];
+            const newCat = ['认知成长','人际沟通','商业职场','人文叙事'].includes(old.cat) ? old.cat : (patch.cat || '认知成长');
+            curr[idx] = { ...old, ...patch, cat: newCat };
+            updated++;
+          } else {
+            // 新书：分类默认待匹配（用户之后右键改）
+            const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+            curr.push({ id: uid(), cat: '认知成长', insights: [], actions: [], hasInsights: false, hasAction: false, ...patch });
+            added++;
+          }
+        }
+        showToast?.(`微信读书同步完成 · 更新${updated}本 + 新增${added}本`);
+        return curr;
+      });
+    } catch (e) {
+      alert('同步失败：' + (e.message || e));
+    } finally {
+      setWereadSyncing(false);
+    }
+  };
 
   const BLUE = '#007aff';       // 计划总结页"今日按钮"填充蓝（Apple system blue）
   const BLUE_DARK = '#0062cc';  // 深蓝
@@ -3130,12 +3220,32 @@ function CognitionView({
             />
             <span className="text-[11px] text-ink-400 tabular-nums">共 {groups.reading.length + groups.pending.length + groups.done.length} 本</span>
           </div>
-          <button onClick={() => onBookAdd?.()}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
-            style={{ background: BLUE_LIGHT, color: BLUE }}>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-            添加书籍
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={doWereadSync} disabled={wereadSyncing}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition disabled:opacity-50"
+              style={{ background: wereadCfgOk ? '#e0f2fe' : BLUE_LIGHT, color: wereadCfgOk ? '#0284c7' : BLUE }}
+              title={wereadCfgOk ? '从微信读书同步书架' : '先设置微信读书 API Key'}>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 0 0 6.34 5.34L4 9M4 15a8 8 0 0 0 13.66 3.66L20 15" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {wereadSyncing ? '同步中…' : (wereadCfgOk ? '微信读书同步' : '绑定微信读书')}
+            </button>
+            <button onClick={() => setShowWereadSettings(true)}
+              className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:bg-ink-50"
+              style={{ color: BLUE }}
+              title="设置微信读书 API Key">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button onClick={() => onBookAdd?.()}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
+              style={{ background: BLUE_LIGHT, color: BLUE }}>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              添加书籍
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-4 gap-3">
           {[
@@ -3225,6 +3335,7 @@ function CognitionView({
                     const validActs = acts.filter(a => a.text?.trim());
                     const hasIns = validIns.length > 0;
                     const hasAct = validActs.length > 0;
+                    const realCover = b.coverUrl && String(b.coverUrl).startsWith('http') ? String(b.coverUrl) : '';
                     return (
                       <div
                         key={b.id}
@@ -3250,8 +3361,40 @@ function CognitionView({
                             boxShadow: isDragging ? `2px 0 10px ${catCol}66` : undefined,
                           }} />
 
-                        {/* L1：状态点 + 书名 + 电子书↗ 跳链 + 进度%胶囊 */}
-                        <div className="pl-[11px] pr-[9px] pt-[9px] pb-0 flex items-start justify-between gap-1.5">
+                        {/* 主体：左封面 + 右文本 flex 布局 */}
+                        <div className="flex w-full min-w-0">
+                          {/* 左：方案 A 封面 42×56 装饰块 */}
+                          <div className="flex-shrink-0 pl-[10px] pt-[9px] pr-[9px]">
+                            <div style={{
+                              width: '42px', height: '56px', borderRadius: '5px', overflow: 'hidden',
+                              border: `1px solid ${catCol}40`,
+                              background: realCover ? '#fff' : `linear-gradient(135deg, ${catCol}1A 0%, ${catCol}33 100%)`,
+                              boxShadow: '0 2px 4px rgba(15,23,42,0.06)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              {realCover ? (
+                                <img src={realCover} alt="" loading="lazy" referrerPolicy="no-referrer"
+                                  onError={(e)=>{
+                                    const el = e.currentTarget, p = el.parentElement; if (!p) return;
+                                    el.remove();
+                                    const ch = (b.t||'书').charAt(0);
+                                    const s = document.createElement('span');
+                                    s.textContent = ch;
+                                    s.style.cssText = 'color:'+catCol+';font-size:18px;font-weight:900;';
+                                    p.appendChild(s);
+                                  }}
+                                  style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                              ) : (
+                                <span style={{ color: catCol, fontSize: '18px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22` }}>
+                                  {(b.t||'书').charAt(0)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {/* 右：文本容器（flex-1 堆叠 L1+L2）*/}
+                          <div className="flex-1 min-w-0 flex flex-col pt-[9px] pr-[9px] pb-0">
+                        {/* L1：状态点 + 书名 + 进度%胶囊 */}
+                        <div className="flex items-start justify-between gap-1.5 w-full min-w-0">
                           <div className="min-w-0 flex-1 flex items-start gap-1.5">
                             {/* 状态圆点（未开始灰空心/阅读中蓝呼吸/已读完绿实心/弃读灰斜）*/}
                             <span className="flex-shrink-0 mt-[4px] inline-block rounded-full"
@@ -3281,7 +3424,7 @@ function CognitionView({
                         </div>
 
                         {/* L2：分类色标 + 洞察/行动勾号 + 电子书↗跳转（右下）*/}
-                        <div className="pl-[11px] pr-[9px] pt-[5px] pb-[7px] flex items-center justify-between gap-1 min-w-0 relative">
+                        <div className="pl-0 pr-0 pt-[5px] pb-[7px] flex items-center justify-between gap-1 min-w-0 w-full flex-1">
                           {/* 分类身份：小色方块+文字（最小字号，与顶部信息区分层级）*/}
                           <div className="flex items-center gap-1 min-w-0 flex-1">
                             <span className="flex-shrink-0 rounded-[3px]" style={{ width: '7px', height: '7px', background: catCol }} />
@@ -3349,6 +3492,9 @@ function CognitionView({
                                 ↗
                               </button>
                             )}
+                          </div>
+                        </div>
+
                           </div>
                         </div>
 
@@ -3675,6 +3821,33 @@ function CognitionView({
             onDelete={!editingReview.__isNew ? () => { onReviewRemove?.(editingReview.id); setEditingReview(null); } : undefined}
           />
         </Modal>
+      )}
+
+      {/* 微信读书 API Key 设置弹窗 */}
+      {showWereadSettings && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowWereadSettings(false)}>
+          <div className="bg-white rounded-2xl p-5 w-[440px] max-w-[90vw] shadow-cardL" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
+              <div className="text-[15px] font-bold text-ink-900">微信读书 · Key 设置</div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="text-[12px] text-ink-500 leading-relaxed">
+                前往 <a href="https://weread.qq.com/r/weread-skills" target="_blank" rel="noreferrer" style={{ color: BLUE }} className="underline">weread.qq.com/r/weread-skills</a> 申请 API Key（以 <span className="font-mono text-ink-700">wrk-</span> 开头），用于同步书架书籍及封面图。
+              </div>
+              <input
+                value={wereadKey}
+                onChange={(e) => setWereadKey(e.target.value)}
+                placeholder="粘贴 API Key，如：wrk_xxxxxxxxxxxxxxxx"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500 font-mono"
+              />
+              <div className="flex justify-end gap-2 mt-1">
+                <button onClick={() => setShowWereadSettings(false)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
+                <button onClick={doWereadSave} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -4210,7 +4383,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v3', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v4', () => BOOKS.map(b => ({ ...b, id: uid() })));
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));

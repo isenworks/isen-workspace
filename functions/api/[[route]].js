@@ -880,48 +880,94 @@ async function handleUserSettingsSet(env, body) {
 }
 
 // ---------------- weread.sync：用官方 Weread Skills key 拉书架
-// 文档入口：weread.qq.com/r/weread-skills → 创建 Skill → Bearer wrk-xxx
-// 官方 endpoint（实际以返回为主）：
+// 官方统一网关：POST https://i.weread.qq.com/api/agent/gateway
+//   Header: Authorization: Bearer wrk-xxx
+//   Body:   { "api_name": "/shelf/sync", "skill_version": "1.0.3", ... }
+// 参考 weread.qq.com/r/weread-skills（官方 Skill 文档）
 async function handleWereadSync(env, q) {
   const key = await settingGet(env, 'weread_api_key');
   if (!key) return json({ error: '未配置 Weread Skills API Key。请到书架右上角「设置」填入 wrk- 开头的 key。' }, 400);
 
-  // Weread Skills 开放平台常见两种 baseURL，我们依次尝（先/weread-skills，再/v1）
-  const bases = [
-    'https://weread.qq.com/api/open/skills/shelf/list',
-    'https://weread.qq.com/api/v1/skills/shelf/sync',
-  ];
-  const headers = {
-    'Authorization': 'Bearer ' + key,
-    'User-Agent': 'Ethan-Workbench/1.0',
-    'Accept': 'application/json',
-  };
-  let resp = null;
-  let lastErr = null;
-  for (const u of bases) {
-    try {
-      const r = await fetch(u, { headers, method: 'GET' });
-      if (r.ok) { resp = await r.json(); break; }
-      lastErr = `HTTP ${r.status}: ${await r.text().catch(() => '')}`;
-    } catch (e) { lastErr = e.message; }
-  }
-  if (!resp) return json({ error: '微信读书接口未返回，最后错误：' + (lastErr || 'unknown') }, 502);
+  const GATEWAY = 'https://i.weread.qq.com/api/agent/gateway';
+  const SKILL_VER = '1.0.3';
 
-  // 统一不同返回结构为 books[]
-  const shelf = (resp.books || resp.data?.books || resp.data || []);
-  const books = Array.isArray(shelf) ? shelf : (Array.isArray(resp) ? resp : []);
-  const out = books.map(x => ({
-    title: x.title || x.bookTitle || x.name || '',
-    author: x.author || x.bookAuthor || '',
-    cover: x.cover || x.coverUrl || x.cover_img || '',
-    bookId: x.bookId || x.book_id || x.id || '',
-    status: x.readStatus ?? x.read_status ?? (x.finishedReading ? 4 : x.reading ? 3 : 1), // 1未读 3在读 4已读
-    progress: Number(x.readingProgress ?? x.progress ?? x.pct ?? 0),
-    startDate: x.startDate || x.start_read_date || '',
-    endDate: x.endDate || x.finish_date || '',
+  // 1) 先调 /shelf/sync 获取书架书籍列表（含 bookId、状态、进度）
+  async function callWeread(apiName, extra = {}) {
+    const body = { api_name: apiName, skill_version: SKILL_VER, ...extra };
+    const r = await fetch(GATEWAY, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Ethan-Workbench/1.0',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    const text = await r.text().catch(() => '');
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch { data = { _raw: text }; }
+    if (!r.ok) {
+      const msg = (data && (data.message || data.statusMessage || data.error)) || text || `HTTP ${r.status}`;
+      throw new Error(`${r.status}: ${JSON.stringify(msg).slice(0, 200)}`);
+    }
+    return data;
+  }
+
+  let shelfResp = null;
+  let lastErr = null;
+  // Weread 官方 skill 有两个常见书架接口名，按顺序尝试
+  for (const name of ['/shelf/sync', '/shelf/list']) {
+    try {
+      shelfResp = await callWeread(name);
+      if (shelfResp && (Array.isArray(shelfResp.books) || Array.isArray(shelfResp.data?.books) || Array.isArray(shelfResp.data))) break;
+    } catch (e) { lastErr = e.message; shelfResp = null; }
+  }
+  if (!shelfResp) {
+    return json({ error: '微信读书书架接口未返回有效数据，最后错误：' + (lastErr || 'unknown') }, 502);
+  }
+
+  // 归一化 books[]
+  const raw = shelfResp.books || shelfResp.data?.books || shelfResp.data || [];
+  const bookList = (Array.isArray(raw) ? raw : []).slice(0, 500);
+
+  // 2) 对每本书调用 /book/info 补封面 + 作者 + 详情（batch 5 本并行）
+  //    先把列表里已经有的字段填好，没有 cover/author 的再补
+  const books = bookList.map(x => ({
+    title: String(x.title || x.bookTitle || x.name || '').trim(),
+    author: String(x.author || x.bookAuthor || x.authors || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
+    cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
+    bookId: x.bookId || x.book_id || x.id || x.bookid || '',
+    status: x.readStatus ?? x.read_status ?? x.status ?? (x.finishedReading || x.finished ? 4 : x.reading || x.isReading ? 3 : 1),
+    progress: Number(x.readingProgress ?? x.progress ?? x.pct ?? x.reading_progress ?? 0),
+    startDate: x.startDate || x.start_read_date || x.startTime || '',
+    endDate: x.endDate || x.finish_date || x.endTime || x.finishDate || '',
   })).filter(b => b.title);
 
-  return json({ ok: true, books: out, total: out.length, rawDebug: (q.debug === '1') ? resp : undefined });
+  // 对缺封面或作者的，再查一次详情（控制并发，避免触发限流）
+  const BATCH = 5;
+  for (let i = 0; i < books.length; i += BATCH) {
+    const slice = books.slice(i, i + BATCH);
+    await Promise.all(slice.map(async (b) => {
+      if (b.cover && b.author) return;
+      if (!b.bookId && !b.title) return;
+      try {
+        const params = {};
+        if (b.bookId) params.bookId = b.bookId;
+        else params.title = b.title;
+        const info = await callWeread('/book/info', params);
+        const d = info?.data || info || {};
+        if (!b.cover && d.cover) b.cover = d.cover;
+        if (!b.cover && d.coverUrl) b.cover = d.coverUrl;
+        if (!b.author && d.author) b.author = d.author;
+        if (!b.author && d.authors) b.author = Array.isArray(d.authors) ? d.authors.join('/') : String(d.authors);
+        if (d.bookId && !b.bookId) b.bookId = d.bookId;
+        if (d.title && !b.title) b.title = d.title;
+      } catch (_) { /* 忽略单本失败，继续 */ }
+    }));
+  }
+
+  return json({ ok: true, books, total: books.length, rawDebug: (q.debug === '1') ? shelfResp : undefined });
 }
 
 // ---------------- cover.search：豆瓣 subject_suggest → Google Books fallback

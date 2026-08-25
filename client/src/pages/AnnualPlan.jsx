@@ -2689,25 +2689,70 @@ function CognitionView({
       const wereadBooks = j.books || [];
       if (wereadBooks.length === 0) { showToast?.('微信读书书架为空'); return; }
       // 合并策略：匹配优先级（从高到低）
-      //   1) 书名+作者 完全匹配（去空格/大小写/标点）
-      //   2) 书名 完全匹配（忽略副标题，匹配到了补封面但不覆盖原有 cat/insights）
-      //   3) 都不匹配 → 作为"新书"，st 默认 abandoned（放入「所有书籍」栏，避免污染前3栏）
+      //   1) 书名+作者 完全匹配（去空格/大小写/标点 + 作者别名中英文对照）
+      //   2) 书名 匹配（忽略副标题）+ （没有作者信息时也能匹配）
+      //   3) 书名 模糊匹配（主书名互相包含子串）
+      //   4) 都不匹配 → 作为"新书"，st 默认 abandoned（放入「所有书籍」栏）
       const norm = (s) => String(s || '').replace(/[\s\-—·:：、，,。.!！?？（）()（）《》""'']+/g, '').toLowerCase();
       const normTitleOnly = (s) => {
-        // 去掉副标题：纳瓦尔宝典 / 纳瓦尔宝典：如何... 视为同一本
         const t = String(s || '').replace(/[\s]+/g, '').toLowerCase();
         return t.split(/[:：·\-—]/)[0] || t;
+      };
+      // 作者别名表：解决 Eric Jorgenson = 埃里克·约根森 / Michael Lopp = ...  这类中英文不一致问题
+      const AUTHOR_ALIASES = {
+        // KEY = 本地预设作者（标准化小写去标点）
+        'ericjorgenson': ['ericjorgenson','埃里克里克约根森','埃里克约根森','约根森','jorgenson'],
+        'danielkahneman': ['danielkahneman','丹尼尔卡尼曼','卡尼曼','kahneman'],
+        'zhouling': ['zhouling','周岭'],
+        'marshallrosenberg': ['marshallrosenberg','马歇尔卢森堡','卢森堡','rosenberg'],
+        'lisabmarshall': ['lisabmarshall','lisamarshall','马歇尔','marshall'],
+        'robertbcialdini': ['robertbcialdini','robertcialdini','罗伯特西奥迪尼','西奥迪尼','cialdini'],
+        'stephenrcovey': ['stephenrcovey','stephencovey','史蒂芬柯维','柯维','covey'],
+        'michaellopp': ['michaellopp','迈克尔洛普','洛普','lopp'],
+        'seanellis': ['seanellis','肖恩埃利斯','埃利斯','ellis'],
+        'nireyal': ['nireyal','尼尔埃亚尔','埃亚尔','eyal','nir eyal'],
+        'barbaraminto': ['barbaraminto','芭芭拉明托','明托','minto'],
+        'zhanghongjie': ['zhanghongjie','张宏杰'],
+      };
+      const authorMatches = (a, b) => {
+        const na = norm(a), nb = norm(b);
+        if (!na || !nb) return true; // 任何一方没作者就跳过比较（视为匹配成功）
+        if (na === nb) return true;
+        // 别名表检索：把 na 当 key 查，再把 nb 当 key 查，都看对方是否在别名里
+        const aliasA = AUTHOR_ALIASES[na] || [];
+        const aliasB = AUTHOR_ALIASES[nb] || [];
+        const bagA = new Set([na, ...aliasA]);
+        const bagB = new Set([nb, ...aliasB]);
+        // 交集
+        for (const x of bagA) if (bagB.has(x)) return true;
+        // 子串：a 包含 b 或 b 包含 a（如"柯维"包含在"史蒂芬·柯维"里）
+        for (const x of bagA) if (x && nb.includes(x)) return true;
+        for (const x of bagB) if (x && na.includes(x)) return true;
+        return false;
       };
       const updater = (prev) => {
         const curr = Array.isArray(prev) ? [...prev] : [];
         let updated = 0, added = 0;
         for (const wb of wereadBooks) {
-          const wFull = norm(wb.title) + '|' + norm(wb.author);
-          const wTitle = normTitleOnly(wb.title);
-          let idx = curr.findIndex(b => (norm(b.t) + '|' + norm(b.author)) === wFull);
-          // 降级：只看主书名（忽略副标题差异 + 没有作者也能对上）
-          if (idx < 0 && wTitle) {
-            idx = curr.findIndex(b => normTitleOnly(b.t) === wTitle);
+          const wFullTitle = norm(wb.title);
+          const wMainTitle = normTitleOnly(wb.title);
+          // 依次尝试 3 种匹配策略，命中第一个就 break
+          let idx = -1;
+          idx = curr.findIndex(b =>
+            (norm(b.t) === wFullTitle || normTitleOnly(b.t) === wMainTitle) &&
+            authorMatches(b.author, wb.author)
+          );
+          if (idx < 0) {
+            // 2. 完全忽略作者，只看主书名
+            idx = curr.findIndex(b => normTitleOnly(b.t) === wMainTitle && wMainTitle.length >= 2);
+          }
+          if (idx < 0) {
+            // 3. 互相包含（例：weread 叫"高效能人士的七个习惯·全新升级版" vs 本地"高效能人士的七个习惯"）
+            idx = curr.findIndex(b => {
+              const localMain = normTitleOnly(b.t);
+              if (!localMain || localMain.length < 2 || !wMainTitle || wMainTitle.length < 2) return false;
+              return localMain.includes(wMainTitle) || wMainTitle.includes(localMain);
+            });
           }
           const mappedSt = wb.status === 4 ? 'done' : wb.status === 3 ? 'reading' : 'pending';
           // weread 封面统一走同源 /api/cover/proxy（防盗链 + 缓存）
@@ -2718,8 +2763,6 @@ function CognitionView({
           const patch = {
             t: wb.title,
             author: wb.author,
-            // 注意：只有匹配不到的"全新书"才默认丢进 所有书籍(abandoned)
-            // 已经存在的本地书，保持用户原来的 st 不变，weread 只作为补封面的来源
             startDate: wb.startDate || undefined,
             endDate: wb.endDate || undefined,
             ebookUrl: wb.bookId ? `weread://book/${wb.bookId}` : undefined,
@@ -2735,10 +2778,10 @@ function CognitionView({
             const old = curr[idx];
             const newCat = ['认知成长','人际沟通','商业职场','人文叙事'].includes(old.cat) ? old.cat : (patch.cat || '认知成长');
             const merged = { ...old, ...patch, cat: newCat };
-            // 只有本地原本"没封面"时，才用 weread 返回的封面覆盖（有封面则尊重用户手动设置）
-            if (old.coverUrl && !coverProxied) {
-              merged.coverUrl = old.coverUrl;
-              merged.coverSource = old.coverSource || 'placeholder';
+            // 封面：只要 weread 有就补（无论原来有没有，真实图总比占位强）
+            if (coverProxied) {
+              merged.coverUrl = coverProxied;
+              merged.coverSource = 'weread';
             }
             // 进度：如果 weread 有进度就补（但如果用户本地已经有 st='done' 就强制 100）
             if (old.st === 'done') {
@@ -2746,9 +2789,8 @@ function CognitionView({
               merged.st = 'done';
             } else {
               merged.st = old.st; // 保持本地原来的栏位（阅读中/未开始）
-              merged.pct = old.pct != null && old.pct > 0
-                ? old.pct
-                : Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0)));
+              const wpct = Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0)));
+              merged.pct = Math.max(Number(old.pct) || 0, wpct);
             }
             curr[idx] = merged;
             updated++;
@@ -2769,7 +2811,7 @@ function CognitionView({
             added++;
           }
         }
-        showToast?.(`微信读书同步完成 · 已匹配更新${updated}本 + 新归入「所有书籍」${added}本`);
+        showToast?.(`微信读书同步完成 · 匹配更新${updated}本 + 归入「所有书籍」${added}本`);
         return curr;
       };
       if (typeof onBooksReplace === 'function') {
@@ -4436,7 +4478,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v4', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v5', () => BOOKS.map(b => ({ ...b, id: uid() })));
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));

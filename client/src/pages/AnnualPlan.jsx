@@ -2688,43 +2688,88 @@ function CognitionView({
       if (!j?.ok) throw new Error(j?.error || '同步失败');
       const wereadBooks = j.books || [];
       if (wereadBooks.length === 0) { showToast?.('微信读书书架为空'); return; }
-      // 合并策略：按 书名+作者 精确匹配（都去空格/大小写）
-      const norm = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
+      // 合并策略：匹配优先级（从高到低）
+      //   1) 书名+作者 完全匹配（去空格/大小写/标点）
+      //   2) 书名 完全匹配（忽略副标题，匹配到了补封面但不覆盖原有 cat/insights）
+      //   3) 都不匹配 → 作为"新书"，st 默认 abandoned（放入「所有书籍」栏，避免污染前3栏）
+      const norm = (s) => String(s || '').replace(/[\s\-—·:：、，,。.!！?？（）()（）《》""'']+/g, '').toLowerCase();
+      const normTitleOnly = (s) => {
+        // 去掉副标题：纳瓦尔宝典 / 纳瓦尔宝典：如何... 视为同一本
+        const t = String(s || '').replace(/[\s]+/g, '').toLowerCase();
+        return t.split(/[:：·\-—]/)[0] || t;
+      };
       const updater = (prev) => {
         const curr = Array.isArray(prev) ? [...prev] : [];
         let updated = 0, added = 0;
         for (const wb of wereadBooks) {
-          const key = norm(wb.title) + '|' + norm(wb.author);
-          const idx = curr.findIndex(b => norm(b.t) + '|' + norm(b.author) === key);
+          const wFull = norm(wb.title) + '|' + norm(wb.author);
+          const wTitle = normTitleOnly(wb.title);
+          let idx = curr.findIndex(b => (norm(b.t) + '|' + norm(b.author)) === wFull);
+          // 降级：只看主书名（忽略副标题差异 + 没有作者也能对上）
+          if (idx < 0 && wTitle) {
+            idx = curr.findIndex(b => normTitleOnly(b.t) === wTitle);
+          }
           const mappedSt = wb.status === 4 ? 'done' : wb.status === 3 ? 'reading' : 'pending';
+          // weread 封面统一走同源 /api/cover/proxy（防盗链 + 缓存）
+          const coverRaw = wb.cover;
+          const coverProxied = coverRaw
+            ? ('/api/cover/proxy?url=' + encodeURIComponent(String(coverRaw)))
+            : '';
           const patch = {
             t: wb.title,
             author: wb.author,
-            st: mappedSt,
-            pct: Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0))),
+            // 注意：只有匹配不到的"全新书"才默认丢进 所有书籍(abandoned)
+            // 已经存在的本地书，保持用户原来的 st 不变，weread 只作为补封面的来源
             startDate: wb.startDate || undefined,
             endDate: wb.endDate || undefined,
             ebookUrl: wb.bookId ? `weread://book/${wb.bookId}` : undefined,
             src: '电子书',
           };
-          if (wb.cover) {
-            patch.coverUrl = wb.cover;
+          if (coverProxied) {
+            patch.coverUrl = coverProxied;
             patch.coverSource = 'weread';
           }
           if (idx >= 0) {
-            // 只更新微信读书能提供的字段，不动手动写的 insights/actions/cat
+            // 已存在的本地预设书：只补 weread 给的字段（封面/作者/电子书链接/起止日期/阅读进度），
+            // 不覆盖：st 状态、cat 分类、insights 思考、actions 行动、hasInsights/hasAction
             const old = curr[idx];
             const newCat = ['认知成长','人际沟通','商业职场','人文叙事'].includes(old.cat) ? old.cat : (patch.cat || '认知成长');
-            curr[idx] = { ...old, ...patch, cat: newCat };
+            const merged = { ...old, ...patch, cat: newCat };
+            // 只有本地原本"没封面"时，才用 weread 返回的封面覆盖（有封面则尊重用户手动设置）
+            if (old.coverUrl && !coverProxied) {
+              merged.coverUrl = old.coverUrl;
+              merged.coverSource = old.coverSource || 'placeholder';
+            }
+            // 进度：如果 weread 有进度就补（但如果用户本地已经有 st='done' 就强制 100）
+            if (old.st === 'done') {
+              merged.pct = 100;
+              merged.st = 'done';
+            } else {
+              merged.st = old.st; // 保持本地原来的栏位（阅读中/未开始）
+              merged.pct = old.pct != null && old.pct > 0
+                ? old.pct
+                : Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0)));
+            }
+            curr[idx] = merged;
             updated++;
           } else {
-            // 新书：分类默认待匹配（用户之后右键改）
+            // 全新书 → 默认丢进「所有书籍」栏（abandoned）
             const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-            curr.push({ id: uid(), cat: '认知成长', insights: [], actions: [], hasInsights: false, hasAction: false, ...patch });
+            curr.push({
+              id: uid(),
+              cat: '认知成长',
+              insights: [],
+              actions: [],
+              hasInsights: false,
+              hasAction: false,
+              st: 'abandoned', // 新增：默认放到所有书籍
+              pct: Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0))),
+              ...patch,
+            });
             added++;
           }
         }
-        showToast?.(`微信读书同步完成 · 更新${updated}本 + 新增${added}本`);
+        showToast?.(`微信读书同步完成 · 已匹配更新${updated}本 + 新归入「所有书籍」${added}本`);
         return curr;
       };
       if (typeof onBooksReplace === 'function') {
@@ -3260,7 +3305,7 @@ function CognitionView({
             { key: 'reading',   lb: '阅读中', col: BLUE,    dot: BLUE_LIGHT,    books: groups.reading },
             { key: 'pending',   lb: '未开始', col: '#64748b', dot: '#f8fafc',     books: groups.pending },
             { key: 'done',      lb: '已读完', col: '#22c55e', dot: '#f0fdf4',     books: groups.done },
-            { key: 'abandoned', lb: '已弃读', col: '#94a3b8', dot: '#f1f5f9',     books: groups.abandoned },
+            { key: 'abandoned', lb: '所有书籍', col: '#64748b', dot: '#f8fafc',     books: groups.abandoned },
           ].map(g => {
             const isDragOver = dragOverCol === g.key && dragBookId && (() => {
               // 拖拽中的书是否不本来就在这栏
@@ -3331,7 +3376,7 @@ function CognitionView({
                         statusDot = { col: '#22c55e', solid: true, pulse: false, lb: '已读完' };
                         break;
                       case 'abandoned':
-                        statusDot = { col: '#94a3b8', solid: false, pulse: false, strike: true, lb: '已弃读' };
+                        statusDot = { col: '#64748b', solid: false, pulse: false, strike: false, lb: '所有书籍' };
                         break;
                       default:
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
@@ -4581,7 +4626,7 @@ export default function AnnualPlan({ standalone = true }) {
         if (b.id !== id) return b;
         return normalizeBook({ ...b, st: targetSt });
       }));
-      const labelMap = { done: '已读完', reading: '阅读中', pending: '未开始', abandoned: '已弃读' };
+      const labelMap = { done: '已读完', reading: '阅读中', pending: '未开始', abandoned: '所有书籍' };
       showToast(`已移至「${labelMap[targetSt] || targetSt}」`);
     },
     remove: (id) => { setBooks(prev => prev.filter(b => b.id !== id)); showToast('书籍已删除'); },

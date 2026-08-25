@@ -1035,16 +1035,26 @@ async function handleCoverProxy(env, url) {
 
   // 允许的域名白名单（防止 SSRF）
   const u = new URL(safeUrl);
-  const ALLOWED = /(doubanio\.com|douban\.com|weread\.qq\.com|qq\.com|google\.com|googleapis\.com|res\.weread\.qq\.com|img[0-9]+\.doubanio\.com)$/i;
+  const ALLOWED = /(doubanio\.com|douban\.com|weread\.qq\.com|qq\.com|google\.com|googleapis\.com|res\.weread\.qq\.com|img[0-9]+\.doubanio\.com|myqcloud\.com|wfqqreader-10000000\.image\.myqcloud\.com)$/i;
   if (!ALLOWED.test(u.hostname)) return new Response('domain not allowed', { status: 403 });
 
   try {
+    // 智能 Referer 伪装
+    let referer = u.origin + '/';
+    let ua = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36';
+    if (/douban/.test(u.hostname)) {
+      referer = 'https://book.douban.com/';
+    } else if (/weread|myqcloud|qq\.com/.test(u.hostname)) {
+      referer = 'https://weread.qq.com/';
+      ua = 'WeRead/1.0 (Linux;Android) Mozilla/5.0 Chrome/120 Safari/537.36';
+    }
     const r = await fetch(safeUrl, {
       headers: {
-        // 伪装 Referer 解防盗链
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-        'Referer': /douban/.test(u.hostname) ? 'https://book.douban.com/' : (u.origin + '/'),
+        'User-Agent': ua,
+        'Referer': referer,
+        'Origin': referer.replace(/\/$/, ''),
         'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
       },
       cf: { cacheTtl: 60 * 60 * 24 * 14, cacheEverything: true },
     });

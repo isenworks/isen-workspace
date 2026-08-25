@@ -361,12 +361,15 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
     return (
       <div className="space-y-1.5">
-        {/* 预设模板行：与真实事项同款渐变背景+复选框+小圆点+删除占位 */}
+        {/* 预设模板行：弱化显示（浅灰文字不加粗），仅占位提示，点击进入弹窗不预填真实标题 */}
         {PRESET_TEMPLATES.map(tpl => (
           <div
             key={tpl.key}
-            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-grab group"
-            style={{background: `linear-gradient(90deg,${tpl.bg} 0%,transparent 70%)`}}
+            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-grab group transition-opacity"
+            style={{
+              background: `linear-gradient(90deg, ${tpl.bg}66 0%, transparent 70%)`,
+              opacity: 0.75,
+            }}
             draggable
             onDragStart={(e) => {
               const data = {
@@ -379,22 +382,31 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
               e.dataTransfer.setData('application/json', JSON.stringify(data));
               e.dataTransfer.effectAllowed = 'move';
             }}
-            onClick={() => { onNew?.({ category: tpl.category, title: `今天做什么来${tpl.bold}？` }); }}
+            onClick={() => {
+              onNew?.({
+                category: tpl.category,
+                title: `今天做什么来${tpl.bold}？`,
+                isPreset: true, // 关键标识：弹窗里仅做 placeholder 提示，不预填真实值
+              });
+            }}
           >
             <div
               className="cb-square flex-shrink-0"
               style={{
-                '--cb-border': tpl.dotColor,
-                '--cb-color': tpl.dotColor,
+                '--cb-border': tpl.dotColor + '99',
+                '--cb-color': tpl.dotColor + '99',
+                opacity: 0.6,
                 pointerEvents: 'none',
               }}
             ></div>
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] text-[#1c1c1e]">
-                今天做什么来<span style={{ fontWeight: 700 }}>{tpl.bold}</span>？
+              {/* 弱化：整段浅灰 #8e8e93，不加粗（跟"可留空"placeholder同色系） */}
+              <p className="text-[14px] font-normal leading-none truncate" style={{ color: '#8e8e93' }}>
+                今天做什么来{tpl.bold}？
               </p>
             </div>
-            <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: tpl.dotColor }}></span>
+            {/* 圆点降透明度 */}
+            <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: tpl.dotColor, opacity: 0.55 }}></span>
             {/* 占位：与真实事项删除按钮完全同结构，仅不可见不交互 */}
             <button className="opacity-0 text-[#8e8e93] text-xs px-1 pointer-events-none" tabIndex={-1}>×</button>
           </div>

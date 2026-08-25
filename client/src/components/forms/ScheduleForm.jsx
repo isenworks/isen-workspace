@@ -81,8 +81,10 @@ const BTN_PRIMARY = {
 
 export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }) {
   const toast = useToast();
+  // isPreset 时：initial.title 只做 placeholder 提示，不预填真实值
+  const presetHint = initial?.isPreset && initial?.title ? initial.title : null;
   const [form, setForm] = useState({
-    title: initial?.title || '',
+    title: initial?.isPreset ? '' : (initial?.title || ''),
     date: initial?.date || defaultDate,
     start_time: initial?.start_time || '',
     end_time: initial?.end_time || '',
@@ -154,13 +156,15 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
   }
 
   async function submit() {
-    if (!form.title.trim()) return toast.warn('请输入标题');
+    // isPreset 用户没改的话，用预设提示当 fallback 标题
+    const finalTitle = (form.title || presetHint || '').trim();
+    if (!finalTitle) return toast.warn('请输入标题');
     if (!form.date) return toast.warn('请选择日期');
     setBusy(true);
     try {
       const cat = Number(form.category);
       const payload = {
-        title: form.title.trim(),
+        title: finalTitle,
         date: form.date,
         start_time: form.start_time || null,
         end_time: form.end_time || null,
@@ -200,7 +204,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
           }}
           value={form.title}
           onChange={e => set('title', e.target.value)}
-          placeholder={!initial?.id && initial?.title ? initial.title : '例如：简历项目经历撰写'}
+          placeholder={presetHint || (!initial?.id ? '例如：简历项目经历撰写' : '')}
           autoFocus
         />
       </div>

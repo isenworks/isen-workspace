@@ -106,7 +106,7 @@ const BOOKS = [
   { t: '超级沟通者',   author: 'Lisa B. Marshall', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
-  { t: '影响力',       author: '罗伯特·西奥迪尼', cat: '人际沟通', st: 'pending', pct: 0, src: '纸质书',
+  { t: '影响力',       author: '罗伯特·西奥迪尼', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
   { t: '高效能人士的七个习惯', author: '史蒂芬·柯维', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
@@ -2694,6 +2694,7 @@ function CognitionView({
   const [wereadKey, setWereadKey] = useState('');
   const [wereadCfgOk, setWereadCfgOk] = useState(null); // null=未查,true/false=已配置
   const [wereadSyncing, setWereadSyncing] = useState(false);
+  const [coverSearchingIds, setCoverSearchingIds] = useState(new Set());
   // 一次性查 weread key 是否已配置
   useEffect(() => {
     (async () => {
@@ -2704,6 +2705,32 @@ function CognitionView({
       } catch { setWereadCfgOk(false); }
     })();
   }, []);
+
+  // 自动为无封面书籍搜索封面
+  useEffect(() => {
+    if (!books || !Array.isArray(books)) return;
+    const needCover = books.filter(b =>
+      b && b.t && !b.coverUrl && !coverSearchingIds.has(b.id)
+    );
+    if (needCover.length === 0) return;
+    needCover.forEach(b => {
+      setCoverSearchingIds(prev => new Set(prev).add(b.id));
+      (async () => {
+        try {
+          const q = encodeURIComponent(b.t || '');
+          const a = encodeURIComponent(b.author || '');
+          const r = await fetch(`/api/cover/search?q=${q}&author=${a}`);
+          const j = await r.json().catch(() => ({}));
+          if (j?.ok && j.coverUrl && typeof onBookUpdate === 'function') {
+            onBookUpdate(b.id, { coverUrl: j.coverUrl, coverSource: 'auto-search' });
+          }
+        } catch {}
+        setCoverSearchingIds(prev => {
+          const n = new Set(prev); n.delete(b.id); return n;
+        });
+      })();
+    });
+  }, [books?.length]);
 
   const doWereadSave = async () => {
     const k = wereadKey.trim();
@@ -2898,7 +2925,7 @@ function CognitionView({
             author: wb.author,
             startDate: wb.startDate || undefined,
             endDate: wb.endDate || undefined,
-            ebookUrl: wb.bookId ? `weread://book/${wb.bookId}` : undefined,
+            ebookUrl: wb.bookId ? `https://weread.qq.com/web/reader/${wb.bookId}` : undefined,
             src: '电子书',
           };
           if (coverProxied) {
@@ -3634,7 +3661,14 @@ function CognitionView({
                       default:
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
                     }
-                    const isEbookLink = b.src === '电子书' && b.ebookUrl && b.ebookUrl.trim();
+                    const isEbookLink = (() => {
+                      const direct = b.ebookUrl && b.ebookUrl.trim();
+                      if (direct) return direct;
+                      if (b.src === '电子书' && b.t) {
+                        return `https://weread.qq.com/search?q=${encodeURIComponent(b.t)}`;
+                      }
+                      return null;
+                    })();
                     const insights = b.insights || [];
                     const validIns = insights.filter(i => i.text?.trim() && i.scene?.trim());
                     const acts = b.actions || [];
@@ -4734,7 +4768,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v7', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v8', () => BOOKS.map(b => ({ ...b, id: uid() })));
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));

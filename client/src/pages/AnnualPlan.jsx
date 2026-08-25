@@ -2860,25 +2860,22 @@ function CognitionView({
         for (const x of bagB) if (x && na.includes(x)) return true;
         return false;
       };
+      const isValidBookId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
       const updater = (prev) => {
         const curr = Array.isArray(prev) ? [...prev] : [];
-        let updated = 0, added = 0;
-        const needsCoverFallback = []; // [index, book] 匹配到了但 weread 没给封面的，后面再补
+        const updatedIdxs = new Set();
+        const needsCoverFallback = [];
         for (const wb of books) {
-          const wFullTitle = norm(wb.title);
           const wMainTitle = normTitleOnly(wb.title);
-          // 依次尝试 3 种匹配策略，命中第一个就 break
           let idx = -1;
           idx = curr.findIndex(b =>
             titleMatches(b.t, wb.title) &&
             authorMatches(b.author, wb.author)
           );
           if (idx < 0) {
-            // 2. 完全忽略作者，只看主书名 + 别名表
             idx = curr.findIndex(b => titleMatches(b.t, wb.title));
           }
           if (idx < 0) {
-            // 3. 最后兜底：主书名 2-gram 共同字符比例 >= 60%（应对中英文符号杂糅）
             idx = curr.findIndex(b => {
               const localMain = normTitleOnly(b.t);
               if (!localMain || localMain.length < 2 || !wMainTitle || wMainTitle.length < 2) return false;
@@ -2889,41 +2886,40 @@ function CognitionView({
               return ratio >= 0.6;
             });
           }
-          const mappedSt = wb.status === 4 ? 'done' : wb.status === 3 ? 'reading' : 'pending';
-          // weread 封面统一走同源 /api/cover/proxy（防盗链 + 缓存）
+          if (idx < 0 || updatedIdxs.has(idx)) continue;
+          updatedIdxs.add(idx);
+          const old = curr[idx];
+          const newBookId = wb.bookId && isValidBookId(wb.bookId) ? wb.bookId : '';
+          const hasBookId = !!newBookId;
+          const merged = { ...old };
+          if (hasBookId) {
+            merged.bookId = newBookId;
+            merged.ebookUrl = `https://weread.qq.com/web/reader/${newBookId}`;
+            merged.src = '电子书';
+          } else {
+            merged.src = old.src || '电子书';
+          }
           const coverRaw = wb.cover;
           const coverProxied = coverRaw
             ? ('/api/cover/proxy?url=' + encodeURIComponent(String(coverRaw)))
             : '';
-          if (idx >= 0) {
-            const old = curr[idx];
-            const merged = {
-              ...old,
-              bookId: wb.bookId || old.bookId,
-              ebookUrl: wb.bookId ? `https://weread.qq.com/web/reader/${wb.bookId}` : old.ebookUrl,
-              src: old.src || '电子书',
-            };
-            if (coverProxied) {
-              merged.coverUrl = coverProxied;
-              merged.coverSource = 'weread';
-            }
-            if (old.st === 'done') {
-              merged.pct = 100;
-              merged.st = 'done';
-            } else {
-              merged.st = old.st;
-              const wpct = Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0)));
-              merged.pct = Math.max(Number(old.pct) || 0, wpct);
-            }
-            if (wb.startDate && !old.startDate) merged.startDate = wb.startDate;
-            if (wb.endDate && !old.endDate) merged.endDate = wb.endDate;
-            curr[idx] = merged;
-            if (!coverProxied) needsCoverFallback.push({ idx, title: old.t, author: old.author });
-            updated++;
-          } else {
-            // 用户明确：不同步导入 weread 全部书架，只更新本地已存在的书
-            // → 未匹配的 weread 新书直接跳过，保持书架只有你手动/添加的 12 本
+          if (coverProxied) {
+            merged.coverUrl = coverProxied;
+            merged.coverSource = 'weread';
           }
+          const mappedSt = wb.status === 4 ? 'done' : wb.status === 3 ? 'reading' : 'pending';
+          if (old.st === 'done') {
+            merged.pct = 100;
+            merged.st = 'done';
+          } else {
+            merged.st = old.st;
+            const wpct = Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0)));
+            merged.pct = Math.max(Number(old.pct) || 0, wpct);
+          }
+          if (wb.startDate && !old.startDate) merged.startDate = wb.startDate;
+          if (wb.endDate && !old.endDate) merged.endDate = wb.endDate;
+          curr[idx] = merged;
+          if (!coverProxied) needsCoverFallback.push({ idx, title: old.t, author: old.author });
         }
         // 【异步·强兜底】不管 weread 有没有返回，同步完立刻扫描 curr 里"还没真实封面"的本地书
         //         （空 coverUrl / coverSource=placeholder / 首字占位 三种情况）
@@ -3002,8 +2998,8 @@ function CognitionView({
                       }
                       if (!match) match = j.results.find(x => String(x.title || '').includes(title.slice(0, 2)));
                       if (!match) match = j.results[0];
-                      if (match && match.bookId) {
-                        const bid = match.bookId;
+                      const bid = match?.bookId;
+                      if (bid && isValidBookId(bid)) {
                         patches.set(idx, {
                           bookId: bid,
                           ebookUrl: `https://weread.qq.com/web/reader/${bid}`,
@@ -3027,7 +3023,7 @@ function CognitionView({
             } catch (_) {}
           }, 200);
         }
-        showToast?.(`微信读书同步完成 · 已匹配更新 ${updated} 本` +
+        showToast?.(`微信读书同步完成 · 已匹配更新 ${updatedIdxs.size} 本` +
           (missingCurr.length ? ` · 正在补${missingCurr.length}本封面…` : '') +
           (noBookId.length ? ` · 正在搜${noBookId.length}本链接…` : ''));
         return curr;
@@ -3689,8 +3685,12 @@ function CognitionView({
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
                     }
                     const isEbookLink = (() => {
-                      if (b.ebookUrl && b.ebookUrl.startsWith('http')) return b.ebookUrl;
-                      if (b.bookId) return `https://weread.qq.com/web/reader/${b.bookId}`;
+                      const validId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
+                      if (b.ebookUrl && b.ebookUrl.startsWith('http')) {
+                        const m = b.ebookUrl.match(/\/reader\/([^/?#]+)/);
+                        if (m && validId(m[1])) return b.ebookUrl;
+                      }
+                      if (b.bookId && validId(b.bookId)) return `https://weread.qq.com/web/reader/${b.bookId}`;
                       return null;
                     })();
                     const insights = b.insights || [];

@@ -334,7 +334,8 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
                 value={form.bookId}
                 onChange={e => {
                   const bid = e.target.value.trim();
-                  const autoUrl = bid ? `https://weread.qq.com/web/reader/${bid}` : '';
+                  const valid = /^[a-f0-9]{20,}$/i.test(bid.replace(/-/g, ''));
+                  const autoUrl = valid ? `https://weread.qq.com/web/reader/${bid}` : '';
                   setForm(f => ({ ...f, bookId: bid, ebookUrl: autoUrl || f.ebookUrl }));
                 }}
                 placeholder="e1e32b00729fc94fe1e824d · 从 weread 网页版地址中复制" />

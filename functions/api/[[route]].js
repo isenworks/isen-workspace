@@ -977,35 +977,43 @@ async function handleWereadSync(env, q) {
 
   // 2) 对每本书调用 /book/info 补封面 + 作者 + 详情（batch 5 本并行）
   //    先把列表里已经有的字段填好，没有 cover/author 的再补
-  const books = bookList.map(x => ({
-    title: String(x.title || x.bookTitle || x.name || '').trim(),
-    author: String(x.author || x.bookAuthor || x.authors || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
-    cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
-    bookId: x.bookId || x.book_id || x.id || x.bookid || '',
-    status: x.readStatus ?? x.read_status ?? x.status ?? (x.finishedReading || x.finished ? 4 : x.reading || x.isReading ? 3 : 1),
-    progress: Number(x.readingProgress ?? x.progress ?? x.pct ?? x.reading_progress ?? 0),
-    startDate: x.startDate || x.start_read_date || x.startTime || '',
-    endDate: x.endDate || x.finish_date || x.endTime || x.finishDate || '',
-  })).filter(b => b.title);
+  const isHashBookId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
+  const books = bookList.map(x => {
+    const rawId = x.bookId || x.book_id || x.id || x.bookid || '';
+    const bookId = isHashBookId(rawId) ? rawId : '';
+    const numericId = !isHashBookId(rawId) && /^\d+$/.test(String(rawId)) ? String(rawId) : '';
+    return {
+      title: String(x.title || x.bookTitle || x.name || '').trim(),
+      author: String(x.author || x.bookAuthor || x.authors || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
+      cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
+      bookId,
+      numericId,
+      status: x.readStatus ?? x.read_status ?? x.status ?? (x.finishedReading || x.finished ? 4 : x.reading || x.isReading ? 3 : 1),
+      progress: Number(x.readingProgress ?? x.progress ?? x.pct ?? x.reading_progress ?? 0),
+      startDate: x.startDate || x.start_read_date || x.startTime || '',
+      endDate: x.endDate || x.finish_date || x.endTime || x.finishDate || '',
+    };
+  }).filter(b => b.title);
 
-  // 对缺封面或作者的，再查一次详情（控制并发，避免触发限流）
+  // 对缺封面/作者/bookId的，再查一次详情
   const BATCH = 5;
   for (let i = 0; i < books.length; i += BATCH) {
     const slice = books.slice(i, i + BATCH);
     await Promise.all(slice.map(async (b) => {
-      if (b.cover && b.author) return;
-      if (!b.bookId && !b.title) return;
+      const needInfo = !b.cover || !b.author || !b.bookId;
+      if (!needInfo) return;
       try {
         const params = {};
         if (b.bookId) params.bookId = b.bookId;
+        else if (b.numericId) params.id = b.numericId;
         else params.title = b.title;
         const info = await callWeread('/book/info', params);
         const d = info?.data || info || {};
-        if (!b.cover && d.cover) b.cover = d.cover;
-        if (!b.cover && d.coverUrl) b.cover = d.coverUrl;
+        if (!b.cover && (d.cover || d.coverUrl)) b.cover = d.cover || d.coverUrl;
         if (!b.author && d.author) b.author = d.author;
         if (!b.author && d.authors) b.author = Array.isArray(d.authors) ? d.authors.join('/') : String(d.authors);
-        if (d.bookId && !b.bookId) b.bookId = d.bookId;
+        const newBookId = d.bookId || d.book_id || '';
+        if (newBookId && isHashBookId(newBookId)) b.bookId = newBookId;
         if (d.title && !b.title) b.title = d.title;
       } catch (_) { /* 忽略单本失败，继续 */ }
     }));
@@ -1057,14 +1065,18 @@ async function handleWereadSearch(env, q) {
     }
     if (!resp) throw new Error(lastErr || '所有 weread 搜索接口均失败');
 
+    const isHashId = (v) => typeof v === 'string' && /^[a-f0-9]{20,}$/i.test(v.replace(/-/g, ''));
     const items = resp.books || resp.data?.books || resp.data || resp.results || resp.bookList || [];
-    const results = (Array.isArray(items) ? items : []).map(x => ({
-      title: String(x.title || x.bookTitle || x.name || x.book_name || '').trim(),
-      author: String(x.author || x.bookAuthor || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
-      bookId: x.bookId || x.book_id || x.id || x.bid || x.bookid || '',
-      cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
-      rating: x.rating || x.rate || x.score || '',
-    }));
+    const results = (Array.isArray(items) ? items : []).map(x => {
+      const rawId = x.bookId || x.book_id || x.id || x.bid || x.bookid || '';
+      return {
+        title: String(x.title || x.bookTitle || x.name || x.book_name || '').trim(),
+        author: String(x.author || x.bookAuthor || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
+        bookId: isHashId(rawId) ? rawId : '',
+        cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
+        rating: x.rating || x.rate || x.score || '',
+      };
+    });
     return json({ ok: true, results, total: results.length });
   } catch (e) {
     return json({ error: e.message || '搜索失败' }, 502);

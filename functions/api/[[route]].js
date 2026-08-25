@@ -1047,12 +1047,21 @@ async function handleWereadSearch(env, q) {
   }
 
   try {
-    const resp = await callWeread('/search/book', { q: query, count: 5 });
-    const items = resp.books || resp.data?.books || resp.data || resp.results || [];
+    let resp = null;
+    let lastErr = null;
+    for (const apiName of ['/search/book', '/book/search', '/search', '/search/books']) {
+      try {
+        resp = await callWeread(apiName, { q: query, count: 5 });
+        if (resp) break;
+      } catch (e) { lastErr = e.message; resp = null; }
+    }
+    if (!resp) throw new Error(lastErr || '所有 weread 搜索接口均失败');
+
+    const items = resp.books || resp.data?.books || resp.data || resp.results || resp.bookList || [];
     const results = (Array.isArray(items) ? items : []).map(x => ({
-      title: String(x.title || x.bookTitle || x.name || '').trim(),
+      title: String(x.title || x.bookTitle || x.name || x.book_name || '').trim(),
       author: String(x.author || x.bookAuthor || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
-      bookId: x.bookId || x.book_id || x.id || x.bid || '',
+      bookId: x.bookId || x.book_id || x.id || x.bid || x.bookid || '',
       cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
       rating: x.rating || x.rate || x.score || '',
     }));
@@ -1062,11 +1071,49 @@ async function handleWereadSearch(env, q) {
   }
 }
 
-// ---------------- cover.search：豆瓣 subject_suggest → Google Books fallback
+// ---------------- cover.search：weread 优先 → 豆瓣 → Google Books 兜底
 async function handleCoverSearch(env, q) {
   const query = String(q.q || '').trim();
   const author = String(q.author || '').trim();
   if (!query) return json({ error: '缺少 q' }, 400);
+
+  // 0) weread 搜索（如果已配置 weread key，优先使用）
+  const wereadKey = await settingGet(env, 'weread_api_key');
+  if (wereadKey) {
+    try {
+      const GATEWAY = 'https://i.weread.qq.com/api/agent/gateway';
+      const resp = await fetch(GATEWAY, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + wereadKey,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Ethan-Workbench/1.0',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ api_name: '/search/book', skill_version: '1.0.3', q: query, count: 3 }),
+      });
+      if (resp.ok) {
+        const data = await resp.json().catch(() => null);
+        const items = data?.books || data?.data?.books || data?.data || data?.results || [];
+        if (Array.isArray(items) && items.length > 0) {
+          let pick = null;
+          if (author) {
+            pick = items.find(x =>
+              String(x.title || x.bookTitle || '').includes(query.slice(0, 2)) &&
+              String(x.author || x.bookAuthor || '').includes(author.slice(0, 2))
+            );
+          }
+          if (!pick) pick = items.find(x => String(x.title || x.bookTitle || '').includes(query.slice(0, 2)));
+          if (!pick) pick = items[0];
+          if (pick && (pick.cover || pick.coverUrl)) {
+            const rawCover = pick.cover || pick.coverUrl || '';
+            const proxied = '/api/cover/proxy?url=' + encodeURIComponent(String(rawCover));
+            return json({ ok: true, coverUrl: proxied, source: 'weread', title: pick.title, author: pick.author });
+          }
+        }
+      }
+    } catch (_) { /* ignore, fallthrough to Douban */ }
+  }
 
   // 1) 豆瓣建议搜索（中文书首选）
   try {

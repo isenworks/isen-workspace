@@ -44,6 +44,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
     src: SRCS.includes(initial?.src) ? initial.src : SRCS[0],
     st: initial?.st || 'pending',
     pct: initial?.pct ?? 0,
+    bookId: initial?.bookId || '',
     ebookUrl: initial?.ebookUrl || '',
     coverUrl: initial?.coverUrl || '',
     coverSource: initial?.coverSource || 'placeholder',
@@ -142,6 +143,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
       ...form,
       t: form.t.trim(),
       author: form.author.trim(),
+      bookId: form.bookId.trim(),
       ebookUrl: form.ebookUrl.trim(),
       coverUrl: form.coverUrl.trim(),
       coverSource: form.coverUrl.trim() ? (form.coverSource || 'manual') : 'placeholder',
@@ -324,13 +326,23 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
           </FieldRow>
         </div>
 
-        {/* 行 C（仅电子书）：电子书链接，单独展开整行，不再与来源并列 */}
+        {/* 行 C（仅电子书）：weread bookId + 电子书链接 */}
         {isEbook && (
-          <div style={{ marginTop: '7px' }}>
+          <div style={{ marginTop: '7px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <FieldRow label="微信读书 BookID">
+              <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
+                value={form.bookId}
+                onChange={e => {
+                  const bid = e.target.value.trim();
+                  const autoUrl = bid ? `https://weread.qq.com/web/reader/${bid}` : '';
+                  setForm(f => ({ ...f, bookId: bid, ebookUrl: autoUrl || f.ebookUrl }));
+                }}
+                placeholder="e1e32b00729fc94fe1e824d · 从 weread 网页版地址中复制" />
+            </FieldRow>
             <FieldRow label="电子书链接 / weread 协议">
               <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
                 value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
-                placeholder="https:// / weread:// / file:// · 保存后，卡片左键直接打开" />
+                placeholder="https://weread.qq.com/web/reader/xxx · 自动从 BookID 生成，也可自定义" />
             </FieldRow>
           </div>
         )}

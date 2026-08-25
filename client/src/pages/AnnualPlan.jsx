@@ -3235,9 +3235,10 @@ function CognitionView({
                           setDragBookId(b.id);
                         }}
                         onDragEnd={() => { setDragBookId(null); setDragOverCol(null); }}
+                        onClick={() => onBookEdit?.(b)}
                         className={`rounded-xl bg-white transition-all relative select-none overflow-hidden group ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_3px_14px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
                         style={{
-                          cursor: isDragging ? 'grabbing' : 'grab',
+                          cursor: isDragging ? 'grabbing' : 'pointer',
                           boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
                           border: `1px solid rgba(15,23,42,0.06)`,
                         }}>
@@ -3250,18 +3251,7 @@ function CognitionView({
                           }} />
 
                         {/* L1：状态点 + 书名 + 电子书↗ 跳链 + 进度%胶囊 */}
-                        <div
-                          onClick={(e) => {
-                            if (isEbookLink) {
-                              e.stopPropagation();
-                              try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
-                              catch { onBookEdit?.(b); }
-                            } else {
-                              onBookEdit?.(b);
-                            }
-                          }}
-                          className="pl-[11px] pr-[9px] pt-[9px] pb-0 flex items-start justify-between gap-1.5"
-                          style={{ cursor: 'pointer' }}>
+                        <div className="pl-[11px] pr-[9px] pt-[9px] pb-0 flex items-start justify-between gap-1.5">
                           <div className="min-w-0 flex-1 flex items-start gap-1.5">
                             {/* 状态圆点（未开始灰空心/阅读中蓝呼吸/已读完绿实心/弃读灰斜）*/}
                             <span className="flex-shrink-0 mt-[4px] inline-block rounded-full"
@@ -3277,13 +3267,6 @@ function CognitionView({
                               <div className={`text-[12.5px] font-bold truncate leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
                                 style={{ color: isDone ? '#64748b' : '#0f172a' }}>
                                 {b.t}
-                                {isEbookLink && (
-                                  <span title="左键打开电子书，右键可编辑"
-                                    className="ml-1 leading-none inline-flex items-center"
-                                    style={{ color: BLUE, fontWeight: 800, fontSize: '9.5px' }}>
-                                    ↗
-                                  </span>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -3297,10 +3280,10 @@ function CognitionView({
                           </span>
                         </div>
 
-                        {/* L2：分类色标 + 洞察/行动勾号（右下浮层）*/}
-                        <div className="pl-[11px] pr-[9px] pt-[5px] pb-[7px] flex items-center justify-between gap-1 min-w-0">
+                        {/* L2：分类色标 + 洞察/行动勾号 + 电子书↗跳转（右下）*/}
+                        <div className="pl-[11px] pr-[9px] pt-[5px] pb-[7px] flex items-center justify-between gap-1 min-w-0 relative">
                           {/* 分类身份：小色方块+文字（最小字号，与顶部信息区分层级）*/}
-                          <div className="flex items-center gap-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0 flex-1">
                             <span className="flex-shrink-0 rounded-[3px]" style={{ width: '7px', height: '7px', background: catCol }} />
                             <span className="truncate text-[10.5px] font-medium leading-none"
                               style={{ color: catCol }}>{b.cat || '未分类'}</span>
@@ -3314,35 +3297,59 @@ function CognitionView({
                               </span>
                             )}
                           </div>
-                          {/* 已读完：漏斗状态双勾可视化（右下）*/}
-                          {isDone && (
-                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          {/* 右侧控件：漏斗勾（已读完） + 电子书↗按钮（右下角）*/}
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            {isDone && (
+                              <>
+                                <button
+                                  onClick={() => onBookUpdate?.(b.id, { hasInsights: !hasIns })}
+                                  className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
+                                  style={{
+                                    background: hasIns ? BLUE : 'transparent',
+                                    color: hasIns ? '#fff' : '#cbd5e1',
+                                    border: hasIns ? 'none' : '1px solid #e2e8f0',
+                                    fontSize: '10px', fontWeight: 800, lineHeight: 1,
+                                  }}
+                                  title={hasIns ? '有洞察（漏斗思考量）' : '点击标记为有洞察'}>
+                                  {hasIns ? '✓' : 'I'}
+                                </button>
+                                <button
+                                  onClick={() => onBookUpdate?.(b.id, { hasAction: !hasAct })}
+                                  className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
+                                  style={{
+                                    background: hasAct ? '#22c55e' : 'transparent',
+                                    color: hasAct ? '#fff' : '#cbd5e1',
+                                    border: hasAct ? 'none' : '1px solid #e2e8f0',
+                                    fontSize: '10px', fontWeight: 800, lineHeight: 1,
+                                  }}
+                                  title={hasAct ? '有行动（漏斗行动量）' : '点击标记为有行动'}>
+                                  {hasAct ? '✓' : 'A'}
+                                </button>
+                              </>
+                            )}
+                            {isEbookLink && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasInsights: !hasIns }); }}
-                                className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
-                                style={{
-                                  background: hasIns ? BLUE : 'transparent',
-                                  color: hasIns ? '#fff' : '#cbd5e1',
-                                  border: hasIns ? 'none' : '1px solid #e2e8f0',
-                                  fontSize: '10px', fontWeight: 800, lineHeight: 1,
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
+                                  catch { onBookEdit?.(b); }
                                 }}
-                                title={hasIns ? '有洞察（漏斗思考量）' : '点击标记为有洞察'}>
-                                {hasIns ? '✓' : 'I'}
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onBookUpdate?.(b.id, { hasAction: !hasAct }); }}
-                                className="flex items-center justify-center w-[16px] h-[16px] rounded transition"
+                                title="点击打开电子书（点击卡片其他位置为编辑）"
+                                className="flex items-center justify-center rounded-md transition-all duration-150 flex-shrink-0"
                                 style={{
-                                  background: hasAct ? '#22c55e' : 'transparent',
-                                  color: hasAct ? '#fff' : '#cbd5e1',
-                                  border: hasAct ? 'none' : '1px solid #e2e8f0',
-                                  fontSize: '10px', fontWeight: 800, lineHeight: 1,
-                                }}
-                                title={hasAct ? '有行动（漏斗行动量）' : '点击标记为有行动'}>
-                                {hasAct ? '✓' : 'A'}
+                                  width: '18px', height: '18px',
+                                  background: BLUE,
+                                  color: '#fff',
+                                  fontSize: '10px',
+                                  fontWeight: 900,
+                                  lineHeight: 1,
+                                  boxShadow: `0 2px 6px rgba(0,122,255,0.28)`,
+                                }}>
+                                ↗
                               </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
 
                         {/* L3：底部进度带（3px，贯穿整卡宽；核心感知层）*/}

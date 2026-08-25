@@ -2680,9 +2680,10 @@ function CognitionView({
   const [addingKr, setAddingKr] = useState(false);
   const [newKr, setNewKr] = useState({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
   const [editingKrModal, setEditingKrModal] = useState(null);
-  // 书架拖拽
+  // 书架拖拽 + Tab筛选
   const [dragBookId, setDragBookId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
+  const [shelfTab, setShelfTab] = useState('reading'); // 默认显示"阅读中"
   // 承诺本 · 行动改变
   const [showChangeForm, setShowChangeForm] = useState(false);
   const [editingChange, setEditingChange] = useState(null);
@@ -3505,51 +3506,6 @@ function CognitionView({
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-            {/* 工具栏 · 清空/重置（都带二次确认） */}
-            <button
-              onClick={() => {
-                const cnt = (groups.abandoned || []).length;
-                if (!cnt) return showToast?.('「所有书籍」栏已经是空的');
-                const ok = confirm(`确定清空「所有书籍」栏的 ${cnt} 本书？\n（前3栏的阅读中/未开始/已读完 会保留，12本预设不动）`);
-                if (!ok) return;
-                if (typeof onBooksReplace === 'function') {
-                  onBooksReplace(prev => (Array.isArray(prev) ? prev : []).filter(b => b.st !== 'abandoned'));
-                }
-                showToast?.(`已清空「所有书籍」栏 ${cnt} 本`);
-              }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium rounded-lg transition hover:bg-red-50"
-              style={{ color: '#dc2626' }}
-              title="只删除「所有书籍」栏，保留前3栏（阅读中/未开始/已读完）">
-              🗑 清空所有书籍
-            </button>
-            <button
-              onClick={() => {
-                const ok = confirm('【危险】将书架恢复到初始12本预设？\n这会删除你所有手动添加的书和同步过来的书，只保留预设12本。确认继续？');
-                if (!ok) return;
-                // 最简单可靠：清空当前 localStorage key → 下次 render 自动回到 BOOKS 初始
-                try {
-                  const ALL_KEYS = ['annual_books_v4', 'annual_books_v5', 'annual_books_v6', 'annual_books_v7'];
-                  let backedUp = false;
-                  for (const k of ALL_KEYS) {
-                    const val = localStorage.getItem(k);
-                    if (val != null && !backedUp) {
-                      try { localStorage.setItem('annual_books_backup_' + Date.now(), val); backedUp = true; } catch (_) {}
-                    }
-                    try { localStorage.removeItem(k); } catch (_) {}
-                  }
-                  showToast?.('书架已重置，页面即将刷新');
-                  setTimeout(() => { window.location.reload(); }, 500);
-                } catch (e) {
-                  alert('重置失败：' + (e.message || e));
-                }
-              }}
-              className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:bg-red-50"
-              style={{ color: '#dc2626' }}
-              title="重置书架：删除当前全部书，恢复最初12本预设（有备份）">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
             <button onClick={() => onBookAdd?.()}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
               style={{ background: BLUE_LIGHT, color: BLUE }}>
@@ -3558,31 +3514,77 @@ function CognitionView({
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { key: 'reading',   lb: '阅读中', col: BLUE,    dot: BLUE_LIGHT,    books: groups.reading },
-            { key: 'pending',   lb: '未开始', col: '#64748b', dot: '#f8fafc',     books: groups.pending },
-            { key: 'done',      lb: '已读完', col: '#22c55e', dot: '#f0fdf4',     books: groups.done },
-            { key: 'abandoned', lb: '所有书籍', col: '#64748b', dot: '#f8fafc',     books: groups.abandoned },
-          ].map(g => {
-            const isDragOver = dragOverCol === g.key && dragBookId && (() => {
-              // 拖拽中的书是否不本来就在这栏
-              const cur = (books || BOOKS).find(x => x.id === dragBookId);
-              return cur && cur.st !== g.key;
-            })();
-            return (
-            <div key={g.key}
-              className="rounded-2xl py-3 px-2.5 flex flex-col transition-all duration-200"
+        {/* Tab 筛选按钮组：4 栏目放在这一行（替换原每列独立表头）*/}
+        {(() => {
+          const TABS = [
+            { key: 'reading',   lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT,    books: groups.reading },
+            { key: 'pending',   lb: '未开始',   col: '#64748b',  bg: '#f1f5f9',      books: groups.pending },
+            { key: 'done',      lb: '已读完',   col: '#22c55e',  bg: '#dcfce7',      books: groups.done },
+            { key: 'abandoned', lb: '所有书籍', col: '#64748b',  bg: '#f1f5f9',      books: groups.abandoned },
+          ];
+          return (
+            <div className="flex items-center gap-1.5 mt-3 mb-1 px-0.5">
+              {TABS.map(t => {
+                const active = shelfTab === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setShelfTab(t.key)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] transition-all duration-150 flex-shrink-0`}
+                    style={{
+                      background: active ? t.bg : 'transparent',
+                      color: active ? t.col : '#64748b',
+                      fontWeight: active ? 700 : 500,
+                      fontSize: '12px',
+                      boxShadow: active ? `inset 0 0 0 1px ${t.col}22` : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
+                    }}>
+                    {/* ◎ 圆点+光圈 */}
+                    <span className="relative w-[12px] h-[12px] rounded-full flex-shrink-0 flex items-center justify-center"
+                      style={{ background: active ? t.col + '22' : 'rgba(148,163,184,0.22)' }}>
+                      <span className="w-[6px] h-[6px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
+                    </span>
+                    <span>{t.lb}</span>
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[16px] px-1.5 rounded-full text-[10.5px] font-bold tabular-nums leading-none"
+                      style={{
+                        background: active ? '#ffffff' : 'rgba(15,23,42,0.05)',
+                        color: active ? t.col : '#64748b',
+                        boxShadow: active ? `0 1px 1px rgba(15,23,42,0.04)` : 'none',
+                      }}>
+                      {t.books.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
+        {/* 单列主内容：只渲染当前选中 shelfTab 这一栏 */}
+        {(() => {
+          const META = {
+            reading:   { lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT },
+            pending:   { lb: '未开始',   col: '#64748b',  bg: '#f1f5f9' },
+            done:      { lb: '已读完',   col: '#22c55e',  bg: '#dcfce7' },
+            abandoned: { lb: '所有书籍', col: '#64748b',  bg: '#f1f5f9' },
+          };
+          const g = { key: shelfTab, ...META[shelfTab], books: groups[shelfTab] || [] };
+          const isDragOver = dragOverCol === g.key && dragBookId && (() => {
+            const cur = (books || BOOKS).find(x => x.id === dragBookId);
+            return cur && cur.st !== g.key;
+          })();
+          return (
+            <div
               style={{
-                background: g.dot,
+                background: g.bg,
                 border: isDragOver
                   ? `2px dashed ${g.col}`
                   : `1px solid ${g.col}18`,
-                padding: isDragOver ? 'calc(12px - 1px) calc(10px - 1px)' : undefined,
                 boxShadow: isDragOver ? `0 0 0 4px ${g.col}12` : undefined,
+                padding: isDragOver ? '11px 9px' : '12px 10px',
+                borderRadius: '16px',
+                transition: 'all 200ms ease',
               }}
               onDragOver={(e) => {
-                e.preventDefault(); // 允许drop
+                e.preventDefault();
                 const cur = (books || BOOKS).find(x => x.id === dragBookId);
                 if (cur && cur.st !== g.key) setDragOverCol(g.key);
               }}
@@ -3597,31 +3599,9 @@ function CognitionView({
                 setDragOverCol(null);
               }}
             >
-              {/* 栏目表头：◎ + 标题 + 紧随数字胶囊（截图极简风格） */}
-              <div className="flex items-center justify-between mb-2 px-[3px] py-[6px] rounded-[10px]"
-                style={{ background: g.col + '10' }}>
-                <div className="flex items-center gap-2 min-w-0">
-                  {/* ◎ 大圆点 + 光圈 */}
-                  <span className="relative w-[16px] h-[16px] rounded-full flex-shrink-0 flex items-center justify-center"
-                    style={{
-                      background: g.col + '22',
-                      boxShadow: `0 0 0 1px ${g.col}18`,
-                    }}>
-                    <span className="w-[8px] h-[8px] rounded-full" style={{ background: g.col }}></span>
-                  </span>
-                  <span className="text-[13px] font-bold text-ink-900 leading-none">{g.lb}</span>
-                  {/* 数字胶囊：紧挨标题 */}
-                  <span className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full text-[10.5px] font-bold tabular-nums leading-none flex-shrink-0"
-                    style={{ background: '#fff', color: '#64748b', boxShadow: `0 1px 1px rgba(15,23,42,0.05)`, border: `1px solid rgba(15,23,42,0.06)` }}>
-                    {g.books.length}
-                  </span>
-                </div>
-                {/* 占位（不再有独立右侧数量）*/}
-                <span className="w-[16px] flex-shrink-0"></span>
-              </div>
-              <div className="flex flex-col gap-1 flex-1 min-h-[80px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {g.books.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center py-5 text-[11.5px] transition-all rounded-lg"
+                  <div className="col-span-full flex items-center justify-center py-6 text-[12px] rounded-lg transition-all"
                     style={{
                       color: isDragOver ? g.col : '#a3a3a3',
                       border: isDragOver ? `1.5px dashed ${g.col}90` : '1px dashed rgba(15,23,42,0.10)',
@@ -3635,7 +3615,6 @@ function CognitionView({
                     const isDragging = dragBookId === b.id;
                     const isDone = g.key === 'done';
                     const catCol = catColorOf(b.cat);
-                    // 进度/状态样式
                     const pct = Math.min(100, Math.max(0, Number(b.pct) || 0));
                     let statusDot;
                     switch (b.st) {
@@ -3659,45 +3638,12 @@ function CognitionView({
                     const hasIns = validIns.length > 0;
                     const hasAct = validActs.length > 0;
                     const rawCover = String(b.coverUrl || '').trim();
-                    // 支持三类真实封面：① 完整 URL(http/https) ② 同源代理路径(/api/cover/proxy?...)  ③ 绝对路径(/xxx)
                     const isRealCover = rawCover && (
                       /^https?:\/\//i.test(rawCover)
                       || rawCover.startsWith('/')
                       || rawCover.startsWith('./')
                     );
                     const realCover = isRealCover ? rawCover : '';
-                    // 状态语义 Pill（左下角）
-                    let statusPill = { label: statusDot.lb, col: statusDot.col, bg: `${statusDot.col}14` };
-                    if (b.st === 'reading') {
-                      statusPill = { label: '正在阅读', col: BLUE, bg: BLUE_LIGHT };
-                    } else if (b.st === 'done') {
-                      const 落地 = (validActs.length > 0) ? ` · 落地 ${Math.min(validActs.length, 2)} 条` : '';
-                      statusPill = { label: hasAct ? `已践行${落地}` : '已读完', col: '#22c55e', bg: '#dcfce7' };
-                    } else if (b.st === 'abandoned') {
-                      statusPill = { label: '归档', col: '#64748b', bg: '#f1f5f9' };
-                    } else {
-                      // pending → 根据日期状态文字
-                      if (b.startDate) statusPill = { label: `计划 ${b.startDate?.slice(0,7).replace('-','/')}`, col: '#f59e0b', bg: '#fef3c7' };
-                      else statusPill = { label: '待开启', col: '#64748b', bg: '#f8fafc' };
-                    }
-                    // 右侧 Chip 1：日期 Chip（截图右下方 "08/15" 位置 = 月/日简洁格式）
-                    const dateChipText = (() => {
-                      if (b.st === 'done' && b.endDate) {
-                        // 已读完：结束日期 MM/DD
-                        return String(b.endDate).slice(5).replace('-', '/');
-                      }
-                      const d = b.startDate || b.endDate || b.updatedAt || b.createdAt;
-                      if (d) {
-                        // 统一 MM/DD 简洁格式（对齐截图 "08/15"）
-                        const s = String(d);
-                        const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                        if (m) return `${String(+m[2]).padStart(2,'0')}/${String(+m[3]).padStart(2,'0')}`;
-                        const s2 = s.replace(/\//g, '-');
-                        const m2 = s2.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                        if (m2) return `${String(+m2[2]).padStart(2,'0')}/${String(+m2[3]).padStart(2,'0')}`;
-                      }
-                      return '';
-                    })();
                     const coverInitBg = (() => {
                       switch (b.cat) {
                         case '认知成长': return 'linear-gradient(135deg,#eff6ff,#dbeafe)';
@@ -3725,10 +3671,8 @@ function CognitionView({
                           boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
                           border: `1px solid rgba(15,23,42,0.06)`,
                         }}>
-                        {/* ============ 新结构：按截图纵向重排 ============ */}
                         <div className="w-full min-w-0 flex flex-col gap-[8px]" style={{ padding: '10px 11px' }}>
-
-                          {/* R1：日历图标 + 正在阅读状态（标题） + 右上角⋯菜单 */}
+                          {/* R1：日历图标 + 状态文字 + 右上角⋯菜单 */}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-[6px] min-w-0 flex-1">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -3752,9 +3696,8 @@ function CognitionView({
                             </div>
                           </div>
 
-                          {/* R2：封面 42×56 左 / 右侧两列：上=书名+分类Pill；下=作者+链接↗（放在分类Pill下面） */}
+                          {/* R2：封面 42×56 左 / 右上=书名+分类Pill 右下=作者+↗跳转  */}
                           <div className="flex items-start gap-[10px] min-w-0">
-                            {/* 左：封面 */}
                             <div style={{
                               width:'42px', height:'56px', borderRadius:'6px', overflow:'hidden', flex:'0 0 42px',
                               border: `1px solid ${catCol}33`,
@@ -3781,9 +3724,7 @@ function CognitionView({
                                 </span>
                               )}
                             </div>
-                            {/* 右：上下两行 = 上（书名+分类Pill） / 下（作者+↗跳转）*/}
                             <div className="flex-1 min-w-0 flex flex-col gap-[6px]">
-                              {/* 右上：书名左 + 分类Pill右 */}
                               <div className="flex items-start justify-between gap-2 min-w-0">
                                 <div className={`min-w-0 flex-1 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
                                   style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
@@ -3805,13 +3746,11 @@ function CognitionView({
                                   {b.cat || '未分类'}
                                 </span>
                               </div>
-                              {/* 右下：作者左 + 跳转图标↗（放在分类Pill下面=右侧） */}
                               <div className="flex items-center justify-between gap-2 min-w-0">
                                 <div className="min-w-0 text-[11.5px] text-ink-400 font-medium leading-none truncate flex-1">
                                   {b.author || '佚名作者'}
                                 </div>
                                 <div className="flex items-center gap-[8px] flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                  {/* 电子书跳转 ↗（分类Pill正下方） */}
                                   {isEbookLink && (
                                     <button
                                       onClick={(e) => {
@@ -3832,7 +3771,6 @@ function CognitionView({
                                       </svg>
                                     </button>
                                   )}
-                                  {/* 无电子书但已读完且有洞察 → 复盘笔记图标 */}
                                   {!isEbookLink && b.st === 'done' && hasIns && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); onBookEdit?.(b); }}
@@ -3854,7 +3792,7 @@ function CognitionView({
                             </div>
                           </div>
 
-                          {/* R3：阅读进度行 —— 时钟图标「阅读进度」左 / 右 %+bar */}
+                          {/* R3：阅读进度行 */}
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-[6px] min-w-0 flex-1">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -3879,7 +3817,7 @@ function CognitionView({
                             </div>
                           </div>
 
-                          {/* R4：思考X组 + 行动X条 勾选组（原"洞察"改"思考"） */}
+                          {/* R4：思考X组 + 行动X条 勾选组 */}
                           <div className="flex items-center gap-4 min-w-0">
                             <div className="flex items-center gap-[6px]">
                               <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
@@ -3909,8 +3847,8 @@ function CognitionView({
                 )}
               </div>
             </div>
-          );})}
-        </div>
+          );
+        })()}
       </div>
 
       {/* ===== 读后思考 · 思后行动 · 行后改变（三栏横向布局）===== */}

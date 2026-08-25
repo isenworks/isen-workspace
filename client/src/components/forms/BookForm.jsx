@@ -172,15 +172,16 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {/* ===== 顶部一行整合：书名·作者·分类·来源·状态 ===== */}
+      {/* ===== 第1行：书名·作者·分类 ===== */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1.35fr 1fr 0.95fr 0.75fr 0.95fr',
+        gridTemplateColumns: '1.4fr 1fr 1fr',
         gap: '7px',
-        padding: '8px 9px',
+        padding: '8px 9px 4px',
         background: BLUE_LIGHT,
-        borderRadius: '10px',
+        borderRadius: '10px 10px 0 0',
         border: `1px solid ${BLUE_BORDER}`,
+        borderBottom: 'none',
       }}>
         <FieldRow label="书名">
           <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
@@ -198,13 +199,20 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
             {CATS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </FieldRow>
-        <FieldRow label="来源">
-          <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
-            value={form.src} onChange={e => set('src', e.target.value)}>
-            {SRCS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </FieldRow>
-        <FieldRow label="状态">
+      </div>
+
+      {/* ===== 第2行：阅读状态 + 进度条（同一行）===== */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 2fr',
+        gap: '7px',
+        padding: '4px 9px 8px',
+        background: BLUE_LIGHT,
+        borderRadius: '0 0 10px 10px',
+        border: `1px solid ${BLUE_BORDER}`,
+        borderTop: `1px dashed ${BLUE_BORDER}`,
+      }}>
+        <FieldRow label="阅读状态">
           <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px',
             fontWeight: 600,
             color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : form.st === 'abandoned' ? INK_LIGHT : INK_MUTE,
@@ -214,35 +222,9 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
             {STATUSES.map(s => <option key={s.v} value={s.v}>{s.lb}</option>)}
           </select>
         </FieldRow>
-      </div>
-
-      {/* ===== 第二行：电子书链接（仅电子书）+ 起止日期 + 进度 ===== */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isEbook ? '1.6fr 1fr 1fr 1fr' : '1fr 1fr 1.2fr',
-        gap: '7px',
-        padding: '6px 9px',
-        background: '#fbfdff',
-        borderRadius: '10px',
-        border: `1px solid ${BLUE_BORDER}66`,
-      }}>
-        {isEbook && (
-          <FieldRow label="电子书链接">
-            <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-              value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
-              placeholder="https:// / file:// / weread://" />
-          </FieldRow>
-        )}
-        <FieldRow label="开始日期">
-          <input type="date" className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-            value={form.startDate} onChange={e => set('startDate', e.target.value)} />
-        </FieldRow>
-        <FieldRow label="结束日期">
-          <input type="date" className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-            value={form.endDate} onChange={e => set('endDate', e.target.value)} />
-        </FieldRow>
         <FieldRow label={`进度 ${form.pct}%`}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, height: '32px',
+            padding: '0 8px', background: '#fff', borderRadius: '8px', border: `1px solid ${BLUE_BORDER}` }}>
             <input type="range" min="0" max="100" step="1"
               value={form.pct} onChange={e => setPct(e.target.value)}
               style={{ flex: 1, accentColor: BLUE_DARK, height: '18px', minWidth: 0 }} />
@@ -250,6 +232,61 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
               {form.pct}
             </span>
           </div>
+        </FieldRow>
+      </div>
+
+      {/* ===== 第3行：来源 + 电子书（同一行）===== */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isEbook ? '0.85fr 2.15fr' : '0.85fr 2.15fr',
+        gap: '7px',
+        padding: '6px 9px 4px',
+        background: '#fbfdff',
+        borderRadius: '10px 10px 0 0',
+        border: `1px solid ${BLUE_BORDER}66`,
+        borderBottom: 'none',
+      }}>
+        <FieldRow label="来源">
+          <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
+            value={form.src} onChange={e => set('src', e.target.value)}>
+            {SRCS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </FieldRow>
+        {isEbook ? (
+          <FieldRow label="电子书链接">
+            <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
+              value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
+              placeholder="https:// / file:// / weread:// · 保存后卡片点击直接打开" />
+          </FieldRow>
+        ) : (
+          <FieldRow label="—">
+            <div style={{ height: '32px', borderRadius: '8px', border: `1px dashed ${BLUE_BORDER}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '11px', color: INK_LIGHT, background: `${BLUE_LIGHT}66` }}>
+              选「电子书」时填写跳转链接
+            </div>
+          </FieldRow>
+        )}
+      </div>
+
+      {/* ===== 第4行：开始日期 + 结束日期 ===== */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '7px',
+        padding: '4px 9px 6px',
+        background: '#fbfdff',
+        borderRadius: '0 0 10px 10px',
+        border: `1px solid ${BLUE_BORDER}66`,
+        borderTop: `1px dashed ${BLUE_BORDER}88`,
+      }}>
+        <FieldRow label="开始阅读">
+          <input type="date" className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
+            value={form.startDate} onChange={e => set('startDate', e.target.value)} />
+        </FieldRow>
+        <FieldRow label="结束阅读">
+          <input type="date" className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
+            value={form.endDate} onChange={e => set('endDate', e.target.value)} />
         </FieldRow>
       </div>
 
@@ -319,9 +356,9 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
         )}
       </SectionCard>
 
-      {/* ===== 思后行动 · 具体承诺 ===== */}
+      {/* ===== 思后行动 · 行动计划 ===== */}
       <SectionCard
-        title="思后行动 · 具体承诺"
+        title="思后行动 · 行动计划"
         subtitle={actionCount > 0 ? `✓ 已列出 ${actionCount} 条` : '至少写1条后自动勾选'}
         subtitleOk={actionCount > 0}
         btnLabel="+ 新增"

@@ -4772,8 +4772,8 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v9', () => BOOKS.map(b => ({ ...b, id: uid() })));
-  // 安全网：防止 books 被意外清空（空数组在JS中是truthy，会导致 || BOOKS 兜底失效）
+  const [books, setBooks] = usePersistentState('annual_books_v10', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  // 安全网：防止 books 被意外清空
   useEffect(() => {
     if (Array.isArray(books) && books.length === 0) {
       setBooks(BOOKS.map(b => ({ ...b, id: uid() })));

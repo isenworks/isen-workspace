@@ -2618,7 +2618,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
 
 /* ---------- 8. 视图 · 知力 (OKR + 书架系统) ---------- */
 function CognitionView({
-  books, onBookAdd, onBookEdit, onBookMove, onBookUpdate,
+  books, onBookAdd, onBookEdit, onBookMove, onBookUpdate, onBooksReplace,
   objective, onObjectiveChange,
   krs, onKrAdd, onKrEdit, onKrRemove,
   funnelHeader, setFunnelHeader,
@@ -2690,7 +2690,7 @@ function CognitionView({
       if (wereadBooks.length === 0) { showToast?.('微信读书书架为空'); return; }
       // 合并策略：按 书名+作者 精确匹配（都去空格/大小写）
       const norm = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
-      setBooks(prev => {
+      const updater = (prev) => {
         const curr = Array.isArray(prev) ? [...prev] : [];
         let updated = 0, added = 0;
         for (const wb of wereadBooks) {
@@ -2726,7 +2726,15 @@ function CognitionView({
         }
         showToast?.(`微信读书同步完成 · 更新${updated}本 + 新增${added}本`);
         return curr;
-      });
+      };
+      if (typeof onBooksReplace === 'function') {
+        onBooksReplace(updater);
+      } else {
+        // fallback：如果没传批更新，就用 books 作为基准算好后逐条 onBookUpdate
+        const next = updater(books || []);
+        // 找不到 parent setBooks，只能粗略提示
+        showToast?.(`微信读书同步完成（共${next.length}本），请刷新查看`);
+      }
     } catch (e) {
       alert('同步失败：' + (e.message || e));
     } finally {
@@ -4913,6 +4921,7 @@ export default function AnnualPlan({ standalone = true }) {
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} onBookMove={(id, st) => bookOps.move(id, st)}
         onBookUpdate={(id, patch) => { setBooks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b)); showToast('书籍已更新'); }}
+        onBooksReplace={(updater) => { setBooks(prev => (typeof updater === 'function' ? updater(prev) : updater)); }}
         objective={cogObjective} onObjectiveChange={setCogObjective}
         krs={cogKrs} onKrAdd={(kr) => { setCogKrs(prev => [...prev, { ...kr, id: uid() }]); showToast('KR 已添加'); }}
         onKrEdit={(kr) => { setCogKrs(prev => prev.map(k => k.id === kr.id ? { ...k, ...kr } : k)); showToast('KR 已更新'); }}

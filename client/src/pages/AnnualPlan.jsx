@@ -747,7 +747,7 @@ function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dynamicWor
     const energyVal = habits.length > 0
       ? habits.reduce((s, h) => s + pct(h.val, h.target), 0) / habits.length
       : 0;
-    const books = dynamicBooks || BOOKS;
+    const books = (!dynamicBooks || dynamicBooks.length === 0) ? BOOKS : dynamicBooks;
     const booksDone = books.filter(b => b.st === 'done').length;
     // 知力：已读完 / 年度目标 12 本 → 与知力页 KR1 数量口径一致
     const cogVal = pct(booksDone, 12);
@@ -1081,7 +1081,7 @@ const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }
 function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData, timeScale, onTimeScaleChange }) {
   const year = new Date().getFullYear();
   const habits = realHabits || HABITS;
-  const dynBooks = books || BOOKS;
+  const dynBooks = (!books || books.length === 0) ? BOOKS : books;
   const dynAbilities = abilities || ABILITY;
   const dynWork = workGoals || WORK;
   const dynLife = lifeData || LIFE;
@@ -1388,7 +1388,7 @@ function CatSummary({ cat, realHabits, books, abilities, workGoals, lifeData }) 
       );
     }
     case 'cognition': {
-      const dynBooks = books || BOOKS;
+      const dynBooks = (!books || books.length === 0) ? BOOKS : books;
       const done = dynBooks.filter(b => b.st === 'done').length;
       const reading = dynBooks.filter(b => b.st === 'reading').length;
       const target = COG_KRS[0]?.tgt || 12;
@@ -2771,8 +2771,8 @@ function CognitionView({
         }
         return fb;
       };
-      // 统一字段
-      const books = wereadBooks.map(wbRaw => {
+      // 统一字段（重命名为 wereadMapped 避免遮蔽外部 books state）
+      const wereadMapped = wereadBooks.map(wbRaw => {
         const wb = Object.assign({}, wbRaw);
         wb.title = pickField(wb, ['title','bookTitle','name','bookName','book_title'],'未知书名');
         wb.author = pickField(wb, ['author','authors','bookAuthor','book_author'],'');
@@ -2866,7 +2866,7 @@ function CognitionView({
         const curr = Array.isArray(books) ? [...books] : [];
         const updatedIdxs = new Set();
         const needsCoverFallback = [];
-        for (const wb of wereadBooks) {
+        for (const wb of wereadMapped) {
           const wMainTitle = normTitleOnly(wb.title);
           let idx = -1;
           idx = curr.findIndex(b =>
@@ -3034,7 +3034,7 @@ function CognitionView({
   const year = new Date().getFullYear();
 
   const groups = useMemo(() => {
-    const dynBooks = books || BOOKS;
+    const dynBooks = (!books || books.length === 0) ? BOOKS : books;
     return {
       reading:   dynBooks.filter(b => b.st === 'reading'),
       pending:   dynBooks.filter(b => b.st === 'pending'),
@@ -3045,7 +3045,7 @@ function CognitionView({
 
   // 已读完且有洞察的书籍（用于"读后思考"卡片）— 要求 text & scene 都填写（至少1组）
   const doneBooksWithInsights = useMemo(() => {
-    const dynBooks = books || BOOKS;
+    const dynBooks = (!books || books.length === 0) ? BOOKS : books;
     return dynBooks.filter(b => {
       if (b.st !== 'done') return false;
       const ins = b.insights || [];
@@ -3055,7 +3055,7 @@ function CognitionView({
 
   // 所有书籍中聚合出来的「思后行动」条目（替代旧的独立changes）— 格式保持兼容旧 cogChanges 渲染
   const bookActionsList = useMemo(() => {
-    const dynBooks = books || BOOKS;
+    const dynBooks = (!books || books.length === 0) ? BOOKS : books;
     const out = [];
     dynBooks.forEach(b => {
       const acts = b.actions || [];
@@ -3085,7 +3085,7 @@ function CognitionView({
   // ④ 改变量 = changes 数组长度 + books.actions 中 done=true 条数
   // ⑤ 复盘量 = reviews 数组长度（已完成复盘数量）
   const funnelData = useMemo(() => {
-    const dynBooks = books || BOOKS;
+    const dynBooks = (!books || books.length === 0) ? BOOKS : books;
     const dynKrs = krs || COG_KRS;
     const doneBooks = dynBooks.filter(b => b.st === 'done');
     const hasInsights = doneBooks.filter(b => (b.insights || []).some(i => i.text?.trim() && i.scene?.trim())).length;
@@ -3598,7 +3598,7 @@ function CognitionView({
           };
           const g = { key: shelfTab, ...META[shelfTab], books: groups[shelfTab] || [] };
           const isDragOver = dragOverCol === g.key && dragBookId && (() => {
-            const cur = (books || BOOKS).find(x => x.id === dragBookId);
+            const cur = (books.length === 0 ? BOOKS : books).find(x => x.id === dragBookId);
             return cur && cur.st !== g.key;
           })();
           return (
@@ -3615,14 +3615,14 @@ function CognitionView({
               }}
               onDragOver={(e) => {
                 e.preventDefault();
-                const cur = (books || BOOKS).find(x => x.id === dragBookId);
+                const cur = (books.length === 0 ? BOOKS : books).find(x => x.id === dragBookId);
                 if (cur && cur.st !== g.key) setDragOverCol(g.key);
               }}
               onDragLeave={() => { if (dragOverCol === g.key) setDragOverCol(null); }}
               onDrop={(e) => {
                 e.preventDefault();
                 if (dragBookId) {
-                  const cur = (books || BOOKS).find(x => x.id === dragBookId);
+                  const cur = (books.length === 0 ? BOOKS : books).find(x => x.id === dragBookId);
                   if (cur && cur.st !== g.key) onBookMove?.(dragBookId, g.key);
                 }
                 setDragBookId(null);
@@ -4024,7 +4024,7 @@ function CognitionView({
                           e.stopPropagation();
                           if (fromBook) {
                             // 来自书籍：打开对应书籍编辑
-                            const targetBook = (books || BOOKS).find(b => b.id === c.bookId);
+                            const targetBook = (books.length === 0 ? BOOKS : books).find(b => b.id === c.bookId);
                             if (targetBook) onBookEdit?.(targetBook);
                           } else {
                             setEditingChange(c); setShowChangeForm(true);
@@ -4180,7 +4180,7 @@ function CognitionView({
         <Modal open onClose={() => { setShowChangeForm(false); setEditingChange(null); }} title={editingChange ? '编辑行动改变' : '新增行动改变'}>
           <ChangeForm
             initial={editingChange}
-            books={books || BOOKS}
+            books={books.length === 0 ? BOOKS : books}
             onSave={(data) => {
               if (editingChange && !editingChange.__isNew) onChangeUpdate?.(data);
               else onChangeAdd?.(data);
@@ -4773,6 +4773,12 @@ export default function AnnualPlan({ standalone = true }) {
 
   // 可变数据（localStorage 持久化）
   const [books, setBooks] = usePersistentState('annual_books_v9', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  // 安全网：防止 books 被意外清空（空数组在JS中是truthy，会导致 || BOOKS 兜底失效）
+  useEffect(() => {
+    if (Array.isArray(books) && books.length === 0) {
+      setBooks(BOOKS.map(b => ({ ...b, id: uid() })));
+    }
+  }, [books?.length]);
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));

@@ -369,9 +369,9 @@ function InlineEdit({
         style={style}
         className={`${isCtxMode ? 'cursor-context-menu' : 'cursor-text'} hover:opacity-80 transition select-none ${className || ''}`}>
         {value ? (
-          <span className="opacity-100">{value}</span>
+          <span>{value}</span>
         ) : placeholder ? (
-          <span className="opacity-40">{placeholder}</span>
+          <span>{placeholder}</span>
         ) : null}
       </span>
 

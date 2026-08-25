@@ -121,6 +121,11 @@ const BOOKS = [
     ebookUrl: 'https://weread.qq.com/web/reader/9ad32d40727950039add092',
     insights: [], hasInsights: false, hasAction: false, actions: [],
   },
+  { t: '即兴表达',     author: '王达峰', cat: '人际沟通', st: 'pending', pct: 0, src: '电子书',
+    bookId: '947321c0813abb7e7g01945c',
+    ebookUrl: 'https://weread.qq.com/web/reader/947321c0813abb7e7g01945c',
+    insights: [], hasInsights: false, hasAction: false, actions: [],
+  },
   { t: '高效能人士的七个习惯', author: '史蒂芬·柯维', cat: '商业职场', st: 'pending', pct: 0, src: '电子书',
     bookId: '56d325907203e8a856def7f',
     ebookUrl: 'https://weread.qq.com/web/reader/56d325907203e8a856def7f',
@@ -4806,7 +4811,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v11', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v12', () => BOOKS.map(b => ({ ...b, id: uid() })));
   // 安全网：防止 books 被意外清空
   useEffect(() => {
     if (Array.isArray(books) && books.length === 0) {

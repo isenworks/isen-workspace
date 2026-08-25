@@ -2895,39 +2895,29 @@ function CognitionView({
           const coverProxied = coverRaw
             ? ('/api/cover/proxy?url=' + encodeURIComponent(String(coverRaw)))
             : '';
-          const patch = {
-            t: wb.title,
-            author: wb.author,
-            startDate: wb.startDate || undefined,
-            endDate: wb.endDate || undefined,
-            bookId: wb.bookId || undefined,
-            ebookUrl: wb.bookId ? `https://weread.qq.com/web/reader/${wb.bookId}` : undefined,
-            src: '电子书',
-          };
-          if (coverProxied) {
-            patch.coverUrl = coverProxied;
-            patch.coverSource = 'weread';
-          }
           if (idx >= 0) {
             const old = curr[idx];
-            const newCat = ['认知成长','人际沟通','商业职场','人文叙事'].includes(old.cat) ? old.cat : (patch.cat || '认知成长');
-            const merged = { ...old, ...patch, cat: newCat };
-            // 封面：只要 weread 有就补（无论原来有没有，真实图总比占位强）
+            const merged = {
+              ...old,
+              bookId: wb.bookId || old.bookId,
+              ebookUrl: wb.bookId ? `https://weread.qq.com/web/reader/${wb.bookId}` : old.ebookUrl,
+              src: old.src || '电子书',
+            };
             if (coverProxied) {
               merged.coverUrl = coverProxied;
               merged.coverSource = 'weread';
             }
-            // 进度：如果 weread 有进度就补（但如果用户本地已经有 st='done' 就强制 100）
             if (old.st === 'done') {
               merged.pct = 100;
               merged.st = 'done';
             } else {
-              merged.st = old.st; // 保持本地原来的栏位（阅读中/未开始）
+              merged.st = old.st;
               const wpct = Math.min(100, Math.max(0, Number(wb.progress) || (mappedSt === 'done' ? 100 : 0)));
               merged.pct = Math.max(Number(old.pct) || 0, wpct);
             }
+            if (wb.startDate && !old.startDate) merged.startDate = wb.startDate;
+            if (wb.endDate && !old.endDate) merged.endDate = wb.endDate;
             curr[idx] = merged;
-            // 如果 weread 没返回封面，记录下来后面调用豆瓣兜底搜
             if (!coverProxied) needsCoverFallback.push({ idx, title: old.t, author: old.author });
             updated++;
           } else {
@@ -2985,8 +2975,61 @@ function CognitionView({
             } catch (_) {}
           }, 150);
         }
-        showToast?.(`微信读书同步完成 · 已匹配更新 ${updated} 本（未导入 weread 新书）` +
-          (missingCurr.length ? ` · 正在批量搜${missingCurr.length}本封面…` : ''));
+        // 【异步·第二步】为还没有 weread bookId 的本地书搜索 bookId + reader URL
+        const noBookId = curr
+          .map((b, idx) => ({ b, idx }))
+          .filter(({ b }) => !b.bookId && b.t)
+          .map(({ b, idx }) => ({ idx, title: b.t, author: b.author }));
+        if (noBookId.length > 0 && typeof onBooksReplace === 'function') {
+          setTimeout(async () => {
+            try {
+              const BATCH = 3;
+              const patches = new Map();
+              for (let i = 0; i < noBookId.length; i += BATCH) {
+                const slice = noBookId.slice(i, i + BATCH);
+                await Promise.all(slice.map(async ({ idx, title, author }) => {
+                  try {
+                    const q = encodeURIComponent(title);
+                    const r = await fetch(`/api/weread/search?q=${q}`);
+                    const j = await r.json().catch(() => ({}));
+                    if (j?.ok && Array.isArray(j.results) && j.results.length > 0) {
+                      let match = null;
+                      if (author) {
+                        match = j.results.find(x =>
+                          String(x.title || '').includes(title.slice(0, 2)) &&
+                          String(x.author || '').includes(String(author).slice(0, 2))
+                        );
+                      }
+                      if (!match) match = j.results.find(x => String(x.title || '').includes(title.slice(0, 2)));
+                      if (!match) match = j.results[0];
+                      if (match && match.bookId) {
+                        const bid = match.bookId;
+                        patches.set(idx, {
+                          bookId: bid,
+                          ebookUrl: `https://weread.qq.com/web/reader/${bid}`,
+                          src: '电子书',
+                        });
+                      }
+                    }
+                  } catch (_) {}
+                }));
+              }
+              if (patches.size > 0) {
+                onBooksReplace(prev => {
+                  const next = (Array.isArray(prev) ? prev : []).slice();
+                  for (const [idx, p] of patches) {
+                    if (next[idx]) next[idx] = { ...next[idx], ...p };
+                  }
+                  return next;
+                });
+                showToast?.(`已为 ${patches.size} 本书找到微信读书链接`);
+              }
+            } catch (_) {}
+          }, 200);
+        }
+        showToast?.(`微信读书同步完成 · 已匹配更新 ${updated} 本` +
+          (missingCurr.length ? ` · 正在补${missingCurr.length}本封面…` : '') +
+          (noBookId.length ? ` · 正在搜${noBookId.length}本链接…` : ''));
         return curr;
       };
       if (typeof onBooksReplace === 'function') {
@@ -3647,9 +3690,7 @@ function CognitionView({
                     }
                     const isEbookLink = (() => {
                       if (b.ebookUrl && b.ebookUrl.startsWith('http')) return b.ebookUrl;
-                      if (b.t) {
-                        return `https://www.google.com/search?q=weread.qq.com+${encodeURIComponent(b.t)}`;
-                      }
+                      if (b.bookId) return `https://weread.qq.com/web/reader/${b.bookId}`;
                       return null;
                     })();
                     const insights = b.insights || [];

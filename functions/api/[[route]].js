@@ -257,6 +257,7 @@ export async function onRequest(context) {
     // /api/weread/*  — 微信读书 Skills 官方 API（wrk-xxx）
     // ------------------------------------------------------------
     if (path === '/api/weread/sync' && method === 'GET') return handleWereadSync(env, q);
+    if (path === '/api/weread/search' && method === 'GET') return handleWereadSearch(env, q);
 
     // ------------------------------------------------------------
     // /api/cover/search  — 封面兜底：豆瓣 → Google Books
@@ -1011,6 +1012,54 @@ async function handleWereadSync(env, q) {
   }
 
   return json({ ok: true, books, total: books.length, rawDebug: (q.debug === '1') ? shelfResp : undefined });
+}
+
+// ---------------- weread.search：按书名搜索微信读书，返回 bookId + reader URL
+async function handleWereadSearch(env, q) {
+  const key = await settingGet(env, 'weread_api_key');
+  if (!key) return json({ error: '未配置 Weread Skills API Key' }, 400);
+
+  const query = String(q.q || '').trim();
+  if (!query) return json({ error: '缺少书名 q' }, 400);
+
+  const GATEWAY = 'https://i.weread.qq.com/api/agent/gateway';
+
+  async function callWeread(apiName, extra = {}) {
+    const body = { api_name: apiName, skill_version: '1.0.3', ...extra };
+    const r = await fetch(GATEWAY, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Ethan-Workbench/1.0',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    const text = await r.text().catch(() => '');
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch { data = { _raw: text }; }
+    if (!r.ok) {
+      const msg = (data && (data.message || data.statusMessage || data.error)) || text || `HTTP ${r.status}`;
+      throw new Error(`${r.status}: ${JSON.stringify(msg).slice(0, 200)}`);
+    }
+    return data;
+  }
+
+  try {
+    const resp = await callWeread('/search/book', { q: query, count: 5 });
+    const items = resp.books || resp.data?.books || resp.data || resp.results || [];
+    const results = (Array.isArray(items) ? items : []).map(x => ({
+      title: String(x.title || x.bookTitle || x.name || '').trim(),
+      author: String(x.author || x.bookAuthor || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
+      bookId: x.bookId || x.book_id || x.id || x.bid || '',
+      cover: x.cover || x.coverUrl || x.cover_img || x.coverImg || '',
+      rating: x.rating || x.rate || x.score || '',
+    }));
+    return json({ ok: true, results, total: results.length });
+  } catch (e) {
+    return json({ error: e.message || '搜索失败' }, 502);
+  }
 }
 
 // ---------------- cover.search：豆瓣 subject_suggest → Google Books fallback

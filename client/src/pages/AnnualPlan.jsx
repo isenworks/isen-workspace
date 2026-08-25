@@ -3684,15 +3684,17 @@ function CognitionView({
                       default:
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
                     }
-                    const isEbookLink = (() => {
+                    const ebookInfo = (() => {
                       const validId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
                       if (b.ebookUrl && b.ebookUrl.startsWith('http')) {
                         const m = b.ebookUrl.match(/\/reader\/([^/?#]+)/);
-                        if (m && validId(m[1])) return b.ebookUrl;
+                        if (m && validId(m[1])) return { url: b.ebookUrl, hasLink: true };
                       }
-                      if (b.bookId && validId(b.bookId)) return `https://weread.qq.com/web/reader/${b.bookId}`;
-                      return `https://www.google.com/search?q=weread.qq.com+${encodeURIComponent(b.t)}`;
+                      if (b.bookId && validId(b.bookId)) return { url: `https://weread.qq.com/web/reader/${b.bookId}`, hasLink: true };
+                      return { url: null, hasLink: false };
                     })();
+                    const hasEbookLink = ebookInfo.hasLink;
+                    const isEbookLink = ebookInfo.url;
                     const insights = b.insights || [];
                     const validIns = insights.filter(i => i.text?.trim() && i.scene?.trim());
                     const acts = b.actions || [];
@@ -3767,31 +3769,39 @@ function CognitionView({
                                     {b.t}
                                   </div>
                                 </div>
-                                {isEbookLink && (
+                                {true && (
                                   <div className="flex items-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                     <button
+                                      disabled={!hasEbookLink}
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
+                                        if (!hasEbookLink) return;
                                         try { window.open(isEbookLink, '_blank', 'noopener,noreferrer'); }
                                         catch { onBookEdit?.(b); }
                                       }}
-                                      title="打开电子书"
-                                      className="group inline-flex items-center justify-center transition-colors duration-150"
+                                      title={hasEbookLink ? '打开电子书' : '微信读书暂未收录，点击【同步微信读书】按钮自动搜索'}
+                                      className="group inline-flex items-center justify-center transition-colors duration-150 disabled:cursor-not-allowed"
                                       style={{
                                         width: '20px', height: '20px', borderRadius:'5px',
-                                        background: 'transparent', color: '#60a5fa',
+                                        background: 'transparent',
+                                        color: hasEbookLink ? '#60a5fa' : '#cbd5e1',
                                       }}
                                       onMouseEnter={(e) => {
+                                        if (!hasEbookLink) return;
                                         e.currentTarget.style.background = BLUE;
                                         e.currentTarget.style.color = '#fff';
                                       }}
                                       onMouseLeave={(e) => {
                                         e.currentTarget.style.background = 'transparent';
-                                        e.currentTarget.style.color = '#60a5fa';
+                                        e.currentTarget.style.color = hasEbookLink ? '#60a5fa' : '#cbd5e1';
                                       }}>
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M7 17 17 7M7 7h10v10"/>
+                                        {hasEbookLink ? (
+                                          <path d="M7 17 17 7M7 7h10v10"/>
+                                        ) : (
+                                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" opacity="0.5"/>
+                                        )}
                                       </svg>
                                     </button>
                                   </div>

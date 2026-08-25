@@ -978,10 +978,16 @@ async function handleWereadSync(env, q) {
   // 2) 对每本书调用 /book/info 补封面 + 作者 + 详情（batch 5 本并行）
   //    先把列表里已经有的字段填好，没有 cover/author 的再补
   const isHashBookId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
+  const extractHashFromDeepLink = (deepLink) => {
+    if (!deepLink || typeof deepLink !== 'string') return '';
+    const m = deepLink.match(/v=([a-z0-9]+)/);
+    return m ? m[1] : '';
+  };
   const books = bookList.map(x => {
     const rawId = x.bookId || x.book_id || x.id || x.bookid || '';
-    const bookId = isHashBookId(rawId) ? rawId : '';
-    const numericId = !isHashBookId(rawId) && /^\d+$/.test(String(rawId)) ? String(rawId) : '';
+    const hashFromDeepLink = extractHashFromDeepLink(x.deepLink);
+    const bookId = isHashBookId(hashFromDeepLink) ? hashFromDeepLink : (isHashBookId(rawId) ? rawId : '');
+    const numericId = !bookId && /^\d+$/.test(String(rawId)) ? String(rawId) : '';
     return {
       title: String(x.title || x.bookTitle || x.name || '').trim(),
       author: String(x.author || x.bookAuthor || x.authors || (Array.isArray(x.authors) ? x.authors.join('/') : '') || '').trim(),
@@ -1012,8 +1018,14 @@ async function handleWereadSync(env, q) {
         if (!b.cover && (d.cover || d.coverUrl)) b.cover = d.cover || d.coverUrl;
         if (!b.author && d.author) b.author = d.author;
         if (!b.author && d.authors) b.author = Array.isArray(d.authors) ? d.authors.join('/') : String(d.authors);
-        const newBookId = d.bookId || d.book_id || '';
-        if (newBookId && isHashBookId(newBookId)) b.bookId = newBookId;
+        // 优先从 deepLink 提取哈希 ID
+        const hashFromDeepLink = extractHashFromDeepLink(d.deepLink);
+        if (hashFromDeepLink && isHashBookId(hashFromDeepLink)) {
+          b.bookId = hashFromDeepLink;
+        } else {
+          const newBookId = d.bookId || d.book_id || '';
+          if (newBookId && isHashBookId(newBookId)) b.bookId = newBookId;
+        }
         if (d.title && !b.title) b.title = d.title;
       } catch (_) { /* 忽略单本失败，继续 */ }
     }));

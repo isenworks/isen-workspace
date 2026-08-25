@@ -14,18 +14,21 @@ export default function Login() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // D1 模式：自动检测是否需要解锁密码 → 不需要则一键进入
+  // D1 模式：【临时关闭解锁锁】个人私用工作台 = 永远免密码直进
+  //      needUnlock = false → 永远渲染下方「点击进入」自动登录按钮
   const [needUnlock, setNeedUnlock] = useState(false);
   useEffect(() => {
     if (!IS_D1_BACKEND) return;
-    (async () => {
-      try {
-        const res = await API.auth.login('', '');
-        setNeedUnlock(!res || !res.user);
-      } catch {
-        setNeedUnlock(true);
+    // 强制关闭：不管后端 /auth/login 是否存在、UNLOCK_PASSWORD_HASH 是否设置，一律视为无需解锁
+    setNeedUnlock(false);
+    // 顺便存一个空解锁 token，服务端未设密码时会放行
+    try {
+      localStorage.setItem('pw_unlock_token', '');
+      const existing = localStorage.getItem('pw_user');
+      if (!existing) {
+        localStorage.setItem('pw_user', JSON.stringify({ id: '50f12e1e-d561-423e-a424-d07a21d00cf2' }));
       }
-    })();
+    } catch (_) {}
   }, []);
 
   async function submit(e) {

@@ -242,6 +242,12 @@ export async function onRequest(context) {
     if (path === '/api/fixedSchedules/remove' && method === 'POST') return handleFixedSchedulesRemove(env, body);
 
     // ------------------------------------------------------------
+    // /api/auth/*  — 工作台解锁（部署者可选：设置 Pages Var UNLOCK_PASSWORD_HASH 开启）
+    //              — 未设置 Var 时：直接放行（个人私用工作台默认免密码）
+    // ------------------------------------------------------------
+    if (path === '/api/auth/login') return handleAuthLogin(env, body, method);
+
+    // ------------------------------------------------------------
     // /api/userSettings/*  — 用户级配置（weread key 等）D1 ethan_user_settings
     // ------------------------------------------------------------
     if (path === '/api/userSettings/get' && method === 'GET') return handleUserSettingsGet(env, q.k || '');
@@ -877,6 +883,44 @@ async function handleUserSettingsSet(env, body) {
   if (!body || typeof body.k !== 'string') return json({ error: '缺少 k' }, 400);
   await settingSet(env, body.k, body.v == null ? '' : String(body.v));
   return json({ ok: true });
+}
+
+// ---------------- auth.login：工作台解锁（D1单人模式）
+// 规则（双保险·小白友好）：
+//   ① Pages Variables 里没设 UNLOCK_PASSWORD_HASH → 永远 ok=true 免密码
+//   ② 设了但值"不是 bcrypt $2a$ 前缀" → 当明文密码对比（部署者直接写"123456"也能用）
+//   ③ 设了且是 $2a$/$2b$ 前缀 → 优先 bcryptjs.compareSync，模块不存在时降级明文
+async function handleAuthLogin(env, body, method) {
+  const DEFAULT_USER_ID = '50f12e1e-d561-423e-a424-d07a21d00cf2';
+  if (method !== 'POST' && method !== 'GET') return json({ ok: false, error: 'Method Not Allowed' }, 405);
+  try {
+    const configured = (env && env.UNLOCK_PASSWORD_HASH) ? String(env.UNLOCK_PASSWORD_HASH).trim() : '';
+    // ① 未配置解锁密码 → 直接放行
+    if (!configured) {
+      return json({ ok: true, skip: true, token: '', user: { id: DEFAULT_USER_ID } }, 200);
+    }
+    // 特殊值：部署者填 "EMPTY_DISABLE_LOGIN_2026" → 也关闭解锁
+    if (configured === 'EMPTY_DISABLE_LOGIN_2026' || configured === 'DISABLE' || configured === 'OFF') {
+      return json({ ok: true, skip: true, token: '', user: { id: DEFAULT_USER_ID } }, 200);
+    }
+    const pass = String(body?.password || '').trim();
+    let ok = false;
+    const isHash = /^\$2[ayb]\$/.test(configured);
+    if (isHash) {
+      try {
+        const bcrypt = require('bcryptjs');
+        ok = bcrypt.compareSync(pass || '', configured);
+      } catch (_) {
+        ok = (pass === configured); // 模块缺失降级明文
+      }
+    } else {
+      ok = (pass === configured);
+    }
+    if (ok) return json({ ok: true, token: '', user: { id: DEFAULT_USER_ID } }, 200);
+    return json({ ok: false, error: '密码错误' }, 401);
+  } catch (e) {
+    return json({ ok: false, error: String(e.message || e) }, 500);
+  }
 }
 
 // ---------------- weread.sync：用官方 Weread Skills key 拉书架

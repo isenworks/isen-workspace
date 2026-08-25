@@ -2931,24 +2931,43 @@ function CognitionView({
             // → 未匹配的 weread 新书直接跳过，保持书架只有你手动/添加的 12 本
           }
         }
-        // 【异步】对 weread 缺封面的书，再调用 /api/cover/search（豆瓣→Google）补封面
-        //       放在 updater 外面执行避免嵌套异步
-        if (needsCoverFallback.length > 0 && typeof onBooksReplace === 'function') {
+        // 【异步·强兜底】不管 weread 有没有返回，同步完立刻扫描 curr 里"还没真实封面"的本地书
+        //         （空 coverUrl / coverSource=placeholder / 首字占位 三种情况）
+        //         全部强制调用 /api/cover/search（豆瓣→Google）批量搜封面，保证 12 本都有
+        const EMPTY_COVER = (b) => {
+          const u = String(b.coverUrl || '').trim();
+          return !u
+            || b.coverSource === 'placeholder'
+            || /^(占位|首字)/.test(b.coverSource || '')
+            || (!/^https?:\/\//i.test(u) && !u.startsWith('/') && !/^data:image\//i.test(u));
+        };
+        const missingCurr = [];
+        curr.forEach((b, idx) => { if (EMPTY_COVER(b) && b.t) missingCurr.push({ idx, title: b.t, author: b.author, bid: b.id }); });
+        // 再加一次 weread 本身没 cover 的（冗余，避免漏网）
+        for (const x of needsCoverFallback) {
+          if (!missingCurr.some(m => m.idx === x.idx)) missingCurr.push(x);
+        }
+        if (missingCurr.length > 0 && typeof onBooksReplace === 'function') {
           setTimeout(async () => {
             try {
               const patches = new Map();
-              await Promise.all(needsCoverFallback.map(async ({ idx, title, author }) => {
-                try {
-                  const q = new URLSearchParams({ q: title });
-                  if (author) q.set('author', author);
-                  const r = await fetch(`/api/cover/search?${q.toString()}`);
-                  const j = await r.json().catch(() => ({}));
-                  if (j?.coverUrl) {
-                    const proxied = '/api/cover/proxy?url=' + encodeURIComponent(String(j.coverUrl));
-                    patches.set(idx, { coverUrl: proxied, coverSource: j.source || 'douban' });
-                  }
-                } catch (_) { /* 单本忽略 */ }
-              }));
+              // 并发限制 3，搜不到立刻降为单独重试（防止豆瓣/Google限流）
+              const BATCH = 3;
+              for (let i = 0; i < missingCurr.length; i += BATCH) {
+                const slice = missingCurr.slice(i, i + BATCH);
+                await Promise.all(slice.map(async ({ idx, title, author }) => {
+                  try {
+                    const q = new URLSearchParams({ q: String(title || '').trim() });
+                    if (String(author || '').trim()) q.set('author', String(author).trim());
+                    const r = await fetch(`/api/cover/search?${q.toString()}`);
+                    const j = await r.json().catch(() => ({}));
+                    if (j?.coverUrl) {
+                      const proxied = '/api/cover/proxy?url=' + encodeURIComponent(String(j.coverUrl));
+                      patches.set(idx, { coverUrl: proxied, coverSource: j.source || 'douban' });
+                    }
+                  } catch (_) { /* 单本失败忽略，继续 */ }
+                }));
+              }
               if (patches.size > 0) {
                 onBooksReplace(prev => {
                   const next = (Array.isArray(prev) ? prev : []).slice();
@@ -2960,10 +2979,10 @@ function CognitionView({
                 showToast?.(`已从豆瓣/Google 补封面 ${patches.size} 本`);
               }
             } catch (_) {}
-          }, 100);
+          }, 150);
         }
         showToast?.(`微信读书同步完成 · 已匹配更新 ${updated} 本（未导入 weread 新书）` +
-          (needsCoverFallback.length ? ` · 正在补${needsCoverFallback.length}本封面…` : ''));
+          (missingCurr.length ? ` · 正在批量搜${missingCurr.length}本封面…` : ''));
         return curr;
       };
       if (typeof onBooksReplace === 'function') {
@@ -3507,16 +3526,17 @@ function CognitionView({
               onClick={() => {
                 const ok = confirm('【危险】将书架恢复到初始12本预设？\n这会删除你所有手动添加的书和同步过来的书，只保留预设12本。确认继续？');
                 if (!ok) return;
-                // 最简单可靠：升级 localStorage key 到下一版本 → 下次 render 自动回到 BOOKS 初始
+                // 最简单可靠：清空当前 localStorage key → 下次 render 自动回到 BOOKS 初始
                 try {
-                  const currentKey = 'annual_books_v5';
-                  const nextKey = 'annual_books_v6';
-                  const val = localStorage.getItem(currentKey);
-                  if (val != null) {
-                    try { localStorage.setItem('annual_books_v5_backup_' + Date.now(), val); } catch (_) { /* 忽略配额 */ }
+                  const ALL_KEYS = ['annual_books_v4', 'annual_books_v5', 'annual_books_v6', 'annual_books_v7'];
+                  let backedUp = false;
+                  for (const k of ALL_KEYS) {
+                    const val = localStorage.getItem(k);
+                    if (val != null && !backedUp) {
+                      try { localStorage.setItem('annual_books_backup_' + Date.now(), val); backedUp = true; } catch (_) {}
+                    }
+                    try { localStorage.removeItem(k); } catch (_) {}
                   }
-                  localStorage.removeItem(currentKey);
-                  // 给 usePersistentState 一个明确的新 key（通过 reload 走干净路径）
                   showToast?.('书架已重置，页面即将刷新');
                   setTimeout(() => { window.location.reload(); }, 500);
                 } catch (e) {
@@ -4685,7 +4705,7 @@ export default function AnnualPlan({ standalone = true }) {
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
-  const [books, setBooks] = usePersistentState('annual_books_v6', () => BOOKS.map(b => ({ ...b, id: uid() })));
+  const [books, setBooks] = usePersistentState('annual_books_v7', () => BOOKS.map(b => ({ ...b, id: uid() })));
   const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));

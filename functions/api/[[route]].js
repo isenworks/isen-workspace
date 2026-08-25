@@ -1035,7 +1035,7 @@ async function handleCoverProxy(env, url) {
 
   // 允许的域名白名单（防止 SSRF）
   const u = new URL(safeUrl);
-  const ALLOWED = /(doubanio\.com|douban\.com|weread\.qq\.com|qq\.com|google\.com|googleapis\.com|res\.weread\.qq\.com|img[0-9]+\.doubanio\.com|myqcloud\.com|wfqqreader-10000000\.image\.myqcloud\.com)$/i;
+  const ALLOWED = /(doubanio\.com|douban\.com|weread\.qq\.com|qq\.com|google\.com|googleapis\.com|googleusercontent\.com|books\.google\.com|books\.googleapis\.com|res\.weread\.qq\.com|img[0-9]+\.doubanio\.com|myqcloud\.com|wfqqreader-10000000\.image\.myqcloud\.com|cos\.ap-beijing\.myqcloud\.com|tencent-cloud\.com|qpic\.cn)$/i;
   if (!ALLOWED.test(u.hostname)) return new Response('domain not allowed', { status: 403 });
 
   try {

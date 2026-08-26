@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>图书编辑面板 · Tab 化方案 V3(对齐真实面板)</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: -apple-system, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    min-height: 100vh; color: #1c1c1e;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 20px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .subtitle { font-size: 13px; color: #8e8e93; margin-bottom: 24px; }
+
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1280px; margin: 0 auto; }
+  @media (max-width: 980px) { .compare-grid { grid-template-columns: 1fr; } }
+
+  .col-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.02em; }
+  .badge-before { background: rgba(120,120,128,0.15); color: #6b6b70; }
+  .badge-after { background: rgba(75,99,240,0.12); color: #4b63f0; }
+  .col-title { font-size: 14px; font-weight: 700; }
+  .col-desc { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+
+  /* ===== Shared Modal ===== */
+  .modal-mask { position: relative; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 6px 16px rgba(0,0,0,0.08); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #f1f5f9; }
+  .modal-title { font-size: 15px; font-weight: 700; }
+  .modal-close { width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(120,120,128,0.12); color: #8e8e93; display: grid; place-items: center; cursor: pointer; font-size: 14px; }
+  .modal-body { padding: 16px; max-height: 600px; overflow: auto; }
+  .modal-footer { padding: 12px 18px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 8px; background: #fafbfc; }
+
+  /* ===== BEFORE: real flat panel ===== */
+  .before-section { margin-bottom: 18px; }
+  .before-section-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #1c1c1e; margin-bottom: 12px; }
+  .before-section-title .bar { width: 3px; height: 14px; background: #4b63f0; border-radius: 2px; }
+  .before-row { display: grid; grid-template-columns: 80px 1fr; gap: 14px; align-items: start; }
+  .before-cover { width: 80px; height: 110px; border-radius: 8px; background: linear-gradient(135deg, #8B0000, #dc2626); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 700; padding: 8px; text-align: center; line-height: 1.3; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+  .before-fields { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+  .before-field { display: flex; flex-direction: column; }
+  .before-field label { font-size: 11px; font-weight: 700; color: #4b63f0; margin-bottom: 4px; }
+  .before-field input, .before-field select { padding: 7px 10px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 12px; background: #fff; outline: none; }
+  .before-full { margin-top: 10px; }
+  .before-full label { font-size: 11px; font-weight: 700; color: #4b63f0; display: block; margin-bottom: 4px; }
+  .before-full .cover-row { display: flex; gap: 8px; align-items: center; }
+  .before-full input { flex: 1; padding: 7px 10px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 12px; }
+  .btn-search { display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px; border-radius: 8px; border: 1px solid #4b63f0; background: #fff; color: #4b63f0; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .before-process { margin-top: 16px; }
+  .before-process .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  .before-process .one-col { margin-bottom: 12px; }
+  .progress-wrap { display: flex; align-items: center; gap: 10px; }
+  .progress-bar { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #4b63f0; border-radius: 3px; }
+  .progress-pct { font-size: 12px; font-weight: 700; color: #4b63f0; }
+  .status-tag-real { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .status-done-r { background: rgba(34,197,94,0.12); color: #16a34a; }
+
+  /* ===== AFTER: Tabbed ===== */
+  .book-hero { display: flex; gap: 14px; align-items: center; padding: 12px 16px; background: linear-gradient(135deg, rgba(75,99,240,0.06) 0%, rgba(120,120,128,0.04) 100%); border-bottom: 1px solid #eef0f4; }
+  .book-cover-sm { width: 48px; height: 66px; border-radius: 6px; flex-shrink: 0; background: linear-gradient(135deg, #8B0000, #dc2626); display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; padding: 4px; text-align: center; line-height: 1.3; box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
+  .book-info { flex: 1; min-width: 0; }
+  .book-title { font-size: 14px; font-weight: 700; color: #1c1c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .book-meta { font-size: 12px; color: #6b7280; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .book-stats { display: flex; gap: 6px; flex-shrink: 0; }
+  .book-stat { display: flex; flex-direction: column; align-items: center; padding: 3px 8px; border-radius: 8px; background: #fff; border: 1px solid #eef0f4; min-width: 42px; }
+  .book-stat .num { font-size: 13px; font-weight: 800; color: #1c1c1e; }
+  .book-stat .lbl { font-size: 9px; font-weight: 600; color: #6b7280; letter-spacing: 0.02em; }
+
+  .tab-bar { display: flex; gap: 2px; padding: 6px 10px 0; background: #fff; border-bottom: 1px solid #eef0f4; position: sticky; top: 0; z-index: 10; }
+  .tab-item { display: flex; align-items: center; gap: 5px; padding: 7px 10px 8px; border-radius: 8px 8px 0 0; font-size: 12px; font-weight: 500; color: #6b7280; cursor: pointer; border: none; background: transparent; transition: all .15s; border-bottom: 2px solid transparent; }
+  .tab-item:hover { color: #1c1c1e; background: rgba(75,99,240,0.04); }
+  .tab-item.active { color: #4b63f0; font-weight: 700; border-bottom-color: #4b63f0; background: rgba(75,99,240,0.05); }
+  .tab-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(75,99,240,0.15); color: #4b63f0; min-width: 15px; text-align: center; }
+  .tab-item.active .tab-badge { background: #4b63f0; color: #fff; }
+  .tab-icon { width: 13px; height: 13px; flex-shrink: 0; stroke: currentColor; }
+
+  .tab-panel { padding: 14px 16px; }
+  .form-group { margin-bottom: 12px; }
+  .form-label { font-size: 11px; font-weight: 700; color: #4b63f0; margin-bottom: 5px; display: block; }
+  .form-input, .form-select, .form-textarea { width: 100%; padding: 7px 10px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 12px; color: #1c1c1e; background: #fff; outline: none; transition: border-color .15s, box-shadow .15s; }
+  .form-input:focus, .form-select:focus { border-color: #4b63f0; box-shadow: 0 0 0 3px rgba(75,99,240,0.12); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row-4 { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; }
+  .cover-search-row { display: flex; gap: 6px; align-items: center; }
+  .cover-search-row .form-input { flex: 1; }
+
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .section-head-title { font-size: 12px; font-weight: 700; color: #1c1c1e; display: flex; align-items: center; gap: 6px; }
+  .section-head-count { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: rgba(75,99,240,0.1); color: #4b63f0; }
+  .add-btn { width: 26px; height: 26px; border-radius: 7px; border: 1.5px solid rgba(75,99,240,0.3); background: rgba(75,99,240,0.08); color: #4b63f0; cursor: pointer; display: grid; place-items: center; transition: all .15s; }
+  .add-btn:hover { background: #4b63f0; color: #fff; border-color: #4b63f0; transform: scale(1.05); }
+  .add-btn svg { width: 13px; height: 13px; }
+
+  /* Thought card */
+  .thought-card { padding: 11px 13px; border-radius: 10px; background: linear-gradient(135deg, rgba(75,99,240,0.05) 0%, rgba(75,99,240,0.02) 100%); border: 1px solid rgba(75,99,240,0.12); margin-bottom: 8px; transition: all .15s; }
+  .thought-card:hover { box-shadow: 0 4px 12px rgba(75,99,240,0.08); border-color: rgba(75,99,240,0.25); }
+  .thought-row { display: flex; gap: 8px; align-items: flex-start; }
+  .thought-row + .thought-row { margin-top: 8px; }
+  .icon-badge { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: grid; place-items: center; }
+  .icon-blue { background: #4b63f0; color: #fff; }
+  .icon-blue svg, .icon-yellow svg, .icon-green svg { width: 12px; height: 12px; }
+  .icon-yellow { background: #f59e0b; color: #fff; }
+  .icon-green { background: #22c55e; color: #fff; }
+  .thought-body { flex: 1; min-width: 0; }
+  .thought-label { font-size: 10px; font-weight: 700; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 1px; }
+  .thought-text { font-size: 12px; color: #1c1c1e; line-height: 1.5; }
+  .thought-actions { display: flex; justify-content: flex-end; gap: 5px; margin-top: 7px; }
+  .thought-btn { font-size: 11px; padding: 3px 9px; border-radius: 7px; border: none; cursor: pointer; background: rgba(120,120,128,0.1); color: #6b7280; font-weight: 600; transition: all .12s; }
+  .thought-btn:hover { background: rgba(120,120,128,0.18); color: #1c1c1e; }
+  .thought-btn-del:hover { background: rgba(255,59,48,0.1); color: #ff3b30; }
+
+  /* Action card */
+  .action-card { padding: 11px 13px; border-radius: 10px; background: linear-gradient(135deg, rgba(75,99,240,0.05) 0%, rgba(75,99,240,0.02) 100%); border: 1px solid rgba(75,99,240,0.12); margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; transition: all .15s; }
+  .action-card:hover { box-shadow: 0 4px 12px rgba(75,99,240,0.08); border-color: rgba(75,99,240,0.25); }
+  .checkbox { width: 20px; height: 20px; border-radius: 5px; flex-shrink: 0; border: 2px solid #d1d1d6; display: grid; place-items: center; cursor: pointer; transition: all .15s; margin-top: 1px; }
+  .checkbox.checked { background: #22c55e; border-color: #22c55e; }
+  .checkbox.checked svg { width: 11px; height: 11px; color: #fff; stroke-width: 3; }
+  .action-body { flex: 1; min-width: 0; }
+  .action-title { font-size: 12.5px; font-weight: 600; color: #1c1c1e; line-height: 1.5; }
+  .action-meta { font-size: 11px; color: #6b7280; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+  .action-meta span { display: inline-flex; align-items: center; gap: 3px; }
+  .action-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+  /* Change card */
+  .change-card { padding: 11px 13px; border-radius: 10px; background: linear-gradient(135deg, rgba(75,99,240,0.05) 0%, rgba(75,99,240,0.02) 100%); border: 1px solid rgba(75,99,240,0.12); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; transition: all .15s; }
+  .change-card:hover { box-shadow: 0 4px 12px rgba(75,99,240,0.08); border-color: rgba(75,99,240,0.25); }
+  .change-desc { flex: 1; min-width: 0; font-size: 12.5px; color: #1c1c1e; line-height: 1.5; }
+  .change-date { font-size: 11px; color: #8e8e93; flex-shrink: 0; display: flex; align-items: center; gap: 3px; }
+  .change-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+  /* Button styles */
+  .btn { padding: 6px 14px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .btn-ghost { background: rgba(120,120,128,0.12); color: #1c1c1e; }
+  .btn-ghost:hover { background: rgba(120,120,128,0.2); }
+  .btn-primary { background: #4b63f0; color: #fff; }
+  .btn-primary:hover { filter: brightness(1.06); }
+
+  /* Annotation */
+  .annotation { font-size: 11px; font-weight: 600; margin: 8px 0 0; padding: 5px 9px; background: rgba(255,149,0,0.08); border-radius: 6px; border-left: 3px solid #ff9500; color: #b36a00; }
+
+  /* Legend */
+  .legend { max-width: 1280px; margin: 24px auto 0; background: #fff; border-radius: 14px; padding: 18px 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+  .legend h3 { font-size: 14px; font-weight: 700; margin: 0 0 10px; }
+  .legend-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .legend-item { display: flex; gap: 10px; align-items: flex-start; }
+  .legend-num { width: 20px; height: 20px; border-radius: 50%; background: #4b63f0; color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .legend-title { font-size: 12px; font-weight: 600; color: #1c1c1e; }
+  .legend-desc { font-size: 11px; color: #6b7280; margin-top: 2px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>📖 图书编辑面板 · Tab 化方案 V3</h1>
+<div class="subtitle">严格对齐真实面板所有字段 · 只改排版,不丢任何信息</div>
+
+<div class="compare-grid">
+
+  <!-- ===== 左侧:真实面板(当前) ===== -->
+  <div>
+    <div class="col-header">
+      <span class="badge badge-before">当前</span>
+      <div>
+        <div class="col-title">真实面板(扁平)</div>
+        <div class="col-desc">基础信息 + 阅读过程 + 洞察/行动/改变 全平铺</div>
+      </div>
+    </div>
+
+    <div class="modal-mask">
+      <div class="modal-header">
+        <div class="modal-title">📖 编辑书籍</div>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- 基础信息 -->
+        <div class="before-section">
+          <div class="before-section-title"><span class="bar"></span>📗 基础信息</div>
+          <div class="before-row">
+            <div class="before-cover">认知<br>觉醒</div>
+            <div style="flex:1">
+              <div class="before-fields">
+                <div class="before-field"><label>书名</label><input value="认知觉醒" /></div>
+                <div class="before-field"><label>作者</label><input value="周岭" /></div>
+                <div class="before-field"><label>分类</label><select><option>认知成长</option></select></div>
+                <div class="before-field"><label>来源</label><select><option>电子书</option></select></div>
+              </div>
+              <div class="before-full">
+                <label>封面链接(微信读书/豆瓣/Google 图书链接)</label>
+                <div class="cover-row">
+                  <input value="/api/cover/proxy?url=..." />
+                  <button class="btn-search">🔍 搜封面</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 阅读过程 -->
+        <div class="before-section before-process">
+          <div class="before-section-title"><span class="bar"></span>📖 阅读过程</div>
+          <div class="before-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px">
+            <div class="before-field" style="display:flex;flex-direction:column">
+              <label style="font-size:11px;font-weight:700;color:#4b63f0;margin-bottom:4px">阅读状态</label>
+              <select style="padding:7px 10px;border:1px solid #d1d1d6;border-radius:8px;font-size:12px;background:#fff">
+                <option>已读完</option>
+              </select>
+            </div>
+            <div class="before-field" style="display:flex;flex-direction:column">
+              <label style="font-size:11px;font-weight:700;color:#4b63f0;margin-bottom:4px">进度 100%</label>
+              <div class="progress-wrap">
+                <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+                <div class="progress-pct">100%</div>
+              </div>
+            </div>
+          </div>
+          <div class="before-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px">
+            <div class="before-field"><label>开始阅读</label><input type="date" value="2025-08-01" /></div>
+            <div class="before-field"><label>结束阅读</label><input type="date" value="2025-08-15" /></div>
+          </div>
+          <div class="before-one-col" style="margin-bottom:12px">
+            <div class="before-field"><label>微信读书 BookID</label><input value="6a732ce07201202c6a7b30a" /></div>
+          </div>
+          <div class="before-one-col">
+            <div class="before-field"><label>电子书链接 / weread 协议</label><input value="https://weread.qq.com/web/reader/6a732ce07201202c6a7b30a" /></div>
+          </div>
+        </div>
+
+        <!-- 洞察部分(简略) -->
+        <div class="before-section">
+          <div class="before-section-title"><span class="bar"></span>💡 洞察</div>
+          <div class="before-list-item" style="padding:9px 11px;border-radius:8px;background:#f8f9fb;border:1px solid #eef0f4;margin-bottom:6px;font-size:12px">
+            <div>触动:元认知是对认知的认知</div>
+            <div style="color:#8e8e93;margin-top:3px">场景:每天 10 分钟反思练习</div>
+          </div>
+          <div class="before-list-item" style="padding:9px 11px;border-radius:8px;background:#f8f9fb;border:1px solid #eef0f4;font-size:12px">
+            <div>触动:焦虑来自想太多做太少</div>
+            <div style="color:#8e8e93;margin-top:3px">场景:每天一件小事立刻行动</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost">取消</button>
+        <button class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 右侧:V3 Tab ===== -->
+  <div>
+    <div class="col-header">
+      <span class="badge badge-after">V3</span>
+      <div>
+        <div class="col-title">Tab 分段(对齐真实面板)</div>
+        <div class="col-desc">所有字段保留 · 仅改排版为 4 Tab</div>
+      </div>
+    </div>
+
+    <div class="modal-mask">
+      <!-- Hero:书籍预览条(封面缩小+书名+状态+统计) -->
+      <div class="book-hero">
+        <div class="book-cover-sm" style="width:36px;height:50px;font-size:10px;padding:3px">认知<br>觉醒</div>
+        <div class="book-info">
+          <div class="book-title">认知觉醒</div>
+          <div class="book-meta">
+            <span>周岭</span>
+            <span>·</span>
+            <span style="color:#4b63f0">认知成长</span>
+            <span>·</span>
+            <span class="status-tag-real status-done-r">✓ 已读完</span>
+          </div>
+        </div>
+        <div class="book-stats">
+          <div class="book-stat"><div class="num">2</div><div class="lbl">思考</div></div>
+          <div class="book-stat"><div class="num">1</div><div class="lbl">行动</div></div>
+          <div class="book-stat"><div class="num">1</div><div class="lbl">改变</div></div>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-item active" onclick="switchTab(event, 0)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          基础信息
+        </button>
+        <button class="tab-item" onclick="switchTab(event, 1)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/></svg>
+          读后思考
+          <span class="tab-badge">2</span>
+        </button>
+        <button class="tab-item" onclick="switchTab(event, 2)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          思后行动
+          <span class="tab-badge">1</span>
+        </button>
+        <button class="tab-item" onclick="switchTab(event, 3)">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          行后改变
+          <span class="tab-badge">1</span>
+        </button>
+      </div>
+
+      <!-- Tab content -->
+      <div class="modal-body" style="padding:0">
+
+        <!-- Tab 0:基础信息(含阅读过程所有字段) -->
+        <div class="tab-panel" data-tab="0">
+          <!-- 行1:书名+作者+分类+来源 -->
+          <div class="form-row-4" style="grid-template-columns:2fr 1fr 1fr 1fr">
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">书名</label>
+              <input class="form-input" value="认知觉醒" />
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">作者</label>
+              <input class="form-input" value="周岭" />
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">分类</label>
+              <select class="form-select"><option>认知成长</option></select>
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">来源</label>
+              <select class="form-select"><option>电子书</option></select>
+            </div>
+          </div>
+
+          <!-- 行2:阅读状态+进度 -->
+          <div class="form-row" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">阅读状态</label>
+              <select class="form-select"><option>已读完</option></select>
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">进度</label>
+              <div class="progress-wrap" style="padding-top:6px">
+                <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+                <div class="progress-pct">100%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 行3:开始/结束阅读 -->
+          <div class="form-row" style="margin-bottom:10px">
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">开始阅读</label>
+              <input class="form-input" type="date" value="2025-08-01" />
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label class="form-label">结束阅读</label>
+              <input class="form-input" type="date" value="2025-08-15" />
+            </div>
+          </div>
+
+          <!-- 行4:BookID -->
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">微信读书 BookID</label>
+            <input class="form-input" value="6a732ce07201202c6a7b30a" />
+          </div>
+
+          <!-- 行5:电子书链接 -->
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">电子书链接 / weread 协议</label>
+            <input class="form-input" value="https://weread.qq.com/web/reader/6a732ce07201202c6a7b30a" />
+          </div>
+
+          <!-- 行6:封面链接+搜封面(移到最下面) -->
+          <div class="form-group">
+            <label class="form-label">封面链接(微信读书/豆瓣/Google 图书链接)</label>
+            <div class="cover-search-row">
+              <input class="form-input" value="/api/cover/proxy?url=..." />
+              <button class="btn-search">🔍 搜封面</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 1:读后思考 -->
+        <div class="tab-panel" data-tab="1" style="display:none">
+          <div class="section-head">
+            <div class="section-head-title">读后思考 <span class="section-head-count">2 组思考</span></div>
+            <button class="add-btn" title="添加新思考">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+
+          <div class="thought-card">
+            <div class="thought-row">
+              <div class="icon-badge icon-blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              </div>
+              <div class="thought-body">
+                <div class="thought-label">核心触动</div>
+                <div class="thought-text">元认知是对认知的认知,觉察是改变的第一步</div>
+              </div>
+            </div>
+            <div class="thought-row">
+              <div class="icon-badge icon-yellow">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+              </div>
+              <div class="thought-body">
+                <div class="thought-label">应用场景</div>
+                <div class="thought-text">每天 10 分钟反思练习,记录认知偏差</div>
+              </div>
+            </div>
+            <div class="thought-actions">
+              <button class="thought-btn">✏️ 编辑</button>
+              <button class="thought-btn thought-btn-del">🗑️ 删除</button>
+            </div>
+          </div>
+
+          <div class="thought-card">
+            <div class="thought-row">
+              <div class="icon-badge icon-blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              </div>
+              <div class="thought-body">
+                <div class="thought-label">核心触动</div>
+                <div class="thought-text">焦虑来自想太多做太少,行动是解药</div>
+              </div>
+            </div>
+            <div class="thought-row">
+              <div class="icon-badge icon-yellow">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+              </div>
+              <div class="thought-body">
+                <div class="thought-label">应用场景</div>
+                <div class="thought-text">每天选一件小事立刻行动,不拖延</div>
+              </div>
+            </div>
+            <div class="thought-actions">
+              <button class="thought-btn">✏️ 编辑</button>
+              <button class="thought-btn thought-btn-del">🗑️ 删除</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2:思后行动 -->
+        <div class="tab-panel" data-tab="2" style="display:none">
+          <div class="section-head">
+            <div class="section-head-title">思后行动 <span class="section-head-count">1 个行动计划</span></div>
+            <button class="add-btn" title="添加新行动">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+
+          <div class="action-card">
+            <div class="checkbox checked">
+              <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="action-body">
+              <div class="action-title">每天 10 分钟反思练习</div>
+              <div class="action-meta">
+                <span>📅 30 天连续打卡</span>
+                <span>📖 来自《认知觉醒》</span>
+              </div>
+            </div>
+            <div class="action-actions">
+              <button class="thought-btn">✏️</button>
+              <button class="thought-btn thought-btn-del">🗑️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3:行后改变 -->
+        <div class="tab-panel" data-tab="3" style="display:none">
+          <div class="section-head">
+            <div class="section-head-title">行后改变 <span class="section-head-count">1 个改变</span></div>
+            <button class="add-btn" title="添加新改变">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+
+          <div class="change-card">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+              <span style="width:8px;height:8px;border-radius:50%;background:#4b63f0;flex-shrink:0"></span>
+              <div class="change-desc">已坚持每日反思 45 天,觉察能力明显提升</div>
+            </div>
+            <div class="change-date">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              2025-08-20
+            </div>
+            <div class="change-actions">
+              <button class="thought-btn">✏️</button>
+              <button class="thought-btn thought-btn-del">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-ghost">取消</button>
+        <button class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <h3>🗝️ V3 方案要点(6 条反馈 + 真实面板对齐)</h3>
+  <div class="legend-grid">
+    <div class="legend-item">
+      <div class="legend-num">1</div>
+      <div>
+        <div class="legend-title">基础信息字段全部保留</div>
+        <div class="legend-desc">书名/作者/分类/来源/封面链接+搜封面/阅读状态/进度/开始结束日期/BookID/was:// 链接,一个不少</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-num">2</div>
+      <div>
+        <div class="legend-title">阅读过程合并到基础信息 Tab</div>
+        <div class="legend-desc">原来的"基础信息 + 阅读过程"两个扁平区块合并为一个 Tab,减少 Tab 数量</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-num">3</div>
+      <div>
+        <div class="legend-title">封面预览移到 Hero 条</div>
+        <div class="legend-desc">封面缩略图 + 书名 + 作者 + 分类 + 状态 + 统计徽章,一眼看到全貌</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-num">4</div>
+      <div>
+        <div class="legend-title">读后思考:SVG 填充图标</div>
+        <div class="legend-desc">核心触动蓝色填充图标 / 应用场景黄色填充图标,不用 emoji</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-num">5</div>
+      <div>
+        <div class="legend-title">思后行动:复选框 + 绿色</div>
+        <div class="legend-desc">勾选状态绿色填充,名称改为"行动计划"</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-num">6</div>
+      <div>
+        <div class="legend-title">行后改变:精简</div>
+        <div class="legend-desc">删除标签字段,只保留描述 + 右侧日期</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(evt, idx) {
+    document.querySelectorAll('.tab-item').forEach((t, i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.style.display = (p.getAttribute('data-tab') === String(idx)) ? '' : 'none';
+    });
+  }
+</script>
+
+</body>
+</html>

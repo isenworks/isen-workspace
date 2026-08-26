@@ -3206,23 +3206,17 @@ function CognitionView({
                 title="右键编辑O目标"
                 placeholder="填写O目标"
               />
-              {/* 时间进度：按当前月份显示，对比阅读目标 */}
+              {/* 时间进度：按当前月份显示 */}
               {(() => {
                 const now = new Date();
-                const month = now.getMonth() + 1; // 1-12
-                const timePct = Math.round((month / 12) * 100);
-                const targetKR = finalKrs.find(k => k.id === 'kr0' || k.type === 'goal') || finalKrs[0];
-                const onTrack = targetKR && targetKR.val >= Math.floor((month / 12) * targetKR.tgt);
+                const timePct = Math.round(((now.getMonth() + 1) / 12) * 100);
                 return (
                   <div className="flex-shrink-0 px-2 py-[5px] rounded-lg whitespace-nowrap flex items-center gap-1"
-                    style={{ background: onTrack ? `${BLUE}15` : '#fef2f2', border: `1px solid ${onTrack ? BLUE : '#fecaca'}` }}>
-                    <span className="text-[10px] font-semibold" style={{ color: onTrack ? BLUE : '#dc2626' }}>
-                      时间 {month}/12月
-                    </span>
-                    <span className="text-[12px] font-extrabold tabular-nums leading-none" style={{ color: onTrack ? BLUE : '#dc2626' }}>
+                    style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}>
+                    <span className="text-[10px] font-semibold text-ink-500">时间进度</span>
+                    <span className="text-[12px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
                       {timePct}<span className="text-[9px] font-bold">%</span>
                     </span>
-                    {!onTrack && <span className="text-[9px] font-bold text-red-600">落后</span>}
                   </div>
                 );
               })()}
@@ -3363,15 +3357,16 @@ function CognitionView({
                 {nextKr && (() => {
                   const lowConv = conv !== null && conv < 50;
                   return (
-                    <div className="flex items-center gap-1 pl-[56px] py-0.5 text-[11px] whitespace-nowrap">
-                      <div className="w-[2px] h-2 rounded-full" style={{ background: `${BLUE}40` }} />
-                      <span className="font-bold" style={{ color: BLUE }}>↓</span>
+                    <div className="flex items-center gap-0.5 pl-[56px] py-0.5 text-[11px] whitespace-nowrap">
+                      <svg className="w-3 h-3" style={{ color: BLUE }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 8l6 6 6-6" />
+                      </svg>
                       <span
                         className="font-bold tabular-nums"
                         style={{ color: lowConv ? '#dc2626' : BLUE }}>
                         {conv ?? 0}%
                       </span>
-                      <span className="text-[10px]" style={{ color: lowConv ? '#f87171' : '#94a3b8' }}>
+                      <span className="text-[10px] text-ink-400">
                         转化率
                       </span>
                     </div>

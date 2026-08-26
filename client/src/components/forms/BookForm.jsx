@@ -43,9 +43,9 @@ const TABS = [
   { key: 'changes',   label: '行后改变', icon: 'zap' },
 ];
 
-export default function BookForm({ initial, onSaved, onCancel, onDelete }) {
+export default function BookForm({ initial, onSaved, onCancel, onDelete, initialTab }) {
   const isEdit = !!(initial && initial.id);
-  const [activeTab, setActiveTab] = useState('basic');
+  const [activeTab, setActiveTab] = useState(initialTab || 'basic');
   const [form, setForm] = useState({
     t: initial?.t || '',
     author: initial?.author || '',

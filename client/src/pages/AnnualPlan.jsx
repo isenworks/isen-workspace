@@ -2993,14 +2993,22 @@ function CognitionView({
     };
   }, [books]);
 
-  // 已读完且有洞察的书籍（用于"读后思考"卡片）— 要求 text & scene 都填写（至少1组）
-  const doneBooksWithInsights = useMemo(() => {
+  // 所有有思考的书籍（用于"读后思考"卡片）— 要求 text & scene 都填写（至少1组），不限阅读状态
+  const booksWithInsights = useMemo(() => {
     const dynBooks = (!books || books.length === 0) ? BOOKS : books;
     return dynBooks.filter(b => {
-      if (b.st !== 'done') return false;
       const ins = b.insights || [];
       return ins.some(i => i.text?.trim() && i.scene?.trim());
     });
+  }, [books]);
+
+  // 读后思考卡片头部统计：所有有效思考条目总数
+  const totalInsightCount = useMemo(() => {
+    const dynBooks = (!books || books.length === 0) ? BOOKS : books;
+    return dynBooks.reduce((sum, b) => {
+      const valid = (b.insights || []).filter(i => i.text?.trim() && i.scene?.trim());
+      return sum + valid.length;
+    }, 0);
   }, [books]);
 
   // 所有书籍中聚合出来的「思后行动」条目（替代旧的独立changes）— 格式保持兼容旧 cogChanges 渲染
@@ -3926,7 +3934,7 @@ function CognitionView({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
-                {doneBooksWithInsights.length} 本有思考
+                {totalInsightCount} 组核心触动+行动计划
               </span>
               <button onClick={() => onBookAdd?.()}
                 className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
@@ -3937,19 +3945,19 @@ function CognitionView({
             </div>
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
-            {doneBooksWithInsights.length === 0 ? (
+            {booksWithInsights.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
-                已读完的书还没写思考<br/>点击右上角 + 添加书籍
+                还没写读后思考<br/>点击右上角 + 添加书籍
               </div>
             ) : (
-              doneBooksWithInsights.slice(0, 5).map(b => {
+              booksWithInsights.slice(0, 5).map(b => {
                 const ins = b.insights || [];
                 const validIns = ins.filter(i => i.text?.trim());
                 return (
                   <div key={b.id}
                     className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
                     style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
-                    onClick={() => onBookEdit?.(b)}>
+                    onClick={() => onBookEdit?.(b, 'insights')}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[12.5px] font-semibold text-ink-900 truncate">{b.t}</span>
                       <div className="flex items-center gap-1">
@@ -3967,8 +3975,8 @@ function CognitionView({
                 );
               })
             )}
-            {doneBooksWithInsights.length > 5 && (
-              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {doneBooksWithInsights.length - 5} 本 · 点击书籍编辑</div>
+            {booksWithInsights.length > 5 && (
+              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {booksWithInsights.length - 5} 本 · 点击书籍编辑</div>
             )}
           </div>
         </div>
@@ -5152,7 +5160,7 @@ export default function AnnualPlan({ standalone = true }) {
 
   // ---- CRUD 回调 ----
   const onBookAdd = () => setModal({ type: 'book' });
-  const onBookEdit = (book) => setModal({ type: 'book', initial: book });
+  const onBookEdit = (book, tab) => setModal({ type: 'book', initial: book, tab: tab || 'basic' });
   const onMsAdd = (abilityIdx) => setModal({ type: 'milestone', initial: { abilityIdx } });
   const onMsEdit = (abilityIdx, msIdx, m) => setModal({ type: 'milestone', initial: { ...m, abilityIdx, msIdx, id: m.id } });
   const onKrAdd = (workIdx) => setModal({ type: 'kr', initial: { workIdx } });
@@ -5185,6 +5193,7 @@ export default function AnnualPlan({ standalone = true }) {
           <Modal open onClose={closeModal} title={isBookEdit ? '编辑书籍' : '添加书籍'} maxWidth={560}>
             <BookForm
               initial={modal.initial}
+              initialTab={modal.tab}
               onCancel={closeModal}
               onSaved={(data) => {
                 if (isBookEdit) bookOps.update(data); else bookOps.add(data);

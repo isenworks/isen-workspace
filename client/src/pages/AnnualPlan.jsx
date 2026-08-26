@@ -3344,9 +3344,6 @@ function CognitionView({
                       style={{ color: isDone ? '#111827' : (isBehind ? '#dc2626' : BLUE) }}>
                       {p}<span className="text-[11px] font-bold">%</span>
                     </span>
-                    {isBehind && !isDone && (
-                      <span className="text-[9px] font-bold text-red-600 leading-none">落后</span>
-                    )}
                     <span className="text-[11px] font-semibold tabular-nums text-ink-700 w-[56px] text-right leading-none">
                       {kr.val}<span className="text-ink-300 mx-[2px] font-normal">/</span><span className="text-ink-500 font-medium">{kr.tgt}</span><span className="text-ink-400 ml-0.5 text-[10px]">{kr.u}</span>
                     </span>

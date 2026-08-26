@@ -3156,11 +3156,11 @@ function CognitionView({
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ===== Row 1: 左 OKR(5) + 右 书架(7) 一体化布局 — 数据放左紧凑, 封面放右充分展示 ===== */}
+      {/* ===== Row 1: 左 OKR(6) + 右 书架(6) 一体化布局 — 6:6 等分, 书架2列卡片恢复原始尺寸 ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
 
-      {/* ===== 左侧·一体化 KR × 漏斗 卡片（5/12 列，压缩展示） ===== */}
-      <div className="xl:col-span-5 bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col min-h-0">
+      {/* ===== 左侧·一体化 KR × 漏斗 卡片（6/12 列） ===== */}
+      <div className="xl:col-span-6 bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col min-h-0">
         {/* ===== Header: O目标 + 完成率徽章 + 新增KR ===== */}
         <div className="mb-1.5">
           {editingObj ? (
@@ -3393,8 +3393,8 @@ function CognitionView({
       </div>
       {/* ===== 一体化 KR × 漏斗 卡片 END ===== */}
 
-      {/* ===== 右侧·书架看板（7/12 列，给封面更充足空间） ===== */}
-      <div className="xl:col-span-7 flex flex-col min-h-0">
+      {/* ===== 右侧·书架看板（6/12 列，2列网格恢复原始卡片尺寸） ===== */}
+      <div className="xl:col-span-6 flex flex-col min-h-0">
       {/* ===== 书架看板 ===== */}
       <div className="bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col flex-1 min-h-0">
         {/* Header 单行三段式：左(色条+标题+共N本横排) · 中(Tabs) · 右(操作按钮) —— 不要垂直双行 */}
@@ -3538,7 +3538,7 @@ function CognitionView({
                 setDragOverCol(null);
               }}
             >
-              <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 gap-2.5">
                 {g.books.length === 0 ? (
                   <div className="col-span-full flex items-center justify-center py-6 text-[12px] rounded-lg transition-all"
                     style={{

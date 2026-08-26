@@ -3206,11 +3206,26 @@ function CognitionView({
                 title="右键编辑O目标"
                 placeholder="填写O目标"
               />
-              <div className="flex-shrink-0 px-2 py-[6px] rounded-lg whitespace-nowrap flex items-baseline gap-0.5"
-                style={{ background: BLUE, boxShadow: `0 2px 6px ${BLUE}40` }}>
-                <span className="text-[14px] font-extrabold tabular-nums leading-none text-white">{totalPct}</span>
-                <span className="text-[10px] font-bold text-white/85 leading-none">%</span>
-              </div>
+              {/* 时间进度：按当前月份显示，对比阅读目标 */}
+              {(() => {
+                const now = new Date();
+                const month = now.getMonth() + 1; // 1-12
+                const timePct = Math.round((month / 12) * 100);
+                const targetKR = finalKrs.find(k => k.id === 'kr0' || k.type === 'goal') || finalKrs[0];
+                const onTrack = targetKR && targetKR.val >= Math.floor((month / 12) * targetKR.tgt);
+                return (
+                  <div className="flex-shrink-0 px-2 py-[5px] rounded-lg whitespace-nowrap flex items-center gap-1"
+                    style={{ background: onTrack ? `${BLUE}15` : '#fef2f2', border: `1px solid ${onTrack ? BLUE : '#fecaca'}` }}>
+                    <span className="text-[10px] font-semibold" style={{ color: onTrack ? BLUE : '#dc2626' }}>
+                      时间 {month}/12月
+                    </span>
+                    <span className="text-[12px] font-extrabold tabular-nums leading-none" style={{ color: onTrack ? BLUE : '#dc2626' }}>
+                      {timePct}<span className="text-[9px] font-bold">%</span>
+                    </span>
+                    {!onTrack && <span className="text-[9px] font-bold text-red-600">落后</span>}
+                  </div>
+                );
+              })()}
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md transition flex-shrink-0 border"
@@ -3237,6 +3252,11 @@ function CognitionView({
             const nextKr = finalKrs[idx + 1];
             const conv = nextKr && kr.val > 0 ? Math.round((nextKr.val / kr.val) * 100) : null;
             const isDone = p >= 100;
+            // 时间进度对比：按当前月份，进度落后则标红
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const timePct = (month / 12) * 100;
+            const isBehind = p < timePct && !isDone;
             const remaining = Math.max(0, (kr.tgt || 0) - (kr.val || 0));
             const pctWidth = Math.max(6, Math.min(100, p));
             const krTypeMap = { goal: '目标量', thinking: '思考量', action: '行动量', change: '改变量' };
@@ -3327,29 +3347,36 @@ function CognitionView({
                   {/* 右侧：百分比 + val/tgt 单行平铺 */}
                   <div className="flex items-baseline gap-2 flex-shrink-0">
                     <span className="text-[14px] font-extrabold tabular-nums leading-none w-[42px] text-right"
-                      style={{ color: isDone ? '#111827' : BLUE }}>
+                      style={{ color: isDone ? '#111827' : (isBehind ? '#dc2626' : BLUE) }}>
                       {p}<span className="text-[11px] font-bold">%</span>
                     </span>
+                    {isBehind && !isDone && (
+                      <span className="text-[9px] font-bold text-red-600 leading-none">落后</span>
+                    )}
                     <span className="text-[11px] font-semibold tabular-nums text-ink-700 w-[56px] text-right leading-none">
                       {kr.val}<span className="text-ink-300 mx-[2px] font-normal">/</span><span className="text-ink-500 font-medium">{kr.tgt}</span><span className="text-ink-400 ml-0.5 text-[10px]">{kr.u}</span>
                     </span>
                   </div>
                 </div>
 
-                {/* 连接线 + 转化率（语义化：箭头→下一层名称→转化率） */}
-                {nextKr && (
-                  <div className="flex items-center gap-1.5 pl-[56px] py-0.5 text-[11px] whitespace-nowrap">
-                    <div className="w-[2px] h-2 rounded-full" style={{ background: `${BLUE}66` }} />
-                    <span className="font-bold" style={{ color: BLUE }}>↓</span>
-                    <span className="text-[10px] font-semibold text-ink-500">→ {nextKr.lb}</span>
-                    <span
-                      className="font-bold tabular-nums px-1.5 py-px rounded text-white flex-shrink-0"
-                      style={{ background: BLUE }}>
-                      {conv ?? 0}%
-                    </span>
-                    <span className="text-[10px] text-ink-400">转化率</span>
-                  </div>
-                )}
+                {/* 连接线 + 转化率 */}
+                {nextKr && (() => {
+                  const lowConv = conv !== null && conv < 50;
+                  return (
+                    <div className="flex items-center gap-1 pl-[56px] py-0.5 text-[11px] whitespace-nowrap">
+                      <div className="w-[2px] h-2 rounded-full" style={{ background: `${BLUE}40` }} />
+                      <span className="font-bold" style={{ color: BLUE }}>↓</span>
+                      <span
+                        className="font-bold tabular-nums"
+                        style={{ color: lowConv ? '#dc2626' : BLUE }}>
+                        {conv ?? 0}%
+                      </span>
+                      <span className="text-[10px]" style={{ color: lowConv ? '#f87171' : '#94a3b8' }}>
+                        转化率
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

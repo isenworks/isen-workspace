@@ -474,15 +474,16 @@ function ReadingFunnel({
   stageLabels,
   onStageLabelsChange,
 }) {
-  // 五层漏斗（严格真子集关系）：输入→思考→行动→改变→复盘
+  // 五层漏斗（严格真子集递减）：目标量 → 输入量 → 思考量 → 行动量 → 改变量
+  // 对应 ReadingFunnel 字段 total → done → notes → changes → reviews
   // 统一蓝色：全部使用计划总结页主色 #4b63f0
   const STAGE_COLORS = [color, color, color, color, color];
   const DEFAULT_STAGES = [
-    { key: 'total',   label: '输入量', sub: '已读完',   convLabel: '' },
-    { key: 'done',    label: '思考量', sub: '洞察组数',   convLabel: '' },
-    { key: 'notes',   label: '行动量', sub: '行动勾选',   convLabel: '' },
-    { key: 'changes', label: '改变量', sub: '改变记录',   convLabel: '' },
-    { key: 'reviews', label: '复盘量', sub: '已复盘',   convLabel: '' },
+    { key: 'total',   label: '目标量', sub: '年度目标',   convLabel: '' },
+    { key: 'done',    label: '输入量', sub: '已读完',   convLabel: '' },
+    { key: 'notes',   label: '思考量', sub: '洞察组数',   convLabel: '' },
+    { key: 'changes', label: '行动量', sub: '行动勾选',   convLabel: '' },
+    { key: 'reviews', label: '改变量', sub: '改变记录',   convLabel: '' },
   ];
   const countsByKey = { total, done, notes, changes, reviews };
   // stages 由【默认结构 + 自定义文字 + 外部count】合成；受控，不再自己 useState 存 label/sub/convLabel
@@ -516,18 +517,18 @@ function ReadingFunnel({
   // 转化率颜色：用目标层和源层的混合色
   const convColors = STAGE_COLORS;
 
-  // CTA 文案：根据各层数据动态生成"下一步建议"
+  // CTA 文案：根据各层数据动态生成"下一步建议"（目标量→输入量→思考量→行动量→改变量）
   const ctas = [
-    // ① 输入量：有未读完的书 → 提示读完
-    { idx: 0, show: total < 12, text: total === 0 ? '书架还没已读完的书，去完成第一本' : `还差 ${12 - total} 本，继续阅读` },
-    // ② 思考量：读完了但没输出洞察 → 提示提取（按条目级）
-    { idx: 1, show: done < total && total > 0, text: done === 0 ? '已读完的书还没写洞察，点击书籍添加' : `还差 ${Math.max(0, total * 2 - done)} 组洞察，继续输出思考` },
-    // ③ 行动量：有洞察但没转化承诺 → 提示生成（按条目级）
-    { idx: 2, show: notes < done && done > 0, text: notes === 0 ? '有洞察但没行动，生成你的第一条行动承诺' : `还差 ${Math.max(0, done - notes)} 项行动，勾选更多行动项` },
-    // ④ 改变量：有行动但没生成改变 → 提示创建
-    { idx: 3, show: changes < notes && notes > 0, text: changes === 0 ? '有承诺但没生成改变，创建你的第一条改变' : `还差 ${Math.max(0, notes - changes)} 条改变，记录你的改变` },
-    // ⑤ 复盘量：有改变但没完成复盘 → 提示坚持
-    { idx: 4, show: reviews < changes && changes > 0, text: reviews === 0 ? '有改变但没复盘，完成第一次复盘' : `${changes - reviews} 条改变还没完成复盘` },
+    // ① 目标量 → 输入量：未读完 → 提示阅读
+    { idx: 0, show: done < total && total > 0, text: done === 0 ? '书架还没已读完的书，去完成第一本' : `还差 ${total - done} 本，继续阅读` },
+    // ② 输入量 → 思考量：没写洞察 → 提示提取
+    { idx: 1, show: notes < done && done > 0, text: notes === 0 ? '已读完的书还没写洞察，点击书籍添加思考' : `还差 ${Math.max(0, done * 2 - notes)} 组洞察，继续输出思考` },
+    // ③ 思考量 → 行动量：没勾选 → 提示行动
+    { idx: 2, show: changes < notes && notes > 0, text: changes === 0 ? '有洞察但没行动，生成你的第一条行动承诺' : `还差 ${Math.max(0, notes - changes)} 项行动，勾选更多行动项` },
+    // ④ 行动量 → 改变量：没生成 → 提示记录
+    { idx: 3, show: reviews < changes && changes > 0, text: reviews === 0 ? '有承诺但没记录改变，创建你的第一条改变' : `还差 ${Math.max(0, changes - reviews)} 条改变，记录你的改变` },
+    // ⑤ （复盘量预留，目前 reviews 字段存的是改变量）
+    { idx: 4, show: false, text: '' },
   ];
 
   const Inner = (
@@ -3027,12 +3028,9 @@ function CognitionView({
     return out;
   }, [books]);
 
-  // 漏斗五层数据（条目级统计，与 KR 完全统一数据源）
-  // ① 输入量 = 已读完书籍数量
-  // ② 思考量 = 全部书籍中「核心触动+应用场景」完整填写的洞察条目总数
-  // ③ 行动量 = 全部书籍中已勾选(done)的思后行动条目总数
-  // ④ 改变量 = 独立changes + 书籍中已完成行动
-  // ⑤ 复盘量 = reviews 数组长度（已完成复盘数量）
+  // 漏斗五层数据（严格真子集递减 + 条目级统计，与 KR 完全统一数据源）
+  // ReadingFunnel 字段顺序 total → done → notes → changes → reviews
+  // → 对应语义： 目标量 → 输入量 → 思考量 → 行动量 → 改变量
   const funnelData = useMemo(() => {
     const dynBooks = (!books || books.length === 0) ? BOOKS : books;
     const dynKrs = krs || COG_KRS;
@@ -3049,42 +3047,57 @@ function CognitionView({
     // 改变量：独立changes + 书籍中已完成行动
     const fromBooksChanges = dynBooks.reduce((s, b) => s + ((b.actions || []).filter(a => a.done && a.text?.trim()).length), 0);
     const dynChanges = (changes || []).length + fromBooksChanges;
-    const dynReviews = reviews || [];
-    // 目标量 = KR0 的目标值
+    // 目标量 = KR0 的目标值（漏斗最顶层，始终最大）
     const kr0Target = (dynKrs && dynKrs[0])?.tgt ?? COG_KRS[0]?.tgt ?? 12;
     return {
-      total: kr0Target,          // ① 目标量：KR0 的目标值（默认12本）
-      doneBooksCount: doneBooks.length, // 保留实际已读完数量供 KR1 使用
-      done: insightEntryCount,  // ② 思考量：条目级洞察总数
-      notes: checkedActionCount, // ③ 行动量：条目级已勾选行动总数
-      changes: dynChanges,       // ④ 改变量：独立changes + 书籍中已完成行动
-      reviews: dynReviews.length, // ⑤ 复盘量：已复盘的改变数量
+      total: kr0Target,          // ① 目标量：KR0 目标值（12本，漏斗最顶层）
+      done: doneBooks.length,    // ② 输入量：已读完书籍数（< 目标量）
+      notes: insightEntryCount,  // ③ 思考量：洞察条目总数（< 输入量）
+      changes: checkedActionCount, // ④ 行动量：条目级已勾选行动总数（< 思考量）
+      reviews: dynChanges,       // ⑤ 改变量：独立changes + 书籍中已完成行动（< 行动量）
+      // 兼容字段：保留 KR1 读取时使用的单独字段
+      doneBooksCount: doneBooks.length,
+      reviewCount: (reviews || []).length, // 真实"复盘量"保留备用
     };
   }, [books, krs, changes, reviews]);
 
-  const finalKrs = (krs || COG_KRS).map(kr => {
-    // KR0（目标量）= 固定值，始终 100%（阅读目标设定值）
-    if (kr.id === 'kr0') {
-      return { ...kr, val: kr.tgt }; // 目标量 val = tgt，始终完成
-    }
-    // KR1（输入量）= 已读完书籍实际数量
-    if (kr.id === 'kr1') {
-      return { ...kr, val: funnelData.doneBooksCount };
-    }
-    // KR2（思考量）= 洞察条目总数
-    if (kr.id === 'kr2') {
-      return { ...kr, val: funnelData.done };
-    }
-    // KR3（行动量）= 已勾选行动条目总数
-    if (kr.id === 'kr3') {
-      return { ...kr, val: funnelData.notes };
-    }
-    // KR4（改变量）= 改变记录总数
-    if (kr.id === 'kr4') {
-      return { ...kr, val: funnelData.changes };
-    }
-    return kr;
-  });
+  const finalKrs = (() => {
+    // 强制排序：按 COG_KRS 默认顺序（目标量→输入量→思考量→行动量→改变量），
+    // 之后才是用户自定义 KR。修复旧数据 kr0/kr4 append 到尾部导致顺序错乱的问题。
+    const defaultOrder = COG_KRS.map(k => k.id);
+    const arr = [...(krs || COG_KRS)];
+    arr.sort((a, b) => {
+      const ai = defaultOrder.indexOf(a.id);
+      const bi = defaultOrder.indexOf(b.id);
+      if (ai >= 0 && bi >= 0) return ai - bi; // 两个都在默认集合里 → 按 COG_KRS 顺序
+      if (ai >= 0) return -1; // 只 a 在 → a 在前
+      if (bi >= 0) return 1;  // 只 b 在 → b 在前
+      return 0;               // 都不在 → 保持相对顺序
+    });
+    return arr.map(kr => {
+      // KR0（目标量）= 固定值，始终 100%（阅读目标设定值）
+      if (kr.id === 'kr0') {
+        return { ...kr, val: kr.tgt }; // 目标量 val = tgt，始终完成
+      }
+      // KR1（输入量）= 已读完书籍实际数量
+      if (kr.id === 'kr1') {
+        return { ...kr, val: funnelData.doneBooksCount };
+      }
+      // KR2（思考量）= 洞察条目总数
+      if (kr.id === 'kr2') {
+        return { ...kr, val: funnelData.done };
+      }
+      // KR3（行动量）= 已勾选行动条目总数
+      if (kr.id === 'kr3') {
+        return { ...kr, val: funnelData.notes };
+      }
+      // KR4（改变量）= 改变记录总数
+      if (kr.id === 'kr4') {
+        return { ...kr, val: funnelData.changes };
+      }
+      return kr;
+    });
+  })();
 
   const totalPct = useMemo(() => {
     if (!finalKrs.length) return 0;
@@ -3341,15 +3354,21 @@ function CognitionView({
           })}
         </div>
 
-        {/* ===== CTA 行动建议区 ===== */}
+        {/* ===== CTA 行动建议区（顺序：目标→输入→思考→行动→改变） ===== */}
         {(() => {
           const ctas = [
-            { show: finalKrs[1] && finalKrs[1].val < finalKrs[1].tgt && finalKrs[0] && finalKrs[0].val > 0,
-              text: finalKrs[1]?.val === 0 ? '📚 已读完的书还没写洞察，点击书籍添加思考' : `还差 ${Math.max(0, finalKrs[1].tgt - finalKrs[1].val)}${finalKrs[1]?.u}洞察，继续输出思考` },
-            { show: finalKrs[2] && finalKrs[2].val < finalKrs[2].tgt && finalKrs[1] && finalKrs[1].val > 0,
-              text: finalKrs[2]?.val === 0 ? '✅ 有思考但没行动，生成你的第一条行动承诺' : `还差 ${Math.max(0, finalKrs[2].tgt - finalKrs[2].val)}${finalKrs[2]?.u}行动，勾选更多行动项` },
-            { show: finalKrs[3] && finalKrs[3].val < finalKrs[3].tgt && finalKrs[2] && finalKrs[2].val > 0,
-              text: finalKrs[3]?.val === 0 ? '🔄 有行动但没记录改变，创建你的第一条改变' : `还差 ${Math.max(0, finalKrs[3].tgt - finalKrs[3].val)}${finalKrs[3]?.u}改变，记录你的改变` },
+            // ① 目标 → 输入：还差XX本读完
+            { show: finalKrs[1] && finalKrs[1].val < finalKrs[1].tgt,
+              text: finalKrs[1]?.val === 0 ? '📚 书架还没已读完的书，去完成第一本' : `还差 ${finalKrs[1].tgt - finalKrs[1].val}${finalKrs[1]?.u}读完，继续阅读` },
+            // ② 输入 → 思考：洞察不足
+            { show: finalKrs[2] && finalKrs[2].val < finalKrs[2].tgt && finalKrs[1]?.val > 0,
+              text: finalKrs[2]?.val === 0 ? '💡 已读完的书还没写洞察，点击书籍添加思考' : `还差 ${Math.max(0, finalKrs[2].tgt - finalKrs[2].val)}${finalKrs[2]?.u}洞察，继续输出思考` },
+            // ③ 思考 → 行动：行动不足
+            { show: finalKrs[3] && finalKrs[3].val < finalKrs[3].tgt && finalKrs[2]?.val > 0,
+              text: finalKrs[3]?.val === 0 ? '✅ 有洞察但没行动，生成你的第一条行动承诺' : `还差 ${Math.max(0, finalKrs[3].tgt - finalKrs[3].val)}${finalKrs[3]?.u}行动，勾选更多行动项` },
+            // ④ 行动 → 改变：改变不足
+            { show: finalKrs[4] && finalKrs[4].val < finalKrs[4].tgt && finalKrs[3]?.val > 0,
+              text: finalKrs[4]?.val === 0 ? '🔄 有承诺但没记录改变，创建你的第一条改变' : `还差 ${Math.max(0, finalKrs[4].tgt - finalKrs[4].val)}${finalKrs[4]?.u}改变，记录你的改变` },
           ];
           const visibleCtas = ctas.filter(c => c.show);
           if (visibleCtas.length === 0) return null;

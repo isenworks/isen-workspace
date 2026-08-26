@@ -4515,17 +4515,17 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
             <path d="M9 5l7 7-7 7"/>
           </svg>
           <span className="w-[4px] h-[16px] rounded-full flex-shrink-0" style={{ background: AB }}></span>
-          <span className="text-[10.5px] font-extrabold tabular-nums flex-shrink-0 w-[18px] text-center" style={{ color: AB }}>
+          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 w-[22px] text-right tabular-nums leading-none" style={{ color: AB_COLOR }}>
             {String(as.idx + 1).padStart(2, '0')}
           </span>
           {/* 范式徽章：显眼 10px + 边框 + 图标 */}
           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md flex-shrink-0 text-[10px] font-bold border"
-            style={{ borderColor: `${AB}50`, background: `${AB}12`, color: AB }}>
+            style={{ borderColor: `${AB_COLOR}50`, background: `${AB_COLOR}12`, color: AB_COLOR }}>
             <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinejoin="round">{m.icon}</svg>
             {m.lb}
           </span>
-          <span className="inline-flex items-center text-[8.5px] font-bold px-1 py-[0.5px] rounded bg-ink-100 text-ink-500 flex-shrink-0">O</span>
-          <span className="text-[12.5px] font-bold text-ink-900 truncate min-w-0 flex-1">{a.title}</span>
+          <span className="inline-flex items-center text-[9px] font-bold px-1 py-[0.5px] rounded bg-ink-100 text-ink-500 flex-shrink-0">O</span>
+          <span className="text-[13px] font-semibold text-ink-800 leading-none truncate min-w-0 flex-1">{a.title}</span>
           {as.trendDelta !== null && (
             <span className={`text-[9.5px] font-bold flex-shrink-0 ${as.trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {as.trendDelta >= 0 ? '↑' : '↓'}{Math.abs(as.trendDelta)}%
@@ -4570,7 +4570,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
             <div className="h-full rounded-full absolute left-0 top-0 opacity-80"
               style={{ width: `${as.avgPct}%`, background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB, mixBlendMode: 'multiply' }}>
             </div>
-            <div className="absolute inset-0 flex items-center justify-between px-1 text-[8.5px] font-bold pointer-events-none leading-none">
+            <div className="absolute inset-0 flex items-center justify-between px-1 text-[9px] font-bold pointer-events-none leading-none">
               <span className="text-ink-500">⏱{as.timePct ?? '—'}%</span>
               <span style={{ color: AB }}>🎯{as.avgPct}%</span>
             </div>
@@ -4625,7 +4625,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
       <div className="flex flex-col pt-1 pb-0.5 pl-[22px]">
         {/* 表头（压缩：# 18 / 里程碑 flex / 进度条+% 合并 / 截止 54） */}
         <div className="flex items-center gap-1.5 px-1 py-1 rounded-t-lg bg-ink-50/50 text-[9px] font-bold text-ink-500">
-          <div className="w-[18px] text-center">#</div>
+          <div className="w-[20px] text-right">#</div>
           <div className="flex-1 min-w-0 pl-0.5">里程碑</div>
           <div className="w-[62px] flex-shrink-0 pl-1">进度</div>
           <div className="w-[54px] text-right pr-0.5 flex-shrink-0">截止</div>
@@ -4642,10 +4642,10 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
               <div
                 key={m.id || i}
                 onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
-                className="flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
+                className="flex items-center gap-1.5 px-1 py-1 rounded-xl hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
               >
-                <div className="w-[18px] text-center flex-shrink-0">
-                  <span className="text-[10px] font-extrabold tabular-nums text-ink-500">{String(i + 1).padStart(2, '0')}</span>
+                <div className="w-[20px] text-right flex-shrink-0">
+                  <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: AB_COLOR }}>{String(i + 1).padStart(2, '0')}</span>
                 </div>
                 <div className="flex-1 min-w-0 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }}></span>
@@ -4674,7 +4674,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
               <div
                 key={m.id || `done-${i}`}
                 onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
-                className="flex items-center gap-1.5 px-1 py-0.5 rounded-md hover:bg-ink-50/40 cursor-pointer transition-colors opacity-65"
+                className="flex items-center gap-1.5 px-1 py-0.5 rounded-lg hover:bg-ink-50/40 cursor-pointer transition-colors opacity-65"
               >
                 <div className="w-[18px] text-center flex-shrink-0">
                   <span className="inline-grid place-items-center w-3.5 h-3.5 rounded-full mx-auto" style={{ background: 'rgba(34,197,94,0.15)' }}>
@@ -4705,13 +4705,13 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
   return (
     <div className="flex flex-col gap-4">
       {/* ===== Hero ===== */}
-      <div className="glass-card p-4">
+      <div className="glass-card p-5">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: AB_COLOR }}></span>
-          <span className="text-[15px] font-bold text-ink-900 leading-none">{year}年 · 能力成长</span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
+          <span className="text-[16px] font-bold leading-none text-ink-900">{year}年 · 能力成长</span>
           <div className="flex items-center gap-2 flex-wrap ml-1">
             {heroStats.earliest !== null && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-ink-50">
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.25)' }}>
                 <span className="text-[10px] font-bold text-ink-400">最近截止</span>
                 <span className={`text-[11.5px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
                   {daysLabel(heroStats.earliest).text}
@@ -4719,51 +4719,52 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
               </div>
             )}
             {heroStats.risk > 0 && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)' }}>
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444' }}></span>
                 <span className="text-[10px] font-bold text-rose-500">严重落后</span>
-                <span className="text-[12px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
               </div>
             )}
             {heroStats.warn > 0 && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)' }}>
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }}></span>
                 <span className="text-[10px] font-bold text-amber-500">略落后</span>
-                <span className="text-[12px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
               </div>
             )}
             {heroStats.pending > 0 && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.12)' }}>
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#94a3b8' }}></span>
                 <span className="text-[10px] font-bold text-slate-500">未启动里程碑</span>
-                <span className="text-[12px] font-extrabold tabular-nums leading-none text-slate-600">{heroStats.pending}</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-slate-600">{heroStats.pending}</span>
               </div>
             )}
             {heroStats.overdue > 0 && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50">
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
-                <span className="text-[11px] font-bold text-rose-500">过期能力 {heroStats.overdue}</span>
+                <span className="text-[10px] font-bold text-rose-500">过期能力</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.overdue}</span>
               </div>
             )}
             {heroStats.risk === 0 && heroStats.warn === 0 && heroStats.pending === 0 && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50">
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
-                <span className="text-[11px] font-bold text-emerald-600">能力推进节奏正常</span>
+                <span className="text-[10px] font-bold text-emerald-600">能力推进节奏正常</span>
               </div>
             )}
           </div>
           <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('annual-open-ability-add'))}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#f59e0b,#f97316)', color: '#fff', boxShadow: '0 1px 3px rgba(245,158,11,0.30)' }}>
+              className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
+              style={{ background: 'rgba(245,158,11,0.10)', color: '#f59e0b' }}>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               添加能力
             </button>
             <button
               onClick={() => onStartAssessment?.()}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98]"
-              style={{ background: AB_COLOR, color: '#fff' }}>
+              className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
+              style={{ background: 'rgba(245,158,11,0.10)', color: '#f59e0b' }}>
               本月自评
             </button>
           </div>
@@ -4775,7 +4776,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
         {dynAb.map((a, i) => {
           const as = abilityStats[i];
           return (
-            <div key={a.id || a.title + i} className="glass-card p-2.5 flex flex-col">
+            <div key={a.id || a.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3 flex flex-col">
               {renderObjective(a, as)}
               {renderMilestoneRows(a, as, i)}
             </div>
@@ -4790,7 +4791,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
 function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
-  const BLUE = '#4b63f0';
+  const RED = '#ef4444';
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {
@@ -4865,20 +4866,20 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
       <div className="flex flex-col gap-2 px-1 py-2.5 border-b border-ink-100">
         {/* R1：色条 + 分类标签 + 范式徽章 + O + 标题 | 截止 */}
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg flex-shrink-0 text-[10.5px] font-bold"
             style={{ background: `${color}15`, color }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
             {gs.label}
           </span>
-          {/* 范式徽章：11px + 图标 + 边框高亮，不再挤在标题后 */}
+          {/* 范式徽章：11px + 图标 + 边框高亮，统一 RED */}
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md flex-shrink-0 text-[10.5px] font-bold border"
-            style={{ borderColor: `${color}40`, background: `${color}0D`, color }}>
+            style={{ borderColor: '#ef444440', background: '#ef44440D', color: '#ef4444' }}>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinejoin="round">{m.icon}</svg>
             {m.lb}
           </span>
           <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-[1px] rounded bg-ink-100 text-ink-500 flex-shrink-0">O</span>
-          <span className="text-[13.5px] font-bold text-ink-900 truncate min-w-0 flex-1">{o.title}</span>
+          <span className="text-[14px] font-semibold text-ink-800 leading-none truncate min-w-0 flex-1">{o.title}</span>
           <span className={`text-[10.5px] font-semibold flex-shrink-0 ${gs.dl.cls}`}>📅{gs.dl.text}</span>
         </div>
         {/* R2：双条 + KR 计数 + 风险 */}
@@ -4923,7 +4924,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
       <div className="flex flex-col pt-1.5">
         {/* 表头（压缩列宽：# 20 / KR 88 / 进度 flex-1 / % 34 / 数 44） */}
         <div className="flex items-center gap-2 px-1 py-1 rounded-t-lg bg-ink-50/50 text-[10px] font-bold text-ink-500">
-          <div className="w-[20px] text-center">#</div>
+          <div className="w-[22px] text-right">#</div>
           <div className="w-[88px] pl-0.5">KR</div>
           <div className="flex-1 min-w-0 flex items-center justify-center">漏斗</div>
           <div className="w-[34px] text-right pr-0.5">%</div>
@@ -4937,7 +4938,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           const done = kr.st === 'done';
           const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct };
           const rm = calcRisk(krPct, microTA.timePct, done);
-          const statusDot = done ? '#22c55e' : kr.st === 'doing' ? COLOR : '#c7c7cc';
+          const statusDot = done ? '#22c55e' : kr.st === 'doing' ? RED : '#c7c7cc';
           const krId = kr.id || `${goalIdx}-${i}`;
           const ma = microActions?.[krId] || [];
           const maDone = ma.filter(x => x.done).length;
@@ -4954,9 +4955,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           if (done) {
             return (
               <div key={i} className="flex flex-col">
-                <div className="flex items-center gap-2 px-1 py-1.5 rounded-lg hover:bg-ink-50/60 cursor-pointer transition-colors"
+                <div className="flex items-center gap-2 px-1 py-1.5 rounded-xl hover:bg-ink-50/60 cursor-pointer transition-colors"
                   onClick={() => onKrEdit?.(goalIdx, i, kr)}>
-                  <div className="w-[20px] text-center">
+                  <div className="w-[22px] text-right">
                     <span className="inline-grid place-items-center w-4 h-4 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}>
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </span>
@@ -4974,7 +4975,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                     <span className="text-[10.5px] font-extrabold tabular-nums text-accent-green">100%</span>
                   </div>
                   <div className="w-[44px] text-right pr-0.5">
-                    <span className="text-[10.5px] font-bold tabular-nums text-ink-400">{kr.v}/{kr.tgt}</span>
+                    <span className="text-[10.5px] font-bold tabular-nums text-ink-700">{kr.v}</span>
+                    <span className="text-[9px] font-medium text-ink-400">/</span>
+                    <span className="text-[9.5px] font-medium tabular-nums text-ink-500">{kr.tgt}</span>
                   </div>
                 </div>
               </div>
@@ -4983,16 +4986,16 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
 
           return (
             <div key={i} className="flex flex-col">
-              <div className="flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-ink-50/60 cursor-pointer transition-colors"
+              <div className="flex items-center gap-2 px-1 py-1 rounded-xl hover:bg-ink-50/60 cursor-pointer transition-colors"
                 onClick={() => onKrEdit?.(goalIdx, i, kr)}>
-                <div className="w-[20px] text-center">
-                  <span className="text-[10.5px] font-extrabold tabular-nums" style={{ color: COLOR, opacity: 0.9 }}>
+                <div className="w-[22px] text-right tabular-nums leading-none">
+                  <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: '#ef4444' }}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
                 <div className="w-[88px] pl-0.5 min-w-0 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusDot }}></span>
-                  <span className="text-[10.5px] font-semibold text-ink-800 truncate leading-tight">{kr.t}</span>
+                  <span className="text-[11.5px] font-semibold text-ink-800 truncate leading-tight">{kr.t}</span>
                 </div>
                 <div className="flex-1 min-w-0 h-[20px] rounded overflow-hidden relative" style={{ background: `${COLOR}10` }}>
                   <div className="h-full" style={{ width: `${krPct}%`, background: statusDot }}></div>
@@ -5011,11 +5014,11 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 </div>
                 <div className="w-[44px] text-right pr-0.5 flex items-center justify-end gap-0.5">
                   <span className="text-[10.5px] font-bold tabular-nums text-ink-700">{kr.v}</span>
-                  <span className="text-[9px] text-ink-300">/</span>
-                  <span className="text-[9.5px] font-semibold tabular-nums text-ink-500">{kr.tgt}</span>
+                  <span className="text-[9px] font-medium text-ink-400">/</span>
+                  <span className="text-[9.5px] font-medium tabular-nums text-ink-500">{kr.tgt}</span>
                   {canBreakdown && (
                     <button
-                      className="text-[8.5px] font-bold px-0.5 py-[1px] rounded transition -mr-0.5"
+                      className="text-[9px] font-bold px-0.5 py-[1px] rounded transition -mr-0.5"
                       style={{ background: rm.color + '22', color: rm.color }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -5030,7 +5033,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
 
               {nextKr && nextKr.st !== 'done' && (
                 <div className="flex items-center gap-2 px-1 py-0.5 text-[10px]">
-                  <div className="w-[20px]"></div>
+                  <div className="w-[22px]"></div>
                   <div className="w-[88px] pl-[24px] flex items-center">
                     <svg className="w-2.5 h-2.5" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 5v14M5 12l7 7 7-7" />
@@ -5096,7 +5099,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
             return (
               <div
                 key={i}
-                className="glass-card px-3 py-3 hover:border-accent-blue/30 transition cursor-pointer"
+                className="bg-white rounded-2xl border border-ink-100 px-3 py-3 hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow cursor-pointer"
                 onClick={() => onKrEdit?.(goalIdx, i, kr)}
                 style={{
                   borderLeft: `3px solid ${rm.color}`,
@@ -5106,7 +5109,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: rm.color }}></span>
-                    <span className="text-[11.5px] font-bold text-ink-800 truncate leading-tight">{kr.t}</span>
+                    <span className="text-[11.5px] font-semibold text-ink-800 truncate leading-tight">{kr.t}</span>
                   </div>
                   <button
                     className="text-[9.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap transition flex-shrink-0"
@@ -5123,8 +5126,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 {/* 中部：当前/目标大数字 + 进度条 */}
                 <div className="flex items-baseline gap-1 mb-1.5">
                   <span className="text-[18px] font-extrabold tabular-nums text-ink-900 leading-none">{kr.v}</span>
-                  <span className="text-[11px] text-ink-400 font-medium">/</span>
-                  <span className="text-[11px] font-semibold text-ink-500 tabular-nums">{kr.tgt}</span>
+                  <span className="text-[11px] font-medium text-ink-400">/</span>
+                  <span className="text-[11px] font-medium text-ink-500 tabular-nums">{kr.tgt}</span>
                   <span className="ml-auto text-[12px] font-extrabold tabular-nums leading-none" style={{ color: rm.color }}>
                     {krPct}%
                   </span>
@@ -5197,7 +5200,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           return (
             <div
               key={i}
-              className="flex items-center gap-3 px-1 py-2 rounded-lg hover:bg-ink-50/60 cursor-pointer border-b border-ink-100 last:border-b-0 transition-colors"
+              className="flex items-center gap-3 px-1 py-2 rounded-xl hover:bg-ink-50/60 cursor-pointer border-b border-ink-100 last:border-b-0 transition-colors"
               onClick={() => onKrEdit?.(goalIdx, i, kr)}
             >
               {/* 门编号 + 连接线：未通过 空心→半实；通过 实心绿 */}
@@ -5217,11 +5220,11 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
               </div>
               {/* 里程碑标题（O 的阶段子项） */}
               <div className="flex-1 min-w-0 pl-1">
-                <div className={`text-[12px] font-bold truncate leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                <div className={`text-[11.5px] font-semibold truncate leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
                   {kr.t}
                 </div>
                 {!isDone && kr.v !== undefined && kr.tgt && (
-                  <div className="text-[9.5px] text-ink-400 font-medium mt-0.5 truncate">
+                  <div className="text-[9.5px] font-medium text-ink-400 mt-0.5 truncate">
                     当前进展 {kr.v}/{kr.tgt} · {rm.label}
                   </div>
                 )}
@@ -5245,7 +5248,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 )}
               </div>
               {/* 截止 */}
-              <div className={`w-[56px] text-right pr-1 text-[10.5px] font-semibold tabular-nums ${dueLbl.cls}`}>
+              <div className={`w-[56px] text-right pr-1 text-[10.5px] font-medium tabular-nums ${dueLbl.cls}`}>
                 {dueLbl.text}
               </div>
             </div>
@@ -5275,50 +5278,51 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
   return (
     <div className="flex flex-col gap-4">
       {/* ===== Hero：风险锚点 + 添加目标入口 ===== */}
-      <div className="glass-card p-4">
+      <div className="glass-card p-5">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
-          <span className="text-[15px] font-bold text-ink-900 leading-none">{year}年 · 工作 OKR</span>
+          <span className="text-[16px] font-bold leading-none text-ink-900">{year}年 · 工作 OKR</span>
           <div className="flex items-center gap-2 flex-wrap ml-1">
             {heroStats.earliest !== null && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-ink-50">
-                <span className="text-[9.5px] font-bold text-ink-400">最近截止</span>
-                <span className={`text-[11px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.25)' }}>
+                <span className="text-[10px] font-bold text-ink-400">最近截止</span>
+                <span className={`text-[11.5px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
                   {daysLabel(heroStats.earliest).text}
                 </span>
               </div>
             )}
             {heroStats.risk > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)' }}>
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444' }}></span>
-                <span className="text-[9.5px] font-bold text-rose-500">落后</span>
+                <span className="text-[10px] font-bold text-rose-500">落后</span>
                 <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
               </div>
             )}
             {heroStats.warn > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)' }}>
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }}></span>
-                <span className="text-[9.5px] font-bold text-amber-500">预警</span>
+                <span className="text-[10px] font-bold text-amber-500">预警</span>
                 <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
               </div>
             )}
             {heroStats.overdue > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50">
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
-                <span className="text-[10.5px] font-bold text-rose-500">过期{heroStats.overdue}</span>
+                <span className="text-[10px] font-bold text-rose-500">过期</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.overdue}</span>
               </div>
             )}
             {heroStats.total === 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50">
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
-                <span className="text-[10.5px] font-bold text-emerald-600">节奏正常</span>
+                <span className="text-[10px] font-bold text-emerald-600">节奏正常</span>
               </div>
             )}
           </div>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('annual-open-work-goal'))}
-            className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg,#ef4444,#f97316)', color: '#fff', boxShadow: '0 1px 3px rgba(239,68,68,0.28)' }}>
+            className="ml-auto inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
+            style={{ background: 'rgba(239,68,68,0.10)', color: '#ef4444' }}>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             添加目标
           </button>
@@ -5330,7 +5334,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
         {dynWk.map((o, i) => {
           const gs = goalStats[i];
           return (
-            <div key={o.id || o.title + i} className="glass-card p-3.5 flex flex-col">
+            <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col">
               {renderObjective(o, gs)}
               {renderByMode(o, gs, i)}
             </div>

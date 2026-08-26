@@ -84,6 +84,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
   const contentColRef = useRef(null);
+  // 拉伸进行中标记：避免手柄 mousedown 误触发方块整体 drag
+  const isResizingRef = useRef(false);
 
   function load() {
     const cacheKey = `tl:${range.from}:${range.to}:${date}`;
@@ -295,6 +297,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   function startResize(e, eventInfo, type) {
     e.preventDefault();
     e.stopPropagation();
+    isResizingRef.current = true;
     const startY = e.clientY;
     const startTopPx = eventInfo.top;     // 事件顶部像素（相对 contentCol 顶部=06:00）
     const startHeightPx = eventInfo.hPx; // 事件高度像素
@@ -304,59 +307,51 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     const initialStartMin = TL_BASE_MIN + Math.round(startTopPx / TL_PX_PER_MIN);
     const initialEndMin = TL_BASE_MIN + Math.round((startTopPx + startHeightPx) / TL_PX_PER_MIN);
 
+    // 闭包内最新态：onMove 写入，onUp 读取（绕过 React state 闭包陷阱）
+    let latest = null;
+
     function onMove(ev) {
       const deltaY = ev.clientY - startY;
       const deltaMin = Math.round(deltaY / TL_PX_PER_MIN);
 
       if (type === 'top') {
-        // 拉伸上边缘：开始时间变，结束时间也跟着 deltaY 走（底边缘锚定不变）
+        // 拉伸上边缘：顶边随鼠标，底边缘像素锚定不动（endMin = initialEndMin 保持不变）
         let newStartMin = snapMin(initialStartMin + deltaMin);
-        // 上边缘不能超过下边缘（至少留 15min）
+        // 最小 15min 时长保护：上边缘不能超过下边缘
         newStartMin = Math.min(initialEndMin - 15, newStartMin);
+        newStartMin = Math.max(0, newStartMin);
         const newStart = fmtHHMM(newStartMin);
-
-        // 底边缘锚定：end 保持初始位置 + 拖动位移
-        let newEndMin = snapMin(initialEndMin + deltaMin);
-        newEndMin = Math.min(24 * 60, newEndMin);
-        const newEnd = fmtHHMM(newEndMin);
+        const newEnd = fmtHHMM(initialEndMin);
 
         const newTop = Math.max(0, minToPx(newStartMin));
-        const newHPx = Math.max(22, minToPx(newEndMin) - minToPx(newStartMin));
+        const newHPx = Math.max(22, minToPx(initialEndMin) - minToPx(newStartMin));
 
-        setResizingEvent({
-          ...eventInfo,
-          top: newTop,
-          hPx: newHPx,
-          tempStart: newStart,
-          tempEnd: newEnd,
-        });
+        latest = { ...eventInfo, top: newTop, hPx: newHPx, tempStart: newStart, tempEnd: newEnd };
+        setResizingEvent(latest);
       } else {
-        // 拉伸下边缘：顶边缘不动，只改变结束时间
+        // 拉伸下边缘：顶边缘锚定不动（startMin = initialStartMin），底边随鼠标
         let newEndMin = snapMin(initialEndMin + deltaMin);
         newEndMin = Math.max(initialStartMin + 15, Math.min(24 * 60, newEndMin));
         const newEnd = fmtHHMM(newEndMin);
 
-        const newHPx = Math.max(22, minToPx(newEndMin) - startTopPx);
+        const newHPx = Math.max(22, minToPx(newEndMin) - minToPx(initialStartMin));
 
-        setResizingEvent({
-          ...eventInfo,
-          top: startTopPx,
-          hPx: newHPx,
-          tempStart: fmtHHMM(initialStartMin),
-          tempEnd: newEnd,
-        });
+        latest = { ...eventInfo, top: minToPx(initialStartMin), hPx: newHPx, tempStart: fmtHHMM(initialStartMin), tempEnd: newEnd };
+        setResizingEvent(latest);
       }
     }
 
     function onUp() {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      isResizingRef.current = false;
 
-      if (resizingEvent && !item.isHabit && !item.isFixed) {
+      // 读闭包内最新态（而非 React state 的旧闭包值）
+      if (latest && !item.isHabit && !item.isFixed) {
         const updates = {};
-        if (resizingEvent.tempStart) updates.start_time = resizingEvent.tempStart;
-        if (resizingEvent.tempEnd) updates.end_time = resizingEvent.tempEnd;
-        updates.duration_min = Math.round(resizingEvent.hPx / TL_PX_PER_MIN);
+        if (latest.tempStart) updates.start_time = latest.tempStart;
+        if (latest.tempEnd) updates.end_time = latest.tempEnd;
+        updates.duration_min = Math.round(latest.hPx / TL_PX_PER_MIN);
 
         API.schedules.update(item.id, updates).then(() => {
           setSchedules(ss => ss.map(x => x.id === item.id ? { ...x, ...updates } : x));
@@ -918,6 +913,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 ? `${resizingEvent.tempStart || subText.split('–')[0].trim()} – ${resizingEvent.tempEnd || subText.split('–')[1].trim().split('·')[0].trim()} · ${Math.round(displayH)}m`
                 : subText;
 
+              const canDragBlock = !isFixed && !item.isHabit && !item.isTask;
+
               return (
                 <div
                   key={ev.id}
@@ -928,6 +925,23 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     left: 0,
                     right: `${rightOffsetPx}px`,
                     backgroundImage: inlineBg,
+                    cursor: canDragBlock ? 'grab' : 'default',
+                  }}
+                  draggable={canDragBlock}
+                  onDragStart={(e) => {
+                    // 拉伸手柄 mousedown 中：取消整体拖动
+                    if (isResizingRef.current) { e.preventDefault(); return; }
+                    const dur = getEffectiveDur(item) || 30;
+                    const data = {
+                      title: item.title,
+                      category: item.category || getCat(item),
+                      emoji: item.emoji || '',
+                      duration_min: dur,
+                      isPreset: false,
+                      scheduleId: item.id,
+                    };
+                    e.dataTransfer.setData('application/json', JSON.stringify(data));
+                    e.dataTransfer.effectAllowed = 'move';
                   }}
                   onClick={handleEdit}
                   onContextMenu={(e) => {
@@ -945,6 +959,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        isResizingRef.current = true;
                         startResize(e, ev, 'top');
                       }}
                       title="拖动调整开始时间"
@@ -986,6 +1001,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        isResizingRef.current = true;
                         startResize(e, ev, 'bottom');
                       }}
                       title="拖动调整结束时间"

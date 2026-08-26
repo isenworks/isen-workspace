@@ -3397,7 +3397,7 @@ function CognitionView({
       <div className="xl:col-span-6 flex flex-col min-h-0">
       {/* ===== 书架看板 ===== */}
       <div className="bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col flex-1 min-h-0">
-        {/* Header 单行三段式：左(色条+标题+共N本横排) · 中(操作按钮) · 右(Tabs) */}
+        {/* Header 单行三段式：左(色条+标题+共N本+Tabs) · 右(操作按钮) */}
         <div className="flex items-center gap-3 mb-2 flex-wrap">
           {/* 左：色条 + 标题 + 共 N 本（横排，不换行）*/}
           <div className="flex items-center gap-3.5 flex-shrink-0">
@@ -3417,8 +3417,51 @@ function CognitionView({
             </span>
           </div>
 
-          {/* 中：操作按钮组（放到 Tab 前面）*/}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* 中：Tab 筛选按钮组（左对齐）*/}
+          {(() => {
+            const TABS = [
+              { key: 'reading',   lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT,    books: groups.reading },
+              { key: 'pending',   lb: '未开始',   col: '#64748b',  bg: '#f1f5f9',      books: groups.pending },
+              { key: 'done',      lb: '已读完',   col: '#22c55e',  bg: '#dcfce7',      books: groups.done },
+              { key: 'abandoned', lb: '所有',     col: '#64748b',  bg: '#f1f5f9',      books: groups.abandoned },
+            ];
+            return (
+              <div className="flex items-center gap-1 flex-1 justify-start min-w-[200px] max-w-full">
+                {TABS.map(t => {
+                  const active = shelfTab === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => setShelfTab(t.key)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150`}
+                      style={{
+                        background: active ? t.bg : 'transparent',
+                        color: active ? t.col : '#64748b',
+                        fontWeight: active ? 700 : 500,
+                        fontSize: '11.5px',
+                        boxShadow: active ? `inset 0 0 0 1px ${t.col}22` : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
+                      }}>
+                      <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
+                        style={{ background: active ? t.col + '22' : 'rgba(148,163,184,0.22)' }}>
+                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
+                      </span>
+                      <span>{t.lb}</span>
+                      <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
+                        style={{
+                          background: active ? '#ffffff' : 'rgba(15,23,42,0.05)',
+                          color: active ? t.col : '#64748b',
+                        }}>
+                        {t.books.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* 右：操作按钮组（右对齐）*/}
+          <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
             <button onClick={doWereadSync} disabled={wereadSyncing}
               className="inline-flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold rounded-lg transition disabled:opacity-50"
               style={{ background: wereadCfgOk ? '#e0f2fe' : BLUE_LIGHT, color: wereadCfgOk ? '#0284c7' : BLUE }}
@@ -3452,49 +3495,6 @@ function CognitionView({
               添加
             </button>
           </div>
-
-          {/* 右：Tab 筛选按钮组（放到操作按钮后面）*/}
-          {(() => {
-            const TABS = [
-              { key: 'reading',   lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT,    books: groups.reading },
-              { key: 'pending',   lb: '未开始',   col: '#64748b',  bg: '#f1f5f9',      books: groups.pending },
-              { key: 'done',      lb: '已读完',   col: '#22c55e',  bg: '#dcfce7',      books: groups.done },
-              { key: 'abandoned', lb: '所有',     col: '#64748b',  bg: '#f1f5f9',      books: groups.abandoned },
-            ];
-            return (
-              <div className="flex items-center gap-1 flex-1 justify-end min-w-[200px] max-w-full">
-                {TABS.map(t => {
-                  const active = shelfTab === t.key;
-                  return (
-                    <button
-                      key={t.key}
-                      onClick={() => setShelfTab(t.key)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150`}
-                      style={{
-                        background: active ? t.bg : 'transparent',
-                        color: active ? t.col : '#64748b',
-                        fontWeight: active ? 700 : 500,
-                        fontSize: '11.5px',
-                        boxShadow: active ? `inset 0 0 0 1px ${t.col}22` : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
-                      }}>
-                      <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
-                        style={{ background: active ? t.col + '22' : 'rgba(148,163,184,0.22)' }}>
-                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
-                      </span>
-                      <span>{t.lb}</span>
-                      <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
-                        style={{
-                          background: active ? '#ffffff' : 'rgba(15,23,42,0.05)',
-                          color: active ? t.col : '#64748b',
-                        }}>
-                        {t.books.length}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
         </div>
         {/* 单列主内容：只渲染当前选中 shelfTab 这一栏 */}
         {(() => {

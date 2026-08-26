@@ -3336,23 +3336,18 @@ function CognitionView({
                   </div>
                 </div>
 
-                {/* 连接线 + 转化率（除最后一行，内嵌对齐） */}
+                {/* 连接线 + 转化率（语义化：箭头→下一层名称→转化率） */}
                 {nextKr && (
                   <div className="flex items-center gap-1.5 pl-[56px] py-0.5 text-[11px] whitespace-nowrap">
-                    <div className="flex flex-col items-center">
-                      <div className="w-[2px] h-2 rounded-full" style={{ background: `${BLUE}66` }} />
-                    </div>
-                    <svg className="w-3 h-3 flex-shrink-0" style={{ color: BLUE }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <div className="w-[2px] h-2 rounded-full" style={{ background: `${BLUE}66` }} />
+                    <span className="font-bold" style={{ color: BLUE }}>↓</span>
+                    <span className="text-[10px] font-semibold text-ink-500">→ {nextKr.lb}</span>
                     <span
-                      className="font-bold tabular-nums px-2 py-px rounded-md flex-shrink-0"
-                      style={{ color: BLUE, background: `${BLUE}15` }}>
-                      {conv ?? 0}% 转化
+                      className="font-bold tabular-nums px-1.5 py-px rounded text-white flex-shrink-0"
+                      style={{ background: BLUE }}>
+                      {conv ?? 0}%
                     </span>
-                    <span className="text-[10.5px] text-ink-400">
-                      {nextKr.sub || krType || '→ '}
-                    </span>
+                    <span className="text-[10px] text-ink-400">转化率</span>
                   </div>
                 )}
               </div>
@@ -3360,35 +3355,44 @@ function CognitionView({
           })}
         </div>
 
-        {/* ===== CTA 行动建议区（顺序：目标→输入→思考→行动→改变） ===== */}
+        {/* ===== 关键瓶颈提示：自动分析最低转化率环节 ===== */}
         {(() => {
-          const ctas = [
-            // ① 目标 → 输入：还差XX本读完
-            { show: finalKrs[1] && finalKrs[1].val < finalKrs[1].tgt,
-              text: finalKrs[1]?.val === 0 ? '📚 书架还没已读完的书，去完成第一本' : `还差 ${finalKrs[1].tgt - finalKrs[1].val}${finalKrs[1]?.u}读完，继续阅读` },
-            // ② 输入 → 思考：思考条目不足
-            { show: finalKrs[2] && finalKrs[2].val < finalKrs[2].tgt && finalKrs[1]?.val > 0,
-              text: finalKrs[2]?.val === 0 ? '💡 已读完的书还没写思考，点击书籍添加思考' : `还差 ${Math.max(0, finalKrs[2].tgt - finalKrs[2].val)}${finalKrs[2]?.u}思考，继续输出思考` },
-            // ③ 思考 → 行动：行动计划不足
-            { show: finalKrs[3] && finalKrs[3].val < finalKrs[3].tgt && finalKrs[2]?.val > 0,
-              text: finalKrs[3]?.val === 0 ? '✅ 有思考但没行动，生成你的第一条行动计划' : `还差 ${Math.max(0, finalKrs[3].tgt - finalKrs[3].val)}${finalKrs[3]?.u}行动，勾选更多行动计划` },
-            // ④ 行动 → 改变：改变不足
-            { show: finalKrs[4] && finalKrs[4].val < finalKrs[4].tgt && finalKrs[3]?.val > 0,
-              text: finalKrs[4]?.val === 0 ? '🔄 有行动计划但没记录改变，创建你的第一条改变' : `还差 ${Math.max(0, finalKrs[4].tgt - finalKrs[4].val)}${finalKrs[4]?.u}改变，记录你的改变` },
-          ];
-          const visibleCtas = ctas.filter(c => c.show);
-          if (visibleCtas.length === 0) return null;
+          // 计算每一层到下一层的转化率
+          const stageNames = ['目标量', '输入量', '思考量', '行动量', '改变量'];
+          const conversions = [];
+          for (let i = 0; i < finalKrs.length - 1; i++) {
+            const curr = finalKrs[i], next = finalKrs[i + 1];
+            if (!curr || !next || !curr.val || curr.val <= 0) continue;
+            const rate = Math.round((next.val / curr.val) * 100);
+            conversions.push({ from: stageNames[i], to: stageNames[i + 1], rate, fromVal: curr.val, toVal: next.val });
+          }
+          if (conversions.length === 0) return null;
+          // 找到最低转化率
+          const minConv = conversions.reduce((a, b) => a.rate < b.rate ? a : b);
+          // 构建提示文案
+          const tips = [];
+          if (minConv.rate < 50) {
+            tips.push(`从「${minConv.from}」到「${minConv.to}」转化率仅 ${minConv.rate}%，是当前最大瓶颈`);
+          }
+          // 给出具体建议
+          const suggestions = [];
+          if (minConv.to === '输入量') suggestions.push('读完更多书籍，补充已读完的库存量');
+          else if (minConv.to === '思考量') suggestions.push('对已读完的书补充核心触动与应用场景');
+          else if (minConv.to === '行动量') suggestions.push('将思考转化为可执行的行动计划');
+          else if (minConv.to === '改变量') suggestions.push('将行动计划落地，记录真实改变');
+
           return (
-            <div className="mt-3 pt-3 border-t border-ink-100">
-              <div className="text-[11px] font-semibold text-ink-500 mb-1">💡 下一步建议</div>
-              <div className="flex flex-wrap gap-1">
-                {visibleCtas.map((c, i) => (
-                  <span key={i} className="text-[11px] px-2 py-0.5 rounded-md"
-                    style={{ color: BLUE, background: `${BLUE}10` }}>
-                    {c.text}
-                  </span>
-                ))}
-              </div>
+            <div className="flex items-center gap-2 mt-2 pt-2.5 pb-1 px-3 rounded-lg"
+              style={{ background: `${BLUE}08`, border: `1px solid ${BLUE}15` }}>
+              <span className="text-[14px]">🔍</span>
+              <span className="text-[11px] font-bold text-ink-700 flex-shrink-0">关键瓶颈：</span>
+              <span className="text-[11px] text-ink-600">
+                从「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.from}</span>」
+                到「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.to}</span>」
+                转化率
+                <span style={{ color: '#dc2626', fontWeight: 800 }}> {minConv.rate}% </span>
+                — {suggestions[0]}
+              </span>
             </div>
           );
         })()}

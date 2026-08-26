@@ -3230,11 +3230,11 @@ function CognitionView({
             return (
               <div key={kr.id || idx}>
                 {/* KR Row = 漏斗阶段 */}
-                <div className="flex items-center gap-3 py-1.5 px-1 rounded-lg hover:bg-surface-soft transition-colors">
+                <div className="flex items-center gap-5 py-1.5 px-1 rounded-lg hover:bg-surface-soft transition-colors">
                   {/* 左侧：编号 + 标签（压缩：150px） */}
                   <div className="flex items-center gap-1.5 w-[150px] flex-shrink-0">
                     <span
-                      className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none pt-[2px]"
+                      className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none"
                       style={{ color: BLUE }}>
                       {padNum}
                     </span>
@@ -3277,7 +3277,7 @@ function CognitionView({
                             onDelete={() => { const def = COG_KRS.find(k => k.id === kr.id)?.lb || ''; onKrEdit?.({ ...kr, lb: def }); }}
                             onEditClick={() => openEditKrModal(kr)}
                             mode="contextmenu"
-                            className="text-[13px] font-semibold text-ink-700 truncate leading-tight group-hover:text-ink-900"
+                            className="text-[13px] font-semibold text-ink-700 truncate leading-none group-hover:text-ink-900"
                             inputClassName="text-[13px] font-semibold text-ink-700 w-40"
                             title="右键编辑KR（弹窗）"
                             placeholder="填写KR标题"
@@ -3288,7 +3288,7 @@ function CognitionView({
                   </div>
 
                   {/* 中部：漏斗进度条（核心视觉） */}
-                  <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <div className="flex-1 flex items-center min-w-0">
                     <div className="flex-1 h-[22px] rounded-lg overflow-hidden bg-ink-50 relative">
                       <div
                         className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
@@ -3335,7 +3335,7 @@ function CognitionView({
 
                 {/* 连接线 + 转化率（除最后一行） */}
                 {nextKr && (
-                  <div className="flex items-center gap-1.5 pl-[70px] py-1 text-[11px] whitespace-nowrap">
+                  <div className="flex items-center gap-1.5 pl-[78px] py-1 text-[11px] whitespace-nowrap">
                     <div className="flex flex-col items-center">
                       <div className="w-[2px] h-2 rounded-full" style={{ background: `${BLUE}66` }} />
                     </div>

@@ -3216,6 +3216,14 @@ function CognitionView({
 
         {/* ===== 一体化漏斗：每个 KR 行 = 一个漏斗阶段 ===== */}
         <div className="flex flex-col flex-1 min-h-0">
+          {/* 列标题行 */}
+          <div className="flex items-center gap-3 px-1 pb-1.5 text-[10px] font-semibold text-ink-400 uppercase tracking-wide border-b border-ink-50 mb-1">
+            <span className="w-[22px] text-right">#</span>
+            <span className="w-[106px]">KR 目标</span>
+            <span className="flex-1 text-center">漏斗进度</span>
+            <span className="w-[42px] text-right">完成率</span>
+            <span className="w-[56px] text-right">当前/目标</span>
+          </div>
           {finalKrs.map((kr, idx) => {
             const p = pct(kr.val, kr.tgt);
             const nextKr = finalKrs[idx + 1];
@@ -3230,9 +3238,9 @@ function CognitionView({
             return (
               <div key={kr.id || idx}>
                 {/* KR Row = 漏斗阶段 */}
-                <div className="flex items-center gap-5 py-1.5 px-1 rounded-lg hover:bg-surface-soft transition-colors">
-                  {/* 左侧：编号 + 标签（压缩：150px） */}
-                  <div className="flex items-center gap-1.5 w-[150px] flex-shrink-0">
+                <div className="flex items-center gap-3 py-1.5 px-1 rounded-lg hover:bg-surface-soft transition-colors">
+                  {/* 左侧：编号 + 标签 */}
+                  <div className="flex items-center gap-1.5 w-[130px] flex-shrink-0">
                     <span
                       className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none"
                       style={{ color: BLUE }}>
@@ -3287,9 +3295,9 @@ function CognitionView({
                     </div>
                   </div>
 
-                  {/* 中部：漏斗进度条（核心视觉） */}
+                  {/* 中部：漏斗进度条（核心视觉，min-width 保证视觉锚点） */}
                   <div className="flex-1 flex items-center min-w-0">
-                    <div className="flex-1 h-[22px] rounded-lg overflow-hidden bg-ink-50 relative">
+                    <div className="flex-1 h-[22px] rounded-lg overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
                       <div
                         className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
                         style={{
@@ -3308,34 +3316,21 @@ function CognitionView({
                     </div>
                   </div>
 
-                  {/* 右侧：数据区 */}
-                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0 w-[110px]">
-                    {/* Row 1: 大%数字 */}
-                    <div className="flex items-baseline leading-none">
-                      <span
-                        className="text-[16px] font-extrabold tabular-nums leading-none"
-                        style={{ color: isDone ? '#111827' : BLUE }}>
-                        {p}
-                      </span>
-                      <span
-                        className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5"
-                        style={{ color: isDone ? '#111827' : BLUE }}>
-                        %
-                      </span>
-                    </div>
-                    {/* Row 2: val / tgt + u */}
-                    <div className="flex items-baseline leading-none">
-                      <span className="text-[12px] font-semibold tabular-nums text-ink-700">{kr.val}</span>
-                      <span className="text-[12px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
-                      <span className="text-[12px] font-medium tabular-nums text-ink-500">{kr.tgt}</span>
-                      <span className="text-[12px] font-medium tabular-nums text-ink-400 ml-0.5">{kr.u}</span>
-                    </div>
+                  {/* 右侧：百分比 + val/tgt 单行平铺 */}
+                  <div className="flex items-baseline gap-2 flex-shrink-0">
+                    <span className="text-[14px] font-extrabold tabular-nums leading-none w-[42px] text-right"
+                      style={{ color: isDone ? '#111827' : BLUE }}>
+                      {p}<span className="text-[11px] font-bold">%</span>
+                    </span>
+                    <span className="text-[11px] font-semibold tabular-nums text-ink-700 w-[56px] text-right leading-none">
+                      {kr.val}<span className="text-ink-300 mx-[2px] font-normal">/</span><span className="text-ink-500 font-medium">{kr.tgt}</span><span className="text-ink-400 ml-0.5 text-[10px]">{kr.u}</span>
+                    </span>
                   </div>
                 </div>
 
-                {/* 连接线 + 转化率（除最后一行） */}
+                {/* 连接线 + 转化率（除最后一行，内嵌对齐） */}
                 {nextKr && (
-                  <div className="flex items-center gap-1.5 pl-[78px] py-1 text-[11px] whitespace-nowrap">
+                  <div className="flex items-center gap-1.5 pl-[56px] py-0.5 text-[11px] whitespace-nowrap">
                     <div className="flex flex-col items-center">
                       <div className="w-[2px] h-2 rounded-full" style={{ background: `${BLUE}66` }} />
                     </div>

@@ -186,57 +186,84 @@ function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar })
   });
 }
 
-/* 能力 */
+/* 能力
+ * mode: 'milestone'（默认，里程碑门）| 'kpi' | 'balance'
+ * createdAt / deadline / completedAt：时间追踪四件套
+ * 里程碑条目级 dueBy：可选（微截止）
+ */
 const ABILITY = [
   {
     title: '英语口语',
     score: '4',
     daily: '每日30min Shadowing + Anki背20词',
+    mode: 'milestone',
+    createdAt: '2026-01-15',
+    deadline: '2026-12-31',
+    completedAt: null,
     mstones: [
-      { lb: '通过 BEC Vantage 考试', st: 'doing', pct: 40 },
-      { lb: '独立完成 1 次英文面试', st: 'pending', pct: 0 },
+      { lb: '通过 BEC Vantage 考试', st: 'doing', pct: 40, dueBy: '2026-10-15' },
+      { lb: '独立完成 1 次英文面试', st: 'pending', pct: 0, dueBy: '2026-09-01' },
     ],
   },
   {
     title: '结构化表达',
     score: '5',
     daily: '每周1次演讲练习 + 写作300字',
+    mode: 'milestone',
+    createdAt: '2026-01-20',
+    deadline: '2026-12-31',
+    completedAt: null,
     mstones: [
-      { lb: '读完《金字塔原理》', st: 'done', pct: 100 },
-      { lb: '上台分享 3 次', st: 'doing', pct: 33 },
+      { lb: '读完《金字塔原理》', st: 'done', pct: 100, dueBy: '2026-04-30' },
+      { lb: '上台分享 3 次', st: 'doing', pct: 33, dueBy: '2026-09-30' },
     ],
   },
   {
     title: '写作输出',
     score: '3',
     daily: '小红书周更1篇 · 公众号月更2篇',
+    mode: 'milestone',
+    createdAt: '2026-02-01',
+    deadline: '2026-12-31',
+    completedAt: null,
     mstones: [
-      { lb: '完成 12 篇深度长文', st: 'pending', pct: 0 },
-      { lb: '累计粉丝破 5000', st: 'pending', pct: 0 },
+      { lb: '完成 12 篇深度长文', st: 'pending', pct: 0, dueBy: '2026-12-15' },
+      { lb: '累计粉丝破 5000', st: 'pending', pct: 0, dueBy: '2026-12-31' },
     ],
   },
 ];
 
-/* 工作 */
+/* 工作
+ * mode: 'funnel'（求职默认，漏斗）| 'dashboard'（仪表盘·原名KPI仪表盘）
+ *       | 'milestone'（里程碑门）| 'balance'（平衡雷达·辅助）
+ * createdAt / deadline / completedAt：时间追踪四件套
+ * kr 条目级 dueBy：可选（微截止）
+ */
 const WORK = [
   {
     core: true, label: '主业', title: '用户运营offer，薪资≥20k',
-    deadline: '9月30日',
+    mode: 'funnel',
+    createdAt: '2026-07-15',
+    deadline: '2026-09-30',
+    completedAt: null,
     krs: [
-      { t: '简历投递 50(份)', v: 20, tgt: 50, st: 'doing' },
-      { t: '面试通过 10(个)', v: 5,  tgt: 10, st: 'doing' },
-      { t: '复盘总结 3(个)', v: 0,  tgt: 3,  st: 'tg' },
-      { t: '拿意向 Offer 1(个)', v: 0, tgt: 1, st: 'tg' },
-      { t: '薪资达标 1(项)', v: 1, tgt: 1, st: 'done' },
+      { t: '简历投递 50(份)', v: 20, tgt: 50, st: 'doing', dueBy: '2026-08-31' },
+      { t: '面试通过 10(个)', v: 5,  tgt: 10, st: 'doing', dueBy: '2026-09-15' },
+      { t: '复盘总结 3(个)', v: 0,  tgt: 3,  st: 'tg',    dueBy: '2026-09-20' },
+      { t: '拿意向 Offer 1(个)', v: 0, tgt: 1, st: 'tg', dueBy: '2026-09-25' },
+      { t: '薪资达标 1(项)', v: 1, tgt: 1, st: 'done', dueBy: '2026-09-30' },
     ],
   },
   {
     core: false, label: '副业', title: '小红书「小憨熊」涨粉+变现',
-    deadline: '12月31日',
+    mode: 'dashboard', // KPI 仪表盘：3 个独立指标
+    createdAt: '2026-06-01',
+    deadline: '2026-12-31',
+    completedAt: null,
     krs: [
-      { t: '周更内容 50(条)', v: 12,  tgt: 50,  st: 'doing' },
-      { t: '粉丝增长 5000(粉)', v: 800, tgt: 5000, st: 'doing' },
-      { t: '商业合作 1(个)', v: 0,    tgt: 1,    st: 'tg' },
+      { t: '周更内容 50(条)', v: 12,  tgt: 50,  st: 'doing', dueBy: '2026-12-31' },
+      { t: '粉丝增长 5000(粉)', v: 800, tgt: 5000, st: 'doing', dueBy: '2026-12-31' },
+      { t: '商业合作 1(个)', v: 0,    tgt: 1,    st: 'tg',    dueBy: '2026-11-30' },
     ],
   },
 ];
@@ -269,17 +296,108 @@ const LIFE = [
 /* ---------- 2. 工具函数 ---------- */
 const pct = (v, t) => (t > 0 ? Math.min(100, Math.round((v / t) * 100)) : 0);
 const statusMeta = (st) => {
-  // 语义色 (STATUS) 独立于品牌色，避免「绿色=精力/完成」「红色=工作/紧急」双关
   switch (st) {
-    case 'done':    return { lb: '已完成',  tagCls: 'bg-accent-green/10 text-accent-green',  numBg: 'bg-accent-green/10 text-accent-green',  bar: 'bg-accent-green'  };
-    case 'doing':   return { lb: '进行中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: 'bg-accent-blue'   };
-    case 'reading': return { lb: '阅读中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: 'bg-accent-blue'   };
-    case 'tg':      return { lb: '待启动',  tagCls: 'bg-ink-100 text-ink-500',               numBg: 'bg-ink-100 text-ink-500',               bar: 'bg-ink-200'       };
-    case 'pending': return { lb: '未开始',  tagCls: 'bg-ink-100 text-ink-500',               numBg: 'bg-ink-100 text-ink-500',               bar: 'bg-ink-200'       };
+    case 'done':    return { lb: '已完成',  tagCls: 'bg-accent-green/10 text-accent-green',  numBg: 'bg-accent-green/10 text-accent-green',  bar: '#22c55e'  };
+    case 'doing':   return { lb: '进行中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: '#4b63f0'   };
+    case 'reading': return { lb: '阅读中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: '#4b63f0'   };
+    case 'tg':      return { lb: '待启动',  tagCls: 'bg-ink-100 text-ink-500',               numBg: 'bg-ink-100 text-ink-500',               bar: '#c7c7cc'       };
+    case 'pending': return { lb: '未开始',  tagCls: 'bg-ink-100 text-ink-500',               numBg: 'bg-ink-100 text-ink-500',               bar: '#c7c7cc'       };
     default:        return { lb: '',        tagCls: '', numBg: '', bar: '' };
   }
 };
 const catMeta = (key) => CATEGORIES.find(c => c.key === key) || CATEGORIES[0];
+
+/* 时间解析：同时支持 '2026-09-30' (ISO) 和 '9月30日' (中文化) 以及 '09/30' 简写 */
+const parseDate = (s) => {
+  if (!s) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const year = today.getFullYear();
+  // ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map(Number);
+    const t = new Date(y, m - 1, d); t.setHours(0,0,0,0); return t;
+  }
+  // 中文 9月30日 / 9月30
+  const m = String(s).match(/(\d{1,2})\s*月\s*(\d{1,2})/);
+  if (m) {
+    const mm = Number(m[1]) - 1, dd = Number(m[2]);
+    let t = new Date(year, mm, dd); t.setHours(0,0,0,0);
+    if (t < today - 86400000 * 180) t = new Date(year + 1, mm, dd);
+    return t;
+  }
+  // MM/DD 或 MM.DD
+  const m2 = String(s).match(/^(\d{1,2})[\/\.\-](\d{1,2})$/);
+  if (m2) {
+    const mm = Number(m2[1]) - 1, dd = Number(m2[2]);
+    let t = new Date(year, mm, dd); t.setHours(0,0,0,0);
+    if (t < today - 86400000 * 180) t = new Date(year + 1, mm, dd);
+    return t;
+  }
+  return null;
+};
+
+/* 给定 createdAt/startedAt + deadline，返回剩余天数、时间进度百分比
+ * 两者都不传或解析失败 → { days: null, timePct: null }（不显示时间锚点）
+ */
+const calcTimeAnchor = (deadlineStr, createdStr) => {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = parseDate(deadlineStr);
+  const start = parseDate(createdStr) || (target ? new Date(target.getFullYear(), 0, 1) : null);
+  if (!target || !start) return { days: null, timePct: null };
+  const total = Math.max(1, target - start);
+  const elapsed = Math.max(0, Math.min(total, today - start));
+  const days = Math.ceil((target - today) / 86400000);
+  return { days, timePct: Math.round((elapsed / total) * 100) };
+};
+
+/* 风险计算：actualPct (实际%) vs timePct (预期按时间推进%)
+ *   已完成/满 = done 绿
+ *   actual - time <= -20 → risk 严重落后红
+ *   actual - time <= -5  → warn 略落后橙
+ *   actual - time >= 20  → ahead 超前绿
+ *   其余 normal 正常
+ *   没有 timePct（无deadline/createdAt）→ 只基于 actual 区间判断
+ */
+const calcRisk = (actualPct, timePct, isDone) => {
+  if (isDone || actualPct >= 100) return { q: 'done', label: '已完成', color: '#22c55e' };
+  if (timePct !== null && timePct !== undefined) {
+    const diff = actualPct - timePct;
+    if (diff <= -20) return { q: 'risk', label: '严重落后', color: '#ef4444' };
+    if (diff <= -5)  return { q: 'warn', label: '略落后',   color: '#f59e0b' };
+    if (diff >= 20)  return { q: 'ahead',label: '超前',     color: '#10b981' };
+    return { q: 'normal', label: '正常', color: '#3b82f6' };
+  }
+  // 无时间锚点：退化到按 actual 粗判
+  if (actualPct <= 20) return { q: 'risk', label: '严重落后', color: '#ef4444' };
+  if (actualPct <= 50) return { q: 'warn', label: '推进中',   color: '#f59e0b' };
+  if (actualPct >= 90) return { q: 'ahead',label: '超前',     color: '#10b981' };
+  return { q: 'normal', label: '正常', color: '#3b82f6' };
+};
+
+/* 剩余天数展示：剩X天 / 过期X天 / 长期（当 null） */
+const daysLabel = (days) => {
+  if (days === null || days === undefined) return { text: '长期', cls: 'text-ink-400', urgent: false, overdue: false };
+  if (days < 0)  return { text: `过期${Math.abs(days)}天`, cls: 'text-rose-500', urgent: false, overdue: true };
+  if (days === 0) return { text: '今日截止', cls: 'text-rose-500', urgent: true, overdue: false };
+  if (days <= 30) return { text: `剩${days}天`, cls: 'text-amber-500', urgent: true, overdue: false };
+  return { text: `剩${days}天`, cls: 'text-ink-500', urgent: false, overdue: false };
+};
+
+/* 目标模式兜底：当 mode 缺失时基于关键字 & 内容自动推断
+ * 工作默认 funnel（求职场景）；能力默认 milestone
+ */
+const inferMode = (obj, type) => {
+  if (obj?.mode) return obj.mode;
+  if (type === 'ability') return 'milestone';
+  // work
+  const title = obj?.title || '';
+  const krText = (obj?.krs || []).map(k => k.t).join(' ');
+  const hay = `${title} ${krText}`;
+  if (/试用|转正|入职|季度|绩效|KPI|业务指标/.test(title)) return 'dashboard';
+  if (/第.?阶段|阶段.?门|专题|项目|里程碑|晋升|冲刺/.test(hay)) return 'milestone';
+  if (/投递|面试|offer|简历|招聘|简历|销售|投放|漏斗/.test(hay)) return 'funnel';
+  return 'funnel';
+};
 
 /* ---------- 共享组件 ---------- */
 function CategoryIcon({ catKey, className }) {
@@ -4283,6 +4401,9 @@ function CognitionView({
 function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const [editingScoreIdx, setEditingScoreIdx] = useState(null);
+  const [expandedAbilities, setExpandedAbilities] = useState(() => new Set(dynAb.map((_, i) => i)));
+  const year = new Date().getFullYear();
+  const AB_COLOR = '#f59e0b';
 
   const scoreColor = (s) => {
     const n = Number(s) || 0;
@@ -4296,10 +4417,10 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
     const hist = scoreHistory?.[abId] || {};
     const curScore = Number(ab.score) || 0;
     const curYM = new Date().toISOString().slice(0,7);
-    const year = new Date().getFullYear();
+    const dataYear = new Date().getFullYear();
     const series = [];
     for (let m = 1; m <= 12; m++) {
-      const ym = `${year}-${String(m).padStart(2,'0')}`;
+      const ym = `${dataYear}-${String(m).padStart(2,'0')}`;
       const v = hist[ym];
       if (v !== undefined && v !== null) series.push(Number(v));
       else if (ym <= curYM) series.push(curScore);
@@ -4308,159 +4429,353 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
     return series;
   };
 
-  const abPct = useMemo(() => {
-    const total = dynAb.reduce((s, a) => {
-      const msAvg = a.mstones.length > 0 ? a.mstones.reduce((t, m) => t + m.pct, 0) / a.mstones.length : 0;
-      return s + msAvg;
-    }, 0);
-    return Math.round(total / dynAb.length);
+  /* ===== 能力级派生统计 ===== */
+  const abilityStats = useMemo(() => {
+    return dynAb.map((a, idx) => {
+      const mode = inferMode(a, 'ability');
+      const mstones = a.mstones || [];
+      const mPcts = mstones.map(m => m.pct || 0);
+      const avgPct = mstones.length ? Math.round(mPcts.reduce((s,p)=>s+p,0) / mstones.length) : 0;
+      const { days, timePct } = calcTimeAnchor(a.deadline, a.createdAt);
+      const rm = calcRisk(avgPct, timePct, mstones.length && mstones.every(m => m.st === 'done'));
+
+      const risks = { risk: 0, warn: 0, ahead: 0, normal: 0, done: 0, pending: 0 };
+      mstones.forEach((m, i) => {
+        const mPct = mPcts[i];
+        const microTA = m.dueBy ? calcTimeAnchor(m.dueBy, a.createdAt || m.dueBy) : { timePct };
+        if (m.st === 'pending' && mPct === 0) { risks.pending++; return; }
+        const mrm = calcRisk(mPct, microTA.timePct, m.st === 'done');
+        risks[mrm.q] = (risks[mrm.q] || 0) + 1;
+      });
+
+      const series = getHistorySeries(a);
+      const lastScore = series[series.length - 1];
+      const firstScore = series[0];
+      const trendDelta = series.length >= 2 && firstScore !== undefined && firstScore > 0
+        ? Math.round(((lastScore - firstScore) / firstScore) * 100) : null;
+
+      return {
+        mode, idx, avgPct, rm, days, timePct, risks,
+        dl: daysLabel(days), trendDelta,
+        mTotal: mstones.length,
+        mDone: mstones.filter(m => m.st === 'done').length,
+      };
+    });
   }, [dynAb]);
 
-  const year = new Date().getFullYear();
+  /* ===== Hero 全局风险锚点 ===== */
+  const heroStats = useMemo(() => {
+    let risk = 0, warn = 0, pending = 0, overdue = 0, urgent = 0;
+    abilityStats.forEach(as => {
+      risk += as.risks.risk || 0;
+      warn += as.risks.warn || 0;
+      pending += as.risks.pending || 0;
+      if (as.dl.overdue) overdue++;
+      if (as.dl.urgent) urgent++;
+    });
+    let earliest = null;
+    abilityStats.forEach(as => {
+      if (as.days === null || as.days < 0) return;
+      if (earliest === null || as.days < earliest) earliest = as.days;
+    });
+    return { risk, warn, pending, overdue, urgent, earliest };
+  }, [abilityStats]);
+
+  const toggleExpand = (idx) => {
+    setExpandedAbilities(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  };
+
+  /* ===== O 统领层组件 ===== */
+  const renderObjective = (a, as) => {
+    const lagBehind = as.timePct !== null && as.avgPct < as.timePct;
+    const isExpanded = expandedAbilities.has(as.idx);
+    const modeLabelMap = {
+      funnel: '漏斗', dashboard: '仪表盘', milestone: '里程碑门', balance: '平衡雷达',
+    };
+    return (
+      <div
+        className="flex items-center gap-3 px-1 py-3 border-b border-ink-100 cursor-pointer select-none hover:bg-ink-50/40 transition-colors rounded-lg"
+        onClick={() => toggleExpand(as.idx)}
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <svg className={`w-3.5 h-3.5 text-ink-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 5l7 7-7 7"/>
+          </svg>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: AB_COLOR }}></span>
+          <span className="text-[11.5px] font-extrabold tabular-nums flex-shrink-0 w-[22px] text-center" style={{ color: AB_COLOR }}>
+            {String(as.idx + 1).padStart(2, '0')}
+          </span>
+          <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-[1px] rounded bg-ink-100 text-ink-500">O</span>
+              <span className="text-[14px] font-bold text-ink-900 truncate min-w-0">{a.title}</span>
+              <span className="tag tag-n" style={{ fontSize: '9px', padding: '1px 5px' }}>{modeLabelMap[as.mode] || as.mode}</span>
+              {as.trendDelta !== null && (
+                <span className={`text-[10px] font-bold flex-shrink-0 ${as.trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {as.trendDelta >= 0 ? '↑' : '↓'}{Math.abs(as.trendDelta)}%
+                </span>
+              )}
+            </div>
+            <div className="text-[11px] text-ink-500 font-medium truncate min-w-0 leading-tight">{a.daily}</div>
+          </div>
+        </div>
+
+        {/* 评分 + 双条 */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex-shrink-0 w-[64px]" onClick={e => e.stopPropagation()}>
+            {editingScoreIdx === as.idx ? (
+              <div className="flex items-center gap-1 justify-end">
+                <input type="range" min="0" max="10" step="1" defaultValue={a.score}
+                  style={{ accentColor: scoreColor(a.score), width: '56px' }}
+                  onChange={e => {
+                    const n = Number(e.target.value);
+                    const el = document.getElementById('ab-score-' + as.idx);
+                    if (el) el.textContent = n;
+                  }}
+                  onMouseUp={e => {
+                    onSetScore?.(as.idx, Number(e.target.value));
+                    setEditingScoreIdx(null);
+                  }}
+                />
+                <span id={'ab-score-' + as.idx} className="text-[12px] font-bold tabular-nums" style={{ color: scoreColor(a.score) }}>{a.score}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-end gap-1 cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(as.idx)}>
+                <span className="text-[17px] font-extrabold tabular-nums leading-none" style={{ color: scoreColor(a.score) }}>{a.score}</span>
+                <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: scoreColor(a.score), opacity: 0.7 }}>/10</span>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-0.5" style={{ width: '80px' }}>
+            <div className="flex items-center justify-between text-[9px] font-bold leading-none">
+              <span className="text-ink-400">时间</span>
+              <span className="tabular-nums text-ink-500">{as.timePct ?? '—'}%</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-ink-100 overflow-hidden">
+              <div className="h-full rounded-full bg-ink-300" style={{ width: `${as.timePct ?? 0}%` }}></div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5" style={{ width: '80px' }}>
+            <div className="flex items-center justify-between text-[9px] font-bold leading-none">
+              <span style={{ color: AB_COLOR }}>进度</span>
+              <span className="tabular-nums" style={{ color: AB_COLOR }}>{as.avgPct}%</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full" style={{ background: `${AB_COLOR}15` }}>
+              <div className="h-full rounded-full transition-all"
+                style={{
+                  background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB_COLOR,
+                  width: `${as.avgPct}%`
+                }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        {/* 右：截止 + 里程碑数 + 风险 */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className={`text-[11px] font-semibold ${as.dl.cls}`}>📅 {as.dl.text}</div>
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-ink-50 text-[10.5px] font-bold">
+            <span className="text-ink-400">里程碑</span>
+            <span className="tabular-nums text-ink-700">{as.mDone}/{as.mTotal}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {(as.risks.risk || 0) > 0 && (
+              <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
+                落后{as.risks.risk}
+              </span>
+            )}
+            {(as.risks.warn || 0) > 0 && (
+              <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+                预警{as.risks.warn}
+              </span>
+            )}
+            {(as.risks.pending || 0) > 0 && (
+              <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums" style={{ background: 'rgba(148,163,184,0.15)', color: '#64748b' }}>
+                未启{as.risks.pending}
+              </span>
+            )}
+            {(as.risks.risk || 0) === 0 && (as.risks.warn || 0) === 0 && as.mTotal > 0 && as.mDone === as.mTotal && (
+              <span className="tag tag-g" style={{ fontSize: '10px' }}>全部达成</span>
+            )}
+            {(as.risks.risk || 0) === 0 && (as.risks.warn || 0) === 0 && as.mDone < as.mTotal && (
+              <span className="tag tag-b" style={{ fontSize: '10px' }}>节奏正常</span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ===== 里程碑列表渲染 ===== */
+  const renderMilestoneRows = (a, as, abilityIdx) => {
+    const mstones = a.mstones || [];
+    const isExpanded = expandedAbilities.has(abilityIdx);
+    if (!isExpanded) return null;
+
+    const items = mstones.map((m, i) => {
+      const mPct = m.pct || 0;
+      const microTA = m.dueBy ? calcTimeAnchor(m.dueBy, a.createdAt || m.dueBy) : { timePct: as.timePct };
+      const mrm = calcRisk(mPct, microTA.timePct, m.st === 'done');
+      const pending = m.st === 'pending' && mPct === 0;
+      const sortKey = pending ? 2 : (mrm.q === 'done' ? 4 : (mrm.q === 'risk' ? 0 : (mrm.q === 'warn' ? 1 : 3)));
+      return { m, i, mPct, mrm, microTA, pending, sortKey };
+    });
+    const sorted = [...items].sort((a, b) => a.sortKey - b.sortKey);
+    const active = sorted.filter(x => x.mrm.q !== 'done');
+    const done = sorted.filter(x => x.mrm.q === 'done');
+
+    return (
+      <div className="flex flex-col pt-1.5 pb-1 pl-[34px]">
+        {/* 表头 */}
+        <div className="flex items-center gap-3 px-1 py-1.5 rounded-t-lg bg-ink-50/50 text-[11px] font-bold text-ink-500">
+          <div className="w-[22px] text-center">#</div>
+          <div className="flex-1 min-w-0 pl-1">里程碑 · 关键节点</div>
+          <div style={{ width: '150px' }} className="flex-shrink-0">进度</div>
+          <div style={{ width: '80px' }} className="text-right pr-1 flex-shrink-0">截止</div>
+        </div>
+
+        {active.length === 0 && done.length > 0 ? (
+          <div className="text-[11px] text-ink-400 text-center py-3">全部里程碑已达成 🎉</div>
+        ) : (
+          active.map(({ m, i, mPct, mrm, pending }) => {
+            const dotColor = pending ? '#c7c7cc' : (m.st === 'doing' ? AB_COLOR : mrm.color);
+            const dueDays = m.dueBy ? calcTimeAnchor(m.dueBy, a.createdAt || m.dueBy).days : null;
+            const dueLbl = daysLabel(dueDays);
+            return (
+              <div
+                key={m.id || i}
+                onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
+                className="flex items-center gap-3 px-1 py-1.5 rounded-lg hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
+              >
+                <div className="w-[22px] text-center">
+                  <span className="text-[11px] font-extrabold tabular-nums text-ink-500">{String(i + 1).padStart(2, '0')}</span>
+                </div>
+                <div className="flex-1 min-w-0 pl-1 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }}></span>
+                  <span className="text-[11.5px] font-semibold text-ink-800 truncate leading-tight">{m.lb}</span>
+                </div>
+                <div style={{ width: '150px' }} className="flex-shrink-0 flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${mPct}%`, background: mrm.color }}></div>
+                  </div>
+                  <span className="text-[10.5px] font-bold tabular-nums flex-shrink-0 w-[32px] text-right" style={{ color: mrm.color }}>
+                    {mPct}%
+                  </span>
+                </div>
+                <div style={{ width: '80px' }} className="text-right pr-1 flex-shrink-0">
+                  <span className={`text-[10.5px] font-bold ${dueLbl.cls}`}>{dueLbl.text}</span>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* 已完成折叠区 */}
+        {done.length > 0 && (
+          <div className="flex flex-col mt-1 pt-1 border-t border-dashed border-ink-100">
+            {done.map(({ m, i }) => (
+              <div
+                key={m.id || `done-${i}`}
+                onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
+                className="flex items-center gap-3 px-1 py-1 rounded-lg hover:bg-ink-50/40 cursor-pointer transition-colors opacity-70"
+              >
+                <div className="w-[22px] text-center">
+                  <span className="inline-grid place-items-center w-4 h-4 rounded-full mx-auto" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0 pl-1">
+                  <span className="text-[11.5px] text-ink-400 line-through truncate font-semibold">{m.lb}</span>
+                </div>
+                <div style={{ width: '150px' }} className="flex-shrink-0 flex items-center justify-end gap-2">
+                  <span className="text-[10.5px] font-bold tabular-nums text-accent-green">100%</span>
+                </div>
+                <div style={{ width: '80px' }} className="text-right pr-1 flex-shrink-0">
+                  <span className="text-[10.5px] font-bold text-ink-400">已完成</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-2 pt-1 pl-[25px]">
+          <AddButton compact label="添加里程碑" onClick={(e) => { e.stopPropagation(); onMsAdd?.(abilityIdx); }} />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 全局汇总（整宽） */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-2.5">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 能力成长</span>
-          <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
-            style={{ background: 'rgba(245,158,11,0.12)' }}>
-            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#f59e0b' }}>{abPct}</span>
-            <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(245,158,11,0.85)' }}>%</span>
+      {/* ===== Hero ===== */}
+      <div className="glass-card p-4">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: AB_COLOR }}></span>
+          <span className="text-[15px] font-bold text-ink-900 leading-none">{year}年 · 能力成长</span>
+          <div className="flex items-center gap-2 flex-wrap ml-1">
+            {heroStats.earliest !== null && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-ink-50">
+                <span className="text-[10px] font-bold text-ink-400">最近截止</span>
+                <span className={`text-[11.5px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
+                  {daysLabel(heroStats.earliest).text}
+                </span>
+              </div>
+            )}
+            {heroStats.risk > 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444' }}></span>
+                <span className="text-[10px] font-bold text-rose-500">严重落后</span>
+                <span className="text-[12px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
+              </div>
+            )}
+            {heroStats.warn > 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }}></span>
+                <span className="text-[10px] font-bold text-amber-500">略落后</span>
+                <span className="text-[12px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
+              </div>
+            )}
+            {heroStats.pending > 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.12)' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#94a3b8' }}></span>
+                <span className="text-[10px] font-bold text-slate-500">未启动里程碑</span>
+                <span className="text-[12px] font-extrabold tabular-nums leading-none text-slate-600">{heroStats.pending}</span>
+              </div>
+            )}
+            {heroStats.overdue > 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <span className="text-[11px] font-bold text-rose-500">过期能力 {heroStats.overdue}</span>
+              </div>
+            )}
+            {heroStats.risk === 0 && heroStats.warn === 0 && heroStats.pending === 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
+                <span className="text-[11px] font-bold text-emerald-600">能力推进节奏正常</span>
+              </div>
+            )}
           </div>
           <button
             onClick={() => onStartAssessment?.()}
             className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98]"
-            style={{ background: '#f59e0b', color: '#fff' }}>
+            style={{ background: AB_COLOR, color: '#fff' }}>
             本月自评
           </button>
         </div>
       </div>
 
-      {/* 三张能力卡：xl(≥1280px)三列 / md(≥768px)两列 / 手机一列 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {dynAb.map((a, ai) => {
-          const mDone = a.mstones.filter(m => m.st === 'done').length;
-          const mTotal = a.mstones.length;
-          const mPct = mTotal > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal) : 0;
-          const sc = scoreColor(a.score);
-          const series = getHistorySeries(a);
-          const lastScore = series[series.length - 1];
-          const firstScore = series[0];
-          const trendDelta = series.length >= 2 && firstScore !== undefined && firstScore > 0
-            ? Math.round(((lastScore - firstScore) / firstScore) * 100) : null;
-          const levelLabel = Number(a.score) >= 9 ? '优秀' : Number(a.score) >= 6 ? '进行中' : '待启动';
-
+      {/* ===== 能力卡片列表 ===== */}
+      <div className="flex flex-col gap-4">
+        {dynAb.map((a, i) => {
+          const as = abilityStats[i];
           return (
-            <div key={a.title} className="glass-card p-4 flex flex-col">
-              {/* ========== 卡片头部：两行式 ========== */}
-              {/* R1：序号 + 标题 + 趋势% 一行 */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b' }}>
-                  {String(ai + 1).padStart(2, '0')}
-                </span>
-                <span className="w-[3px] h-[14px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
-                <span className="text-[14px] font-bold text-ink-900 truncate flex-1 min-w-0">{a.title}</span>
-                {trendDelta !== null && (
-                  <span className={`text-[11px] font-bold flex-shrink-0 ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {trendDelta >= 0 ? '↑' : '↓'}{Math.abs(trendDelta)}%
-                  </span>
-                )}
-              </div>
-              {/* R2：左=每日行动文字(11.5px) / 右=评分区 */}
-              <div className="flex items-start gap-2 mb-3">
-                <div className="text-[11.5px] text-ink-500 font-medium leading-relaxed flex-1 min-w-0 line-clamp-2"
-                  title={a.daily}>{a.daily}</div>
-                <div className="flex-shrink-0">
-                  {editingScoreIdx === ai ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="range" min="0" max="10" step="1" defaultValue={a.score}
-                        style={{ accentColor: sc, width: '64px' }}
-                        onChange={e => {
-                          const n = Number(e.target.value);
-                          const el = document.getElementById('ab-score-' + ai);
-                          if (el) el.textContent = n;
-                        }}
-                        onMouseUp={e => {
-                          onSetScore?.(ai, Number(e.target.value));
-                          setEditingScoreIdx(null);
-                        }}
-                      />
-                      <span id={'ab-score-' + ai} className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: sc }}>{a.score}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(ai)}>
-                      <div className="flex items-baseline gap-0.5">
-                        <span className="text-[18px] font-extrabold tabular-nums leading-none" style={{ color: sc }}>{a.score}</span>
-                        <span className="text-[10.5px] font-semibold flex-shrink-0" style={{ color: sc, opacity: 0.7 }}>/10</span>
-                      </div>
-                      <span className="text-[10.5px] font-semibold flex-shrink-0 px-1.5 py-0.5 rounded" style={{ color: sc, background: `${sc}15` }}>{levelLabel}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ========== 里程碑进度汇总：两行式 ========== */}
-              {/* R1：左「里程碑进度 (mDone/mTotal)」 + 右 mPct% */}
-              <div className="flex items-center justify-between mb-1.5 px-3 py-2 rounded-lg bg-surface-soft/50">
-                <span className="text-[11.5px] font-semibold text-ink-600">里程碑进度 <span className="text-ink-400">({mDone}/{mTotal})</span></span>
-                <span className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b' }}>
-                  {mPct}%
-                </span>
-              </div>
-              {/* R2：进度条整宽（推到汇总卡下一行，不再跟文字抢空间） */}
-              <div className="px-3 mb-3 -mt-1">
-                <ProgressBar value={mPct} color="#f59e0b" variant="dense" />
-              </div>
-
-              {/* ========== 里程碑列表：每条 KR 两行式（R1文字+状态+% / R2进度条整宽） ========== */}
-              {a.mstones.length === 0 ? (
-                <div className="text-[11.5px] text-ink-400 py-5 text-center">
-                  暂无里程碑，点击下方添加
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2 mb-2">
-                  {a.mstones.map((m, i) => {
-                    const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
-                    return (
-                      <div
-                        key={i}
-                        onClick={() => onMsEdit?.(ai, i, m)}
-                        className="flex flex-col gap-1.5 px-3 py-2 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors border border-ink-100"
-                      >
-                        {/* R1：状态圆 + 标题(左) + %(右) 一行 */}
-                        <div className="flex items-center gap-2 w-full">
-                          <span className="w-4 h-4 rounded flex-shrink-0 grid place-items-center" style={{ background: `${msCol}20` }}>
-                            {m.st === 'done' ? (
-                              <svg className="w-2.5 h-2.5" style={{ color: msCol }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            ) : m.st === 'doing' ? (
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: msCol }}></span>
-                            ) : (
-                              <span className="w-1.5 h-1.5 rounded-full border-2" style={{ borderColor: msCol }}></span>
-                            )}
-                          </span>
-                          <div className={`flex-1 min-w-0 text-[12.5px] truncate ${m.st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
-                            {m.lb}
-                          </div>
-                          <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: msCol }}>
-                            {m.pct}%
-                          </span>
-                        </div>
-                        {/* R2：进度条整宽 — 窄卡不再被横向挤压 */}
-                        <div className="w-full">
-                          <ProgressBar value={m.pct} color={msCol} variant="dense" />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="mt-auto pt-1">
-                <AddButton compact label="添加里程碑" onClick={() => onMsAdd?.(ai)} />
-              </div>
+            <div key={a.id || a.title + i} className="glass-card p-3 flex flex-col">
+              {renderObjective(a, as)}
+              {renderMilestoneRows(a, as, i)}
             </div>
           );
         })}
@@ -4472,190 +4787,585 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
 /* ---------- 10. 视图 · 工作 (OKR) ---------- */
 function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
-  const main = dynWk[0];
-  const side = dynWk[1];
-
-  const calcPct = (o) => Math.round(o.krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / Math.max(1, o.krs.length));
-
-  const daysAndTimePct = (deadlineStr, startStr) => {
-    try {
-      const today = new Date(); today.setHours(0,0,0,0);
-      const year = today.getFullYear();
-      const parseMD = (s) => {
-        const [mm, dd] = s.replace(/月|日/g, '.').split('.').filter(Boolean).map(Number);
-        let t = new Date(year, mm - 1, dd);
-        if (t < today - 86400000 * 180) t = new Date(year + 1, mm - 1, dd);
-        return t;
-      };
-      const target = parseMD(deadlineStr);
-      const start = startStr ? parseMD(startStr) : new Date(year, 0, 1);
-      const total = Math.max(1, target - start);
-      const elapsed = Math.max(0, Math.min(total, today - start));
-      const dl = Math.ceil((target - today) / 86400000);
-      return { days: dl, timePct: Math.round((elapsed / total) * 100) };
-    } catch { return { days: 999, timePct: 50 }; }
-  };
-
-  const riskMeta = (kr, goalDeadline, goalStart) => {
-    const { timePct } = daysAndTimePct(goalDeadline, goalStart);
-    const kPct = pct(kr.v, kr.tgt);
-    const diff = kPct - timePct;
-    if (kr.st === 'done' || kPct >= 100) return { q: 'done', label: '已完成', color: '#22c55e' };
-    if (diff <= -20) return { q: 'risk', label: '严重落后', color: '#ef4444' };
-    if (diff <= -5) return { q: 'warn', label: '略落后', color: '#f59e0b' };
-    if (diff >= 20) return { q: 'ahead', label: '超额', color: '#10b981' };
-    return { q: 'normal', label: '正常', color: '#3b82f6' };
-  };
-
-  const totalPct = useMemo(() => {
-    if (!main) return 0;
-    const allKrs = [...(main?.krs || []), ...(side?.krs || [])];
-    return allKrs.length ? Math.round(allKrs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / allKrs.length) : 0;
-  }, [main, side]);
-
   const year = new Date().getFullYear();
+  const BLUE = '#4b63f0';
 
-  const renderGoalCard = (o, label, color, goalIdx) => {
-    const pctVal = calcPct(o);
-    const { days } = daysAndTimePct(o.deadline, o.start);
-    const isUrgent = days <= 30 && days >= 0;
-    const isOverdue = days < 0;
+  /* —— 对每个目标进行字段兜底 + 派生统计 —— */
+  const goalStats = useMemo(() => {
+    return dynWk.map((o, idx) => {
+      const mode = inferMode(o, 'work');
+      const krs = o.krs || [];
+      const krPcts = krs.map(k => pct(k.v, k.tgt));
+      const avgPct = krs.length ? Math.round(krPcts.reduce((s,p)=>s+p,0) / krs.length) : 0;
+      const { days, timePct } = calcTimeAnchor(o.deadline, o.createdAt);
+      const rm = calcRisk(avgPct, timePct, krs.length && krs.every(k => k.st === 'done'));
 
+      const risks = { risk: 0, warn: 0, ahead: 0, normal: 0, done: 0 };
+      krs.forEach((k, i) => {
+        const kPct = krPcts[i];
+        // KR 级也可以有 dueBy（微截止），优先 dueBy 算风险，否则用目标级
+        const microTA = k.dueBy ? calcTimeAnchor(k.dueBy, o.createdAt || k.dueBy) : { timePct };
+        const krm = calcRisk(kPct, microTA.timePct, k.st === 'done');
+        risks[krm.q] = (risks[krm.q] || 0) + 1;
+      });
+
+      return {
+        mode, idx,
+        avgPct, rm, days, timePct, risks,
+        dl: daysLabel(days),
+        label: o.label || (o.core ? '主业' : '副业'),
+        color: o.core ? '#ef4444' : '#F97316',
+      };
+    });
+  }, [dynWk]);
+
+  /* —— 全局 Hero 统计：跨所有目标汇总 —— */
+  const heroStats = useMemo(() => {
+    let risk = 0, warn = 0, overdue = 0, urgent = 0, total = 0;
+    goalStats.forEach(gs => {
+      risk += gs.risks.risk || 0;
+      warn += gs.risks.warn || 0;
+      if (gs.dl.overdue) overdue++;
+      if (gs.dl.urgent) urgent++;
+      total += (gs.risks.risk || 0) + (gs.risks.warn || 0);
+    });
+    // 最近截止时间（选最早到期且未过期的）
+    let earliest = null;
+    goalStats.forEach(gs => {
+      if (gs.days === null || gs.days < 0) return;
+      if (earliest === null || gs.days < earliest) earliest = gs.days;
+    });
+    return { risk, warn, overdue, urgent, total, earliest };
+  }, [goalStats]);
+
+  /* ============================================================
+   * Objective 统领层组件（每个目标必显一行 O，范式无关）
+   * O = 聚焦方向 + 时间进度(红线对比KR进度) + 风险计数
+   * ============================================================ */
+  const renderObjective = (o, gs) => {
+    const color = gs.color;
+    const lagBehind = gs.timePct !== null && gs.avgPct < gs.timePct;
+    const modeLabelMap = {
+      funnel: '漏斗',
+      dashboard: '仪表盘',
+      milestone: '里程碑门',
+      balance: '平衡雷达',
+    };
     return (
-      <div className="glass-card p-4 flex flex-col h-full">
-        {/* ========== 卡片头部 ========== */}
-        {/* R1：标签徽标 + 色条 + 标题（左）/ 完成率数字 + 状态标签（右） */}
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg flex-shrink-0"
-              style={{ background: `${color}15`, color }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
-              <span className="text-[11.5px] font-bold leading-none">{label}</span>
-            </span>
-            <span className="w-[3px] h-[14px] rounded-full flex-shrink-0" style={{ background: color }}></span>
-            <span className="text-[14px] font-bold text-ink-900 truncate min-w-0 flex-1">{o.title}</span>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-[20px] font-extrabold tabular-nums leading-none" style={{ color }}>{pctVal}</span>
-              <span className="text-[11px] font-bold leading-none" style={{ color, opacity: 0.7 }}>%</span>
-            </div>
-            <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{
-              color: pctVal >= 80 ? '#22c55e' : pctVal >= 50 ? '#f59e0b' : '#ef4444',
-              background: `${pctVal >= 80 ? '#22c55e' : pctVal >= 50 ? '#f59e0b' : '#ef4444'}12`,
-            }}>
-              {pctVal >= 80 ? '进展顺利' : pctVal >= 50 ? '推进中' : '需加速'}
-            </span>
-          </div>
-        </div>
-        {/* R2：截止日期行（更紧凑 11.5px） */}
-        <div className="flex items-center gap-1 text-[11.5px] mb-3">
-          <svg className="w-3.5 h-3.5 text-ink-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          <span className={`font-semibold ${isOverdue ? 'text-rose-500' : isUrgent ? 'text-amber-500' : 'text-ink-500'}`}>
-            {isOverdue ? `过期${Math.abs(days)}天` : `剩${days}天`}
+      <div className="flex items-center gap-3 px-1 py-3 border-b border-ink-100">
+        {/* 左：主业/副业·色条 + 圆点 + O标题 */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg flex-shrink-0 text-[11px] font-bold"
+            style={{ background: `${color}15`, color }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
+            {gs.label}
           </span>
-          <span className="ml-auto text-[11px] text-ink-400">关键结果 · {o.krs.length}项</span>
+          {/* O 标题：Objective，核心聚焦方向 */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-[1px] rounded bg-ink-100 text-ink-500">O</span>
+              <span className="text-[14px] font-bold text-ink-900 truncate min-w-0">{o.title}</span>
+              <span className="tag tag-n" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                {modeLabelMap[gs.mode] || gs.mode}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* ========== KR 列表 ========== */}
-        <div className="flex flex-col gap-2 flex-1 min-h-0">
-          {o.krs.map((kr, i) => {
-            const st = kr.st === 'done' ? 'done' : kr.st === 'doing' ? 'doing' : 'tg';
-            const krPct = pct(kr.v, kr.tgt);
-            const rm = riskMeta(kr, o.deadline, o.start);
-            const statusDot = st === 'done' ? '#22c55e' : st === 'doing' ? '#4b63f0' : '#c7c7cc';
-            const krId = kr.id || `${goalIdx}-${i}`;
-            const ma = microActions?.[krId] || [];
-            const maDone = ma.filter(x => x.done).length;
-            const canBreakdown = rm.q === 'risk' || rm.q === 'warn';
+        {/* 中：时间进度 vs KR 进度 对比（两个小条并排，一眼看出落差） */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex flex-col gap-0.5" style={{ width: '86px' }}>
+            <div className="flex items-center justify-between text-[9px] font-bold leading-none">
+              <span className="text-ink-400">时间</span>
+              <span className="tabular-nums text-ink-500">{gs.timePct ?? '—'}%</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-ink-100 overflow-hidden">
+              <div className="h-full rounded-full bg-ink-300" style={{ width: `${gs.timePct ?? 0}%` }}></div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5" style={{ width: '86px' }}>
+            <div className="flex items-center justify-between text-[9px] font-bold leading-none">
+              <span style={{ color }}>进度</span>
+              <span className="tabular-nums" style={{ color }}>{gs.avgPct}%</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full" style={{ background: `${color}15` }}>
+              <div className="h-full rounded-full" style={{ background: color, width: `${gs.avgPct}%` }}></div>
+            </div>
+          </div>
+        </div>
 
+        {/* 右：截止天数 + 风险徽标（严重落后N·略落后M） */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className={`text-[11px] font-semibold ${gs.dl.cls}`}>📅 {gs.dl.text}</div>
+          <div className="flex items-center gap-1">
+            {(gs.risks.risk || 0) > 0 && (
+              <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
+                严重落后{gs.risks.risk}
+              </span>
+            )}
+            {(gs.risks.warn || 0) > 0 && (
+              <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+                略落后{gs.risks.warn}
+              </span>
+            )}
+            {(gs.risks.risk || 0) === 0 && (gs.risks.warn || 0) === 0 && (gs.risks.done === (o.krs||[]).length) && (
+              <span className="tag tag-g" style={{ fontSize: '10px' }}>全部达成</span>
+            )}
+            {(gs.risks.risk || 0) === 0 && (gs.risks.warn || 0) === 0 && (gs.risks.done < (o.krs||[]).length) && (
+              <span className="tag tag-b" style={{ fontSize: '10px' }}>节奏正常</span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ============================================================
+   * 子渲染器 #1：Funnel 漏斗（求职offer用）——类知力结构
+   * 表头：# · KR · 漏斗进度 · 完成率 · 当前/目标
+   * 行间：灰色燕尾箭头 + 灰色转化率%（与漏斗进度中心对齐）
+   * ============================================================ */
+  const renderFunnelRows = (o, gs, goalIdx) => {
+    const krs = o.krs || [];
+    const COLOR = gs.color;
+    return (
+      <div className="flex flex-col pt-2">
+        {/* 表头行（镜像知力页，5 列对齐 + 右侧数值宽占位一致） */}
+        <div className="flex items-center gap-3 px-1 py-1.5 rounded-t-lg bg-ink-50/50 text-[11px] font-bold text-ink-500">
+          <div className="w-[22px] text-center">#</div>
+          <div className="w-[106px] pl-1">KR · 关键结果</div>
+          <div className="flex-1 min-w-0 flex items-center justify-center">漏斗进度</div>
+          <div className="w-[42px] text-right pr-1">完成率</div>
+          <div className="w-[56px] text-right pr-1">当前/目标</div>
+        </div>
+
+        {/* KR 内容行 */}
+        {krs.map((kr, i) => {
+          const nextKr = krs[i + 1];
+          const krPct = pct(kr.v, kr.tgt);
+          const done = kr.st === 'done';
+          // 条目级 dueBy 优先
+          const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct };
+          const rm = calcRisk(krPct, microTA.timePct, done);
+          const statusDot = done ? '#22c55e' : kr.st === 'doing' ? COLOR : '#c7c7cc';
+
+          const krId = kr.id || `${goalIdx}-${i}`;
+          const ma = microActions?.[krId] || [];
+          const maDone = ma.filter(x => x.done).length;
+          const canBreakdown = rm.q === 'risk' || rm.q === 'warn';
+
+          // 转化率：本层 v / 上层 v（上层tgt为基准更准，无上层则 0）
+          const prevKr = krs[i - 1];
+          let conv = null;
+          if (prevKr) {
+            const base = prevKr.v > 0 ? prevKr.v : (prevKr.tgt || 0);
+            if (base > 0) conv = Math.min(100, Math.round((kr.v / base) * 100));
+            else if (kr.tgt > 0 && prevKr.tgt > 0) conv = Math.round((kr.tgt / prevKr.tgt) * 100);
+          }
+          const lowConv = conv !== null && conv < 50;
+
+          // 已完成折叠单行：仅✓ + 标题（删除线）+ 徽标
+          if (done) {
             return (
-              <div
-                key={i}
-                className="flex flex-col gap-1.5 px-3 py-2 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors border border-ink-100"
-                onClick={() => onKrEdit?.(goalIdx, i, kr)}
-              >
-                {/* R1：状态圆 + KR标题（左） + 风险徽标（右上）一行 */}
-                <div className="flex items-center gap-2 w-full">
-                  <span className="w-4 h-4 rounded flex-shrink-0 grid place-items-center" style={{ background: `${statusDot}20` }}>
-                    {st === 'done' ? (
-                      <svg className="w-2.5 h-2.5" style={{ color: statusDot }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    ) : (
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusDot }}></span>
-                    )}
-                  </span>
-
-                  <div className={`flex-1 min-w-0 text-[12.5px] truncate ${st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
-                    {kr.t}
-                  </div>
-
-                  <button
-                    className="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap transition hover:brightness-95 active:scale-[0.97] flex-shrink-0"
-                    style={{ background: rm.color + '1a', color: rm.color }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (canBreakdown) {
-                        onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, start: o.start }, rm);
-                      }
-                    }}
-                    title={canBreakdown ? '点击拆解为微动作' : rm.label}
-                  >
-                    {rm.label}
-                    {canBreakdown && ma.length > 0 && (
-                      <span className="ml-0.5 opacity-75 tabular-nums"> {maDone}/{ma.length}</span>
-                    )}
-                    {canBreakdown && ma.length === 0 && (
-                      <span className="ml-0.5 text-[8px] opacity-60">+</span>
-                    )}
-                  </button>
-                </div>
-
-                {/* R2：进度条（左 flex-1） + 数值+%（右）一行 — 下排放数据层，不挤标题 */}
-                <div className="flex items-center justify-between w-full gap-2">
-                  <div className="flex-1 min-w-0">
-                    <ProgressBar value={krPct} color={statusDot} variant="dense" />
-                  </div>
-                  <div className="flex items-baseline gap-1 flex-shrink-0">
-                    <span className="text-[12px] font-bold tabular-nums text-ink-700">{kr.v}</span>
-                    <span className="text-[11px] text-ink-400">/</span>
-                    <span className="text-[11px] font-medium text-ink-500 tabular-nums">{kr.tgt}</span>
-                    <span className="text-[11.5px] font-bold tabular-nums ml-1" style={{ color: statusDot }}>
-                      · {krPct}%
+              <div key={i} className="flex flex-col">
+                <div
+                  className="flex items-center gap-3 px-1 py-2 rounded-lg hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
+                  onClick={() => onKrEdit?.(goalIdx, i, kr)}
+                >
+                  <div className="w-[22px] text-center">
+                    <span className="inline-grid place-items-center w-4 h-4 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </span>
                   </div>
+                  <div className="w-[106px] pl-1 min-w-0">
+                    <div className="text-[11.5px] text-ink-400 line-through truncate font-semibold">{kr.t}</div>
+                  </div>
+                  <div className="flex-1 min-w-0 flex items-center">
+                    <div className="flex-1 h-[18px] rounded-lg overflow-hidden relative opacity-40" style={{ minWidth: 40, background: '#f3f4f6' }}>
+                      <div className="h-full" style={{ width: '100%', background: '#22c55e' }}></div>
+                      <div className="absolute inset-0 flex items-center justify-end px-2">
+                        <span className="text-[10.5px] font-extrabold text-white drop-shadow">{kr.tgt}{kr.t.includes('(') ? '' : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-[42px] text-right pr-1">
+                    <span className="text-[11.5px] font-extrabold tabular-nums text-accent-green">100%</span>
+                  </div>
+                  <div className="w-[56px] text-right pr-1">
+                    <span className="text-[11.5px] font-bold tabular-nums text-ink-400">{kr.v}/{kr.tgt}</span>
+                  </div>
                 </div>
+                {/* 转化率行不可见占位：与下一KR保持间距用 */}
               </div>
             );
-          })}
-        </div>
+          }
 
-        {/* 添加 KR：compact 版 贴卡片底部 */}
-        <div className="mt-3 pt-1">
+          return (
+            <div key={i} className="flex flex-col">
+              {/* KR 主行 */}
+              <div
+                className="flex items-center gap-3 px-1 py-1.5 rounded-lg hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
+                onClick={() => onKrEdit?.(goalIdx, i, kr)}
+              >
+                <div className="w-[22px] text-center">
+                  <span className="text-[11.5px] font-extrabold tabular-nums" style={{ color: COLOR, opacity: 0.85 }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                </div>
+                <div className="w-[106px] pl-1 min-w-0 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusDot }}></span>
+                  <span className="text-[11.5px] font-semibold text-ink-800 truncate leading-tight">{kr.t}</span>
+                </div>
+
+                {/* 漏斗进度：在 flex-1 中居中放置色块（与表头"漏斗进度"文本对齐） */}
+                <div className="flex-1 min-w-0 flex items-center justify-center">
+                  <div className="flex-1 h-[22px] rounded-lg overflow-hidden relative" style={{ minWidth: 40, background: `${COLOR}10` }}>
+                    <div className="h-full rounded-lg" style={{ width: `${krPct}%`, background: statusDot }}></div>
+                    <div className="absolute inset-0 flex items-center justify-end px-2">
+                      <span className="text-[11px] font-extrabold tabular-nums text-white mix-blend-difference drop-shadow-sm">
+                        {kr.v}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 完成率：颜色用风险色（≥50%灰 <50%红，正常时风险色=蓝等） */}
+                <div className="w-[42px] text-right pr-1">
+                  <span className="text-[11.5px] font-extrabold tabular-nums"
+                    style={{
+                      color: krPct < (gs.timePct !== null ? Math.max(gs.timePct - 5, 0) : 50)
+                        ? '#dc2626' : rm.color
+                    }}>
+                    {krPct}%
+                  </span>
+                </div>
+                <div className="w-[56px] text-right pr-1 flex items-center justify-end gap-1">
+                  <span className="text-[11.5px] font-bold tabular-nums text-ink-700">{kr.v}</span>
+                  <span className="text-[10px] text-ink-300">/</span>
+                  <span className="text-[10.5px] font-semibold tabular-nums text-ink-500">{kr.tgt}</span>
+                  {canBreakdown && (
+                    <button
+                      className="ml-0.5 -mr-1 text-[9px] font-bold px-1 py-[1px] rounded whitespace-nowrap transition"
+                      style={{ background: rm.color + '22', color: rm.color }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, createdAt: o.createdAt }, rm);
+                      }}
+                    >
+                      {ma.length ? `${maDone}/${ma.length}` : ' + '}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 连接线行：灰色箭头对齐KR圆点 + 转化率居中对齐漏斗块 */}
+              {nextKr && nextKr.st !== 'done' && (
+                <div className="flex items-center gap-3 px-1 py-0.5 text-[11px]">
+                  {/* 左 22+12 = 34 */}
+                  <div className="w-[22px]"></div>
+                  <div className="w-[106px] pl-[28px] flex items-center">
+                    <svg className="w-3 h-3" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14M5 12l7 7 7-7" />
+                    </svg>
+                  </div>
+                  {/* 转化率居中对齐漏斗（flex-1 与上方同宽 + 右侧两个占位匹配） */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <span className="font-bold tabular-nums" style={{ color: lowConv ? '#dc2626' : '#94a3b8' }}>
+                      {conv ?? 0}%
+                    </span>
+                  </div>
+                  {/* 右侧占位 42 + 56，保持 flex-1 宽度与上方一致 */}
+                  <div className="w-[42px] invisible pr-1 text-right"><span className="text-[11.5px]">99%</span></div>
+                  <div className="w-[56px] invisible pr-1 text-right"><span className="text-[11.5px]">99/99</span></div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* 添加 KR */}
+        <div className="mt-2 pt-1 pl-[141px]">
           <AddButton compact label="添加 KR" onClick={() => onKrAdd?.(goalIdx)} />
         </div>
       </div>
     );
   };
 
+  /* ============================================================
+   * 子渲染器 #2：Dashboard 仪表盘（原名KPI仪表盘）
+   * 强调：先 O 统领（已在上层 renderObjective 渲染），下方为 KPI 条目并排网格
+   * 无漏斗转化率；风险色直接编码 KR 进度与时间锚点的落差
+   * ============================================================ */
+  const renderDashboardRows = (o, gs, goalIdx) => {
+    const krs = o.krs || [];
+    const items = krs.map((kr, i) => {
+      const krPct = pct(kr.v, kr.tgt);
+      const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct };
+      const rm = calcRisk(krPct, microTA.timePct, kr.st === 'done');
+      return { kr, i, krPct, rm, microTA };
+    });
+    // 严重/略落后排在前，进行中次之，已完成折叠到最后
+    const sorted = [...items].sort((a, b) => {
+      const order = { risk: 0, warn: 1, normal: 2, ahead: 3, done: 4 };
+      return (order[a.rm.q] ?? 0) - (order[b.rm.q] ?? 0);
+    });
+    // 拆成未完成组（显示完整）和已完成组（折叠成一行）
+    const active = sorted.filter(x => x.rm.q !== 'done');
+    const done = sorted.filter(x => x.rm.q === 'done');
+
+    return (
+      <div className="flex flex-col pt-2">
+        {/* 网格布局：每个 KR = 独立 KPI 小卡；2~3列，紧凑信息密度
+         * 头部：KPI名 + 风险徽标
+         * 中部：大数字当前/目标 + 大进度条
+         * 底部：%数值 + 微截止dueBy（当有）
+         */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {active.map(({ kr, i, krPct, rm, microTA }) => {
+            const krId = kr.id || `${goalIdx}-${i}`;
+            const ma = microActions?.[krId] || [];
+            const maDone = ma.filter(x => x.done).length;
+            const canBreakdown = rm.q === 'risk' || rm.q === 'warn';
+            const dueLbl = kr.dueBy ? daysLabel(calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy).days) : null;
+            return (
+              <div
+                key={i}
+                className="glass-card px-3 py-3 hover:border-accent-blue/30 transition cursor-pointer"
+                onClick={() => onKrEdit?.(goalIdx, i, kr)}
+                style={{
+                  borderLeft: `3px solid ${rm.color}`,
+                }}
+              >
+                {/* 头部：KPI名 + 风险徽标 */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: rm.color }}></span>
+                    <span className="text-[11.5px] font-bold text-ink-800 truncate leading-tight">{kr.t}</span>
+                  </div>
+                  <button
+                    className="text-[9.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap transition flex-shrink-0"
+                    style={{ background: rm.color + '1A', color: rm.color }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (canBreakdown) onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, createdAt: o.createdAt }, rm);
+                    }}
+                  >
+                    {rm.label}{canBreakdown && ma.length ? ` ${maDone}/${ma.length}` : ''}
+                  </button>
+                </div>
+
+                {/* 中部：当前/目标大数字 + 进度条 */}
+                <div className="flex items-baseline gap-1 mb-1.5">
+                  <span className="text-[18px] font-extrabold tabular-nums text-ink-900 leading-none">{kr.v}</span>
+                  <span className="text-[11px] text-ink-400 font-medium">/</span>
+                  <span className="text-[11px] font-semibold text-ink-500 tabular-nums">{kr.tgt}</span>
+                  <span className="ml-auto text-[12px] font-extrabold tabular-nums leading-none" style={{ color: rm.color }}>
+                    {krPct}%
+                  </span>
+                </div>
+                <div className="w-full">
+                  <ProgressBar value={krPct} color={rm.color} />
+                </div>
+
+                {/* 底部：时间进度 vs KR 落差微提示 + dueBy */}
+                <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-dashed border-ink-100">
+                  {microTA.timePct !== null ? (
+                    <span className="text-[9.5px] font-semibold" style={{ color: krPct < microTA.timePct - 5 ? '#ef4444' : '#94a3b8' }}>
+                      时间 {microTA.timePct}% {krPct < microTA.timePct - 5 ? `↓${microTA.timePct - krPct}%` : krPct > microTA.timePct + 5 ? `↑${krPct - microTA.timePct}%` : '节奏匹配'}
+                    </span>
+                  ) : <span className="text-[9.5px] text-ink-400">长期KPI</span>}
+                  {dueLbl && (
+                    <span className={`text-[9.5px] font-semibold ${dueLbl.cls}`}>📅 {dueLbl.text}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 已完成折叠单行组（所有已完成 KPI 合并一行） */}
+        {done.length > 0 && (
+          <div className="mt-3 px-3 py-2 rounded-lg bg-accent-green/[0.04] border border-accent-green/15 flex items-center gap-2 flex-wrap">
+            <span className="text-[10.5px] font-bold text-accent-green">✓ 已达成 KPI {done.length} 项：</span>
+            {done.map(({ kr, i }) => (
+              <span key={i} className="inline-flex items-center gap-1 text-[10.5px] text-ink-500 line-through font-medium px-1.5 py-0.5 rounded bg-ink-50">
+                {kr.t}
+                <span className="text-accent-green tabular-nums no-underline font-bold">{kr.v}/{kr.tgt}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-3">
+          <AddButton compact label="添加 KPI 条目" onClick={() => onKrAdd?.(goalIdx)} />
+        </div>
+      </div>
+    );
+  };
+
+  /* ============================================================
+   * 子渲染器 #3：Milestone 里程碑门
+   * 结构：阶段门编号 ● 标题 + 产出物 + 验收通过勾选
+   * 每个里程碑显示：startedAt / 产出物描述 / 验收状态
+   * ============================================================ */
+  const renderMilestoneRows = (o, gs, goalIdx) => {
+    const krs = o.krs || [];
+    // 用 st==done 表示已通过门；doing=进行中；tg/pending=未开始
+    return (
+      <div className="flex flex-col pt-2">
+        {/* 表头 */}
+        <div className="flex items-center gap-3 px-1 py-1.5 rounded-t-lg bg-ink-50/50 text-[11px] font-bold text-ink-500">
+          <div className="w-[22px] text-center">门</div>
+          <div className="flex-1 min-w-0 pl-1">里程碑</div>
+          <div className="w-[60px] text-center">阶段进度</div>
+          <div className="w-[42px] text-right pr-1">验收</div>
+          <div className="w-[56px] text-right pr-1">截止</div>
+        </div>
+
+        {krs.map((kr, i) => {
+          const krPct = pct(kr.v, kr.tgt);
+          const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct, days: null };
+          const rm = calcRisk(krPct, microTA.timePct, kr.st === 'done');
+          const isDone = kr.st === 'done';
+          const dueLbl = microTA.days !== undefined ? daysLabel(microTA.days) : daysLabel(gs.days);
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-3 px-1 py-2 rounded-lg hover:bg-ink-50/60 cursor-pointer border-b border-ink-100 last:border-b-0 transition-colors"
+              onClick={() => onKrEdit?.(goalIdx, i, kr)}
+            >
+              {/* 门编号 + 连接线：未通过 空心→半实；通过 实心绿 */}
+              <div className="w-[22px] flex justify-center">
+                <div
+                  className="w-6 h-6 rounded-full grid place-items-center font-extrabold text-[10px] flex-shrink-0"
+                  style={{
+                    background: isDone ? '#22c55e20' : rm.color + '15',
+                    color: isDone ? '#15803d' : rm.color,
+                    border: `1.5px solid ${isDone ? '#22c55e' : rm.color}`,
+                  }}
+                >
+                  {isDone ? (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>
+                  ) : String(i + 1)}
+                </div>
+              </div>
+              {/* 里程碑标题（O 的阶段子项） */}
+              <div className="flex-1 min-w-0 pl-1">
+                <div className={`text-[12px] font-bold truncate leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                  {kr.t}
+                </div>
+                {!isDone && kr.v !== undefined && kr.tgt && (
+                  <div className="text-[9.5px] text-ink-400 font-medium mt-0.5 truncate">
+                    当前进展 {kr.v}/{kr.tgt} · {rm.label}
+                  </div>
+                )}
+              </div>
+              {/* 阶段进度条（简单，因为门控是布尔通过/不通过，进度为中间值） */}
+              <div className="w-[60px] grid place-items-center">
+                <div className="w-[52px] h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${krPct}%`, background: isDone ? '#22c55e' : rm.color }}></div>
+                </div>
+              </div>
+              {/* 验收门结果 */}
+              <div className="w-[42px] text-right pr-1">
+                {isDone ? (
+                  <span className="tag tag-g" style={{ fontSize: '9.5px' }}>已通过</span>
+                ) : krPct >= 100 ? (
+                  <span className="tag tag-y" style={{ fontSize: '9.5px' }}>待验收</span>
+                ) : kr.st === 'tg' || kr.st === 'pending' ? (
+                  <span className="tag tag-n" style={{ fontSize: '9.5px' }}>未开启</span>
+                ) : (
+                  <span className="tag tag-b" style={{ fontSize: '9.5px' }}>推进中</span>
+                )}
+              </div>
+              {/* 截止 */}
+              <div className={`w-[56px] text-right pr-1 text-[10.5px] font-semibold tabular-nums ${dueLbl.cls}`}>
+                {dueLbl.text}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="mt-3">
+          <AddButton compact label="添加阶段里程碑" onClick={() => onKrAdd?.(goalIdx)} />
+        </div>
+      </div>
+    );
+  };
+
+  /* ============================================================
+   * 统一分派器：根据 mode 选渲染器（balance 雷达暂未实现，fallback dashboard）
+   * ============================================================ */
+  const renderByMode = (o, gs, goalIdx) => {
+    switch (gs.mode) {
+      case 'funnel':    return renderFunnelRows(o, gs, goalIdx);
+      case 'milestone': return renderMilestoneRows(o, gs, goalIdx);
+      case 'dashboard': // KPI 仪表盘（已改名）
+      case 'balance':   // 平衡雷达暂不做，先退化成仪表盘网格
+      default:          return renderDashboardRows(o, gs, goalIdx);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      {/* 全局汇总（整宽） */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-2.5">
+      {/* ===== 全局 Hero：不显示总%，显示「最近截止 / 风险总数 / 略落后 / 过期 / 紧急」 —— 决策锚点 ===== */}
+      <div className="glass-card p-4">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 工作 OKR</span>
-          <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
-            style={{ background: 'rgba(239,68,68,0.12)' }}>
-            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#ef4444' }}>{totalPct}</span>
-            <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(239,68,68,0.85)' }}>%</span>
+          <span className="text-[15px] font-bold text-ink-900 leading-none">{year}年 · 工作 OKR</span>
+          {/* 统计芯片 */}
+          <div className="flex items-center gap-2 flex-wrap ml-1">
+            {heroStats.earliest !== null && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-ink-50">
+                <span className="text-[10px] font-bold text-ink-400">最近截止</span>
+                <span className={`text-[11.5px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
+                  {daysLabel(heroStats.earliest).text}
+                </span>
+              </div>
+            )}
+            {heroStats.risk > 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444' }}></span>
+                <span className="text-[10px] font-bold text-rose-500">严重落后</span>
+                <span className="text-[12px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
+              </div>
+            )}
+            {heroStats.warn > 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }}></span>
+                <span className="text-[10px] font-bold text-amber-500">略落后</span>
+                <span className="text-[12px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
+              </div>
+            )}
+            {heroStats.overdue > 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <span className="text-[11px] font-bold text-rose-500">过期目标 {heroStats.overdue}</span>
+              </div>
+            )}
+            {heroStats.total === 0 && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
+                <span className="text-[11px] font-bold text-emerald-600">所有 KR 节奏正常</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 主/副业 两栏：lg(≥1024px)两列 / <lg堆叠一列；两卡 h-full 视觉等高 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {renderGoalCard(main, '主业', '#ef4444', 0)}
-        {side && renderGoalCard(side, '副业', '#F97316', 1)}
+      {/* ===== 每个独立 Objective：O 统领层 + 下方按 mode 渲染 ===== */}
+      <div className="flex flex-col gap-5">
+        {dynWk.map((o, i) => {
+          const gs = goalStats[i];
+          return (
+            <div key={o.title + i} className="glass-card p-4 flex flex-col">
+              {renderObjective(o, gs)}
+              {renderByMode(o, gs, i)}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

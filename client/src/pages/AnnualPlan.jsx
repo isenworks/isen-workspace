@@ -3156,13 +3156,13 @@ function CognitionView({
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ===== Row 1: 左 OKR(7) + 右 书架(5) 一体化布局 ===== */}
+      {/* ===== Row 1: 左 OKR(5) + 右 书架(7) 一体化布局 — 数据放左紧凑, 封面放右充分展示 ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
 
-      {/* ===== 左侧·一体化 KR × 漏斗 卡片（7/12 列，高度与书架对齐） ===== */}
-      <div className="xl:col-span-7 bg-white rounded-2xl border border-ink-100 p-4 flex flex-col min-h-0">
+      {/* ===== 左侧·一体化 KR × 漏斗 卡片（5/12 列，压缩展示） ===== */}
+      <div className="xl:col-span-5 bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col min-h-0">
         {/* ===== Header: O目标 + 完成率徽章 + 新增KR ===== */}
-        <div className="mb-2">
+        <div className="mb-1.5">
           {editingObj ? (
             <div className="flex items-start gap-2.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0 mt-[2px]" style={{ background: BLUE }}></span>
@@ -3193,22 +3193,22 @@ function CognitionView({
                 }}
                 onDelete={() => onObjectiveChange?.({ ...(objective || COG_O), text: COG_O.text })}
                 mode="contextmenu"
-                className="flex-1 min-w-0 text-[16px] font-bold text-ink-900 leading-tight truncate"
-                inputClassName="text-[16px] font-bold text-ink-900 w-full"
+                className="flex-1 min-w-0 text-[15px] font-bold text-ink-900 leading-tight truncate"
+                inputClassName="text-[15px] font-bold text-ink-900 w-full"
                 title="右键编辑O目标"
                 placeholder="填写O目标"
               />
-              <div className="flex-shrink-0 px-2.5 py-1 rounded-lg whitespace-nowrap flex items-baseline gap-1"
+              <div className="flex-shrink-0 px-2 py-[6px] rounded-lg whitespace-nowrap flex items-baseline gap-0.5"
                 style={{ background: BLUE, boxShadow: `0 2px 6px ${BLUE}40` }}>
-                <span className="text-[15px] font-extrabold tabular-nums leading-none text-white">{totalPct}</span>
-                <span className="text-[10.5px] font-bold text-white/85 leading-none">%</span>
+                <span className="text-[14px] font-extrabold tabular-nums leading-none text-white">{totalPct}</span>
+                <span className="text-[10px] font-bold text-white/85 leading-none">%</span>
               </div>
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
-                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-md transition flex-shrink-0 border"
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md transition flex-shrink-0 border"
                 style={{ borderColor: `${BLUE}33`, color: BLUE, background: BLUE_LIGHT }}
                 title="新增KR">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
             </div>
           )}
@@ -3230,11 +3230,11 @@ function CognitionView({
             return (
               <div key={kr.id || idx}>
                 {/* KR Row = 漏斗阶段 */}
-                <div className="flex items-center gap-2 py-2 px-1.5 rounded-lg hover:bg-surface-soft transition-colors">
-                  {/* 左侧：编号 + 标签 */}
-                  <div className="flex items-center gap-2 w-[180px] flex-shrink-0">
+                <div className="flex items-center gap-1.5 py-1.5 px-1 rounded-lg hover:bg-surface-soft transition-colors">
+                  {/* 左侧：编号 + 标签（压缩：150px） */}
+                  <div className="flex items-center gap-1.5 w-[150px] flex-shrink-0">
                     <span
-                      className="text-[12px] font-bold tabular-nums w-[28px] text-right leading-none pt-[2px]"
+                      className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none pt-[2px]"
                       style={{ color: BLUE }}>
                       {padNum}
                     </span>
@@ -3393,33 +3393,31 @@ function CognitionView({
       </div>
       {/* ===== 一体化 KR × 漏斗 卡片 END ===== */}
 
-      {/* ===== 右侧·书架看板（5/12 列，与 OKR 同高度） ===== */}
-      <div className="xl:col-span-5 flex flex-col min-h-0">
-      {/* ===== 书架看板 - 3列 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col flex-1 min-h-0">
-        {/* 一行三段式：左=书架标题(含共N本) / 中=4 Tab筛选 / 右=功能按钮组 */}
-        <div className="flex items-center gap-2.5 mb-2 flex-wrap">
-          {/* 左：标题区（标题 + 共 N 本 合并成两行）*/}
-          <div className="flex items-center gap-2 flex-shrink-0">
+      {/* ===== 右侧·书架看板（7/12 列，给封面更充足空间） ===== */}
+      <div className="xl:col-span-7 flex flex-col min-h-0">
+      {/* ===== 书架看板 ===== */}
+      <div className="bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col flex-1 min-h-0">
+        {/* Header 单行三段式：左(色条+标题+共N本横排) · 中(Tabs) · 右(操作按钮) —— 不要垂直双行 */}
+        <div className="flex items-center gap-3 mb-2 flex-wrap">
+          {/* 左：色条 + 标题 + 共 N 本（横排，不换行）*/}
+          <div className="flex items-center gap-2.5 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-            <div className="flex flex-col leading-tight">
-              <InlineEdit
-                value={bookshelfTitle}
-                onChange={(v) => setBookshelfTitle?.(String(v || '').trim())}
-                onDelete={() => setBookshelfTitle?.('')}
-                mode="contextmenu"
-                placeholder={`${objective?.year || COG_O.year}年 · 书架`}
-                className="text-[14.5px] font-bold text-ink-900 leading-none"
-                inputClassName="text-[14.5px] font-bold text-ink-900 w-32"
-                title="右键编辑书架标题"
-              />
-              <span className="text-[10.5px] text-ink-400 tabular-nums leading-none mt-[3px]">
-                共 {groups.reading.length + groups.pending.length + groups.done.length} 本
-              </span>
-            </div>
+            <InlineEdit
+              value={bookshelfTitle}
+              onChange={(v) => setBookshelfTitle?.(String(v || '').trim())}
+              onDelete={() => setBookshelfTitle?.('')}
+              mode="contextmenu"
+              placeholder={`${objective?.year || COG_O.year}年 · 书架`}
+              className="text-[15.5px] font-bold text-ink-900 leading-none"
+              inputClassName="text-[15.5px] font-bold text-ink-900 w-32"
+              title="右键编辑书架标题"
+            />
+            <span className="text-[11px] text-ink-400 tabular-nums leading-none whitespace-nowrap">
+              共 {groups.reading.length + groups.pending.length + groups.done.length} 本
+            </span>
           </div>
 
-          {/* 中：Tab 筛选按钮组（双行样式压缩）*/}
+          {/* 中：Tab 筛选按钮组（居中，flex-1 但允许挤压）*/}
           {(() => {
             const TABS = [
               { key: 'reading',   lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT,    books: groups.reading },
@@ -3428,27 +3426,27 @@ function CognitionView({
               { key: 'abandoned', lb: '所有',     col: '#64748b',  bg: '#f1f5f9',      books: groups.abandoned },
             ];
             return (
-              <div className="flex items-center gap-1 flex-1 justify-center min-w-[240px]">
+              <div className="flex items-center gap-1 flex-1 justify-center min-w-[200px] max-w-full">
                 {TABS.map(t => {
                   const active = shelfTab === t.key;
                   return (
                     <button
                       key={t.key}
                       onClick={() => setShelfTab(t.key)}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-[8px] transition-all duration-150 flex-shrink-0`}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150`}
                       style={{
                         background: active ? t.bg : 'transparent',
                         color: active ? t.col : '#64748b',
                         fontWeight: active ? 700 : 500,
-                        fontSize: '11px',
+                        fontSize: '11.5px',
                         boxShadow: active ? `inset 0 0 0 1px ${t.col}22` : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
                       }}>
-                      <span className="relative w-[10px] h-[10px] rounded-full flex-shrink-0 flex items-center justify-center"
+                      <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
                         style={{ background: active ? t.col + '22' : 'rgba(148,163,184,0.22)' }}>
-                        <span className="w-[5px] h-[5px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
+                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
                       </span>
                       <span>{t.lb}</span>
-                      <span className="inline-flex items-center justify-center min-w-[16px] h-[14px] px-1 rounded-full text-[9.5px] font-bold tabular-nums leading-none"
+                      <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
                         style={{
                           background: active ? '#ffffff' : 'rgba(15,23,42,0.05)',
                           color: active ? t.col : '#64748b',
@@ -3462,13 +3460,13 @@ function CognitionView({
             );
           })()}
 
-          {/* 右：功能按钮组（图标化压缩，省字数）*/}
+          {/* 右：操作按钮（跟 Tabs 同一行），flex-shrink-0 保证不会被挤压 */}
           <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
             <button onClick={doWereadSync} disabled={wereadSyncing}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg transition disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold rounded-lg transition disabled:opacity-50"
               style={{ background: wereadCfgOk ? '#e0f2fe' : BLUE_LIGHT, color: wereadCfgOk ? '#0284c7' : BLUE }}
               title={wereadCfgOk ? '从微信读书同步书架' : '先设置微信读书 API Key'}>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 0 0 6.34 5.34L4 9M4 15a8 8 0 0 0 13.66 3.66L20 15" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               {wereadSyncing ? '同步中' : (wereadCfgOk ? '同步' : '绑定')}
@@ -3482,18 +3480,18 @@ function CognitionView({
                   if (cfg.value) setWereadKey(cfg.value);
                 } catch {}
               }}
-              className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:bg-ink-50"
+              className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:bg-ink-50"
               style={{ color: BLUE }}
               title="设置微信读书 API Key">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
             <button onClick={() => onBookAdd?.()}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg transition"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold rounded-lg transition"
               style={{ background: BLUE_LIGHT, color: BLUE }}>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               添加
             </button>
           </div>
@@ -3540,7 +3538,7 @@ function CognitionView({
                 setDragOverCol(null);
               }}
             >
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2.5">
                 {g.books.length === 0 ? (
                   <div className="col-span-full flex items-center justify-center py-6 text-[12px] rounded-lg transition-all"
                     style={{

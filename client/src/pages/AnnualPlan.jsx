@@ -3350,15 +3350,15 @@ function CognitionView({
                   </div>
                 </div>
 
-                {/* 连接线：箭头在KR标题下方，转化率在漏斗侧 */}
+                {/* 连接线：箭头对齐KR标签中的圆点(·)，转化率在漏斗侧 */}
                 {nextKr && (() => {
                   const lowConv = conv !== null && conv < 50;
                   return (
                     <div className="flex items-center gap-2 py-0.5 text-[11px]">
-                      {/* 左：箭头保持原位，在KR标题下方 */}
-                      <div className="w-[130px] pl-[56px] flex items-center">
+                      {/* 左：箭头对齐KR标签中的圆点位置 */}
+                      <div className="w-[130px] pl-[64px] flex items-center">
                         <svg className="w-3 h-3" style={{ color: BLUE }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 8l6 6 6-6" />
+                          <path d="M12 5v14M5 12l7 7 7-7" />
                         </svg>
                       </div>
                       {/* 右：转化率对齐漏斗列 */}

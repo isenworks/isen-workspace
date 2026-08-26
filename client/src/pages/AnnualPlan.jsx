@@ -3419,16 +3419,15 @@ function CognitionView({
               </span>
             </div>
 
-            {/* 右：操作按钮组（右对齐）*/}
-            <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+            {/* 右：操作按钮组（右对齐，统一蓝色，只保留图标）*/}
+            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
               <button onClick={doWereadSync} disabled={wereadSyncing}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold rounded-lg transition disabled:opacity-50"
-                style={{ background: wereadCfgOk ? '#e0f2fe' : BLUE_LIGHT, color: wereadCfgOk ? '#0284c7' : BLUE }}
+                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:opacity-70 disabled:opacity-50"
+                style={{ color: BLUE }}
                 title={wereadCfgOk ? '从微信读书同步书架' : '先设置微信读书 API Key'}>
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 0 0 6.34 5.34L4 9M4 15a8 8 0 0 0 13.66 3.66L20 15" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                {wereadSyncing ? '同步中' : (wereadCfgOk ? '同步' : '绑定')}
               </button>
               <button onClick={async () => {
                   setShowWereadSettings(true);
@@ -3439,19 +3438,19 @@ function CognitionView({
                     if (cfg.value) setWereadKey(cfg.value);
                   } catch {}
                 }}
-                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:bg-ink-50"
+                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:opacity-70"
                 style={{ color: BLUE }}
                 title="设置微信读书 API Key">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="3"/>
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
               <button onClick={() => onBookAdd?.()}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold rounded-lg transition"
-                style={{ background: BLUE_LIGHT, color: BLUE }}>
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-                添加
+                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:opacity-70"
+                style={{ color: BLUE }}
+                title="添加书籍">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
             </div>
           </div>

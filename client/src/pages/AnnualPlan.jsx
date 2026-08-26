@@ -3367,7 +3367,7 @@ function CognitionView({
                       <div className="flex-1 flex items-center justify-center min-w-0">
                         <span
                           className="font-bold tabular-nums"
-                          style={{ color: lowConv ? '#dc2626' : BLUE }}>
+                          style={{ color: lowConv ? '#dc2626' : '#94a3b8' }}>
                           {conv ?? 0}%
                         </span>
                       </div>

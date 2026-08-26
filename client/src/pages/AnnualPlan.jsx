@@ -306,8 +306,17 @@ function ProgressBar({ value, color, variant }) {
   );
 }
 
-function AddButton({ label, onClick }) {
-  // P2-1: 圆形白+号+文字，去虚线
+function AddButton({ label, onClick, compact }) {
+  if (compact) {
+    return (
+      <button onClick={onClick || (() => {})} className="mt-auto p-1.5 rounded-lg border border-ink-100 text-ink-500 text-[11px] font-semibold inline-flex items-center justify-center gap-1.5 hover:bg-ink-50 hover:border-ink-200 hover:text-ink-700 transition cursor-pointer w-full">
+        <span className="w-4 h-4 rounded-full bg-ink-100 grid place-items-center text-ink-600 flex-shrink-0">
+          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+        </span>
+        <span>{label}</span>
+      </button>
+    );
+  }
   return (
     <button onClick={onClick || (() => {})} className="mt-auto p-2 rounded-xl border border-ink-100 text-ink-500 text-xs font-semibold inline-flex items-center justify-center gap-2 hover:bg-ink-50 hover:border-ink-200 hover:text-ink-700 transition cursor-pointer w-full">
       <span className="w-5 h-5 rounded-full bg-ink-100 grid place-items-center text-ink-600 flex-shrink-0">
@@ -1568,177 +1577,269 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="glass-card overflow-hidden">
-        {/* L1 区块：年度数据概览 — 视觉层级最重
-             ⭐ 三维度强化 L1 区分度：
-               1. 字号 15→16px（最大一级区块标题）
-               2. 左侧 2px 绿色竖条（强化锚点，Notion/Lark 同款区块强调方式）
-               3. 内部 padding px-4→px-5（内容不贴边，呼吸感更强）
-        */}
-        <div className="px-4 py-3 bg-surface-soft/50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2.5">
-              {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（三区块完全统一的视觉标识，对齐项目标准5px） */}
-              <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-              {/* 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重 */}
-              <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <button onClick={() => onAction?.('addHabit')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 text-accent-green text-xs font-bold hover:bg-accent-green/15 transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-                添加
-              </button>
-            </div>
+      {/* ========== Card 1 / 3：年度数据概览 ========== */}
+      <div className="glass-card p-5 overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+            <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            {habits.map((h, hIdx) => {
-              const yearlyPct = pct(h.val, h.target);
-              const GREEN = '#22c55e';
-              const GREEN_TEXT = '#22c55e';
-              const GREEN_LIGHT = '#86efac'; // 与知力KR序号 80%透明度蓝色同级的"浅绿"：700蓝→500绿同级对应
-              const padNum = String(hIdx + 1).padStart(2, '0');
-              // 清理 label 中可能残留的 emoji/前置空白字符（API返回 fallback 保护）
-              const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
+          <button onClick={() => onAction?.('addHabit')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 text-accent-green text-xs font-bold hover:bg-accent-green/15 transition">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+            添加
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {habits.map((h, hIdx) => {
+            const yearlyPct = pct(h.val, h.target);
+            const GREEN = '#22c55e';
+            const GREEN_TEXT = '#22c55e';
+            const padNum = String(hIdx + 1).padStart(2, '0');
+            const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
+            const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
 
-              // 年度走势（1月~当前月）— 各月打卡次数绝对值
-              const yearCounts = [];
-              const yearMonthLabels = [];
-              for (let m = 1; m <= curMonth; m++) {
-                yearCounts.push(h.month?.[m] || 0);
-                yearMonthLabels.push(`${m}`);
-              }
+            const yearCounts = [];
+            const yearMonthLabels = [];
+            for (let m = 1; m <= curMonth; m++) {
+              yearCounts.push(h.month?.[m] || 0);
+              yearMonthLabels.push(`${m}`);
+            }
 
-              return (
-                /* ⭐ KPI 信息簇视觉层级（已删除冗余进度条，%数字+累计/目标 成为核心信息链）
-                   统一：字号x字重x颜色 严格分层，消除混乱感
-                   左 习惯标题：15px 700 ink-900
-                   右 ROW1 主KPI：%数字(16px 700 绿) + %(12px ink-500)
-                   右 ROW2 次KPI：累计(14px 600 ink-900) / 分隔(ink-300) / 目标(14px 600 ink-700) 单位(12px ink-400)
-                */
-                <div key={h.key}
-                  className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
-                  style={{ gridTemplateRows: 'auto 1fr' }}>
-                  {/* ROW1: KPI 信息矩阵 — 左侧习惯名 + 右侧双行KPI严格对齐 */}
-                  <div className="flex items-center justify-between gap-2">
-                    {/* 左列：KR同款 [序号(浅绿)] [标题(黑色)]
-                         ✅ 基线对齐：items-center + 两个 span 都 leading-none — 序号中线与标题字框中线严格重合
-                         ✅ 颜色：序号保留浅绿（#22c55e80），标题改回 ink-900 黑色，与 L2/L3 表格/日历 标题黑色一致 */}
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span
-                        className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
-                        style={{ color: `${GREEN}99` /* 62%透明度浅绿，基色加深后补偿保持视觉层级 */ }}>
-                        {padNum}
-                      </span>
-                      <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-700">
-                        {cleanLabel}
-                      </span>
-                    </div>
-                    {/* 右列：双行 KPI 矩阵 — 右对齐基线严格对齐 */}
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[38%]">
-                      {/* 🥇 主 KPI 行：% 数字为绝对核心（唯一视觉焦点）
-                           ✅ %符号改为 GREEN（精力绿），不再是灰色半透明 — 与数字同绿成为一个视觉整体 */}
-                      <div className="flex items-baseline leading-none">
-                        <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN_TEXT}}>{yearlyPct}</span>
-                        <span className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5" style={{color: GREEN_TEXT}}>%</span>
-                      </div>
-                      {/* 🥈 次 KPI 行：累计 / 目标 + 单位 — 字号统一13px，与主数字形成和谐层级 */}
-                      <div className="flex items-baseline leading-none">
-                        <span className="text-[13px] font-semibold tabular-nums text-ink-700">{h.val}</span>
-                        <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
-                        <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.target}</span>
-                        <span className="text-[13px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
-                      </div>
-                    </div>
+            return (
+              <div key={h.key}
+                className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
+                style={{ gridTemplateRows: 'auto 1fr' }}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <span
+                      className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
+                      style={{ color: `${GREEN}99` }}>
+                      {padNum}
+                    </span>
+                    <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-700">
+                      {cleanLabel}
+                    </span>
                   </div>
-                  {/* ROW2: 折线图区 — 用 self-end mt-auto 推到底部，与KPI信息保留 mt-3 间距
-                       这样折线图真正贴着卡片底边缘，不再被吸空区顶在中间 */}
-                  <div className="self-end mt-3 -mx-1 pb-0">
-                    <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={60} />
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[38%]">
+                    <div className="flex items-baseline leading-none">
+                      <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN_TEXT}}>{yearlyPct}</span>
+                      <span className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5" style={{color: GREEN_TEXT}}>%</span>
+                    </div>
+                    <div className="flex items-baseline leading-none">
+                      <span className="text-[13px] font-semibold tabular-nums text-ink-700">{h.val}</span>
+                      <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
+                      <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.target}</span>
+                      <span className="text-[13px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-        {/* L2 区块：各月数据表格
-             ⭐ 紧急修复 3 项设计缺陷：
-               1. 去掉 bg-surface-soft：玻璃卡已有 bg-surface，再叠加一层灰 → L1/L2/L3 三层灰度完全撞色（=层级感全废）
-               2. 去掉表头独有 rounded-t-lg：表格是表头+3行一个整体，应该给最外层容器加 rounded-xl，表头和行都保持直边
-               3. 区块间距：L1-L2 之间无分隔 → 加 my-4 + border-t border-ink-100 的 12px 空白通道
-        */}
-        {/* L2: mt-4(上间距) + border-t border-ink-100(分割线) + pt-4(下间距)
-            去掉 rounded-xl：分割线两端必须是直线，不能被圆角裁剪
-            内部表格容器单独保留 rounded-xl 做卡片圆角 */}
-        <div className="mt-4 px-0 pb-0 border-t border-ink-100 bg-transparent pt-4">
-            {/* 表头：py-2收紧垂直间距，去掉border-y分割线 */}
-            <div className="grid habit-table px-4 py-2 bg-transparent text-[14px] font-semibold text-ink-700">
-              <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
-                {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（与L1/L3完全统一的视觉标识，对齐项目标准5px） */}
-                <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-                {/* L2 标题统一 font-bold text-ink-900(已定义)，与L1/L3完全一致 */}
-                <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
+                <div className="self-end mt-3 -mx-1 pb-0">
+                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={60} />
+                </div>
               </div>
-              {/* 🔧 统计列顺序：完成率 → 累计 → 目标，表头与数据严格居中对齐（三列全部居中，视觉基线一致）
-                   所有列统一使用 text-center + 列内内容居中，消除左右padding不对称导致的偏移
-                   rate-gap 类为完成率列增加右侧间距（与累计列拉开视觉呼吸感） */}
-              <div className="text-center whitespace-nowrap rate-gap">完成率</div>
-              <div className="text-center whitespace-nowrap cum-gap">累计</div>
-              <div className="text-center whitespace-nowrap grp-end">目标</div>
-              {monthLabels.map((m, idx) => {
-                const monthNum = idx + 1;
-                const isCur = isCurrentMonth(monthNum);
-                const isSelected = selectedMonth === monthNum;
-                const isFuture = monthNum > curMonth;
-                // 1~curMonth 所有已发生月份统一用 font-bold（700）— 修复 1-7月 视觉比 8月 细的问题
-                const boldClass = isFuture ? '' : 'font-bold';
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ========== Card 2 / 3：各月数据趋势 ========== */}
+      <div className="glass-card p-5 overflow-hidden">
+        <div className="grid habit-table px-0 py-2 bg-transparent text-[14px] font-semibold text-ink-700 mb-2">
+          <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2 mb-2">
+            <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+            <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
+          </div>
+          <div className="text-center whitespace-nowrap rate-gap">完成率</div>
+          <div className="text-center whitespace-nowrap cum-gap">累计</div>
+          <div className="text-center whitespace-nowrap grp-end">目标</div>
+          {monthLabels.map((m, idx) => {
+            const monthNum = idx + 1;
+            const isCur = isCurrentMonth(monthNum);
+            const isSelected = selectedMonth === monthNum;
+            const isFuture = monthNum > curMonth;
+            const boldClass = isFuture ? '' : 'font-bold';
+            return (
+              <button
+                key={m}
+                onClick={() => !isFuture && setSelectedMonth(monthNum)}
+                disabled={isFuture}
+                className={[
+                  'text-center whitespace-nowrap tabular-nums transition-colors rounded px-1 py-0.5',
+                  boldClass,
+                  isSelected
+                    ? 'text-accent-green bg-accent-green/10 cursor-pointer'
+                    : isFuture
+                      ? 'text-ink-300 cursor-not-allowed'
+                      : 'text-ink-600 hover:text-accent-green hover:bg-accent-green/5 cursor-pointer'
+                ].join(' ')}
+              >
+                {m}
+              </button>
+            );
+          })}
+        </div>
+        <div className="space-y-0.5">
+        {habits.map((h, hIdx) => {
+          const p = pct(h.val, h.target);
+          const GREEN = '#22c55e';
+          const hkey = h.id || h.key;
+          const isEditing = editingTargetKey === hkey;
+          const padNum = String(hIdx + 1).padStart(2, '0');
+          const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
+          const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
+          return (
+            <div key={hkey} className="grid habit-table px-0 py-1.5 items-center transition-colors group rounded-xl hover:bg-ink-50/60">
+              <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
+                <span
+                  className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
+                  style={{ color: `${GREEN}88` }}>
+                  {padNum}
+                </span>
+                <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
+              </div>
+              <div className="flex justify-center items-center cursor-pointer rate-gap" onClick={() => onAction?.('editHabit', h)}>
+                {h.target > 0 ? (
+                  <span
+                    className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-[28px]"
+                    style={{
+                      width: '56px',
+                      background: GREEN,
+                      color: '#fff',
+                      boxShadow: '0 1px 2px rgba(34,197,94,0.25)',
+                    }}>
+                    <span className="flex items-baseline leading-none">
+                      <span className="text-[12px] font-bold tabular-nums">{p}</span>
+                      <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-ink-300 font-medium leading-none">未设置</span>
+                )}
+              </div>
+              <div className="text-center font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
+              <div className="text-center tabular-nums font-medium grp-end" onClick={(e) => e.stopPropagation()}>
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    type="number"
+                    min="1"
+                    value={targetDraft}
+                    onChange={(e) => setTargetDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitTarget(h);
+                      if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
+                    }}
+                    onBlur={() => commitTarget(h)}
+                    className="w-16 mx-auto px-2 py-1 text-[14px] font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                  />
+                ) : (
+                  <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-center gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer px-2">
+                    <span className="text-[14px] font-medium text-ink-500 tabular-nums text-center">{h.target}</span>
+                    <span className="text-[12px] text-ink-500 ml-1">{h.unit}</span>
+                  </div>
+                )}
+              </div>
+              {monthIndices.map((monthIdx) => {
+                const n = h.month?.[monthIdx] || 0;
+                const isFuture = monthIdx > curMonth;
+                const isCur = isCurrentMonth(monthIdx);
+                let cellBg = '';
+                let cellText = '';
+                let cellBorder = '';
+                let cellRing = '';
+                if (n > 0) {
+                  cellBg = 'bg-accent-green/15';
+                  cellText = 'text-accent-green font-bold';
+                } else if (isFuture) {
+                  cellBg = 'bg-ink-50';
+                  cellText = 'text-ink-300 font-semibold';
+                  cellBorder = 'border border-ink-100';
+                } else {
+                  cellBg = 'bg-ink-100';
+                  cellText = 'text-ink-400 font-semibold';
+                }
+                if (isCur) {
+                  cellRing = n > 0
+                    ? 'ring-2 ring-accent-green/40 ring-offset-1'
+                    : 'ring-2 ring-ink-300/50 ring-offset-1';
+                }
                 return (
-                  <button
-                    key={m}
-                    onClick={() => !isFuture && setSelectedMonth(monthNum)}
-                    disabled={isFuture}
-                    className={[
-                      'text-center whitespace-nowrap tabular-nums transition-colors rounded px-1 py-0.5',
-                      boldClass,
-                      isSelected
-                        ? 'text-accent-green bg-accent-green/10 cursor-pointer'
-                        : isFuture
-                          ? 'text-ink-300 cursor-not-allowed'
-                          : 'text-ink-600 hover:text-accent-green hover:bg-accent-green/5 cursor-pointer'
-                    ].join(' ')}
-                  >
-                    {m}
-                  </button>
+                  <div key={monthIdx} className="flex justify-center">
+                    <span className={[
+                      'text-[12px] tabular-nums text-center leading-none grid place-items-center transition-colors',
+                      'aspect-square w-[30px] h-[30px] rounded-md',
+                      cellBg, cellText, cellBorder, cellRing
+                    ].join(' ')}>{n}</span>
+                  </div>
                 );
               })}
             </div>
-            {habits.map((h, hIdx) => {
-              const p = pct(h.val, h.target);
-              const GREEN = '#22c55e';
-              const GREEN_TEXT = '#22c55e';
-              const hkey = h.id || h.key;
-              const isEditing = editingTargetKey === hkey;
-              const padNum = String(hIdx + 1).padStart(2, '0');
-              const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
-              return (
-                <div key={hkey} className="grid habit-table px-4 py-1.5 items-center transition-colors group">
-                  <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
-                    {/* KR同款序号+黑色标题：01/02/03 浅绿，标题 ink-900 黑色（与L1卡片一致）
-                         序号 11px Bold tabular w-22px 右对齐，items-center + leading-none 基线对齐 */}
-                    <span
-                      className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
-                      style={{ color: `${GREEN}88` }}>
-                      {padNum}
-                    </span>
-                    <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
-                  </div>
-                  {/* 完成率 - L3同款绿色胶囊样式：56px宽、实心绿#22c55e、白字、6px圆角、1px阴影
-                       列内flex justify-center items-center，与表头"完成率"严格居中对齐
-                       rate-gap 类增加与累计列的视觉呼吸感（右侧间距） */}
-                  <div className="flex justify-center items-center cursor-pointer rate-gap" onClick={() => onAction?.('editHabit', h)}>
-                    {h.target > 0 ? (
+          );
+        })}
+        </div>
+      </div>
+
+      {/* ========== Card 3 / 3：当月打卡日历 ========== */}
+      <div className="glass-card p-5 overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
+          <span className="flex items-center gap-2">
+            <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
+            <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
+          </span>
+          <div className="flex items-center gap-3 text-[12px] text-ink-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-[17px] h-[17px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(34,197,94,0.25)'}}>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>已打卡
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-[17px] h-[17px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-[17px] h-[17px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3.5">
+          {habits.map((h, hidx) => {
+            const daysTotal = monthMaxDays[selectedMonth - 1];
+            const realDates = h.monthDates?.[selectedMonth];
+            const completedDays = realDates
+              ? realDates
+              : new Set(Array.from({ length: h.month?.[selectedMonth] || 0 }, (_, i) => i + 1));
+            const GREEN = '#22c55e';
+            const padNum = String(hidx + 1).padStart(2, '0');
+            const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
+            const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
+
+            const YEAR_DAYS = 365;
+            const monthWeight = daysTotal / YEAR_DAYS;
+            const monthlyTarget = Math.max(1, Math.ceil((h.target || 0) * monthWeight));
+
+            const doneCount = completedDays.size;
+            const monthRate = monthlyTarget > 0 ? Math.min(100, Math.round((doneCount / monthlyTarget) * 100)) : 0;
+            return (
+              <div key={h.key}
+                className="grid items-stretch"
+                style={{ gridTemplateColumns: '145px 130px minmax(0, 1fr)', columnGap: '14px' }}>
+                {/* 列①：标签列（145px 固定宽度） */}
+                <div className="flex items-center gap-1.5 w-full">
+                  <span
+                    className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
+                    style={{ color: `${GREEN}88` }}>
+                    {padNum}
+                  </span>
+                  <span className="text-[14px] font-semibold truncate leading-none text-ink-700 min-w-0 flex-1">
+                    {cleanLabel}
+                  </span>
+                </div>
+                {/* 列②：KPI列（%胶囊 + 累计数字 左端对齐） */}
+                <div className="flex items-center justify-start gap-[10px] w-full h-full">
+                  {monthlyTarget > 0 ? (
+                    <>
                       <span
-                        className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-[28px]"
+                        className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-full"
                         style={{
                           width: '56px',
                           background: GREEN,
@@ -1746,269 +1847,64 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           boxShadow: '0 1px 2px rgba(34,197,94,0.25)',
                         }}>
                         <span className="flex items-baseline leading-none">
-                          <span className="text-[12px] font-bold tabular-nums">{p}</span>
+                          <span className="text-[12px] font-bold tabular-nums">{monthRate}</span>
                           <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
                         </span>
                       </span>
-                    ) : (
-                      <span className="text-[11px] text-ink-300 font-medium leading-none">未设置</span>
-                    )}
-                  </div>
-                  {/* 累计 - 列内严格居中 text-center，与表头"累计"字中线重合 */}
-                  <div className="text-center font-semibold tabular-nums text-ink-700 text-[14px] cum-gap">{h.val}</div>
-                  {/* 目标 - 列内严格居中 text-center，与表头"目标"字中线重合；点击事件不阻止父级冒泡居中对齐 */}
-                  <div className="text-center tabular-nums font-medium grp-end" onClick={(e) => e.stopPropagation()}>
-                    {isEditing ? (
-                      <input
-                        autoFocus
-                        type="number"
-                        min="1"
-                        value={targetDraft}
-                        onChange={(e) => setTargetDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitTarget(h);
-                          if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
-                        }}
-                        onBlur={() => commitTarget(h)}
-                        className="w-16 mx-auto px-2 py-1 text-[14px] font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
-                      />
-                    ) : (
-                      <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-center gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer px-2">
-                        <span className="text-[14px] font-medium text-ink-500 tabular-nums text-center">{h.target}</span>
-                        <span className="text-[12px] text-ink-500 ml-1">{h.unit}</span>
+                      <div className="flex items-baseline leading-none flex-shrink-0">
+                        <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
+                        <span className="text-[12.5px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
+                        <span className="text-[12.5px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
+                        <span className="text-[12.5px] font-medium tabular-nums text-ink-400 ml-[2px]">{h.unit || '天'}</span>
                       </div>
-                    )}
-                  </div>
-                  {monthIndices.map((monthIdx) => {
-                    const n = h.month?.[monthIdx] || 0;
-                    const isFuture = monthIdx > curMonth;
-                    const isCur = isCurrentMonth(monthIdx);
-
-                    // ↓↓ 月份汇总格子样式 ↔ 打卡日历小方块 三态严格一一对应：
-                    //    🔝 字重规范（数据仪表盘工业惯例）：所有非重点态统一 font-semibold(600) 打底，
-                    //        重点态（已打卡/有数据）才升级为 font-bold(700)
-                    //        灰色态只通过颜色降级，绝不通过降字重来"假装隐形"
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-ink-300 font-medium leading-none pl-1 self-center">未设置</span>
+                  )}
+                </div>
+                {/* 列③：日历 */}
+                <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '3px'}}>
+                  {Array.from({ length: daysTotal }, (_, d) => {
+                    const day = d + 1;
+                    const isPast = selectedMonth < curMonth ? true : selectedMonth === curMonth ? day <= daysElapsedInCurMonth : false;
+                    const isToday = selectedMonth === curMonth && day === daysElapsedInCurMonth;
+                    const checked = completedDays.has(day);
                     let cellBg = '';
                     let cellText = '';
-                    let cellBorder = '';
                     let cellRing = '';
-                    if (n > 0) {
-                      // ✅ 已打卡（配角）→ 15%透明绿背景 + accent-green绿字 Bold
-                      //    方案A：配角透明度降级，完成率胶囊（主角）为唯一实心底色块，视觉层级明确
-                      cellBg = 'bg-accent-green/15';
-                      cellText = 'text-accent-green font-bold';
-                    } else if (isFuture) {
-                      // 未开始 → 日历「未开始」态：浅灰底+细灰边 + ink-300 Semibold 600
-                      cellBg = 'bg-ink-50';
-                      cellText = 'text-ink-300 font-semibold';
+                    let cellBorder = '';
+                    if (checked) {
+                      cellBg = 'bg-accent-green/15 text-accent-green';
+                      cellText = 'font-bold';
+                    } else if (!isPast) {
+                      cellBg = 'bg-ink-50 text-ink-300';
+                      cellText = 'font-semibold';
                       cellBorder = 'border border-ink-100';
                     } else {
-                      // ⭕ 未打卡（已过/当前月打卡0）→ 日历「未打卡」态：中灰底 + ink-400 Semibold 600
-                      //    🔴 修复之前缺 font-semibold 导致字重掉到父级 normal(400)，与日历方块 600 差 2 档
-                      cellBg = 'bg-ink-100';
-                      cellText = 'text-ink-400 font-semibold';
+                      cellBg = 'bg-ink-100 text-ink-400';
+                      cellText = 'font-semibold';
                     }
-                    if (isCur) {
-                      cellRing = n > 0
-                        ? 'ring-2 ring-accent-green/40 ring-offset-1'
-                        : 'ring-2 ring-ink-300/50 ring-offset-1';
+                    if (isToday) {
+                      cellRing = checked
+                        ? 'ring-2 ring-accent-green/40 ring-offset-[1px]'
+                        : 'ring-2 ring-ink-300/50 ring-offset-[1px]';
                     }
                     return (
-                      <div key={monthIdx} className="flex justify-center">
-                        <span className={[
-                          // 🔝 月份格子数字与日历方块双向统一：13→12px
-                          //     保持字重统一（font-semibold/bold升级）、leading-none 统一
-                          //     方块尺寸：30×30 保持不变，数字缩小 1px → 周围多出 1px 呼吸感（刚好与 L3 整体呼吸感方案一致）
-                          'text-[12px] tabular-nums text-center leading-none grid place-items-center transition-colors',
-                          'aspect-square w-[30px] h-[30px] rounded-md',
-                          cellBg, cellText, cellBorder, cellRing
-                        ].join(' ')}>{n}</span>
+                      <div key={day}
+                        title={`${selectedMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
+                        className={[
+                          'aspect-square rounded-md grid place-items-center',
+                          'text-[12px] tabular-nums leading-none transition-colors',
+                          cellBg, cellText, cellRing, cellBorder
+                        ].join(' ')}>
+                        {day}
                       </div>
                     );
                   })}
                 </div>
-              );
-            })}
-        </div>
-        {/* L3 区块：当月打卡日历
-             ⭐ 紧急修复 4 项设计缺陷：
-               1. ❌ 去掉 mx-2：L1/L2 占满整宽，L3 用 mx-2 反而比上两块窄 8px → 变成"缩进的备注段"不像第三大区块
-               2. ❌ 去掉 border + bg-surface-soft/30 + shadow：玻璃卡本身已经 bg-surface + 圆角 + 阴影，
-                  在里面再叠一个独立圆角边框卡片 = 「卡片套卡片」视觉混乱 = 3层灰度完全没区分度！
-                  设计铁则：如果父级已经是卡片，子区块只能靠"内容密度/留白/分隔线/标题层级"区分，不能再加独立卡片容器
-               3. ✅ 替换为：mb-6（底部足够呼吸通道） + mt-5 分隔 + 与 L1/L2 同宽 + 用细线分隔 L2/L3
-               4. ✅ 标题两侧锚点改为 ink-200 纯灰（不使用 border 边框条，避免 L3 最"实"，层级反而重）
-        */}
-        {/* L3: mt-4(上间距) + border-t border-ink-100(分割线) + pt-4(下间距)
-            统一16px对称间距，与L2分割线完全一致 */}
-        {/* L3: mt-4(上间距) + pt-4(下间距)
-            mx-[-16px] 抵消 px-4 内边距，让 border-t 延伸到容器边缘，两端直线
-            内容仍保留 px-4 内边距 */}
-        <div className="relative w-full mt-4 pt-4 pb-6 bg-transparent">
-          <div className="absolute left-0 right-0 top-0 border-t border-ink-100"></div>
-          <div className="flex items-center justify-between mb-4 px-4">
-            {/* L3 标题 15→16px 加大一号，Bold ink-800 保持强视觉权重，与L1一致 */}
-            <span className="flex items-center gap-2">
-              {/* 🟢 统一绿色粗条锚点：5px宽 × 18px高 accent-green（与L1/L2完全统一的视觉标识，对齐项目标准5px） */}
-              <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-              <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
-            </span>
-            <div className="flex items-center gap-3 text-[12px] text-ink-500">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-[17px] h-[17px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(34,197,94,0.25)'}}>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>已打卡
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-[17px] h-[17px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-[17px] h-[17px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
-              </span>
-            </div>
-          </div>
-          {/* 行间距 gap-3.5：三行习惯行之间 14px 间距（适度收紧，不再过松）
-               px-4 与标题行保持相同左边距，三行习惯的文字起点严格对齐 L2 各月数据 */}
-          <div className="flex flex-col gap-3.5 px-4">
-            {habits.map((h, hidx) => {
-              const daysTotal = monthMaxDays[selectedMonth - 1];
-              const realDates = h.monthDates?.[selectedMonth];
-              const completedDays = realDates
-                ? realDates
-                : new Set(Array.from({ length: h.month?.[selectedMonth] || 0 }, (_, i) => i + 1));
-              const GREEN = '#22c55e';
-              const GREEN_TEXT = '#22c55e';
-              const padNum = String(hidx + 1).padStart(2, '0');
-              const cleanLabel = (h.label || '').replace(/^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*/gu, '').trim() || h.label || '';
-
-              // =====================================================
-              // 🎯 月度目标拆分（按年度目标 h.target 平均分摊到每月）
-              //   根因修复：之前"分母=已过24天"是错误的时间分母（日历过了≠目标该到）
-              //   正确：以全年365天为权重把年度目标分配给每个月
-              //   例：
-              //     睡觉 365天/年  → 8月应达 = 31/365 × 365 = 31天（当月总天数）
-              //     喝水 365天/年  → 8月应达 = 31/365 × 365 = 31天
-              //     运动 104次/年  → 8月应达 = 31/365 × 104 ≈ 9次（非整数向上取整，不降低要求）
-              // =====================================================
-              const YEAR_DAYS = 365;
-              // 计算该月占全年的"目标权重"（每个月应该承担多少年度目标）
-              const monthWeight = daysTotal / YEAR_DAYS;
-              // 按年度目标做加权分摊 → 得到"本月理论应达数"
-              //   Math.ceil 取整原则：宁高勿低，不降低全年标准
-              const monthlyTarget = Math.max(1, Math.ceil((h.target || 0) * monthWeight));
-
-              // 🎯 L3 当月小结（已完成 / 月度应达目标 · 完成率%）
-              const doneCount = completedDays.size;
-              // 完成率口径："已完成 / 本月应达目标数"
-              //   进度感：当前月如果还没到"全月过完"，进度上限不会强制卡100%
-              const monthRate = monthlyTarget > 0 ? Math.min(100, Math.round((doneCount / monthlyTarget) * 100)) : 0;
-              return (
-                // ⭐ 固定三列 Grid（3条视觉基线严格对齐）
-                //   items-stretch = 三列高度统一撑满"行高"，列②的%胶囊就会自动跟列③的日历方块严格等高
-                //   列① [标签 145px]  → 序号22px + 习惯名117px，三行习惯名首字/尾字对齐
-                //   列② [KPI  130px]  → 「X/Y天 · %胶囊」，内部 flex flex-col justify-center 自动居中
-                //   列③ [日历 flex-1] → 31方块，aspect-square，高度由"日历方块"决定 → 反向撑高整行
-                <div key={h.key}
-                  className="grid items-stretch"
-                  style={{ gridTemplateColumns: '145px 130px minmax(0, 1fr)', columnGap: '14px' }}>
-                  {/* ========== 列①：标签列（145px 固定宽度） — 自动垂直居中到行高 */}
-                  <div className="flex items-center gap-1.5 w-full">
-                    <span
-                      className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
-                      style={{ color: `${GREEN}88` }}>
-                      {padNum}
-                    </span>
-                    <span className="text-[14px] font-semibold truncate leading-none text-ink-700 min-w-0 flex-1">
-                      {cleanLabel}
-                    </span>
-                  </div>
-                  {/* ========== 列②：KPI列（%胶囊 + 累计数字 全部左端对齐）
-                        🎯 justify-start + gap-[10px]：%胶囊和累计数字都贴标签列右边沿
-                        不再两端对齐（justify-between），视觉上三行的"完成率+累计"都从同一个x坐标开始，形成整齐的阅读轴 */}
-                  <div className="flex items-center justify-start gap-[10px] w-full h-full">
-                    {monthlyTarget > 0 ? (
-                      <>
-                        {/* ⭐ 第一视觉：%胶囊（56px × h-full 与方块等高） */}
-                        <span
-                          className="relative flex-shrink-0 rounded-[6px] grid place-items-center select-none h-full"
-                          style={{
-                            width: '56px',
-                            background: GREEN,
-                            color: '#fff',
-                            boxShadow: '0 1px 2px rgba(34,197,94,0.25)',
-                          }}>
-                          <span className="flex items-baseline leading-none">
-                            <span className="text-[12px] font-bold tabular-nums">{monthRate}</span>
-                            <span className="text-[9px] font-semibold opacity-85 ml-[1px]">%</span>
-                          </span>
-                        </span>
-                        {/* ⭐ 次级信息：累计 / 目标 + 单位（ink-700与习惯标题同色）
-                             与%胶囊 gap-[10px] 紧挨，整体贴左边 */}
-                        <div className="flex items-baseline leading-none flex-shrink-0">
-                          <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
-                          <span className="text-[12.5px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
-                          <span className="text-[12.5px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
-                          <span className="text-[12.5px] font-medium tabular-nums text-ink-400 ml-[2px]">{h.unit || '天'}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-[11px] text-ink-300 font-medium leading-none pl-1 self-center">未设置</span>
-                    )}
-                  </div>
-                  {/* 严格无横滚 + 呼吸感强化：gap从2→3px（格子间多1px空气感），
-                      数字 13→12px 精致缩小但依然保持 semibold/bold 字重统一 */}
-                  <div className="flex-1 grid" style={{gridTemplateColumns: `repeat(${daysTotal}, minmax(0, 1fr))`, gap: '3px'}}>
-                    {Array.from({ length: daysTotal }, (_, d) => {
-                      const day = d + 1;
-                      // 选中月=当前月时用真实天数判断，否则历史月全部视为"已过"
-                      const isPast = selectedMonth < curMonth ? true : selectedMonth === curMonth ? day <= daysElapsedInCurMonth : false;
-                      const isToday = selectedMonth === curMonth && day === daysElapsedInCurMonth;
-                      const checked = completedDays.has(day);
-                      // 三态：已打卡 / 未打卡（已过）/ 未开始（未来）
-                      // ⭐ 与表格月份格子严格双向对齐：
-                      //   基础字重统一 font-semibold(600) → 已打卡态升级为 font-bold(700)
-                      //   line-height 统一 leading-none（消除半间距差异导致的视觉重心不对齐）
-                      let cellBg = '';
-                      let cellText = '';
-                      let cellRing = '';
-                      let cellBorder = '';
-                      if (checked) {
-                        // ✅ 已打卡（配角）→ 15%透明绿背景 + accent-green绿字 Bold
-                        //    方案A：配角透明度降级，KPI完成率胶囊（主角）为唯一实心底色块
-                        cellBg = 'bg-accent-green/15 text-accent-green';
-                        cellText = 'font-bold';
-                      } else if (!isPast) {
-                        cellBg = 'bg-ink-50 text-ink-300';
-                        cellText = 'font-semibold';
-                        cellBorder = 'border border-ink-100';
-                      } else {
-                        cellBg = 'bg-ink-100 text-ink-400';
-                        cellText = 'font-semibold';
-                      }
-                      if (isToday) {
-                        cellRing = checked
-                          ? 'ring-2 ring-accent-green/40 ring-offset-[1px]'
-                          : 'ring-2 ring-ink-300/50 ring-offset-[1px]';
-                      }
-                      return (
-                        <div key={day}
-                          title={`${selectedMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
-                          className={[
-                            'aspect-square rounded-md grid place-items-center',
-                            // 🔝 日历数字缩小：13→12px（精致化），但保持字重统一（semibold/bold）、line-height 统一
-                            //     与表格月份格子同步缩成 12px，保证整个页面数据数字的统一感
-                            'text-[12px] tabular-nums leading-none transition-colors',
-                            cellBg, cellText, cellRing, cellBorder
-                          ].join(' ')}>
-                          {day}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -4322,7 +4218,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 全局汇总 */}
+      {/* 全局汇总（整宽） */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-2.5">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
@@ -4341,125 +4237,132 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
         </div>
       </div>
 
-      {/* 每个能力独立卡片 */}
-      {dynAb.map((a, ai) => {
-        const mDone = a.mstones.filter(m => m.st === 'done').length;
-        const mTotal = a.mstones.length;
-        const mPct = mTotal > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal) : 0;
-        const sc = scoreColor(a.score);
-        const series = getHistorySeries(a);
-        const lastScore = series[series.length - 1];
-        const firstScore = series[0];
-        const trendDelta = series.length >= 2 && firstScore !== undefined && firstScore > 0
-          ? Math.round(((lastScore - firstScore) / firstScore) * 100) : null;
-        const levelLabel = Number(a.score) >= 9 ? '优秀' : Number(a.score) >= 6 ? '进行中' : '待启动';
+      {/* 三张能力卡：xl(≥1280px)三列 / md(≥768px)两列 / 手机一列 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {dynAb.map((a, ai) => {
+          const mDone = a.mstones.filter(m => m.st === 'done').length;
+          const mTotal = a.mstones.length;
+          const mPct = mTotal > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / mTotal) : 0;
+          const sc = scoreColor(a.score);
+          const series = getHistorySeries(a);
+          const lastScore = series[series.length - 1];
+          const firstScore = series[0];
+          const trendDelta = series.length >= 2 && firstScore !== undefined && firstScore > 0
+            ? Math.round(((lastScore - firstScore) / firstScore) * 100) : null;
+          const levelLabel = Number(a.score) >= 9 ? '优秀' : Number(a.score) >= 6 ? '进行中' : '待启动';
 
-        return (
-          <div key={a.title} className="glass-card p-5">
-            {/* 卡片头部：序号 + 标题 + 分数 */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="text-[12px] font-bold tabular-nums" style={{ color: '#f59e0b', opacity: 0.6 }}>
+          return (
+            <div key={a.title} className="glass-card p-4 flex flex-col">
+              {/* ========== 卡片头部：两行式 ========== */}
+              {/* R1：序号 + 标题 + 趋势% 一行 */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b', opacity: 0.6 }}>
                   {String(ai + 1).padStart(2, '0')}
                 </span>
                 <span className="w-[3px] h-[14px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
-                <span className="text-[15px] font-bold text-ink-900">{a.title}</span>
+                <span className="text-[14px] font-bold text-ink-900 truncate flex-1 min-w-0">{a.title}</span>
                 {trendDelta !== null && (
-                  <span className={`text-[11px] font-bold ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  <span className={`text-[11px] font-bold flex-shrink-0 ${trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                     {trendDelta >= 0 ? '↑' : '↓'}{Math.abs(trendDelta)}%
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                {/* 自评分数 */}
-                {editingScoreIdx === ai ? (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="range" min="0" max="10" step="1" defaultValue={a.score}
-                      style={{ accentColor: sc, width: '80px' }}
-                      onChange={e => {
-                        const n = Number(e.target.value);
-                        const el = document.getElementById('ab-score-' + ai);
-                        if (el) el.textContent = n;
-                      }}
-                      onMouseUp={e => {
-                        onSetScore?.(ai, Number(e.target.value));
-                        setEditingScoreIdx(null);
-                      }}
-                    />
-                    <span id={'ab-score-' + ai} className="text-[13px] font-bold tabular-nums" style={{ color: sc }}>{a.score}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(ai)}>
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-[20px] font-extrabold tabular-nums leading-none" style={{ color: sc }}>{a.score}</span>
-                      <span className="text-[11px] font-semibold" style={{ color: sc, opacity: 0.7 }}>/10</span>
+              {/* R2：左=每日行动文字(11.5px) / 右=评分区 */}
+              <div className="flex items-start gap-2 mb-3">
+                <div className="text-[11.5px] text-ink-500 font-medium leading-relaxed flex-1 min-w-0 line-clamp-2"
+                  title={a.daily}>{a.daily}</div>
+                <div className="flex-shrink-0">
+                  {editingScoreIdx === ai ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="range" min="0" max="10" step="1" defaultValue={a.score}
+                        style={{ accentColor: sc, width: '64px' }}
+                        onChange={e => {
+                          const n = Number(e.target.value);
+                          const el = document.getElementById('ab-score-' + ai);
+                          if (el) el.textContent = n;
+                        }}
+                        onMouseUp={e => {
+                          onSetScore?.(ai, Number(e.target.value));
+                          setEditingScoreIdx(null);
+                        }}
+                      />
+                      <span id={'ab-score-' + ai} className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: sc }}>{a.score}</span>
                     </div>
-                    <span className="text-[11px] font-semibold" style={{ color: sc, opacity: 0.85 }}>{levelLabel}</span>
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(ai)}>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-[18px] font-extrabold tabular-nums leading-none" style={{ color: sc }}>{a.score}</span>
+                        <span className="text-[10.5px] font-semibold flex-shrink-0" style={{ color: sc, opacity: 0.7 }}>/10</span>
+                      </div>
+                      <span className="text-[10.5px] font-semibold flex-shrink-0 px-1.5 py-0.5 rounded" style={{ color: sc, background: `${sc}15` }}>{levelLabel}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* 描述 */}
-            <div className="text-[12px] text-ink-500 mb-4">{a.daily}</div>
-
-            {/* 里程碑进度汇总 */}
-            <div className="flex items-center justify-between mb-3 px-3 py-2 rounded-lg bg-surface-soft/50">
-              <span className="text-[12px] font-semibold text-ink-600">里程碑进度</span>
-              <div className="flex items-center gap-2">
-                <ProgressBar value={mPct} color="#f59e0b" variant="dense" />
-                <span className="text-[12px] font-bold tabular-nums" style={{ color: '#f59e0b' }}>
+              {/* ========== 里程碑进度汇总：两行式 ========== */}
+              {/* R1：左「里程碑进度 (mDone/mTotal)」 + 右 mPct% */}
+              <div className="flex items-center justify-between mb-1.5 px-3 py-2 rounded-lg bg-surface-soft/50">
+                <span className="text-[11.5px] font-semibold text-ink-600">里程碑进度 <span className="text-ink-400">({mDone}/{mTotal})</span></span>
+                <span className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b' }}>
                   {mPct}%
                 </span>
-                <span className="text-[11px] text-ink-500">({mDone}/{mTotal})</span>
               </div>
-            </div>
+              {/* R2：进度条整宽（推到汇总卡下一行，不再跟文字抢空间） */}
+              <div className="px-3 mb-3 -mt-1">
+                <ProgressBar value={mPct} color="#f59e0b" variant="dense" />
+              </div>
 
-            {/* 里程碑列表 */}
-            {a.mstones.length === 0 ? (
-              <div className="text-[12px] text-ink-400 py-6 text-center">
-                暂无里程碑，点击下方添加
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {a.mstones.map((m, i) => {
-                  const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => onMsEdit?.(ai, i, m)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors border border-ink-100"
-                    >
-                      <span className="w-5 h-5 rounded flex-shrink-0 grid place-items-center" style={{ background: `${msCol}20` }}>
-                        {m.st === 'done' ? (
-                          <svg className="w-3 h-3" style={{ color: msCol }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        ) : m.st === 'doing' ? (
-                          <span className="w-2 h-2 rounded-full" style={{ background: msCol }}></span>
-                        ) : (
-                          <span className="w-2 h-2 rounded-full border-2" style={{ borderColor: msCol }}></span>
-                        )}
-                      </span>
-                      <div className={`flex-1 min-w-0 text-[13px] ${m.st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
-                        {m.lb}
+              {/* ========== 里程碑列表：每条 KR 两行式（R1文字+状态+% / R2进度条整宽） ========== */}
+              {a.mstones.length === 0 ? (
+                <div className="text-[11.5px] text-ink-400 py-5 text-center">
+                  暂无里程碑，点击下方添加
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 mb-2">
+                  {a.mstones.map((m, i) => {
+                    const msCol = m.st === 'done' ? '#22c55e' : m.st === 'doing' ? '#f59e0b' : '#8e8e93';
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => onMsEdit?.(ai, i, m)}
+                        className="flex flex-col gap-1.5 px-3 py-2 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors border border-ink-100"
+                      >
+                        {/* R1：状态圆 + 标题(左) + %(右) 一行 */}
+                        <div className="flex items-center gap-2 w-full">
+                          <span className="w-4 h-4 rounded flex-shrink-0 grid place-items-center" style={{ background: `${msCol}20` }}>
+                            {m.st === 'done' ? (
+                              <svg className="w-2.5 h-2.5" style={{ color: msCol }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            ) : m.st === 'doing' ? (
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: msCol }}></span>
+                            ) : (
+                              <span className="w-1.5 h-1.5 rounded-full border-2" style={{ borderColor: msCol }}></span>
+                            )}
+                          </span>
+                          <div className={`flex-1 min-w-0 text-[12.5px] truncate ${m.st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                            {m.lb}
+                          </div>
+                          <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: msCol }}>
+                            {m.pct}%
+                          </span>
+                        </div>
+                        {/* R2：进度条整宽 — 窄卡不再被横向挤压 */}
+                        <div className="w-full">
+                          <ProgressBar value={m.pct} color={msCol} variant="dense" />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <ProgressBar value={m.pct} color={msCol} variant="dense" />
-                        <span className="text-[12px] font-bold tabular-nums" style={{ color: msCol }}>
-                          {m.pct}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              )}
+              <div className="mt-auto pt-1">
+                <AddButton compact label="添加里程碑" onClick={() => onMsAdd?.(ai)} />
               </div>
-            )}
-            <div className="mt-3">
-              <AddButton label="添加里程碑" onClick={() => onMsAdd?.(ai)} />
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -4517,44 +4420,43 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
     const isOverdue = days < 0;
 
     return (
-      <div className="glass-card p-5">
-        {/* 卡片头部：标签 + 标题 + 完成率 */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg"
+      <div className="glass-card p-4 flex flex-col h-full">
+        {/* ========== 卡片头部 ========== */}
+        {/* R1：标签徽标 + 色条 + 标题（左）/ 完成率数字 + 状态标签（右） */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg flex-shrink-0"
               style={{ background: `${color}15`, color }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
-              <span className="text-[12px] font-bold leading-none">{label}</span>
+              <span className="text-[11.5px] font-bold leading-none">{label}</span>
             </span>
             <span className="w-[3px] h-[14px] rounded-full flex-shrink-0" style={{ background: color }}></span>
-            <span className="text-[15px] font-bold text-ink-900">{o.title}</span>
+            <span className="text-[14px] font-bold text-ink-900 truncate min-w-0 flex-1">{o.title}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
             <div className="flex items-baseline gap-0.5">
-              <span className="text-[22px] font-extrabold tabular-nums leading-none" style={{ color }}>{pctVal}</span>
-              <span className="text-[12px] font-bold leading-none" style={{ color, opacity: 0.7 }}>%</span>
+              <span className="text-[20px] font-extrabold tabular-nums leading-none" style={{ color }}>{pctVal}</span>
+              <span className="text-[11px] font-bold leading-none" style={{ color, opacity: 0.7 }}>%</span>
             </div>
-            <span className="text-[11px] font-semibold" style={{ color: pctVal >= 80 ? '#22c55e' : pctVal >= 50 ? '#f59e0b' : '#ef4444' }}>
+            <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{
+              color: pctVal >= 80 ? '#22c55e' : pctVal >= 50 ? '#f59e0b' : '#ef4444',
+              background: `${pctVal >= 80 ? '#22c55e' : pctVal >= 50 ? '#f59e0b' : '#ef4444'}12`,
+            }}>
               {pctVal >= 80 ? '进展顺利' : pctVal >= 50 ? '推进中' : '需加速'}
             </span>
           </div>
         </div>
-
-        {/* 截止日期 */}
-        <div className="flex items-center gap-1 text-[12px] mb-4">
-          <svg className="w-3.5 h-3.5 text-ink-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        {/* R2：截止日期行（更紧凑 11.5px） */}
+        <div className="flex items-center gap-1 text-[11.5px] mb-3">
+          <svg className="w-3.5 h-3.5 text-ink-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
           <span className={`font-semibold ${isOverdue ? 'text-rose-500' : isUrgent ? 'text-amber-500' : 'text-ink-500'}`}>
             {isOverdue ? `过期${Math.abs(days)}天` : `剩${days}天`}
           </span>
+          <span className="ml-auto text-[11px] text-ink-400">关键结果 · {o.krs.length}项</span>
         </div>
 
-        {/* KR 列表 */}
-        <div className="flex items-center justify-between mb-3 px-3 py-2 rounded-lg bg-surface-soft/50">
-          <span className="text-[12px] font-semibold text-ink-600">关键结果 (KR)</span>
-          <span className="text-[11px] text-ink-400">{o.krs.length}项</span>
-        </div>
-
-        <div className="flex flex-col gap-2">
+        {/* ========== KR 列表 ========== */}
+        <div className="flex flex-col gap-2 flex-1 min-h-0">
           {o.krs.map((kr, i) => {
             const st = kr.st === 'done' ? 'done' : kr.st === 'doing' ? 'doing' : 'tg';
             const krPct = pct(kr.v, kr.tgt);
@@ -4568,66 +4470,66 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
             return (
               <div
                 key={i}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors border border-ink-100"
+                className="flex flex-col gap-1.5 px-3 py-2 rounded-lg hover:bg-ink-50 cursor-pointer transition-colors border border-ink-100"
                 onClick={() => onKrEdit?.(goalIdx, i, kr)}
               >
-                {/* 状态标志 */}
-                <span className="w-5 h-5 rounded flex-shrink-0 grid place-items-center" style={{ background: `${statusDot}20` }}>
-                  {st === 'done' ? (
-                    <svg className="w-3 h-3" style={{ color: statusDot }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  ) : (
-                    <span className="w-2 h-2 rounded-full" style={{ background: statusDot }}></span>
-                  )}
-                </span>
-
-                {/* KR标题 */}
-                <div className={`flex-1 min-w-0 text-[13px] ${st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
-                  {kr.t}
-                </div>
-
-                {/* 进度条 + 百分比 */}
-                <div className="flex items-center gap-2 flex-shrink-0 w-[140px]">
-                  <ProgressBar value={krPct} color={statusDot} variant="dense" />
-                  <span className="text-[12px] font-bold tabular-nums" style={{ color: statusDot }}>
-                    {krPct}%
+                {/* R1：状态圆 + KR标题（左） + 风险徽标（右上）一行 */}
+                <div className="flex items-center gap-2 w-full">
+                  <span className="w-4 h-4 rounded flex-shrink-0 grid place-items-center" style={{ background: `${statusDot}20` }}>
+                    {st === 'done' ? (
+                      <svg className="w-2.5 h-2.5" style={{ color: statusDot }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusDot }}></span>
+                    )}
                   </span>
+
+                  <div className={`flex-1 min-w-0 text-[12.5px] truncate ${st === 'done' ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                    {kr.t}
+                  </div>
+
+                  <button
+                    className="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap transition hover:brightness-95 active:scale-[0.97] flex-shrink-0"
+                    style={{ background: rm.color + '1a', color: rm.color }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (canBreakdown) {
+                        onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, start: o.start }, rm);
+                      }
+                    }}
+                    title={canBreakdown ? '点击拆解为微动作' : rm.label}
+                  >
+                    {rm.label}
+                    {canBreakdown && ma.length > 0 && (
+                      <span className="ml-0.5 opacity-75 tabular-nums"> {maDone}/{ma.length}</span>
+                    )}
+                    {canBreakdown && ma.length === 0 && (
+                      <span className="ml-0.5 text-[8px] opacity-60">+</span>
+                    )}
+                  </button>
                 </div>
 
-                {/* 数值 */}
-                <div className="flex items-baseline gap-0.5 flex-shrink-0 text-[12px]">
-                  <span className="font-bold tabular-nums text-ink-700">{kr.v}</span>
-                  <span className="text-ink-400">/</span>
-                  <span className="font-medium text-ink-500 tabular-nums">{kr.tgt}</span>
+                {/* R2：进度条（左 flex-1） + 数值+%（右）一行 — 下排放数据层，不挤标题 */}
+                <div className="flex items-center justify-between w-full gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ProgressBar value={krPct} color={statusDot} variant="dense" />
+                  </div>
+                  <div className="flex items-baseline gap-1 flex-shrink-0">
+                    <span className="text-[12px] font-bold tabular-nums text-ink-700">{kr.v}</span>
+                    <span className="text-[11px] text-ink-400">/</span>
+                    <span className="text-[11px] font-medium text-ink-500 tabular-nums">{kr.tgt}</span>
+                    <span className="text-[11.5px] font-bold tabular-nums ml-1" style={{ color: statusDot }}>
+                      · {krPct}%
+                    </span>
+                  </div>
                 </div>
-
-                {/* 状态标签 */}
-                <button
-                  className="text-[11px] font-bold px-2 py-1 rounded-md whitespace-nowrap transition hover:brightness-95 active:scale-[0.97] flex-shrink-0"
-                  style={{ background: rm.color + '1a', color: rm.color }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (canBreakdown) {
-                      onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, start: o.start }, rm);
-                    }
-                  }}
-                  title={canBreakdown ? '点击拆解为微动作' : rm.label}
-                >
-                  {rm.label}
-                  {canBreakdown && ma.length > 0 && (
-                    <span className="ml-1 opacity-75 tabular-nums">{maDone}/{ma.length}</span>
-                  )}
-                  {canBreakdown && ma.length === 0 && (
-                    <span className="ml-1 text-[8px] opacity-60">+</span>
-                  )}
-                </button>
               </div>
             );
           })}
         </div>
 
-        {/* 添加 KR */}
-        <div className="mt-3">
-          <AddButton label="添加 KR" onClick={() => onKrAdd?.(goalIdx)} />
+        {/* 添加 KR：compact 版 贴卡片底部 */}
+        <div className="mt-3 pt-1">
+          <AddButton compact label="添加 KR" onClick={() => onKrAdd?.(goalIdx)} />
         </div>
       </div>
     );
@@ -4635,7 +4537,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 全局汇总 */}
+      {/* 全局汇总（整宽） */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-2.5">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
@@ -4648,11 +4550,11 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
         </div>
       </div>
 
-      {/* 主业独立卡片 */}
-      {renderGoalCard(main, '主业', '#ef4444', 0)}
-
-      {/* 副业独立卡片 */}
-      {side && renderGoalCard(side, '副业', '#F97316', 1)}
+      {/* 主/副业 两栏：lg(≥1024px)两列 / <lg堆叠一列；两卡 h-full 视觉等高 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {renderGoalCard(main, '主业', '#ef4444', 0)}
+        {side && renderGoalCard(side, '副业', '#F97316', 1)}
+      </div>
     </div>
   );
 }

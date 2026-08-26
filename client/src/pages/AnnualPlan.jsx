@@ -3361,10 +3361,10 @@ function CognitionView({
                           <path d="M12 5v14M5 12l7 7 7-7" />
                         </svg>
                       </div>
-                      {/* 右：转化率居中对齐漏斗列 */}
+                      {/* 右：转化率与漏斗块居中对齐 */}
                       <div className="flex-1 flex items-center justify-center">
                         <span
-                          className="font-bold tabular-nums"
+                          className="font-bold tabular-nums mr-[48px]"
                           style={{ color: lowConv ? '#dc2626' : BLUE }}>
                           {conv ?? 0}%
                         </span>

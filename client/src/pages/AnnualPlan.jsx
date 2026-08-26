@@ -162,7 +162,7 @@ const COG_O = { text: '通过阅读获得启发，并确定实际行动目标以
 const COG_KRS = [
   { id: 'kr0', lb: '目标量 · 12本阅读目标', tgt: 12, val: 12, u: '本', sub: '年度目标' },
   { id: 'kr1', lb: '输入量 · 读完12本书', tgt: 12, val: 0, u: '本', sub: '已读完' },
-  { id: 'kr2', lb: '思考量 · 24组思考', tgt: 24, val: 0, u: '组', sub: '洞察组数' },
+  { id: 'kr2', lb: '思考量 · 24组思考', tgt: 24, val: 0, u: '组', sub: '思考组数' },
   { id: 'kr3', lb: '行动量 · 12项行动', tgt: 12, val: 0, u: '项', sub: '行动勾选' },
   { id: 'kr4', lb: '改变量 · 6条改变', tgt: 6, val: 0, u: '条', sub: '改变记录' },
 ];
@@ -3035,7 +3035,7 @@ function CognitionView({
     const dynBooks = (!books || books.length === 0) ? BOOKS : books;
     const dynKrs = krs || COG_KRS;
     const doneBooks = dynBooks.filter(b => b.st === 'done');
-    // 思考量：统计所有书籍中完整填写的洞察条目数（每条 = 核心触动 + 应用场景）
+    // 思考量：统计所有书籍中完整填写的思考条目数（每条 = 核心触动 + 应用场景）
     const insightEntryCount = dynBooks.reduce((sum, b) => {
       const validInsights = (b.insights || []).filter(i => i.text?.trim() && i.scene?.trim());
       return sum + validInsights.length;
@@ -3052,12 +3052,12 @@ function CognitionView({
     return {
       total: kr0Target,          // ① 目标量：KR0 目标值（12本，漏斗最顶层）
       done: doneBooks.length,    // ② 输入量：已读完书籍数（< 目标量）
-      notes: insightEntryCount,  // ③ 思考量：洞察条目总数（< 输入量）
-      changes: checkedActionCount, // ④ 行动量：条目级已勾选行动总数（< 思考量）
+      notes: insightEntryCount,  // ③ 思考量：思考条目总数（< 输入量）
+      changes: checkedActionCount, // ④ 行动量：条目级已勾选行动计划总数（< 思考量）
       reviews: dynChanges,       // ⑤ 改变量：独立changes + 书籍中已完成行动（< 行动量）
       // 兼容字段：保留 KR1 读取时使用的单独字段
       doneBooksCount: doneBooks.length,
-      reviewCount: (reviews || []).length, // 真实"复盘量"保留备用
+      reviewCount: (reviews || []).length,
     };
   }, [books, krs, changes, reviews]);
 
@@ -3077,23 +3077,23 @@ function CognitionView({
     return arr.map(kr => {
       // KR0（目标量）= 固定值，始终 100%（阅读目标设定值）
       if (kr.id === 'kr0') {
-        return { ...kr, val: kr.tgt }; // 目标量 val = tgt，始终完成
+        return { ...kr, val: kr.tgt };
       }
       // KR1（输入量）= 已读完书籍实际数量
       if (kr.id === 'kr1') {
         return { ...kr, val: funnelData.doneBooksCount };
       }
-      // KR2（思考量）= 洞察条目总数
+      // KR2（思考量）= 思考条目总数（洞察条目）
       if (kr.id === 'kr2') {
-        return { ...kr, val: funnelData.done };
-      }
-      // KR3（行动量）= 已勾选行动条目总数
-      if (kr.id === 'kr3') {
         return { ...kr, val: funnelData.notes };
+      }
+      // KR3（行动量）= 已勾选行动计划条目总数
+      if (kr.id === 'kr3') {
+        return { ...kr, val: funnelData.changes };
       }
       // KR4（改变量）= 改变记录总数
       if (kr.id === 'kr4') {
-        return { ...kr, val: funnelData.changes };
+        return { ...kr, val: funnelData.reviews };
       }
       return kr;
     });
@@ -3363,15 +3363,15 @@ function CognitionView({
             // ① 目标 → 输入：还差XX本读完
             { show: finalKrs[1] && finalKrs[1].val < finalKrs[1].tgt,
               text: finalKrs[1]?.val === 0 ? '📚 书架还没已读完的书，去完成第一本' : `还差 ${finalKrs[1].tgt - finalKrs[1].val}${finalKrs[1]?.u}读完，继续阅读` },
-            // ② 输入 → 思考：洞察不足
+            // ② 输入 → 思考：思考条目不足
             { show: finalKrs[2] && finalKrs[2].val < finalKrs[2].tgt && finalKrs[1]?.val > 0,
-              text: finalKrs[2]?.val === 0 ? '💡 已读完的书还没写洞察，点击书籍添加思考' : `还差 ${Math.max(0, finalKrs[2].tgt - finalKrs[2].val)}${finalKrs[2]?.u}洞察，继续输出思考` },
-            // ③ 思考 → 行动：行动不足
+              text: finalKrs[2]?.val === 0 ? '💡 已读完的书还没写思考，点击书籍添加思考' : `还差 ${Math.max(0, finalKrs[2].tgt - finalKrs[2].val)}${finalKrs[2]?.u}思考，继续输出思考` },
+            // ③ 思考 → 行动：行动计划不足
             { show: finalKrs[3] && finalKrs[3].val < finalKrs[3].tgt && finalKrs[2]?.val > 0,
-              text: finalKrs[3]?.val === 0 ? '✅ 有洞察但没行动，生成你的第一条行动承诺' : `还差 ${Math.max(0, finalKrs[3].tgt - finalKrs[3].val)}${finalKrs[3]?.u}行动，勾选更多行动项` },
+              text: finalKrs[3]?.val === 0 ? '✅ 有思考但没行动，生成你的第一条行动计划' : `还差 ${Math.max(0, finalKrs[3].tgt - finalKrs[3].val)}${finalKrs[3]?.u}行动，勾选更多行动计划` },
             // ④ 行动 → 改变：改变不足
             { show: finalKrs[4] && finalKrs[4].val < finalKrs[4].tgt && finalKrs[3]?.val > 0,
-              text: finalKrs[4]?.val === 0 ? '🔄 有承诺但没记录改变，创建你的第一条改变' : `还差 ${Math.max(0, finalKrs[4].tgt - finalKrs[4].val)}${finalKrs[4]?.u}改变，记录你的改变` },
+              text: finalKrs[4]?.val === 0 ? '🔄 有行动计划但没记录改变，创建你的第一条改变' : `还差 ${Math.max(0, finalKrs[4].tgt - finalKrs[4].val)}${finalKrs[4]?.u}改变，记录你的改变` },
           ];
           const visibleCtas = ctas.filter(c => c.show);
           if (visibleCtas.length === 0) return null;
@@ -3821,7 +3821,7 @@ function CognitionView({
                             {!hasIns && !hasAct && (() => {
                               const changeCount = (changes || []).filter(c => c.bookId === b.id).length;
                               return changeCount === 0 ? (
-                                <span className="text-[10.5px] text-ink-300 leading-none italic">暂无洞察与行动</span>
+                                <span className="text-[10.5px] text-ink-300 leading-none italic">暂无思考与行动</span>
                               ) : null;
                             })()}
                           </div>
@@ -3985,7 +3985,7 @@ function CognitionView({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
-                {[...(bookActionsList || []), ...(changes || [])].length} 条承诺
+                {[...(bookActionsList || []), ...(changes || [])].length} 条行动计划
               </span>
               <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
                 className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
@@ -4001,7 +4001,7 @@ function CognitionView({
               <div className="flex-1 flex flex-col gap-1.5">
                 {mergedActions.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
-                    还没有行动承诺<br/>编辑书籍→思后行动板块填写
+                    还没有行动计划<br/>编辑书籍→思后行动板块填写
                   </div>
                 ) : (
                   mergedActions.slice(0, 6).map(c => {

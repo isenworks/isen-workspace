@@ -1614,7 +1614,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <span
                       className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
-                      style={{ color: `${GREEN}99` }}>
+                      style={{ color: GREEN }}>
                       {padNum}
                     </span>
                     <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-700">
@@ -1693,7 +1693,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
                 <span
                   className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
-                  style={{ color: `${GREEN}88` }}>
+                  style={{ color: GREEN }}>
                   {padNum}
                 </span>
                 <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
@@ -1827,7 +1827,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 <div className="flex items-center gap-1.5 w-full">
                   <span
                     className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
-                    style={{ color: `${GREEN}88` }}>
+                    style={{ color: GREEN }}>
                     {padNum}
                   </span>
                   <span className="text-[14px] font-semibold truncate leading-none text-ink-700 min-w-0 flex-1">

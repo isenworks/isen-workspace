@@ -3350,22 +3350,25 @@ function CognitionView({
                   </div>
                 </div>
 
-                {/* 连接线 + 转化率 */}
+                {/* 连接线：箭头在标签侧，转化率在漏斗侧 */}
                 {nextKr && (() => {
                   const lowConv = conv !== null && conv < 50;
                   return (
-                    <div className="flex items-center gap-0.5 pl-[56px] py-0.5 text-[11px] whitespace-nowrap">
-                      <svg className="w-3 h-3" style={{ color: BLUE }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 8l6 6 6-6" />
-                      </svg>
-                      <span
-                        className="font-bold tabular-nums"
-                        style={{ color: lowConv ? '#dc2626' : BLUE }}>
-                        {conv ?? 0}%
-                      </span>
-                      <span className="text-[10px] text-ink-400">
-                        转化率
-                      </span>
+                    <div className="flex items-center gap-2 py-0.5 text-[11px]">
+                      {/* 左：箭头对齐 KR 标签列 */}
+                      <div className="w-[152px] flex items-center justify-end pr-1.5">
+                        <svg className="w-3 h-3" style={{ color: BLUE }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 8l6 6 6-6" />
+                        </svg>
+                      </div>
+                      {/* 右：转化率对齐漏斗列 */}
+                      <div className="flex-1 flex items-center">
+                        <span
+                          className="font-bold tabular-nums"
+                          style={{ color: lowConv ? '#dc2626' : BLUE }}>
+                          {conv ?? 0}%
+                        </span>
+                      </div>
                     </div>
                   );
                 })()}

@@ -1284,7 +1284,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       {/* L1 玻璃卡片：年度进度总览 */}
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3.5">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
             <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 年度规划总览</span>
             <div className="inline-flex p-0.5 rounded-lg bg-surface-soft border border-ink-100 ml-2">
@@ -1361,7 +1361,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
 
       {/* L2 玻璃卡片：模块进度 */}
       <div className="glass-card p-5">
-        <div className="flex items-center gap-2.5 mb-4">
+        <div className="flex items-center gap-3.5 mb-4">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">模块进度</span>
           <span className="text-[11px] text-ink-400 ml-2">点击进入详情</span>
@@ -3164,7 +3164,7 @@ function CognitionView({
         {/* ===== Header: O目标 + 完成率徽章 + 新增KR ===== */}
         <div className="mb-1.5">
           {editingObj ? (
-            <div className="flex items-start gap-2.5">
+            <div className="flex items-start gap-3.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0 mt-[2px]" style={{ background: BLUE }}></span>
               <div className="flex-1 flex flex-col gap-1.5">
                 <input
@@ -3182,7 +3182,7 @@ function CognitionView({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 min-h-[20px]">
+            <div className="flex items-center gap-3.5 min-h-[20px]">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <InlineEdit
                 value={objective?.text || COG_O.text}
@@ -3400,7 +3400,7 @@ function CognitionView({
         {/* Header 单行三段式：左(色条+标题+共N本横排) · 中(操作按钮) · 右(Tabs) */}
         <div className="flex items-center gap-3 mb-2 flex-wrap">
           {/* 左：色条 + 标题 + 共 N 本（横排，不换行）*/}
-          <div className="flex items-center gap-2.5 flex-shrink-0">
+          <div className="flex items-center gap-3.5 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
             <InlineEdit
               value={bookshelfTitle}
@@ -3923,7 +3923,7 @@ function CognitionView({
         {/* ========== 卡片一：读后思考 ========== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
             </div>
@@ -3979,7 +3979,7 @@ function CognitionView({
         {/* ========== 卡片二：思后行动（合并书籍中思后行动 + 旧独立changes）========== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
@@ -4100,7 +4100,7 @@ function CognitionView({
         {/* ========== 卡片三：行后改变 ========== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>

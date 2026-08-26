@@ -3226,7 +3226,7 @@ function CognitionView({
                             <div className="flex items-center gap-2.5">
                               <span
                                 className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none pt-[2px]"
-                                style={{ color: `${BLUE}88` }}>
+                                style={{ color: BLUE }}>
                                 {padNum}
                               </span>
                               {/* 左：KR标题（主信息） */}
@@ -4256,7 +4256,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
               {/* ========== 卡片头部：两行式 ========== */}
               {/* R1：序号 + 标题 + 趋势% 一行 */}
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b', opacity: 0.6 }}>
+                <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: '#f59e0b' }}>
                   {String(ai + 1).padStart(2, '0')}
                 </span>
                 <span className="w-[3px] h-[14px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>

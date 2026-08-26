@@ -3350,25 +3350,31 @@ function CognitionView({
                   </div>
                 </div>
 
-                {/* 连接线：箭头灰色对齐圆点，转化率居中对齐 */}
+                {/* 连接线：结构完全镜像表头行，转化率居中对齐「漏斗进度」文字 */}
                 {nextKr && (() => {
                   const lowConv = conv !== null && conv < 50;
                   return (
-                    <div className="flex items-center gap-2 py-0.5 text-[11px]">
-                      {/* 左：灰色箭头对齐KR标签圆点 */}
-                      <div className="w-[130px] pl-[64px] flex items-center">
+                    <div className="flex items-center gap-3 px-1 py-0.5 text-[11px]">
+                      {/* 左1：对齐表头 # 列 (w-[22px]) */}
+                      <div className="w-[22px] flex-shrink-0"></div>
+                      {/* 左2：对齐表头 KR目标 列 (w-[106px])，内含灰色箭头 */}
+                      <div className="w-[106px] flex-shrink-0 flex items-center pl-[28px]">
                         <svg className="w-3 h-3" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 5v14M5 12l7 7 7-7" />
                         </svg>
                       </div>
-                      {/* 右：转化率与漏斗块居中对齐 */}
-                      <div className="flex-1 flex items-center justify-center">
+                      {/* 中：转化率在 flex-1 内居中 — 与表头「漏斗进度」文字精确对齐 */}
+                      <div className="flex-1 flex items-center justify-center min-w-0">
                         <span
-                          className="font-bold tabular-nums mr-[48px]"
+                          className="font-bold tabular-nums"
                           style={{ color: lowConv ? '#dc2626' : BLUE }}>
                           {conv ?? 0}%
                         </span>
                       </div>
+                      {/* 右1：对齐表头 完成率 列 (w-[42px]) */}
+                      <div className="w-[42px] flex-shrink-0 invisible" aria-hidden="true"></div>
+                      {/* 右2：对齐表头 当前/目标 列 (w-[56px]) */}
+                      <div className="w-[56px] flex-shrink-0 invisible" aria-hidden="true"></div>
                     </div>
                   );
                 })()}

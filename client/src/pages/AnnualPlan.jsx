@@ -3238,7 +3238,7 @@ function CognitionView({
                       style={{ color: BLUE }}>
                       {padNum}
                     </span>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 -mt-[2px]">
                       {editingKrId === kr.id ? (
                         <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
                           <input

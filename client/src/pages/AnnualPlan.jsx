@@ -3156,10 +3156,13 @@ function CognitionView({
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ===== 一体化 KR × 漏斗 卡片 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
+      {/* ===== Row 1: 左 OKR(7) + 右 书架(5) 一体化布局 ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
+
+      {/* ===== 左侧·一体化 KR × 漏斗 卡片（7/12 列，高度与书架对齐） ===== */}
+      <div className="xl:col-span-7 bg-white rounded-2xl border border-ink-100 p-4 flex flex-col min-h-0">
         {/* ===== Header: O目标 + 完成率徽章 + 新增KR ===== */}
-        <div className="mb-3">
+        <div className="mb-2">
           {editingObj ? (
             <div className="flex items-start gap-2.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0 mt-[2px]" style={{ background: BLUE }}></span>
@@ -3212,7 +3215,7 @@ function CognitionView({
         </div>
 
         {/* ===== 一体化漏斗：每个 KR 行 = 一个漏斗阶段 ===== */}
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 min-h-0">
           {finalKrs.map((kr, idx) => {
             const p = pct(kr.val, kr.tgt);
             const nextKr = finalKrs[idx + 1];
@@ -3227,7 +3230,7 @@ function CognitionView({
             return (
               <div key={kr.id || idx}>
                 {/* KR Row = 漏斗阶段 */}
-                <div className="flex items-center gap-2.5 py-2.5 px-2 rounded-lg hover:bg-surface-soft transition-colors">
+                <div className="flex items-center gap-2 py-2 px-1.5 rounded-lg hover:bg-surface-soft transition-colors">
                   {/* 左侧：编号 + 标签 */}
                   <div className="flex items-center gap-2 w-[180px] flex-shrink-0">
                     <span
@@ -3374,10 +3377,10 @@ function CognitionView({
           if (visibleCtas.length === 0) return null;
           return (
             <div className="mt-3 pt-3 border-t border-ink-100">
-              <div className="text-[11px] font-semibold text-ink-500 mb-1.5">💡 下一步建议</div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="text-[11px] font-semibold text-ink-500 mb-1">💡 下一步建议</div>
+              <div className="flex flex-wrap gap-1">
                 {visibleCtas.map((c, i) => (
-                  <span key={i} className="text-[11px] px-2 py-1 rounded-md"
+                  <span key={i} className="text-[11px] px-2 py-0.5 rounded-md"
                     style={{ color: BLUE, background: `${BLUE}10` }}>
                     {c.text}
                   </span>
@@ -3390,136 +3393,65 @@ function CognitionView({
       </div>
       {/* ===== 一体化 KR × 漏斗 卡片 END ===== */}
 
-      {/* 添加 KR 弹窗 */}
-      {addingKr && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setAddingKr(false)}>
-          <div className="bg-white rounded-2xl p-5 w-[420px] max-w-[90vw] shadow-cardL" onClick={(e) => e.stopPropagation()}>
-            <div className="text-[15px] font-bold text-ink-900 mb-3">新增 KR</div>
-            <div className="flex flex-col gap-2.5">
-              <input value={newKr.lb} onChange={(e) => setNewKr({ ...newKr, lb: e.target.value })}
-                placeholder="KR 描述，如：读完12本书"
-                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
-                  <input type="number" value={newKr.val} onChange={(e) => setNewKr({ ...newKr, val: Number(e.target.value) })}
-                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">目标值</label>
-                  <input type="number" value={newKr.tgt} onChange={(e) => setNewKr({ ...newKr, tgt: Number(e.target.value) })}
-                    placeholder="12" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">单位</label>
-                  <input value={newKr.u} onChange={(e) => setNewKr({ ...newKr, u: e.target.value })}
-                    placeholder="本" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
-              </div>
-              <input value={newKr.sub} onChange={(e) => setNewKr({ ...newKr, sub: e.target.value })}
-                placeholder="说明（可选）如：书架系统追踪"
-                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setAddingKr(false)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
-              <button onClick={commitAddKr} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>添加</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 编辑 KR 弹窗 */}
-      {editingKrModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setEditingKrModal(null)}>
-          <div className="bg-white rounded-2xl p-5 w-[420px] max-w-[90vw] shadow-cardL" onClick={(e) => e.stopPropagation()}>
-            <div className="text-[15px] font-bold text-ink-900 mb-3">编辑 KR</div>
-            <div className="flex flex-col gap-2.5">
-              <input value={editingKrModal.draft.lb} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, lb: e.target.value } })}
-                placeholder="KR 描述，如：读完12本书"
-                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
-                  <input type="number" value={editingKrModal.draft.val} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, val: Number(e.target.value) } })}
-                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">目标值</label>
-                  <input type="number" value={editingKrModal.draft.tgt} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, tgt: Number(e.target.value) } })}
-                    placeholder="12" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">单位</label>
-                  <input value={editingKrModal.draft.u} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, u: e.target.value } })}
-                    placeholder="本" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
-              </div>
-              <input value={editingKrModal.draft.sub} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, sub: e.target.value } })}
-                placeholder="说明（可选）如：书架系统追踪"
-                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setEditingKrModal(null)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
-              <button onClick={commitEditKr} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>保存</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* ===== 右侧·书架看板（5/12 列，与 OKR 同高度） ===== */}
+      <div className="xl:col-span-5 flex flex-col min-h-0">
       {/* ===== 书架看板 - 3列 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-5">
-        {/* 一行三段式：左=书架标题+共N本 / 中=4 Tab筛选 / 右=功能按钮（微信读书同步/⚙/+添加） */}
-        <div className="flex items-center gap-4 mb-3.5 flex-wrap">
-          {/* 左：标题区 */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col flex-1 min-h-0">
+        {/* 一行三段式：左=书架标题(含共N本) / 中=4 Tab筛选 / 右=功能按钮组 */}
+        <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+          {/* 左：标题区（标题 + 共 N 本 合并成两行）*/}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-            <InlineEdit
-              value={bookshelfTitle}
-              onChange={(v) => setBookshelfTitle?.(String(v || '').trim())}
-              onDelete={() => setBookshelfTitle?.('')}
-              mode="contextmenu"
-              placeholder={`${objective?.year || COG_O.year}年 · 书架`}
-              className="text-[16px] font-bold text-ink-900 leading-tight"
-              inputClassName="text-[16px] font-bold text-ink-900 w-40"
-              title="右键编辑书架标题"
-            />
-            <span className="text-[11px] text-ink-400 tabular-nums">共 {groups.reading.length + groups.pending.length + groups.done.length} 本</span>
+            <div className="flex flex-col leading-tight">
+              <InlineEdit
+                value={bookshelfTitle}
+                onChange={(v) => setBookshelfTitle?.(String(v || '').trim())}
+                onDelete={() => setBookshelfTitle?.('')}
+                mode="contextmenu"
+                placeholder={`${objective?.year || COG_O.year}年 · 书架`}
+                className="text-[14.5px] font-bold text-ink-900 leading-none"
+                inputClassName="text-[14.5px] font-bold text-ink-900 w-32"
+                title="右键编辑书架标题"
+              />
+              <span className="text-[10.5px] text-ink-400 tabular-nums leading-none mt-[3px]">
+                共 {groups.reading.length + groups.pending.length + groups.done.length} 本
+              </span>
+            </div>
           </div>
 
-          {/* 中：Tab 筛选按钮组（从下一行搬进来）*/}
+          {/* 中：Tab 筛选按钮组（双行样式压缩）*/}
           {(() => {
             const TABS = [
               { key: 'reading',   lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT,    books: groups.reading },
               { key: 'pending',   lb: '未开始',   col: '#64748b',  bg: '#f1f5f9',      books: groups.pending },
               { key: 'done',      lb: '已读完',   col: '#22c55e',  bg: '#dcfce7',      books: groups.done },
-              { key: 'abandoned', lb: '所有书籍', col: '#64748b',  bg: '#f1f5f9',      books: groups.abandoned },
+              { key: 'abandoned', lb: '所有',     col: '#64748b',  bg: '#f1f5f9',      books: groups.abandoned },
             ];
             return (
-              <div className="flex items-center gap-1.5 flex-1 justify-center min-w-[300px]">
+              <div className="flex items-center gap-1 flex-1 justify-center min-w-[240px]">
                 {TABS.map(t => {
                   const active = shelfTab === t.key;
                   return (
                     <button
                       key={t.key}
                       onClick={() => setShelfTab(t.key)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] transition-all duration-150 flex-shrink-0`}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-[8px] transition-all duration-150 flex-shrink-0`}
                       style={{
                         background: active ? t.bg : 'transparent',
                         color: active ? t.col : '#64748b',
                         fontWeight: active ? 700 : 500,
-                        fontSize: '12px',
+                        fontSize: '11px',
                         boxShadow: active ? `inset 0 0 0 1px ${t.col}22` : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
                       }}>
-                      <span className="relative w-[12px] h-[12px] rounded-full flex-shrink-0 flex items-center justify-center"
+                      <span className="relative w-[10px] h-[10px] rounded-full flex-shrink-0 flex items-center justify-center"
                         style={{ background: active ? t.col + '22' : 'rgba(148,163,184,0.22)' }}>
-                        <span className="w-[6px] h-[6px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
+                        <span className="w-[5px] h-[5px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
                       </span>
                       <span>{t.lb}</span>
-                      <span className="inline-flex items-center justify-center min-w-[18px] h-[16px] px-1.5 rounded-full text-[10.5px] font-bold tabular-nums leading-none"
+                      <span className="inline-flex items-center justify-center min-w-[16px] h-[14px] px-1 rounded-full text-[9.5px] font-bold tabular-nums leading-none"
                         style={{
                           background: active ? '#ffffff' : 'rgba(15,23,42,0.05)',
                           color: active ? t.col : '#64748b',
-                          boxShadow: active ? `0 1px 1px rgba(15,23,42,0.04)` : 'none',
                         }}>
                         {t.books.length}
                       </span>
@@ -3530,16 +3462,16 @@ function CognitionView({
             );
           })()}
 
-          {/* 右：功能按钮组 */}
-          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+          {/* 右：功能按钮组（图标化压缩，省字数）*/}
+          <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
             <button onClick={doWereadSync} disabled={wereadSyncing}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg transition disabled:opacity-50"
               style={{ background: wereadCfgOk ? '#e0f2fe' : BLUE_LIGHT, color: wereadCfgOk ? '#0284c7' : BLUE }}
               title={wereadCfgOk ? '从微信读书同步书架' : '先设置微信读书 API Key'}>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 0 0 6.34 5.34L4 9M4 15a8 8 0 0 0 13.66 3.66L20 15" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              {wereadSyncing ? '同步中…' : (wereadCfgOk ? '微信读书同步' : '绑定微信读书')}
+              {wereadSyncing ? '同步中' : (wereadCfgOk ? '同步' : '绑定')}
             </button>
             <button onClick={async () => {
                 setShowWereadSettings(true);
@@ -3550,19 +3482,19 @@ function CognitionView({
                   if (cfg.value) setWereadKey(cfg.value);
                 } catch {}
               }}
-              className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:bg-ink-50"
+              className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:bg-ink-50"
               style={{ color: BLUE }}
               title="设置微信读书 API Key">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
             <button onClick={() => onBookAdd?.()}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg transition"
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg transition"
               style={{ background: BLUE_LIGHT, color: BLUE }}>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-              添加书籍
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+              添加
             </button>
           </div>
         </div>
@@ -3581,14 +3513,15 @@ function CognitionView({
           })();
           return (
             <div
+              className="flex-1 min-h-0 flex flex-col overflow-y-auto pr-1"
               style={{
                 background: g.bg,
                 border: isDragOver
                   ? `2px dashed ${g.col}`
                   : `1px solid ${g.col}18`,
                 boxShadow: isDragOver ? `0 0 0 4px ${g.col}12` : undefined,
-                padding: isDragOver ? '11px 9px' : '12px 10px',
-                borderRadius: '16px',
+                padding: isDragOver ? '10px 8px' : '10px 9px',
+                borderRadius: '14px',
                 transition: 'all 200ms ease',
               }}
               onDragOver={(e) => {
@@ -3607,7 +3540,7 @@ function CognitionView({
                 setDragOverCol(null);
               }}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {g.books.length === 0 ? (
                   <div className="col-span-full flex items-center justify-center py-6 text-[12px] rounded-lg transition-all"
                     style={{
@@ -3904,9 +3837,90 @@ function CognitionView({
           );
         })()}
       </div>
+      </div>
+      {/* ===== 书架看板 END ===== */}
+
+      </div>
+      {/* ===== Row 1 (OKR+书架双栏) END ===== */}
+
+      {/* 添加 KR 弹窗 */}
+      {addingKr && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setAddingKr(false)}>
+          <div className="bg-white rounded-2xl p-5 w-[420px] max-w-[90vw] shadow-cardL" onClick={(e) => e.stopPropagation()}>
+            <div className="text-[15px] font-bold text-ink-900 mb-3">新增 KR</div>
+            <div className="flex flex-col gap-2.5">
+              <input value={newKr.lb} onChange={(e) => setNewKr({ ...newKr, lb: e.target.value })}
+                placeholder="KR 描述，如：读完12本书"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
+                  <input type="number" value={newKr.val} onChange={(e) => setNewKr({ ...newKr, val: Number(e.target.value) })}
+                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">目标值</label>
+                  <input type="number" value={newKr.tgt} onChange={(e) => setNewKr({ ...newKr, tgt: Number(e.target.value) })}
+                    placeholder="12" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">单位</label>
+                  <input value={newKr.u} onChange={(e) => setNewKr({ ...newKr, u: e.target.value })}
+                    placeholder="本" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+              </div>
+              <input value={newKr.sub} onChange={(e) => setNewKr({ ...newKr, sub: e.target.value })}
+                placeholder="说明（可选）如：书架系统追踪"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setAddingKr(false)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
+              <button onClick={commitAddKr} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>添加</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑 KR 弹窗 */}
+      {editingKrModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setEditingKrModal(null)}>
+          <div className="bg-white rounded-2xl p-5 w-[420px] max-w-[90vw] shadow-cardL" onClick={(e) => e.stopPropagation()}>
+            <div className="text-[15px] font-bold text-ink-900 mb-3">编辑 KR</div>
+            <div className="flex flex-col gap-2.5">
+              <input value={editingKrModal.draft.lb} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, lb: e.target.value } })}
+                placeholder="KR 描述，如：读完12本书"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
+                  <input type="number" value={editingKrModal.draft.val} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, val: Number(e.target.value) } })}
+                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">目标值</label>
+                  <input type="number" value={editingKrModal.draft.tgt} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, tgt: Number(e.target.value) } })}
+                    placeholder="12" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-ink-500">单位</label>
+                  <input value={editingKrModal.draft.u} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, u: e.target.value } })}
+                    placeholder="本" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+                </div>
+              </div>
+              <input value={editingKrModal.draft.sub} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, sub: e.target.value } })}
+                placeholder="说明（可选）如：书架系统追踪"
+                className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setEditingKrModal(null)} className="px-4 py-1.5 text-[13px] text-ink-500 hover:text-ink-700">取消</button>
+              <button onClick={commitEditKr} className="px-4 py-1.5 text-[13px] text-white rounded-lg" style={{ background: BLUE }}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== 读后思考 · 思后行动 · 行后改变（三栏横向布局）===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-[-6px] pt-2 border-t border-ink-100">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 pt-2">
 
         {/* ========== 卡片一：读后思考 ========== */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">

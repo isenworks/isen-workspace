@@ -5695,19 +5695,52 @@ export default function AnnualPlan({ standalone = true }) {
       setCogChanges(prev => prev.map(c => c.id === data.id ? { ...c, ...data } : c));
       showToast('行动改变已更新');
     },
-    // 打卡：添加今天日期到 checkIns
     // 复选框 toggle：点击切换完成/未完成状态（不是打卡次数）
+    // 支持两条路径：独立行动（cogChanges）和书籍内嵌行动（books[].actions）
     toggleComplete: (id) => {
-      setCogChanges(prev => prev.map(c => {
-        if (c.id !== id) return c;
-        const done = c.done || c.status === 'completed' || c.status === 'reviewed';
-        return done
-          ? { ...c, done: false, status: 'active' }
-          : { ...c, done: true, status: 'completed' };
-      }));
-      const item = cogChanges.find(c => c.id === id);
-      const wasDone = item && (item.done || item.status === 'completed' || item.status === 'reviewed');
-      showToast(wasDone ? '已取消完成' : '行动已完成 ✓');
+      // 从书籍内嵌 action 的 id 里解析：格式 {bookId}_act_{actionIdOrIdx}
+      const m = id.match(/^(.+)_act_(.+)$/);
+      if (m) {
+        // 书籍内嵌路径 → 改 books
+        const bookId = m[1];
+        const actionKey = m[2];
+        const book = books.find(b => b.id === bookId);
+        const acts = book?.actions || [];
+        // 找到对应的 action（优先按 id 匹配，其次按 idx）
+        let wasDone = false;
+        acts.forEach((a, i) => {
+          const match = String(a.id ?? i) === actionKey;
+          if (match) {
+            wasDone = !!a.done;
+          }
+        });
+        setBooks(prev => prev.map(b => {
+          if (b.id !== bookId) return b;
+          return {
+            ...b,
+            actions: (b.actions || []).map((a, i) => {
+              const match = String(a.id ?? i) === actionKey;
+              if (!match) return a;
+              const done = !!a.done;
+              return done ? { ...a, done: false, status: 'active' } : { ...a, done: true, status: 'completed' };
+            }),
+          };
+        }));
+        showToast(wasDone ? '已取消完成' : '行动已完成 ✓');
+      } else {
+        // 独立行动路径 → 改 cogChanges
+        let wasDone = false;
+        const item = cogChanges.find(c => c.id === id);
+        if (item) wasDone = !!(item.done || item.status === 'completed' || item.status === 'reviewed');
+        setCogChanges(prev => prev.map(c => {
+          if (c.id !== id) return c;
+          const done = c.done || c.status === 'completed' || c.status === 'reviewed';
+          return done
+            ? { ...c, done: false, status: 'active' }
+            : { ...c, done: true, status: 'completed' };
+        }));
+        showToast(wasDone ? '已取消完成' : '行动已完成 ✓');
+      }
     },
     // 30天完成 → 生成改变（保留但不复用）
     completeAndReview: (id) => {

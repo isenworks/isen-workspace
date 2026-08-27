@@ -667,7 +667,11 @@ function ReadingFunnel({
                   background: stageColor,  // 统一纯色，不再渐变（用户要求"统一一个颜色"）
                   boxShadow: `0 2px 6px ${stageColor}25`,
                 }}>
-                {/* 左：label + sub — 显式空 placeholder，禁止显示默认"右键填写" */}
+                {/* 左：count — 大号数字（左端对齐） */}
+                <span className="tabular-nums text-[16px] font-extrabold leading-none flex-shrink-0 mr-2">
+                  {s.count}
+                </span>
+                {/* 右：label + sub */}
                 <span className="flex items-center gap-2 flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
                   <InlineEdit
                     value={s.label}
@@ -691,10 +695,6 @@ function ReadingFunnel({
                       placeholder=""
                     />
                   </span>
-                </span>
-                {/* 右：count — 大号数字 */}
-                <span className="tabular-nums text-[16px] font-extrabold leading-none flex-shrink-0 ml-auto">
-                  {s.count}
                 </span>
               </div>
             </div>
@@ -2144,6 +2144,7 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
 /* ---------- 7.6 表单 · 改变（结果区）---------- */
 function ReviewForm({ initial, onSave, onCancel, onDelete }) {
   const [form, setForm] = useState({
+    text: initial?.text || '',
     beforeState: initial?.beforeState || '',
     afterState: initial?.afterState || '',
     nextStep: initial?.nextStep || '',
@@ -2153,6 +2154,7 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff', lineHeight: 1.5 };
+  const INPUT_TITLE = { ...INPUT, fontSize: 14, fontWeight: 600, color: '#1c1c1e', padding: '9px 12px' };
   const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007aff', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
   const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
@@ -2165,9 +2167,15 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {initial?.text && (
-        <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', fontSize: 12.5, fontWeight: 600, color: '#1c1c1e' }}>
-          {initial.text}
+      <div>
+        <label style={LABEL}>改变名称</label>
+        <input style={INPUT_TITLE} value={form.text}
+          onChange={e => set('text', e.target.value)}
+          placeholder="例如：每天早上固定 7 点起床" />
+      </div>
+      {initial?.bookTitle && (
+        <div style={{ fontSize: 12, color: '#8a8a8f', paddingLeft: 2 }}>
+          来自书籍：{initial.bookTitle}
         </div>
       )}
       <div>
@@ -3170,9 +3178,8 @@ function CognitionView({
     const checkedActionCount = dynBooks.reduce((sum, b) => {
       return sum + (b.actions || []).filter(a => a.done && a.text?.trim()).length;
     }, 0);
-    // 改变量：独立changes + 书籍中已完成行动
-    const fromBooksChanges = dynBooks.reduce((s, b) => s + ((b.actions || []).filter(a => a.done && a.text?.trim()).length), 0);
-    const dynChanges = (changes || []).length + fromBooksChanges;
+    // 改变量：cogReviews 实际记录数（真正落地的"改变"，不是行动数）
+    const dynReviews = (reviews || []).length;
     // 目标量 = KR0 的目标值（漏斗最顶层，始终最大）
     const kr0Target = (dynKrs && dynKrs[0])?.tgt ?? COG_KRS[0]?.tgt ?? 12;
     return {
@@ -3180,10 +3187,9 @@ function CognitionView({
       done: doneBooks.length,    // ② 输入量：已读完书籍数（< 目标量）
       notes: insightEntryCount,  // ③ 思考量：思考条目总数（< 输入量）
       changes: checkedActionCount, // ④ 行动量：条目级已勾选行动计划总数（< 思考量）
-      reviews: dynChanges,       // ⑤ 改变量：独立changes + 书籍中已完成行动（< 行动量）
-      // 兼容字段：保留 KR1 读取时使用的单独字段
+      reviews: dynReviews,       // ⑤ 改变量：cogReviews 实际改变记录数（< 行动量）
       doneBooksCount: doneBooks.length,
-      reviewCount: (reviews || []).length,
+      reviewCount: dynReviews,
     };
   }, [books, krs, changes, reviews]);
 

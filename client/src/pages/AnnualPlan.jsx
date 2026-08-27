@@ -4073,18 +4073,25 @@ function CognitionView({
                 return (
                   <div key={b.id}
                     className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
-                    style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
+                    style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
                     onClick={() => onBookEdit?.(b, 'insights')}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[12.5px] font-semibold text-ink-900 truncate">{b.t}</span>
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md flex-shrink-0" style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}20` }}>
-                        {validIns.length}组
-                      </span>
+                    {/* 分组标题行：实心灯泡 ③ + 书名 · X组 */}
+                    <div className="flex items-center gap-1.5 pb-1 mb-1 border-b border-dashed" style={{ borderColor: 'rgba(15,23,42,0.1)' }}>
+                      <svg className="w-[14px] h-[14px] flex-shrink-0" fill={BLUE} viewBox="0 0 24 24">
+                        <path d="M12 2a7 7 0 0 0-4 12.74V16h8v-1.26A7 7 0 0 0 12 2z"/>
+                        <rect x="9" y="16" width="6" height="2" rx="1" fill={BLUE}/>
+                      </svg>
+                      <span className="text-[12px] font-semibold truncate flex-1" style={{ color: BLUE }}>{b.t}</span>
+                      <span className="text-[10px] font-medium text-ink-500 flex-shrink-0">· {validIns.length}组</span>
                     </div>
-                    {validIns.length > 0 && (
-                      <div className="text-[11px] text-ink-600 leading-snug line-clamp-2">
-                        "{validIns[0].text}"
+                    {/* 所有 insight 条目，每行一条 */}
+                    {validIns.slice(0, 3).map((it, idx) => (
+                      <div key={it.id || idx} className="text-[11px] text-ink-600 leading-snug line-clamp-1 pl-[22px]">
+                        "{it.text}"
                       </div>
+                    ))}
+                    {validIns.length > 3 && (
+                      <div className="text-[10px] text-ink-400 pl-[22px] mt-0.5">+{validIns.length - 3} 条</div>
                     )}
                   </div>
                 );
@@ -4124,57 +4131,77 @@ function CognitionView({
                     还没有行动计划<br/>编辑书籍→思后行动板块填写
                   </div>
                 ) : (
-                  mergedActions.slice(0, 6).map(c => {
-                    const fromBook = !!c.__fromBook;
-                    const isCompleted = c.done || c.status === 'completed' || c.status === 'reviewed';
-                    return (
-                      <div key={c.id}
-                        className="rounded-xl p-2.5 transition-all cursor-pointer"
-                        style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (fromBook) {
-                            const targetBook = (books.length === 0 ? BOOKS : books).find(b => b.id === c.bookId);
-                            if (targetBook) onBookEdit?.(targetBook, 'actions');
-                          } else {
-                            setEditingChange(c); setShowChangeForm(true);
-                          }
-                        }}>
-                        <div className="flex items-start gap-2">
-                          {/* 圆形复选框：未勾选=白底+蓝边，已勾选=蓝色填充白勾 */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onChangeToggleComplete?.(c.id); }}
-                            className="flex-shrink-0 mt-[2px] w-[16px] h-[16px] rounded-full flex items-center justify-center transition"
-                            style={{
-                              background: isCompleted ? BLUE : '#fff',
-                              border: `1.5px solid ${BLUE}`,
-                            }}
-                            title={isCompleted ? '点击取消完成' : '点击标记完成'}>
-                            {isCompleted && (
-                              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            )}
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <span className={`text-[12.5px] font-semibold truncate block ${isCompleted ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{c.text}</span>
-                            {c.bookTitle && (
-                              <span className="text-[10px] text-ink-400 truncate block leading-tight mt-0.5">— 出自《{c.bookTitle}》</span>
+                  // 按 bookTitle 分组渲染（跟读后思考分组逻辑对齐）
+                  Object.entries(
+                    mergedActions.slice(0, 6).reduce((acc, c) => {
+                      const key = c.bookTitle || '__独立__';
+                      if (!acc[key]) acc[key] = [];
+                      acc[key].push(c);
+                      return acc;
+                    }, {})
+                  ).map(([bookKey, actions]) => (
+                    <div key={bookKey}
+                      className="rounded-xl p-2.5 transition-all hover:shadow-md"
+                      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}>
+                      {/* 分组标题：实心灯泡 + 书名（独立行动则不显示书名） */}
+                      {bookKey !== '__独立__' && (
+                        <div className="flex items-center gap-1.5 pb-1 mb-1 border-b border-dashed" style={{ borderColor: 'rgba(15,23,42,0.1)' }}>
+                          <svg className="w-[14px] h-[14px] flex-shrink-0" fill={BLUE} viewBox="0 0 24 24">
+                            <path d="M12 2a7 7 0 0 0-4 12.74V16h8v-1.26A7 7 0 0 0 12 2z"/>
+                            <rect x="9" y="16" width="6" height="2" rx="1" fill={BLUE}/>
+                          </svg>
+                          <span className="text-[12px] font-semibold truncate flex-1" style={{ color: BLUE }}>{bookKey}</span>
+                          <span className="text-[10px] font-medium text-ink-500 flex-shrink-0">· {actions.length}条</span>
+                        </div>
+                      )}
+                      {/* 每条行动 */}
+                      {actions.map(c => {
+                        const fromBook = !!c.__fromBook;
+                        const isCompleted = c.done || c.status === 'completed' || c.status === 'reviewed';
+                        return (
+                          <div key={c.id} className="flex items-start gap-2 py-1">
+                            {/* 圆形复选框：未勾选=白底+蓝边，已勾选=蓝色填充白勾 */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onChangeToggleComplete?.(c.id); }}
+                              className="flex-shrink-0 mt-[1px] w-[16px] h-[16px] rounded-full flex items-center justify-center transition"
+                              style={{
+                                background: isCompleted ? BLUE : '#fff',
+                                border: `1.5px solid ${BLUE}`,
+                              }}
+                              title={isCompleted ? '点击取消完成' : '点击标记完成'}>
+                              {isCompleted && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                              )}
+                            </button>
+                            <span
+                              className={`flex-1 text-[12px] leading-snug cursor-pointer truncate ${isCompleted ? 'text-ink-500 line-through' : 'text-ink-900'}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (fromBook) {
+                                  const targetBook = (books.length === 0 ? BOOKS : books).find(b => b.id === c.bookId);
+                                  if (targetBook) onBookEdit?.(targetBook, 'actions');
+                                } else {
+                                  setEditingChange(c); setShowChangeForm(true);
+                                }
+                              }}>
+                              {c.text}
+                            </span>
+                            {!fromBook && (
+                              <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
+                                className="text-ink-300 hover:text-red-500 transition flex-shrink-0"
+                                title="删除">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
+                                </svg>
+                              </button>
                             )}
                           </div>
-                          {!fromBook && (
-                            <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
-                              className="text-ink-300 hover:text-red-500 transition flex-shrink-0"
-                              title="删除">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
+                        );
+                      })}
+                    </div>
+                  ))
                 )}
                 {mergedActions.length > 6 && (
                   <div className="text-center text-[11px] text-ink-400 mt-1">还有 {mergedActions.length - 6} 条 · 点击书籍/条目编辑管理</div>
@@ -4232,7 +4259,7 @@ function CognitionView({
                 return (
                   <div key={r.id}
                     className="rounded-xl p-2.5 hover:shadow-md transition-all cursor-pointer"
-                    style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
+                    style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
                     onClick={() => setEditingReview(r)}>
                     <div className="flex items-center justify-between">
                       <div className="text-[12px] font-semibold text-ink-900 leading-snug line-clamp-2 pr-2">{r.text || '未命名改变'}</div>

@@ -164,7 +164,7 @@ const COG_KRS = [
   { id: 'kr1', lb: '输入量', tgt: 12, val: 0, u: '本', sub: '已读完' },
   { id: 'kr2', lb: '思考量', tgt: 24, val: 0, u: '组', sub: '思考组数' },
   { id: 'kr3', lb: '行动量', tgt: 12, val: 0, u: '项', sub: '行动勾选' },
-  { id: 'kr4', lb: '改变量', tgt: 6, val: 0, u: '条', sub: '改变记录' },
+  { id: 'kr4', lb: '改变量', tgt: 6, val: 0, u: '个', sub: '改变记录' },
 ];
 
 /* -------- 封面组件：直接渲染<img> + 错误兜底 -------- */
@@ -2087,7 +2087,7 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff' };
   const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007aff', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'transparent', color: '#ef4444', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -2155,7 +2155,7 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff', lineHeight: 1.5 };
   const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#22c55e', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'transparent', color: '#ef4444', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   const TAGS = [
     { v: 'habit', lb: '长期习惯', color: '#22c55e' },
@@ -4077,11 +4077,9 @@ function CognitionView({
                     onClick={() => onBookEdit?.(b, 'insights')}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[12.5px] font-semibold text-ink-900 truncate">{b.t}</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: BLUE, color: '#fff', flexShrink: 0 }}>
-                          {validIns.length} 组
-                        </span>
-                      </div>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md flex-shrink-0" style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}20` }}>
+                        {validIns.length}组
+                      </span>
                     </div>
                     {validIns.length > 0 && (
                       <div className="text-[11px] text-ink-600 leading-snug line-clamp-2">
@@ -4128,37 +4126,28 @@ function CognitionView({
                 ) : (
                   mergedActions.slice(0, 6).map(c => {
                     const fromBook = !!c.__fromBook;
-                    const days = c.checkIns?.length || 0;
-                    const pctVal = Math.min(100, Math.round((days / (c.targetDays || 30)) * 100));
-                    const today = new Date().toISOString().slice(0, 10);
-                    const checkedToday = c.checkIns?.includes(today);
                     const isCompleted = c.done || c.status === 'completed' || c.status === 'reviewed';
-                    const isReviewed = c.status === 'reviewed';
-                    const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? BLUE : days >= 8 ? BLUE : '#f97316';
                     return (
                       <div key={c.id}
                         className="rounded-xl p-2.5 transition-all cursor-pointer"
-                        style={{
-                          background: isCompleted ? 'rgba(34,197,94,0.05)' : BLUE_LIGHT,
-                          border: `1px solid ${isCompleted ? 'rgba(34,197,94,0.15)' : BLUE + '20'}`,
-                        }}
+                        style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (fromBook) {
                             const targetBook = (books.length === 0 ? BOOKS : books).find(b => b.id === c.bookId);
-                            if (targetBook) onBookEdit?.(targetBook);
+                            if (targetBook) onBookEdit?.(targetBook, 'actions');
                           } else {
                             setEditingChange(c); setShowChangeForm(true);
                           }
                         }}>
                         <div className="flex items-start gap-2">
-                          {/* 复选框：未勾选蓝方块，勾选后绿勾 */}
+                          {/* 圆形复选框：未勾选=透明蓝边框，已勾选=蓝色填充白勾 */}
                           <button
                             onClick={(e) => { e.stopPropagation(); onChangeCheckIn?.(c.id); }}
-                            className="flex-shrink-0 mt-[2px] w-[16px] h-[16px] rounded-md flex items-center justify-center transition"
+                            className="flex-shrink-0 mt-[2px] w-[16px] h-[16px] rounded-full flex items-center justify-center transition"
                             style={{
-                              background: isCompleted ? '#22c55e' : BLUE,
-                              border: `1px solid ${isCompleted ? '#22c55e' : BLUE}`,
+                              background: isCompleted ? BLUE : 'transparent',
+                              border: `1.5px solid ${BLUE}`,
                             }}
                             title={isCompleted ? '已完成' : '点击标记完成'}>
                             {isCompleted && (
@@ -5722,7 +5711,11 @@ export default function AnnualPlan({ standalone = true }) {
   const reviewOps = {
     update: (data) => {
       if (!data?.id) return;
-      setCogReviews(prev => prev.map(r => r.id === data.id ? { ...r, ...data } : r));
+      setCogReviews(prev => {
+        const exists = prev.find(r => r.id === data.id);
+        if (exists) return prev.map(r => r.id === data.id ? { ...r, ...data } : r);
+        return [...prev, data];
+      });
       showToast('复盘卡已更新');
     },
     remove: (id) => { setCogReviews(prev => prev.filter(r => r.id !== id)); showToast('复盘卡已删除'); },

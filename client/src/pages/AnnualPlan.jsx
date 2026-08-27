@@ -2085,7 +2085,7 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff' };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#a855f7', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007aff', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
   const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'transparent', color: '#ef4444', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
@@ -2195,9 +2195,9 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
             <button key={t.v} type="button" onClick={() => set('tag', t.v)}
               style={{
                 flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 12, fontWeight: 600,
-                background: form.tag === t.v ? `${t.color}18` : 'rgba(120,120,128,0.08)',
-                color: form.tag === t.v ? t.color : '#8e8e93',
-                border: form.tag === t.v ? `1px solid ${t.color}40` : '1px solid transparent',
+                background: form.tag === t.v ? `rgba(0,122,255,0.10)` : 'rgba(120,120,128,0.08)',
+                color: form.tag === t.v ? "#007aff" : '#8e8e93',
+                border: form.tag === t.v ? `1px solid rgba(0,122,255,0.25)` : '1px solid transparent',
                 cursor: 'pointer',
               }}>{t.lb}</button>
           ))}
@@ -2207,7 +2207,7 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
         <div><button onClick={() => onDelete?.(initial.id)} style={BTN_D}>删除</button></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onCancel} style={BTN_G}>取消</button>
-          <button onClick={() => onSave?.({ ...form, id: initial.id })} style={BTN_P}>保存复盘</button>
+          <button onClick={() => onSave?.({ ...form, id: initial.id })} style={BTN_P}>保存改变</button>
         </div>
       </div>
     </div>
@@ -4050,8 +4050,8 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
-                {totalInsightCount} 组核心触动+行动计划
+              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
+                {totalInsightCount}组
               </span>
               <button onClick={() => onBookAdd?.()}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
@@ -4079,7 +4079,7 @@ function CognitionView({
                       <span className="text-[12.5px] font-semibold text-ink-900 truncate">{b.t}</span>
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: BLUE, color: '#fff', flexShrink: 0 }}>
-                          {validIns.length} 条
+                          {validIns.length} 组
                         </span>
                       </div>
                     </div>
@@ -4106,8 +4106,8 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
-                {[...(bookActionsList || []), ...(changes || [])].length} 条行动计划
+              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
+                {[...(bookActionsList || []), ...(changes || [])].length}条
               </span>
               <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
@@ -4137,7 +4137,7 @@ function CognitionView({
                     const barColor = isReviewed ? '#22c55e' : days >= 30 ? '#22c55e' : days >= 22 ? BLUE : days >= 8 ? BLUE : '#f97316';
                     return (
                       <div key={c.id}
-                        className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
+                        className="rounded-xl p-2.5 transition-all cursor-pointer"
                         style={{
                           background: isCompleted ? 'rgba(34,197,94,0.05)' : BLUE_LIGHT,
                           border: `1px solid ${isCompleted ? 'rgba(34,197,94,0.15)' : BLUE + '20'}`,
@@ -4145,68 +4145,44 @@ function CognitionView({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (fromBook) {
-                            // 来自书籍：打开对应书籍编辑
                             const targetBook = (books.length === 0 ? BOOKS : books).find(b => b.id === c.bookId);
                             if (targetBook) onBookEdit?.(targetBook);
                           } else {
                             setEditingChange(c); setShowChangeForm(true);
                           }
                         }}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-2">
+                          {/* 复选框：未勾选蓝方块，勾选后绿勾 */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onChangeCheckIn?.(c.id); }}
+                            className="flex-shrink-0 mt-[2px] w-[16px] h-[16px] rounded-md flex items-center justify-center transition"
+                            style={{
+                              background: isCompleted ? '#22c55e' : BLUE,
+                              border: `1px solid ${isCompleted ? '#22c55e' : BLUE}`,
+                            }}
+                            title={isCompleted ? '已完成' : '点击标记完成'}>
+                            {isCompleted && (
+                              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            )}
+                          </button>
+                          <div className="flex-1 min-w-0">
                             <span className={`text-[12.5px] font-semibold truncate block ${isCompleted ? 'text-ink-500 line-through' : 'text-ink-900'}`}>{c.text}</span>
                             {c.bookTitle && (
                               <span className="text-[10px] text-ink-400 truncate block leading-tight mt-0.5">— 出自《{c.bookTitle}》</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                            {fromBook ? (
-                              <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded"
-                                style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
-                                书籍
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold tabular-nums" style={{ color: barColor }}>
-                                {days}/{c.targetDays || 30}天
-                              </span>
-                            )}
-                            {!fromBook && (
-                              <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
-                                className="text-ink-300 hover:text-red-500 transition"
-                                title="删除">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
-                                </svg>
-                              </button>
-                            )}
-                          </div>
+                          {!fromBook && (
+                            <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
+                              className="text-ink-300 hover:text-red-500 transition flex-shrink-0"
+                              title="删除">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
+                              </svg>
+                            </button>
+                          )}
                         </div>
-                        {!fromBook && (
-                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
-                              <div className="h-full rounded-full transition-all" style={{ width: `${pctVal}%`, background: barColor }} />
-                            </div>
-                            {!isReviewed && (
-                              <button onClick={(e) => { e.stopPropagation(); onChangeCheckIn?.(c.id); }}
-                                disabled={checkedToday}
-                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-all"
-                                style={{
-                                  background: checkedToday ? 'rgba(148,163,184,0.1)' : BLUE,
-                                  color: checkedToday ? '#8a9491' : '#fff',
-                                  cursor: checkedToday ? 'default' : 'pointer',
-                                }}>
-                                {checkedToday ? '✓' : '打卡'}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {fromBook && (
-                          <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">
-                              <div className="h-full rounded-full transition-all" style={{ width: isCompleted ? '100%' : '8%', background: isCompleted ? '#22c55e' : BLUE }} />
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })
@@ -4227,8 +4203,8 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
-                {(reviews || []).length} 条真实改变
+              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
+                {(reviews || []).length}条
               </span>
               <button onClick={() => {
                 // 新增复盘：生成新ID，打开编辑弹窗
@@ -4317,7 +4293,7 @@ function CognitionView({
 
       {/* 复盘卡编辑弹窗 */}
       {editingReview && (
-        <Modal open onClose={() => setEditingReview(null)} title={editingReview.__isNew ? '新增复盘卡' : '编辑复盘卡'}>
+        <Modal open onClose={() => setEditingReview(null)} title={editingReview.__isNew ? '新增改变' : '编辑改变'}>
           <ReviewForm
             initial={editingReview}
             onSave={(data) => {

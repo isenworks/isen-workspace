@@ -4077,9 +4077,10 @@ function CognitionView({
                     onClick={() => onBookEdit?.(b, 'insights')}>
                     {/* 分组标题行：实心灯泡 ③ + 书名 · X组 */}
                     <div className="flex items-center gap-1.5 pb-1 mb-1 border-b border-dashed" style={{ borderColor: 'rgba(15,23,42,0.1)' }}>
-                      <svg className="w-[14px] h-[14px] flex-shrink-0" fill={BLUE} viewBox="0 0 24 24">
-                        <path d="M12 2a7 7 0 0 0-4 12.74V16h8v-1.26A7 7 0 0 0 12 2z"/>
-                        <rect x="9" y="16" width="6" height="2" rx="1" fill={BLUE}/>
+                      <svg className="w-[14px] h-[14px] flex-shrink-0" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M8 7h3M13 7h3"/>
                       </svg>
                       <span className="text-[12px] font-semibold truncate flex-1" style={{ color: BLUE }}>{b.t}</span>
                       <span className="text-[10px] font-medium text-ink-500 flex-shrink-0">· {validIns.length}组</span>
@@ -4146,9 +4147,10 @@ function CognitionView({
                       {/* 分组标题：实心灯泡 + 书名（独立行动则不显示书名） */}
                       {bookKey !== '__独立__' && (
                         <div className="flex items-center gap-1.5 pb-1 mb-1 border-b border-dashed" style={{ borderColor: 'rgba(15,23,42,0.1)' }}>
-                          <svg className="w-[14px] h-[14px] flex-shrink-0" fill={BLUE} viewBox="0 0 24 24">
-                            <path d="M12 2a7 7 0 0 0-4 12.74V16h8v-1.26A7 7 0 0 0 12 2z"/>
-                            <rect x="9" y="16" width="6" height="2" rx="1" fill={BLUE}/>
+                          <svg className="w-[14px] h-[14px] flex-shrink-0" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M8 7h3M13 7h3"/>
                           </svg>
                           <span className="text-[12px] font-semibold truncate flex-1" style={{ color: BLUE }}>{bookKey}</span>
                           <span className="text-[10px] font-medium text-ink-500 flex-shrink-0">· {actions.length}条</span>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>分组标题前缀图标 · 6 选 1</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif; background: #f2f3f5; color: #1d1d1f; padding: 48px 64px; }
+  .tag { display: inline-block; background: rgba(0,122,255,0.1); color: #007aff; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 980px; margin-bottom: 12px; }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .sub { font-size: 15px; color: #8a8a8f; margin-bottom: 32px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+  .card { background: #fff; border-radius: 16px; padding: 28px 20px 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; cursor: pointer; transition: all .18s; border: 2px solid transparent; position: relative; }
+  .card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .card.selected { border-color: #007aff; box-shadow: 0 4px 24px rgba(0,122,255,0.18); }
+  .card.selected::after { content: ''; position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; background: #007aff; border-radius: 50%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E"); background-size: 14px; background-position: center; background-repeat: no-repeat; }
+  .icon-bg { width: 72px; height: 72px; border-radius: 16px; background: rgba(0,122,255,0.08); display: flex; align-items: center; justify-content: center; }
+  .icon-bg svg { width: 40px; height: 40px; }
+  .name { font-size: 16px; font-weight: 600; text-align: center; }
+  .desc { font-size: 13px; color: #8a8a8f; text-align: center; line-height: 1.5; }
+  .preview-wrap { background: #fff; border-radius: 20px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .preview-label { font-size: 13px; color: #8a8a8f; margin-bottom: 16px; }
+  .preview { border: 1px solid rgba(15,23,42,0.08); border-radius: 14px; padding: 16px 18px; display: flex; align-items: center; gap: 10px; }
+  .preview .icon-wrap { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+  .preview .icon-wrap svg { width: 16px; height: 16px; }
+  .preview .title { font-size: 14px; font-weight: 600; color: #007aff; flex: 1; }
+  .preview .count { font-size: 12px; color: #8a8a8f; }
+  .preview .divider { flex: 0 0 100%; height: 1px; border-top: 1px dashed rgba(15,23,42,0.1); margin-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="tag">6 选 1</div>
+  <h1>分组标题前缀图标</h1>
+  <p class="sub">线性极简 · 蓝色 #007aff · stroke 2px · 风格统一</p>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="preview-wrap">
+    <div class="preview-label">↓ 选中图标在此处预览效果</div>
+    <div class="preview" id="preview"></div>
+  </div>
+
+<script>
+const STROKE = "#007aff";
+const W = 40, VW = 24;
+
+const OPTIONS = [
+  {
+    id: 'bookopen',
+    name: 'BookOpen · 摊开书',
+    desc: '最直观的阅读含义\nLucide 默认图书图标',
+    svg: `<svg viewBox="0 0 ${VW} ${VW}" fill="none" stroke="${STROKE}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>`
+  },
+  {
+    id: 'bookmarked',
+    name: 'BookMarked · 有标记的书',
+    desc: '书顶有两个短竖线\n暗示"重点标注/思考"',
+    svg: `<svg viewBox="0 0 ${VW} ${VW}" fill="none" stroke="${STROKE}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M8 7h3M13 7h3"/>
+    </svg>`
+  },
+  {
+    id: 'library',
+    name: 'Library · 书架',
+    desc: '四条竖线 = 一排书\n偏宏观的收藏含义',
+    svg: `<svg viewBox="0 0 ${VW} ${VW}" fill="none" stroke="${STROKE}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="3" height="16" rx="1"/>
+      <rect x="8" y="2" width="3" height="18" rx="1"/>
+      <rect x="13" y="6" width="3" height="14" rx="1"/>
+      <rect x="18" y="4" width="3" height="16" rx="1"/>
+    </svg>`
+  },
+  {
+    id: 'feather',
+    name: 'Feather · 羽毛笔',
+    desc: '笔来自书 → 读后写作\n语义偏"思考产出"',
+    svg: `<svg viewBox="0 0 ${VW} ${VW}" fill="none" stroke="${STROKE}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+      <line x1="16" y1="8" x2="2" y2="22"/>
+      <line x1="17.5" y1="15" x2="9" y2="15"/>
+    </svg>`
+  },
+  {
+    id: 'bookplus',
+    name: 'BookPlus · 书+加号',
+    desc: '书右下角带加号\n偏"添加新书/新思考"',
+    svg: `<svg viewBox="0 0 ${VW} ${VW}" fill="none" stroke="${STROKE}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M16 12v6M13 15h6"/>
+    </svg>`
+  },
+  {
+    id: 'lightbulb',
+    name: 'Lightbulb · 灯泡 💡',
+    desc: '当前方案 B 的 icon\n同主题下最贴近"思考"',
+    svg: `<svg viewBox="0 0 ${VW} ${VW}" fill="none" stroke="${STROKE}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 18h6"/>
+      <path d="M10 22h4"/>
+      <path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/>
+    </svg>`
+  }
+];
+
+const grid = document.getElementById('grid');
+const preview = document.getElementById('preview');
+let selected = 'bookopen';
+
+function render() {
+  grid.innerHTML = OPTIONS.map(o => `
+    <div class="card ${o.id === selected ? 'selected' : ''}" data-id="${o.id}">
+      <div class="icon-bg">${o.svg}</div>
+      <div class="name">${o.name}</div>
+      <div class="desc">${o.desc.replace(/\n/g, '<br>')}</div>
+    </div>
+  `).join('');
+
+  const cur = OPTIONS.find(o => o.id === selected);
+  preview.innerHTML = `
+    <div class="icon-wrap">${cur.svg}</div>
+    <div class="title">纳瓦尔宝典</div>
+    <div class="count">· 3组核心触动</div>
+    <div class="divider"></div>
+  `;
+
+  document.querySelectorAll('.card').forEach(el => {
+    el.onclick = () => { selected = el.dataset.id; render(); };
+  });
+}
+render();
+</script>
+</body>
+</html>

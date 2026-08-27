@@ -457,7 +457,7 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
 
       {/* Section 2: 阅读状态（单行 4 列） */}
       <SectionCard title="阅读状态" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 1fr', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.3fr 1fr 1fr', gap: '8px' }}>
           <FieldRow label="状态">
             <select style={{ ...SELECT_STYLE, ...inputStyle, paddingRight: '26px', fontWeight: 600,
               color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_MUTE,
@@ -664,8 +664,8 @@ function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, 
                 onClick={() => updateAction(a.id, { done: !a.done })}
                 style={{
                   width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
-                  border: `2px solid ${a.done ? SUCCESS : '#cbd5e1'}`,
-                  background: a.done ? SUCCESS : '#fff',
+                  border: `2px solid ${a.done ? BLUE : '#cbd5e1'}`,
+                  background: a.done ? BLUE : '#fff',
                   display: 'grid', placeItems: 'center',
                   cursor: 'pointer', transition: 'all .15s',
                 }}>

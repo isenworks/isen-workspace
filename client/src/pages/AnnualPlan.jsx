@@ -3514,7 +3514,7 @@ function CognitionView({
             <div className="flex items-center gap-2 mt-2 pt-2.5 pb-1 px-3 rounded-lg"
               style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)' }}>
               <svg className="w-[14px] h-[14px] flex-shrink-0" fill="#f59e0b" viewBox="0 0 24 24">
-                <path d="M12 2L1 21h22L12 2zm0 6v5m0 3v.01"/>
+                <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
               <span className="text-[11px] font-bold text-ink-700 flex-shrink-0">关键瓶颈：</span>
               <span className="text-[11px] text-ink-600">

@@ -3596,10 +3596,10 @@ function CognitionView({
           {/* Row 2：Tab 筛选按钮组（左对齐，跟标题左对齐）*/}
           {(() => {
             const TABS = [
-              { key: 'reading',   lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT,    books: groups.reading },
-              { key: 'pending',   lb: '未开始',   col: '#64748b',  bg: '#f1f5f9',      books: groups.pending },
-              { key: 'done',      lb: '已读完',   col: '#22c55e',  bg: '#dcfce7',      books: groups.done },
-              { key: 'abandoned', lb: '所有',     col: '#64748b',  bg: '#f1f5f9',      books: groups.abandoned },
+              { key: 'reading',   lb: '阅读中',   col: BLUE,     books: groups.reading },
+              { key: 'pending',   lb: '未开始',   col: BLUE,     books: groups.pending },
+              { key: 'done',      lb: '已读完',   col: BLUE,     books: groups.done },
+              { key: 'abandoned', lb: '所有',     col: BLUE,     books: groups.abandoned },
             ];
             return (
               <div className="flex items-center gap-1 mt-2">
@@ -3611,21 +3611,21 @@ function CognitionView({
                       onClick={() => setShelfTab(t.key)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150`}
                       style={{
-                        background: active ? t.bg : 'transparent',
-                        color: active ? t.col : '#64748b',
+                        background: active ? BLUE : 'transparent',
+                        color: active ? '#ffffff' : '#64748b',
                         fontWeight: active ? 700 : 500,
                         fontSize: '11.5px',
-                        boxShadow: active ? `inset 0 0 0 1px ${t.col}22` : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
+                        boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
                       }}>
                       <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
-                        style={{ background: active ? t.col + '22' : 'rgba(148,163,184,0.22)' }}>
-                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? t.col : '#8a9491' }}></span>
+                        style={{ background: active ? 'rgba(255,255,255,0.25)' : 'rgba(148,163,184,0.22)' }}>
+                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? '#ffffff' : '#8a9491' }}></span>
                       </span>
                       <span>{t.lb}</span>
                       <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
                         style={{
-                          background: active ? '#ffffff' : 'rgba(15,23,42,0.05)',
-                          color: active ? t.col : '#64748b',
+                          background: active ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.05)',
+                          color: active ? '#ffffff' : '#64748b',
                         }}>
                         {t.books.length}
                       </span>
@@ -3639,10 +3639,10 @@ function CognitionView({
         {/* 单列主内容：只渲染当前选中 shelfTab 这一栏 */}
         {(() => {
           const META = {
-            reading:   { lb: '阅读中',   col: BLUE,      bg: BLUE_LIGHT },
-            pending:   { lb: '未开始',   col: '#64748b',  bg: '#f1f5f9' },
-            done:      { lb: '已读完',   col: '#22c55e',  bg: '#dcfce7' },
-            abandoned: { lb: '所有书籍', col: '#64748b',  bg: '#f1f5f9' },
+            reading:   { lb: '阅读中',   col: BLUE },
+            pending:   { lb: '未开始',   col: '#64748b' },
+            done:      { lb: '已读完',   col: '#22c55e' },
+            abandoned: { lb: '所有书籍', col: '#64748b' },
           };
           const g = { key: shelfTab, ...META[shelfTab], books: groups[shelfTab] || [] };
           const isDragOver = dragOverCol === g.key && dragBookId && (() => {
@@ -3653,10 +3653,10 @@ function CognitionView({
             <div
               className="flex-1 min-h-0 flex flex-col overflow-y-auto pr-1"
               style={{
-                background: g.bg,
+                background: '#fff',
                 border: isDragOver
                   ? `2px dashed ${g.col}`
-                  : `1px solid ${g.col}18`,
+                  : '1px solid rgba(15,23,42,0.06)',
                 boxShadow: isDragOver ? `0 0 0 4px ${g.col}12` : undefined,
                 padding: isDragOver ? '10px 8px' : '10px 9px',
                 borderRadius: '14px',
@@ -3751,8 +3751,8 @@ function CognitionView({
                         className={`rounded-2xl bg-white transition-all select-none overflow-hidden ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_5px_16px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
                         style={{
                           cursor: isDragging ? 'grabbing' : 'pointer',
-                          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-                          border: `1px solid rgba(15,23,42,0.06)`,
+                          boxShadow: '0 2px 6px rgba(15,23,42,0.05)',
+                          border: '1px solid rgba(15,23,42,0.07)',
                         }}>
                         <div className="w-full min-w-0 flex flex-col gap-[7px]" style={{ padding: '12px 13px' }}>
                           {/* 主行：封面48×64左 + 右侧4行信息流 */}

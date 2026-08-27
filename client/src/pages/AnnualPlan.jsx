@@ -2095,7 +2095,7 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
       <div>
         <label style={LABEL}>来源观点（强共鸣 ≥7 分优先）</label>
         {allInsights.length === 0 ? (
-          <div style={{ padding: 10, textAlign: 'center', fontSize: 12, color: '#94a3b8', background: 'rgba(248,250,252,0.6)', borderRadius: 8, border: '1px dashed rgba(148,163,184,0.3)' }}>
+          <div style={{ padding: 10, textAlign: 'center', fontSize: 12, color: '#8a9491', background: 'rgba(248,250,252,0.6)', borderRadius: 8, border: '1px dashed rgba(148,163,184,0.3)' }}>
             书架还没有已读完+有观点的书 — 先去提取观点
           </div>
         ) : (
@@ -2654,7 +2654,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
       {/* 条目列表 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 260, overflowY: 'auto', paddingRight: 2 }}>
         {allEntries.length === 0 && (
-          <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>还没有生活记录，先去添加吧～</div>
+          <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#8a9491' }}>还没有生活记录，先去添加吧～</div>
         )}
         {allEntries.map(e => {
           const sel = isHl(e.id);
@@ -3351,9 +3351,12 @@ function CognitionView({
 
         {/* ===== 一体化漏斗：3 列同构 —— 删除「当前/目标」列，val/tgt 整合到左区 ===== */}
         <div className="flex flex-col flex-1 min-h-0">
-          {/* 列标题行：3 列 */}
-          <div className="flex items-center gap-2.5 pb-1.5 text-[10px] font-semibold text-ink-400 uppercase tracking-wide border-b border-ink-50">
-            <span className="w-[128px]">目标</span>
+          {/* 列标题行：左区也拆成 w22 + gap + flex-1，让"目标"字对齐 KR 行目标文字起点 */}
+          <div className="flex items-center gap-2.5 pb-1.5 text-[10px] font-semibold text-ink-400 border-b border-ink-50">
+            <div className="w-[128px] flex items-center gap-2.5">
+              <span className="w-[22px] flex-shrink-0"></span>
+              <span className="flex-1">目标</span>
+            </div>
             <span className="flex-1 text-center">漏斗进度</span>
             <span className="w-[48px] text-right">完成率</span>
           </div>
@@ -3422,11 +3425,8 @@ function CognitionView({
                       ) : (
                         <div onClick={() => openEditKrModal(kr)} className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
                           <span className="text-[13px] font-semibold text-ink-700 truncate leading-none group-hover:text-ink-900">{cleanLb}</span>
-                          <span className="text-[11px] tabular-nums leading-none flex-shrink-0">
-                            <span className="font-bold text-ink-700">{kr.val}</span>
-                            <span className="text-ink-300 font-normal">/</span>
-                            <span className="font-medium text-ink-400">{kr.tgt}</span>
-                            <span className="text-ink-400 ml-0.5 text-[10px]">{kr.u}</span>
+                          <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
+                            {kr.val}{kr.u}
                           </span>
                         </div>
                       )}
@@ -3468,7 +3468,7 @@ function CognitionView({
                     <div className="flex items-center gap-2.5 py-1.5 text-[11px]">
                       {/* 左区 w-[128px] —— 箭头 justify-center 对齐目标文字视觉中心 */}
                       <div className="w-[128px] flex-shrink-0 flex items-center justify-center">
-                        <svg className="w-3 h-3" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-3 h-3" style={{ color: '#8a9491' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 5v14M5 12l7 7 7-7" />
                         </svg>
                       </div>
@@ -3476,7 +3476,7 @@ function CognitionView({
                       <div className="flex-1 flex items-center justify-center min-w-0">
                         <span
                           className="font-bold tabular-nums"
-                          style={{ color: lowConv ? '#dc2626' : '#94a3b8' }}>
+                          style={{ color: lowConv ? '#dc2626' : '#8a9491' }}>
                           {conv ?? 0}%
                         </span>
                       </div>
@@ -3622,7 +3622,7 @@ function CognitionView({
                       }}>
                       <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
                         style={{ background: active ? t.col + '22' : 'rgba(148,163,184,0.22)' }}>
-                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? t.col : '#94a3b8' }}></span>
+                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? t.col : '#8a9491' }}></span>
                       </span>
                       <span>{t.lb}</span>
                       <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
@@ -3863,14 +3863,14 @@ function CognitionView({
                                 <div style={{ width: '100%', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden', flex: '1 1 auto' }}>
                                   <div style={{
                                     width: `${Math.max(0, pct)}%`, height: '100%', borderRadius:'999px',
-                                    background: b.st === 'done' ? '#22c55e' : b.st === 'abandoned' ? '#94a3b8' : pct <= 0 ? 'transparent' : statusDot.col,
+                                    background: b.st === 'done' ? '#22c55e' : b.st === 'abandoned' ? '#8a9491' : pct <= 0 ? 'transparent' : statusDot.col,
                                     transition: 'width 300ms ease-out',
                                   }}/>
                                 </div>
                               </div>
                               {/* 日期+已读天数 */}
                               <div className="flex items-center gap-[4px] min-w-0">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9491" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                                   <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
                                 </svg>
                                 {(() => {
@@ -4213,7 +4213,7 @@ function CognitionView({
                                 className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 transition-all"
                                 style={{
                                   background: checkedToday ? 'rgba(148,163,184,0.1)' : BLUE,
-                                  color: checkedToday ? '#94a3b8' : '#fff',
+                                  color: checkedToday ? '#8a9491' : '#fff',
                                   cursor: checkedToday ? 'default' : 'pointer',
                                 }}>
                                 {checkedToday ? '✓' : '打卡'}
@@ -4722,7 +4722,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
             )}
             {heroStats.pending > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#94a3b8' }}></span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#8a9491' }}></span>
                 <span className="text-[10px] font-bold text-slate-500">未启动里程碑</span>
                 <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-slate-600">{heroStats.pending}</span>
               </div>
@@ -5023,12 +5023,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 <div className="flex items-center gap-2 px-1 py-0.5 text-[10px]">
                   <div className="w-[22px]"></div>
                   <div className="w-[88px] pl-[24px] flex items-center">
-                    <svg className="w-2.5 h-2.5" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="w-2.5 h-2.5" style={{ color: '#8a9491' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 5v14M5 12l7 7 7-7" />
                     </svg>
                   </div>
                   <div className="flex-1 flex items-center justify-center">
-                    <span className="font-bold tabular-nums" style={{ color: lowConv ? '#dc2626' : '#94a3b8' }}>
+                    <span className="font-bold tabular-nums" style={{ color: lowConv ? '#dc2626' : '#8a9491' }}>
                       {conv ?? 0}%
                     </span>
                   </div>
@@ -5127,7 +5127,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 {/* 底部：时间进度 vs KR 落差微提示 + dueBy */}
                 <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-dashed border-ink-100">
                   {microTA.timePct !== null ? (
-                    <span className="text-[9.5px] font-semibold" style={{ color: krPct < microTA.timePct - 5 ? '#ef4444' : '#94a3b8' }}>
+                    <span className="text-[9.5px] font-semibold" style={{ color: krPct < microTA.timePct - 5 ? '#ef4444' : '#8a9491' }}>
                       时间 {microTA.timePct}% {krPct < microTA.timePct - 5 ? `↓${microTA.timePct - krPct}%` : krPct > microTA.timePct + 5 ? `↑${krPct - microTA.timePct}%` : '节奏匹配'}
                     </span>
                   ) : <span className="text-[9.5px] text-ink-400">长期KPI</span>}

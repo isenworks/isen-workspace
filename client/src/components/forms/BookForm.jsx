@@ -287,12 +287,13 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
         </div>
       </div>
 
-      {/* ===== Tab 栏 ===== */}
+      {/* ===== Tab 栏（iOS 分段控制器风格） ===== */}
       <div style={{
-        display: 'flex', gap: '0',
-        padding: '0 12px',
-        background: '#fff',
-        borderBottom: `1px solid ${CARD_BORDER}`,
+        display: 'flex', gap: '4px',
+        margin: '10px 16px 0',
+        padding: '3px',
+        background: CARD_BG,
+        borderRadius: '999px',
       }}>
         {TABS.map(t => {
           const active = activeTab === t.key;
@@ -301,16 +302,16 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
             <button key={t.key} type="button"
               onClick={() => setActiveTab(t.key)}
               style={{
-                display: 'flex', alignItems: 'center', gap: '4px',
-                padding: '9px 12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                padding: '6px 10px',
+                flex: 1,
                 fontSize: '12px',
                 fontWeight: active ? 700 : 500,
-                background: active ? BLUE_LIGHT : "transparent",
-                borderRadius: "8 8 0 0",
                 color: active ? BLUE_DARK : INK_MUTE,
-                background: 'transparent',
+                background: active ? '#fff' : 'transparent',
                 border: 'none',
-                borderBottom: `2px solid ${active ? BLUE : 'transparent'}`,
+                borderRadius: '999px',
+                boxShadow: active ? '0 1px 4px rgba(15,23,42,0.1)' : 'none',
                 cursor: 'pointer',
                 transition: 'all .15s',
               }}>

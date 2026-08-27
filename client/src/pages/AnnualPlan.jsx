@@ -249,7 +249,7 @@ const WORK = [
     krs: [
       { t: '简历投递 50(份)', v: 20, tgt: 50, st: 'doing', dueBy: '2026-08-31' },
       { t: '面试通过 10(个)', v: 5,  tgt: 10, st: 'doing', dueBy: '2026-09-15' },
-      { t: '复盘总结 3(个)', v: 0,  tgt: 3,  st: 'tg',    dueBy: '2026-09-20' },
+      { t: '改变总结 3(个)', v: 0,  tgt: 3,  st: 'tg',    dueBy: '2026-09-20' },
       { t: '拿意向 Offer 1(个)', v: 0, tgt: 1, st: 'tg', dueBy: '2026-09-25' },
       { t: '薪资达标 1(项)', v: 1, tgt: 1, st: 'done', dueBy: '2026-09-30' },
     ],
@@ -587,7 +587,7 @@ function InlineEdit({
 function ReadingFunnel({
   total, done, notes, changes, reviews, color = '#4b63f0', embedded,
   headerTitle = '阅读转化漏斗',
-  headerSub = '输入→思考→行动→改变→复盘',
+  headerSub = '输入→思考→行动→改变→改变',
   onHeaderChange,
   stageLabels,
   onStageLabelsChange,
@@ -645,7 +645,7 @@ function ReadingFunnel({
     { idx: 2, show: changes < notes && notes > 0, text: changes === 0 ? '有洞察但没行动，生成你的第一条行动承诺' : `还差 ${Math.max(0, notes - changes)} 项行动，勾选更多行动项` },
     // ④ 行动量 → 改变量：没生成 → 提示记录
     { idx: 3, show: reviews < changes && changes > 0, text: reviews === 0 ? '有承诺但没记录改变，创建你的第一条改变' : `还差 ${Math.max(0, changes - reviews)} 条改变，记录你的改变` },
-    // ⑤ （复盘量预留，目前 reviews 字段存的是改变量）
+    // ⑤ （改变量预留，目前 reviews 字段存的是改变量）
     { idx: 4, show: false, text: '' },
   ];
 
@@ -2141,7 +2141,7 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
   );
 }
 
-/* ---------- 7.6 表单 · 复盘卡（结果区）---------- */
+/* ---------- 7.6 表单 · 改变（结果区）---------- */
 function ReviewForm({ initial, onSave, onCancel, onDelete }) {
   const [form, setForm] = useState({
     beforeState: initial?.beforeState || '',
@@ -2153,9 +2153,9 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff', lineHeight: 1.5 };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#22c55e', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007aff', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   const TAGS = [
     { v: 'habit', lb: '长期习惯', color: '#22c55e' },
@@ -2207,7 +2207,7 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
         <div><button onClick={() => onDelete?.(initial.id)} style={BTN_D}>删除</button></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onCancel} style={BTN_G}>取消</button>
-          <button onClick={() => onSave?.({ ...form, id: initial.id })} style={BTN_P}>保存改变</button>
+          <button onClick={() => onSave?.({ ...form, id: initial.id })} style={BTN_P}>保存</button>
         </div>
       </div>
     </div>
@@ -2382,7 +2382,7 @@ function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave, onCanc
     });
     // 问责机制
     tpls.push({
-      text: '设置每日晚10点闹钟复盘当日进度，若未达标说明障碍并调整次日',
+      text: '设置每日晚10点闹钟改变当日进度，若未达标说明障碍并调整次日',
       deadline: formatDate(addDays(curToday, urgencyDays - 1)),
       ddlOffset: urgencyDays - 1,
     });
@@ -2729,7 +2729,7 @@ function CognitionView({
   // 承诺本 · 行动改变
   const [showChangeForm, setShowChangeForm] = useState(false);
   const [editingChange, setEditingChange] = useState(null);
-  // 结果区 · 复盘卡
+  // 结果区 · 改变
   const [editingReview, setEditingReview] = useState(null);
   // 微信读书设置弹窗 + 同步状态
   const [showWereadSettings, setShowWereadSettings] = useState(false);
@@ -4223,7 +4223,7 @@ function CognitionView({
                 {(reviews || []).length}个
               </span>
               <button onClick={() => {
-                // 新增复盘：生成新ID，打开编辑弹窗
+                // 新增改变：生成新ID，打开编辑弹窗
                 const newId = 'rv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
                 setEditingReview({
                   id: newId,
@@ -4238,7 +4238,7 @@ function CognitionView({
               }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
                 style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
-                title="新增复盘">
+                title="新增改变">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
             </div>
@@ -4246,7 +4246,7 @@ function CognitionView({
           <div className="flex-1 flex flex-col gap-1.5">
             {(reviews || []).length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
-                还没有复盘记录<br/>点击右上角 + 手动添加
+                还没有改变记录<br/>点击右上角 + 手动添加
               </div>
             ) : (
               (reviews || []).slice(0, 5).map(r => {
@@ -4267,7 +4267,7 @@ function CognitionView({
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${tm.color}15`, color: tm.color }}>
                           {tm.lb}
                         </span>
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条复盘？')) onReviewRemove?.(r.id); }}
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条改变？')) onReviewRemove?.(r.id); }}
                           className="text-ink-300 hover:text-red-500 transition"
                           title="删除">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -4304,15 +4304,15 @@ function CognitionView({
         </Modal>
       )}
 
-      {/* 复盘卡编辑弹窗 */}
+      {/* 改变编辑弹窗 */}
       {editingReview && (
         <Modal open onClose={() => setEditingReview(null)} title={editingReview.__isNew ? '新增改变' : '编辑改变'}>
           <ReviewForm
             initial={editingReview}
             onSave={(data) => {
-              // 新增复盘没有 changeId，补一个 text/daysCompleted 兜底
+              // 新增改变没有 changeId，补一个 text/daysCompleted 兜底
               const final = { ...data };
-              if (!final.text) final.text = '未命名复盘';
+              if (!final.text) final.text = '未命名改变';
               if (!final.daysCompleted) final.daysCompleted = 30;
               onReviewUpdate?.(final);
               setEditingReview(null);
@@ -5496,7 +5496,7 @@ export default function AnnualPlan({ standalone = true }) {
   const [bookshelfTitle, setBookshelfTitle] = usePersistentState('annual_cog_bookshelf_title', () => `${new Date().getFullYear()}年 · 书架`);
   // 知力 · 行动改变（承诺本）— {id, bookId, bookTitle, insightId, insightText, resonance, text, startDate, targetDays, checkIns[], status}
   const [cogChanges, setCogChanges] = usePersistentState('annual_cog_changes', () => []);
-  // 知力 · 改变证明（结果区·复盘卡）— {id, changeId, text, bookTitle, insightText, daysCompleted, beforeState, afterState, nextStep, tag, createdAt}
+  // 知力 · 改变证明（结果区·改变）— {id, changeId, text, bookTitle, insightText, daysCompleted, beforeState, afterState, nextStep, tag, createdAt}
   const [cogReviews, setCogReviews] = usePersistentState('annual_cog_reviews', () => []);
 
   // 合并习惯数据：用 habitTargets 覆盖 target（同时兼容真实 API 返回 + Mock 回退）
@@ -5531,7 +5531,7 @@ export default function AnnualPlan({ standalone = true }) {
       habitTargets,
       // Step2新增：能力/工作/生活3份牵引态数据
       abilityScoreHistory, workKrMicroActions, lifeHighlightedIds,
-      // 知力·完整状态（目标/KR/漏斗文字/承诺本/复盘卡）
+      // 知力·完整状态（目标/KR/漏斗文字/承诺本/改变）
       cogObjective, cogKrs, funnelHeader, funnelStageLabels, bookshelfTitle,
       cogChanges, cogReviews,
     };
@@ -5554,7 +5554,7 @@ export default function AnnualPlan({ standalone = true }) {
     e.target.value = '';
     setConfirmDialog({
       title: '确认导入数据？',
-      message: '将覆盖当前所有年度规划数据（书籍/能力/工作/生活/习惯目标/自评历史/知力目标&承诺&复盘/风险拆解/生活精选），此操作无法撤销。',
+      message: '将覆盖当前所有年度规划数据（书籍/能力/工作/生活/习惯目标/自评历史/知力目标&承诺&改变/风险拆解/生活精选），此操作无法撤销。',
       confirmText: '确认导入',
       danger: true,
       onConfirm: async () => {
@@ -5707,13 +5707,13 @@ export default function AnnualPlan({ standalone = true }) {
       const wasDone = item && (item.done || item.status === 'completed' || item.status === 'reviewed');
       showToast(wasDone ? '已取消完成' : '行动已完成 ✓');
     },
-    // 30天完成 → 生成复盘卡（保留但不复用）
+    // 30天完成 → 生成改变（保留但不复用）
     completeAndReview: (id) => {
       const change = cogChanges.find(c => c.id === id);
       if (!change) return;
       // 标记改变已完成
       setCogChanges(prev => prev.map(c => c.id === id ? { ...c, status: 'reviewed' } : c));
-      // 创建复盘卡（草稿）
+      // 创建改变（草稿）
       const review = {
         id: uid(),
         changeId: id,
@@ -5728,11 +5728,11 @@ export default function AnnualPlan({ standalone = true }) {
         createdAt: new Date().toISOString(),
       };
       setCogReviews(prev => [...prev, review]);
-      showToast('复盘卡已生成，请填写改变前后的对比');
+      showToast('改变已生成，请填写改变前后的对比');
     },
     remove: (id) => { setCogChanges(prev => prev.filter(c => c.id !== id)); showToast('行动改变已删除'); },
   };
-  // 知力 · 复盘卡（结果区）CRUD
+  // 知力 · 改变（结果区）CRUD
   const reviewOps = {
     update: (data) => {
       if (!data?.id) return;
@@ -5741,9 +5741,9 @@ export default function AnnualPlan({ standalone = true }) {
         if (exists) return prev.map(r => r.id === data.id ? { ...r, ...data } : r);
         return [...prev, data];
       });
-      showToast('复盘卡已更新');
+      showToast('改变已更新');
     },
-    remove: (id) => { setCogReviews(prev => prev.filter(r => r.id !== id)); showToast('复盘卡已删除'); },
+    remove: (id) => { setCogReviews(prev => prev.filter(r => r.id !== id)); showToast('改变已删除'); },
   };
   // 能力·里程碑
   const msOps = {

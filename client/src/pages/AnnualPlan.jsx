@@ -4592,12 +4592,12 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
               return (
                 <div
                   key={m.id || i}
-                  className="flex items-start gap-2 px-1 py-2 rounded-lg hover:bg-ink-50/50 transition-colors group"
+                  className="flex items-center gap-2 px-1 py-2 rounded-lg hover:bg-ink-50/50 transition-colors group"
                 >
-                  {/* 复选框：未勾白底橙边，已勾橙底白勾 */}
+                  {/* 复选框：未勾白底橙边，已勾橙底白勾 —— 与主文字 items-center 居中对齐 */}
                   <button
                     onClick={(e) => { e.stopPropagation(); onMsToggleDone?.({ abilityIdx: as.idx, msIdx: i }); }}
-                    className="w-4 h-4 rounded-md grid place-items-center flex-shrink-0 transition-all mt-0.5"
+                    className="w-4 h-4 rounded-md grid place-items-center flex-shrink-0 transition-all"
                     style={{
                       background: isDone ? AB : '#fff',
                       border: `1.5px solid ${AB}`,
@@ -5422,7 +5422,7 @@ export default function AnnualPlan({ standalone = true }) {
       setBooks(BOOKS.map(b => ({ ...b, id: uid() })));
     }
   }, [books?.length]);
-  const [abilities, setAbilities] = usePersistentState('annual_abilities', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
+  const [abilities, setAbilities] = usePersistentState('annual_abilities_v2', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
   // 精力习惯 - 用户自定义年度目标（覆盖默认推断值 120/230）

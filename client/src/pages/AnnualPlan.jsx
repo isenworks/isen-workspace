@@ -4083,7 +4083,7 @@ function CognitionView({
                         <path d="M8 7h3M13 7h3"/>
                       </svg>
                       <span className="text-[12px] font-semibold truncate flex-1" style={{ color: BLUE }}>{b.t}</span>
-                      <span className="text-[10px] font-medium text-ink-500 flex-shrink-0">· {validIns.length}组</span>
+                      <span className="text-[10px] font-medium flex-shrink-0" style={{ color: BLUE }}>{validIns.length}组</span>
                     </div>
                     {/* 所有 insight 条目，每行一条 */}
                     {validIns.slice(0, 3).map((it, idx) => (
@@ -4153,7 +4153,7 @@ function CognitionView({
                             <path d="M8 7h3M13 7h3"/>
                           </svg>
                           <span className="text-[12px] font-semibold truncate flex-1" style={{ color: BLUE }}>{bookKey}</span>
-                          <span className="text-[10px] font-medium text-ink-500 flex-shrink-0">· {actions.length}条</span>
+                          <span className="text-[10px] font-medium flex-shrink-0" style={{ color: BLUE }}>{actions.length}条</span>
                         </div>
                       )}
                       {/* 每条行动 */}

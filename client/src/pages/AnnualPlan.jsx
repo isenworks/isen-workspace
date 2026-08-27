@@ -3287,8 +3287,8 @@ function CognitionView({
 
       {/* ===== 左侧·一体化 KR × 漏斗 卡片（6/12 列） ===== */}
       <div className="xl:col-span-6 bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col min-h-0">
-        {/* ===== Header: O目标 + 完成率徽章 + 新增KR ===== */}
-        <div className="mb-1.5">
+        {/* ===== Header: O目标 + 时间进度 + 新增KR（mb-3 给 O 行和下面内容呼吸感）===== */}
+        <div className="mb-3">
           {editingObj ? (
             <div className="flex items-start gap-2.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0 mt-[2px]" style={{ background: BLUE }}></span>
@@ -3331,7 +3331,7 @@ function CognitionView({
                 return (
                   <div className="flex-shrink-0 px-2 py-[5px] rounded-lg whitespace-nowrap flex items-center gap-1"
                     style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}>
-                    <span className="text-[10px] font-semibold text-ink-500">时间进度</span>
+                    <span className="text-[10px] text-ink-500">时间进度</span>
                     <span className="text-[12px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
                       {timePct}<span className="text-[9px] font-bold">%</span>
                     </span>
@@ -3349,17 +3349,8 @@ function CognitionView({
           )}
         </div>
 
-        {/* ===== 一体化漏斗：3 列同构 —— 删除「当前/目标」列，val/tgt 整合到左区 ===== */}
+        {/* ===== 一体化漏斗：3 列同构 —— 删表头（列语义视觉自解释），O 行 mb-3 已提供呼吸 ===== */}
         <div className="flex flex-col flex-1 min-h-0">
-          {/* 列标题行：左区也拆成 w22 + gap + flex-1，让"目标"字对齐 KR 行目标文字起点 */}
-          <div className="flex items-center gap-2.5 pb-1.5 text-[10px] font-semibold text-ink-400 border-b border-ink-50">
-            <div className="w-[128px] flex items-center gap-2.5">
-              <span className="w-[22px] flex-shrink-0"></span>
-              <span className="flex-1">目标</span>
-            </div>
-            <span className="flex-1 text-center">漏斗进度</span>
-            <span className="w-[48px] text-right">完成率</span>
-          </div>
           {finalKrs.map((kr, idx) => {
             const p = pct(kr.val, kr.tgt);
             const nextKr = finalKrs[idx + 1];

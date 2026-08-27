@@ -160,11 +160,11 @@ const BOOKS = [
 /* 知力 · OKR — 理念：目标量→输入量→思考量→行动量→改变量 */
 const COG_O = { text: '通过阅读获得启发，并确定实际行动目标以获得改变', year: new Date().getFullYear() };
 const COG_KRS = [
-  { id: 'kr0', lb: '目标量 · 12本阅读目标', tgt: 12, val: 12, u: '本', sub: '年度目标' },
-  { id: 'kr1', lb: '输入量 · 读完12本书', tgt: 12, val: 0, u: '本', sub: '已读完' },
-  { id: 'kr2', lb: '思考量 · 24组思考', tgt: 24, val: 0, u: '组', sub: '思考组数' },
-  { id: 'kr3', lb: '行动量 · 12项行动', tgt: 12, val: 0, u: '项', sub: '行动勾选' },
-  { id: 'kr4', lb: '改变量 · 6条改变', tgt: 6, val: 0, u: '条', sub: '改变记录' },
+  { id: 'kr0', lb: '目标量', tgt: 12, val: 12, u: '本', sub: '年度目标' },
+  { id: 'kr1', lb: '输入量', tgt: 12, val: 0, u: '本', sub: '已读完' },
+  { id: 'kr2', lb: '思考量', tgt: 24, val: 0, u: '组', sub: '思考组数' },
+  { id: 'kr3', lb: '行动量', tgt: 12, val: 0, u: '项', sub: '行动勾选' },
+  { id: 'kr4', lb: '改变量', tgt: 6, val: 0, u: '条', sub: '改变记录' },
 ];
 
 /* -------- 封面组件：直接渲染<img> + 错误兜底 -------- */
@@ -3374,6 +3374,17 @@ function CognitionView({
             const krTypeMap = { goal: '目标量', thinking: '思考量', action: '行动量', change: '改变量' };
             const krType = kr.type ? (krTypeMap[kr.type] || kr.type) : '';
             const padNum = String(idx + 1).padStart(2, '0');
+            // lb 精简：剥离所有类型词后的冗余后缀（如"输入量 · 已读完"→"输入量"）
+            // 同时支持默认 COG 5 类（带/不带 type 字段）和用户自定义 KR
+            const DEFAULT_TYPES = ['目标量', '输入量', '思考量', '行动量', '改变量'];
+            const rawLb = kr.lb || '';
+            let cleanLb = rawLb;
+            const m = rawLb.match(/^(\S+)\s*[·.]\s*.+$/); // "类型词 · 冗余描述"
+            if (m && DEFAULT_TYPES.includes(m[1])) {
+              cleanLb = m[1];
+            } else if (DEFAULT_TYPES.includes(rawLb)) {
+              cleanLb = rawLb;
+            }
 
             return (
               <div key={kr.id || idx}>
@@ -3420,7 +3431,7 @@ function CognitionView({
                       ) : (
                         <div onClick={() => openEditKrModal(kr)} className="cursor-pointer group">
                           <InlineEdit
-                            value={kr.lb}
+                            value={cleanLb}
                             onChange={(v) => onKrEdit?.({ ...kr, lb: v })}
                             onDelete={() => { const def = COG_KRS.find(k => k.id === kr.id)?.lb || ''; onKrEdit?.({ ...kr, lb: def }); }}
                             onEditClick={() => openEditKrModal(kr)}
@@ -3475,8 +3486,8 @@ function CognitionView({
                     <div className="flex items-center gap-3 px-1 py-0.5 text-[11px]">
                       {/* 左1：对齐表头 # 列 (w-[22px]) */}
                       <div className="w-[22px] flex-shrink-0"></div>
-                      {/* 左2：对齐表头 KR目标 列 (w-[106px])，内含灰色箭头 */}
-                      <div className="w-[106px] flex-shrink-0 flex items-center pl-[28px]">
+                      {/* 左2：对齐表头 KR目标 列，内含灰色箭头，左移与精简后3字标题中心对齐 */}
+                      <div className="w-[106px] flex-shrink-0 flex items-center pl-[20px]">
                         <svg className="w-3 h-3" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 5v14M5 12l7 7 7-7" />
                         </svg>

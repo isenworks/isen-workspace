@@ -13,7 +13,7 @@ const DANGER = '#ef4444';
 const SUCCESS = '#22c55e';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
-const CARD_RADIUS = 12;
+const CARD_RADIUS = 14;
 
 const STATUSES = [
   { v: 'pending',   lb: '未开始' },
@@ -231,7 +231,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
       <div style={{
         display: 'flex', gap: '12px', alignItems: 'center',
         padding: '14px 16px 12px',
-        borderTopLeftRadius: 18, borderTopRightRadius: 18,
+        borderTopLeftRadius: 20, borderTopRightRadius: 20,
         borderBottom: `1px solid ${CARD_BORDER}`,
       }}>
         <div style={{
@@ -305,6 +305,8 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
                 padding: '9px 12px',
                 fontSize: '12px',
                 fontWeight: active ? 700 : 500,
+                background: active ? BLUE_LIGHT : "transparent",
+                borderRadius: "8 8 0 0",
                 color: active ? BLUE_DARK : INK_MUTE,
                 background: 'transparent',
                 border: 'none',
@@ -344,17 +346,17 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
         borderBottomLeftRadius: 18, borderBottomRightRadius: 18,
       }}>
         <div>{isEdit && <button onClick={del} style={{
-          padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+          padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
           background: 'rgba(239,68,68,0.06)', color: DANGER,
           border: '1px solid rgba(239,68,68,0.22)', cursor: 'pointer',
         }}>删除</button>}</div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={onCancel} style={{
-            padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+            padding: '6px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
             background: '#fff', color: INK_MUTE, border: `1px solid ${CARD_BORDER}`, cursor: 'pointer',
           }}>取消</button>
           <button onClick={submit} style={{
-            padding: '6px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+            padding: '6px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
             background: BLUE, color: '#fff', border: 'none', cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(0,122,255,0.25)',
           }}>{isEdit ? '保存' : '添加'}</button>
@@ -429,21 +431,21 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
       <SectionCard title="书籍信息" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '10px' }}>
           <FieldRow label="书名">
-            <input style={{ ...INPUT_STYLE, fontSize: '12.5px', fontWeight: 600, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+            <input style={{ ...INPUT_STYLE, fontSize: '12.5px', fontWeight: 600, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
               value={form.t} onChange={e => set('t', e.target.value)} placeholder="书名" autoFocus />
           </FieldRow>
           <FieldRow label="作者">
-            <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+            <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
               value={form.author} onChange={e => set('author', e.target.value)} placeholder="作者" />
           </FieldRow>
           <FieldRow label="分类">
-            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
               value={form.cat} onChange={e => set('cat', e.target.value)}>
               {['认知成长', '人际沟通', '商业职场', '人文叙事'].map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </FieldRow>
           <FieldRow label="来源">
-            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
               value={form.src} onChange={e => set('src', e.target.value)}>
               {['纸质书', '电子书', '有声书', '网络'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -458,7 +460,7 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
             <select style={{ ...SELECT_STYLE, fontSize: '12px', fontWeight: 600,
               color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_MUTE,
               background: form.st === 'done' ? '#ecfdf5' : form.st === 'reading' ? BLUE_LIGHT : '#fff',
-              border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none',
+              border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none',
             }}
               value={form.st} onChange={e => setStatus(e.target.value)}>
               {STATUSES.map(s => <option key={s.v} value={s.v}>{s.lb}</option>)}
@@ -466,7 +468,7 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
           </FieldRow>
           <FieldRow label={`进度 ${form.pct}%`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, height: '32px',
-              padding: '0 12px', background: '#fff', borderRadius: '8px', border: `1px solid ${CARD_BORDER}` }}>
+              padding: '0 12px', background: '#fff', borderRadius: '10px', border: `1px solid ${CARD_BORDER}` }}>
               <input type="range" min="0" max="100" step="1"
                 value={form.pct} onChange={e => setPct(e.target.value)}
                 style={{ flex: 1, accentColor: BLUE, height: '14px', minWidth: 0 }} />
@@ -478,11 +480,11 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <FieldRow label="开始阅读">
-            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
               value={form.startDate} onChange={e => set('startDate', e.target.value)} />
           </FieldRow>
           <FieldRow label="结束阅读">
-            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
               value={form.endDate} onChange={e => set('endDate', e.target.value)} />
           </FieldRow>
         </div>
@@ -493,7 +495,7 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {isEbook && (
             <FieldRow label="微信读书 BookID">
-              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
                 value={form.bookId}
                 onChange={e => {
                   const bid = e.target.value.trim();
@@ -506,19 +508,19 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
           )}
           {isEbook && (
             <FieldRow label="电子书链接">
-              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
                 value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
                 placeholder="https://weread.qq.com/web/reader/xxx" />
             </FieldRow>
           )}
           <FieldRow label="封面链接">
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input style={{ ...INPUT_STYLE, fontSize: '12px', flex: 1, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              <input style={{ ...INPUT_STYLE, fontSize: '12px', flex: 1, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
                 value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)}
                 placeholder="https://…cover.jpg（留空显示占位图）" />
               <button type="button" onClick={searchCover} disabled={coverFetching}
                 style={{
-                  padding: '6px 12px', borderRadius: '8px', fontSize: '11.5px', fontWeight: 600,
+                  padding: '6px 12px', borderRadius: '10px', fontSize: '11.5px', fontWeight: 600,
                   background: BLUE_LIGHT, color: BLUE_DARK,
                   border: `1px solid ${BLUE_BORDER}`, cursor: coverFetching ? 'not-allowed' : 'pointer',
                   opacity: coverFetching ? 0.7 : 1, whiteSpace: 'nowrap',
@@ -546,7 +548,7 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
         </div>
         <button type="button" onClick={addInsight} title="添加新思考"
           style={{
-            width: '28px', height: '28px', borderRadius: '8px',
+            width: '28px', height: '28px', borderRadius: '10px',
             border: `1px solid ${CARD_BORDER}`,
             background: '#fff', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
@@ -632,7 +634,7 @@ function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, 
         </div>
         <button type="button" onClick={addAction} title="添加新行动"
           style={{
-            width: '28px', height: '28px', borderRadius: '8px',
+            width: '28px', height: '28px', borderRadius: '10px',
             border: `1px solid ${CARD_BORDER}`,
             background: '#fff', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
@@ -711,7 +713,7 @@ function ChangesTab({ form, addChange, updateChange, removeChange, changeCount, 
         </div>
         <button type="button" onClick={addChange} title="添加新改变"
           style={{
-            width: '28px', height: '28px', borderRadius: '8px',
+            width: '28px', height: '28px', borderRadius: '10px',
             border: `1px solid ${CARD_BORDER}`,
             background: '#fff', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',

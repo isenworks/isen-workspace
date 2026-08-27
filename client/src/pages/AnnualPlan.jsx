@@ -3432,7 +3432,7 @@ function CognitionView({
                   <div className="flex-1 flex items-center min-w-0">
                     <div className="flex-1 h-[22px] rounded-lg overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
                       <div
-                        className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                        className="h-full rounded-lg transition-all duration-500 flex items-center justify-start pl-2"
                         style={{
                           width: `${pctWidth}%`,
                           background: isDone

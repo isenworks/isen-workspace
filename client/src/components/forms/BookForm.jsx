@@ -1,31 +1,19 @@
 import { useState } from 'react';
-import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
+import { INPUT_STYLE } from '../../utils/uiConstants.js';
 
-const BLUE = '#3b82f6';
-const BLUE_DARK = '#2563eb';
-const BLUE_LIGHT = '#eff6ff';
-const BLUE_BORDER = '#bfdbfe';
-const BLUE_SOFT = '#dbeafe';
+const BLUE = '#007aff';
+const BLUE_DARK = '#0062cc';
+const BLUE_LIGHT = '#f0f6ff';
+const BLUE_BORDER = 'rgba(0,122,255,0.22)';
+const BLUE_SOFT = 'rgba(0,122,255,0.08)';
 const INK = '#1c1c1e';
 const INK_MUTE = '#64748b';
 const INK_LIGHT = '#94a3b8';
 const DANGER = '#ef4444';
 const SUCCESS = '#22c55e';
-const YELLOW = '#f59e0b';
-
-const BTN_GHOST = {
-  padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
-  background: 'rgba(59,130,246,0.06)', color: BLUE_DARK, border: `1px solid ${BLUE_BORDER}`, cursor: 'pointer', transition: 'all .15s',
-};
-const BTN_PRIMARY = {
-  padding: '5px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700',
-  background: BLUE_DARK, color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s',
-  boxShadow: '0 2px 8px rgba(37,99,235,0.22)',
-};
-const BTN_DANGER = {
-  padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
-  background: 'rgba(239,68,68,0.08)', color: DANGER, border: `1px solid rgba(239,68,68,0.22)`, cursor: 'pointer', transition: 'all .15s',
-};
+const CARD_BG = 'rgba(15,23,42,0.03)';
+const CARD_BORDER = 'rgba(15,23,42,0.08)';
+const CARD_RADIUS = 12;
 
 const STATUSES = [
   { v: 'pending',   lb: '未开始' },
@@ -196,7 +184,6 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
     onDelete?.(initial.id);
   }
 
-  const resonanceColor = (r) => r >= 9 ? BLUE_DARK : r >= 7 ? BLUE : INK_LIGHT;
   const isEbook = form.src === '电子书';
 
   async function searchCover() {
@@ -222,7 +209,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
   const SELECT_STYLE = {
     ...INPUT_STYLE,
     appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23007aff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 8px center',
     backgroundSize: '10px',
@@ -239,55 +226,50 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-      {/* ===== Hero: 书籍预览条 ===== */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* ===== Hero ===== */}
       <div style={{
-        display: 'flex', gap: '10px', alignItems: 'center',
-        padding: '10px 14px',
-        background: `linear-gradient(135deg, ${BLUE}08 0%, rgba(120,120,128,0.03) 100%)`,
-        borderBottom: `1px solid ${BLUE_BORDER}66`,
+        display: 'flex', gap: '12px', alignItems: 'center',
+        padding: '14px 16px 12px',
+        borderTopLeftRadius: 18, borderTopRightRadius: 18,
+        borderBottom: `1px solid ${CARD_BORDER}`,
       }}>
-        {/* 封面缩略图(缩小) */}
         <div style={{
-          width: '36px', height: '50px', borderRadius: '5px', flexShrink: 0,
-          overflow: 'hidden', border: `1px solid ${BLUE_BORDER}`,
+          width: '40px', height: '56px', borderRadius: '6px', flexShrink: 0,
+          overflow: 'hidden', border: `1px solid ${CARD_BORDER}`,
           background: BLUE_LIGHT,
-          boxShadow: '0 2px 6px rgba(15,23,42,0.1)',
+          boxShadow: '0 2px 8px rgba(15,23,42,0.08)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {form.coverUrl ? (
             <img src={form.coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           ) : (
-            <span style={{ fontSize: '12px', fontWeight: 800, color: BLUE_DARK, opacity: 0.45 }}>
+            <span style={{ fontSize: '14px', fontWeight: 800, color: BLUE, opacity: 0.5 }}>
               {(form.t || '书').charAt(0)}
             </span>
           )}
         </div>
-
-        {/* 书籍信息 */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {form.t || '未命名书籍'}
           </div>
-          <div style={{ fontSize: '11px', color: INK_MUTE, marginTop: '1px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '11.5px', color: INK_MUTE, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
             {form.author && <span>{form.author}</span>}
-            {form.author && <span>·</span>}
-            <span style={{ color: BLUE_DARK, fontWeight: 600 }}>{form.cat}</span>
-            <span>·</span>
+            {form.author && <span style={{ color: INK_LIGHT }}>·</span>}
+            <span style={{ color: BLUE, fontWeight: 600 }}>{form.cat}</span>
+            <span style={{ color: INK_LIGHT }}>·</span>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '3px',
-              padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600,
-              background: form.st === 'done' ? 'rgba(34,197,94,0.12)' : form.st === 'reading' ? BLUE_SOFT : '#f8fafc',
+              padding: '1px 7px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600,
+              background: form.st === 'done' ? 'rgba(34,197,94,0.1)' : form.st === 'reading' ? BLUE_SOFT : CARD_BG,
               color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_LIGHT,
             }}>
               {STATUSES.find(s => s.v === form.st)?.lb || '未开始'}
             </span>
           </div>
         </div>
-
-        {/* 统计徽章 */}
-        <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
           {[
             { n: insightCount, l: '思考' },
             { n: actionCount, l: '行动' },
@@ -295,11 +277,11 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
           ].map(s => (
             <div key={s.l} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              padding: '2px 6px', borderRadius: '6px',
-              background: '#fff', border: `1px solid ${BLUE_BORDER}66`, minWidth: '36px',
+              padding: '3px 7px', borderRadius: '6px',
+              background: '#fff', border: `1px solid ${CARD_BORDER}`, minWidth: '38px',
             }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: INK }}>{s.n}</div>
-              <div style={{ fontSize: '8px', fontWeight: 600, color: INK_LIGHT, letterSpacing: '0.02em' }}>{s.l}</div>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: INK, lineHeight: 1.1 }}>{s.n}</div>
+              <div style={{ fontSize: '8.5px', fontWeight: 600, color: INK_LIGHT, letterSpacing: '0.03em' }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -307,10 +289,10 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
 
       {/* ===== Tab 栏 ===== */}
       <div style={{
-        display: 'flex', gap: '1px',
-        padding: '6px 10px 0',
+        display: 'flex', gap: '0',
+        padding: '0 12px',
         background: '#fff',
-        borderBottom: `1px solid ${BLUE_BORDER}66`,
+        borderBottom: `1px solid ${CARD_BORDER}`,
       }}>
         {TABS.map(t => {
           const active = activeTab === t.key;
@@ -320,17 +302,13 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
               onClick={() => setActiveTab(t.key)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
-                padding: '6px 9px 7px',
-                borderRadius: '8px 8px 0 0',
-                fontSize: '11.5px',
+                padding: '9px 12px',
+                fontSize: '12px',
                 fontWeight: active ? 700 : 500,
                 color: active ? BLUE_DARK : INK_MUTE,
-                background: active ? BLUE_LIGHT : 'transparent',
-                borderBottom: `2px solid ${active ? BLUE_DARK : 'transparent'}`,
+                background: 'transparent',
                 border: 'none',
-                borderBottomWidth: '2px',
-                borderBottomStyle: 'solid',
-                borderBottomColor: active ? BLUE_DARK : 'transparent',
+                borderBottom: `2px solid ${active ? BLUE : 'transparent'}`,
                 cursor: 'pointer',
                 transition: 'all .15s',
               }}>
@@ -338,11 +316,11 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
               {t.label}
               {badge && (
                 <span style={{
-                  fontSize: '9px', fontWeight: 700,
-                  padding: '0px 5px', borderRadius: '999px',
-                  background: active ? BLUE_DARK : BLUE_SOFT,
+                  fontSize: '10px', fontWeight: 700,
+                  padding: '1px 6px', borderRadius: '999px',
+                  background: active ? BLUE : BLUE_LIGHT,
                   color: active ? '#fff' : BLUE_DARK,
-                  minWidth: '14px', textAlign: 'center',
+                  minWidth: '16px', textAlign: 'center', lineHeight: 1.3,
                 }}>{badge}</span>
               )}
             </button>
@@ -351,19 +329,35 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
       </div>
 
       {/* ===== Tab 内容 ===== */}
-      <div style={{ padding: '12px 14px', minHeight: '260px' }}>
-        {activeTab === 'basic' && <BasicTab form={form} set={set} setStatus={setStatus} setPct={setPct} searchCover={searchCover} coverFetching={coverFetching} isEbook={isEbook} SELECT_STYLE={SELECT_STYLE} INPUT_STYLE={INPUT_STYLE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} SUCCESS={SUCCESS} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} />}
-        {activeTab === 'insights' && <InsightsTab form={form} addInsight={addInsight} updateInsight={updateInsight} removeInsight={removeInsight} insightCount={insightCount} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} BLUE={BLUE} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} YELLOW={YELLOW} />}
-        {activeTab === 'actions' && <ActionsTab form={form} addAction={addAction} updateAction={updateAction} removeAction={removeAction} actionCount={actionCount} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} BLUE={BLUE} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} SUCCESS={SUCCESS} />}
-        {activeTab === 'changes' && <ChangesTab form={form} addChange={addChange} updateChange={updateChange} removeChange={removeChange} changeCount={changeCount} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} BLUE={BLUE} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} SUCCESS={SUCCESS} />}
+      <div style={{ padding: '14px 16px', minHeight: '280px', flex: 1 }}>
+        {activeTab === 'basic' && <BasicTab form={form} set={set} setStatus={setStatus} setPct={setPct} searchCover={searchCover} coverFetching={coverFetching} isEbook={isEbook} SELECT_STYLE={SELECT_STYLE} INPUT_STYLE={INPUT_STYLE} BLUE={BLUE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} SUCCESS={SUCCESS} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} />}
+        {activeTab === 'insights' && <InsightsTab form={form} addInsight={addInsight} updateInsight={updateInsight} removeInsight={removeInsight} insightCount={insightCount} BLUE={BLUE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} />}
+        {activeTab === 'actions' && <ActionsTab form={form} addAction={addAction} updateAction={updateAction} removeAction={removeAction} actionCount={actionCount} BLUE={BLUE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} SUCCESS={SUCCESS} CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} />}
+        {activeTab === 'changes' && <ChangesTab form={form} addChange={addChange} updateChange={updateChange} removeChange={removeChange} changeCount={changeCount} BLUE={BLUE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} SUCCESS={SUCCESS} CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} />}
       </div>
 
       {/* ===== 底部按钮 ===== */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '10px 14px', borderTop: `1px solid ${BLUE_BORDER}66`, background: '#fafbfc' }}>
-        <div>{isEdit && <button onClick={del} style={BTN_DANGER}>删除</button>}</div>
-        <div style={{ display: 'flex', gap: '7px' }}>
-          <button onClick={onCancel} style={BTN_GHOST}>取消</button>
-          <button onClick={submit} style={BTN_PRIMARY}>{isEdit ? '保存' : '添加'}</button>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', gap: '8px',
+        padding: '10px 16px',
+        borderTop: `1px solid ${CARD_BORDER}`,
+        borderBottomLeftRadius: 18, borderBottomRightRadius: 18,
+      }}>
+        <div>{isEdit && <button onClick={del} style={{
+          padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+          background: 'rgba(239,68,68,0.06)', color: DANGER,
+          border: '1px solid rgba(239,68,68,0.22)', cursor: 'pointer',
+        }}>删除</button>}</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={onCancel} style={{
+            padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+            background: '#fff', color: INK_MUTE, border: `1px solid ${CARD_BORDER}`, cursor: 'pointer',
+          }}>取消</button>
+          <button onClick={submit} style={{
+            padding: '6px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+            background: BLUE, color: '#fff', border: 'none', cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,122,255,0.25)',
+          }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
     </div>
@@ -372,13 +366,13 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
 
 // ===== Tab 图标 =====
 function TabIcon({ name, active }) {
-  const c = active ? '#3b82f6' : '#64748b';
+  const c = active ? '#007aff' : '#94a3b8';
   const common = { width: '13px', height: '13px', stroke: c, fill: 'none', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' };
   if (name === 'book') return (
     <svg viewBox="0 0 24 24" {...common}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
   );
   if (name === 'bulb') return (
-    <svg viewBox="0 0 24 24" {...common}><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/></svg>
+    <svg viewBox="0 0 24 24" {...common}><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
   );
   if (name === 'check') return (
     <svg viewBox="0 0 24 24" {...common}><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -389,221 +383,233 @@ function TabIcon({ name, active }) {
   return null;
 }
 
-// ===== 子组件:行内 Field =====
+// ===== Section Card =====
+function SectionCard({ title, children, action, CARD_BG, CARD_BORDER, CARD_RADIUS, BLUE_DARK }) {
+  return (
+    <div style={{
+      padding: '12px 14px',
+      background: CARD_BG,
+      border: `1px solid ${CARD_BORDER}`,
+      borderRadius: CARD_RADIUS,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: '10px',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          fontSize: '11px', fontWeight: 700, color: BLUE_DARK,
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>
+          <div style={{ width: '3px', height: '11px', borderRadius: '2px', background: BLUE_DARK }} />
+          {title}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ===== Field Row =====
 function FieldRow({ label, children }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-      <span style={{ fontSize: '10.5px', fontWeight: 600, color: BLUE_DARK, opacity: 0.85, letterSpacing: 0.1 }}>{label}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+      <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1c1c1e', opacity: 0.55 }}>{label}</span>
       {children}
     </div>
   );
 }
 
 // ===== Tab 0: 基础信息 =====
-function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, isEbook, SELECT_STYLE, INPUT_STYLE, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, SUCCESS, INK, INK_MUTE, INK_LIGHT }) {
+function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, isEbook, SELECT_STYLE, INPUT_STYLE, BLUE, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, SUCCESS, INK, INK_MUTE, INK_LIGHT, CARD_BG, CARD_BORDER, CARD_RADIUS }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {/* 行1:书名+作者+分类+来源 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px' }}>
-        <FieldRow label="书名">
-          <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12.5px', fontWeight: 600 }}
-            value={form.t} onChange={e => set('t', e.target.value)} placeholder="书名" autoFocus />
-        </FieldRow>
-        <FieldRow label="作者">
-          <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-            value={form.author} onChange={e => set('author', e.target.value)} placeholder="作者" />
-        </FieldRow>
-        <FieldRow label="分类">
-          <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
-            value={form.cat} onChange={e => set('cat', e.target.value)}>
-            {['认知成长', '人际沟通', '商业职场', '人文叙事'].map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </FieldRow>
-        <FieldRow label="来源">
-          <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px' }}
-            value={form.src} onChange={e => set('src', e.target.value)}>
-            {['纸质书', '电子书', '有声书', '网络'].map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </FieldRow>
-      </div>
-
-      {/* 行2:阅读状态+进度 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px' }}>
-        <FieldRow label="阅读状态">
-          <select className="form-input" style={{ ...SELECT_STYLE, fontSize: '12px', fontWeight: 700,
-            color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_MUTE,
-            background: form.st === 'done' ? '#ecfdf5' : form.st === 'reading' ? BLUE_LIGHT : '#fff',
-          }}
-            value={form.st} onChange={e => setStatus(e.target.value)}>
-            {[{ v: 'pending', lb: '未开始' }, { v: 'reading', lb: '阅读中' }, { v: 'done', lb: '已读完' }, { v: 'abandoned', lb: '已弃读' }].map(s => <option key={s.v} value={s.v}>{s.lb}</option>)}
-          </select>
-        </FieldRow>
-        <FieldRow label={`进度 ${form.pct}%`}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, height: '30px',
-            padding: '0 10px', background: '#fff', borderRadius: '8px', border: `1px solid ${BLUE_BORDER}` }}>
-            <input type="range" min="0" max="100" step="1"
-              value={form.pct} onChange={e => setPct(e.target.value)}
-              style={{ flex: 1, accentColor: BLUE_DARK, height: '16px', minWidth: 0 }} />
-            <span style={{ fontSize: '11px', fontWeight: 800, color: BLUE_DARK, tabularNums: true, minWidth: '28px', textAlign: 'right' }}>
-              {form.pct}
-            </span>
-          </div>
-        </FieldRow>
-      </div>
-
-      {/* 行3:开始+结束阅读 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <FieldRow label="开始阅读">
-          <input type="date" className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-            value={form.startDate} onChange={e => set('startDate', e.target.value)} />
-        </FieldRow>
-        <FieldRow label="结束阅读">
-          <input type="date" className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-            value={form.endDate} onChange={e => set('endDate', e.target.value)} />
-        </FieldRow>
-      </div>
-
-      {/* 行4:BookID(仅电子书) */}
-      {isEbook && (
-        <FieldRow label="微信读书 BookID">
-          <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-            value={form.bookId}
-            onChange={e => {
-              const bid = e.target.value.trim();
-              const valid = /^[a-z0-9]{20,}$/i.test(bid.replace(/-/g, ''));
-              const autoUrl = valid ? `https://weread.qq.com/web/reader/${bid}` : '';
-              set(f => ({ ...f, bookId: bid, ebookUrl: autoUrl || f.ebookUrl }));
-            }}
-            placeholder="e1e32b00729fc94fe1e824d · 从 weread 网页版地址中复制" />
-        </FieldRow>
-      )}
-
-      {/* 行5:电子书链接(仅电子书) */}
-      {isEbook && (
-        <FieldRow label="电子书链接 / weread 协议">
-          <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px' }}
-            value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
-            placeholder="https://weread.qq.com/web/reader/xxx · 自动从 BookID 生成，也可自定义" />
-        </FieldRow>
-      )}
-
-      {/* 行6:封面链接+搜封面(移到最下面) */}
-      <FieldRow label="封面链接(微信读书/豆瓣/Google 图书链接)">
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <input className="form-input" style={{ ...INPUT_STYLE, fontSize: '12px', flex: 1 }}
-            value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)}
-            placeholder="https://…cover_1.jpg(留空则显示分类占位图)" />
-          <button type="button" onClick={searchCover} disabled={coverFetching}
-            style={{
-              padding: '5px 11px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
-              background: 'rgba(59,130,246,0.06)', color: BLUE_DARK,
-              border: `1px solid ${BLUE_BORDER}`, cursor: coverFetching ? 'not-allowed' : 'pointer',
-              opacity: coverFetching ? 0.7 : 1, whiteSpace: 'nowrap',
-            }}>
-            {coverFetching ? '搜索中…' : '🔍 搜封面'}
-          </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Section 1: 书籍信息 */}
+      <SectionCard title="书籍信息" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '10px' }}>
+          <FieldRow label="书名">
+            <input style={{ ...INPUT_STYLE, fontSize: '12.5px', fontWeight: 600, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              value={form.t} onChange={e => set('t', e.target.value)} placeholder="书名" autoFocus />
+          </FieldRow>
+          <FieldRow label="作者">
+            <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              value={form.author} onChange={e => set('author', e.target.value)} placeholder="作者" />
+          </FieldRow>
+          <FieldRow label="分类">
+            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              value={form.cat} onChange={e => set('cat', e.target.value)}>
+              {['认知成长', '人际沟通', '商业职场', '人文叙事'].map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </FieldRow>
+          <FieldRow label="来源">
+            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              value={form.src} onChange={e => set('src', e.target.value)}>
+              {['纸质书', '电子书', '有声书', '网络'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </FieldRow>
         </div>
-      </FieldRow>
+      </SectionCard>
+
+      {/* Section 2: 阅读状态 */}
+      <SectionCard title="阅读状态" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
+          <FieldRow label="状态">
+            <select style={{ ...SELECT_STYLE, fontSize: '12px', fontWeight: 600,
+              color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_MUTE,
+              background: form.st === 'done' ? '#ecfdf5' : form.st === 'reading' ? BLUE_LIGHT : '#fff',
+              border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none',
+            }}
+              value={form.st} onChange={e => setStatus(e.target.value)}>
+              {STATUSES.map(s => <option key={s.v} value={s.v}>{s.lb}</option>)}
+            </select>
+          </FieldRow>
+          <FieldRow label={`进度 ${form.pct}%`}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, height: '32px',
+              padding: '0 12px', background: '#fff', borderRadius: '8px', border: `1px solid ${CARD_BORDER}` }}>
+              <input type="range" min="0" max="100" step="1"
+                value={form.pct} onChange={e => setPct(e.target.value)}
+                style={{ flex: 1, accentColor: BLUE, height: '14px', minWidth: 0 }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, color: BLUE, tabularNums: true, minWidth: '26px', textAlign: 'right' }}>
+                {form.pct}
+              </span>
+            </div>
+          </FieldRow>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <FieldRow label="开始阅读">
+            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              value={form.startDate} onChange={e => set('startDate', e.target.value)} />
+          </FieldRow>
+          <FieldRow label="结束阅读">
+            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+              value={form.endDate} onChange={e => set('endDate', e.target.value)} />
+          </FieldRow>
+        </div>
+      </SectionCard>
+
+      {/* Section 3: 链接 & 封面（仅电子书显示 BookID） */}
+      <SectionCard title="链接 & 封面" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {isEbook && (
+            <FieldRow label="微信读书 BookID">
+              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+                value={form.bookId}
+                onChange={e => {
+                  const bid = e.target.value.trim();
+                  const valid = /^[a-z0-9]{20,}$/i.test(bid.replace(/-/g, ''));
+                  const autoUrl = valid ? `https://weread.qq.com/web/reader/${bid}` : '';
+                  set(f => ({ ...f, bookId: bid, ebookUrl: autoUrl || f.ebookUrl }));
+                }}
+                placeholder="从 weread 网页版地址中复制" />
+            </FieldRow>
+          )}
+          {isEbook && (
+            <FieldRow label="电子书链接">
+              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+                value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
+                placeholder="https://weread.qq.com/web/reader/xxx" />
+            </FieldRow>
+          )}
+          <FieldRow label="封面链接">
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input style={{ ...INPUT_STYLE, fontSize: '12px', flex: 1, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '8px', padding: '6px 10px', outline: 'none' }}
+                value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)}
+                placeholder="https://…cover.jpg（留空显示占位图）" />
+              <button type="button" onClick={searchCover} disabled={coverFetching}
+                style={{
+                  padding: '6px 12px', borderRadius: '8px', fontSize: '11.5px', fontWeight: 600,
+                  background: BLUE_LIGHT, color: BLUE_DARK,
+                  border: `1px solid ${BLUE_BORDER}`, cursor: coverFetching ? 'not-allowed' : 'pointer',
+                  opacity: coverFetching ? 0.7 : 1, whiteSpace: 'nowrap',
+                }}>
+                {coverFetching ? '搜索中…' : '搜封面'}
+              </button>
+            </div>
+          </FieldRow>
+        </div>
+      </SectionCard>
     </div>
   );
 }
 
 // ===== Tab 1: 读后思考 =====
-function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCount, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, BLUE, INK, INK_MUTE, INK_LIGHT, YELLOW }) {
+function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCount, BLUE, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, INK, INK_MUTE, INK_LIGHT, CARD_BG, CARD_BORDER, CARD_RADIUS }) {
   return (
-    <div>
-      {/* 标题行 + 计数 + 添加按钮 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: INK }}>读后思考</span>
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', background: BLUE_LIGHT, color: BLUE_DARK }}>
-            {insightCount} 组思考
+          <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '1px 8px', borderRadius: '999px', background: BLUE_LIGHT, color: BLUE_DARK }}>
+            {insightCount} 组
           </span>
         </div>
         <button type="button" onClick={addInsight} title="添加新思考"
           style={{
-            width: '26px', height: '26px', borderRadius: '7px',
-            border: `1.5px solid ${BLUE_BORDER}`,
-            background: BLUE_LIGHT, color: BLUE_DARK,
+            width: '28px', height: '28px', borderRadius: '8px',
+            border: `1px solid ${CARD_BORDER}`,
+            background: '#fff', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
-            transition: 'all .15s',
           }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
 
       {form.insights.length === 0 ? (
-        <div style={{ padding: '10px', textAlign: 'center', fontSize: '11.5px', color: INK_LIGHT, background: BLUE_LIGHT, borderRadius: '7px', border: `1px dashed ${BLUE_BORDER}` }}>
-          读完后写下「核心触动」和打算怎么「应用到生活」
+        <div style={{
+          padding: '14px', textAlign: 'center', fontSize: '11.5px', color: INK_LIGHT,
+          background: CARD_BG, borderRadius: CARD_RADIUS, border: `1px dashed ${CARD_BORDER}`,
+        }}>
+          读完后写下「核心触动」和「应用场景」
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {form.insights.map((ins, idx) => (
+          {form.insights.map((ins) => (
             <div key={ins.id} style={{
-              padding: '10px 12px', borderRadius: '10px',
-              background: `linear-gradient(135deg, ${BLUE}08 0%, ${BLUE}04 100%)`,
-              border: `1px solid ${BLUE}1f`,
+              padding: '12px', borderRadius: CARD_RADIUS,
+              background: '#fff',
+              border: `1px solid ${CARD_BORDER}`,
             }}>
-              {/* 核心触动(蓝色填充图标) */}
+              {/* 核心触动 行 */}
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <div style={{
-                  width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
-                  background: BLUE_DARK, color: '#fff', display: 'grid', placeItems: 'center',
+                  width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
+                  background: BLUE, color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
                 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                  </svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: INK_MUTE, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '1px' }}>核心触动</div>
                   <textarea value={ins.text} onChange={e => updateInsight(ins.id, { text: e.target.value })}
-                    placeholder="哪段话/理念最打动你" rows={1}
+                    placeholder="核心触动 — 哪段话/理念最打动你" rows={1}
                     style={{
-                      width: '100%', fontSize: '12px', lineHeight: '1.5', color: INK,
-                      border: '1px solid rgba(59,130,246,0.1)', borderRadius: '5px',
-                      padding: '4px 7px', resize: 'none', minHeight: '22px', outline: 'none', background: '#fff',
+                      width: '100%', fontSize: '12px', lineHeight: '1.55', color: INK, fontWeight: 500,
+                      border: 'none', borderRadius: '0',
+                      padding: '2px 0', resize: 'none', minHeight: '22px', outline: 'none', background: 'transparent',
                     }} />
                 </div>
+                <button type="button" onClick={() => removeInsight(ins.id)}
+                  style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: INK_LIGHT, fontSize: '14px', padding: '2px 4px', lineHeight: 1 }}
+                  title="删除">×</button>
               </div>
 
-              {/* 应用场景(黄色填充图标) */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '8px' }}>
+              {/* 分隔线 */}
+              <div style={{ height: '1px', background: CARD_BORDER, margin: '8px 0', marginLeft: '28px' }} />
+
+              {/* 应用场景 行 */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <div style={{
-                  width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
-                  background: YELLOW, color: '#fff', display: 'grid', placeItems: 'center',
+                  width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
+                  background: '#f59e0b', color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
                 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-                  </svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: INK_MUTE, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '1px' }}>应用场景</div>
-                  <textarea value={ins.scene} onChange={e => updateInsight(ins.id, { scene: e.target.value })}
-                    placeholder="打算具体用在哪件事/场景" rows={1}
-                    style={{
-                      width: '100%', fontSize: '12px', lineHeight: '1.5', color: INK,
-                      border: `1px solid ${BLUE_BORDER}`, borderRadius: '5px',
-                      padding: '4px 7px', resize: 'none', minHeight: '22px', outline: 'none',
-                      background: BLUE_LIGHT,
-                    }} />
-                </div>
-              </div>
-
-              {/* 共鸣 + 操作 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', paddingLeft: '30px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1 }}>
-                  <span style={{ fontSize: '9.5px', color: INK_LIGHT, fontWeight: 500 }}>共鸣</span>
-                  <input type="range" min="1" max="10" step="1"
-                    value={ins.resonance}
-                    onChange={e => updateInsight(ins.id, { resonance: Number(e.target.value) })}
-                    style={{ flex: 1, accentColor: resonanceColor(ins.resonance), height: '3px' }} />
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: resonanceColor(ins.resonance), minWidth: '15px', textAlign: 'right', tabularNums: true }}>{ins.resonance}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                  <button type="button" onClick={() => removeInsight(ins.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: '13px', padding: '1px 2px', lineHeight: 1 }}
-                    title="删除">×</button>
-                </div>
+                <textarea value={ins.scene} onChange={e => updateInsight(ins.id, { scene: e.target.value })}
+                  placeholder="应用场景 — 打算具体用在哪件事" rows={1}
+                  style={{
+                    flex: 1, fontSize: '12px', lineHeight: '1.55', color: INK,
+                    border: 'none', outline: 'none', background: 'transparent',
+                    padding: '2px 0', resize: 'none', minHeight: '22px',
+                  }} />
               </div>
             </div>
           ))}
@@ -613,79 +619,76 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
   );
 }
 
-function resonanceColor(r) {
-  return r >= 9 ? '#2563eb' : r >= 7 ? '#3b82f6' : '#94a3b8';
-}
-
 // ===== Tab 2: 思后行动 =====
-function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, BLUE, INK, INK_MUTE, INK_LIGHT, SUCCESS }) {
+function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, BLUE, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, INK, INK_MUTE, INK_LIGHT, SUCCESS, CARD_BG, CARD_BORDER, CARD_RADIUS }) {
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: INK }}>思后行动</span>
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', background: BLUE_LIGHT, color: BLUE_DARK }}>
-            {actionCount} 个行动计划
+          <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '1px 8px', borderRadius: '999px', background: BLUE_LIGHT, color: BLUE_DARK }}>
+            {actionCount} 个
           </span>
         </div>
         <button type="button" onClick={addAction} title="添加新行动"
           style={{
-            width: '26px', height: '26px', borderRadius: '7px',
-            border: `1.5px solid ${BLUE_BORDER}`,
-            background: BLUE_LIGHT, color: BLUE_DARK,
+            width: '28px', height: '28px', borderRadius: '8px',
+            border: `1px solid ${CARD_BORDER}`,
+            background: '#fff', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
-            transition: 'all .15s',
           }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
 
       {form.actions.length === 0 ? (
-        <div style={{ padding: '10px', textAlign: 'center', fontSize: '11.5px', color: INK_LIGHT, background: BLUE_LIGHT, borderRadius: '7px', border: `1px dashed ${BLUE_BORDER}` }}>
+        <div style={{
+          padding: '14px', textAlign: 'center', fontSize: '11.5px', color: INK_LIGHT,
+          background: CARD_BG, borderRadius: CARD_RADIUS, border: `1px dashed ${CARD_BORDER}`,
+        }}>
           从触动和场景里拆解出具体「要做什么」
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {form.actions.map((a, idx) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {form.actions.map((a) => (
             <div key={a.id} style={{
-              display: 'flex', alignItems: 'flex-start', gap: '8px',
-              padding: '10px 12px', borderRadius: '10px',
-              background: a.done ? 'rgba(34,197,94,0.05)' : `${BLUE}06`,
-              border: `1px solid ${a.done ? 'rgba(34,197,94,0.14)' : `${BLUE}1a`}`,
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '10px 12px', borderRadius: CARD_RADIUS,
+              background: '#fff',
+              border: `1px solid ${CARD_BORDER}`,
+              opacity: a.done ? 0.65 : 1,
             }}>
-              {/* 复选框 */}
+              {/* 圆形复选框 */}
               <div
                 onClick={() => updateAction(a.id, { done: !a.done })}
                 style={{
-                  width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
-                  border: `2px solid ${a.done ? SUCCESS : '#d1d1d6'}`,
-                  background: a.done ? SUCCESS : 'transparent',
+                  width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${a.done ? SUCCESS : '#cbd5e1'}`,
+                  background: a.done ? SUCCESS : '#fff',
                   display: 'grid', placeItems: 'center',
-                  cursor: 'pointer', marginTop: '1px', transition: 'all .15s',
+                  cursor: 'pointer', transition: 'all .15s',
                 }}>
                 {a.done && (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
                 )}
               </div>
 
-              {/* 行动内容 */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <textarea value={a.text} onChange={e => updateAction(a.id, { text: e.target.value })}
-                  placeholder={`第${idx + 1}条 · 具体行动`} rows={1}
-                  style={{
-                    width: '100%', fontSize: '12px', lineHeight: '1.5',
-                    color: a.done ? INK_MUTE : INK,
-                    textDecoration: a.done ? 'line-through' : 'none',
-                    border: '1px solid rgba(15,23,42,0.06)', borderRadius: '5px',
-                    padding: '4px 7px', resize: 'none', minHeight: '22px', outline: 'none', background: '#fff',
-                  }} />
-              </div>
+              {/* 行动文本 */}
+              <textarea value={a.text} onChange={e => updateAction(a.id, { text: e.target.value })}
+                placeholder="具体行动是什么" rows={1}
+                style={{
+                  flex: 1, fontSize: '12px', lineHeight: '1.5',
+                  color: a.done ? INK_LIGHT : INK,
+                  textDecoration: a.done ? 'line-through' : 'none',
+                  border: 'none', outline: 'none', background: 'transparent',
+                  padding: '3px 0', resize: 'none', minHeight: '20px',
+                }} />
 
               {/* 删除 */}
               <button type="button" onClick={() => removeAction(a.id)}
-                style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: '13px', padding: '1px 2px', lineHeight: 1 }}
+                style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: INK_LIGHT, fontSize: '14px', padding: '2px 4px', lineHeight: 1 }}
                 title="删除">×</button>
             </div>
           ))}
@@ -696,55 +699,57 @@ function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, 
 }
 
 // ===== Tab 3: 行后改变 =====
-function ChangesTab({ form, addChange, updateChange, removeChange, changeCount, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, BLUE, INK, INK_MUTE, INK_LIGHT, SUCCESS }) {
+function ChangesTab({ form, addChange, updateChange, removeChange, changeCount, BLUE, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, INK, INK_MUTE, INK_LIGHT, SUCCESS, CARD_BG, CARD_BORDER, CARD_RADIUS }) {
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: INK }}>行后改变</span>
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', background: BLUE_LIGHT, color: BLUE_DARK }}>
-            {changeCount} 个改变
+          <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '1px 8px', borderRadius: '999px', background: BLUE_LIGHT, color: BLUE_DARK }}>
+            {changeCount} 个
           </span>
         </div>
         <button type="button" onClick={addChange} title="添加新改变"
           style={{
-            width: '26px', height: '26px', borderRadius: '7px',
-            border: `1.5px solid ${BLUE_BORDER}`,
-            background: BLUE_LIGHT, color: BLUE_DARK,
+            width: '28px', height: '28px', borderRadius: '8px',
+            border: `1px solid ${CARD_BORDER}`,
+            background: '#fff', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
-            transition: 'all .15s',
           }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
 
       {form.changes.length === 0 ? (
-        <div style={{ padding: '10px', textAlign: 'center', fontSize: '11.5px', color: INK_LIGHT, background: BLUE_LIGHT, borderRadius: '7px', border: `1px dashed ${BLUE_BORDER}` }}>
+        <div style={{
+          padding: '14px', textAlign: 'center', fontSize: '11.5px', color: INK_LIGHT,
+          background: CARD_BG, borderRadius: CARD_RADIUS, border: `1px dashed ${CARD_BORDER}`,
+        }}>
           从行动中追踪到的实质性改变
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {form.changes.map((c) => (
             <div key={c.id} style={{
-              padding: '10px 12px', borderRadius: '10px',
-              background: `linear-gradient(135deg, ${BLUE}08 0%, ${BLUE}04 100%)`,
-              border: `1px solid ${BLUE}1f`,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+              padding: '10px 12px', borderRadius: CARD_RADIUS,
+              background: '#fff',
+              border: `1px solid ${CARD_BORDER}`,
+              display: 'flex', alignItems: 'center', gap: '8px',
             }}>
-              {/* 蓝色圆点 + 描述 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: BLUE_DARK, flexShrink: 0 }}></span>
-                <textarea value={c.text} onChange={e => updateChange(c.id, { text: e.target.value })}
-                  placeholder="描述你观察到的改变" rows={1}
-                  style={{
-                    flex: 1, fontSize: '12px', lineHeight: '1.5', color: INK,
-                    border: 'none', borderRadius: '5px',
-                    padding: '3px 6px', resize: 'none', minHeight: '20px', outline: 'none', background: 'transparent',
-                  }} />
-              </div>
+              {/* 蓝色圆点 */}
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: BLUE, flexShrink: 0 }}></span>
+
+              {/* 描述 */}
+              <textarea value={c.text} onChange={e => updateChange(c.id, { text: e.target.value })}
+                placeholder="描述你观察到的改变" rows={1}
+                style={{
+                  flex: 1, fontSize: '12px', lineHeight: '1.5', color: INK,
+                  border: 'none', borderRadius: '0',
+                  padding: '2px 0', resize: 'none', minHeight: '20px', outline: 'none', background: 'transparent',
+                }} />
 
               {/* 日期 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: INK_LIGHT }}>
                   <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
@@ -758,7 +763,7 @@ function ChangesTab({ form, addChange, updateChange, removeChange, changeCount, 
 
               {/* 删除 */}
               <button type="button" onClick={() => removeChange(c.id)}
-                style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: '13px', padding: '1px 2px', lineHeight: 1 }}
+                style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: INK_LIGHT, fontSize: '14px', padding: '2px 4px', lineHeight: 1 }}
                 title="删除">×</button>
             </div>
           ))}

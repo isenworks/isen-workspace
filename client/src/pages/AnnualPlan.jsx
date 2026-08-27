@@ -4607,29 +4607,28 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
         className="flex flex-col gap-1.5 px-1 py-2 border-b border-ink-100 cursor-pointer select-none hover:bg-ink-50/40 transition-colors rounded-lg"
         onClick={() => toggleExpand(as.idx)}
       >
-        {/* R1：色条 + 序号 + 范式徽章 + O + 标题 | 评分 */}
+        {/* R1：色条 + 序号 + 范式徽章(含O) + 标题 | 评分（附件位） */}
         <div className="flex items-center gap-1.5 min-w-0">
           <svg className={`w-3 h-3 text-ink-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 5l7 7-7 7"/>
           </svg>
           <span className="w-[4px] h-[16px] rounded-full flex-shrink-0" style={{ background: AB }}></span>
-          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 w-[22px] text-right tabular-nums leading-none" style={{ color: AB_COLOR }}>
+          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 w-[22px] text-right leading-tight" style={{ color: AB_COLOR }}>
             {String(as.idx + 1).padStart(2, '0')}
           </span>
-          {/* 范式徽章：显眼 10px + 边框 + 图标 */}
+          {/* 范式徽章：O统领 + 范式合一 */}
           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md flex-shrink-0 text-[10px] font-bold border"
             style={{ borderColor: `${AB_COLOR}50`, background: `${AB_COLOR}12`, color: AB_COLOR }}>
             <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinejoin="round">{m.icon}</svg>
             {m.lb}
           </span>
-          <span className="inline-flex items-center text-[9px] font-bold px-1 py-[0.5px] rounded bg-ink-100 text-ink-500 flex-shrink-0">O</span>
-          <span className="text-[13px] font-semibold text-ink-800 leading-none truncate min-w-0 flex-1">{a.title}</span>
+          <span className="text-[14px] font-semibold text-ink-900 leading-tight truncate min-w-0 flex-1">{a.title}</span>
           {as.trendDelta !== null && (
-            <span className={`text-[9.5px] font-bold flex-shrink-0 ${as.trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            <span className={`text-[10px] font-bold flex-shrink-0 leading-tight ${as.trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {as.trendDelta >= 0 ? '↑' : '↓'}{Math.abs(as.trendDelta)}%
             </span>
           )}
-          {/* 评分：精简数字，点击可调 */}
+          {/* 评分：附件位数字，点击可调 */}
           <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
             {editingScoreIdx === as.idx ? (
               <div className="flex items-center gap-0.5">
@@ -4645,54 +4644,49 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
                     setEditingScoreIdx(null);
                   }}
                 />
-                <span id={'ab-score-' + as.idx} className="text-[11px] font-bold tabular-nums" style={{ color: scoreColor(a.score) }}>{a.score}</span>
+                <span id={'ab-score-' + as.idx} className="text-[11px] font-bold tabular-nums leading-tight" style={{ color: scoreColor(a.score) }}>{a.score}</span>
               </div>
             ) : (
               <div className="flex items-center gap-0.5 cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(as.idx)}>
-                <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: scoreColor(a.score) }}>{a.score}</span>
-                <span className="text-[9px] font-semibold" style={{ color: scoreColor(a.score), opacity: 0.65 }}>/10</span>
+                <span className="text-[11px] font-bold tabular-nums leading-tight" style={{ color: scoreColor(a.score) }}>{a.score}</span>
+                <span className="text-[9.5px] font-semibold leading-tight" style={{ color: scoreColor(a.score), opacity: 0.65 }}>/10</span>
               </div>
             )}
           </div>
         </div>
-        {/* R2：每日行动 + 叠条 | 截止·里程碑·风险 */}
+        {/* R2：每日行动 + 上下双条 | 截止 + 里程碑 + 风险（SVG 胶囊，仅异常态显示） */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="text-[10px] text-ink-500 font-medium truncate min-w-0 flex-shrink max-w-[35%] leading-tight">
+          <div className="text-[11px] text-ink-500 font-medium truncate min-w-0 flex-shrink max-w-[35%] leading-tight">
             {a.daily}
           </div>
-          {/* 合并双条：叠在一起 */}
-          <div className="flex-1 min-w-0 relative h-3">
-            <div className="w-full h-full rounded-full bg-ink-100 overflow-hidden absolute inset-0">
-              <div className="h-full bg-ink-300" style={{ width: `${as.timePct ?? 0}%` }}></div>
+          {/* 上下双条：时间(灰) / 实际(橙)，条内不印数字 */}
+          <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
+            <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+              <div className="h-full rounded-full bg-ink-300" style={{ width: `${as.timePct ?? 0}%` }}></div>
             </div>
-            <div className="h-full rounded-full absolute left-0 top-0 opacity-80"
-              style={{ width: `${as.avgPct}%`, background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB, mixBlendMode: 'multiply' }}>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-between px-1 text-[9px] font-bold pointer-events-none leading-none">
-              <span className="text-ink-500">⏱{as.timePct ?? '—'}%</span>
-              <span style={{ color: AB }}>🎯{as.avgPct}%</span>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: lagBehind && as.rm.q !== 'done' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.15)' }}>
+              <div className="h-full rounded-full" style={{ width: `${as.avgPct}%`, background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB }}></div>
             </div>
           </div>
-          {/* 右：截止 + 里程碑 + 风险 压缩成胶囊 */}
+          {/* 右：截止 + 里程碑 + 风险（SVG 胶囊，正常态不打断视线） */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            <span className={`text-[9.5px] font-semibold whitespace-nowrap ${as.dl.cls}`}>📅{as.dl.text}</span>
-            <span className="inline-flex items-center px-1 py-[1px] rounded bg-ink-50 text-[9px] font-bold tabular-nums text-ink-600">
-              ◼{as.mDone}/{as.mTotal}
+            <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold whitespace-nowrap leading-tight ${as.dl.cls}`}>
+              <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+              {as.dl.text}
+            </span>
+            <span className="inline-flex items-center px-1 py-[1px] rounded bg-ink-50 text-[10px] font-bold tabular-nums text-ink-600 leading-tight">
+              {as.mDone}/{as.mTotal}
             </span>
             {(as.risks.risk || 0) > 0 && (
-              <span className="text-[9px] font-bold px-1 py-[1px] rounded tabular-nums whitespace-nowrap" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
-                ⚠{as.risks.risk}
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1 py-[1px] rounded tabular-nums whitespace-nowrap leading-tight" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
+                <svg className="w-[10px] h-[10px]" fill="#ef4444" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.2L20.1 19H3.9L12 5.2z"/><path d="M12 10v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="#fff"/></svg>
+                {as.risks.risk}
               </span>
             )}
             {(as.risks.warn || 0) > 0 && (as.risks.risk || 0) === 0 && (
-              <span className="text-[9px] font-bold px-1 py-[1px] rounded tabular-nums whitespace-nowrap" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-                ⚡{as.risks.warn}
-              </span>
-            )}
-            {(as.risks.risk || 0) === 0 && (as.risks.warn || 0) === 0 && as.mTotal > 0 && (
-              <span className="inline-flex px-1 py-[1px] rounded text-[9px] font-bold whitespace-nowrap"
-                style={as.mDone === as.mTotal ? { background: 'rgba(34,197,94,0.12)', color: '#16a34a' } : { background: 'rgba(59,130,246,0.10)', color: '#2563eb' }}>
-                {as.mDone === as.mTotal ? '✓达成' : '♪正常'}
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1 py-[1px] rounded tabular-nums whitespace-nowrap leading-tight" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+                <svg className="w-[10px] h-[10px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+                {as.risks.warn}
               </span>
             )}
           </div>
@@ -4721,16 +4715,19 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
 
     return (
       <div className="flex flex-col pt-1 pb-0.5 pl-[22px]">
-        {/* 表头（压缩：# 18 / 里程碑 flex / 进度条+% 合并 / 截止 54） */}
-        <div className="flex items-center gap-1.5 px-1 py-1 rounded-t-lg bg-ink-50/50 text-[9px] font-bold text-ink-500">
+        {/* 表头（压缩：# 20 / 里程碑 flex / 进度条+% 合并 / 截止 56） */}
+        <div className="flex items-center gap-1.5 px-1 py-1 rounded-t-lg bg-ink-50/50 text-[10px] font-bold text-ink-500">
           <div className="w-[20px] text-right">#</div>
           <div className="flex-1 min-w-0 pl-0.5">里程碑</div>
-          <div className="w-[62px] flex-shrink-0 pl-1">进度</div>
-          <div className="w-[54px] text-right pr-0.5 flex-shrink-0">截止</div>
+          <div className="w-[64px] flex-shrink-0 pl-1">进度</div>
+          <div className="w-[56px] text-right pr-0.5 flex-shrink-0">截止</div>
         </div>
 
         {active.length === 0 && done.length > 0 ? (
-          <div className="text-[10.5px] text-ink-400 text-center py-2.5">全部达成 🎉</div>
+          <div className="flex items-center justify-center gap-1.5 text-[11px] text-ink-400 py-2.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="#22c55e" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+            全部达成
+          </div>
         ) : (
           active.map(({ m, i, mPct, mrm, pending }) => {
             const dotColor = pending ? '#c7c7cc' : (m.st === 'doing' ? AB_COLOR : mrm.color);
@@ -4740,53 +4737,53 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
               <div
                 key={m.id || i}
                 onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
-                className="flex items-center gap-1.5 px-1 py-1 rounded-xl hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
+                className="flex items-center gap-1.5 px-1 py-1.5 rounded-xl hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
               >
                 <div className="w-[20px] text-right flex-shrink-0">
-                  <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: AB_COLOR }}>{String(i + 1).padStart(2, '0')}</span>
+                  <span className="text-[12px] font-bold tabular-nums leading-tight" style={{ color: AB_COLOR }}>{String(i + 1).padStart(2, '0')}</span>
                 </div>
-                <div className="flex-1 min-w-0 flex items-center gap-1">
+                <div className="flex-1 min-w-0 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }}></span>
-                  <span className="text-[10.5px] font-semibold text-ink-800 truncate leading-tight">{m.lb}</span>
+                  <span className="text-[12px] font-semibold text-ink-900 truncate leading-tight">{m.lb}</span>
                 </div>
-                <div className="w-[62px] flex-shrink-0 flex items-center gap-1 pl-1">
+                <div className="w-[64px] flex-shrink-0 flex items-center gap-1 pl-1">
                   <div className="flex-1 h-1.5 rounded-full bg-ink-100 overflow-hidden min-w-0">
                     <div className="h-full rounded-full transition-all" style={{ width: `${mPct}%`, background: mrm.color }}></div>
                   </div>
-                  <span className="text-[9.5px] font-bold tabular-nums flex-shrink-0 w-[26px] text-right" style={{ color: mrm.color }}>
+                  <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[28px] text-right leading-tight" style={{ color: mrm.color }}>
                     {mPct}%
                   </span>
                 </div>
-                <div className="w-[54px] text-right pr-0.5 flex-shrink-0">
-                  <span className={`text-[9.5px] font-bold whitespace-nowrap ${dueLbl.cls}`}>{dueLbl.text}</span>
+                <div className="w-[56px] text-right pr-0.5 flex-shrink-0">
+                  <span className={`text-[10px] font-bold whitespace-nowrap leading-tight ${dueLbl.cls}`}>{dueLbl.text}</span>
                 </div>
               </div>
             );
           })
         )}
 
-        {/* 已完成折叠区（压缩版） */}
+        {/* 已完成折叠区（压缩版：绿勾表达完成，不再双写 100%+✓完成） */}
         {done.length > 0 && (
           <div className="flex flex-col mt-0.5 pt-0.5 border-t border-dashed border-ink-100">
             {done.map(({ m, i }) => (
               <div
                 key={m.id || `done-${i}`}
                 onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
-                className="flex items-center gap-1.5 px-1 py-0.5 rounded-lg hover:bg-ink-50/40 cursor-pointer transition-colors opacity-65"
+                className="flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-ink-50/40 cursor-pointer transition-colors opacity-65"
               >
-                <div className="w-[18px] text-center flex-shrink-0">
+                <div className="w-[20px] text-center flex-shrink-0">
                   <span className="inline-grid place-items-center w-3.5 h-3.5 rounded-full mx-auto" style={{ background: 'rgba(34,197,94,0.15)' }}>
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[10px] text-ink-400 line-through truncate font-semibold">{m.lb}</span>
+                  <span className="text-[11px] text-ink-400 line-through truncate font-semibold leading-tight">{m.lb}</span>
                 </div>
-                <div className="w-[62px] flex-shrink-0 pl-1 text-right">
-                  <span className="text-[9.5px] font-bold tabular-nums text-accent-green">100%</span>
+                <div className="w-[64px] flex-shrink-0 pl-1 text-right">
+                  <span className="text-[10px] font-bold tabular-nums text-ink-400 leading-tight">100%</span>
                 </div>
-                <div className="w-[54px] text-right pr-0.5 flex-shrink-0">
-                  <span className="text-[9px] font-bold text-ink-400">✓完成</span>
+                <div className="w-[56px] text-right pr-0.5 flex-shrink-0">
+                  <span className="text-[10px] font-bold text-ink-400 leading-tight">已完成</span>
                 </div>
               </div>
             ))}

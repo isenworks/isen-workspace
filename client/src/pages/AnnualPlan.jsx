@@ -4607,9 +4607,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                     )}
                   </button>
-                  {/* 文字区：主文字 12px + 子说明 11px */}
+                  {/* 文字区：主文字 13px semibold ink-700 —— 对齐知力页 OKR KR L3548 规格 */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); onMsEdit?.(as.idx, i, m); }}>
-                    <div className={`text-[12px] font-semibold leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-900'}`}>
+                    <div className={`text-[13px] font-semibold leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-700'}`}>
                       {m.lb}
                     </div>
                     {m.dueBy && (

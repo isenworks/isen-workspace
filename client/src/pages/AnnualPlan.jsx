@@ -3653,10 +3653,10 @@ function CognitionView({
             <div
               className="flex-1 min-h-0 flex flex-col overflow-y-auto pr-1"
               style={{
-                background: '#fff',
+                background: 'rgba(15,23,42,0.032)',
                 border: isDragOver
                   ? `2px dashed ${g.col}`
-                  : '1px solid rgba(15,23,42,0.06)',
+                  : '1px solid rgba(15,23,42,0.05)',
                 boxShadow: isDragOver ? `0 0 0 4px ${g.col}12` : undefined,
                 padding: isDragOver ? '10px 8px' : '10px 9px',
                 borderRadius: '14px',
@@ -3751,8 +3751,8 @@ function CognitionView({
                         className={`rounded-2xl bg-white transition-all select-none overflow-hidden ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_5px_16px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
                         style={{
                           cursor: isDragging ? 'grabbing' : 'pointer',
-                          boxShadow: '0 2px 6px rgba(15,23,42,0.05)',
-                          border: '1px solid rgba(15,23,42,0.07)',
+                          boxShadow: '0 2px 8px rgba(15,23,42,0.06)',
+                          border: '1px solid rgba(255,255,255,0.9)',
                         }}>
                         <div className="w-full min-w-0 flex flex-col gap-[7px]" style={{ padding: '12px 13px' }}>
                           {/* 主行：封面48×64左 + 右侧4行信息流 */}

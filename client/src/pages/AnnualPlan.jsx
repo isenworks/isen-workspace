@@ -4588,47 +4588,28 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
   };
 
   /* ===== O 统领层组件（2 行紧凑结构 · 适配横向 3 列窄卡）
-   * R1：展开箭头 + 色条 + 序号 + 范式徽章(显眼) + O徽标 + 标题 + 趋势 | 评分
-   * R2：每日行动 + 时间vs实际叠条 | 截止 + 里程碑 + 风险
+   * R1：展开箭头 + 序号 + 标题 | 评分+趋势（附件位）
+   * R2：每日行动 + 时间vs实际双条 | 截止 + 里程碑 + 风险
    * ===== */
   const renderObjective = (a, as) => {
     const lagBehind = as.timePct !== null && as.avgPct < as.timePct;
     const isExpanded = expandedAbilities.has(as.idx);
     const AB = AB_COLOR;
-    const modeMeta = {
-      funnel:    { lb: '漏斗',       icon: (<path d="M4 4h16l-6 8v8l-4 0v-8z"/>) },
-      dashboard: { lb: '仪表盘',     icon: (<><circle cx="12" cy="13" r="6"/><path d="M12 7v6l4 2M9 3h6"/></>) },
-      milestone: { lb: '里程碑门',   icon: (<><path d="M4 20V8l8-4 8 4v12"/><path d="M4 12h16M12 4v16"/></>) },
-      balance:   { lb: '平衡雷达',   icon: (<><polygon points="12,3 20,9 17,19 7,19 4,9"/><circle cx="12" cy="12" r="2"/></>) },
-    };
-    const m = modeMeta[as.mode] || modeMeta.milestone;
     return (
       <div
         className="flex flex-col gap-1.5 px-1 py-2 border-b border-ink-100 cursor-pointer select-none hover:bg-ink-50/40 transition-colors rounded-lg"
         onClick={() => toggleExpand(as.idx)}
       >
-        {/* R1：色条 + 序号 + 范式徽章(含O) + 标题 | 评分（附件位） */}
-        <div className="flex items-center gap-1.5 min-w-0">
+        {/* R1：序号 + 标题 | 评分+趋势（附件位，异常态才显示趋势） */}
+        <div className="flex items-center gap-2 min-w-0">
           <svg className={`w-3 h-3 text-ink-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 5l7 7-7 7"/>
           </svg>
-          <span className="w-[4px] h-[16px] rounded-full flex-shrink-0" style={{ background: AB }}></span>
-          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 w-[22px] text-right leading-tight" style={{ color: AB_COLOR }}>
+          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 leading-tight" style={{ color: AB_COLOR }}>
             {String(as.idx + 1).padStart(2, '0')}
           </span>
-          {/* 范式徽章：O统领 + 范式合一 */}
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md flex-shrink-0 text-[10px] font-bold border"
-            style={{ borderColor: `${AB_COLOR}50`, background: `${AB_COLOR}12`, color: AB_COLOR }}>
-            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinejoin="round">{m.icon}</svg>
-            {m.lb}
-          </span>
           <span className="text-[14px] font-semibold text-ink-900 leading-tight truncate min-w-0 flex-1">{a.title}</span>
-          {as.trendDelta !== null && (
-            <span className={`text-[10px] font-bold flex-shrink-0 leading-tight ${as.trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {as.trendDelta >= 0 ? '↑' : '↓'}{Math.abs(as.trendDelta)}%
-            </span>
-          )}
-          {/* 评分：附件位数字，点击可调 */}
+          {/* 评分+趋势合一组：点击可调 */}
           <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
             {editingScoreIdx === as.idx ? (
               <div className="flex items-center gap-0.5">
@@ -4650,6 +4631,11 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
               <div className="flex items-center gap-0.5 cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(as.idx)}>
                 <span className="text-[11px] font-bold tabular-nums leading-tight" style={{ color: scoreColor(a.score) }}>{a.score}</span>
                 <span className="text-[9.5px] font-semibold leading-tight" style={{ color: scoreColor(a.score), opacity: 0.65 }}>/10</span>
+                {as.trendDelta !== null && (
+                  <span className={`text-[10px] font-bold leading-tight ${as.trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {as.trendDelta >= 0 ? '↑' : '↓'}{Math.abs(as.trendDelta)}%
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -4715,12 +4701,21 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
 
     return (
       <div className="flex flex-col pt-1 pb-0.5 pl-[22px]">
-        {/* 表头（压缩：# 20 / 里程碑 flex / 进度条+% 合并 / 截止 56） */}
-        <div className="flex items-center gap-1.5 px-1 py-1 rounded-t-lg bg-ink-50/50 text-[10px] font-bold text-ink-500">
-          <div className="w-[20px] text-right">#</div>
-          <div className="flex-1 min-w-0 pl-0.5">里程碑</div>
-          <div className="w-[64px] flex-shrink-0 pl-1">进度</div>
-          <div className="w-[56px] text-right pr-0.5 flex-shrink-0">截止</div>
+        {/* 表头行改为纯占位对齐（# 20 / 里程碑 flex / 进度 64 / 截止 56），右侧挂 26×26 加号 */}
+        <div className="flex items-center gap-1.5 px-1 py-1">
+          <div className="w-[20px] flex-shrink-0"></div>
+          <div className="flex-1 min-w-0"></div>
+          <div className="w-[64px] flex-shrink-0 pl-1"></div>
+          <div className="w-[56px] pr-0.5 flex-shrink-0 flex justify-end">
+            <button
+              onClick={(e) => { e.stopPropagation(); onMsAdd?.(abilityIdx); }}
+              title="加里程碑"
+              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
+              style={{ background: `${AB_COLOR}1a`, border: `1px solid ${AB_COLOR}40` }}
+            >
+              <svg className="w-3 h-3" fill="none" stroke={AB_COLOR} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
         </div>
 
         {active.length === 0 && done.length > 0 ? (
@@ -4789,10 +4784,6 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
             ))}
           </div>
         )}
-
-        <div className="mt-1.5 pl-[18px]">
-          <AddButton compact label="加里程碑" onClick={(e) => { e.stopPropagation(); onMsAdd?.(abilityIdx); }} />
-        </div>
       </div>
     );
   };
@@ -4871,7 +4862,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
         {dynAb.map((a, i) => {
           const as = abilityStats[i];
           return (
-            <div key={a.id || a.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3 flex flex-col">
+            <div key={a.id || a.title + i} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-3.5 flex flex-col">
               {renderObjective(a, as)}
               {renderMilestoneRows(a, as, i)}
             </div>

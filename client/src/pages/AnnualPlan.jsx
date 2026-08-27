@@ -2185,15 +2185,28 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
 }
 
 /* ---------- 7.6 表单 · 改变（结果区）---------- */
-function ReviewForm({ initial, onSave, onCancel, onDelete }) {
+function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
+  // 旧标签迁移：一次性决策 → 认知更新，已固化SOP → 已内化
+  const migrateTag = (t) => (t === 'decision' ? 'cognition' : t === 'sop' ? 'internalized' : (t || 'cognition'));
   const [form, setForm] = useState({
     text: initial?.text || '',
+    bookTitle: initial?.bookTitle || '',
     beforeState: initial?.beforeState || '',
     afterState: initial?.afterState || '',
     nextStep: initial?.nextStep || '',
-    tag: initial?.tag || 'habit',
+    practiceEffect: initial?.practiceEffect || '',
+    tag: migrateTag(initial?.tag),
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // 关联书籍搜索下拉
+  const [bookFocused, setBookFocused] = useState(false);
+  const bookQuery = form.bookTitle.trim().toLowerCase();
+  const bookSuggestions = bookFocused
+    ? (books || [])
+        .filter(b => bookQuery ? (b.t || '').toLowerCase().includes(bookQuery) : true)
+        .slice(0, 5)
+    : [];
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff', lineHeight: 1.5 };
@@ -2203,41 +2216,72 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
   const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   const TAGS = [
-    { v: 'habit', lb: '长期习惯', color: '#22c55e' },
-    { v: 'decision', lb: '一次性决策', color: '#4b63f0' },
-    { v: 'sop', lb: '已固化SOP', color: '#a855f7' },
+    { v: 'cognition', lb: '认知更新' },
+    { v: 'habit', lb: '长期习惯' },
+    { v: 'internalized', lb: '已内化' },
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div>
         <label style={LABEL}>改变名称</label>
-        <input style={INPUT_TITLE} value={form.text}
+        <input style={INPUT_TITLE} value={form.text} autoFocus
           onChange={e => set('text', e.target.value)}
-          placeholder="例如：每天早上固定 7 点起床" />
+          placeholder="例：建立每日 5 分钟复盘习惯｜接纳情绪不内耗" />
       </div>
-      {initial?.bookTitle && (
-        <div style={{ fontSize: 12, color: '#8a8a8f', paddingLeft: 2 }}>
-          来自书籍：{initial.bookTitle}
+      <div>
+        <label style={LABEL}>关联书籍 / 观点（可选）</label>
+        <div style={{ position: 'relative' }}>
+          <input style={INPUT} value={form.bookTitle}
+            onChange={e => set('bookTitle', e.target.value)}
+            onFocus={() => setBookFocused(true)}
+            onBlur={() => setBookFocused(false)}
+            placeholder="填写书名 / 书中原文观点，可留空" />
+          {bookSuggestions.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 4,
+              background: '#fff', borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.10)', overflow: 'hidden',
+            }}>
+              {bookSuggestions.map(b => (
+                <button key={b.id} type="button"
+                  onMouseDown={e => { e.preventDefault(); set('bookTitle', b.t); setBookFocused(false); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                    padding: '8px 10px', background: 'transparent', border: 'none',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: '#1c1c1e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.t}</span>
+                  {b.author && <span style={{ flexShrink: 0, fontSize: 11, color: '#8e8e93' }}>{b.author}</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
       <div>
-        <label style={LABEL}>改变前</label>
-        <textarea style={{ ...INPUT, minHeight: 50 }} value={form.beforeState}
+        <label style={LABEL}>改变前（旧状态）</label>
+        <textarea style={{ ...INPUT, minHeight: 50, resize: 'none' }} value={form.beforeState}
           onChange={e => set('beforeState', e.target.value)}
-          placeholder="改变前是什么状态？有什么问题？" />
+          placeholder="读书之前，我是什么状态，存在什么困扰？" />
       </div>
       <div>
-        <label style={LABEL}>改变后</label>
-        <textarea style={{ ...INPUT, minHeight: 50 }} value={form.afterState}
+        <label style={LABEL}>改变后（认知 / 行为变化）</label>
+        <textarea style={{ ...INPUT, minHeight: 50, resize: 'none' }} value={form.afterState}
           onChange={e => set('afterState', e.target.value)}
-          placeholder="改变后发生了什么？有什么效果？" />
+          placeholder="读完书实践之后，我的认知、行为发生了哪些变化？" />
       </div>
       <div>
-        <label style={LABEL}>下一步</label>
-        <textarea style={{ ...INPUT, minHeight: 40 }} value={form.nextStep}
+        <label style={LABEL}>落地巩固</label>
+        <textarea style={{ ...INPUT, minHeight: 40, resize: 'none' }} value={form.nextStep}
           onChange={e => set('nextStep', e.target.value)}
-          placeholder="如何巩固？要不要升级到团队SOP？" />
+          placeholder="如何持续实践？打算做哪些具体行动？" />
+      </div>
+      <div>
+        <label style={LABEL}>实践效果（可选）</label>
+        <textarea style={{ ...INPUT, minHeight: 40, resize: 'none' }} value={form.practiceEffect}
+          onChange={e => set('practiceEffect', e.target.value)}
+          placeholder="实际执行后的真实感受，哪些有用、哪些行不通。" />
       </div>
       <div>
         <label style={LABEL}>标签</label>
@@ -2255,13 +2299,72 @@ function ReviewForm({ initial, onSave, onCancel, onDelete }) {
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, paddingTop: 4 }}>
-        <div><button onClick={() => onDelete?.(initial.id)} style={BTN_D}>删除</button></div>
+        <div>{onDelete && <button onClick={() => onDelete?.(initial.id)} style={BTN_D}>删除</button>}</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onCancel} style={BTN_G}>取消</button>
-          <button onClick={() => onSave?.({ ...form, id: initial.id })} style={BTN_P}>保存</button>
+          <button onClick={() => {
+            if (!form.text.trim()) return alert('请填写改变名称');
+            onSave?.({ ...form, text: form.text.trim(), id: initial.id });
+          }} style={BTN_P}>保存</button>
         </div>
       </div>
     </div>
+  );
+}
+
+/* ---------- 7.6.1 选书面板 · 为读后思考/思后行动选目标书籍 ---------- */
+function BookPickerModal({ mode, books, onPick, onAddNew, onClose }) {
+  const [q, setQ] = useState('');
+  const isInsights = mode === 'insights';
+  const list = (books || []).filter(b => !q.trim() || (b.t || '').toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <Modal open onClose={onClose} title={isInsights ? '添加读后思考' : '添加行动计划'}
+      footer={
+        <button onClick={onAddNew}
+          className="px-4 py-1.5 text-[13px] rounded-[10px] transition"
+          style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.25)', color: '#007aff' }}>
+          + 新增书籍
+        </button>
+      }>
+      <div className="flex flex-col gap-3">
+        <div className="text-[12px] text-ink-500 leading-relaxed px-0.5">
+          思考与行动都挂在书籍上，选择一本书继续：
+        </div>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="搜索书名…"
+          className="px-3 py-2 text-[13px] rounded-[10px] focus:outline-none transition"
+          style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }} />
+        {list.length === 0 ? (
+          <div className="py-8 text-center text-[12px] text-ink-400"
+            style={{ background: 'rgba(15,23,42,0.032)', borderRadius: 12, border: '1px dashed rgba(148,163,184,0.35)' }}>
+            {q.trim() ? '没有匹配的书籍' : '书架还没有书籍'}<br/>点击下方「+ 新增书籍」开始
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1 max-h-[40vh] overflow-y-auto pr-0.5">
+            {list.map(b => {
+              const cnt = isInsights
+                ? (b.insights || []).filter(i => i.text?.trim() && i.scene?.trim()).length
+                : (b.actions || []).filter(a => a.text?.trim()).length;
+              return (
+                <button key={b.id} onClick={() => onPick(b)}
+                  className="flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] transition text-left hover:bg-[rgba(0,122,255,0.05)]"
+                  style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}>
+                  <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#007aff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  </svg>
+                  <span className="text-[13px] font-semibold text-ink-900 truncate flex-1 min-w-0">{b.t}</span>
+                  {b.author && <span className="text-[11px] text-ink-400 flex-shrink-0 truncate max-w-[90px]">{b.author}</span>}
+                  <span className="text-[10px] font-semibold px-1.5 rounded-md flex-shrink-0"
+                    style={{ background: 'rgba(0,122,255,0.10)', color: '#007aff' }}>
+                    {isInsights ? `${cnt}组` : `${cnt}条`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 
@@ -2780,6 +2883,8 @@ function CognitionView({
   const [editingChange, setEditingChange] = useState(null);
   // 结果区 · 改变
   const [editingReview, setEditingReview] = useState(null);
+  // 读后思考/思后行动 · 选书面板（'insights' | 'actions'）
+  const [bookPicker, setBookPicker] = useState(null);
   // 微信读书设置弹窗 + 同步状态
   const [showWereadSettings, setShowWereadSettings] = useState(false);
   const [wereadKey, setWereadKey] = useState('');
@@ -4050,10 +4155,10 @@ function CognitionView({
               <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
                 {totalInsightCount}组
               </span>
-              <button onClick={() => onBookAdd?.()}
+              <button onClick={() => setBookPicker('insights')}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
                 style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
-                title="新增书籍">
+                title="添加读后思考">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
             </div>
@@ -4061,7 +4166,7 @@ function CognitionView({
           <div className="flex-1 flex flex-col gap-1.5">
             {booksWithInsights.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(15,23,42,0.032)', borderRadius: 12 }}>
-                还没写读后思考<br/>点击右上角 + 添加书籍
+                还没写读后思考<br/>点击右上角 + 选择书籍
               </div>
             ) : (
               booksWithInsights.slice(0, 5).map(b => {
@@ -4112,10 +4217,10 @@ function CognitionView({
               <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
                 {[...(bookActionsList || []), ...(changes || [])].length}条
               </span>
-              <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
+              <button onClick={() => setBookPicker('actions')}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
                 style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
-                title="新增独立行动">
+                title="添加行动计划">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
             </div>
@@ -4126,7 +4231,7 @@ function CognitionView({
               <div className="flex-1 flex flex-col gap-1.5">
                 {mergedActions.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(15,23,42,0.032)', borderRadius: 12 }}>
-                    还没有行动计划<br/>编辑书籍→思后行动板块填写
+                    还没有行动计划<br/>点击右上角 + 选择书籍
                   </div>
                 ) : (
                   // 按 bookTitle 分组渲染（跟读后思考分组逻辑对齐）
@@ -4227,11 +4332,12 @@ function CognitionView({
                 setEditingReview({
                   id: newId,
                   text: '',
+                  bookTitle: '',
                   beforeState: '',
                   afterState: '',
                   nextStep: '',
-                  tag: 'habit',
-                  daysCompleted: 30,
+                  practiceEffect: '',
+                  tag: 'cognition',
                   __isNew: true,
                 });
               }}
@@ -4249,19 +4355,22 @@ function CognitionView({
               </div>
             ) : (
               (reviews || []).slice(0, 5).map(r => {
+                // 标签：蓝色明度分层（10% / 28% / 实心），旧数据自动迁移
                 const tagMeta = {
-                  habit: { lb: '长期习惯', color: BLUE, bg: `${BLUE}10`, bd: `${BLUE}22` },
-                  decision: { lb: '一次性决策', color: BLUE, bg: `${BLUE}28`, bd: `${BLUE}45` },
-                  sop: { lb: '已固化SOP', color: BLUE, bg: BLUE, bd: BLUE, solid: true },
+                  cognition:    { lb: '认知更新', color: BLUE, bg: `${BLUE}0f`, bd: `${BLUE}25` },
+                  habit:        { lb: '长期习惯', color: BLUE, bg: `${BLUE}28`, bd: `${BLUE}45` },
+                  internalized: { lb: '已内化', color: '#fff', bg: BLUE, bd: BLUE, solid: true },
+                  decision:     { lb: '认知更新', color: BLUE, bg: `${BLUE}0f`, bd: `${BLUE}25` },
+                  sop:          { lb: '已内化', color: '#fff', bg: BLUE, bd: BLUE, solid: true },
                 };
-                const tm = tagMeta[r.tag] || tagMeta.habit;
+                const tm = tagMeta[r.tag] || tagMeta.cognition;
                 return (
                   <div key={r.id}
                     className="rounded-xl p-2.5 hover:shadow-md transition-all cursor-pointer"
                     style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
                     onClick={() => setEditingReview(r)}>
-                    <div className="flex items-center justify-between">
-                      <div className="text-[12px] font-semibold text-ink-900 leading-snug line-clamp-2 pr-2">{r.text || '未命名改变'}</div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[12px] font-semibold text-ink-900 leading-snug line-clamp-2 flex-1 min-w-0">{r.text || '未命名改变'}</div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{
                           background: tm.bg, border: `1px solid ${tm.bd}`,
@@ -4278,6 +4387,15 @@ function CognitionView({
                         </button>
                       </div>
                     </div>
+                    {r.bookTitle && (
+                      <div className="flex items-center gap-1 mt-1 overflow-hidden">
+                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        </svg>
+                        <span className="text-[10px] truncate" style={{ color: BLUE }}>{r.bookTitle}</span>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -4311,6 +4429,7 @@ function CognitionView({
         <Modal open onClose={() => setEditingReview(null)} title={editingReview.__isNew ? '新增改变' : '编辑改变'}>
           <ReviewForm
             initial={editingReview}
+            books={books.length === 0 ? BOOKS : books}
             onSave={(data) => {
               // 新增改变没有 changeId，补一个 text/daysCompleted 兜底
               const final = { ...data };
@@ -4323,6 +4442,17 @@ function CognitionView({
             onDelete={!editingReview.__isNew ? () => { onReviewRemove?.(editingReview.id); setEditingReview(null); } : undefined}
           />
         </Modal>
+      )}
+
+      {/* 读后思考 / 思后行动 · 选书面板 */}
+      {bookPicker && (
+        <BookPickerModal
+          mode={bookPicker}
+          books={books.length === 0 ? BOOKS : books}
+          onPick={(b) => { const tab = bookPicker; setBookPicker(null); onBookEdit?.(b, tab); }}
+          onAddNew={() => { setBookPicker(null); onBookAdd?.(); }}
+          onClose={() => setBookPicker(null)}
+        />
       )}
 
       {/* 微信读书 Key 设置弹窗（BookForm 风格） */}

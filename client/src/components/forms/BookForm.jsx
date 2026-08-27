@@ -577,7 +577,7 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
                   width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
                   background: BLUE, color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
                 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <textarea value={ins.text} onChange={e => updateInsight(ins.id, { text: e.target.value })}
@@ -602,7 +602,7 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
                   width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
                   background: '#f59e0b', color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
                 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
                 </div>
                 <textarea value={ins.scene} onChange={e => updateInsight(ins.id, { scene: e.target.value })}
                   placeholder="应用场景 — 打算具体用在哪件事" rows={1}

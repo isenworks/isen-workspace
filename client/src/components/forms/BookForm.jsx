@@ -230,7 +230,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
       {/* ===== Hero ===== */}
       <div style={{
         display: 'flex', gap: '12px', alignItems: 'center',
-        padding: '14px 16px 12px',
+        padding: '11px 16px 9px',
         borderTopLeftRadius: 20, borderTopRightRadius: 20,
         borderBottom: `1px solid ${CARD_BORDER}`,
       }}>
@@ -290,7 +290,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
       {/* ===== Tab 栏（iOS 分段控制器风格） ===== */}
       <div style={{
         display: 'flex', gap: '4px',
-        margin: '10px 16px 0',
+        margin: '8px 16px 0',
         padding: '3px',
         background: CARD_BG,
         borderRadius: '999px',
@@ -332,7 +332,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
       </div>
 
       {/* ===== Tab 内容 ===== */}
-      <div style={{ padding: '14px 16px', minHeight: '280px', flex: 1 }}>
+      <div style={{ padding: '10px 16px', flex: 1 }}>
         {activeTab === 'basic' && <BasicTab form={form} set={set} setStatus={setStatus} setPct={setPct} searchCover={searchCover} coverFetching={coverFetching} isEbook={isEbook} SELECT_STYLE={SELECT_STYLE} INPUT_STYLE={INPUT_STYLE} BLUE={BLUE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} SUCCESS={SUCCESS} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} />}
         {activeTab === 'insights' && <InsightsTab form={form} addInsight={addInsight} updateInsight={updateInsight} removeInsight={removeInsight} insightCount={insightCount} BLUE={BLUE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} />}
         {activeTab === 'actions' && <ActionsTab form={form} addAction={addAction} updateAction={updateAction} removeAction={removeAction} actionCount={actionCount} BLUE={BLUE} BLUE_DARK={BLUE_DARK} BLUE_BORDER={BLUE_BORDER} BLUE_LIGHT={BLUE_LIGHT} INK={INK} INK_MUTE={INK_MUTE} INK_LIGHT={INK_LIGHT} SUCCESS={SUCCESS} CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} />}
@@ -342,7 +342,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
       {/* ===== 底部按钮 ===== */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', gap: '8px',
-        padding: '10px 16px',
+        padding: '9px 16px',
         borderTop: `1px solid ${CARD_BORDER}`,
         borderBottomLeftRadius: 18, borderBottomRightRadius: 18,
       }}>
@@ -390,14 +390,14 @@ function TabIcon({ name, active }) {
 function SectionCard({ title, children, action, CARD_BG, CARD_BORDER, CARD_RADIUS, BLUE_DARK }) {
   return (
     <div style={{
-      padding: '12px 14px',
+      padding: '10px 12px',
       background: CARD_BG,
       border: `1px solid ${CARD_BORDER}`,
       borderRadius: CARD_RADIUS,
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: '10px',
+        marginBottom: '7px',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: '6px',
@@ -417,36 +417,37 @@ function SectionCard({ title, children, action, CARD_BG, CARD_BORDER, CARD_RADIU
 // ===== Field Row =====
 function FieldRow({ label, children }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
       <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1c1c1e', opacity: 0.55 }}>{label}</span>
       {children}
     </div>
   );
 }
 
-// ===== Tab 0: 基础信息 =====
+// ===== Tab 0: 基础信息（紧凑版：单屏完整显示，无需滚动） =====
 function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, isEbook, SELECT_STYLE, INPUT_STYLE, BLUE, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, SUCCESS, INK, INK_MUTE, INK_LIGHT, CARD_BG, CARD_BORDER, CARD_RADIUS }) {
+  const inputStyle = { ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '5px 8px', outline: 'none' };
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {/* Section 1: 书籍信息 */}
       <SectionCard title="书籍信息" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px' }}>
           <FieldRow label="书名">
-            <input style={{ ...INPUT_STYLE, fontSize: '12.5px', fontWeight: 600, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
+            <input style={{ ...inputStyle, fontWeight: 600 }}
               value={form.t} onChange={e => set('t', e.target.value)} placeholder="书名" autoFocus />
           </FieldRow>
           <FieldRow label="作者">
-            <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
+            <input style={inputStyle}
               value={form.author} onChange={e => set('author', e.target.value)} placeholder="作者" />
           </FieldRow>
           <FieldRow label="分类">
-            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
+            <select style={{ ...SELECT_STYLE, ...inputStyle, paddingRight: '26px' }}
               value={form.cat} onChange={e => set('cat', e.target.value)}>
               {['认知成长', '人际沟通', '商业职场', '人文叙事'].map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </FieldRow>
           <FieldRow label="来源">
-            <select style={{ ...SELECT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
+            <select style={{ ...SELECT_STYLE, ...inputStyle, paddingRight: '26px' }}
               value={form.src} onChange={e => set('src', e.target.value)}>
               {['纸质书', '电子书', '有声书', '网络'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -454,74 +455,71 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
         </div>
       </SectionCard>
 
-      {/* Section 2: 阅读状态 */}
+      {/* Section 2: 阅读状态（单行 4 列） */}
       <SectionCard title="阅读状态" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 1fr', gap: '8px' }}>
           <FieldRow label="状态">
-            <select style={{ ...SELECT_STYLE, fontSize: '12px', fontWeight: 600,
+            <select style={{ ...SELECT_STYLE, ...inputStyle, paddingRight: '26px', fontWeight: 600,
               color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_MUTE,
               background: form.st === 'done' ? '#ecfdf5' : form.st === 'reading' ? BLUE_LIGHT : '#fff',
-              border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none',
             }}
               value={form.st} onChange={e => setStatus(e.target.value)}>
               {STATUSES.map(s => <option key={s.v} value={s.v}>{s.lb}</option>)}
             </select>
           </FieldRow>
           <FieldRow label={`进度 ${form.pct}%`}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, height: '32px',
-              padding: '0 12px', background: '#fff', borderRadius: '10px', border: `1px solid ${CARD_BORDER}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, height: '30px',
+              padding: '0 10px', background: '#fff', borderRadius: '10px', border: `1px solid ${CARD_BORDER}` }}>
               <input type="range" min="0" max="100" step="1"
                 value={form.pct} onChange={e => setPct(e.target.value)}
-                style={{ flex: 1, accentColor: BLUE, height: '14px', minWidth: 0 }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, color: BLUE, tabularNums: true, minWidth: '26px', textAlign: 'right' }}>
+                style={{ flex: 1, accentColor: BLUE, height: '13px', minWidth: 0 }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, color: BLUE, tabularNums: true, minWidth: '24px', textAlign: 'right' }}>
                 {form.pct}
               </span>
             </div>
           </FieldRow>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <FieldRow label="开始阅读">
-            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
+            <input type="date" style={inputStyle}
               value={form.startDate} onChange={e => set('startDate', e.target.value)} />
           </FieldRow>
           <FieldRow label="结束阅读">
-            <input type="date" style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
+            <input type="date" style={inputStyle}
               value={form.endDate} onChange={e => set('endDate', e.target.value)} />
           </FieldRow>
         </div>
       </SectionCard>
 
-      {/* Section 3: 链接 & 封面（仅电子书显示 BookID） */}
+      {/* Section 3: 链接 & 封面（电子书字段并排压缩） */}
       <SectionCard title="链接 & 封面" CARD_BG={CARD_BG} CARD_BORDER={CARD_BORDER} CARD_RADIUS={CARD_RADIUS} BLUE_DARK={BLUE_DARK}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {isEbook && (
-            <FieldRow label="微信读书 BookID">
-              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
-                value={form.bookId}
-                onChange={e => {
-                  const bid = e.target.value.trim();
-                  const valid = /^[a-z0-9]{20,}$/i.test(bid.replace(/-/g, ''));
-                  const autoUrl = valid ? `https://weread.qq.com/web/reader/${bid}` : '';
-                  set(f => ({ ...f, bookId: bid, ebookUrl: autoUrl || f.ebookUrl }));
-                }}
-                placeholder="从 weread 网页版地址中复制" />
-            </FieldRow>
-          )}
-          {isEbook && (
-            <FieldRow label="电子书链接">
-              <input style={{ ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
-                value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
-                placeholder="https://weread.qq.com/web/reader/xxx" />
-            </FieldRow>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px' }}>
+              <FieldRow label="微信读书 BookID">
+                <input style={inputStyle}
+                  value={form.bookId}
+                  onChange={e => {
+                    const bid = e.target.value.trim();
+                    const valid = /^[a-z0-9]{20,}$/i.test(bid.replace(/-/g, ''));
+                    const autoUrl = valid ? `https://weread.qq.com/web/reader/${bid}` : '';
+                    set(f => ({ ...f, bookId: bid, ebookUrl: autoUrl || f.ebookUrl }));
+                  }}
+                  placeholder="weread 网页版地址复制" />
+              </FieldRow>
+              <FieldRow label="电子书链接">
+                <input style={inputStyle}
+                  value={form.ebookUrl} onChange={e => set('ebookUrl', e.target.value)}
+                  placeholder="https://weread.qq.com/web/reader/xxx" />
+              </FieldRow>
+            </div>
           )}
           <FieldRow label="封面链接">
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input style={{ ...INPUT_STYLE, fontSize: '12px', flex: 1, background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '6px 10px', outline: 'none' }}
+              <input style={{ ...inputStyle, flex: 1 }}
                 value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)}
                 placeholder="https://…cover.jpg（留空显示占位图）" />
               <button type="button" onClick={searchCover} disabled={coverFetching}
                 style={{
-                  padding: '6px 12px', borderRadius: '10px', fontSize: '11.5px', fontWeight: 600,
+                  padding: '5px 12px', borderRadius: '10px', fontSize: '11.5px', fontWeight: 600,
                   background: BLUE_LIGHT, color: BLUE_DARK,
                   border: `1px solid ${BLUE_BORDER}`, cursor: coverFetching ? 'not-allowed' : 'pointer',
                   opacity: coverFetching ? 0.7 : 1, whiteSpace: 'nowrap',

@@ -201,34 +201,39 @@ const ABILITY = [
     deadline: '2026-12-31',
     completedAt: null,
     mstones: [
-      { lb: '通过 BEC Vantage 考试', st: 'doing', pct: 40, dueBy: '2026-10-15' },
-      { lb: '独立完成 1 次英文面试', st: 'pending', pct: 0, dueBy: '2026-09-01' },
+      { lb: '每日跟读 15 分钟（影子跟读法）', st: 'done', pct: 100, dueBy: '2026-03-31' },
+      { lb: '背诵常用 500 口语句型', st: 'done', pct: 100, dueBy: '2026-05-31' },
+      { lb: '完成 10 次即兴独白录音', st: 'done', pct: 100, dueBy: '2026-07-31' },
+      { lb: '加入 1 次英语角交流', st: 'pending', pct: 0, dueBy: '2026-10-15' },
+      { lb: '月末自评 ≥7/10 分', st: 'pending', pct: 0, dueBy: '2026-12-31' },
     ],
   },
   {
-    title: '结构化表达',
+    title: '即兴表达',
     score: '5',
-    daily: '每周1次演讲练习 + 写作300字',
+    daily: '每周1次演讲练习 + 即兴30秒训练',
     mode: 'milestone',
     createdAt: '2026-01-20',
     deadline: '2026-12-31',
     completedAt: null,
     mstones: [
-      { lb: '读完《金字塔原理》', st: 'done', pct: 100, dueBy: '2026-04-30' },
-      { lb: '上台分享 3 次', st: 'doing', pct: 33, dueBy: '2026-09-30' },
+      { lb: '学完金字塔原理输出方法', st: 'done', pct: 100, dueBy: '2026-04-30' },
+      { lb: '完成 3 次 5 分钟主题演讲', st: 'doing', pct: 33, dueBy: '2026-09-30' },
+      { lb: '即兴表达 30 秒不中断练习', st: 'pending', pct: 0, dueBy: '2026-12-15' },
     ],
   },
   {
-    title: '写作输出',
+    title: '数据分析',
     score: '3',
-    daily: '小红书周更1篇 · 公众号月更2篇',
+    daily: '每日 2h SQL 刷题 + 课程学习',
     mode: 'milestone',
-    createdAt: '2026-02-01',
-    deadline: '2026-12-31',
+    createdAt: '2026-08-01',
+    deadline: '2026-09-14',
     completedAt: null,
     mstones: [
-      { lb: '完成 12 篇深度长文', st: 'pending', pct: 0, dueBy: '2026-12-15' },
-      { lb: '累计粉丝破 5000', st: 'pending', pct: 0, dueBy: '2026-12-31' },
+      { lb: '阶段一：单表查询基础（Day1-Day5｜课程 15-22 集）', st: 'doing', pct: 40, dueBy: '2026-08-05' },
+      { lb: '阶段二：多表查询进阶（Day6-Day10｜课程 37-49 集）', st: 'pending', pct: 0, dueBy: '2026-08-10' },
+      { lb: '阶段三：实战与面试冲刺（Day11-Day14｜选学 27-30 函数集数）', st: 'pending', pct: 0, dueBy: '2026-08-14' },
     ],
   },
 ];
@@ -4496,292 +4501,126 @@ function CognitionView({
 }
 
 /* ---------- 9. 视图 · 能力 ---------- */
-function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, onStartAssessment }) {
+function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistory, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
-  const [editingScoreIdx, setEditingScoreIdx] = useState(null);
-  const [expandedAbilities, setExpandedAbilities] = useState(() => new Set(dynAb.map((_, i) => i)));
   const year = new Date().getFullYear();
   const AB_COLOR = '#f59e0b';
-
-  const scoreColor = (s) => {
-    const n = Number(s) || 0;
-    if (n >= 9) return '#22c55e';
-    if (n >= 6) return '#f59e0b';
-    return '#ef4444';
-  };
-
-  const getHistorySeries = (ab) => {
-    const abId = ab.id || ab.title;
-    const hist = scoreHistory?.[abId] || {};
-    const curScore = Number(ab.score) || 0;
-    const curYM = new Date().toISOString().slice(0,7);
-    const dataYear = new Date().getFullYear();
-    const series = [];
-    for (let m = 1; m <= 12; m++) {
-      const ym = `${dataYear}-${String(m).padStart(2,'0')}`;
-      const v = hist[ym];
-      if (v !== undefined && v !== null) series.push(Number(v));
-      else if (ym <= curYM) series.push(curScore);
-      else break;
-    }
-    return series;
-  };
 
   /* ===== 能力级派生统计 ===== */
   const abilityStats = useMemo(() => {
     return dynAb.map((a, idx) => {
-      const mode = inferMode(a, 'ability');
       const mstones = a.mstones || [];
-      const mPcts = mstones.map(m => m.pct || 0);
-      const avgPct = mstones.length ? Math.round(mPcts.reduce((s,p)=>s+p,0) / mstones.length) : 0;
+      const mDone = mstones.filter(m => m.st === 'done').length;
+      const mTotal = mstones.length;
+      const avgPct = mTotal ? Math.round(mDone / mTotal * 100) : 0;
       const { days, timePct } = calcTimeAnchor(a.deadline, a.createdAt);
-      const rm = calcRisk(avgPct, timePct, mstones.length && mstones.every(m => m.st === 'done'));
-
-      const risks = { risk: 0, warn: 0, ahead: 0, normal: 0, done: 0, pending: 0 };
-      mstones.forEach((m, i) => {
-        const mPct = mPcts[i];
-        const microTA = m.dueBy ? calcTimeAnchor(m.dueBy, a.createdAt || m.dueBy) : { timePct };
-        if (m.st === 'pending' && mPct === 0) { risks.pending++; return; }
-        const mrm = calcRisk(mPct, microTA.timePct, m.st === 'done');
-        risks[mrm.q] = (risks[mrm.q] || 0) + 1;
-      });
-
-      const series = getHistorySeries(a);
-      const lastScore = series[series.length - 1];
-      const firstScore = series[0];
-      const trendDelta = series.length >= 2 && firstScore !== undefined && firstScore > 0
-        ? Math.round(((lastScore - firstScore) / firstScore) * 100) : null;
-
-      return {
-        mode, idx, avgPct, rm, days, timePct, risks,
-        dl: daysLabel(days), trendDelta,
-        mTotal: mstones.length,
-        mDone: mstones.filter(m => m.st === 'done').length,
-      };
+      const rm = calcRisk(avgPct, timePct, mTotal && mstones.every(m => m.st === 'done'));
+      return { idx, avgPct, rm, days, timePct, mDone, mTotal, dl: daysLabel(days) };
     });
   }, [dynAb]);
 
   /* ===== Hero 全局风险锚点 ===== */
   const heroStats = useMemo(() => {
-    let risk = 0, warn = 0, pending = 0, overdue = 0, urgent = 0;
-    abilityStats.forEach(as => {
-      risk += as.risks.risk || 0;
-      warn += as.risks.warn || 0;
-      pending += as.risks.pending || 0;
-      if (as.dl.overdue) overdue++;
-      if (as.dl.urgent) urgent++;
-    });
+    let risk = 0, warn = 0, pending = 0, overdue = 0;
     let earliest = null;
     abilityStats.forEach(as => {
-      if (as.days === null || as.days < 0) return;
-      if (earliest === null || as.days < earliest) earliest = as.days;
+      if (as.rm.q === 'risk') risk++;
+      if (as.rm.q === 'warn') warn++;
+      if (as.dl.overdue) overdue++;
+      if (as.days !== null && as.days >= 0) {
+        if (earliest === null || as.days < earliest) earliest = as.days;
+      }
     });
-    return { risk, warn, pending, overdue, urgent, earliest };
+    return { risk, warn, pending, overdue, earliest };
   }, [abilityStats]);
 
-  const toggleExpand = (idx) => {
-    setExpandedAbilities(prev => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx); else next.add(idx);
-      return next;
-    });
-  };
-
-  /* ===== O 统领层组件（2 行紧凑结构 · 适配横向 3 列窄卡）
-   * R1：展开箭头 + 序号 + 标题 | 评分+趋势（附件位）
-   * R2：每日行动 + 时间vs实际双条 | 截止 + 里程碑 + 风险
-   * ===== */
-  const renderObjective = (a, as) => {
-    const lagBehind = as.timePct !== null && as.avgPct < as.timePct;
-    const isExpanded = expandedAbilities.has(as.idx);
+  /* ===== 能力卡片（色条+标题+胶囊+加号 / 进度条 / 复选框列表） ===== */
+  const renderCard = (a, as) => {
     const AB = AB_COLOR;
-    return (
-      <div
-        className="flex flex-col gap-1.5 px-1 py-2 border-b border-ink-100 cursor-pointer select-none hover:bg-ink-50/40 transition-colors rounded-lg"
-        onClick={() => toggleExpand(as.idx)}
-      >
-        {/* R1：序号 + 标题 | 评分+趋势（附件位，异常态才显示趋势） */}
-        <div className="flex items-center gap-2 min-w-0">
-          <svg className={`w-3 h-3 text-ink-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 5l7 7-7 7"/>
-          </svg>
-          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 leading-tight" style={{ color: AB_COLOR }}>
-            {String(as.idx + 1).padStart(2, '0')}
-          </span>
-          <span className="text-[14px] font-semibold text-ink-900 leading-tight truncate min-w-0 flex-1">{a.title}</span>
-          {/* 评分+趋势合一组：点击可调 */}
-          <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
-            {editingScoreIdx === as.idx ? (
-              <div className="flex items-center gap-0.5">
-                <input type="range" min="0" max="10" step="1" defaultValue={a.score}
-                  style={{ accentColor: scoreColor(a.score), width: '44px' }}
-                  onChange={e => {
-                    const n = Number(e.target.value);
-                    const el = document.getElementById('ab-score-' + as.idx);
-                    if (el) el.textContent = n;
-                  }}
-                  onMouseUp={e => {
-                    onSetScore?.(as.idx, Number(e.target.value));
-                    setEditingScoreIdx(null);
-                  }}
-                />
-                <span id={'ab-score-' + as.idx} className="text-[11px] font-bold tabular-nums leading-tight" style={{ color: scoreColor(a.score) }}>{a.score}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-0.5 cursor-pointer hover:opacity-80" onClick={() => setEditingScoreIdx(as.idx)}>
-                <span className="text-[11px] font-bold tabular-nums leading-tight" style={{ color: scoreColor(a.score) }}>{a.score}</span>
-                <span className="text-[9.5px] font-semibold leading-tight" style={{ color: scoreColor(a.score), opacity: 0.65 }}>/10</span>
-                {as.trendDelta !== null && (
-                  <span className={`text-[10px] font-bold leading-tight ${as.trendDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {as.trendDelta >= 0 ? '↑' : '↓'}{Math.abs(as.trendDelta)}%
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        {/* R2：每日行动 + 上下双条 | 截止 + 里程碑 + 风险（SVG 胶囊，仅异常态显示） */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="text-[11px] text-ink-500 font-medium truncate min-w-0 flex-shrink max-w-[35%] leading-tight">
-            {a.daily}
-          </div>
-          {/* 上下双条：时间(灰) / 实际(橙)，条内不印数字 */}
-          <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
-            <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
-              <div className="h-full rounded-full bg-ink-300" style={{ width: `${as.timePct ?? 0}%` }}></div>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: lagBehind && as.rm.q !== 'done' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.15)' }}>
-              <div className="h-full rounded-full" style={{ width: `${as.avgPct}%`, background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB }}></div>
-            </div>
-          </div>
-          {/* 右：截止 + 里程碑 + 风险（SVG 胶囊，正常态不打断视线） */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold whitespace-nowrap leading-tight ${as.dl.cls}`}>
-              <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-              {as.dl.text}
-            </span>
-            <span className="inline-flex items-center px-1 py-[1px] rounded bg-ink-50 text-[10px] font-bold tabular-nums text-ink-600 leading-tight">
-              {as.mDone}/{as.mTotal}
-            </span>
-            {(as.risks.risk || 0) > 0 && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1 py-[1px] rounded tabular-nums whitespace-nowrap leading-tight" style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>
-                <svg className="w-[10px] h-[10px]" fill="#ef4444" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.2L20.1 19H3.9L12 5.2z"/><path d="M12 10v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="#fff"/></svg>
-                {as.risks.risk}
-              </span>
-            )}
-            {(as.risks.warn || 0) > 0 && (as.risks.risk || 0) === 0 && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1 py-[1px] rounded tabular-nums whitespace-nowrap leading-tight" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-                <svg className="w-[10px] h-[10px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-                {as.risks.warn}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  /* ===== 里程碑列表渲染（窄卡 3 列适配：压缩列宽+精简文字） ===== */
-  const renderMilestoneRows = (a, as, abilityIdx) => {
+    const lagBehind = as.timePct !== null && as.avgPct < as.timePct;
     const mstones = a.mstones || [];
-    const isExpanded = expandedAbilities.has(abilityIdx);
-    if (!isExpanded) return null;
-
-    const items = mstones.map((m, i) => {
-      const mPct = m.pct || 0;
-      const microTA = m.dueBy ? calcTimeAnchor(m.dueBy, a.createdAt || m.dueBy) : { timePct: as.timePct };
-      const mrm = calcRisk(mPct, microTA.timePct, m.st === 'done');
-      const pending = m.st === 'pending' && mPct === 0;
-      const sortKey = pending ? 2 : (mrm.q === 'done' ? 4 : (mrm.q === 'risk' ? 0 : (mrm.q === 'warn' ? 1 : 3)));
-      return { m, i, mPct, mrm, microTA, pending, sortKey };
-    });
-    const sorted = [...items].sort((a, b) => a.sortKey - b.sortKey);
-    const active = sorted.filter(x => x.mrm.q !== 'done');
-    const done = sorted.filter(x => x.mrm.q === 'done');
 
     return (
-      <div className="flex flex-col pt-1 pb-0.5 pl-[22px]">
-        {/* 表头行改为纯占位对齐（# 20 / 里程碑 flex / 进度 64 / 截止 56），右侧挂 26×26 加号 */}
-        <div className="flex items-center gap-1.5 px-1 py-1">
-          <div className="w-[20px] flex-shrink-0"></div>
-          <div className="flex-1 min-w-0"></div>
-          <div className="w-[64px] flex-shrink-0 pl-1"></div>
-          <div className="w-[56px] pr-0.5 flex-shrink-0 flex justify-end">
-            <button
-              onClick={(e) => { e.stopPropagation(); onMsAdd?.(abilityIdx); }}
-              title="加里程碑"
-              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-              style={{ background: `${AB_COLOR}1a`, border: `1px solid ${AB_COLOR}40` }}
+      <div key={a.id || a.title} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-3.5 flex flex-col">
+        {/* 标题行：色条 + 16px 标题 | 已勾选/总数胶囊 + 26×26 加号 */}
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: AB }}></span>
+            <span className="text-[16px] font-bold leading-tight text-ink-900 truncate">{a.title}</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span
+              className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
+              style={{ background: `${AB}1a`, border: `1px solid ${AB}40`, color: '#b45309' }}
             >
-              <svg className="w-3 h-3" fill="none" stroke={AB_COLOR} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              <span className="font-extrabold">{as.mDone}</span>
+              <span className="mx-0.5 opacity-50">/</span>
+              <span className="opacity-70">{as.mTotal}</span>
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMsAdd?.(as.idx); }}
+              title="添加 KR"
+              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
+              style={{ background: `${AB}1a`, border: `1px solid ${AB}40` }}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke={AB} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
           </div>
         </div>
 
-        {active.length === 0 && done.length > 0 ? (
-          <div className="flex items-center justify-center gap-1.5 text-[11px] text-ink-400 py-2.5">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="#22c55e" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
-            全部达成
+        {/* 进度条：已勾选/总数 = 完成度 */}
+        <div className="mb-2.5">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-semibold text-ink-500 leading-none">总体完成度</span>
+            <span className="text-[11px] font-extrabold tabular-nums leading-none" style={{ color: '#b45309' }}>{as.avgPct}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+            <div className="h-full rounded-full transition-all" style={{ width: `${as.avgPct}%`, background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB }}></div>
+          </div>
+        </div>
+
+        {/* KR 列表：复选框 + 主文字 12px + 子说明 11px */}
+        {mstones.length === 0 ? (
+          <div className="py-4 text-center rounded-xl" style={{ background: 'rgba(15,23,42,0.03)' }}>
+            <div className="text-[12px] font-semibold text-ink-400">还没有 KR</div>
+            <div className="text-[11px] text-ink-400 mt-1 opacity-80">点击右上角 + 添加</div>
           </div>
         ) : (
-          active.map(({ m, i, mPct, mrm, pending }) => {
-            const dotColor = pending ? '#c7c7cc' : (m.st === 'doing' ? AB_COLOR : mrm.color);
-            const dueDays = m.dueBy ? calcTimeAnchor(m.dueBy, a.createdAt || m.dueBy).days : null;
-            const dueLbl = daysLabel(dueDays);
-            return (
-              <div
-                key={m.id || i}
-                onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
-                className="flex items-center gap-1.5 px-1 py-1.5 rounded-xl hover:bg-ink-50/60 cursor-pointer border border-transparent transition-colors"
-              >
-                <div className="w-[20px] text-right flex-shrink-0">
-                  <span className="text-[12px] font-bold tabular-nums leading-tight" style={{ color: AB_COLOR }}>{String(i + 1).padStart(2, '0')}</span>
-                </div>
-                <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }}></span>
-                  <span className="text-[12px] font-semibold text-ink-900 truncate leading-tight">{m.lb}</span>
-                </div>
-                <div className="w-[64px] flex-shrink-0 flex items-center gap-1 pl-1">
-                  <div className="flex-1 h-1.5 rounded-full bg-ink-100 overflow-hidden min-w-0">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${mPct}%`, background: mrm.color }}></div>
+          <div className="flex flex-col">
+            {mstones.map((m, i) => {
+              const isDone = m.st === 'done';
+              return (
+                <div
+                  key={m.id || i}
+                  className="flex items-start gap-2 px-1 py-2 rounded-lg hover:bg-ink-50/50 transition-colors group"
+                >
+                  {/* 复选框：未勾白底橙边，已勾橙底白勾 */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onMsToggleDone?.({ abilityIdx: as.idx, msIdx: i }); }}
+                    className="w-4 h-4 rounded-md grid place-items-center flex-shrink-0 transition-all mt-0.5"
+                    style={{
+                      background: isDone ? AB : '#fff',
+                      border: `1.5px solid ${AB}`,
+                    }}
+                  >
+                    {isDone && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                    )}
+                  </button>
+                  {/* 文字区：主文字 12px + 子说明 11px */}
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); onMsEdit?.(as.idx, i, m); }}>
+                    <div className={`text-[12px] font-semibold leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-900'}`}>
+                      {m.lb}
+                    </div>
+                    {m.dueBy && (
+                      <div className="text-[11px] text-ink-500 mt-0.5 leading-tight">
+                        {m.dueBy}
+                      </div>
+                    )}
                   </div>
-                  <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[28px] text-right leading-tight" style={{ color: mrm.color }}>
-                    {mPct}%
-                  </span>
                 </div>
-                <div className="w-[56px] text-right pr-0.5 flex-shrink-0">
-                  <span className={`text-[10px] font-bold whitespace-nowrap leading-tight ${dueLbl.cls}`}>{dueLbl.text}</span>
-                </div>
-              </div>
-            );
-          })
-        )}
-
-        {/* 已完成折叠区（压缩版：绿勾表达完成，不再双写 100%+✓完成） */}
-        {done.length > 0 && (
-          <div className="flex flex-col mt-0.5 pt-0.5 border-t border-dashed border-ink-100">
-            {done.map(({ m, i }) => (
-              <div
-                key={m.id || `done-${i}`}
-                onClick={(e) => { e.stopPropagation(); onMsEdit?.(abilityIdx, i, m); }}
-                className="flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-ink-50/40 cursor-pointer transition-colors opacity-65"
-              >
-                <div className="w-[20px] text-center flex-shrink-0">
-                  <span className="inline-grid place-items-center w-3.5 h-3.5 rounded-full mx-auto" style={{ background: 'rgba(34,197,94,0.15)' }}>
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[11px] text-ink-400 line-through truncate font-semibold leading-tight">{m.lb}</span>
-                </div>
-                <div className="w-[64px] flex-shrink-0 pl-1 text-right">
-                  <span className="text-[10px] font-bold tabular-nums text-ink-400 leading-tight">100%</span>
-                </div>
-                <div className="w-[56px] text-right pr-0.5 flex-shrink-0">
-                  <span className="text-[10px] font-bold text-ink-400 leading-tight">已完成</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -4797,45 +4636,31 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
           <span className="text-[16px] font-bold leading-none text-ink-900">{year}年 · 能力成长</span>
           <div className="flex items-center gap-2 flex-wrap ml-1">
             {heroStats.earliest !== null && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.25)' }}>
-                <span className="text-[10px] font-bold text-ink-400">最近截止</span>
-                <span className={`text-[11.5px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.10)' }}>
+                <span className="text-[10px] font-semibold text-ink-400">最近截止</span>
+                <span className={`text-[11px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
                   {daysLabel(heroStats.earliest).text}
                 </span>
               </div>
             )}
-            {heroStats.risk > 0 && (
+            {(heroStats.risk + heroStats.overdue) > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444' }}></span>
-                <span className="text-[10px] font-bold text-rose-500">严重落后</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <span className="text-[10px] font-bold text-rose-500">落后风险</span>
+                <span className="text-[11px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk + heroStats.overdue}</span>
               </div>
             )}
             {heroStats.warn > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }}></span>
                 <span className="text-[10px] font-bold text-amber-500">略落后</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
+                <span className="text-[11px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
               </div>
             )}
-            {heroStats.pending > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#8a9491' }}></span>
-                <span className="text-[10px] font-bold text-slate-500">未启动里程碑</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-slate-600">{heroStats.pending}</span>
-              </div>
-            )}
-            {heroStats.overdue > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
-                <span className="text-[10px] font-bold text-rose-500">过期能力</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.overdue}</span>
-              </div>
-            )}
-            {heroStats.risk === 0 && heroStats.warn === 0 && heroStats.pending === 0 && (
+            {heroStats.risk === 0 && heroStats.warn === 0 && heroStats.overdue === 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
-                <span className="text-[10px] font-bold text-emerald-600">能力推进节奏正常</span>
+                <span className="text-[10px] font-bold text-emerald-600">节奏正常</span>
               </div>
             )}
           </div>
@@ -4843,14 +4668,14 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('annual-open-ability-add'))}
               className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-              style={{ background: 'rgba(245,158,11,0.10)', color: '#f59e0b' }}>
+              style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               添加能力
             </button>
             <button
               onClick={() => onStartAssessment?.()}
-              className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-              style={{ background: 'rgba(245,158,11,0.10)', color: '#f59e0b' }}>
+              className="inline-flex items-center rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:bg-ink-100 active:scale-[0.98]"
+              style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.10)', color: '#64748b' }}>
               本月自评
             </button>
           </div>
@@ -4859,15 +4684,20 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, scoreHistory, onSetScore, o
 
       {/* ===== 能力卡片列表：≥xl 屏横向 3 列并排 ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-        {dynAb.map((a, i) => {
-          const as = abilityStats[i];
-          return (
-            <div key={a.id || a.title + i} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-3.5 flex flex-col">
-              {renderObjective(a, as)}
-              {renderMilestoneRows(a, as, i)}
-            </div>
-          );
-        })}
+        {dynAb.map((a, i) => renderCard(a, abilityStats[i]))}
+        {dynAb.length === 0 && (
+          <div className="col-span-full rounded-2xl border border-dashed border-ink-200 flex flex-col items-center justify-center gap-2 py-12" style={{ background: 'rgba(15,23,42,0.02)' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M15.5 13a6 6 0 1 0-7 0M12 13v6M8 22h8"/></svg>
+            <div className="text-[12px] text-ink-400 font-medium">还没有能力目标</div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('annual-open-ability-add'))}
+              className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
+              style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              添加第一个能力
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -5922,6 +5752,19 @@ export default function AnnualPlan({ standalone = true }) {
       setAbilities(prev => prev.map((a, i) => i === abilityIdx ? { ...a, mstones: a.mstones.filter((_, j) => j !== msIdx) } : a));
       showToast('里程碑已删除');
     },
+    toggleDone: ({ abilityIdx, msIdx }) => {
+      setAbilities(prev => prev.map((a, i) => {
+        if (i !== abilityIdx) return a;
+        return {
+          ...a,
+          mstones: a.mstones.map((m, j) => {
+            if (j !== msIdx) return m;
+            const isDone = m.st === 'done';
+            return { ...m, st: isDone ? 'pending' : 'done', pct: isDone ? 0 : 100 };
+          }),
+        };
+      }));
+    },
   };
   // 工作·KR
   const krOps = {
@@ -6202,6 +6045,7 @@ export default function AnnualPlan({ standalone = true }) {
         showToast={showToast}
       />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}
+        onMsToggleDone={({ abilityIdx, msIdx }) => msOps.toggleDone({ abilityIdx, msIdx })}
         scoreHistory={abilityScoreHistory} onSetScore={(abilityIdx, newScore) => {
           const ab = abilities[abilityIdx]; if (!ab) return;
           const ym = new Date().toISOString().slice(0,7);

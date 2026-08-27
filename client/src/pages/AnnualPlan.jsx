@@ -2208,9 +2208,10 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
         .slice(0, 5)
     : [];
 
-  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
-  const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff', lineHeight: 1.5 };
-  const INPUT_TITLE = { ...INPUT, fontSize: 14, fontWeight: 600, color: '#1c1c1e', padding: '9px 12px' };
+  const LABEL = { fontSize: 12, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 3 };
+  const INPUT = { width: '100%', padding: '6px 9px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 12.5, outline: 'none', background: '#fff', lineHeight: 1.5 };
+  const INPUT_TITLE = { ...INPUT, fontSize: 14, fontWeight: 600, color: '#1c1c1e', padding: '9px 12px', border: '1.5px solid rgba(0,122,255,0.35)', boxShadow: '0 0 0 3px rgba(0,122,255,0.06)' };
+  const INPUT_OPT = { ...INPUT, border: '1px dashed rgba(148,163,184,0.5)', background: 'rgba(248,250,252,0.6)' };
   const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007aff', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
   const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
@@ -2222,13 +2223,15 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+      {/* 主字段：改变名称 */}
       <div>
         <label style={LABEL}>改变名称</label>
         <input style={INPUT_TITLE} value={form.text} autoFocus
           onChange={e => set('text', e.target.value)}
           placeholder="例：建立每日 5 分钟复盘习惯｜接纳情绪不内耗" />
       </div>
+      {/* 关联书籍 / 观点 */}
       <div>
         <label style={LABEL}>关联书籍 / 观点（可选）</label>
         <div style={{ position: 'relative' }}>
@@ -2259,29 +2262,35 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
           )}
         </div>
       </div>
-      <div>
-        <label style={LABEL}>改变前（旧状态）</label>
-        <textarea style={{ ...INPUT, minHeight: 50, resize: 'none' }} value={form.beforeState}
-          onChange={e => set('beforeState', e.target.value)}
-          placeholder="读书之前，我是什么状态，存在什么困扰？" />
+      {/* 改变前 / 改变后 · 对仗并排 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={LABEL}>改变前（旧状态）</label>
+          <textarea style={{ ...INPUT, minHeight: 56, resize: 'none' }} value={form.beforeState}
+            onChange={e => set('beforeState', e.target.value)}
+            placeholder="读书之前，我是什么状态，存在什么困扰？" />
+        </div>
+        <div>
+          <label style={LABEL}>改变后（认知 / 行为变化）</label>
+          <textarea style={{ ...INPUT, minHeight: 56, resize: 'none' }} value={form.afterState}
+            onChange={e => set('afterState', e.target.value)}
+            placeholder="读完书实践之后，我的认知、行为发生了哪些变化？" />
+        </div>
       </div>
-      <div>
-        <label style={LABEL}>改变后（认知 / 行为变化）</label>
-        <textarea style={{ ...INPUT, minHeight: 50, resize: 'none' }} value={form.afterState}
-          onChange={e => set('afterState', e.target.value)}
-          placeholder="读完书实践之后，我的认知、行为发生了哪些变化？" />
-      </div>
-      <div>
-        <label style={LABEL}>落地巩固</label>
-        <textarea style={{ ...INPUT, minHeight: 40, resize: 'none' }} value={form.nextStep}
-          onChange={e => set('nextStep', e.target.value)}
-          placeholder="如何持续实践？打算做哪些具体行动？" />
-      </div>
-      <div>
-        <label style={LABEL}>实践效果（可选）</label>
-        <textarea style={{ ...INPUT, minHeight: 40, resize: 'none' }} value={form.practiceEffect}
-          onChange={e => set('practiceEffect', e.target.value)}
-          placeholder="实际执行后的真实感受，哪些有用、哪些行不通。" />
+      {/* 落地巩固 / 实践效果 · 可选补充并排 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={LABEL}>落地巩固</label>
+          <textarea style={{ ...INPUT_OPT, minHeight: 44, resize: 'none' }} value={form.nextStep}
+            onChange={e => set('nextStep', e.target.value)}
+            placeholder="如何持续实践？打算做哪些具体行动？" />
+        </div>
+        <div>
+          <label style={LABEL}>实践效果（可选）</label>
+          <textarea style={{ ...INPUT_OPT, minHeight: 44, resize: 'none' }} value={form.practiceEffect}
+            onChange={e => set('practiceEffect', e.target.value)}
+            placeholder="实际执行后的真实感受，哪些有用、哪些行不通。" />
+        </div>
       </div>
       <div>
         <label style={LABEL}>标签</label>

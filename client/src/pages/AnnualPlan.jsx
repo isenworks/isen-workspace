@@ -3404,9 +3404,7 @@ function CognitionView({
                             className="w-full px-2 py-1 text-[12.5px] font-bold border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white"
                             placeholder="KR 标题"
                           />
-                          <div className="grid grid-cols-3 gap-1.5">
-                            <input type="number" value={krDraft?.val || 0} onChange={(e) => setKrDraft({ ...krDraft, val: Number(e.target.value) })}
-                              className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="当前" />
+                          <div className="grid grid-cols-2 gap-1.5">
                             <input type="number" value={krDraft?.tgt || 0} onChange={(e) => setKrDraft({ ...krDraft, tgt: Number(e.target.value) })}
                               className="px-2 py-1 text-[12px] tabular-nums border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="目标" />
                             <input value={krDraft?.u || ''} onChange={(e) => setKrDraft({ ...krDraft, u: e.target.value })}
@@ -3426,7 +3424,7 @@ function CognitionView({
                         <div onClick={() => openEditKrModal(kr)} className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
                           <span className="text-[13px] font-semibold text-ink-700 truncate leading-none group-hover:text-ink-900">{cleanLb}</span>
                           <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
-                            {kr.val}{kr.u}
+                            {kr.tgt}{kr.u}
                           </span>
                         </div>
                       )}
@@ -3993,12 +3991,7 @@ function CognitionView({
               <input value={newKr.lb} onChange={(e) => setNewKr({ ...newKr, lb: e.target.value })}
                 placeholder="KR 描述，如：读完12本书"
                 className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
-                  <input type="number" value={newKr.val} onChange={(e) => setNewKr({ ...newKr, val: Number(e.target.value) })}
-                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
+              <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-semibold text-ink-500">目标值</label>
                   <input type="number" value={newKr.tgt} onChange={(e) => setNewKr({ ...newKr, tgt: Number(e.target.value) })}
@@ -4031,12 +4024,7 @@ function CognitionView({
               <input value={editingKrModal.draft.lb} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, lb: e.target.value } })}
                 placeholder="KR 描述，如：读完12本书"
                 className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-ink-500">当前值</label>
-                  <input type="number" value={editingKrModal.draft.val} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, val: Number(e.target.value) } })}
-                    placeholder="0" className="px-3 py-2 text-[13px] border border-ink-200 rounded-lg focus:outline-none focus:border-brand-500" />
-                </div>
+              <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-semibold text-ink-500">目标值</label>
                   <input type="number" value={editingKrModal.draft.tgt} onChange={(e) => setEditingKrModal({ ...editingKrModal, draft: { ...editingKrModal.draft, tgt: Number(e.target.value) } })}

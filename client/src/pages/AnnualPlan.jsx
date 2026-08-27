@@ -2711,7 +2711,7 @@ function CognitionView({
   funnelHeader, setFunnelHeader,
   funnelStageLabels, setFunnelStageLabels,
   bookshelfTitle, setBookshelfTitle,
-  changes, onChangeAdd, onChangeUpdate, onChangeCheckIn, onChangeComplete, onChangeRemove,
+  changes, onChangeAdd, onChangeUpdate, onChangeToggleComplete, onChangeComplete, onChangeRemove,
   reviews, onReviewUpdate, onReviewRemove,
   showToast,
 }) {
@@ -4141,15 +4141,15 @@ function CognitionView({
                           }
                         }}>
                         <div className="flex items-start gap-2">
-                          {/* 圆形复选框：未勾选=透明蓝边框，已勾选=蓝色填充白勾 */}
+                          {/* 圆形复选框：未勾选=白底+蓝边，已勾选=蓝色填充白勾 */}
                           <button
-                            onClick={(e) => { e.stopPropagation(); onChangeCheckIn?.(c.id); }}
+                            onClick={(e) => { e.stopPropagation(); onChangeToggleComplete?.(c.id); }}
                             className="flex-shrink-0 mt-[2px] w-[16px] h-[16px] rounded-full flex items-center justify-center transition"
                             style={{
-                              background: isCompleted ? BLUE : 'transparent',
+                              background: isCompleted ? BLUE : '#fff',
                               border: `1.5px solid ${BLUE}`,
                             }}
-                            title={isCompleted ? '已完成' : '点击标记完成'}>
+                            title={isCompleted ? '点击取消完成' : '点击标记完成'}>
                             {isCompleted && (
                               <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 6L9 17l-5-5" />
@@ -4193,7 +4193,7 @@ function CognitionView({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
-                {(reviews || []).length}条
+                {(reviews || []).length}个
               </span>
               <button onClick={() => {
                 // 新增复盘：生成新ID，打开编辑弹窗
@@ -4234,30 +4234,27 @@ function CognitionView({
                     className="rounded-xl p-2.5 hover:shadow-md transition-all cursor-pointer"
                     style={{ background: BLUE_LIGHT, border: `1px solid ${BLUE}20` }}
                     onClick={() => setEditingReview(r)}>
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: BLUE }}>
-                          坚持 {r.daysCompleted} 天
-                        </span>
+                    <div className="flex items-center justify-between">
+                      <div className="text-[12px] font-semibold text-ink-900 leading-snug line-clamp-2 pr-2">{r.text || '未命名改变'}</div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${tm.color}15`, color: tm.color }}>
                           {tm.lb}
                         </span>
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条复盘？')) onReviewRemove?.(r.id); }}
+                          className="text-ink-300 hover:text-red-500 transition"
+                          title="删除">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
+                          </svg>
+                        </button>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条复盘？')) onReviewRemove?.(r.id); }}
-                        className="text-ink-300 hover:text-red-500 transition flex-shrink-0 ml-1"
-                        title="删除">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/>
-                        </svg>
-                      </button>
                     </div>
-                    <div className="text-[12px] font-semibold text-ink-900 leading-snug line-clamp-2">{r.text}</div>
                   </div>
                 );
               })
             )}
             {(reviews || []).length > 5 && (
-              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {(reviews || []).length - 5} 条 · 点击编辑查看</div>
+              <div className="text-center text-[11px] text-ink-400 mt-1">还有 {(reviews || []).length - 5} 个 · 点击编辑查看</div>
             )}
           </div>
         </div>
@@ -5670,19 +5667,20 @@ export default function AnnualPlan({ standalone = true }) {
       showToast('行动改变已更新');
     },
     // 打卡：添加今天日期到 checkIns
-    checkIn: (id) => {
-      const today = new Date().toISOString().slice(0, 10);
+    // 复选框 toggle：点击切换完成/未完成状态（不是打卡次数）
+    toggleComplete: (id) => {
       setCogChanges(prev => prev.map(c => {
         if (c.id !== id) return c;
-        if (c.checkIns.includes(today)) return c; // 今天已打
-        const next = [...c.checkIns, today];
-        // 达到 targetDays → 自动标完成
-        const done = next.length >= c.targetDays;
-        return { ...c, checkIns: next, status: done ? 'completed' : 'active' };
+        const done = c.done || c.status === 'completed' || c.status === 'reviewed';
+        return done
+          ? { ...c, done: false, status: 'active' }
+          : { ...c, done: true, status: 'completed' };
       }));
-      showToast('✅ 已打卡');
+      const item = cogChanges.find(c => c.id === id);
+      const wasDone = item && (item.done || item.status === 'completed' || item.status === 'reviewed');
+      showToast(wasDone ? '已取消完成' : '行动已完成 ✓');
     },
-    // 30天完成 → 生成复盘卡
+    // 30天完成 → 生成复盘卡（保留但不复用）
     completeAndReview: (id) => {
       const change = cogChanges.find(c => c.id === id);
       if (!change) return;
@@ -6009,7 +6007,7 @@ export default function AnnualPlan({ standalone = true }) {
         funnelStageLabels={funnelStageLabels} setFunnelStageLabels={setFunnelStageLabels}
         bookshelfTitle={bookshelfTitle} setBookshelfTitle={setBookshelfTitle}
         changes={cogChanges}
-        onChangeAdd={changeOps.add} onChangeUpdate={changeOps.update} onChangeCheckIn={changeOps.checkIn} onChangeComplete={changeOps.completeAndReview} onChangeRemove={changeOps.remove}
+        onChangeAdd={changeOps.add} onChangeUpdate={changeOps.update} onChangeToggleComplete={changeOps.toggleComplete} onChangeComplete={changeOps.completeAndReview} onChangeRemove={changeOps.remove}
         reviews={cogReviews} onReviewUpdate={reviewOps.update} onReviewRemove={reviewOps.remove}
         showToast={showToast}
       />}
@@ -6032,9 +6030,10 @@ export default function AnnualPlan({ standalone = true }) {
   );
 
   const toastEl = toast && (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-ink-900 text-white text-sm font-medium shadow-lg flex items-center gap-2">
-      <svg className="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-      {toast}
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2"
+      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
+      <svg className="w-4 h-4" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+      <span className="text-ink-800">{toast}</span>
     </div>
   );
 

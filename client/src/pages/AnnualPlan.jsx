@@ -3340,8 +3340,8 @@ function CognitionView({
               })()}
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
-                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md transition flex-shrink-0 border"
-                style={{ borderColor: `${BLUE}33`, color: BLUE, background: BLUE_LIGHT }}
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
+                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
                 title="新增KR">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -3552,8 +3552,8 @@ function CognitionView({
             {/* 右：操作按钮组（右对齐，统一蓝色，只保留图标）*/}
             <div className="flex items-center gap-1 ml-auto flex-shrink-0">
               <button onClick={doWereadSync} disabled={wereadSyncing}
-                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:opacity-70 disabled:opacity-50"
-                style={{ color: BLUE }}
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0 disabled:opacity-50"
+                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
                 title={wereadCfgOk ? '从微信读书同步书架' : '先设置微信读书 API Key'}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 0 0 6.34 5.34L4 9M4 15a8 8 0 0 0 13.66 3.66L20 15" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3568,8 +3568,8 @@ function CognitionView({
                     if (cfg.value) setWereadKey(cfg.value);
                   } catch {}
                 }}
-                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:opacity-70"
-                style={{ color: BLUE }}
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
+                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
                 title="设置微信读书 API Key">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="3"/>
@@ -3577,8 +3577,8 @@ function CognitionView({
                 </svg>
               </button>
               <button onClick={() => onBookAdd?.()}
-                className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-lg transition hover:opacity-70"
-                style={{ color: BLUE }}
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
+                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
                 title="添加书籍">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4050,12 +4050,12 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
                 {totalInsightCount} 组核心触动+行动计划
               </span>
               <button onClick={() => onBookAdd?.()}
-                className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
-                style={{ background: BLUE_LIGHT, color: BLUE }}
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
+                style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
                 title="新增书籍">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4106,12 +4106,12 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
                 {[...(bookActionsList || []), ...(changes || [])].length} 条行动计划
               </span>
               <button onClick={() => { setEditingChange(null); setShowChangeForm(true); }}
-                className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
-                style={{ background: BLUE_LIGHT, color: BLUE }}
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
+                style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
                 title="新增独立行动">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4227,7 +4227,7 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: BLUE_LIGHT, color: BLUE }}>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
                 {(reviews || []).length} 条真实改变
               </span>
               <button onClick={() => {
@@ -4244,8 +4244,8 @@ function CognitionView({
                   __isNew: true,
                 });
               }}
-                className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-md transition flex-shrink-0"
-                style={{ background: BLUE_LIGHT, color: BLUE }}
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
+                style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
                 title="新增复盘">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>

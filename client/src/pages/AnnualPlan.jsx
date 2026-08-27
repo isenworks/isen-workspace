@@ -3436,8 +3436,8 @@ function CognitionView({
                         style={{
                           width: `${pctWidth}%`,
                           background: isDone
-                            ? 'linear-gradient(90deg, #22c55e, #16a34a)'
-                            : `linear-gradient(90deg, ${BLUE}, ${BLUE}dd)`,
+                            ? '#22c55e'
+                            : `${BLUE}`,
                           boxShadow: isDone ? '0 1px 3px rgba(34,197,94,0.25)' : `0 1px 3px ${BLUE}25`,
                         }}>
                         {p >= 15 && (

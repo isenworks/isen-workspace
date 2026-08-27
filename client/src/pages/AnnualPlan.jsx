@@ -2864,7 +2864,7 @@ function CognitionView({
       //   1) 书名+作者 完全匹配（去空格/大小写/标点 + 作者别名中英文对照）
       //   2) 书名 匹配（忽略副标题）+ （没有作者信息时也能匹配）
       //   3) 书名 模糊匹配（主书名互相包含子串）
-      //   4) 都不匹配 → 作为"新书"，st 默认 abandoned（放入「所有书籍」栏）
+      //   4) 都不匹配 → 作为"新书"，st 默认 abandoned（放入「已归档」栏）
       const norm = (s) => String(s || '').replace(/[\s\-—·:：、，,。.!！?？（）()（）《》""'']+/g, '').toLowerCase();
       const normTitleOnly = (s) => {
         const t = String(s || '').replace(/[\s]+/g, '').toLowerCase();
@@ -3599,7 +3599,7 @@ function CognitionView({
               { key: 'reading',   lb: '阅读中',   col: BLUE,     books: groups.reading },
               { key: 'pending',   lb: '未开始',   col: BLUE,     books: groups.pending },
               { key: 'done',      lb: '已读完',   col: BLUE,     books: groups.done },
-              { key: 'abandoned', lb: '所有',     col: BLUE,     books: groups.abandoned },
+              { key: 'abandoned', lb: '已归档',   col: BLUE,     books: groups.abandoned },
             ];
             return (
               <div className="flex items-center gap-1 mt-2">
@@ -3642,7 +3642,7 @@ function CognitionView({
             reading:   { lb: '阅读中',   col: BLUE },
             pending:   { lb: '未开始',   col: '#64748b' },
             done:      { lb: '已读完',   col: '#22c55e' },
-            abandoned: { lb: '所有书籍', col: '#64748b' },
+            abandoned: { lb: '已归档', col: '#64748b' },
           };
           const g = { key: shelfTab, ...META[shelfTab], books: groups[shelfTab] || [] };
           const isDragOver = dragOverCol === g.key && dragBookId && (() => {
@@ -3704,7 +3704,7 @@ function CognitionView({
                         statusDot = { col: '#22c55e', solid: true, pulse: false, lb: '已读完' };
                         break;
                       case 'abandoned':
-                        statusDot = { col: '#64748b', solid: false, pulse: false, strike: false, lb: '所有书籍' };
+                        statusDot = { col: '#64748b', solid: false, pulse: false, strike: false, lb: '已归档' };
                         break;
                       default:
                         statusDot = { col: '#cbd5e1', solid: false, pulse: false, lb: '未开始' };
@@ -3752,7 +3752,7 @@ function CognitionView({
                         style={{
                           cursor: isDragging ? 'grabbing' : 'pointer',
                           boxShadow: '0 2px 8px rgba(15,23,42,0.06)',
-                          border: '1px solid rgba(255,255,255,0.9)',
+                          border: '1px solid rgba(15,23,42,0.10)',
                         }}>
                         <div className="w-full min-w-0 flex flex-col gap-[7px]" style={{ padding: '12px 13px' }}>
                           {/* 主行：封面48×64左 + 右侧4行信息流 */}
@@ -4071,7 +4071,7 @@ function CognitionView({
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
             {booksWithInsights.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
+              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(15,23,42,0.032)', borderRadius: 12 }}>
                 还没写读后思考<br/>点击右上角 + 添加书籍
               </div>
             ) : (
@@ -4136,7 +4136,7 @@ function CognitionView({
             return (
               <div className="flex-1 flex flex-col gap-1.5">
                 {mergedActions.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
+                  <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(15,23,42,0.032)', borderRadius: 12 }}>
                     还没有行动计划<br/>编辑书籍→思后行动板块填写
                   </div>
                 ) : (
@@ -4255,7 +4255,7 @@ function CognitionView({
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
             {(reviews || []).length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: BLUE_LIGHT, borderRadius: 12 }}>
+              <div className="flex-1 flex flex-col items-center justify-center py-6 text-[12px] text-ink-400" style={{ background: 'rgba(15,23,42,0.032)', borderRadius: 12 }}>
                 还没有改变记录<br/>点击右上角 + 手动添加
               </div>
             ) : (
@@ -5671,7 +5671,7 @@ export default function AnnualPlan({ standalone = true }) {
         if (b.id !== id) return b;
         return normalizeBook({ ...b, st: targetSt });
       }));
-      const labelMap = { done: '已读完', reading: '阅读中', pending: '未开始', abandoned: '所有书籍' };
+      const labelMap = { done: '已读完', reading: '阅读中', pending: '未开始', abandoned: '已归档' };
       showToast(`已移至「${labelMap[targetSt] || targetSt}」`);
     },
     remove: (id) => { setBooks(prev => prev.filter(b => b.id !== id)); showToast('书籍已删除'); },

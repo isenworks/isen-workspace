@@ -6,6 +6,7 @@ import Modal from '../components/Modal.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
 import BookForm from '../components/forms/BookForm.jsx';
 import MilestoneForm from '../components/forms/MilestoneForm.jsx';
+import AbilityForm from '../components/forms/AbilityForm.jsx';
 import KrForm from '../components/forms/KrForm.jsx';
 import EntryForm from '../components/forms/EntryForm.jsx';
 
@@ -4501,10 +4502,11 @@ function CognitionView({
 }
 
 /* ---------- 9. 视图 · 能力 ---------- */
-function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistory, onStartAssessment }) {
+function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAdd, scoreHistory, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const year = new Date().getFullYear();
   const AB_COLOR = '#f59e0b';
+  const AB_DARK = '#b45309';
 
   /* ===== 能力级派生统计 ===== */
   const abilityStats = useMemo(() => {
@@ -4521,7 +4523,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
 
   /* ===== Hero 全局风险锚点 ===== */
   const heroStats = useMemo(() => {
-    let risk = 0, warn = 0, pending = 0, overdue = 0;
+    let risk = 0, warn = 0, overdue = 0;
     let earliest = null;
     abilityStats.forEach(as => {
       if (as.rm.q === 'risk') risk++;
@@ -4531,7 +4533,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
         if (earliest === null || as.days < earliest) earliest = as.days;
       }
     });
-    return { risk, warn, pending, overdue, earliest };
+    return { risk, warn, overdue, earliest };
   }, [abilityStats]);
 
   /* ===== 能力卡片（色条+标题+胶囊+加号 / 进度条 / 复选框列表） ===== */
@@ -4551,7 +4553,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span
               className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: `${AB}1a`, border: `1px solid ${AB}40`, color: '#b45309' }}
+              style={{ background: `${AB}1a`, border: `1px solid ${AB}40`, color: AB_DARK }}
             >
               <span className="font-extrabold">{as.mDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
@@ -4572,21 +4574,21 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
         <div className="mb-2.5">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[11px] font-semibold text-ink-500 leading-none">总体完成度</span>
-            <span className="text-[11px] font-extrabold tabular-nums leading-none" style={{ color: '#b45309' }}>{as.avgPct}%</span>
+            <span className="text-[11px] font-extrabold tabular-nums leading-none" style={{ color: AB_DARK }}>{as.avgPct}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
             <div className="h-full rounded-full transition-all" style={{ width: `${as.avgPct}%`, background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB }}></div>
           </div>
         </div>
 
-        {/* KR 列表：复选框 + 主文字 12px + 子说明 11px */}
+        {/* KR 列表：复选框 + 主文字 13px + 子说明 11px；max-h 限高对齐三卡 */}
         {mstones.length === 0 ? (
           <div className="py-4 text-center rounded-xl" style={{ background: 'rgba(15,23,42,0.03)' }}>
             <div className="text-[12px] font-semibold text-ink-400">还没有 KR</div>
             <div className="text-[11px] text-ink-400 mt-1 opacity-80">点击右上角 + 添加</div>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col max-h-[240px] overflow-y-auto">
             {mstones.map((m, i) => {
               const isDone = m.st === 'done';
               return (
@@ -4607,9 +4609,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                     )}
                   </button>
-                  {/* 文字区：主文字 13px semibold ink-700 —— 对齐知力页 OKR KR L3548 规格 */}
+                  {/* 文字区：主文字 13px semibold ink-700 —— 对齐知力页 OKR KR 规格；长标题 2 行截断 */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); onMsEdit?.(as.idx, i, m); }}>
-                    <div className={`text-[13px] font-semibold leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-700'}`}>
+                    <div className={`text-[13px] font-semibold leading-snug line-clamp-2 ${isDone ? 'text-ink-400 line-through' : 'text-ink-700'}`}>
                       {m.lb}
                     </div>
                     {m.dueBy && (
@@ -4666,9 +4668,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
           </div>
           <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('annual-open-ability-add'))}
+              onClick={() => onAbilityAdd?.()}
               className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-              style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
+              style={{ background: 'rgba(245,158,11,0.15)', color: AB_DARK }}>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               添加能力
             </button>
@@ -4690,9 +4692,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, scoreHistor
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M15.5 13a6 6 0 1 0-7 0M12 13v6M8 22h8"/></svg>
             <div className="text-[12px] text-ink-400 font-medium">还没有能力目标</div>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('annual-open-ability-add'))}
+              onClick={() => onAbilityAdd?.()}
               className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-              style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
+              style={{ background: 'rgba(245,158,11,0.15)', color: AB_DARK }}>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               添加第一个能力
             </button>
@@ -5753,6 +5755,7 @@ export default function AnnualPlan({ standalone = true }) {
       showToast('里程碑已删除');
     },
     toggleDone: ({ abilityIdx, msIdx }) => {
+      let becameDone = false;
       setAbilities(prev => prev.map((a, i) => {
         if (i !== abilityIdx) return a;
         return {
@@ -5760,10 +5763,33 @@ export default function AnnualPlan({ standalone = true }) {
           mstones: a.mstones.map((m, j) => {
             if (j !== msIdx) return m;
             const isDone = m.st === 'done';
-            return { ...m, st: isDone ? 'pending' : 'done', pct: isDone ? 0 : 100 };
+            becameDone = !isDone;
+            // 勾选→done(pct=100)；取消→pending 但保留原中间进度（不销毁）
+            return { ...m, st: isDone ? 'pending' : 'done', pct: isDone ? Math.min(m.pct || 0, 99) : 100 };
           }),
         };
       }));
+      showToast(becameDone ? '已完成 1 条 KR' : '已取消完成');
+    },
+  };
+  // 能力·增删改
+  const abilityOps = {
+    add: (data) => {
+      setAbilities(prev => [...prev, {
+        ...data, id: uid(),
+        score: String(Number(data.score) || 5),
+        mode: 'milestone',
+        mstones: [],
+      }]);
+      showToast('能力已添加，点击右上角 + 添加 KR');
+    },
+    update: (data) => {
+      setAbilities(prev => prev.map(a => a.id === data.id ? { ...a, ...data } : a));
+      showToast('能力已更新');
+    },
+    remove: (id) => {
+      setAbilities(prev => prev.filter(a => a.id !== id));
+      showToast('能力已删除');
     },
   };
   // 工作·KR
@@ -5888,6 +5914,17 @@ export default function AnnualPlan({ standalone = true }) {
           </Modal>
         );
       }
+      case 'ability':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑能力' : '新增能力'}>
+            <AbilityForm
+              initial={modal.initial}
+              onSaved={(data) => { modal.initial?.id ? abilityOps.update(data) : abilityOps.add(data); }}
+              {...props}
+              onDelete={modal.initial?.id ? (id) => { abilityOps.remove(id); closeModal(); } : undefined}
+            />
+          </Modal>
+        );
       case 'milestone':
         return (
           <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑里程碑' : '添加里程碑'}>
@@ -6046,6 +6083,7 @@ export default function AnnualPlan({ standalone = true }) {
       />}
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}
         onMsToggleDone={({ abilityIdx, msIdx }) => msOps.toggleDone({ abilityIdx, msIdx })}
+        onAbilityAdd={() => setModal({ type: 'ability' })}
         scoreHistory={abilityScoreHistory} onSetScore={(abilityIdx, newScore) => {
           const ab = abilities[abilityIdx]; if (!ab) return;
           const ym = new Date().toISOString().slice(0,7);

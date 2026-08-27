@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
-/* KR 新增/编辑弹窗 —— 复选框语义（勾/未勾二态）+ dueBy 字段，视觉对齐 AbilityForm/BookForm */
-const AB = '#f59e0b';
-const AB_DARK = '#b45309';
+/* 能力新增/编辑弹窗 —— 视觉规格对齐 BookForm（SectionCard 分组 + 圆角输入 + 橙色主题） */
+const AB = '#f59e0b';          // 主题橙
+const AB_DARK = '#b45309';     // 深橙（文字）
 const INK = '#1c1c1e';
+const INK_MUTE = '#64748b';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
 const CARD_RADIUS = 14;
@@ -38,78 +39,78 @@ function FieldRow({ label, children }) {
   );
 }
 
-export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) {
+export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
   const isEdit = !!(initial && initial.id);
   const [form, setForm] = useState({
-    lb: initial?.lb || '',
-    dueBy: initial?.dueBy || '',
-    st: initial?.st === 'done' ? 'done' : 'pending',
+    title: initial?.title || '',
+    daily: initial?.daily || '',
+    createdAt: initial?.createdAt || new Date().toISOString().slice(0, 10),
+    deadline: initial?.deadline || '',
+    score: initial?.score || '5',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   function submit() {
-    if (!form.lb.trim()) return alert('请输入 KR 标题');
+    if (!form.title.trim()) return alert('请输入能力名称');
     onSaved?.({
       ...form,
-      lb: form.lb.trim(),
-      pct: form.st === 'done' ? 100 : 0,
+      title: form.title.trim(),
+      daily: form.daily.trim(),
       id: initial?.id,
-      abilityIdx: initial?.abilityIdx,
-      msIdx: initial?.msIdx,
+      mstones: initial?.mstones || [],  // 编辑时保留已有 KR
     });
   }
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这条 KR？')) return;
-    onDelete?.({ abilityIdx: initial.abilityIdx, msIdx: initial.msIdx });
+    if (!confirm('确认删除这个能力？其下所有 KR 也会删除')) return;
+    onDelete?.(initial.id);
   }
 
-  const isDone = form.st === 'done';
+  const inputStyle = { ...INPUT_BASE };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {/* Section 1: KR 内容 */}
-      <SectionCard title="KR 内容">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <FieldRow label="KR 标题">
-            <input style={{ ...INPUT_BASE, fontWeight: 600 }}
-              value={form.lb} onChange={e => set('lb', e.target.value)}
-              placeholder="例如：阶段一：单表查询基础（Day1-Day5）" autoFocus />
+      {/* Section 1: 能力信息 */}
+      <SectionCard title="能力信息">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+          <FieldRow label="能力名称">
+            <input style={{ ...inputStyle, fontWeight: 600 }}
+              value={form.title} onChange={e => set('title', e.target.value)}
+              placeholder="例如：英语口语 / 数据分析" autoFocus />
           </FieldRow>
-          <FieldRow label="截止日期（可选）">
-            <input type="date" style={INPUT_BASE}
-              value={form.dueBy} onChange={e => set('dueBy', e.target.value)} />
+          <FieldRow label="每日行动（可选）">
+            <input style={inputStyle}
+              value={form.daily} onChange={e => set('daily', e.target.value)}
+              placeholder="例如：每日 30min Shadowing" />
           </FieldRow>
         </div>
       </SectionCard>
 
-      {/* Section 2: 完成状态（复选框语义，与卡片一致） */}
-      <SectionCard title="完成状态">
-        <button
-          type="button"
-          onClick={() => set('st', isDone ? 'pending' : 'done')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '7px 10px', borderRadius: '10px',
-            background: '#fff', border: `1px solid ${CARD_BORDER}`,
-            cursor: 'pointer', width: '100%', textAlign: 'left',
-          }}
-        >
-          <span style={{
-            width: '16px', height: '16px', borderRadius: '6px',
-            display: 'grid', placeItems: 'center', flexShrink: 0,
-            background: isDone ? AB : '#fff',
-            border: `1.5px solid ${AB}`,
-          }}>
-            {isDone && (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-            )}
+      {/* Section 2: 时间范围 */}
+      <SectionCard title="时间范围">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <FieldRow label="开始日期">
+            <input type="date" style={inputStyle}
+              value={form.createdAt} onChange={e => set('createdAt', e.target.value)} />
+          </FieldRow>
+          <FieldRow label="截止日期（可选）">
+            <input type="date" style={inputStyle}
+              value={form.deadline} onChange={e => set('deadline', e.target.value)} />
+          </FieldRow>
+        </div>
+      </SectionCard>
+
+      {/* Section 3: 初始自评（可选） */}
+      <SectionCard title="初始自评（可选）">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input type="range" min="1" max="10" step="1"
+            value={form.score} onChange={e => set('score', e.target.value)}
+            style={{ flex: 1, accentColor: AB }} />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: AB_DARK, minWidth: '32px', textAlign: 'right' }}>
+            {form.score}/10
           </span>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: isDone ? '#94a3b8' : INK, textDecoration: isDone ? 'line-through' : 'none' }}>
-            {form.lb.trim() || '这条 KR'}
-          </span>
-        </button>
+        </div>
       </SectionCard>
 
       {/* 底部按钮 */}
@@ -128,7 +129,7 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
           <button onClick={submit} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
             background: AB, color: '#fff', border: 'none', cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(245,158,11,0.25)',
+            boxShadow: `0 2px 8px rgba(245,158,11,0.25)`,
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>

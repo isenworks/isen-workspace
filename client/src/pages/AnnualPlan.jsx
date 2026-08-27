@@ -3349,21 +3349,19 @@ function CognitionView({
           )}
         </div>
 
-        {/* ===== 一体化漏斗：3 层结构完全同构 —— 左区合并 = 序号+目标 ===== */}
+        {/* ===== 一体化漏斗：3 列同构 —— 删除「当前/目标」列，val/tgt 整合到左区 ===== */}
         <div className="flex flex-col flex-1 min-h-0">
-          {/* 列标题行：左区直接写"目标"（#符号已删） */}
-          <div className="flex items-center gap-3 px-1 pb-1.5 text-[10px] font-semibold text-ink-400 uppercase tracking-wide border-b border-ink-50 mb-1">
-            <span className="w-[116px]">目标</span>
+          {/* 列标题行：3 列 */}
+          <div className="flex items-center gap-2.5 pb-1.5 text-[10px] font-semibold text-ink-400 uppercase tracking-wide border-b border-ink-50">
+            <span className="w-[128px]">目标</span>
             <span className="flex-1 text-center">漏斗进度</span>
             <span className="w-[48px] text-right">完成率</span>
-            <span className="w-[64px] text-right">当前/目标</span>
           </div>
           {finalKrs.map((kr, idx) => {
             const p = pct(kr.val, kr.tgt);
             const nextKr = finalKrs[idx + 1];
             const conv = nextKr && kr.val > 0 ? Math.round((nextKr.val / kr.val) * 100) : null;
             const isDone = p >= 100;
-            // 时间进度对比：按当前月份，进度落后则标红
             const now = new Date();
             const month = now.getMonth() + 1;
             const timePct = (month / 12) * 100;
@@ -3386,15 +3384,15 @@ function CognitionView({
 
             return (
               <div key={kr.id || idx}>
-                {/* KR 行：左区合并为 w-[116px]（序号22 + gap10 + 目标84 = 116） */}
-                <div className="flex items-center gap-3 py-1.5 px-1 rounded-lg hover:bg-surface-soft transition-colors">
-                  {/* 左区：序号(22右对齐) + 目标文字(剩余空间) — 合并一个 116px 容器 */}
-                  <div className="w-[116px] flex items-center gap-2.5 flex-shrink-0 -mt-[2px]">
+                {/* KR 行：3 列 —— 修复间距：py-2(8px) + px-0(对齐贯通) */}
+                <div className="flex items-center gap-2.5 py-2 rounded-lg hover:bg-surface-soft transition-colors">
+                  {/* 左区：w-[128px] = w22# + gap10 + flex-1(目标+数字)，箭头在此区 justify-center 对准目标文字中心 */}
+                  <div className="w-[128px] flex items-center gap-2.5 flex-shrink-0 -mt-[1px]">
                     <span className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none flex-shrink-0"
                       style={{ color: BLUE }}>{padNum}</span>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
                       {editingKrId === kr.id ? (
-                        <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-col gap-1 w-full" onClick={(e) => e.stopPropagation()}>
                           <input
                             autoFocus
                             value={krDraft?.lb || ''}
@@ -3411,8 +3409,6 @@ function CognitionView({
                             <input value={krDraft?.u || ''} onChange={(e) => setKrDraft({ ...krDraft, u: e.target.value })}
                               className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="单位" />
                           </div>
-                          <input value={krDraft?.sub || ''} onChange={(e) => setKrDraft({ ...krDraft, sub: e.target.value })}
-                            className="px-2 py-1 text-[12px] border border-ink-200 rounded-md focus:outline-none focus:border-brand-500 bg-white" placeholder="说明（可选）" />
                           <div className="flex justify-between items-center pt-0.5">
                             <button
                               onClick={() => { if (confirm('确定删除此 KR？')) onKrRemove?.(kr.id); }}
@@ -3424,24 +3420,20 @@ function CognitionView({
                           </div>
                         </div>
                       ) : (
-                        <div onClick={() => openEditKrModal(kr)} className="cursor-pointer group">
-                          <InlineEdit
-                            value={cleanLb}
-                            onChange={(v) => onKrEdit?.({ ...kr, lb: v })}
-                            onDelete={() => { const def = COG_KRS.find(k => k.id === kr.id)?.lb || ''; onKrEdit?.({ ...kr, lb: def }); }}
-                            onEditClick={() => openEditKrModal(kr)}
-                            mode="contextmenu"
-                            className="text-[13px] font-semibold text-ink-700 truncate leading-none group-hover:text-ink-900"
-                            inputClassName="text-[13px] font-semibold text-ink-700 w-40"
-                            title="右键编辑KR（弹窗）"
-                            placeholder="填写KR标题"
-                          />
+                        <div onClick={() => openEditKrModal(kr)} className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
+                          <span className="text-[13px] font-semibold text-ink-700 truncate leading-none group-hover:text-ink-900">{cleanLb}</span>
+                          <span className="text-[11px] tabular-nums leading-none flex-shrink-0">
+                            <span className="font-bold text-ink-700">{kr.val}</span>
+                            <span className="text-ink-300 font-normal">/</span>
+                            <span className="font-medium text-ink-400">{kr.tgt}</span>
+                            <span className="text-ink-400 ml-0.5 text-[10px]">{kr.u}</span>
+                          </span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* 中部：漏斗进度条 */}
+                  {/* 中部：漏斗进度条（flex-1） */}
                   <div className="flex-1 flex items-center min-w-0">
                     <div className="flex-1 h-[22px] rounded-lg overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
                       <div
@@ -3462,23 +3454,20 @@ function CognitionView({
                     </div>
                   </div>
 
-                  {/* 右侧：完成率 + 当前/目标 */}
+                  {/* 右侧：完成率（删除当前/目标列，节省 64px 让漏斗条更宽） */}
                   <span className="text-[14px] font-extrabold tabular-nums leading-none w-[48px] text-right flex-shrink-0"
                     style={{ color: isDone ? '#111827' : (isBehind ? '#dc2626' : BLUE) }}>
                     {p}<span className="text-[11px] font-bold">%</span>
                   </span>
-                  <span className="text-[11px] font-semibold tabular-nums text-ink-700 w-[64px] text-right leading-none flex-shrink-0">
-                    {kr.val}<span className="text-ink-300 mx-[2px] font-normal">/</span><span className="text-ink-500 font-medium">{kr.tgt}</span><span className="text-ink-400 ml-0.5 text-[10px]">{kr.u}</span>
-                  </span>
                 </div>
 
-                {/* 连接线：左区同样 w-[116px]，箭头 justify-center 正好对准目标量的"标"字中心 */}
+                {/* 连接线：同样 3 列结构 —— 修复间距 py-1.5(6px) 让箭头独立呼吸 */}
                 {nextKr && (() => {
                   const lowConv = conv !== null && conv < 50;
                   return (
-                    <div className="flex items-center gap-3 px-1 py-0.5 text-[11px]">
-                      {/* 左区空盒子 w-[116px] 与 KR 行同宽，箭头在其中 justify-center */}
-                      <div className="w-[116px] flex-shrink-0 flex items-center justify-center">
+                    <div className="flex items-center gap-2.5 py-1.5 text-[11px]">
+                      {/* 左区 w-[128px] —— 箭头 justify-center 对齐目标文字视觉中心 */}
+                      <div className="w-[128px] flex-shrink-0 flex items-center justify-center">
                         <svg className="w-3 h-3" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 5v14M5 12l7 7 7-7" />
                         </svg>
@@ -3492,7 +3481,6 @@ function CognitionView({
                         </span>
                       </div>
                       <div className="w-[48px] flex-shrink-0 invisible" aria-hidden="true"></div>
-                      <div className="w-[64px] flex-shrink-0 invisible" aria-hidden="true"></div>
                     </div>
                   );
                 })()}

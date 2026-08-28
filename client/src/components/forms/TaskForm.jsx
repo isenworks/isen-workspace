@@ -5,7 +5,7 @@ import { store } from '../../utils/store.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
 const PRIORITY = [
-  { v: 1, label: '高', active: { background: '#ffe8e8', color: '#FF3B30' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
+  { v: 1, label: '高', active: { background: '#FFEEED', color: '#FF3B30' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
   { v: 2, label: '中', active: { background: '#fff4d8', color: '#FF9500' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
   { v: 3, label: '低', active: { background: '#e5f6ea', color: '#34C759' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } }
 ];

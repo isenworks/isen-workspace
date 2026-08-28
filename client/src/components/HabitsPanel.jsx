@@ -277,7 +277,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   function getBorderColor(h) {
     const gt = getHabitGrowthType(h);
-    return GROWTH_TYPES[gt]?.borderColor || '#8ee4a7';
+    return GROWTH_TYPES[gt]?.borderColor || '#7ED6A0';
   }
 
   function getDoneColor(h) {

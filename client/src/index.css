@@ -44,7 +44,7 @@ body {
 /* ====== Checkboxes ====== */
 .cb-square {
   --cb-border: #d1d1d6;
-  --cb-color: #007aff;
+  --cb-color: #007AFF;
   appearance: none; width: 18px; height: 18px; border-radius: 5px;
   border: 1.5px solid var(--cb-border); background: #fff;
   cursor: pointer; flex-shrink: 0; display: inline-flex;
@@ -59,7 +59,7 @@ body {
 }
 .cb-round {
   --cb-border: #d1d1d6;
-  --cb-color: #007aff;
+  --cb-color: #007AFF;
   appearance: none; width: 18px; height: 18px; border-radius: 50%;
   border: 1.5px solid var(--cb-border); background: #fff;
   cursor: pointer; flex-shrink: 0; display: inline-flex;
@@ -99,7 +99,7 @@ body {
   border: none; background: transparent; cursor: pointer;
 }
 .tab-group button.active {
-  background: #007aff; color: #fff; font-weight: 600;
+  background: #007AFF; color: #fff; font-weight: 600;
   box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
 }
 
@@ -122,11 +122,11 @@ body {
 .sum-doc-row:hover .sum-doc-btn { opacity: 1; }
 .sum-doc-btn:hover {
   background: rgba(0,122,255,0.10);
-  color: #007aff;
+  color: #007AFF;
 }
 .sum-doc-btn.del:hover {
   background: rgba(255,59,48,0.10);
-  color: #ff3b30;
+  color: #FF3B30;
 }
 
 /* ====== Calendar ====== */
@@ -142,7 +142,7 @@ body {
 .cal-day:hover { background: rgba(120,120,128,0.08); }
 .cal-day.past .cal-weekday, .cal-day.past .cal-date { opacity: 0.4; }
 .cal-day.today {
-  background: #007aff; color: #fff;
+  background: #007AFF; color: #fff;
   box-shadow: 0 2px 8px rgba(0,122,255,0.35);
 }
 .cal-day.today .cal-weekday { opacity: 0.85; color: #fff; }
@@ -215,7 +215,7 @@ body {
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #007aff;
+  color: #007AFF;
 }
 .timeline-empty-row:hover .timeline-empty-hint {
   display: inline-flex;
@@ -224,7 +224,7 @@ body {
   font-size: 14px;
   font-weight: 400;
   line-height: 1;
-  color: #007aff;
+  color: #007AFF;
   opacity: 0.7;
 }
 
@@ -351,13 +351,13 @@ body {
 .tl-event.compact .tl-event-content { gap: 10px; }
 
 /* 分类渐变背景（沿用工作台风格，与 HabitsPanel 保持一致：70% 淡出） */
-.tl-event.cat-1 { background-image: linear-gradient(90deg, #ffe8e8 0%, transparent 70%); }
+.tl-event.cat-1 { background-image: linear-gradient(90deg, #FFEEED 0%, transparent 70%); }
 .tl-event.cat-2 { background-image: linear-gradient(90deg, #fff4d8 0%, transparent 70%); }
 .tl-event.cat-3 { background-image: linear-gradient(90deg, #e5e5ea 0%, transparent 70%); }
 .tl-event.cat-4 { background-image: linear-gradient(90deg, #e5f6ea 0%, transparent 70%); }
 .tl-event.cat-5 { background-image: linear-gradient(90deg, #f3e8ff 0%, transparent 70%); }
 .tl-event.cat-6 { background-image: linear-gradient(90deg, #e0ecff 0%, transparent 70%); }
-.tl-event.cat-7 { background-image: linear-gradient(90deg, #fbf3d8 0%, transparent 70%); }
+.tl-event.cat-7 { background-image: linear-gradient(90deg, #FFF4D8 0%, transparent 70%); }
 
 /* 空白区域点击提示 */
 .tl-grid-empty-cell {
@@ -379,7 +379,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100%;
-  font-size: 12px; font-weight: 500; color: #007aff;
+  font-size: 12px; font-weight: 500; color: #007AFF;
   gap: 4px;
 }
 .tl-grid-empty-cell:hover .tl-grid-empty-cell-hint { display: inline-flex; }
@@ -400,7 +400,7 @@ body {
 
 /* ====== Buttons ====== */
 .btn-primary {
-  background: #007aff; color: #fff;
+  background: #007AFF; color: #fff;
   padding: 6px 14px; border-radius: 9px;
   font-size: 13px; font-weight: 600;
   display: inline-flex; align-items: center; gap: 6px;
@@ -470,7 +470,7 @@ body {
 }
 .sb-avatar {
   width: 42px; height: 42px; border-radius: 50%;
-  background: linear-gradient(135deg, #ff9500 0%, #ff3b30 100%);
+  background: linear-gradient(135deg, #FF9500 0%, #FF3B30 100%);
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 600; font-size: 15px;
   flex-shrink: 0;
@@ -528,7 +528,7 @@ body {
 .sb-nav-item:hover { background: rgba(120,120,128,0.08); }
 .sb-nav-item.active {
   background: rgba(0,122,255,0.1);
-  color: #007aff;
+  color: #007AFF;
   font-weight: 600;
 }
 .sb-nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
@@ -559,7 +559,7 @@ body {
   top: 6px; right: 6px;
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: #ff3b30;
+  background: #FF3B30;
   border: 1.5px solid rgba(255,255,255,0.9);
 }
 .sb-divider { height: 1px; background: rgba(60,60,67,0.1); margin: 10px 6px; }
@@ -575,10 +575,10 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-.sync-icon-btn.syncing { color: #ff9500; }
-.sync-icon-btn.synced { color: #34c759; }
-.sync-icon-btn.error { color: #ff3b30; }
-.sync-icon-btn:hover { background: rgba(0,122,255,0.08); color: #007aff !important; }
+.sync-icon-btn.syncing { color: #FF9500; }
+.sync-icon-btn.synced { color: #34C759; }
+.sync-icon-btn.error { color: #FF3B30; }
+.sync-icon-btn:hover { background: rgba(0,122,255,0.08); color: #007AFF !important; }
 
 /* ====== Toast ====== */
 .toast-layer {
@@ -641,7 +641,7 @@ body {
 }
 .form-input:focus,
 .form-input:focus-visible {
-  border-color: #007aff !important;
+  border-color: #007AFF !important;
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15) !important;
 }
 textarea.form-input { resize: vertical; line-height: 1.5; min-height: 60px; }

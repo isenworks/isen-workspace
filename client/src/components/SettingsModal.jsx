@@ -228,9 +228,9 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 padding: '10px 14px', 
                 fontSize: '13px', 
                 color: '#FF3B30', 
-                background: '#fff2f2',
+                background: '#FFEEED',
                 borderRadius: '8px',
-                border: '1px solid #ffc9c9',
+                border: '1px solid #FFD9D6',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -288,7 +288,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 textAlign: 'center', 
                 marginBottom: '16px',
                 width: '48px', height: '48px', borderRadius: '50%',
-                background: '#fff2f2', display: 'flex',
+                background: '#FFEEED', display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px'
               }}>
@@ -349,7 +349,7 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
       {/* New code display */}
       {newCode && (
         <div style={{
-          padding: '18px', borderRadius: '12px', background: '#f0fdf4',
+          padding: '18px', borderRadius: '12px', background: '#EDFAF1',
           border: '1.5px solid #34C759'
         }}>
           <div style={{ fontSize: '12px', color: '#34C759', fontWeight: '600', marginBottom: '10px' }}>
@@ -460,7 +460,7 @@ function UsersTab({ users, busy, onBan, onUnban }) {
             <div key={u.user_id} style={{
               display: 'flex', alignItems: 'center', gap: '12px',
               padding: '12px 14px', borderRadius: '10px',
-              background: u.is_banned ? '#fff2f2' : '#f5f5f7',
+              background: u.is_banned ? '#FFEEED' : '#f5f5f7',
               fontSize: '13px',
               transition: 'background 0.15s'
             }}>
@@ -570,10 +570,10 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
 
       {result && (
         <div style={{
-          padding: '14px 16px', borderRadius: '10px', background: '#f0fdf4',
+          padding: '14px 16px', borderRadius: '10px', background: '#EDFAF1',
           border: '1px solid #34C759',
         }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a7f37', marginBottom: '8px' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759', marginBottom: '8px' }}>
             ✅ 迁移成功（总 {result.total || 0} 条）
           </div>
           <div style={{
@@ -583,7 +583,7 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
             {Object.entries(result.counts || {}).sort().map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#666' }}>{k}</span>
-                <b style={{ color: '#1a7f37' }}>{v}</b>
+                <b style={{ color: '#34C759' }}>{v}</b>
               </div>
             ))}
           </div>
@@ -595,7 +595,7 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
 
       <button onClick={onRun} disabled={busy || !hasAny} style={{
         padding: '13px 22px', borderRadius: '10px',
-        background: busy ? '#ccc' : (!hasAny ? '#a7c7e7' : '#007AFF'),
+        background: busy ? '#ccc' : (!hasAny ? '#B5D4FF' : '#007AFF'),
         color: '#fff', border: 'none', fontWeight: '600', fontSize: '14px',
         cursor: busy || !hasAny ? 'not-allowed' : 'pointer',
         transition: 'all 0.15s',

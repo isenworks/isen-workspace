@@ -21,7 +21,7 @@ export default class ErrorBoundary extends Component {
             <div className="text-sm text-ink-700 mb-3">
               前端组件运行时抛出错误，请把下方信息发给开发者：
             </div>
-            <pre className="bg-accent-red/5 border border-red-100 text-red-600 text-xs p-3 rounded-lg whitespace-pre-wrap break-all max-h-[40vh] overflow-auto">
+            <pre className="bg-accent-red/5 border border-accent-red/15 text-accent-red text-xs p-3 rounded-lg whitespace-pre-wrap break-all max-h-[40vh] overflow-auto">
 {String(this.state.error?.message || this.state.error)}
 
 {"\n"}

@@ -75,7 +75,7 @@ export default function KrForm({ initial, onSaved, onCancel, onDelete }) {
                 style={{
                   flex: 1, padding: '7px 0', borderRadius: '9px',
                   fontSize: '13px', fontWeight: on ? '600' : '500',
-                  background: on ? '#ffe8e8' : 'rgba(120,120,128,0.08)',
+                  background: on ? '#FFEEED' : 'rgba(120,120,128,0.08)',
                   color: on ? '#FF3B30' : '#8e8e93',
                   border: 'none', cursor: 'pointer', transition: 'all .15s',
                 }}>{s.lb}</button>

@@ -281,7 +281,7 @@ const LIFE = [
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },
     { t:'和老婆周末野餐', n:'准备了她爱吃的草莓和可颂', d:'7.09' },
   ]},
-  { key:'food', lb:'美食', color:'#a78bfa', entries:[ /* violet-400 */
+  { key:'food', lb:'美食', color:'#B77FE3', entries:[ /* violet-400 */
     { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'7.22' },
     { t:'尝试手冲咖啡', n:'买了一套 Hario V60', d:'7.10' },
   ]},
@@ -289,11 +289,11 @@ const LIFE = [
     { t:'苏州两日游', n:'去了拙政园和留园', d:'6.22-6.23' },
     { t:'崇明岛露营', n:'和朋友们搭帐篷烧烤', d:'5.18' },
   ]},
-  { key:'movie', lb:'电影', color:'#7c3aed', entries:[ /* violet-600 */
+  { key:'movie', lb:'电影', color:'#9C48C7', entries:[ /* violet-600 */
     { t:'奥本海默', n:'3小时但不闷，诺兰神了', d:'7.01' },
     { t:'蜘蛛侠：纵横宇宙', n:'画风惊艳', d:'6.05' },
   ]},
-  { key:'shop', lb:'购物', color:'#6d28d9', entries:[ /* violet-700 */
+  { key:'shop', lb:'购物', color:'#7D3AA0', entries:[ /* violet-700 */
     { t:'Sony WH-1000XM5 耳机', n:'降噪封神，通勤必带', d:'7.05' },
     { t:'露营折叠椅', n:'周末去公园躺着很舒服', d:'6.18' },
   ]},
@@ -383,8 +383,8 @@ const calcRisk = (actualPct, timePct, isDone) => {
 /* 剩余天数展示：剩X天 / 过期X天 / 长期（当 null） */
 const daysLabel = (days) => {
   if (days === null || days === undefined) return { text: '长期', cls: 'text-ink-400', urgent: false, overdue: false };
-  if (days < 0)  return { text: `过期${Math.abs(days)}天`, cls: 'text-rose-500', urgent: false, overdue: true };
-  if (days === 0) return { text: '今日截止', cls: 'text-rose-500', urgent: true, overdue: false };
+  if (days < 0)  return { text: `过期${Math.abs(days)}天`, cls: 'text-accent-red', urgent: false, overdue: true };
+  if (days === 0) return { text: '今日截止', cls: 'text-accent-red', urgent: true, overdue: false };
   if (days <= 30) return { text: `剩${days}天`, cls: 'text-accent-amber', urgent: true, overdue: false };
   return { text: `剩${days}天`, cls: 'text-ink-500', urgent: false, overdue: false };
 };
@@ -773,7 +773,7 @@ function LifeStatsBar({ categories }) {
     <div className="glass-card p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg grid place-items-center bg-rose-500/10 text-rose-500">
+          <div className="w-6 h-6 rounded-lg grid place-items-center bg-accent-red/10 text-accent-red">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M3 3v18h18M7 14l4-4 4 4 5-5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -1212,7 +1212,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60 }
               <text key={'l'+i} x={p.x} y={labelY} textAnchor="middle"
                 fontSize="11"
                 fontWeight={isPastOrCur ? '700' : '400'}
-                fill={isLast || isHover ? color : '#9ca3af'}
+                fill={isLast || isHover ? color : '#8E8E93'}
                 style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
                 {labels[i]}
               </text>
@@ -2062,7 +2062,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
 
 /* ---------- 7.4 表单 · KR（BookForm 风格共享组件：Section 分组 + 白底输入框） ---------- */
 function KrFormFields({ lb, tgt, u, sub, onChange }) {
-  const BLUE_DARK = '#0056b8';
+  const BLUE_DARK = '#0062CC';
   const inputCls = "w-full px-2.5 py-1.5 text-[12.5px] rounded-[10px] focus:outline-none transition";
   const inputStyle = { background: '#fff', border: '1px solid rgba(15,23,42,0.08)' };
   const SectionCard = ({ title, children }) => (
@@ -2444,7 +2444,7 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
       {/* 顶部说明 */}
       <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.18)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <svg style={{ width: 18, height: 18, color: '#FF9500', flexShrink: 0, marginTop: 1 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        <div style={{ fontSize: 12, lineHeight: 1.55, color: '#78350f' }}>
+        <div style={{ fontSize: 12, lineHeight: 1.55, color: '#804B00' }}>
           <b>{curYear}年{curMonth}月 · 能力自评</b>：客观评估本月自己在每项能力上的实际水平（0-10分），<br />对比上月看趋势，作为下月的行动锚点。
         </div>
       </div>
@@ -2487,7 +2487,7 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
                 style={{ width: '100%', accentColor: c }}
               />
               {/* 刻度标记 */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 10, color: '#9ca3af', fontWeight: 600, padding: '0 1px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 10, color: '#8E8E93', fontWeight: 600, padding: '0 1px' }}>
                 <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>
               </div>
             </div>
@@ -2498,10 +2498,10 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
       {/* 汇总 + 按钮 */}
       <div style={{ padding: '12px', borderRadius: 12, background: 'rgba(255,149,0,0.05)', border: '1px solid rgba(255,149,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>综合自评</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#B36900', marginBottom: 2 }}>综合自评</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
             <span style={{ fontSize: 24, fontWeight: 800, color: '#FF9500', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{avg}</span>
-            <span style={{ fontSize: 13, color: '#92400e', opacity: .8 }}>/10</span>
+            <span style={{ fontSize: 13, color: '#B36900', opacity: .8 }}>/10</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -2593,7 +2593,7 @@ function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave, onCanc
               fontSize: 11.5, fontWeight: 800, letterSpacing: .3,
               padding: '3px 8px', borderRadius: 7, background: `${riskInfo.color}1a`, color: riskInfo.color,
             }}>{riskInfo.label} · 完成{riskInfo.kPct}% vs 时间{riskInfo.timePct}%</span>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#78350f' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#804B00' }}>
               差距 <b style={{ color: riskInfo.color }}>—{Math.abs(riskInfo.diff)}%</b>，剩余 <b>{riskInfo.daysLeft}</b> 天
             </span>
           </div>
@@ -2635,7 +2635,7 @@ function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave, onCanc
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: 12.5, fontWeight: 600, lineHeight: 1.45,
-                  color: a.done ? '#86efac' : '#1c1c1e',
+                  color: a.done ? '#34C759' : '#1c1c1e',
                   textDecoration: a.done ? 'line-through' : 'none',
                 }}>{a.text}</div>
                 <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2723,16 +2723,16 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
     onSave?.(Array.from(set));
   };
 
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#AF52DE,#ec4899)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(175,82,222,0.25)' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#AF52DE,#FF2D55)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(175,82,222,0.25)' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 顶部说明 */}
-      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(175,82,222,0.08) 0%, rgba(236,72,153,0.08) 100%)', border: '1px solid rgba(175,82,222,0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(175,82,222,0.08) 0%, rgba(255,45,85,0.08) 100%)', border: '1px solid rgba(175,82,222,0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg,#AF52DE,#ec4899)', color: '#fff',
+          background: 'linear-gradient(135deg,#AF52DE,#FF2D55)', color: '#fff',
           display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(175,82,222,0.3)',
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -2751,12 +2751,12 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
         <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1c1c1e', marginBottom: 8 }}>🪄 记忆卡预览</div>
         <div style={{
           borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden',
-          background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #fff1f2 100%)',
+          background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #FFEEED 100%)',
           border: '1px solid rgba(175,82,222,0.15)',
           boxShadow: '0 4px 16px rgba(175,82,222,0.1)',
         }}>
           {/* 装饰光斑 */}
-          <div style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(236,72,153,0.22), transparent 60%)' }} />
+          <div style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(255,45,85,0.22), transparent 60%)' }} />
           <div style={{ position: 'absolute', bottom: -50, left: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(175,82,222,0.22), transparent 60%)' }} />
 
           <div style={{ position: 'relative' }}>
@@ -2767,7 +2767,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
             {currentHl.length === 0 ? (
               <div style={{
                 padding: '22px 14px', textAlign: 'center', borderRadius: 12,
-                border: '1px dashed rgba(175,82,222,0.35)', color: '#7c3aed', fontSize: 12, fontWeight: 600,
+                border: '1px dashed rgba(175,82,222,0.35)', color: '#9C48C7', fontSize: 12, fontWeight: 600,
               }}>
                 还没有选中条目 · 点击下方卡片右下角的星号，或一键推荐。
               </div>
@@ -2796,8 +2796,8 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
             )}
             {/* 底部签名 */}
             <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed rgba(175,82,222,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 10.5, fontWeight: 600, color: '#7c3aed', letterSpacing: .8 }}>PERSONAL · ANNUAL · CARD</span>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#ec4899' }}>{currentHl.length} memories</span>
+              <span style={{ fontSize: 10.5, fontWeight: 600, color: '#9C48C7', letterSpacing: .8 }}>PERSONAL · ANNUAL · CARD</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#FF2D55' }}>{currentHl.length} memories</span>
             </div>
           </div>
         </div>
@@ -2808,7 +2808,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
         <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1c1c1e' }}>📋 挑选条目（{currentHl.length}）</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" onClick={autoSelectRecommended}
-            style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(175,82,222,0.25)', background: 'rgba(175,82,222,0.06)', color: '#7c3aed', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(175,82,222,0.25)', background: 'rgba(175,82,222,0.06)', color: '#9C48C7', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
             ★ 一键挑选前{topAuto.length}条
           </button>
           {currentHl.length > 0 && (
@@ -2851,7 +2851,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
                   style={{
                     width: 24, height: 24, borderRadius: 8, border: 'none', cursor: 'pointer',
                     display: 'grid', placeItems: 'center', transition: 'transform 0.12s',
-                    background: sel ? 'linear-gradient(135deg,#AF52DE,#ec4899)' : 'rgba(15,23,42,0.05)',
+                    background: sel ? 'linear-gradient(135deg,#AF52DE,#FF2D55)' : 'rgba(15,23,42,0.05)',
                     color: sel ? '#fff' : '#cbd5e1',
                     boxShadow: sel ? '0 1px 3px rgba(175,82,222,0.3)' : 'none',
                   }}>
@@ -3263,7 +3263,7 @@ function CognitionView({
   // 分类色标：4 大类固定颜色（身份识别）
   const CAT_COLORS = {
     '认知成长': '#007AFF', // 蓝（知力主色）
-    '人际沟通': '#a855f7', // 紫（人际/感性）
+    '人际沟通': '#AF52DE', // 紫（人际/感性）
     '商业职场': '#FF9500', // 橙（商业/行动力）
     '人文叙事': '#34C759', // 绿（叙事/成长感）
   };
@@ -3862,10 +3862,10 @@ function CognitionView({
                     const realCover = String(b.coverUrl || '').trim();
                     const coverInitBg = (() => {
                       switch (b.cat) {
-                        case '认知成长': return 'linear-gradient(135deg,#eff6ff,#dbeafe)';
+                        case '认知成长': return 'linear-gradient(135deg,#F0F6FF,#DCEBFF)';
                         case '人际沟通': return 'linear-gradient(135deg,#faf5ff,#ede9fe)';
-                        case '商业职场': return 'linear-gradient(135deg,#fff7ed,#ffedd5)';
-                        case '人文叙事': return 'linear-gradient(135deg,#f0fdf4,#bbf7d0)';
+                        case '商业职场': return 'linear-gradient(135deg,#fff7ed,#FFE4CC)';
+                        case '人文叙事': return 'linear-gradient(135deg,#EDFAF1,#ADE5C2)';
                         default: return `linear-gradient(135deg, ${catCol}1A, ${catCol}33)`;
                       }
                     })();
@@ -3943,7 +3943,7 @@ function CognitionView({
                                       style={{
                                         width: '20px', height: '20px', borderRadius:'5px',
                                         background: 'transparent',
-                                        color: hasEbookLink ? '#60a5fa' : '#cbd5e1',
+                                        color: hasEbookLink ? '#4F90FF' : '#cbd5e1',
                                       }}
                                       onMouseEnter={(e) => {
                                         if (!hasEbookLink) return;
@@ -3952,7 +3952,7 @@ function CognitionView({
                                       }}
                                       onMouseLeave={(e) => {
                                         e.currentTarget.style.background = 'transparent';
-                                        e.currentTarget.style.color = hasEbookLink ? '#60a5fa' : '#cbd5e1';
+                                        e.currentTarget.style.color = hasEbookLink ? '#4F90FF' : '#cbd5e1';
                                       }}>
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         {hasEbookLink ? (
@@ -3976,8 +3976,8 @@ function CognitionView({
                                       switch (b.cat) {
                                         case '认知成长': return BLUE_LIGHT;
                                         case '人际沟通': return '#ede9fe';
-                                        case '商业职场': return '#fef3c7';
-                                        case '人文叙事': return '#dcfce7';
+                                        case '商业职场': return '#FFE4CC';
+                                        case '人文叙事': return '#D5F2DF';
                                         default: return '#f1f5f9';
                                       }
                                     })(),
@@ -3989,7 +3989,7 @@ function CognitionView({
                               {/* 进度：% + bar */}
                               <div className="flex items-center gap-[8px] min-w-0">
                                 <span className="text-[12px] font-bold tabular-nums leading-none flex-shrink-0"
-                                  style={{ color: b.st==='done' ? '#16a34a' : statusDot.col }}>{pct}%</span>
+                                  style={{ color: b.st==='done' ? '#34C759' : statusDot.col }}>{pct}%</span>
                                 <div style={{ width: '100%', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden', flex: '1 1 auto' }}>
                                   <div style={{
                                     width: `${Math.max(0, pct)}%`, height: '100%', borderRadius:'999px',
@@ -4648,21 +4648,21 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             {(heroStats.risk + heroStats.overdue) > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.25)' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
-                <span className="text-[10px] font-bold text-rose-500">落后风险</span>
-                <span className="text-[11px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk + heroStats.overdue}</span>
+                <span className="text-[10px] font-bold text-accent-red">落后风险</span>
+                <span className="text-[11px] font-extrabold tabular-nums leading-none text-accent-red">{heroStats.risk + heroStats.overdue}</span>
               </div>
             )}
             {heroStats.warn > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF9500' }}></span>
                 <span className="text-[10px] font-bold text-accent-amber">略落后</span>
-                <span className="text-[11px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
+                <span className="text-[11px] font-extrabold tabular-nums leading-none text-accent-amber-600">{heroStats.warn}</span>
               </div>
             )}
             {heroStats.risk === 0 && heroStats.warn === 0 && heroStats.overdue === 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.25)' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
-                <span className="text-[10px] font-bold text-emerald-600">节奏正常</span>
+                <span className="text-[10px] font-bold text-accent-green">节奏正常</span>
               </div>
             )}
           </div>
@@ -4735,7 +4735,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
         avgPct, rm, days, timePct, risks,
         dl: daysLabel(days),
         label: o.label || (o.core ? '主业' : '副业'),
-        color: o.core ? '#FF3B30' : '#F97316',
+        color: o.core ? '#FF3B30' : '#FF9500',
       };
     });
   }, [dynWk]);
@@ -5212,28 +5212,28 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
             {heroStats.risk > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF3B30' }}></span>
-                <span className="text-[10px] font-bold text-rose-500">落后</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
+                <span className="text-[10px] font-bold text-accent-red">落后</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-accent-red">{heroStats.risk}</span>
               </div>
             )}
             {heroStats.warn > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF9500' }}></span>
                 <span className="text-[10px] font-bold text-accent-amber">预警</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-accent-amber-600">{heroStats.warn}</span>
               </div>
             )}
             {heroStats.overdue > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.25)' }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
-                <span className="text-[10px] font-bold text-rose-500">过期</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.overdue}</span>
+                <span className="text-[10px] font-bold text-accent-red">过期</span>
+                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-accent-red">{heroStats.overdue}</span>
               </div>
             )}
             {heroStats.total === 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.25)' }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
-                <span className="text-[10px] font-bold text-emerald-600">节奏正常</span>
+                <span className="text-[10px] font-bold text-accent-green">节奏正常</span>
               </div>
             )}
           </div>
@@ -5287,7 +5287,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             onClick={() => onStartHighlights?.()}
             disabled={totalEntries === 0}
             className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg, #AF52DE 0%, #ec4899 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.25)' }}>
+            style={{ background: 'linear-gradient(135deg, #AF52DE 0%, #FF2D55 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.25)' }}>
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
             </svg>
@@ -5346,7 +5346,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer relative">
                     {hl && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full grid place-items-center"
-                        style={{ background: 'linear-gradient(135deg,#AF52DE,#ec4899)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.35)' }}
+                        style={{ background: 'linear-gradient(135deg,#AF52DE,#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.35)' }}
                         title="年度精选">
                         <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                       </div>

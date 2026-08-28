@@ -186,7 +186,7 @@ export default function Login() {
               <div className="text-sm text-accent-red bg-accent-red/5 px-3 py-2 rounded-lg">{err}</div>
             )}
             {msg && (
-              <div className="text-sm text-green-600 bg-accent-green/5 px-3 py-2 rounded-lg">{msg}</div>
+              <div className="text-sm text-accent-green bg-accent-green/5 px-3 py-2 rounded-lg">{msg}</div>
             )}
 
             <button type="submit" disabled={busy} className="btn-primary w-full py-2.5 disabled:opacity-50">

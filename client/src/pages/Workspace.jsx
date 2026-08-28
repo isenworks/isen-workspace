@@ -699,7 +699,7 @@ export default function Workspace({ user: propUser }) {
                         onClick={() => deleteHabit(h.id, h.name)}
                         style={{
                           padding: '6px 12px', borderRadius: '8px', border: 'none',
-                          background: '#ffe8e8', color: '#FF3B30',
+                          background: '#FFEEED', color: '#FF3B30',
                           fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                           transition: 'all 0.15s'
                         }}

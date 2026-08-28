@@ -14,8 +14,8 @@ function dateLabel(dateStr) {
 
 // 预设模板：3 个空白模板，点击直接打开新建弹窗
 const PRESET_TEMPLATES = [
-  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#FF3B30', bg: '#ffe8e8' },
-  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#FF3B30', bg: '#ffe8e8' },
+  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#FF3B30', bg: '#FFEEED' },
+  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#FF3B30', bg: '#FFEEED' },
   { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#FF9500', bg: '#fff4d8' },
 ];
 
@@ -177,7 +177,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     const cat = catOf(s);
     if (cat === 1) {
       return {
-        bg: 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)',
+        bg: 'linear-gradient(90deg,#FFEEED 0%,transparent 70%)',
         borderColor: '#FF3B30',
         dotColor: '#FF3B30',
         doneColor: '#FF3B30'

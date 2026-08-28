@@ -10,12 +10,12 @@ const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
 const GROWTH_TYPES = {
   energy: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759' },
   mind:   { color: '#007AFF', bg: '#e0ecff', borderColor: '#007AFF', doneColor: '#007AFF', lineColor: '#007AFF' },
-  skill:  { color: '#FF9500', bg: '#fbf3d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500' },
+  skill:  { color: '#FF9500', bg: '#FFF4D8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500' },
 };
 
 // 事项分类颜色
 const CAT_COLORS = {
-  1: { color: '#FF3B30', bg: '#ffe8e8', borderColor: '#FF3B30', doneColor: '#FF3B30', lineColor: '#FF3B30', timeColor: '#FF3B30' },
+  1: { color: '#FF3B30', bg: '#FFEEED', borderColor: '#FF3B30', doneColor: '#FF3B30', lineColor: '#FF3B30', timeColor: '#FF3B30' },
   2: { color: '#FF9500', bg: '#fff4d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500', timeColor: '#FF9500' },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
   4: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
@@ -1027,7 +1027,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 const borderColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
                 const dotColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
                 const rowBg = t.priority === 1
-                  ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
+                  ? 'linear-gradient(90deg,#FFEEED 0%,transparent 70%)'
                   : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)';
                 return (
                   <div key={t.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row" style={{background: rowBg}}>
@@ -1176,11 +1176,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 {sortedItems.map(item => {
                   const isSched = !!item.start_time || !!item.is_key || !item.priority;
                   const color = isSched ? getColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
-                  const lineColor = isSched ? getLineColor(item) : (item.priority === 1 ? '#ff9999' : '#c7c7cc');
+                  const lineColor = isSched ? getLineColor(item) : (item.priority === 1 ? '#FF8E85' : '#c7c7cc');
                   const rowBg = isSched ? getRowBg(item) : (item.is_done
                     ? 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)'
                     : color === '#FF3B30'
-                    ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
+                    ? 'linear-gradient(90deg,#FFEEED 0%,transparent 70%)'
                     : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)');
                   const squareCb = isSched ? useSquareCheckbox(item) : true;
                   const cbType = squareCb ? 'cb-square' : 'cb-round';

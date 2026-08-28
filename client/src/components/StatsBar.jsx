@@ -550,7 +550,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 }}
                 onMouseEnter={(e) => {
                   const disabled = !editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '');
-                  if (!disabled) e.currentTarget.style.background = '#0066dd';
+                  if (!disabled) e.currentTarget.style.background = '#0062CC';
                 }}
                 onMouseLeave={(e) => {
                   const disabled = !editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '');

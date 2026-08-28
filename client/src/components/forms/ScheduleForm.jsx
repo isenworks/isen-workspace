@@ -8,8 +8,8 @@ import { useToast } from '../../context/ToastContext.jsx';
 // category: 1=工作, 2=能力, 3=常规, 5=生活
 // 注意：category=4 为旧数据"习惯"保留值（initialCategory 会降级为 3），不用于新 UI
 const CATEGORIES = [
-  { v: 1, label: '工作',   dot: '#FF3B30', bg: '#ffe8e8', border: '#ff9999', text: '#FF3B30', textActive: '#1c1c1e' },
-  { v: 2, label: '能力',   dot: '#FF9500', bg: '#fff4d8', border: '#ffd699', text: '#FF9500', textActive: '#1c1c1e' },
+  { v: 1, label: '工作',   dot: '#FF3B30', bg: '#FFEEED', border: '#FF8E85', text: '#FF3B30', textActive: '#1c1c1e' },
+  { v: 2, label: '能力',   dot: '#FF9500', bg: '#fff4d8', border: '#FFC899', text: '#FF9500', textActive: '#1c1c1e' },
   { v: 3, label: '常规',   dot: '#8e8e93', bg: '#e5e5ea', border: '#c7c7cc', text: '#8e8e93', textActive: '#1c1c1e' },
   { v: 5, label: '生活',   dot: '#AF52DE', bg: '#f3e8ff', border: '#d8b3f0', text: '#AF52DE', textActive: '#1c1c1e' },
 ];

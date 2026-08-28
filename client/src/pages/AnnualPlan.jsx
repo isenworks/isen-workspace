@@ -5686,7 +5686,7 @@ export default function AnnualPlan({ standalone = true }) {
             }),
           };
         }));
-        showToast(wasDone ? '已取消完成' : '行动已完成 ✓');
+        showToast(wasDone ? '已取消完成' : '行动已完成');
       } else {
         // 独立行动路径 → 改 cogChanges
         let wasDone = false;
@@ -5699,7 +5699,7 @@ export default function AnnualPlan({ standalone = true }) {
             ? { ...c, done: false, status: 'active' }
             : { ...c, done: true, status: 'completed' };
         }));
-        showToast(wasDone ? '已取消完成' : '行动已完成 ✓');
+        showToast(wasDone ? '已取消完成' : '行动已完成');
       }
     },
     // 30天完成 → 生成改变（保留但不复用）

@@ -4577,7 +4577,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             <span className="text-[11px] font-extrabold tabular-nums leading-none" style={{ color: AB_DARK }}>{as.avgPct}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${as.avgPct}%`, background: lagBehind && as.rm.q !== 'done' ? as.rm.color : AB }}></div>
+            <div className="h-full rounded-full transition-all" style={{ width: `${as.avgPct}%`, background: AB }}></div>
           </div>
         </div>
 
@@ -5747,7 +5747,7 @@ export default function AnnualPlan({ standalone = true }) {
       showToast('里程碑已添加');
     },
     update: (data) => {
-      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: a.mstones.map((m, j) => j === data.msIdx ? { ...m, lb: data.lb, st: data.st, pct: data.pct } : m) } : a));
+      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: a.mstones.map((m, j) => j === data.msIdx ? { ...m, lb: data.lb, dueBy: data.dueBy, st: data.st, pct: data.pct } : m) } : a));
       showToast('里程碑已更新');
     },
     remove: ({ abilityIdx, msIdx }) => {
@@ -5919,8 +5919,11 @@ export default function AnnualPlan({ standalone = true }) {
           <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑能力' : '新增能力'}>
             <AbilityForm
               initial={modal.initial}
-              onSaved={(data) => { modal.initial?.id ? abilityOps.update(data) : abilityOps.add(data); }}
-              {...props}
+              onCancel={closeModal}
+              onSaved={(data) => {
+                modal.initial?.id ? abilityOps.update(data) : abilityOps.add(data);
+                closeModal();
+              }}
               onDelete={modal.initial?.id ? (id) => { abilityOps.remove(id); closeModal(); } : undefined}
             />
           </Modal>
@@ -5930,8 +5933,11 @@ export default function AnnualPlan({ standalone = true }) {
           <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑里程碑' : '添加里程碑'}>
             <MilestoneForm
               initial={modal.initial}
-              onSaved={(data) => { modal.initial?.id ? msOps.update(data) : msOps.add(data); }}
-              {...props}
+              onCancel={closeModal}
+              onSaved={(data) => {
+                modal.initial?.id ? msOps.update(data) : msOps.add(data);
+                closeModal();
+              }}
               onDelete={modal.initial?.id ? (idx) => { msOps.remove(idx); closeModal(); } : undefined}
             />
           </Modal>
@@ -5941,8 +5947,11 @@ export default function AnnualPlan({ standalone = true }) {
           <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑 KR' : '添加 KR'}>
             <KrForm
               initial={modal.initial}
-              onSaved={(data) => { modal.initial?.id ? krOps.update(data) : krOps.add(data); }}
-              {...props}
+              onCancel={closeModal}
+              onSaved={(data) => {
+                modal.initial?.id ? krOps.update(data) : krOps.add(data);
+                closeModal();
+              }}
               onDelete={modal.initial?.id ? (idx) => { krOps.remove(idx); closeModal(); } : undefined}
             />
           </Modal>
@@ -5953,8 +5962,11 @@ export default function AnnualPlan({ standalone = true }) {
             <EntryForm
               initial={modal.initial}
               categoryLabel={modal.categoryLabel}
-              onSaved={(data) => { modal.initial?.id ? entryOps.update(data) : entryOps.add(data); }}
-              {...props}
+              onCancel={closeModal}
+              onSaved={(data) => {
+                modal.initial?.id ? entryOps.update(data) : entryOps.add(data);
+                closeModal();
+              }}
               onDelete={modal.initial?.id ? (idx) => { entryOps.remove(idx); closeModal(); } : undefined}
             />
           </Modal>

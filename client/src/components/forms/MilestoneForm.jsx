@@ -97,7 +97,7 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
           }}
         >
           <span style={{
-            width: '16px', height: '16px', borderRadius: '6px',
+            width: '16px', height: '16px', borderRadius: '999px',
             display: 'grid', placeItems: 'center', flexShrink: 0,
             background: isDone ? AB : '#fff',
             border: `1.5px solid ${AB}`,

@@ -4600,7 +4600,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
                   {/* 复选框：未勾白底橙边，已勾橙底白勾 —— 与主文字 items-center 居中对齐 */}
                   <button
                     onClick={(e) => { e.stopPropagation(); onMsToggleDone?.({ abilityIdx: as.idx, msIdx: i }); }}
-                    className="w-4 h-4 rounded-md grid place-items-center flex-shrink-0 transition-all"
+                    className="w-4 h-4 rounded-full grid place-items-center flex-shrink-0 transition-all"
                     style={{
                       background: isDone ? AB : '#fff',
                       border: `1.5px solid ${AB}`,
@@ -4765,9 +4765,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
    * R1：色条 + [分类标签 + 范式徽章(显眼)] + O徽标 + O标题（右侧：📅截止）
    * R2：双条进度（时间/实际）+ 里程碑/KR计数 + 风险徽标
    * ============================================================ */
-  const renderObjective = (o, gs) => {
+  const renderObjective = (o, gs, goalIdx) => {
     const color = gs.color;
-    const lagBehind = gs.timePct !== null && gs.avgPct < gs.timePct;
     const krTotal = (o.krs || []).length;
     const krDone = (o.krs || []).filter(k => k.st === 'done').length;
     const modeMeta = {
@@ -4782,87 +4781,73 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
       : (gs.risks.done === krTotal && krTotal > 0) ? { n: null, c: '#34C759', l: '已达成' }
       : null;
     return (
-      <div className="flex flex-col gap-2 px-1 py-2.5 border-b border-ink-100">
-        {/* R1：色条 + 分类标签 + 范式徽章 + O + 标题 | 截止 */}
+      <div className="flex flex-col gap-2 px-1 pt-2 pb-2.5 border-b border-ink-100">
+        {/* R1 同构能力页：色条 | O标题16px | X/Y胶囊 | 26×26 +按钮（卡片右上角） */}
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#FF3B30' }}></span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg flex-shrink-0 text-[10.5px] font-bold"
+          <span className="w-1 h-[18px] rounded-[2px] flex-shrink-0" style={{ background: color }}></span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none truncate min-w-0 flex-1">{o.title}</span>
+          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 px-2 py-0.5 rounded-[10px]"
+            style={{ background: 'rgba(255,149,0,0.10)', color: '#FF9500' }}>
+            {krDone}<span className="opacity-60 font-bold">/</span>{krTotal}
+          </span>
+          <button
+            onClick={() => onKrAdd?.(goalIdx)}
+            className="w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
+            style={{ background: `${color}15`, color, border: '1px solid rgba(15,23,42,0.08)' }}
+            title="添加 KR">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        {/* R2 同构能力页：总体完成度 · 单条大进度 */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-semibold text-ink-500">总体完成度</span>
+            <span className="text-[13px] font-extrabold tabular-nums text-ink-700">{gs.avgPct}%</span>
+          </div>
+          <div className="w-full h-[5px] rounded-full bg-ink-100 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${gs.avgPct}%`, background: color }}></div>
+          </div>
+        </div>
+        {/* R3 元信息 pill 行：分类·范式 | 截止 | 风险胶囊（右固定） */}
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg flex-shrink-0 text-[10.5px] font-bold"
             style={{ background: `${color}15`, color }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
-            {gs.label}
+            {gs.label} · {m.lb}
           </span>
-          {/* 范式徽章：11px + 图标 + 边框高亮，统一 RED */}
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md flex-shrink-0 text-[10.5px] font-bold border"
-            style={{ borderColor: '#FF3B3040', background: '#FF3B300D', color: '#FF3B30' }}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinejoin="round">{m.icon}</svg>
-            {m.lb}
-          </span>
-          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-[1px] rounded bg-ink-100 text-ink-500 flex-shrink-0">O</span>
-          <span className="text-[14px] font-semibold text-ink-800 leading-none truncate min-w-0 flex-1">{o.title}</span>
           <span className={`text-[10.5px] font-semibold flex-shrink-0 ${gs.dl.cls}`}>📅{gs.dl.text}</span>
-        </div>
-        {/* R2：双条 + KR 计数 + 风险 */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          {/* 时间条 */}
-          <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-            <div className="flex items-center justify-between text-[9px] font-bold leading-none">
-              <span className="text-ink-400">时间 {gs.timePct ?? '—'}%</span>
-              <span style={{ color }}>进度 {gs.avgPct}%</span>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-ink-100 overflow-hidden relative">
-              <div className="h-full rounded-full bg-ink-300 absolute left-0 top-0" style={{ width: `${gs.timePct ?? 0}%` }}></div>
-              <div className="h-full rounded-full absolute left-0 top-0 opacity-80"
-                style={{ width: `${gs.avgPct}%`, background: lagBehind && gs.rm.q !== 'done' ? gs.rm.color : color, mixBlendMode: 'multiply' }}></div>
-            </div>
-          </div>
-          <span className="text-[10.5px] font-bold text-ink-500 tabular-nums flex-shrink-0 px-1.5 py-0.5 rounded bg-ink-50">KR {krDone}/{krTotal}</span>
-          {topRisk && topRisk.n !== null && (
-            <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums flex-shrink-0 whitespace-nowrap"
+          {topRisk && (
+            <span className="ml-auto text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums flex-shrink-0 whitespace-nowrap"
               style={{ background: `${topRisk.c}15`, color: topRisk.c }}>
-              {topRisk.l}{topRisk.n}
+              {topRisk.l}{topRisk.n ?? ''}
             </span>
           )}
-          {topRisk && topRisk.n === null && (
-            <span className="tag tag-g flex-shrink-0" style={{ fontSize: '10px' }}>{topRisk.l}</span>
-          )}
-          {!topRisk && (
-            <span className="tag tag-b flex-shrink-0" style={{ fontSize: '10px' }}>节奏正常</span>
-          )}
+          {!topRisk && <span className="ml-auto tag tag-b flex-shrink-0" style={{ fontSize: '10px' }}>节奏正常</span>}
         </div>
       </div>
     );
   };
 
   /* ============================================================
-   * 子渲染器 #1：Funnel 漏斗（窄卡适配版 · 压缩列宽+紧凑排版）
+   * 子渲染器 #1：Funnel 漏斗（对齐能力页 KR 行结构：编号/复选框 + 主文字 + 内嵌进度条 + 子说明）
    * ============================================================ */
   const renderFunnelRows = (o, gs, goalIdx) => {
     const krs = o.krs || [];
     const COLOR = gs.color;
     return (
-      <div className="flex flex-col pt-1.5">
-        {/* 表头（压缩列宽：# 20 / KR 88 / 进度 flex-1 / % 34 / 数 44） */}
-        <div className="flex items-center gap-2 px-1 py-1 rounded-t-lg bg-ink-50/50 text-[10px] font-bold text-ink-500">
-          <div className="w-[22px] text-right">#</div>
-          <div className="w-[88px] pl-0.5">KR</div>
-          <div className="flex-1 min-w-0 flex items-center justify-center">漏斗</div>
-          <div className="w-[34px] text-right pr-0.5">%</div>
-          <div className="w-[44px] text-right pr-0.5">v/tgt</div>
-        </div>
-
-        {/* KR 内容行（窄卡压缩版） */}
+      <div className="flex flex-col gap-2 pt-2 max-h-[280px] overflow-y-auto pr-0.5">
         {krs.map((kr, i) => {
-          const nextKr = krs[i + 1];
+          const prevKr = krs[i - 1];
           const krPct = pct(kr.v, kr.tgt);
           const done = kr.st === 'done';
           const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct };
           const rm = calcRisk(krPct, microTA.timePct, done);
-          const statusDot = done ? '#34C759' : kr.st === 'doing' ? RED : '#c7c7cc';
+          const statusDot = done ? '#34C759' : kr.st === 'doing' ? '#FF3B30' : '#c7c7cc';
           const krId = kr.id || `${goalIdx}-${i}`;
           const ma = microActions?.[krId] || [];
           const maDone = ma.filter(x => x.done).length;
           const canBreakdown = rm.q === 'risk' || rm.q === 'warn';
-          const prevKr = krs[i - 1];
+          // 漏斗转化率：与前一条 KR 的比值
           let conv = null;
           if (prevKr) {
             const base = prevKr.v > 0 ? prevKr.v : (prevKr.tgt || 0);
@@ -4870,111 +4855,60 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
             else if (kr.tgt > 0 && prevKr.tgt > 0) conv = Math.round((kr.tgt / prevKr.tgt) * 100);
           }
           const lowConv = conv !== null && conv < 50;
-
-          if (done) {
-            return (
-              <div key={i} className="flex flex-col">
-                <div className="flex items-center gap-2 px-1 py-1.5 rounded-xl hover:bg-ink-50/60 cursor-pointer transition-colors"
-                  onClick={() => onKrEdit?.(goalIdx, i, kr)}>
-                  <div className="w-[22px] text-right">
-                    <span className="inline-grid place-items-center w-4 h-4 rounded-full" style={{ background: 'rgba(52,199,89,0.15)' }}>
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </span>
-                  </div>
-                  <div className="w-[88px] pl-0.5 min-w-0">
-                    <div className="text-[10.5px] text-ink-400 line-through truncate font-semibold">{kr.t}</div>
-                  </div>
-                  <div className="flex-1 min-w-0 h-[18px] rounded overflow-hidden relative bg-accent-green/15">
-                    <div className="h-full w-full" style={{ background: '#34C759' }}></div>
-                    <div className="absolute inset-0 flex items-center justify-end pr-1.5">
-                      <span className="text-[9.5px] font-extrabold text-white drop-shadow tabular-nums">{kr.tgt}</span>
-                    </div>
-                  </div>
-                  <div className="w-[34px] text-right pr-0.5">
-                    <span className="text-[10.5px] font-extrabold tabular-nums text-accent-green">100%</span>
-                  </div>
-                  <div className="w-[44px] text-right pr-0.5">
-                    <span className="text-[10.5px] font-bold tabular-nums text-ink-700">{kr.v}</span>
-                    <span className="text-[9px] font-medium text-ink-400">/</span>
-                    <span className="text-[9.5px] font-medium tabular-nums text-ink-500">{kr.tgt}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          }
+          const numColor = done ? '#34C759' : (krPct > 0 || kr.v > 0) ? COLOR : '#8a9491';
 
           return (
-            <div key={i} className="flex flex-col">
-              <div className="flex items-center gap-2 px-1 py-1 rounded-xl hover:bg-ink-50/60 cursor-pointer transition-colors"
-                onClick={() => onKrEdit?.(goalIdx, i, kr)}>
-                <div className="w-[22px] text-right tabular-nums leading-none">
-                  <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: '#FF3B30' }}>
-                    {String(i + 1).padStart(2, '0')}
+            <div key={i} className="flex items-center gap-2 cursor-pointer group"
+              onClick={() => onKrEdit?.(goalIdx, i, kr)}>
+              {/* 左侧 16×16：done=绿色圆形复选框 / 序号圆标 */}
+              {done ? (
+                <span className="w-4 h-4 rounded-full grid place-items-center flex-shrink-0"
+                  style={{ background: '#34C759', border: '1.5px solid #34C759' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                </span>
+              ) : (
+                <span className="w-4 h-4 rounded-full grid place-items-center flex-shrink-0 text-[9px] font-extrabold"
+                  style={{ background: `${statusDot}1E`, color: statusDot }}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+              )}
+              {/* 右侧：主文字 + v/tgt / 内嵌进度条 / 子说明（日期 | 转化率） */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-[13px] font-semibold leading-snug truncate ${done ? 'text-ink-400 line-through' : 'text-ink-700'}`}>{kr.t}</span>
+                  <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: numColor }}>
+                    {kr.v}<span className="font-medium opacity-50">/</span>{kr.tgt}
                   </span>
                 </div>
-                <div className="w-[88px] pl-0.5 min-w-0 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusDot }}></span>
-                  <span className="text-[11.5px] font-semibold text-ink-800 truncate leading-tight">{kr.t}</span>
+                <div className="mt-1 h-[5px] rounded-full overflow-hidden"
+                  style={{ background: done ? 'rgba(52,199,89,0.15)' : `${COLOR}12` }}>
+                  <div className="h-full rounded-full" style={{ width: `${done ? 100 : krPct}%`, background: done ? '#34C759' : statusDot }}></div>
                 </div>
-                <div className="flex-1 min-w-0 h-[20px] rounded overflow-hidden relative" style={{ background: `${COLOR}10` }}>
-                  <div className="h-full" style={{ width: `${krPct}%`, background: statusDot }}></div>
-                  <div className="absolute inset-0 flex items-center justify-end pr-1.5">
-                    <span className="text-[10px] font-extrabold tabular-nums text-white drop-shadow">{kr.v}</span>
-                  </div>
-                </div>
-                <div className="w-[34px] text-right pr-0.5">
-                  <span className="text-[10.5px] font-extrabold tabular-nums"
-                    style={{
-                      color: krPct < (gs.timePct !== null ? Math.max(gs.timePct - 5, 0) : 50)
-                        ? '#FF3B30' : rm.color
-                    }}>
-                    {krPct}%
+                <div className="mt-1 flex items-center justify-between text-[11px]">
+                  <span className="text-ink-400 font-medium truncate">
+                    {kr.dueBy ? `${String(kr.dueBy).slice(5).replace('-', '/')}${done ? ' · 已达成' : ''}` : (done ? '已达成' : '—')}
                   </span>
-                </div>
-                <div className="w-[44px] text-right pr-0.5 flex items-center justify-end gap-0.5">
-                  <span className="text-[10.5px] font-bold tabular-nums text-ink-700">{kr.v}</span>
-                  <span className="text-[9px] font-medium text-ink-400">/</span>
-                  <span className="text-[9.5px] font-medium tabular-nums text-ink-500">{kr.tgt}</span>
-                  {canBreakdown && (
+                  {!done && conv !== null && (
+                    <span className="flex-shrink-0 font-bold tabular-nums" style={{ color: lowConv ? '#FF3B30' : '#8a9491' }}>
+                      ↓转化 {conv}%
+                    </span>
+                  )}
+                  {!done && canBreakdown && (
                     <button
-                      className="text-[9px] font-bold px-0.5 py-[1px] rounded transition -mr-0.5"
+                      className="flex-shrink-0 text-[10px] font-bold px-1 py-[1px] rounded transition"
                       style={{ background: rm.color + '22', color: rm.color }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, createdAt: o.createdAt }, rm);
-                      }}
-                    >
-                      {ma.length ? `${maDone}/${ma.length}` : '+'}
+                      }}>
+                      {ma.length ? `微行动 ${maDone}/${ma.length}` : '微行动 +'}
                     </button>
                   )}
                 </div>
               </div>
-
-              {nextKr && nextKr.st !== 'done' && (
-                <div className="flex items-center gap-2 px-1 py-0.5 text-[10px]">
-                  <div className="w-[22px]"></div>
-                  <div className="w-[88px] pl-[24px] flex items-center">
-                    <svg className="w-2.5 h-2.5" style={{ color: '#8a9491' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 5v14M5 12l7 7 7-7" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 flex items-center justify-center">
-                    <span className="font-bold tabular-nums" style={{ color: lowConv ? '#FF3B30' : '#8a9491' }}>
-                      {conv ?? 0}%
-                    </span>
-                  </div>
-                  <div className="w-[34px] invisible pr-0.5 text-right"><span>99%</span></div>
-                  <div className="w-[44px] invisible pr-0.5 text-right"><span>99/99</span></div>
-                </div>
-              )}
             </div>
           );
         })}
-
-        {/* 添加 KR */}
-        <div className="mt-1.5 pt-0.5 pl-[110px]">
-          <AddButton compact label="添加 KR" onClick={() => onKrAdd?.(goalIdx)} />
-        </div>
       </div>
     );
   };
@@ -5254,7 +5188,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
           const gs = goalStats[i];
           return (
             <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col">
-              {renderObjective(o, gs)}
+              {renderObjective(o, gs, i)}
               {renderByMode(o, gs, i)}
             </div>
           );

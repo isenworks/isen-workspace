@@ -45,7 +45,7 @@ body {
 .cb-square {
   --cb-border: #d1d1d6;
   --cb-color: #007AFF;
-  appearance: none; width: 18px; height: 18px; border-radius: 5px;
+  appearance: none; width: 18px; height: 18px; border-radius: 50%;
   border: 1.5px solid var(--cb-border); background: #fff;
   cursor: pointer; flex-shrink: 0; display: inline-flex;
   align-items: center; justify-content: center; transition: all .2s;

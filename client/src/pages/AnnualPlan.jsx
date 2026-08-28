@@ -4883,7 +4883,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                   <div className="w-[88px] pl-0.5 min-w-0">
                     <div className="text-[10.5px] text-ink-400 line-through truncate font-semibold">{kr.t}</div>
                   </div>
-                  <div className="flex-1 min-w-0 h-[18px] rounded overflow-hidden relative opacity-40 bg-ink-100">
+                  <div className="flex-1 min-w-0 h-[18px] rounded overflow-hidden relative bg-accent-green/15">
                     <div className="h-full w-full" style={{ background: '#34C759' }}></div>
                     <div className="absolute inset-0 flex items-center justify-end pr-1.5">
                       <span className="text-[9.5px] font-extrabold text-white drop-shadow tabular-nums">{kr.tgt}</span>

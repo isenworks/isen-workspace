@@ -15,13 +15,13 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-red-50">
+        <div className="min-h-screen flex items-center justify-center p-6 bg-accent-red/5">
           <div className="card p-6 max-w-lg w-full">
             <div className="text-2xl mb-2">⚠️ 渲染出错</div>
             <div className="text-sm text-ink-700 mb-3">
               前端组件运行时抛出错误，请把下方信息发给开发者：
             </div>
-            <pre className="bg-red-50 border border-red-100 text-red-600 text-xs p-3 rounded-lg whitespace-pre-wrap break-all max-h-[40vh] overflow-auto">
+            <pre className="bg-accent-red/5 border border-red-100 text-red-600 text-xs p-3 rounded-lg whitespace-pre-wrap break-all max-h-[40vh] overflow-auto">
 {String(this.state.error?.message || this.state.error)}
 
 {"\n"}

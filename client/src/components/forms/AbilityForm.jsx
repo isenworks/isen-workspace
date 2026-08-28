@@ -118,7 +118,7 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
         <div>{isEdit && (
           <button onClick={del} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
-            background: 'rgba(239,68,68,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer',
+            background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer',
           }}>删除</button>
         )}</div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -129,7 +129,7 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
           <button onClick={submit} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
             background: AB, color: '#fff', border: 'none', cursor: 'pointer',
-            boxShadow: `0 2px 8px rgba(245,158,11,0.25)`,
+            boxShadow: `0 2px 8px rgba(255,149,0,0.25)`,
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>

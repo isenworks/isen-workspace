@@ -262,7 +262,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '3px',
               padding: '1px 7px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 600,
-              background: form.st === 'done' ? 'rgba(34,197,94,0.1)' : form.st === 'reading' ? BLUE_SOFT : CARD_BG,
+              background: form.st === 'done' ? 'rgba(52,199,89,0.1)' : form.st === 'reading' ? BLUE_SOFT : CARD_BG,
               color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_LIGHT,
             }}>
               {STATUSES.find(s => s.v === form.st)?.lb || '未开始'}
@@ -348,8 +348,8 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
       }}>
         <div>{isEdit && <button onClick={del} style={{
           padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
-          background: 'rgba(239,68,68,0.06)', color: DANGER,
-          border: '1px solid rgba(239,68,68,0.22)', cursor: 'pointer',
+          background: 'rgba(255,59,48,0.06)', color: DANGER,
+          border: '1px solid rgba(255,59,48,0.22)', cursor: 'pointer',
         }}>删除</button>}</div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={onCancel} style={{

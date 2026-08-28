@@ -4829,15 +4829,32 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
   };
 
   /* ============================================================
-   * 子渲染器 #1：Funnel 漏斗（对齐能力页 KR 行结构：编号/复选框 + 主文字 + 内嵌进度条 + 子说明）
+   * 子渲染器 #1：Funnel 漏斗（知力式增强：序号纯文字 + 右侧进度环 + 行间转化连接 + 瓶颈提示）
    * ============================================================ */
   const renderFunnelRows = (o, gs, goalIdx) => {
     const krs = o.krs || [];
     const COLOR = gs.color;
+    // 漏斗转化率（每条 KR 与前一条的比值）统一在外层计算，供行间连接线与瓶颈提示共用
+    const convs = krs.map((kr, i) => {
+      if (i === 0) return null;
+      const prevKr = krs[i - 1];
+      const base = prevKr.v > 0 ? prevKr.v : (prevKr.tgt || 0);
+      if (base > 0) return Math.min(100, Math.round((kr.v / base) * 100));
+      if (kr.tgt > 0 && prevKr.tgt > 0) return Math.round((kr.tgt / prevKr.tgt) * 100);
+      return null;
+    });
+    // 瓶颈分析：转化率最低的环节，低于 50% 才提示（避免健康漏斗噪音）
+    const bottleneck = (() => {
+      let worst = null;
+      for (let i = 1; i < krs.length; i++) {
+        if (convs[i] === null) continue;
+        if (!worst || convs[i] < worst.rate) worst = { rate: convs[i], from: krs[i - 1], to: krs[i] };
+      }
+      return worst && worst.rate < 50 ? worst : null;
+    })();
     return (
-      <div className="flex flex-col gap-2 pt-2 max-h-[280px] overflow-y-auto pr-0.5">
+      <div className="flex flex-col gap-1.5 pt-2 max-h-[300px] overflow-y-auto pr-0.5">
         {krs.map((kr, i) => {
-          const prevKr = krs[i - 1];
           const krPct = pct(kr.v, kr.tgt);
           const done = kr.st === 'done';
           const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct };
@@ -4847,68 +4864,88 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
           const ma = microActions?.[krId] || [];
           const maDone = ma.filter(x => x.done).length;
           const canBreakdown = rm.q === 'risk' || rm.q === 'warn';
-          // 漏斗转化率：与前一条 KR 的比值
-          let conv = null;
-          if (prevKr) {
-            const base = prevKr.v > 0 ? prevKr.v : (prevKr.tgt || 0);
-            if (base > 0) conv = Math.min(100, Math.round((kr.v / base) * 100));
-            else if (kr.tgt > 0 && prevKr.tgt > 0) conv = Math.round((kr.tgt / prevKr.tgt) * 100);
-          }
-          const lowConv = conv !== null && conv < 50;
           const numColor = done ? '#34C759' : (krPct > 0 || kr.v > 0) ? COLOR : '#8a9491';
+          // 与下一条 KR 之间的转化率（连接行用）
+          const nextConv = i < krs.length - 1 ? convs[i + 1] : null;
 
           return (
-            <div key={i} className="flex items-center gap-2 cursor-pointer group"
-              onClick={() => onKrEdit?.(goalIdx, i, kr)}>
-              {/* 左侧 16×16：done=绿色圆形复选框 / 序号圆标 */}
-              {done ? (
-                <span className="w-4 h-4 rounded-full grid place-items-center flex-shrink-0"
-                  style={{ background: '#34C759', border: '1.5px solid #34C759' }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-                </span>
-              ) : (
-                <span className="w-4 h-4 rounded-full grid place-items-center flex-shrink-0 text-[9px] font-extrabold"
-                  style={{ background: `${statusDot}1E`, color: statusDot }}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-              )}
-              {/* 右侧：主文字 + v/tgt / 内嵌进度条 / 子说明（日期 | 转化率） */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`text-[13px] font-semibold leading-snug truncate ${done ? 'text-ink-400 line-through' : 'text-ink-700'}`}>{kr.t}</span>
-                  <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: numColor }}>
-                    {kr.v}<span className="font-medium opacity-50">/</span>{kr.tgt}
+            <div key={i}>
+              {/* KR 行：序号(纯文字 01，对齐知力页) | 标题+数据 | 28px 进度环 */}
+              <div className="flex items-center gap-2.5 cursor-pointer group"
+                onClick={() => onKrEdit?.(goalIdx, i, kr)}>
+                {/* 左侧：done=绿色勾 / 序号纯文字（无圆形底，对齐知力页） */}
+                {done ? (
+                  <svg className="w-[18px] h-[18px] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                ) : (
+                  <span className="text-[11px] font-bold tabular-nums w-[18px] text-right leading-none flex-shrink-0" style={{ color: COLOR }}>
+                    {String(i + 1).padStart(2, '0')}
                   </span>
-                </div>
-                <div className="mt-1 h-[5px] rounded-full overflow-hidden"
-                  style={{ background: done ? 'rgba(52,199,89,0.15)' : `${COLOR}12` }}>
-                  <div className="h-full rounded-full" style={{ width: `${done ? 100 : krPct}%`, background: done ? '#34C759' : statusDot }}></div>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[11px]">
-                  <span className="text-ink-400 font-medium truncate">
-                    {kr.dueBy ? `${String(kr.dueBy).slice(5).replace('-', '/')}${done ? ' · 已达成' : ''}` : (done ? '已达成' : '—')}
-                  </span>
-                  {!done && conv !== null && (
-                    <span className="flex-shrink-0 font-bold tabular-nums" style={{ color: lowConv ? '#FF3B30' : '#8a9491' }}>
-                      ↓转化 {conv}%
+                )}
+                {/* 中部：标题 + v/tgt / 子说明（日期 | 微行动） */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-[13px] font-semibold leading-snug truncate ${done ? 'text-ink-400 line-through' : 'text-ink-700'}`}>{kr.t}</span>
+                    <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: numColor }}>
+                      {kr.v}<span className="font-medium opacity-50">/</span>{kr.tgt}
                     </span>
-                  )}
-                  {!done && canBreakdown && (
-                    <button
-                      className="flex-shrink-0 text-[10px] font-bold px-1 py-[1px] rounded transition"
-                      style={{ background: rm.color + '22', color: rm.color }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, createdAt: o.createdAt }, rm);
-                      }}>
-                      {ma.length ? `微行动 ${maDone}/${ma.length}` : '微行动 +'}
-                    </button>
-                  )}
+                  </div>
+                  <div className="mt-0.5 flex items-center justify-between text-[11px]">
+                    <span className="text-ink-400 font-medium truncate">
+                      {kr.dueBy ? `${String(kr.dueBy).slice(5).replace('-', '/')}${done ? ' · 已达成' : ''}` : (done ? '已达成' : '—')}
+                    </span>
+                    {!done && canBreakdown && (
+                      <button
+                        className="flex-shrink-0 text-[10px] font-bold px-1 py-[1px] rounded transition"
+                        style={{ background: rm.color + '22', color: rm.color }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, createdAt: o.createdAt }, rm);
+                        }}>
+                        {ma.length ? `微行动 ${maDone}/${ma.length}` : '微行动 +'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* 右侧：28px 进度环（v/tgt 在环左侧，环内嵌完成率） */}
+                <div className="relative w-[28px] h-[28px] flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 28 28" className="-rotate-90">
+                    <circle cx="14" cy="14" r="11" fill="none" stroke="#e5e5ea" strokeWidth="3"/>
+                    <circle cx="14" cy="14" r="11" fill="none" stroke={done ? '#34C759' : statusDot} strokeWidth="3" strokeLinecap="round"
+                      strokeDasharray="69.12" strokeDashoffset={69.12 * (1 - Math.min(100, krPct) / 100)}/>
+                  </svg>
+                  <span className="absolute inset-0 grid place-items-center text-[9px] font-extrabold tabular-nums leading-none"
+                    style={{ color: done ? '#34C759' : '#8a9491' }}>
+                    {Math.min(100, krPct)}
+                  </span>
                 </div>
               </div>
+              {/* 转化连接行：↓ + n%（独立成行，低于 50% 标红） */}
+              {nextConv !== null && krs[i + 1] && krs[i + 1].st !== 'done' && (
+                <div className="flex items-center gap-1.5 pl-6 py-1">
+                  <svg className="w-3 h-3 flex-shrink-0 text-ink-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                  <span className="text-[10px] font-bold tabular-nums px-1.5 py-px rounded-md flex-shrink-0"
+                    style={{
+                      color: nextConv < 50 ? '#FF3B30' : '#8a9491',
+                      background: nextConv < 50 ? 'rgba(255,59,48,0.1)' : 'rgba(138,148,145,0.12)',
+                    }}>
+                    {nextConv}%
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}
+        {/* 瓶颈提示：自动分析最低转化率环节（参考知力页漏斗 CTA） */}
+        {bottleneck && (
+          <div className="mt-1 flex items-start gap-1.5 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(255,59,48,0.08)' }}>
+            <span className="text-[10px] font-extrabold leading-[1.6] flex-shrink-0" style={{ color: '#FF3B30' }}>!</span>
+            <span className="text-[11px] leading-[1.6] text-ink-600">
+              从「{bottleneck.from.t}」到「{bottleneck.to.t}」转化率仅
+              <b className="tabular-nums" style={{ color: '#FF3B30' }}> {bottleneck.rate}% </b>
+              ，是当前最大瓶颈，优先提升这一环的转化
+            </span>
+          </div>
+        )}
       </div>
     );
   };

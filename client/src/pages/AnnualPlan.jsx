@@ -4707,7 +4707,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 }
 
 /* ---------- 10. 视图 · 工作 (OKR) ---------- */
-function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, microActions }) {
+function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = '#FF3B30';
@@ -4782,31 +4782,37 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
       : null;
     return (
       <div className="flex flex-col gap-2 px-1 pt-2 pb-2.5 border-b border-ink-100">
-        {/* R1 同构能力页：色条 | O标题16px | X/Y胶囊 | 26×26 +按钮（卡片右上角） */}
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="w-1 h-[18px] rounded-[2px] flex-shrink-0" style={{ background: color }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none truncate min-w-0 flex-1">{o.title}</span>
-          <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0 px-2 py-0.5 rounded-[10px]"
-            style={{ background: 'rgba(255,149,0,0.10)', color: '#FF9500' }}>
-            {krDone}<span className="opacity-60 font-bold">/</span>{krTotal}
-          </span>
-          <button
-            onClick={() => onKrAdd?.(goalIdx)}
-            className="w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
-            style={{ background: `${color}15`, color, border: '1px solid rgba(15,23,42,0.08)' }}
-            title="添加 KR">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
+        {/* R1 同构能力页：色条5px | O标题16px(点击编辑目标) | X/Y胶囊 | 26×26 +按钮 */}
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
+            <span className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors"
+              onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span
+              className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
+              style={{ background: `${color}1a`, border: `1px solid ${color}40`, color: '#E6352B' }}>
+              <span className="font-extrabold">{krDone}</span>
+              <span className="mx-0.5 opacity-50">/</span>
+              <span className="opacity-70">{krTotal}</span>
+            </span>
+            <button
+              onClick={() => onKrAdd?.(goalIdx)}
+              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
+              style={{ background: `${color}1a`, border: `1px solid ${color}40` }}
+              title="添加 KR">
+              <svg className="w-3.5 h-3.5" fill="none" stroke={color} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
         </div>
-        {/* R2 同构能力页：总体完成度 · 单条大进度 */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-semibold text-ink-500">总体完成度</span>
-            <span className="text-[13px] font-extrabold tabular-nums text-ink-700">{gs.avgPct}%</span>
+        {/* R2 总体完成度：漏斗同构 3 列（-mx-1 对齐漏斗列）— 标签 | flex-1 进度条 | 右固定%（粗细5px不变） */}
+        <div className="flex items-center gap-2.5 -mx-1">
+          <span className="text-[11px] font-semibold text-ink-500 w-[128px] flex-shrink-0 truncate">总体完成度</span>
+          <div className="flex-1 h-[5px] rounded-full bg-ink-100 overflow-hidden min-w-[40px]">
+            <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: color }}></div>
           </div>
-          <div className="w-full h-[5px] rounded-full bg-ink-100 overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${gs.avgPct}%`, background: color }}></div>
-          </div>
+          <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
         </div>
         {/* R3 元信息 pill 行：分类·范式 | 截止 | 风险胶囊（右固定） */}
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
@@ -4834,8 +4840,17 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
   const renderFunnelRows = (o, gs, goalIdx) => {
     const krs = o.krs || [];
     const COLOR = gs.color;
+    // 空状态引导（对齐能力页 KR 空态）
+    if (krs.length === 0) {
+      return (
+        <div className="py-4 text-center rounded-xl mt-2" style={{ background: 'rgba(15,23,42,0.03)' }}>
+          <div className="text-[12px] font-semibold text-ink-400">还没有 KR</div>
+          <div className="text-[11px] text-ink-400 mt-1 opacity-80">点击右上角 + 添加</div>
+        </div>
+      );
+    }
     return (
-      <div className="flex flex-col pt-1 max-h-[300px] overflow-y-auto pr-0.5">
+      <div className="flex flex-col pt-1 max-h-[300px] overflow-y-auto pr-2.5">
         {krs.map((kr, i) => {
           const p = pct(kr.v, kr.tgt);
           const isDone = kr.st === 'done' || p >= 100;
@@ -4854,12 +4869,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
                 {/* 左区：w-[128px] = 序号22 + gap + 标题+目标，连接线箭头在此区 justify-center 对准标题中心 */}
                 <div className="w-[128px] flex items-center gap-2.5 flex-shrink-0 -mt-[1px]">
                   <span className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none flex-shrink-0"
-                    style={{ color: isDone ? '#34C759' : COLOR }}>{padNum}</span>
+                    style={{ color: COLOR }}>{padNum}</span>
                   <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
                     <div onClick={() => onKrEdit?.(goalIdx, i, kr)} className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
-                      <span className={`text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 ${isDone ? 'text-ink-400 line-through' : 'text-ink-700'}`}>{kr.t}</span>
+                      <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-ink-700">{kr.t}</span>
                       <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
-                        {kr.tgt}
+                        {kr.tgt}{kr.u}
                       </span>
                     </div>
                   </div>
@@ -4878,13 +4893,13 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
                         }}>
                         {p >= 15 && (
                           <span className="text-[10px] font-bold text-white/90 tabular-nums">
-                            {kr.v}
+                            {kr.v}{kr.u}
                           </span>
                         )}
                       </div>
                       {p < 15 && (
                         <span className="text-[10px] font-bold tabular-nums ml-1.5 flex-shrink-0" style={{ color: '#8a9491' }}>
-                          {kr.v}
+                          {kr.v}{kr.u}
                         </span>
                       )}
                     </div>
@@ -5024,9 +5039,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
 
                 {/* 中部：当前/目标大数字 + 进度条 */}
                 <div className="flex items-baseline gap-1 mb-1.5">
-                  <span className="text-[18px] font-extrabold tabular-nums text-ink-900 leading-none">{kr.v}</span>
+                  <span className="text-[18px] font-extrabold tabular-nums text-ink-900 leading-none">{kr.v}{kr.u}</span>
                   <span className="text-[11px] font-medium text-ink-400">/</span>
-                  <span className="text-[11px] font-medium text-ink-500 tabular-nums">{kr.tgt}</span>
+                  <span className="text-[11px] font-medium text-ink-500 tabular-nums">{kr.tgt}{kr.u}</span>
                   <span className="ml-auto text-[12px] font-extrabold tabular-nums leading-none" style={{ color: rm.color }}>
                     {krPct}%
                   </span>
@@ -5058,7 +5073,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
             {done.map(({ kr, i }) => (
               <span key={i} className="inline-flex items-center gap-1 text-[10.5px] text-ink-500 line-through font-medium px-1.5 py-0.5 rounded bg-ink-50">
                 {kr.t}
-                <span className="text-accent-green tabular-nums no-underline font-bold">{kr.v}/{kr.tgt}</span>
+                <span className="text-accent-green tabular-nums no-underline font-bold">{kr.v}/{kr.tgt}{kr.u}</span>
               </span>
             ))}
           </div>
@@ -5124,7 +5139,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
                 </div>
                 {!isDone && kr.v !== undefined && kr.tgt && (
                   <div className="text-[9.5px] font-medium text-ink-400 mt-0.5 truncate">
-                    当前进展 {kr.v}/{kr.tgt} · {rm.label}
+                    当前进展 {kr.v}/{kr.tgt}{kr.u} · {rm.label}
                   </div>
                 )}
               </div>
@@ -5228,17 +5243,24 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, mic
         </div>
       </div>
 
-      {/* ===== 卡片横向一排：≥lg 屏 2 列并排 ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {dynWk.map((o, i) => {
-          const gs = goalStats[i];
-          return (
-            <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col">
-              {renderObjective(o, gs, i)}
-              {renderByMode(o, gs, i)}
-            </div>
-          );
-        })}
+      {/* ===== 卡片分栏：主业左列 | 副业右列（新增卡片按分组自动落列） ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        {[
+          dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core !== false), // 主业列
+          dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core === false), // 副业列
+        ].map((column, colIdx) => (
+          <div key={colIdx} className="flex flex-col gap-4">
+            {column.map(({ o, i }) => {
+              const gs = goalStats[i];
+              return (
+                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col">
+                  {renderObjective(o, gs, i)}
+                  {renderByMode(o, gs, i)}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -6135,6 +6157,7 @@ export default function AnnualPlan({ standalone = true }) {
         }} onStartAssessment={() => setModal({ type: 'ability_assess' })} />}
       {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit}
         onGoalAdd={() => setModal({ type: 'work_goal' })}
+        onGoalEdit={(goalIdx) => setModal({ type: 'work_goal', initial: { ...workGoals[goalIdx], goalIdx } })}
         microActions={workKrMicroActions}
         onRiskTagClick={(workIdx, krIdx, kr, goal, risk) => setModal({ type: 'risk_breakdown', initial: { workIdx, krIdx, kr, goal, risk } })} />}
       {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit}

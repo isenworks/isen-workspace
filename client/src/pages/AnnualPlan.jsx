@@ -8,6 +8,7 @@ import BookForm from '../components/forms/BookForm.jsx';
 import MilestoneForm from '../components/forms/MilestoneForm.jsx';
 import AbilityForm from '../components/forms/AbilityForm.jsx';
 import KrForm from '../components/forms/KrForm.jsx';
+import WorkGoalForm from '../components/forms/WorkGoalForm.jsx';
 import EntryForm from '../components/forms/EntryForm.jsx';
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -4706,7 +4707,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 }
 
 /* ---------- 10. 视图 · 工作 (OKR) ---------- */
-function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }) {
+function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = '#FF3B30';
@@ -5238,7 +5239,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
             )}
           </div>
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('annual-open-work-goal'))}
+            onClick={() => onGoalAdd?.()}
             className="ml-auto inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
             style={{ background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }}>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -5792,6 +5793,40 @@ export default function AnnualPlan({ standalone = true }) {
       showToast('能力已删除');
     },
   };
+  // 工作·Objective（目标）
+  const workGoalOps = {
+    add: (data) => {
+      setWorkGoals(prev => [...prev, {
+        id: uid(),
+        core: !!data.core,
+        label: data.label || (data.core ? '主业' : '副业'),
+        title: data.title?.trim() || '新目标',
+        mode: ['funnel', 'dashboard', 'milestone', 'balance'].includes(data.mode) ? data.mode : 'funnel',
+        createdAt: data.createdAt || new Date().toISOString().slice(0, 10),
+        deadline: data.deadline || '',
+        completedAt: null,
+        krs: [],
+      }]);
+      showToast('目标已添加，点击卡片内 + 添加 KR');
+    },
+    update: (data) => {
+      if (!data.id) return;
+      setWorkGoals(prev => prev.map(o => o.id === data.id ? {
+        ...o,
+        core: data.core !== undefined ? !!data.core : o.core,
+        label: data.label || (data.core !== undefined ? (data.core ? '主业' : '副业') : o.label),
+        title: data.title !== undefined ? data.title.trim() || o.title : o.title,
+        mode: ['funnel', 'dashboard', 'milestone', 'balance'].includes(data.mode) ? data.mode : o.mode,
+        createdAt: data.createdAt || o.createdAt,
+        deadline: data.deadline !== undefined ? data.deadline : o.deadline,
+      } : o));
+      showToast('目标已更新');
+    },
+    remove: (id) => {
+      setWorkGoals(prev => prev.filter(o => o.id !== id));
+      showToast('目标已删除');
+    },
+  };
   // 工作·KR
   const krOps = {
     add: (data) => {
@@ -5956,6 +5991,20 @@ export default function AnnualPlan({ standalone = true }) {
             />
           </Modal>
         );
+      case 'work_goal':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑目标' : '新增目标'}>
+            <WorkGoalForm
+              initial={modal.initial}
+              onCancel={closeModal}
+              onSaved={(data) => {
+                modal.initial?.id ? workGoalOps.update(data) : workGoalOps.add(data);
+                closeModal();
+              }}
+              onDelete={modal.initial?.id ? (id) => { workGoalOps.remove(id); closeModal(); } : undefined}
+            />
+          </Modal>
+        );
       case 'entry':
         return (
           <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑记录' : '添加记录'}>
@@ -6105,6 +6154,7 @@ export default function AnnualPlan({ standalone = true }) {
           showToast('自评已更新');
         }} onStartAssessment={() => setModal({ type: 'ability_assess' })} />}
       {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit}
+        onGoalAdd={() => setModal({ type: 'work_goal' })}
         microActions={workKrMicroActions}
         onRiskTagClick={(workIdx, krIdx, kr, goal, risk) => setModal({ type: 'risk_breakdown', initial: { workIdx, krIdx, kr, goal, risk } })} />}
       {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit}

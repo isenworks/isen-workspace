@@ -214,8 +214,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                   flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
                   cursor: 'pointer', fontSize: '14px',
                   fontWeight: tab === t.key ? '600' : '400',
-                  color: tab === t.key ? '#007aff' : '#8e8e93',
-                  borderBottom: tab === t.key ? '2px solid #007aff' : '2px solid transparent',
+                  color: tab === t.key ? '#007AFF' : '#8e8e93',
+                  borderBottom: tab === t.key ? '2px solid #007AFF' : '2px solid transparent',
                   transition: 'all 0.15s'
                 }}>{t.label}</button>
               ))}
@@ -227,7 +227,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 margin: '12px 20px 0', 
                 padding: '10px 14px', 
                 fontSize: '13px', 
-                color: '#ff3b30', 
+                color: '#FF3B30', 
                 background: '#fff2f2',
                 borderRadius: '8px',
                 border: '1px solid #ffc9c9',
@@ -292,7 +292,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px'
               }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="12"></line>
                   <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -313,7 +313,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 }}>取消</button>
                 <button onClick={() => handleBanUser(confirmBan.userId)} disabled={busy} style={{
                   flex: 1, padding: '11px', borderRadius: '10px',
-                  background: busy ? '#ccc' : '#ff3b30', color: '#fff',
+                  background: busy ? '#ccc' : '#FF3B30', color: '#fff',
                   border: 'none', fontWeight: '600', fontSize: '14px', cursor: busy ? 'not-allowed' : 'pointer',
                   transition: 'all 0.15s'
                 }}>{busy ? '处理中...' : '确认禁用'}</button>
@@ -338,7 +338,7 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
           生成新的一次性邀请码，分享给朋友注册
         </div>
         <button onClick={onCreate} disabled={busy} style={{
-          padding: '9px 18px', borderRadius: '8px', background: busy ? '#ccc' : '#007aff',
+          padding: '9px 18px', borderRadius: '8px', background: busy ? '#ccc' : '#007AFF',
           color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px',
           cursor: busy ? 'not-allowed' : 'pointer',
           boxShadow: busy ? 'none' : '0 1px 3px rgba(0,122,255,0.3)',
@@ -350,9 +350,9 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
       {newCode && (
         <div style={{
           padding: '18px', borderRadius: '12px', background: '#f0fdf4',
-          border: '1.5px solid #34c759'
+          border: '1.5px solid #34C759'
         }}>
-          <div style={{ fontSize: '12px', color: '#34c759', fontWeight: '600', marginBottom: '10px' }}>
+          <div style={{ fontSize: '12px', color: '#34C759', fontWeight: '600', marginBottom: '10px' }}>
             ✨ 新邀请码（仅一次有效）
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -362,7 +362,7 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
             }}>{newCode}</code>
             <button onClick={() => onCopy(newCode)} style={{
               padding: '6px 14px', borderRadius: '8px', background: '#fff',
-              border: '1px solid #34c759', color: '#34c759',
+              border: '1px solid #34C759', color: '#34C759',
               fontSize: '12px', fontWeight: '600', cursor: 'pointer',
               transition: 'all 0.15s'
             }}>{copied === newCode ? '✓ 已复制' : '复制'}</button>
@@ -393,7 +393,7 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
               const isUsed = c.is_used;
               const isDisabled = c.is_disabled;
               const statusLabel = isDisabled ? '已禁用' : isUsed ? '已使用' : '未使用';
-              const statusColor = isDisabled ? '#8e8e93' : isUsed ? '#007aff' : '#34c759';
+              const statusColor = isDisabled ? '#8e8e93' : isUsed ? '#007AFF' : '#34C759';
               return (
                 <div key={c.id} style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
@@ -421,7 +421,7 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
                   {!isUsed && !isDisabled && (
                     <button onClick={() => onDisable(c.id)} style={{
                       padding: '5px 12px', borderRadius: '7px', border: 'none',
-                      background: 'rgba(255,59,48,0.1)', color: '#ff3b30',
+                      background: 'rgba(255,59,48,0.1)', color: '#FF3B30',
                       fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                       transition: 'all 0.15s'
                     }}>禁用</button>
@@ -466,7 +466,7 @@ function UsersTab({ users, busy, onBan, onUnban }) {
             }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%',
-                background: u.is_banned ? '#8e8e93' : '#007aff', color: '#fff',
+                background: u.is_banned ? '#8e8e93' : '#007AFF', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '13px', fontWeight: '600', flexShrink: 0
               }}>{(u.username || u.email || '?')[0].toUpperCase()}</div>
@@ -480,11 +480,11 @@ function UsersTab({ users, busy, onBan, onUnban }) {
                 <>
                   <span style={{
                     fontSize: '11px', color: '#fff', padding: '3px 10px',
-                    borderRadius: '10px', background: '#ff3b30', fontWeight: '500'
+                    borderRadius: '10px', background: '#FF3B30', fontWeight: '500'
                   }}>已禁用</span>
                   <button onClick={() => onUnban(u.user_id)} disabled={busy} style={{
                     padding: '5px 12px', borderRadius: '7px', border: 'none',
-                    background: 'rgba(52,199,89,0.1)', color: '#34c759',
+                    background: 'rgba(52,199,89,0.1)', color: '#34C759',
                     fontSize: '12px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s'
                   }}>解禁</button>
@@ -493,11 +493,11 @@ function UsersTab({ users, busy, onBan, onUnban }) {
                 <>
                   <span style={{
                     fontSize: '11px', color: '#fff', padding: '3px 10px',
-                    borderRadius: '10px', background: '#34c759', fontWeight: '500'
+                    borderRadius: '10px', background: '#34C759', fontWeight: '500'
                   }}>正常</span>
                   <button onClick={() => onBan(u.user_id)} disabled={busy} style={{
                     padding: '5px 12px', borderRadius: '7px', border: 'none',
-                    background: 'rgba(255,59,48,0.1)', color: '#ff3b30',
+                    background: 'rgba(255,59,48,0.1)', color: '#FF3B30',
                     fontSize: '12px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s'
                   }}>禁用</button>
@@ -571,7 +571,7 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
       {result && (
         <div style={{
           padding: '14px 16px', borderRadius: '10px', background: '#f0fdf4',
-          border: '1px solid #34c759',
+          border: '1px solid #34C759',
         }}>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a7f37', marginBottom: '8px' }}>
             ✅ 迁移成功（总 {result.total || 0} 条）
@@ -595,7 +595,7 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
 
       <button onClick={onRun} disabled={busy || !hasAny} style={{
         padding: '13px 22px', borderRadius: '10px',
-        background: busy ? '#ccc' : (!hasAny ? '#a7c7e7' : '#007aff'),
+        background: busy ? '#ccc' : (!hasAny ? '#a7c7e7' : '#007AFF'),
         color: '#fff', border: 'none', fontWeight: '600', fontSize: '14px',
         cursor: busy || !hasAny ? 'not-allowed' : 'pointer',
         transition: 'all 0.15s',

@@ -24,11 +24,11 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
-  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#22c55e' }, /* accent-green */
-  { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: '#4b63f0' }, /* accent-blue  */
-  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#f59e0b' }, /* accent-amber/orange */
-  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#ef4444' }, /* accent-red   */
-  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#8b5cf6' }, /* accent-violet/purple */
+  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#34C759' }, /* accent-green */
+  { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: '#007AFF' }, /* accent-blue  */
+  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#FF9500' }, /* accent-amber/orange */
+  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#FF3B30' }, /* accent-red   */
+  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#AF52DE' }, /* accent-violet/purple */
 ];
 
 /* 习惯打卡 (精力) */
@@ -276,7 +276,7 @@ const WORK = [
 
 /* 生活 */
 const LIFE = [
-  { key:'relation', lb:'关系', color:'#8b5cf6', entries:[ /* violet */
+  { key:'relation', lb:'关系', color:'#AF52DE', entries:[ /* violet */
     { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'7.28' },
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },
     { t:'和老婆周末野餐', n:'准备了她爱吃的草莓和可颂', d:'7.09' },
@@ -285,7 +285,7 @@ const LIFE = [
     { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'7.22' },
     { t:'尝试手冲咖啡', n:'买了一套 Hario V60', d:'7.10' },
   ]},
-  { key:'travel', lb:'旅游', color:'#8b5cf6', entries:[ /* violet - 符合WCAG AA对比度 */
+  { key:'travel', lb:'旅游', color:'#AF52DE', entries:[ /* violet - 符合WCAG AA对比度 */
     { t:'苏州两日游', n:'去了拙政园和留园', d:'6.22-6.23' },
     { t:'崇明岛露营', n:'和朋友们搭帐篷烧烤', d:'5.18' },
   ]},
@@ -303,9 +303,9 @@ const LIFE = [
 const pct = (v, t) => (t > 0 ? Math.min(100, Math.round((v / t) * 100)) : 0);
 const statusMeta = (st) => {
   switch (st) {
-    case 'done':    return { lb: '已完成',  tagCls: 'bg-accent-green/10 text-accent-green',  numBg: 'bg-accent-green/10 text-accent-green',  bar: '#22c55e'  };
-    case 'doing':   return { lb: '进行中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: '#4b63f0'   };
-    case 'reading': return { lb: '阅读中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: '#4b63f0'   };
+    case 'done':    return { lb: '已完成',  tagCls: 'bg-accent-green/10 text-accent-green',  numBg: 'bg-accent-green/10 text-accent-green',  bar: '#34C759'  };
+    case 'doing':   return { lb: '进行中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: '#007AFF'   };
+    case 'reading': return { lb: '阅读中',  tagCls: 'bg-accent-blue/10 text-accent-blue',    numBg: 'bg-accent-blue/10 text-accent-blue',    bar: '#007AFF'   };
     case 'tg':      return { lb: '待启动',  tagCls: 'bg-ink-100 text-ink-500',               numBg: 'bg-ink-100 text-ink-500',               bar: '#c7c7cc'       };
     case 'pending': return { lb: '未开始',  tagCls: 'bg-ink-100 text-ink-500',               numBg: 'bg-ink-100 text-ink-500',               bar: '#c7c7cc'       };
     default:        return { lb: '',        tagCls: '', numBg: '', bar: '' };
@@ -365,19 +365,19 @@ const calcTimeAnchor = (deadlineStr, createdStr) => {
  *   没有 timePct（无deadline/createdAt）→ 只基于 actual 区间判断
  */
 const calcRisk = (actualPct, timePct, isDone) => {
-  if (isDone || actualPct >= 100) return { q: 'done', label: '已完成', color: '#22c55e' };
+  if (isDone || actualPct >= 100) return { q: 'done', label: '已完成', color: '#34C759' };
   if (timePct !== null && timePct !== undefined) {
     const diff = actualPct - timePct;
-    if (diff <= -20) return { q: 'risk', label: '严重落后', color: '#ef4444' };
-    if (diff <= -5)  return { q: 'warn', label: '略落后',   color: '#f59e0b' };
-    if (diff >= 20)  return { q: 'ahead',label: '超前',     color: '#10b981' };
-    return { q: 'normal', label: '正常', color: '#3b82f6' };
+    if (diff <= -20) return { q: 'risk', label: '严重落后', color: '#FF3B30' };
+    if (diff <= -5)  return { q: 'warn', label: '略落后',   color: '#FF9500' };
+    if (diff >= 20)  return { q: 'ahead',label: '超前',     color: '#34C759' };
+    return { q: 'normal', label: '正常', color: '#007AFF' };
   }
   // 无时间锚点：退化到按 actual 粗判
-  if (actualPct <= 20) return { q: 'risk', label: '严重落后', color: '#ef4444' };
-  if (actualPct <= 50) return { q: 'warn', label: '推进中',   color: '#f59e0b' };
-  if (actualPct >= 90) return { q: 'ahead',label: '超前',     color: '#10b981' };
-  return { q: 'normal', label: '正常', color: '#3b82f6' };
+  if (actualPct <= 20) return { q: 'risk', label: '严重落后', color: '#FF3B30' };
+  if (actualPct <= 50) return { q: 'warn', label: '推进中',   color: '#FF9500' };
+  if (actualPct >= 90) return { q: 'ahead',label: '超前',     color: '#34C759' };
+  return { q: 'normal', label: '正常', color: '#007AFF' };
 };
 
 /* 剩余天数展示：剩X天 / 过期X天 / 长期（当 null） */
@@ -427,7 +427,7 @@ function ProgressBar({ value, color, variant }) {
   const h = variant === 'dense' ? 'h-0.75' : 'h-1';
   return (
     <div className={`${h} rounded-full bg-ink-100 overflow-hidden`}>
-      <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%`, background: color || '#4b63f0' }} />
+      <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%`, background: color || '#007AFF' }} />
     </div>
   );
 }
@@ -591,7 +591,7 @@ function InlineEdit({
 
 /* ---------- P2-2: 知力 OKR 漏斗 (输入量 → 思考量 → 行动量 → 改变量) ---------- */
 function ReadingFunnel({
-  total, done, notes, changes, reviews, color = '#4b63f0', embedded,
+  total, done, notes, changes, reviews, color = '#007AFF', embedded,
   headerTitle = '阅读转化漏斗',
   headerSub = '输入→思考→行动→改变→改变',
   onHeaderChange,
@@ -600,7 +600,7 @@ function ReadingFunnel({
 }) {
   // 五层漏斗（严格真子集递减）：目标量 → 输入量 → 思考量 → 行动量 → 改变量
   // 对应 ReadingFunnel 字段 total → done → notes → changes → reviews
-  // 统一蓝色：全部使用计划总结页主色 #4b63f0
+  // 统一蓝色：全部使用计划总结页主色 #007AFF
   const STAGE_COLORS = [color, color, color, color, color];
   const DEFAULT_STAGES = [
     { key: 'total',   label: '目标量', sub: '年度目标',   convLabel: '' },
@@ -1005,7 +1005,7 @@ function Sidebar({ active, onChange, stats }) {
           <div className="lg:hidden relative w-10 h-10 flex-shrink-0">
             <svg viewBox="0 0 36 36" className="w-10 h-10 -rotate-90">
               <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#4b63f0" strokeWidth="3"
+              <circle cx="18" cy="18" r="15" fill="none" stroke="#007AFF" strokeWidth="3"
                 strokeDasharray={`${(ring / 100) * 94.2} 94.2`} strokeLinecap="round"/>
             </svg>
             <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-ink-900 tabular-nums">{ring}</div>
@@ -1015,7 +1015,7 @@ function Sidebar({ active, onChange, stats }) {
           <div className="relative w-14 h-14 flex-shrink-0">
             <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
               <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#4b63f0" strokeWidth="3"
+              <circle cx="18" cy="18" r="15" fill="none" stroke="#007AFF" strokeWidth="3"
                 strokeDasharray={`${(ring / 100) * 94.2} 94.2`} strokeLinecap="round"/>
             </svg>
             <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-ink-900 tabular-nums">{ring}</div>
@@ -1069,7 +1069,7 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 通用 Sparkline 迷你折线图（带月份标注+顶点Hover Tooltip） ---------- */
-const Sparkline = ({ data, labels, color = '#22c55e', width = 260, height = 60 }) => {
+const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60 }) => {
   const [hoverIdx, setHoverIdx] = useState(null);
   // 🛑 频闪修复：鼠标离开SVG时延迟120ms才隐藏Tooltip，快速移出去又移回来不会抖
   // 🛑 显示端滞后：让最近点锁定后有"吸附感"，不会在两点边界反复横跳
@@ -1313,25 +1313,25 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       const weekDaysLeft = Math.max(0, 7 - (curDay - weekStart + 1));
       return {
         periodLabel: `${curMonth}月${weekStart}-${weekEnd}日`,
-        stat1: { label: '本周打卡', sub: '习惯完成', v: weekCheckins, u: '次', color: '#22c55e' },
-        stat2: { label: '完成目标', sub: '书籍/里程碑/KR', v: allGoalsDone, u: '个', color: '#4b63f0' },
-        stat3: { label: '剩余天数', sub: '本周', v: weekDaysLeft, u: '天', color: '#f59e0b' },
+        stat1: { label: '本周打卡', sub: '习惯完成', v: weekCheckins, u: '次', color: '#34C759' },
+        stat2: { label: '完成目标', sub: '书籍/里程碑/KR', v: allGoalsDone, u: '个', color: '#007AFF' },
+        stat3: { label: '剩余天数', sub: '本周', v: weekDaysLeft, u: '天', color: '#FF9500' },
       };
     }
     if (timeScale === 'month') {
       const monthDaysLeft = Math.max(0, monthDaysInYear[curMonth - 1] - curDay);
       return {
         periodLabel: `${curMonth}月`,
-        stat1: { label: '本月打卡', sub: '习惯完成', v: energyStats.completedHabitDays, u: '次', color: '#22c55e' },
-        stat2: { label: '累计打卡', sub: '今年累计', v: totalCheckins, u: '天', color: '#4b63f0' },
-        stat3: { label: '剩余天数', sub: '本月', v: monthDaysLeft, u: '天', color: '#f59e0b' },
+        stat1: { label: '本月打卡', sub: '习惯完成', v: energyStats.completedHabitDays, u: '次', color: '#34C759' },
+        stat2: { label: '累计打卡', sub: '今年累计', v: totalCheckins, u: '天', color: '#007AFF' },
+        stat3: { label: '剩余天数', sub: '本月', v: monthDaysLeft, u: '天', color: '#FF9500' },
       };
     }
     return {
       periodLabel: `${year}年度`,
-      stat1: { label: '累计打卡', sub: '习惯完成天数', v: totalCheckins, u: '天', color: '#22c55e' },
-      stat2: { label: '完成目标', sub: '书籍+里程碑+KR', v: allGoalsDone, u: '个', color: '#4b63f0' },
-      stat3: { label: '今年剩余', sub: '距离年底', v: daysLeft, u: '天', color: '#f59e0b' },
+      stat1: { label: '累计打卡', sub: '习惯完成天数', v: totalCheckins, u: '天', color: '#34C759' },
+      stat2: { label: '完成目标', sub: '书籍+里程碑+KR', v: allGoalsDone, u: '个', color: '#007AFF' },
+      stat3: { label: '今年剩余', sub: '距离年底', v: daysLeft, u: '天', color: '#FF9500' },
     };
   };
 
@@ -1409,7 +1409,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3.5">
-            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
+            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }}></span>
             <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 年度规划总览</span>
             <div className="inline-flex p-0.5 rounded-lg bg-surface-soft border border-ink-100 ml-2">
               {scaleTabs.map(t => (
@@ -1434,7 +1434,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             <div className="relative w-[88px] h-[88px]">
               <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
                 <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5ea" strokeWidth="2.5"/>
-                <circle cx="18" cy="18" r="15" fill="none" stroke="#8b5cf6" strokeWidth="2.5"
+                <circle cx="18" cy="18" r="15" fill="none" stroke="#AF52DE" strokeWidth="2.5"
                   strokeDasharray={`${(stats.weighted / 100) * 94.2} 94.2`} strokeLinecap="round"/>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -1456,13 +1456,13 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                 <div className="flex items-center gap-1.5 pl-1">
                   <span className="w-4 h-4 rounded grid place-items-center flex-shrink-0"
                     style={{ color: s.color, background: `${s.color}15` }}>
-                    {s.color === '#22c55e' && (
+                    {s.color === '#34C759' && (
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     )}
-                    {s.color === '#4b63f0' && (
+                    {s.color === '#007AFF' && (
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     )}
-                    {s.color === '#f59e0b' && (
+                    {s.color === '#FF9500' && (
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" strokeLinecap="round"/></svg>
                     )}
                   </span>
@@ -1486,7 +1486,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       {/* L2 玻璃卡片：模块进度 */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-3.5 mb-4">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">模块进度</span>
           <span className="text-[11px] text-ink-400 ml-2">点击进入详情</span>
         </div>
@@ -1742,8 +1742,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {habits.map((h, hIdx) => {
             const yearlyPct = pct(h.val, h.target);
-            const GREEN = '#22c55e';
-            const GREEN_TEXT = '#22c55e';
+            const GREEN = '#34C759';
+            const GREEN_TEXT = '#34C759';
             const padNum = String(hIdx + 1).padStart(2, '0');
             const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
             const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
@@ -1831,7 +1831,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="space-y-0.5">
         {habits.map((h, hIdx) => {
           const p = pct(h.val, h.target);
-          const GREEN = '#22c55e';
+          const GREEN = '#34C759';
           const hkey = h.id || h.key;
           const isEditing = editingTargetKey === hkey;
           const padNum = String(hIdx + 1).padStart(2, '0');
@@ -1957,7 +1957,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             const completedDays = realDates
               ? realDates
               : new Set(Array.from({ length: h.month?.[selectedMonth] || 0 }, (_, i) => i + 1));
-            const GREEN = '#22c55e';
+            const GREEN = '#34C759';
             const padNum = String(hidx + 1).padStart(2, '0');
             const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
             const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
@@ -2134,9 +2134,9 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
   const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff' };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007aff', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007AFF', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#FF3B30', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -2218,9 +2218,9 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
   const INPUT = { width: '100%', padding: '6px 9px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 12.5, outline: 'none', background: '#fff', lineHeight: 1.5 };
   const INPUT_TITLE = { ...INPUT, fontSize: 14, fontWeight: 600, color: '#1c1c1e', padding: '9px 12px', border: '1.5px solid rgba(0,122,255,0.35)', boxShadow: '0 0 0 3px rgba(0,122,255,0.06)' };
   const INPUT_OPT = { ...INPUT, border: '1px dashed rgba(148,163,184,0.5)', background: 'rgba(248,250,252,0.6)' };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007aff', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#007AFF', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#FF3B30', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   const TAGS = [
     { v: 'cognition', lb: '认知更新' },
@@ -2306,7 +2306,7 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
               style={{
                 flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 12, fontWeight: 600,
                 background: form.tag === t.v ? `rgba(0,122,255,0.10)` : 'rgba(120,120,128,0.08)',
-                color: form.tag === t.v ? "#007aff" : '#8e8e93',
+                color: form.tag === t.v ? "#007AFF" : '#8e8e93',
                 border: form.tag === t.v ? `1px solid rgba(0,122,255,0.25)` : '1px solid transparent',
                 cursor: 'pointer',
               }}>{t.lb}</button>
@@ -2337,7 +2337,7 @@ function BookPickerModal({ mode, books, onPick, onAddNew, onClose }) {
       footer={
         <button onClick={onAddNew}
           className="px-4 py-1.5 text-[13px] rounded-[10px] transition"
-          style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.25)', color: '#007aff' }}>
+          style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.25)', color: '#007AFF' }}>
           + 新增书籍
         </button>
       }>
@@ -2363,14 +2363,14 @@ function BookPickerModal({ mode, books, onPick, onAddNew, onClose }) {
                 <button key={b.id} onClick={() => onPick(b)}
                   className="flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] transition text-left hover:bg-[rgba(0,122,255,0.05)]"
                   style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}>
-                  <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#007aff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#007AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   </svg>
                   <span className="text-[13px] font-semibold text-ink-900 truncate flex-1 min-w-0">{b.t}</span>
                   {b.author && <span className="text-[11px] text-ink-400 flex-shrink-0 truncate max-w-[90px]">{b.author}</span>}
                   <span className="text-[10px] font-semibold px-1.5 rounded-md flex-shrink-0"
-                    style={{ background: 'rgba(0,122,255,0.10)', color: '#007aff' }}>
+                    style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
                     {isInsights ? `${cnt}组` : `${cnt}条`}
                   </span>
                 </button>
@@ -2407,9 +2407,9 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
 
   const scoreColor = (n) => {
     n = Number(n) || 0;
-    if (n >= 9) return '#22c55e';
-    if (n >= 6) return '#f59e0b';
-    return '#ef4444';
+    if (n >= 9) return '#34C759';
+    if (n >= 6) return '#FF9500';
+    return '#FF3B30';
   };
   const scoreLabel = (n) => {
     n = Number(n) || 0;
@@ -2436,14 +2436,14 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
   };
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#FF9500', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 顶部说明 */}
       <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <svg style={{ width: 18, height: 18, color: '#f59e0b', flexShrink: 0, marginTop: 1 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <svg style={{ width: 18, height: 18, color: '#FF9500', flexShrink: 0, marginTop: 1 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
         <div style={{ fontSize: 12, lineHeight: 1.55, color: '#78350f' }}>
           <b>{curYear}年{curMonth}月 · 能力自评</b>：客观评估本月自己在每项能力上的实际水平（0-10分），<br />对比上月看趋势，作为下月的行动锚点。
         </div>
@@ -2472,7 +2472,7 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
                     {delta !== null && (
                       <span style={{
                         fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                        color: delta > 0 ? '#22c55e' : delta < 0 ? '#ef4444' : '#8e8e93',
+                        color: delta > 0 ? '#34C759' : delta < 0 ? '#FF3B30' : '#8e8e93',
                       }}>
                         {delta > 0 ? '▲' : delta < 0 ? '▼' : '—'}{Math.abs(delta) > 0 ? Math.abs(delta) : ''}
                       </span>
@@ -2500,7 +2500,7 @@ function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>综合自评</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-            <span style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{avg}</span>
+            <span style={{ fontSize: 24, fontWeight: 800, color: '#FF9500', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{avg}</span>
             <span style={{ fontSize: 13, color: '#92400e', opacity: .8 }}>/10</span>
           </div>
         </div>
@@ -2574,7 +2574,7 @@ function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave, onCanc
   const quickBoost = Math.min(gap, Math.max(1, Math.round(perDay)));
 
   const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#FF3B30', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
@@ -2630,7 +2630,7 @@ function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave, onCanc
               <input
                 type="checkbox" checked={!!a.done}
                 onChange={() => setActions(prev => prev.map(x => x.id === a.id ? { ...x, done: !x.done } : x))}
-                style={{ width: 16, height: 16, marginTop: 1, accentColor: '#ef4444', flexShrink: 0 }}
+                style={{ width: 16, height: 16, marginTop: 1, accentColor: '#FF3B30', flexShrink: 0 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
@@ -2723,7 +2723,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
     onSave?.(Array.from(set));
   };
 
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#8b5cf6,#ec4899)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(139,92,246,0.25)' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#AF52DE,#ec4899)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(139,92,246,0.25)' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
@@ -2732,7 +2732,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
       <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(236,72,153,0.08) 100%)', border: '1px solid rgba(139,92,246,0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg,#8b5cf6,#ec4899)', color: '#fff',
+          background: 'linear-gradient(135deg,#AF52DE,#ec4899)', color: '#fff',
           display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(139,92,246,0.3)',
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -2740,7 +2740,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>{year} 年度精选 · 记忆卡生成</div>
           <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
-            选择 <b style={{ color: '#8b5cf6' }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
+            选择 <b style={{ color: '#AF52DE' }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
             已选 <b>{currentHl.length}</b> / 共 <b>{allEntries.length}</b> 条可挑选。
           </div>
         </div>
@@ -2761,8 +2761,8 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
 
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#8b5cf6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1.5, color: '#8b5cf6' }}>{year} · 我的珍藏年卡</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#AF52DE"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1.5, color: '#AF52DE' }}>{year} · 我的珍藏年卡</span>
             </div>
             {currentHl.length === 0 ? (
               <div style={{
@@ -2789,7 +2789,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e', lineHeight: 1.45 }}>{e.t}</div>
                       {e.n && <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>{e.n}</div>}
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#8b5cf6', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#AF52DE', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
                   </div>
                 ))}
               </div>
@@ -2851,7 +2851,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
                   style={{
                     width: 24, height: 24, borderRadius: 8, border: 'none', cursor: 'pointer',
                     display: 'grid', placeItems: 'center', transition: 'transform 0.12s',
-                    background: sel ? 'linear-gradient(135deg,#8b5cf6,#ec4899)' : 'rgba(15,23,42,0.05)',
+                    background: sel ? 'linear-gradient(135deg,#AF52DE,#ec4899)' : 'rgba(15,23,42,0.05)',
                     color: sel ? '#fff' : '#cbd5e1',
                     boxShadow: sel ? '0 1px 3px rgba(139,92,246,0.3)' : 'none',
                   }}>
@@ -3256,16 +3256,16 @@ function CognitionView({
     }
   };
 
-  const BLUE = '#007aff';       // 计划总结页"今日按钮"填充蓝（Apple system blue）
+  const BLUE = '#007AFF';       // 计划总结页"今日按钮"填充蓝（Apple system blue）
   const BLUE_DARK = '#0062cc';  // 深蓝
   const BLUE_LIGHT = 'rgba(0,122,255,0.08)'; // 对应今日页浅色背景 rgba(0,122,255,0.08)
   const BLUE_BG = 'rgba(0,122,255,0.12)';
   // 分类色标：4 大类固定颜色（身份识别）
   const CAT_COLORS = {
-    '认知成长': '#007aff', // 蓝（知力主色）
+    '认知成长': '#007AFF', // 蓝（知力主色）
     '人际沟通': '#a855f7', // 紫（人际/感性）
-    '商业职场': '#f59e0b', // 橙（商业/行动力）
-    '人文叙事': '#10b981', // 绿（叙事/成长感）
+    '商业职场': '#FF9500', // 橙（商业/行动力）
+    '人文叙事': '#34C759', // 绿（叙事/成长感）
   };
   const catColorOf = (c) => CAT_COLORS[c] || BLUE;
   const year = new Date().getFullYear();
@@ -3563,7 +3563,7 @@ function CognitionView({
                           style={{
                             width: `${pctWidth}%`,
                             background: isDone
-                              ? '#22c55e'
+                              ? '#34C759'
                               : `${BLUE}`,
                             boxShadow: isDone ? '0 1px 3px rgba(34,197,94,0.25)' : `0 1px 3px ${BLUE}25`,
                           }}>
@@ -3584,7 +3584,7 @@ function CognitionView({
 
                   {/* 右侧：完成率（删除当前/目标列，节省 64px 让漏斗条更宽） */}
                   <span className="text-[14px] font-extrabold tabular-nums leading-none w-[48px] text-right flex-shrink-0"
-                    style={{ color: isDone ? '#111827' : (isBehind ? '#dc2626' : BLUE) }}>
+                    style={{ color: isDone ? '#111827' : (isBehind ? '#FF3B30' : BLUE) }}>
                     {p}<span className="text-[11px] font-bold">%</span>
                   </span>
                 </div>
@@ -3604,7 +3604,7 @@ function CognitionView({
                       <div className="flex-1 flex items-center justify-center min-w-0">
                         <span
                           className="font-bold tabular-nums"
-                          style={{ color: lowConv ? '#dc2626' : '#8a9491' }}>
+                          style={{ color: lowConv ? '#FF3B30' : '#8a9491' }}>
                           {conv ?? 0}%
                         </span>
                       </div>
@@ -3646,7 +3646,7 @@ function CognitionView({
           return (
             <div className="flex items-center gap-2 mt-2 pt-2.5 pb-1 px-3 rounded-lg"
               style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)' }}>
-              <svg className="w-[14px] h-[14px] flex-shrink-0" fill="#f59e0b" viewBox="0 0 24 24">
+              <svg className="w-[14px] h-[14px] flex-shrink-0" fill="#FF9500" viewBox="0 0 24 24">
                 <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
               <span className="text-[11px] font-bold text-ink-700 flex-shrink-0">关键瓶颈：</span>
@@ -3654,7 +3654,7 @@ function CognitionView({
                 从「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.from}</span>」
                 到「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.to}</span>」
                 转化率
-                <span style={{ color: '#dc2626', fontWeight: 800 }}> {minConv.rate}% </span>
+                <span style={{ color: '#FF3B30', fontWeight: 800 }}> {minConv.rate}% </span>
                 — {suggestions[0]}
               </span>
             </div>
@@ -3774,7 +3774,7 @@ function CognitionView({
           const META = {
             reading:   { lb: '阅读中',   col: BLUE },
             pending:   { lb: '未开始',   col: '#64748b' },
-            done:      { lb: '已读完',   col: '#22c55e' },
+            done:      { lb: '已读完',   col: '#34C759' },
             abandoned: { lb: '已归档', col: '#64748b' },
           };
           const g = { key: shelfTab, ...META[shelfTab], books: groups[shelfTab] || [] };
@@ -3834,7 +3834,7 @@ function CognitionView({
                         statusDot = { col: BLUE, solid: true, pulse: true, lb: '阅读中' };
                         break;
                       case 'done':
-                        statusDot = { col: '#22c55e', solid: true, pulse: false, lb: '已读完' };
+                        statusDot = { col: '#34C759', solid: true, pulse: false, lb: '已读完' };
                         break;
                       case 'abandoned':
                         statusDot = { col: '#64748b', solid: false, pulse: false, strike: false, lb: '已归档' };
@@ -3993,7 +3993,7 @@ function CognitionView({
                                 <div style={{ width: '100%', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden', flex: '1 1 auto' }}>
                                   <div style={{
                                     width: `${Math.max(0, pct)}%`, height: '100%', borderRadius:'999px',
-                                    background: b.st === 'done' ? '#22c55e' : b.st === 'abandoned' ? '#8a9491' : pct <= 0 ? 'transparent' : statusDot.col,
+                                    background: b.st === 'done' ? '#34C759' : b.st === 'abandoned' ? '#8a9491' : pct <= 0 ? 'transparent' : statusDot.col,
                                     transition: 'width 300ms ease-out',
                                   }}/>
                                 </div>
@@ -4063,7 +4063,7 @@ function CognitionView({
                             {hasIns && (
                               <div className="flex items-center gap-[5px]">
                                 <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                  style={{ background: '#22c55e' }}>
+                                  style={{ background: '#34C759' }}>
                                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                 </div>
                                 <span className="text-[11px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
@@ -4072,7 +4072,7 @@ function CognitionView({
                             {hasAct && (
                               <div className="flex items-center gap-[5px]">
                                 <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                  style={{ background: '#22c55e' }}>
+                                  style={{ background: '#34C759' }}>
                                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                 </div>
                                 <span className="text-[11px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
@@ -4084,7 +4084,7 @@ function CognitionView({
                               return (
                                 <div className="flex items-center gap-[5px]">
                                   <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                    style={{ background: '#22c55e' }}>
+                                    style={{ background: '#34C759' }}>
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                   </div>
                                   <span className="text-[11px] font-semibold text-ink-600 leading-none">改变 {changeCount} 个</span>
@@ -4140,7 +4140,7 @@ function CognitionView({
             <>
               <button onClick={() => { if (editingKrModal.kr && confirm('确定删除此 KR？')) { onKrRemove?.(editingKrModal.kr.id); setEditingKrModal(null); } }}
                 className="px-4 py-1.5 text-[13px] rounded-[10px] transition"
-                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444' }}>删除</button>
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#FF3B30' }}>删除</button>
               <div className="flex-1"></div>
               <button onClick={() => setEditingKrModal(null)}
                 className="px-4 py-1.5 text-[13px] rounded-[10px] transition"
@@ -4505,8 +4505,8 @@ function CognitionView({
 function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAdd, scoreHistory, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const year = new Date().getFullYear();
-  const AB_COLOR = '#f59e0b';
-  const AB_DARK = '#b45309';
+  const AB_COLOR = '#FF9500';
+  const AB_DARK = '#E67E22';
 
   /* ===== 能力级派生统计 ===== */
   const abilityStats = useMemo(() => {
@@ -4634,7 +4634,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
       {/* ===== Hero ===== */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#f59e0b' }}></span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#FF9500' }}></span>
           <span className="text-[16px] font-bold leading-none text-ink-900">{year}年 · 能力成长</span>
           <div className="flex items-center gap-2 flex-wrap ml-1">
             {heroStats.earliest !== null && (
@@ -4647,21 +4647,21 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             )}
             {(heroStats.risk + heroStats.overdue) > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
                 <span className="text-[10px] font-bold text-rose-500">落后风险</span>
                 <span className="text-[11px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk + heroStats.overdue}</span>
               </div>
             )}
             {heroStats.warn > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }}></span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF9500' }}></span>
                 <span className="text-[10px] font-bold text-amber-500">略落后</span>
                 <span className="text-[11px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
               </div>
             )}
             {heroStats.risk === 0 && heroStats.warn === 0 && heroStats.overdue === 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
                 <span className="text-[10px] font-bold text-emerald-600">节奏正常</span>
               </div>
             )}
@@ -4709,7 +4709,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
-  const RED = '#ef4444';
+  const RED = '#FF3B30';
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {
@@ -4735,7 +4735,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
         avgPct, rm, days, timePct, risks,
         dl: daysLabel(days),
         label: o.label || (o.core ? '主业' : '副业'),
-        color: o.core ? '#ef4444' : '#F97316',
+        color: o.core ? '#FF3B30' : '#F97316',
       };
     });
   }, [dynWk]);
@@ -4776,15 +4776,15 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
       balance:   { lb: '平衡雷达',   icon: (<><polygon points="12,3 20,9 17,19 7,19 4,9"/><circle cx="12" cy="12" r="2"/></>) },
     };
     const m = modeMeta[gs.mode] || modeMeta.funnel;
-    const topRisk = (gs.risks.risk || 0) > 0 ? { n: gs.risks.risk, c: '#ef4444', l: '落后' }
-      : (gs.risks.warn || 0) > 0 ? { n: gs.risks.warn, c: '#f59e0b', l: '预警' }
-      : (gs.risks.done === krTotal && krTotal > 0) ? { n: null, c: '#22c55e', l: '已达成' }
+    const topRisk = (gs.risks.risk || 0) > 0 ? { n: gs.risks.risk, c: '#FF3B30', l: '落后' }
+      : (gs.risks.warn || 0) > 0 ? { n: gs.risks.warn, c: '#FF9500', l: '预警' }
+      : (gs.risks.done === krTotal && krTotal > 0) ? { n: null, c: '#34C759', l: '已达成' }
       : null;
     return (
       <div className="flex flex-col gap-2 px-1 py-2.5 border-b border-ink-100">
         {/* R1：色条 + 分类标签 + 范式徽章 + O + 标题 | 截止 */}
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#FF3B30' }}></span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg flex-shrink-0 text-[10.5px] font-bold"
             style={{ background: `${color}15`, color }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
@@ -4792,7 +4792,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           </span>
           {/* 范式徽章：11px + 图标 + 边框高亮，统一 RED */}
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md flex-shrink-0 text-[10.5px] font-bold border"
-            style={{ borderColor: '#ef444440', background: '#ef44440D', color: '#ef4444' }}>
+            style={{ borderColor: '#FF3B3040', background: '#FF3B300D', color: '#FF3B30' }}>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinejoin="round">{m.icon}</svg>
             {m.lb}
           </span>
@@ -4856,7 +4856,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           const done = kr.st === 'done';
           const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct };
           const rm = calcRisk(krPct, microTA.timePct, done);
-          const statusDot = done ? '#22c55e' : kr.st === 'doing' ? RED : '#c7c7cc';
+          const statusDot = done ? '#34C759' : kr.st === 'doing' ? RED : '#c7c7cc';
           const krId = kr.id || `${goalIdx}-${i}`;
           const ma = microActions?.[krId] || [];
           const maDone = ma.filter(x => x.done).length;
@@ -4877,14 +4877,14 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                   onClick={() => onKrEdit?.(goalIdx, i, kr)}>
                   <div className="w-[22px] text-right">
                     <span className="inline-grid place-items-center w-4 h-4 rounded-full" style={{ background: 'rgba(34,197,94,0.15)' }}>
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </span>
                   </div>
                   <div className="w-[88px] pl-0.5 min-w-0">
                     <div className="text-[10.5px] text-ink-400 line-through truncate font-semibold">{kr.t}</div>
                   </div>
                   <div className="flex-1 min-w-0 h-[18px] rounded overflow-hidden relative opacity-40 bg-ink-100">
-                    <div className="h-full w-full" style={{ background: '#22c55e' }}></div>
+                    <div className="h-full w-full" style={{ background: '#34C759' }}></div>
                     <div className="absolute inset-0 flex items-center justify-end pr-1.5">
                       <span className="text-[9.5px] font-extrabold text-white drop-shadow tabular-nums">{kr.tgt}</span>
                     </div>
@@ -4907,7 +4907,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
               <div className="flex items-center gap-2 px-1 py-1 rounded-xl hover:bg-ink-50/60 cursor-pointer transition-colors"
                 onClick={() => onKrEdit?.(goalIdx, i, kr)}>
                 <div className="w-[22px] text-right tabular-nums leading-none">
-                  <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: '#ef4444' }}>
+                  <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: '#FF3B30' }}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
@@ -4925,7 +4925,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                   <span className="text-[10.5px] font-extrabold tabular-nums"
                     style={{
                       color: krPct < (gs.timePct !== null ? Math.max(gs.timePct - 5, 0) : 50)
-                        ? '#dc2626' : rm.color
+                        ? '#FF3B30' : rm.color
                     }}>
                     {krPct}%
                   </span>
@@ -4958,7 +4958,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                     </svg>
                   </div>
                   <div className="flex-1 flex items-center justify-center">
-                    <span className="font-bold tabular-nums" style={{ color: lowConv ? '#dc2626' : '#8a9491' }}>
+                    <span className="font-bold tabular-nums" style={{ color: lowConv ? '#FF3B30' : '#8a9491' }}>
                       {conv ?? 0}%
                     </span>
                   </div>
@@ -5057,7 +5057,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 {/* 底部：时间进度 vs KR 落差微提示 + dueBy */}
                 <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-dashed border-ink-100">
                   {microTA.timePct !== null ? (
-                    <span className="text-[9.5px] font-semibold" style={{ color: krPct < microTA.timePct - 5 ? '#ef4444' : '#8a9491' }}>
+                    <span className="text-[9.5px] font-semibold" style={{ color: krPct < microTA.timePct - 5 ? '#FF3B30' : '#8a9491' }}>
                       时间 {microTA.timePct}% {krPct < microTA.timePct - 5 ? `↓${microTA.timePct - krPct}%` : krPct > microTA.timePct + 5 ? `↑${krPct - microTA.timePct}%` : '节奏匹配'}
                     </span>
                   ) : <span className="text-[9.5px] text-ink-400">长期KPI</span>}
@@ -5126,9 +5126,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
                 <div
                   className="w-6 h-6 rounded-full grid place-items-center font-extrabold text-[10px] flex-shrink-0"
                   style={{
-                    background: isDone ? '#22c55e20' : rm.color + '15',
-                    color: isDone ? '#15803d' : rm.color,
-                    border: `1.5px solid ${isDone ? '#22c55e' : rm.color}`,
+                    background: isDone ? '#34C75920' : rm.color + '15',
+                    color: isDone ? '#34C759' : rm.color,
+                    border: `1.5px solid ${isDone ? '#34C759' : rm.color}`,
                   }}
                 >
                   {isDone ? (
@@ -5150,7 +5150,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
               {/* 阶段进度条（简单，因为门控是布尔通过/不通过，进度为中间值） */}
               <div className="w-[60px] grid place-items-center">
                 <div className="w-[52px] h-1.5 rounded-full bg-ink-100 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${krPct}%`, background: isDone ? '#22c55e' : rm.color }}></div>
+                  <div className="h-full rounded-full" style={{ width: `${krPct}%`, background: isDone ? '#34C759' : rm.color }}></div>
                 </div>
               </div>
               {/* 验收门结果 */}
@@ -5198,7 +5198,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
       {/* ===== Hero：风险锚点 + 添加目标入口 ===== */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#ef4444' }}></span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#FF3B30' }}></span>
           <span className="text-[16px] font-bold leading-none text-ink-900">{year}年 · 工作 OKR</span>
           <div className="flex items-center gap-2 flex-wrap ml-1">
             {heroStats.earliest !== null && (
@@ -5211,28 +5211,28 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
             )}
             {heroStats.risk > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444' }}></span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF3B30' }}></span>
                 <span className="text-[10px] font-bold text-rose-500">落后</span>
                 <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.risk}</span>
               </div>
             )}
             {heroStats.warn > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }}></span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF9500' }}></span>
                 <span className="text-[10px] font-bold text-amber-500">预警</span>
                 <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-amber-600">{heroStats.warn}</span>
               </div>
             )}
             {heroStats.overdue > 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
                 <span className="text-[10px] font-bold text-rose-500">过期</span>
                 <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-rose-600">{heroStats.overdue}</span>
               </div>
             )}
             {heroStats.total === 0 && (
               <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
                 <span className="text-[10px] font-bold text-emerald-600">节奏正常</span>
               </div>
             )}
@@ -5240,7 +5240,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onRiskTagClick, microActions }
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('annual-open-work-goal'))}
             className="ml-auto inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-            style={{ background: 'rgba(239,68,68,0.10)', color: '#ef4444' }}>
+            style={{ background: 'rgba(239,68,68,0.10)', color: '#FF3B30' }}>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             添加目标
           </button>
@@ -5275,11 +5275,11 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
       {/* Step1-4 L1区块：紫条 + 16px标题 + 紫胶囊%，与其他4模块一致 */}
       <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8b5cf6' }}></span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活珍藏</span>
           <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
             style={{ background: 'rgba(139,92,246,0.12)' }}>
-            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#8b5cf6' }}>{lifePct}</span>
+            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#AF52DE' }}>{lifePct}</span>
             <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(139,92,246,0.85)' }}>%</span>
           </div>
           {/* 年度精选 CTA（Step2-3 牵引入口） */}
@@ -5287,7 +5287,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             onClick={() => onStartHighlights?.()}
             disabled={totalEntries === 0}
             className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(139,92,246,0.25)' }}>
+            style={{ background: 'linear-gradient(135deg, #AF52DE 0%, #ec4899 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(139,92,246,0.25)' }}>
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
             </svg>
@@ -5301,7 +5301,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               {/* 卡片头部：紫色图标 + 标题 + 数量 + 右上角添加按钮 */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0"
-                  style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6' }}>
+                  style={{ background: 'rgba(139,92,246,0.12)', color: '#AF52DE' }}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     {c.key === 'relation' && (<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>)}
                     {c.key === 'food' && (<><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></>)}
@@ -5313,7 +5313,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 <span className="text-[15px] font-semibold text-ink-900 leading-none">{c.lb}</span>
                 <span className="text-[12px] font-semibold tabular-nums text-ink-500">· {c.entries.length}</span>
                 {/* 右上角添加按钮 */}
-                <button onClick={() => onEntryAdd?.(ci, c.lb)} className="ml-auto w-7 h-7 rounded-lg grid place-items-center text-ink-400 hover:text-[#8b5cf6] hover:bg-[rgba(139,92,246,0.08)] transition cursor-pointer">
+                <button onClick={() => onEntryAdd?.(ci, c.lb)} className="ml-auto w-7 h-7 rounded-lg grid place-items-center text-ink-400 hover:text-[#AF52DE] hover:bg-[rgba(139,92,246,0.08)] transition cursor-pointer">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
                 </button>
               </div>
@@ -5346,7 +5346,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer relative">
                     {hl && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full grid place-items-center"
-                        style={{ background: 'linear-gradient(135deg,#8b5cf6,#ec4899)', color: '#fff', boxShadow: '0 1px 3px rgba(139,92,246,0.35)' }}
+                        style={{ background: 'linear-gradient(135deg,#AF52DE,#ec4899)', color: '#fff', boxShadow: '0 1px 3px rgba(139,92,246,0.35)' }}
                         title="年度精选">
                         <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                       </div>
@@ -5831,7 +5831,7 @@ export default function AnnualPlan({ standalone = true }) {
   const handleEnergyAction = useCallback(async (action, habit) => {
     if (action === 'addHabit') {
       // 新建精力类习惯
-      setModal({ type: 'habit', initial: { growth_type: 'energy', accent_color: '#22c55e' } });
+      setModal({ type: 'habit', initial: { growth_type: 'energy', accent_color: '#34C759' } });
     }
     if (action === 'editHabit' && habit) {
       const rawHabit = {
@@ -5839,7 +5839,7 @@ export default function AnnualPlan({ standalone = true }) {
         name: habit.name,
         emoji: habit.emoji,
         growth_type: 'energy',
-        accent_color: '#22c55e',
+        accent_color: '#34C759',
         target_mode: habit.unit === '次' ? 'count' : 'check',
         target_unit: habit.unit === '次' ? '次' : habit.unit,
         target_value: habit.unit === '次' ? '1' : null,
@@ -6116,7 +6116,7 @@ export default function AnnualPlan({ standalone = true }) {
   const toastEl = toast && (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2"
       style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
-      <svg className="w-4 h-4" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+      <svg className="w-4 h-4" fill="none" stroke="#34C759" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
       <span className="text-ink-800">{toast}</span>
     </div>
   );

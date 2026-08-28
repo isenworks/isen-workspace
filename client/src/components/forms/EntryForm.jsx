@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
 
 const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
-const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: '#8b5cf6', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(139,92,246,0.25)' };
-const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: 'none', cursor: 'pointer', transition: 'all .15s' };
+const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: '#AF52DE', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(139,92,246,0.25)' };
+const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(239,68,68,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer', transition: 'all .15s' };
 
 export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, onDelete }) {
   const isEdit = !!(initial && initial.id);
@@ -29,7 +29,7 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {categoryLabel && (
-        <div style={{ fontSize: '12px', fontWeight: '600', color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', padding: '4px 10px', borderRadius: '8px', display: 'inline-block', letterSpacing: '0.03em' }}>
+        <div style={{ fontSize: '12px', fontWeight: '600', color: '#AF52DE', background: 'rgba(139,92,246,0.1)', padding: '4px 10px', borderRadius: '8px', display: 'inline-block', letterSpacing: '0.03em' }}>
           {categoryLabel}
         </div>
       )}

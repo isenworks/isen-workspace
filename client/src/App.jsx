@@ -21,7 +21,7 @@ export default function App() {
           <div style={{ 
             width: '32px', height: '32px', 
             border: '3px solid #e5e5ea', 
-            borderTopColor: '#4b63f0', 
+            borderTopColor: '#007AFF', 
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite'
           }}></div>

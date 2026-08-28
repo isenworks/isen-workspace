@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
 
 const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
-const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(239,68,68,0.25)' };
-const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: 'none', cursor: 'pointer', transition: 'all .15s' };
+const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: '#FF3B30', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(239,68,68,0.25)' };
+const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(239,68,68,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer', transition: 'all .15s' };
 
 const STATUSES = [
   { v: 'done',    lb: '已完成' },
@@ -76,7 +76,7 @@ export default function KrForm({ initial, onSaved, onCancel, onDelete }) {
                   flex: 1, padding: '7px 0', borderRadius: '9px',
                   fontSize: '13px', fontWeight: on ? '600' : '500',
                   background: on ? '#ffe8e8' : 'rgba(120,120,128,0.08)',
-                  color: on ? '#ef4444' : '#8e8e93',
+                  color: on ? '#FF3B30' : '#8e8e93',
                   border: 'none', cursor: 'pointer', transition: 'all .15s',
                 }}>{s.lb}</button>
             );

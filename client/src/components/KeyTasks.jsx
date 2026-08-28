@@ -14,9 +14,9 @@ function dateLabel(dateStr) {
 
 // 预设模板：3 个空白模板，点击直接打开新建弹窗
 const PRESET_TEMPLATES = [
-  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#ff3b30', bg: '#ffe8e8' },
-  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#ff3b30', bg: '#ffe8e8' },
-  { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#ff9500', bg: '#fff4d8' },
+  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#FF3B30', bg: '#ffe8e8' },
+  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#FF3B30', bg: '#ffe8e8' },
+  { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#FF9500', bg: '#fff4d8' },
 ];
 
 // category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫)
@@ -178,17 +178,17 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     if (cat === 1) {
       return {
         bg: 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)',
-        borderColor: '#ff3b30',
-        dotColor: '#ff3b30',
-        doneColor: '#ff3b30'
+        borderColor: '#FF3B30',
+        dotColor: '#FF3B30',
+        doneColor: '#FF3B30'
       };
     }
     if (cat === 2) {
       return {
         bg: 'linear-gradient(90deg,#fff4d8 0%,transparent 70%)',
-        borderColor: '#ff9500',
-        dotColor: '#ff9500',
-        doneColor: '#ff9500'
+        borderColor: '#FF9500',
+        dotColor: '#FF9500',
+        doneColor: '#FF9500'
       };
     }
     // 习惯（cat=4）按成长类型分色
@@ -197,18 +197,18 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const def = GROWTH_TYPES[gt] || GROWTH_TYPES.energy;
       return {
         bg: `linear-gradient(90deg,${def.bg || '#e5f6ea'} 0%,transparent 70%)`,
-        borderColor: def.color || '#34c759',
-        dotColor: def.color || '#34c759',
-        doneColor: def.color || '#34c759'
+        borderColor: def.color || '#34C759',
+        dotColor: def.color || '#34C759',
+        doneColor: def.color || '#34C759'
       };
     }
     // 生活体验（cat=5）紫色
     if (cat === 5) {
       return {
         bg: 'linear-gradient(90deg,#f3e8ff 0%,transparent 70%)',
-        borderColor: '#af52de',
-        dotColor: '#af52de',
-        doneColor: '#af52de'
+        borderColor: '#AF52DE',
+        dotColor: '#AF52DE',
+        doneColor: '#AF52DE'
       };
     }
     // 常规事项
@@ -299,7 +299,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         <span className={`w-2 h-2 flex-shrink-0 self-center ${isHabitSchedule ? 'rounded-full' : 'rounded-[2px]'}`} style={{background: st.dotColor}}></span>
         <button
           onClick={(e) => { e.stopPropagation(); remove(s); }}
-          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#ff3b30] text-xs px-1"
+          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#FF3B30] text-xs px-1"
           title="删除"
         >×</button>
       </div>
@@ -421,7 +421,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     <div className="glass-card p-5">
       <div className="flex items-center justify-between section-header">
         <div className="flex items-center gap-2">
-          <span className="section-accent" style={{background:'#007aff'}}></span>
+          <span className="section-accent" style={{background:'#007AFF'}}></span>
           <h3 className="section-title">{titleText}</h3>
           {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
           <button
@@ -432,8 +432,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           >
             {sortBy === 'priority' ? (
               <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
-                <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#ff3b30"/>
-                <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#ff9500"/>
+                <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#FF3B30"/>
+                <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#FF9500"/>
                 <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
               </svg>
             ) : (
@@ -453,7 +453,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
               <circle cx="12" cy="12" r={radius} fill="none" stroke="#e5e5ea" strokeWidth="3"></circle>
               <circle
                 cx="12" cy="12" r={radius} fill="none"
-                stroke="#007aff" strokeWidth="3" strokeLinecap="round"
+                stroke="#007AFF" strokeWidth="3" strokeLinecap="round"
                 strokeDasharray={circumference}
                 strokeDashoffset={offset}
               ></circle>

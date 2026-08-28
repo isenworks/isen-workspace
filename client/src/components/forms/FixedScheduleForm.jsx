@@ -45,7 +45,7 @@ const BTN_PRIMARY = {
   borderRadius: '9px',
   fontSize: '13px',
   fontWeight: '600',
-  background: '#007aff',
+  background: '#007AFF',
   color: '#fff',
   border: 'none',
   cursor: 'pointer',
@@ -146,7 +146,7 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
                   borderRadius: '8px',
                   fontSize: '18px',
                   background: active ? 'rgba(0,122,255,0.1)' : '#fff',
-                  border: active ? '1.5px solid #007aff' : '1px solid #d1d1d6',
+                  border: active ? '1.5px solid #007AFF' : '1px solid #d1d1d6',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all .15s',
@@ -178,7 +178,7 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
 
       {durMin != null && durMin > 0 && (
         <div style={{ fontSize: '12px', color: '#8e8e93' }}>
-          时长：<span style={{ color: '#007aff', fontWeight: '600' }}>{formatDuration(durMin)}</span>
+          时长：<span style={{ color: '#007AFF', fontWeight: '600' }}>{formatDuration(durMin)}</span>
         </div>
       )}
 
@@ -190,7 +190,7 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
               disabled={busy}
               style={{
                 ...BTN_GHOST,
-                color: '#ff3b30',
+                color: '#FF3B30',
                 background: 'rgba(255,59,48,0.08)',
                 opacity: busy ? 0.5 : 1,
                 cursor: busy ? 'not-allowed' : 'pointer',

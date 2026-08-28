@@ -5,9 +5,9 @@ import { store } from '../../utils/store.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
 const PRIORITY = [
-  { v: 1, label: '高', active: { background: '#ffe8e8', color: '#ff3b30' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
-  { v: 2, label: '中', active: { background: '#fff4d8', color: '#ff9500' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
-  { v: 3, label: '低', active: { background: '#e5f6ea', color: '#34c759' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } }
+  { v: 1, label: '高', active: { background: '#ffe8e8', color: '#FF3B30' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
+  { v: 2, label: '中', active: { background: '#fff4d8', color: '#FF9500' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
+  { v: 3, label: '低', active: { background: '#e5f6ea', color: '#34C759' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } }
 ];
 
 const INPUT_STYLE = {
@@ -50,7 +50,7 @@ const BTN_PRIMARY = {
   borderRadius: '9px',
   fontSize: '13px',
   fontWeight: '600',
-  background: '#007aff',
+  background: '#007AFF',
   color: '#fff',
   border: 'none',
   cursor: 'pointer',
@@ -173,7 +173,7 @@ export default function TaskForm({ initial, defaultDate, onSaved, onCancel }) {
               onClick={remove}
               style={{
                 ...BTN_GHOST,
-                color: '#ff3b30',
+                color: '#FF3B30',
                 background: 'rgba(255,59,48,0.08)'
               }}
             >删除</button>

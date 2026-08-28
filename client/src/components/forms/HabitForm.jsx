@@ -27,8 +27,8 @@ function PillChip({ active, onClick, children }) {
       style={{
         padding: '5px 13px',
         borderRadius: '14px',
-        border: active ? '1px solid #007aff' : '1px solid #d1d1d6',
-        background: active ? '#007aff' : 'transparent',
+        border: active ? '1px solid #007AFF' : '1px solid #d1d1d6',
+        background: active ? '#007AFF' : 'transparent',
         color: active ? '#fff' : '#1c1c1e',
         fontSize: '12px',
         fontWeight: 600,
@@ -55,7 +55,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
     start_time: initial?.start_time || initial?.target_time || '',
     end_time: initial?.end_time || '',
     duration_min: initial?.duration_min || '',
-    accent_color: initial?.accent_color || '#34c759',
+    accent_color: initial?.accent_color || '#34C759',
     growth_type: inferInitialType(initial),
     target_mode: initial?.target_mode || 'check',
     target_value: initial?.target_value || '',
@@ -269,7 +269,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
                   type="checkbox"
                   checked={form.auto_log}
                   onChange={e => set('auto_log', e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#007aff' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#007AFF' }}
                 />
                 打卡时自动弹出日志记录
               </label>
@@ -326,7 +326,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
         <button onClick={onCancel}
           style={{ padding: '7px 14px', borderRadius: '9px', background: 'rgba(120,120,128,0.12)', border: 'none', color: '#1c1c1e', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>取消</button>
         <button onClick={submit} disabled={busy}
-          style={{ padding: '7px 14px', borderRadius: '9px', background: '#007aff', border: 'none', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}>
+          style={{ padding: '7px 14px', borderRadius: '9px', background: '#007AFF', border: 'none', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}>
           {busy ? (isEdit ? '保存中...' : '添加中...') : (isEdit ? '保存' : '添加')}
         </button>
       </div>

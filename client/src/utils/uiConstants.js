@@ -1,24 +1,24 @@
 // 成长类型配置：精力(绿) / 知力(蓝) / 能力(金)
 export const GROWTH_TYPES = {
-  energy: { label: '精力型', color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759' },
-  mind:   { label: '知力型', color: '#007aff', bg: '#e0ecff', borderColor: '#007aff', doneColor: '#007aff', lineColor: '#007aff' },
-  skill:  { label: '能力型', color: '#d4a017', bg: '#fbf3d8', borderColor: '#d4a017', doneColor: '#d4a017', lineColor: '#d4a017' },
+  energy: { label: '精力型', color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759' },
+  mind:   { label: '知力型', color: '#007AFF', bg: '#e0ecff', borderColor: '#007AFF', doneColor: '#007AFF', lineColor: '#007AFF' },
+  skill:  { label: '能力型', color: '#FF9500', bg: '#fbf3d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500' },
 };
 
 // 仅用于习惯分类色选择器（圆圈色块）
 export const GROWTH_TYPE_COLORS = {
-  energy: '#34c759',
-  mind:   '#007aff',
-  skill:  '#d4a017',
+  energy: '#34C759',
+  mind:   '#007AFF',
+  skill:  '#FF9500',
 };
 
 // 事项分类颜色：紧急度 / 常规 / 习惯日程
 export const CATEGORY_COLORS = {
-  1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30', doneColor: '#ff3b30', lineColor: '#ff3b30', timeColor: '#ff3b30' },
-  2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500', doneColor: '#ff9500', lineColor: '#ff9500', timeColor: '#ff9500' },
+  1: { color: '#FF3B30', bg: '#ffe8e8', borderColor: '#FF3B30', doneColor: '#FF3B30', lineColor: '#FF3B30', timeColor: '#FF3B30' },
+  2: { color: '#FF9500', bg: '#fff4d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500', timeColor: '#FF9500' },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
-  4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759', timeColor: '#34c759' },
-  5: { color: '#af52de', bg: '#f3e8ff', borderColor: '#af52de', doneColor: '#af52de', lineColor: '#af52de', timeColor: '#af52de' },
+  4: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
+  5: { color: '#AF52DE', bg: '#f3e8ff', borderColor: '#AF52DE', doneColor: '#AF52DE', lineColor: '#AF52DE', timeColor: '#AF52DE' },
 };
 
 // 通用标签、输入框样式（供所有表单组件复用）
@@ -50,7 +50,7 @@ export function inferGrowthType(habit) {
   // 1. 用户在表单中显式选择的 growth_type（非默认 energy 即为显式设置）
   if (habit?.growth_type && habit.growth_type !== 'energy') return habit.growth_type;
 
-  // 2. 用户显式选择的 accent_color（非默认绿色 #34c759 即为显式设置）
+  // 2. 用户显式选择的 accent_color（非默认绿色 #34C759 即为显式设置）
   const c = (habit?.accent_color || '').toLowerCase().replace('#', '');
   if (c.length === 6 && c !== '34c759') {
     const r = parseInt(c.slice(0, 2), 16);
@@ -73,7 +73,7 @@ export function inferGrowthType(habit) {
 
 // 将 hex 颜色与白色混合，生成浅色背景
 export function lighten(hex, whiteRatio = 0.82) {
-  const h = (hex || '#34c759').replace('#', '');
+  const h = (hex || '#34C759').replace('#', '');
   if (h.length !== 6) return '#e5e5ea';
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);

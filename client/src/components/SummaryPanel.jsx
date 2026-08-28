@@ -35,10 +35,10 @@ const DEFAULT_TEMPLATES = [
     name: '通用每日',
     emoji: '📋',
     sections: [
-      { idx: 1, title: '今日成果 / 亮点', color: '#ff3b30', placeholder: '今天完成了什么重要的事？' },
-      { idx: 2, title: '今日不足 / 改进', color: '#ff9500', placeholder: '哪些事没做好？哪里可以改进？' },
-      { idx: 3, title: '今日收获（可复利新知 / 动作）', color: '#007aff', placeholder: '学到了什么新知识？有什么可以复用的经验？' },
-      { idx: 4, title: '明日计划 / 验证清单', color: '#34c759', placeholder: '明天最重要的 3 件事？' },
+      { idx: 1, title: '今日成果 / 亮点', color: '#FF3B30', placeholder: '今天完成了什么重要的事？' },
+      { idx: 2, title: '今日不足 / 改进', color: '#FF9500', placeholder: '哪些事没做好？哪里可以改进？' },
+      { idx: 3, title: '今日收获（可复利新知 / 动作）', color: '#007AFF', placeholder: '学到了什么新知识？有什么可以复用的经验？' },
+      { idx: 4, title: '明日计划 / 验证清单', color: '#34C759', placeholder: '明天最重要的 3 件事？' },
     ],
   },
   {
@@ -46,10 +46,10 @@ const DEFAULT_TEMPLATES = [
     name: 'KPT 复盘',
     emoji: '🔁',
     sections: [
-      { idx: 1, title: 'Keep（继续保持）', color: '#34c759', placeholder: '哪些做得好，值得持续坚持？' },
-      { idx: 2, title: 'Problem（遇到问题）', color: '#ff3b30', placeholder: '遇到了什么阻碍或问题？' },
-      { idx: 3, title: 'Try（下一步尝试）', color: '#007aff', placeholder: '针对问题，计划尝试什么改变？' },
-      { idx: 4, title: '明日小目标', color: '#ff9500', placeholder: '明天最重要的行动项？' },
+      { idx: 1, title: 'Keep（继续保持）', color: '#34C759', placeholder: '哪些做得好，值得持续坚持？' },
+      { idx: 2, title: 'Problem（遇到问题）', color: '#FF3B30', placeholder: '遇到了什么阻碍或问题？' },
+      { idx: 3, title: 'Try（下一步尝试）', color: '#007AFF', placeholder: '针对问题，计划尝试什么改变？' },
+      { idx: 4, title: '明日小目标', color: '#FF9500', placeholder: '明天最重要的行动项？' },
     ],
   },
   {
@@ -57,10 +57,10 @@ const DEFAULT_TEMPLATES = [
     name: '求职专项',
     emoji: '💼',
     sections: [
-      { idx: 1, title: '今日投递 & 进展', color: '#007aff', placeholder: '投了哪些公司？有什么新进展？' },
-      { idx: 2, title: '刷题 / 学习输出', color: '#34c759', placeholder: '刷了多少题？学了哪些知识点？' },
-      { idx: 3, title: '复盘 & 不足', color: '#ff9500', placeholder: '哪里表现不好？需要补什么？' },
-      { idx: 4, title: '明日计划', color: '#ff3b30', placeholder: '投哪些 / 学什么 / 准备什么？' },
+      { idx: 1, title: '今日投递 & 进展', color: '#007AFF', placeholder: '投了哪些公司？有什么新进展？' },
+      { idx: 2, title: '刷题 / 学习输出', color: '#34C759', placeholder: '刷了多少题？学了哪些知识点？' },
+      { idx: 3, title: '复盘 & 不足', color: '#FF9500', placeholder: '哪里表现不好？需要补什么？' },
+      { idx: 4, title: '明日计划', color: '#FF3B30', placeholder: '投哪些 / 学什么 / 准备什么？' },
     ],
   },
   {
@@ -68,10 +68,10 @@ const DEFAULT_TEMPLATES = [
     name: 'GTD 清空',
     emoji: '🧠',
     sections: [
-      { idx: 1, title: '已完成（拖出大脑）', color: '#34c759', placeholder: '把今天做完的所有事列出来' },
-      { idx: 2, title: '未完成 & 转移', color: '#ff3b30', placeholder: '哪些没做完？挪到哪天？' },
-      { idx: 3, title: '新想法 & 收集箱', color: '#007aff', placeholder: '脑中冒出来的新念头/项目/灵感' },
-      { idx: 4, title: '明日 Top3 + 下一步', color: '#ff9500', placeholder: '明天最高优先级的 3 件事，以及立刻能做的第一步' },
+      { idx: 1, title: '已完成（拖出大脑）', color: '#34C759', placeholder: '把今天做完的所有事列出来' },
+      { idx: 2, title: '未完成 & 转移', color: '#FF3B30', placeholder: '哪些没做完？挪到哪天？' },
+      { idx: 3, title: '新想法 & 收集箱', color: '#007AFF', placeholder: '脑中冒出来的新念头/项目/灵感' },
+      { idx: 4, title: '明日 Top3 + 下一步', color: '#FF9500', placeholder: '明天最高优先级的 3 件事，以及立刻能做的第一步' },
     ],
   },
 ];
@@ -291,14 +291,14 @@ function renderMdToHtml(md) {
     const h2 = line.match(/^## (.+)$/);
     if (h2) {
       closeUl(); closeTable(); closeBlockquote(); flushPara();
-      html += `<h2 style="font-size:14px;margin:14px 0 6px;color:#007aff;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:#007aff"></span>${escape(h2[1])}</h2>`;
+      html += `<h2 style="font-size:14px;margin:14px 0 6px;color:#007AFF;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:#007AFF"></span>${escape(h2[1])}</h2>`;
       continue;
     }
     // blockquote
     if (line.startsWith('>')) {
       closeUl(); closeTable(); flushPara();
       const txt = line.replace(/^>\s?/, '');
-      if (!inBlockquote) { html += '<blockquote style="border-left:3px solid #007aff;background:rgba(0,122,255,0.04);padding:6px 10px;margin:6px 0;border-radius:0 8px 8px 0;color:#3c3c43;font-size:12px;line-height:1.7">'; inBlockquote = true; }
+      if (!inBlockquote) { html += '<blockquote style="border-left:3px solid #007AFF;background:rgba(0,122,255,0.04);padding:6px 10px;margin:6px 0;border-radius:0 8px 8px 0;color:#3c3c43;font-size:12px;line-height:1.7">'; inBlockquote = true; }
       else html += '<br>';
       html += escape(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/  /g, '&nbsp;&nbsp;');
       continue;
@@ -310,7 +310,7 @@ function renderMdToHtml(md) {
     if (ul) {
       closeTable(); flushPara();
       if (!inUl) { html += '<ul style="padding-left:18px;margin:4px 0">'; inUl = true; }
-      html += `<li style="margin:2px 0;line-height:1.7">${escape(ul[1]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/\[(.+?)\]/g, '<span style="color:#007aff;font-weight:600">[$1]</span>')}</li>`;
+      html += `<li style="margin:2px 0;line-height:1.7">${escape(ul[1]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/\[(.+?)\]/g, '<span style="color:#007AFF;font-weight:600">[$1]</span>')}</li>`;
       continue;
     } else {
       closeUl();
@@ -330,15 +330,15 @@ function renderMdToHtml(md) {
         html += '<tr>';
         cells.forEach(c => {
           let cellHtml = escape(c).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-          if (/✅/.test(c)) cellHtml = cellHtml.replace(/✅[^\u4e00-\u9fa5|]*/g, m => `<span style="color:#34c759;font-weight:600">${m}</span>`);
-          if (/❌/.test(c)) cellHtml = cellHtml.replace(/❌[^\u4e00-\u9fa5|]*/g, m => `<span style="color:#ff3b30;font-weight:600">${m}</span>`);
+          if (/✅/.test(c)) cellHtml = cellHtml.replace(/✅[^\u4e00-\u9fa5|]*/g, m => `<span style="color:#34C759;font-weight:600">${m}</span>`);
+          if (/❌/.test(c)) cellHtml = cellHtml.replace(/❌[^\u4e00-\u9fa5|]*/g, m => `<span style="color:#FF3B30;font-weight:600">${m}</span>`);
           if (/⚡|❤️/.test(c)) {
-            cellHtml = cellHtml.replace(/⚡充沛/g, '<span style="color:#34c759;font-weight:600">⚡充沛</span>');
-            cellHtml = cellHtml.replace(/⚡一般/g, '<span style="color:#007aff;font-weight:600">⚡一般</span>');
-            cellHtml = cellHtml.replace(/⚡疲惫/g, '<span style="color:#ff3b30;font-weight:600">⚡疲惫</span>');
-            cellHtml = cellHtml.replace(/❤️积极/g, '<span style="color:#34c759;font-weight:600">❤️积极</span>');
-            cellHtml = cellHtml.replace(/❤️平淡/g, '<span style="color:#007aff;font-weight:600">❤️平淡</span>');
-            cellHtml = cellHtml.replace(/❤️消极/g, '<span style="color:#ff3b30;font-weight:600">❤️消极</span>');
+            cellHtml = cellHtml.replace(/⚡充沛/g, '<span style="color:#34C759;font-weight:600">⚡充沛</span>');
+            cellHtml = cellHtml.replace(/⚡一般/g, '<span style="color:#007AFF;font-weight:600">⚡一般</span>');
+            cellHtml = cellHtml.replace(/⚡疲惫/g, '<span style="color:#FF3B30;font-weight:600">⚡疲惫</span>');
+            cellHtml = cellHtml.replace(/❤️积极/g, '<span style="color:#34C759;font-weight:600">❤️积极</span>');
+            cellHtml = cellHtml.replace(/❤️平淡/g, '<span style="color:#007AFF;font-weight:600">❤️平淡</span>');
+            cellHtml = cellHtml.replace(/❤️消极/g, '<span style="color:#FF3B30;font-weight:600">❤️消极</span>');
           }
           html += `<td style="border:1px solid rgba(0,0,0,0.08);padding:4px 8px;text-align:left;line-height:1.6">${cellHtml}</td>`;
         });
@@ -670,7 +670,7 @@ export default function SummaryPanel({
     const names = [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].map(s => s.trim());
     if (!name) return;
     if (names.some(n => !n)) return;
-    const colors = ['#ff3b30', '#ff9500', '#007aff', '#34c759'];
+    const colors = ['#FF3B30', '#FF9500', '#007AFF', '#34C759'];
 
     if (editingTplId) {
       if (isPresetId(editingTplId)) {
@@ -834,7 +834,7 @@ export default function SummaryPanel({
             borderRadius: '8px',
             cursor: 'pointer',
             background: templateId === t.id ? 'rgba(0,122,255,0.08)' : 'transparent',
-            color: templateId === t.id ? '#007aff' : '#1c1c1e',
+            color: templateId === t.id ? '#007AFF' : '#1c1c1e',
             transition: 'background .1s',
             fontSize: '13px',
           }}
@@ -847,7 +847,7 @@ export default function SummaryPanel({
             {t.name}
           </span>
           {templateId === t.id && (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
           )}
           {templateId !== t.id && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -865,7 +865,7 @@ export default function SummaryPanel({
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}
                 title="编辑"
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#007AFF'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
               >✎</button>
               <button
@@ -882,7 +882,7 @@ export default function SummaryPanel({
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}
                 title="删除"
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3b30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#FF3B30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
               >×</button>
             </div>
@@ -899,7 +899,7 @@ export default function SummaryPanel({
               padding: '6px 10px',
               borderRadius: '8px',
               cursor: 'pointer',
-              color: '#007aff',
+              color: '#007AFF',
               fontSize: '13px',
               fontWeight: '500',
               transition: 'background .1s',
@@ -921,7 +921,7 @@ export default function SummaryPanel({
     padding: '4px 10px', borderRadius: '8px',
     border: 'none', cursor: 'pointer',
     fontSize: '12px', fontWeight: '500',
-    color: '#007aff',
+    color: '#007AFF',
     background: hover || tplMenuOpen ? 'rgba(0,122,255,0.15)' : 'rgba(0,122,255,0.08)',
     transition: 'all 0.15s',
   });
@@ -996,7 +996,7 @@ export default function SummaryPanel({
           background: 'rgba(0,122,255,0.03)',
           display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#007aff' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#007AFF' }}>
             {editingTplId ? (isPresetId(editingTplId) ? '编辑预设模板' : '编辑自定义模板') : '新建自定义模板'}
           </div>
           <input
@@ -1016,7 +1016,7 @@ export default function SummaryPanel({
                 width: '18px', height: '18px', borderRadius: '5px',
                 color: '#fff', fontSize: '10px', fontWeight: '700',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                background: ['#ff3b30', '#ff9500', '#007aff', '#34c759'][i - 1], flexShrink: 0,
+                background: ['#FF3B30', '#FF9500', '#007AFF', '#34C759'][i - 1], flexShrink: 0,
               }}>{i}</span>
               <input
                 value={newTplDraft['s' + i]}
@@ -1045,7 +1045,7 @@ export default function SummaryPanel({
               disabled={!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())}
               style={{
                 padding: '5px 12px', borderRadius: '8px', border: 'none',
-                background: '#007aff', color: '#fff',
+                background: '#007AFF', color: '#fff',
                 fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                 opacity: (!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())) ? 0.5 : 1,
               }}
@@ -1120,11 +1120,11 @@ export default function SummaryPanel({
       }}>
         <div style={{ fontSize: '11px', color: '#8e8e93', display: 'flex', gap: '8px', alignItems: 'center' }}>
           {saving
-            ? <span style={{ color: '#007aff', fontWeight: '600' }}>⟳ 保存中…</span>
+            ? <span style={{ color: '#007AFF', fontWeight: '600' }}>⟳ 保存中…</span>
             : savedTime
               ? (
                 <>
-                  <span style={{ color: '#34c759', fontWeight: '600' }}>✓ 已保存</span>
+                  <span style={{ color: '#34C759', fontWeight: '600' }}>✓ 已保存</span>
                   <span>· {String(savedTime.getHours()).padStart(2, '0')}:{String(savedTime.getMinutes()).padStart(2, '0')}</span>
                 </>
               )
@@ -1137,7 +1137,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: 'rgba(255,59,48,0.08)', color: '#ff3b30',
+              background: 'rgba(255,59,48,0.08)', color: '#FF3B30',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(255,59,48,0.16)';
@@ -1169,7 +1169,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: copied ? '#34c759' : '#007aff', color: '#fff',
+              background: copied ? '#34C759' : '#007AFF', color: '#fff',
             }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
@@ -1182,7 +1182,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: saving ? 'default' : 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: saving ? '#2db24f' : '#34c759', color: '#fff',
+              background: saving ? '#2db24f' : '#34C759', color: '#fff',
               opacity: saving ? 0.85 : 1,
             }}
           >
@@ -1222,7 +1222,7 @@ export default function SummaryPanel({
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: '12px',
               }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
                   <line x1="12" y1="9" x2="12" y2="13"></line>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -1256,7 +1256,7 @@ export default function SummaryPanel({
                 onClick={handleClearConfirm}
                 style={{
                   flex: 1, padding: '12px 0', border: 'none', background: 'transparent',
-                  fontSize: '14px', fontWeight: '600', color: '#ff3b30',
+                  fontSize: '14px', fontWeight: '600', color: '#FF3B30',
                   cursor: 'pointer', transition: 'background .15s',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,59,48,0.08)'}
@@ -1303,7 +1303,7 @@ export default function SummaryPanel({
             Markdown 预览
             <span style={{
               fontSize: '10px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px',
-              background: 'rgba(0,122,255,0.10)', color: '#007aff',
+              background: 'rgba(0,122,255,0.10)', color: '#007AFF',
             }}>可粘贴到飞书 / Notion</span>
           </div>
           <button
@@ -1314,7 +1314,7 @@ export default function SummaryPanel({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: '#575f6a', fontSize: '16px', fontWeight: '500',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.10)'; e.currentTarget.style.color = '#ff3b30'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.10)'; e.currentTarget.style.color = '#FF3B30'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(120,120,128,0.10)'; e.currentTarget.style.color = '#575f6a'; }}
           >×</button>
         </div>
@@ -1346,7 +1346,7 @@ export default function SummaryPanel({
           padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
         }}>
-          <div style={{ fontSize: '11px', color: copied ? '#34c759' : '#8e8e93', fontWeight: copied ? '600' : '400' }}>
+          <div style={{ fontSize: '11px', color: copied ? '#34C759' : '#8e8e93', fontWeight: copied ? '600' : '400' }}>
             {copied ? '✓ 已复制到剪贴板' : '点击复制即可粘贴到飞书 / Notion'}
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
@@ -1364,7 +1364,7 @@ export default function SummaryPanel({
                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                 padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                 fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-                background: copied ? '#34c759' : '#007aff', color: '#fff',
+                background: copied ? '#34C759' : '#007AFF', color: '#fff',
               }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
@@ -1385,7 +1385,7 @@ export default function SummaryPanel({
         }}>
           <div style={{ fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
-              width: '5px', height: '18px', borderRadius: '3px', background: '#007aff', flexShrink: 0,
+              width: '5px', height: '18px', borderRadius: '3px', background: '#007AFF', flexShrink: 0,
             }}></span>
             每日总结
             <span style={{
@@ -1403,7 +1403,7 @@ export default function SummaryPanel({
                   padding: '4px 10px', borderRadius: '8px',
                   border: 'none', cursor: 'pointer',
                   fontSize: '12px', fontWeight: '500',
-                  color: '#007aff',
+                  color: '#007AFF',
                   background: 'rgba(0,122,255,0.08)',
                   transition: 'all 0.15s',
                 }}

@@ -220,7 +220,7 @@ export default function AvatarCropModal({ open, file, onClose, onConfirm }) {
               const ratio = 1 + (Number(e.target.value) / 100) * 3;
               setScale(clampScale((CROP_SIZE / Math.min(img.width, img.height)) * ratio));
             }}
-            style={{ flex: 1, accentColor: '#007aff' }}
+            style={{ flex: 1, accentColor: '#007AFF' }}
           />
           <span style={{ fontSize: '12px', color: '#8e8e93', width: '28px', textAlign: 'right' }}>放大</span>
         </div>

@@ -95,7 +95,7 @@ export default function FriendlyTimeInput({ value, onChange, placeholder }) {
     }}
       onMouseEnter={(e) => e.currentTarget.style.borderColor = '#b5b5bd'}
       onMouseLeave={(e) => e.currentTarget.style.borderColor = '#d1d1d6'}
-      onFocus={(e) => { e.currentTarget.style.borderColor = '#007aff'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.15)'; }}
+      onFocus={(e) => { e.currentTarget.style.borderColor = '#007AFF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.15)'; }}
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) { e.currentTarget.style.borderColor = '#d1d1d6'; e.currentTarget.style.boxShadow = 'none'; } }}
     >
       <input
@@ -144,7 +144,7 @@ export default function FriendlyTimeInput({ value, onChange, placeholder }) {
           padding: 0,
           flexShrink: 0
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = '#007aff'; }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = '#007AFF'; }}
         onMouseLeave={(e) => { e.currentTarget.style.color = '#8e8e93'; }}
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

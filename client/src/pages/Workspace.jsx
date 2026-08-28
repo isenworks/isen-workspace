@@ -195,7 +195,7 @@ export default function Workspace({ user: propUser }) {
         title: '归档该习惯？',
         msg: `「${name}」将移至"归档"，可以从归档恢复。`,
         okText: '归档',
-        okColor: '#ff9500',
+        okColor: '#FF9500',
         onOk: async () => {
           try {
             await API.habits.archive(id);
@@ -212,7 +212,7 @@ export default function Workspace({ user: propUser }) {
         title: '确认删除',
         msg: `「${title}」删除后无法恢复，确定要删除吗？`,
         okText: '确定删除',
-        okColor: '#ff3b30',
+        okColor: '#FF3B30',
         onOk: async () => {
           try {
             await API.schedules.remove(id);
@@ -275,7 +275,7 @@ export default function Workspace({ user: propUser }) {
           title: '确认删除',
           msg: '删除后无法恢复，确定要删除该日程吗？',
           okText: '确定删除',
-          okColor: '#ff3b30',
+          okColor: '#FF3B30',
           onOk: async () => {
             try {
               await API.schedules.remove(id);
@@ -291,7 +291,7 @@ export default function Workspace({ user: propUser }) {
           title: '归档该习惯？',
           msg: '习惯将移至"归档"，可以从归档恢复。',
           okText: '归档',
-          okColor: '#ff9500',
+          okColor: '#FF9500',
           onOk: async () => {
             try {
               await API.habits.archive(id);
@@ -311,7 +311,7 @@ export default function Workspace({ user: propUser }) {
       title: '恢复该习惯？',
       msg: '将从归档中移出，回到习惯列表。',
       okText: '恢复',
-      okColor: '#34c759',
+      okColor: '#34C759',
       onOk: async () => {
         try {
           await API.habits.restore(id);
@@ -330,7 +330,7 @@ export default function Workspace({ user: propUser }) {
       title: '彻底删除？',
       msg: `「${name}」及其所有打卡记录将被永久删除，无法恢复。`,
       okText: '永久删除',
-      okColor: '#ff3b30',
+      okColor: '#FF3B30',
       onOk: async () => {
         try {
           await API.habits.remove(id);
@@ -365,7 +365,7 @@ export default function Workspace({ user: propUser }) {
             title: '退出登录？',
             msg: '退出后需要重新输入账号密码才能登录。',
             okText: '确认退出',
-            okColor: '#ff3b30',
+            okColor: '#FF3B30',
             onOk: async () => {
               try {
                 await logout();
@@ -551,7 +551,7 @@ export default function Workspace({ user: propUser }) {
             style={{
               padding: '8px 12px',
               fontSize: '13px',
-              color: '#ff3b30',
+              color: '#FF3B30',
               cursor: 'pointer',
               borderRadius: '6px'
             }}
@@ -599,7 +599,7 @@ export default function Workspace({ user: propUser }) {
               <button
                 style={{
                   flex: 1, padding: '10px 12px', borderRadius: '10px',
-                  background: confirm.okColor || '#ff3b30',
+                  background: confirm.okColor || '#FF3B30',
                   color: '#fff', border: 'none', fontWeight: '600',
                   fontSize: '14px', cursor: 'pointer'
                 }}
@@ -690,7 +690,7 @@ export default function Workspace({ user: propUser }) {
                         onClick={() => restoreHabit(h.id)}
                         style={{
                           padding: '6px 12px', borderRadius: '8px', border: 'none',
-                          background: '#e5f6ea', color: '#34c759',
+                          background: '#e5f6ea', color: '#34C759',
                           fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                           transition: 'all 0.15s'
                         }}
@@ -699,7 +699,7 @@ export default function Workspace({ user: propUser }) {
                         onClick={() => deleteHabit(h.id, h.name)}
                         style={{
                           padding: '6px 12px', borderRadius: '8px', border: 'none',
-                          background: '#ffe8e8', color: '#ff3b30',
+                          background: '#ffe8e8', color: '#FF3B30',
                           fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                           transition: 'all 0.15s'
                         }}

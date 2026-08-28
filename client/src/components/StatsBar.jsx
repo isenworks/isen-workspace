@@ -242,18 +242,18 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 <span className="text-[12px] font-medium text-[#1c1c1e]">/</span>
                 <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.coreTotal}</span>
                 <div className="w-20 h-1.5 rounded-full ml-1" style={{background:'#e5e5ea'}}>
-                  <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:'#007aff'}}></div>
+                  <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:'#007AFF'}}></div>
                 </div>
               </div>
               <div className="w-0.5 h-4 rounded-full" style={{background:'rgba(120,120,128,0.2)'}}></div>
               {/* 重点分类未完成 + 常规 + 习惯 */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#ff3b30'}}></span>
+                  <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#FF3B30'}}></span>
                   <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.urgent}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#ff9500'}}></span>
+                  <span className="w-1.5 h-1.5 rounded-[2px]" style={{background:'#FF9500'}}></span>
                   <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.high}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -262,7 +262,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 </div>
                 {/* 习惯在最右边：统一小圆点样式 */}
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{background:'#007aff'}}></span>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{background:'#007AFF'}}></span>
                   <span className="text-[12px] font-medium text-[#1c1c1e]">{stats.habitDone} / {stats.habitTotal}</span>
                 </div>
               </div>
@@ -281,7 +281,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             fontSize: '13px',
             fontWeight: showSummary ? 600 : 500,
             ...(showSummary ? {
-              background: '#007aff',
+              background: '#007AFF',
               color: '#fff',
               border: 'none',
               boxShadow: '0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04)',
@@ -368,7 +368,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             cursor: 'pointer', borderRadius: '8px',
             display: 'flex', alignItems: 'center', gap: '10px',
             fontWeight: showSummary ? 600 : 500,
-            color: '#007aff',
+            color: '#007AFF',
             background: showSummary ? 'rgba(0,122,255,0.10)' : 'transparent',
             minHeight: '34px',
             transition: 'background .12s',
@@ -382,7 +382,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2.5">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="2.5">
               <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
             </svg>
           </div>
@@ -391,7 +391,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
             <span style={{
               fontSize: '10px', fontWeight: 700,
               padding: '2px 7px', borderRadius: '4px',
-              background: '#007aff', color: '#fff',
+              background: '#007AFF', color: '#fff',
               letterSpacing: '0.02em',
             }}>已打开</span>
           )}
@@ -405,7 +405,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
           <div
             onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
             style={{
-              padding: '7px 10px', fontSize: '13px', color: '#007aff',
+              padding: '7px 10px', fontSize: '13px', color: '#007AFF',
               cursor: 'pointer', borderRadius: '8px',
               display: 'flex', alignItems: 'center', gap: '10px',
               fontWeight: 500,
@@ -421,7 +421,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="3.5"><path d="M12 5v14m-7-7h14"></path></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="3.5"><path d="M12 5v14m-7-7h14"></path></svg>
             </div>
             添加文档
           </div>
@@ -482,7 +482,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
           }}>
             <div style={{
               fontSize: '11px', fontWeight: 600,
-              color: '#007aff', textAlign: 'center',
+              color: '#007AFF', textAlign: 'center',
               padding: '2px 0 4px',
             }}>{editingDoc.id === 'new' ? '添加新文档' : '编辑文档'}</div>
             <input
@@ -544,7 +544,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 disabled={!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')}
                 style={{
                   padding: '5px 12px', borderRadius: '8px', border: 'none',
-                  background: (!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')) ? '#a0c8ff' : '#007aff',
+                  background: (!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')) ? '#a0c8ff' : '#007AFF',
                   color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   transition: 'all .12s',
                 }}
@@ -554,7 +554,7 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
                 }}
                 onMouseLeave={(e) => {
                   const disabled = !editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '');
-                  if (!disabled) e.currentTarget.style.background = '#007aff';
+                  if (!disabled) e.currentTarget.style.background = '#007AFF';
                 }}
               >{editingDoc.id === 'new' ? '添加' : '保存'}</button>
             </div>

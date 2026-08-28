@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 /* KR 新增/编辑弹窗 —— 复选框语义（勾/未勾二态）+ dueBy 字段，视觉对齐 AbilityForm/BookForm */
-const AB = '#f59e0b';
-const AB_DARK = '#b45309';
+const AB = '#FF9500';
+const AB_DARK = '#E67E22';
 const INK = '#1c1c1e';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
@@ -117,7 +117,7 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
         <div>{isEdit && (
           <button onClick={del} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
-            background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: 'none', cursor: 'pointer',
+            background: 'rgba(239,68,68,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer',
           }}>删除</button>
         )}</div>
         <div style={{ display: 'flex', gap: '8px' }}>

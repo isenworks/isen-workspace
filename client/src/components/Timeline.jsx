@@ -8,18 +8,18 @@ const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
 // 成长类型配置
 const GROWTH_TYPES = {
-  energy: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759' },
-  mind:   { color: '#007aff', bg: '#e0ecff', borderColor: '#007aff', doneColor: '#007aff', lineColor: '#007aff' },
-  skill:  { color: '#d4a017', bg: '#fbf3d8', borderColor: '#d4a017', doneColor: '#d4a017', lineColor: '#d4a017' },
+  energy: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759' },
+  mind:   { color: '#007AFF', bg: '#e0ecff', borderColor: '#007AFF', doneColor: '#007AFF', lineColor: '#007AFF' },
+  skill:  { color: '#FF9500', bg: '#fbf3d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500' },
 };
 
 // 事项分类颜色
 const CAT_COLORS = {
-  1: { color: '#ff3b30', bg: '#ffe8e8', borderColor: '#ff3b30', doneColor: '#ff3b30', lineColor: '#ff3b30', timeColor: '#ff3b30' },
-  2: { color: '#ff9500', bg: '#fff4d8', borderColor: '#ff9500', doneColor: '#ff9500', lineColor: '#ff9500', timeColor: '#ff9500' },
+  1: { color: '#FF3B30', bg: '#ffe8e8', borderColor: '#FF3B30', doneColor: '#FF3B30', lineColor: '#FF3B30', timeColor: '#FF3B30' },
+  2: { color: '#FF9500', bg: '#fff4d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500', timeColor: '#FF9500' },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
-  4: { color: '#34c759', bg: '#e5f6ea', borderColor: '#34c759', doneColor: '#34c759', lineColor: '#34c759', timeColor: '#34c759' },
-  5: { color: '#af52de', bg: '#f3e8ff', borderColor: '#af52de', doneColor: '#af52de', lineColor: '#af52de', timeColor: '#af52de' },
+  4: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
+  5: { color: '#AF52DE', bg: '#f3e8ff', borderColor: '#AF52DE', doneColor: '#AF52DE', lineColor: '#AF52DE', timeColor: '#AF52DE' },
 };
 
 // 获取习惯的成长类型（优先级：用户显式选择 > 颜色分析 > 关键词推断 > 默认）
@@ -27,7 +27,7 @@ function inferGrowthType(habit) {
   // 1. 用户在表单中显式选择的 growth_type（非默认 energy 即为显式设置）
   if (habit.growth_type && habit.growth_type !== 'energy') return habit.growth_type;
 
-  // 2. 用户显式选择的 accent_color（非默认绿色 #34c759 即为显式设置）
+  // 2. 用户显式选择的 accent_color（非默认绿色 #34C759 即为显式设置）
   const c = (habit.accent_color || '').toLowerCase().replace('#', '');
   if (c.length === 6 && c !== '34c759') {
     const r = parseInt(c.slice(0, 2), 16);
@@ -50,7 +50,7 @@ function inferGrowthType(habit) {
 
 // 将 hex 颜色与白色混合，生成浅色背景
 function lighten(hex, whiteRatio = 0.82) {
-  const h = (hex || '#34c759').replace('#', '');
+  const h = (hex || '#34C759').replace('#', '');
   if (h.length !== 6) return '#e5e5ea';
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
@@ -566,10 +566,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   const titleText = view === 'today'
-    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007aff]">今日</span></>
+    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007AFF]">今日</span></>
     : view === 'week'
-    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007aff]">本周</span></>
-    : <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007aff]">本月</span></>;
+    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007AFF]">本周</span></>
+    : <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007AFF]">本月</span></>;
 
   // 计算事项在 [hHour:00, hHour+1:00) 半开区间内占用的分钟数（用于分段行高）
   function minutesInHour(item, hHour) {
@@ -805,14 +805,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 style={{
                   top: `${dragOverY}px`,
                   height: '2px',
-                  background: '#007aff',
+                  background: '#007AFF',
                   boxShadow: '0 0 8px rgba(0,122,255,0.5)',
                   zIndex: 1000,
                 }}
               >
                 <span
                   className="absolute right-2 -translate-y-full text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                  style={{ background: '#007aff', color: '#fff' }}
+                  style={{ background: '#007AFF', color: '#fff' }}
                 >
                   {fmtHHMM(snapMin(pxToMin(dragOverY)))}
                 </span>
@@ -1023,9 +1023,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             <div className="space-y-1.5 px-3">
               {todayTasks.map(t => {
                 const done = !!t.is_done;
-                const doneColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
-                const borderColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
-                const dotColor = t.priority === 1 ? '#ff3b30' : '#8e8e93';
+                const doneColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
+                const borderColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
+                const dotColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
                 const rowBg = t.priority === 1
                   ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
                   : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)';
@@ -1175,11 +1175,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               <div className="space-y-0.5">
                 {sortedItems.map(item => {
                   const isSched = !!item.start_time || !!item.is_key || !item.priority;
-                  const color = isSched ? getColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
+                  const color = isSched ? getColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
                   const lineColor = isSched ? getLineColor(item) : (item.priority === 1 ? '#ff9999' : '#c7c7cc');
                   const rowBg = isSched ? getRowBg(item) : (item.is_done
                     ? 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)'
-                    : color === '#ff3b30'
+                    : color === '#FF3B30'
                     ? 'linear-gradient(90deg,#ffe8e8 0%,transparent 70%)'
                     : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)');
                   const squareCb = isSched ? useSquareCheckbox(item) : true;
@@ -1188,9 +1188,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   const lineHeight = isSched ? getLineHeight(item) : 16;
                   const rowMinHeight = isSched ? getRowMinHeight(item) : undefined;
                   const done = !!item.is_done;
-                  const doneColor = isSched ? getDoneColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
-                  const borderColor = isSched ? getBorderColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
-                  const timeColor = isSched ? getTimeColor(item) : (item.priority === 1 ? '#ff3b30' : '#8e8e93');
+                  const doneColor = isSched ? getDoneColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
+                  const borderColor = isSched ? getBorderColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
+                  const timeColor = isSched ? getTimeColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
 
                   return (
                     <div
@@ -1243,7 +1243,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     <div className="glass-card p-5 h-full">
       <div className="flex items-center justify-between section-header">
         <div className="flex items-center gap-2">
-          <span className="section-accent" style={{background:'#007aff'}}></span>
+          <span className="section-accent" style={{background:'#007AFF'}}></span>
           <h3 className="section-title">{titleText}</h3>
         </div>
         <button

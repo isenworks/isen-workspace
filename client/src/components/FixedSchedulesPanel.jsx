@@ -41,7 +41,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
         borderRadius: '10px',
       }}>
         <div style={{ fontSize: '12px', color: '#6c6c70', lineHeight: '1.5', flex: 1 }}>
-          <span style={{ fontWeight: '600', color: '#007aff' }}>📌 固定日程</span>
+          <span style={{ fontWeight: '600', color: '#007AFF' }}>📌 固定日程</span>
           <span> · 每天重复显示在时间线，仅作提醒，不可打卡</span>
         </div>
         <button
@@ -51,7 +51,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
             borderRadius: '9px',
             fontSize: '13px',
             fontWeight: '600',
-            background: '#007aff',
+            background: '#007AFF',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',
@@ -124,7 +124,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all .15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.1)'; e.currentTarget.style.color = '#ff3b30'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.1)'; e.currentTarget.style.color = '#FF3B30'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

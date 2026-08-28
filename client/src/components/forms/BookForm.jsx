@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { INPUT_STYLE } from '../../utils/uiConstants.js';
 
-const BLUE = '#007aff';
+const BLUE = '#007AFF';
 const BLUE_DARK = '#0062cc';
 const BLUE_LIGHT = '#f0f6ff';
 const BLUE_BORDER = 'rgba(0,122,255,0.22)';
@@ -9,8 +9,8 @@ const BLUE_SOFT = 'rgba(0,122,255,0.08)';
 const INK = '#1c1c1e';
 const INK_MUTE = '#64748b';
 const INK_LIGHT = '#94a3b8';
-const DANGER = '#ef4444';
-const SUCCESS = '#22c55e';
+const DANGER = '#FF3B30';
+const SUCCESS = '#34C759';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
 const CARD_RADIUS = 14;
@@ -369,7 +369,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
 
 // ===== Tab 图标 =====
 function TabIcon({ name, active }) {
-  const c = active ? '#007aff' : '#94a3b8';
+  const c = active ? '#007AFF' : '#94a3b8';
   const common = { width: '13px', height: '13px', stroke: c, fill: 'none', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' };
   if (name === 'book') return (
     <svg viewBox="0 0 24 24" {...common}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -600,7 +600,7 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <div style={{
                   width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
-                  background: '#f59e0b', color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
+                  background: '#FF9500', color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
                 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
                 </div>

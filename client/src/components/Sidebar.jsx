@@ -207,7 +207,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   onClick={handleResetAvatar}
                   style={{
                     padding: '9px 12px', borderRadius: '8px', cursor: 'pointer',
-                    fontSize: '13px', color: '#ff3b30', fontWeight: '500',
+                    fontSize: '13px', color: '#FF3B30', fontWeight: '500',
                     display: 'flex', alignItems: 'center', gap: '8px',
                     transition: 'background .15s'
                   }}
@@ -281,7 +281,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   onClick={(e) => { e.stopPropagation(); window.__openArchive?.(); }}
                   className="sb-status-btn"
                   style={{ color: '#8e8e93', width: '26px', height: '26px' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; e.currentTarget.style.color = '#007aff'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; e.currentTarget.style.color = '#007AFF'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -336,7 +336,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
             className="sb-status-btn" 
             title="退出登录"
             onClick={handleLogoutClick}
-            style={{ color: '#ff3b30' }}
+            style={{ color: '#FF3B30' }}
           >
             <svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

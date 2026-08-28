@@ -99,7 +99,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
     if (hasPriority || hasNormal) {
       if (isPast) dotColor = '#c7c7cc';
       else if (isToday) dotColor = '#ffffff';
-      else if (hasPriority) dotColor = '#ff3b30';
+      else if (hasPriority) dotColor = '#FF3B30';
       else if (hasNormal) dotColor = '#8e8e93';
     }
     const dotsHtml = dotColor

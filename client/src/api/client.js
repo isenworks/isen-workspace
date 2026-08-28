@@ -464,7 +464,7 @@ function buildSupabaseAPI() {
         const userId = await uidSB();
         const row = await wrapSB(supabase.from('ethan_habits').insert({
           user_id: userId,
-          name: data.name, emoji: data.emoji || '✅', accent_color: data.accent_color || '#34c759',
+          name: data.name, emoji: data.emoji || '✅', accent_color: data.accent_color || '#34C759',
           growth_type: data.growth_type || 'energy',
           target_time: data.target_time || null,
           start_time: data.start_time || data.target_time || null,

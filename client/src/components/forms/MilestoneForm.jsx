@@ -41,10 +41,11 @@ function FieldRow({ label, children }) {
 export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) {
   const isEdit = !!(initial && initial.id);
   const [form, setForm] = useState({
-    lb: initial?.lb || '',
-    dueBy: initial?.dueBy || '',
-    st: initial?.st === 'done' ? 'done' : 'pending',
-  });
+      lb: initial?.lb || '',
+      startDate: initial?.startDate || '',
+      dueBy: initial?.dueBy || '',
+      st: initial?.st === 'done' ? 'done' : 'pending',
+    });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   function submit() {
@@ -73,14 +74,18 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
       <SectionCard title="KR 内容">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <FieldRow label="KR 标题">
-            <input style={{ ...INPUT_BASE, fontWeight: 600 }}
-              value={form.lb} onChange={e => set('lb', e.target.value)}
-              placeholder="例如：阶段一：单表查询基础（Day1-Day5）" autoFocus />
-          </FieldRow>
-          <FieldRow label="截止日期（可选）">
-            <input type="date" style={INPUT_BASE}
-              value={form.dueBy} onChange={e => set('dueBy', e.target.value)} />
-          </FieldRow>
+              <input style={{ ...INPUT_BASE, fontWeight: 600 }}
+                value={form.lb} onChange={e => set('lb', e.target.value)}
+                placeholder="例如：阶段一：单表查询基础（Day1-Day5）" autoFocus />
+            </FieldRow>
+            <FieldRow label="开始日期（选填）">
+              <input type="date" style={INPUT_BASE}
+                value={form.startDate} onChange={e => set('startDate', e.target.value)} />
+            </FieldRow>
+            <FieldRow label="截止日期（可选）">
+              <input type="date" style={INPUT_BASE}
+                value={form.dueBy} onChange={e => set('dueBy', e.target.value)} />
+            </FieldRow>
         </div>
       </SectionCard>
 

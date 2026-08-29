@@ -5948,7 +5948,7 @@ export default function AnnualPlan({ standalone = true }) {
       showToast('里程碑已添加');
     },
     update: (data) => {
-      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: a.mstones.map((m, j) => j === data.msIdx ? { ...m, lb: data.lb, dueBy: data.dueBy, st: data.st, pct: data.pct } : m) } : a));
+      setAbilities(prev => prev.map((a, i) => i === data.abilityIdx ? { ...a, mstones: a.mstones.map((m, j) => j === data.msIdx ? { ...m, lb: data.lb, startDate: data.startDate || '', dueBy: data.dueBy, st: data.st, pct: data.pct } : m) } : a));
       showToast('里程碑已更新');
     },
     remove: ({ abilityIdx, msIdx }) => {

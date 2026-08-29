@@ -5374,13 +5374,16 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               const gs = goalStats[i];
               const bottleneck = renderWorkBottleneck(o, gs.color);
               return (
-                <div key={o.id || o.title + i} className="flex flex-col gap-2 min-w-0">
-                  <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-5 flex flex-col flex-1 min-h-0 group">
-                    {renderObjective(o, gs, i)}
+                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-5 flex flex-col flex-1 min-h-0 group">
+                  {renderObjective(o, gs, i)}
+                  {/* 主体内容区：flex-1 撑满中间空白，保证卡壳占满列高（两列卡片等高） */}
+                  <div className="flex-1 min-h-0">
                     {renderByMode(o, gs, i)}
                   </div>
-                  {/* 关键瓶颈：放在卡片下方（独立圆角块），与主业卡片形式一致 */}
-                  {bottleneck}
+                  {/* 关键瓶颈：放回卡壳内部底端，主/副业两侧位置一致、统一在卡片底部内 */}
+                  {bottleneck && (
+                    <div className="mt-3">{bottleneck}</div>
+                  )}
                 </div>
               );
             })}

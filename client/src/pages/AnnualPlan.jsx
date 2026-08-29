@@ -196,6 +196,7 @@ function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar })
  */
 const ABILITY = [
   {
+    id: 'ab_oral',
     title: '英语口语',
     score: '4',
     daily: '每日30min Shadowing + Anki背20词',
@@ -204,14 +205,15 @@ const ABILITY = [
     deadline: '2026-12-31',
     completedAt: null,
     mstones: [
-      { lb: '每日跟读 15 分钟（影子跟读法）', st: 'done', pct: 100, dueBy: '2026-03-31' },
-      { lb: '背诵常用 500 口语句型', st: 'done', pct: 100, dueBy: '2026-05-31' },
-      { lb: '完成 10 次即兴独白录音', st: 'done', pct: 100, dueBy: '2026-07-31' },
-      { lb: '加入 1 次英语角交流', st: 'pending', pct: 0, dueBy: '2026-10-15' },
-      { lb: '月末自评 ≥7/10 分', st: 'pending', pct: 0, dueBy: '2026-12-31' },
+      { id: 'ab_oral_m1', lb: '每日跟读 15 分钟（影子跟读法）', st: 'done', pct: 100, dueBy: '2026-03-31' },
+      { id: 'ab_oral_m2', lb: '背诵常用 500 口语句型', st: 'done', pct: 100, dueBy: '2026-05-31' },
+      { id: 'ab_oral_m3', lb: '完成 10 次即兴独白录音', st: 'done', pct: 100, dueBy: '2026-07-31' },
+      { id: 'ab_oral_m4', lb: '加入 1 次英语角交流', st: 'pending', pct: 0, dueBy: '2026-10-15' },
+      { id: 'ab_oral_m5', lb: '月末自评 ≥7/10 分', st: 'pending', pct: 0, dueBy: '2026-12-31' },
     ],
   },
   {
+    id: 'ab_speech',
     title: '即兴表达',
     score: '5',
     daily: '每周1次演讲练习 + 即兴30秒训练',
@@ -220,12 +222,13 @@ const ABILITY = [
     deadline: '2026-12-31',
     completedAt: null,
     mstones: [
-      { lb: '学完金字塔原理输出方法', st: 'done', pct: 100, dueBy: '2026-04-30' },
-      { lb: '完成 3 次 5 分钟主题演讲', st: 'doing', pct: 33, dueBy: '2026-09-30' },
-      { lb: '即兴表达 30 秒不中断练习', st: 'pending', pct: 0, dueBy: '2026-12-15' },
+      { id: 'ab_speech_m1', lb: '学完金字塔原理输出方法', st: 'done', pct: 100, dueBy: '2026-04-30' },
+      { id: 'ab_speech_m2', lb: '完成 3 次 5 分钟主题演讲', st: 'doing', pct: 33, dueBy: '2026-09-30' },
+      { id: 'ab_speech_m3', lb: '即兴表达 30 秒不中断练习', st: 'pending', pct: 0, dueBy: '2026-12-15' },
     ],
   },
   {
+    id: 'ab_analysis',
     title: '数据分析',
     score: '3',
     daily: '每日 2h SQL 刷题 + 课程学习',
@@ -234,9 +237,9 @@ const ABILITY = [
     deadline: '2026-09-14',
     completedAt: null,
     mstones: [
-      { lb: '阶段一：单表查询基础（Day1-Day5｜课程 15-22 集）', st: 'doing', pct: 40, dueBy: '2026-08-05' },
-      { lb: '阶段二：多表查询进阶（Day6-Day10｜课程 37-49 集）', st: 'pending', pct: 0, dueBy: '2026-08-10' },
-      { lb: '阶段三：实战与面试冲刺（Day11-Day14｜选学 27-30 函数集数）', st: 'pending', pct: 0, dueBy: '2026-08-14' },
+      { id: 'ab_analysis_m1', lb: '阶段一：单表查询基础（Day1-Day5｜课程 15-22 集）', st: 'doing', pct: 40, dueBy: '2026-08-05' },
+      { id: 'ab_analysis_m2', lb: '阶段二：多表查询进阶（Day6-Day10｜课程 37-49 集）', st: 'pending', pct: 0, dueBy: '2026-08-10' },
+      { id: 'ab_analysis_m3', lb: '阶段三：实战与面试冲刺（Day11-Day14｜选学 27-30 函数集数）', st: 'pending', pct: 0, dueBy: '2026-08-14' },
     ],
   },
 ];
@@ -249,29 +252,31 @@ const ABILITY = [
  */
 const WORK = [
   {
+    id: 'wk_offer',
     core: true, label: '主业', title: '用户运营offer，薪资≥20k',
     mode: 'funnel',
     createdAt: '2026-07-15',
     deadline: '2026-09-30',
     completedAt: null,
     krs: [
-      { t: '简历投递 50(份)', v: 20, tgt: 50, st: 'doing', dueBy: '2026-08-31' },
-      { t: '面试通过 10(个)', v: 5,  tgt: 10, st: 'doing', dueBy: '2026-09-15' },
-      { t: '改变总结 3(个)', v: 0,  tgt: 3,  st: 'tg',    dueBy: '2026-09-20' },
-      { t: '拿意向 Offer 1(个)', v: 0, tgt: 1, st: 'tg', dueBy: '2026-09-25' },
-      { t: '薪资达标 1(项)', v: 1, tgt: 1, st: 'done', dueBy: '2026-09-30' },
+      { id: 'wk_offer_k1', t: '简历投递 50(份)', v: 20, tgt: 50, st: 'doing', dueBy: '2026-08-31' },
+      { id: 'wk_offer_k2', t: '面试通过 10(个)', v: 5,  tgt: 10, st: 'doing', dueBy: '2026-09-15' },
+      { id: 'wk_offer_k3', t: '改变总结 3(个)', v: 0,  tgt: 3,  st: 'tg',    dueBy: '2026-09-20' },
+      { id: 'wk_offer_k4', t: '拿意向 Offer 1(个)', v: 0, tgt: 1, st: 'tg', dueBy: '2026-09-25' },
+      { id: 'wk_offer_k5', t: '薪资达标 1(项)', v: 1, tgt: 1, st: 'done', dueBy: '2026-09-30' },
     ],
   },
   {
+    id: 'wk_xhs',
     core: false, label: '副业', title: '小红书「小憨熊」涨粉+变现',
     mode: 'dashboard', // KPI 仪表盘：3 个独立指标
     createdAt: '2026-06-01',
     deadline: '2026-12-31',
     completedAt: null,
     krs: [
-      { t: '周更内容 50(条)', v: 12,  tgt: 50,  st: 'doing', dueBy: '2026-12-31' },
-      { t: '粉丝增长 5000(粉)', v: 800, tgt: 5000, st: 'doing', dueBy: '2026-12-31' },
-      { t: '商业合作 1(个)', v: 0,    tgt: 1,    st: 'tg',    dueBy: '2026-11-30' },
+      { id: 'wk_xhs_k1', t: '周更内容 50(条)', v: 12,  tgt: 50,  st: 'doing', dueBy: '2026-12-31' },
+      { id: 'wk_xhs_k2', t: '粉丝增长 5000(粉)', v: 800, tgt: 5000, st: 'doing', dueBy: '2026-12-31' },
+      { id: 'wk_xhs_k3', t: '商业合作 1(个)', v: 0,    tgt: 1,    st: 'tg',    dueBy: '2026-11-30' },
     ],
   },
 ];
@@ -4602,13 +4607,6 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* 删除：整卡悬停时可见 */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onAbilityRemove?.(as.idx); }}
-              title="删除此能力目标"
-              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition opacity-0 group-hover:opacity-100 flex-shrink-0 hover:bg-accent-red/10 text-ink-300 hover:text-accent-red active:scale-95"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-            </button>
             <span
               className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
               style={{ background: `${AB}1a`, border: `1px solid ${AB}40`, color: AB_DARK }}
@@ -4889,14 +4887,6 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* 删除目标：悬停卡片可见 */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onGoalRemove?.(goalIdx); }}
-              title="删除此目标"
-              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition opacity-0 group-hover:opacity-100 flex-shrink-0 hover:bg-accent-red/10 text-ink-300 hover:text-accent-red active:scale-95"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-            </button>
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
             <span
               className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
@@ -5583,6 +5573,31 @@ export default function AnnualPlan({ standalone = true }) {
       setCogKrs([...(cogKrs || []), ...toAdd]);
     }
   }, [cogKrs]);
+  // ===== ID 兜底：兼容旧 localStorage 数据 —— 给缺失 id 的目标/能力/KR/里程碑补 uid =====
+  React.useEffect(() => {
+    let changed = false;
+    const normAb = (abilities || []).map(a => {
+      const aId = a.id || uid(); if (!a.id) changed = true;
+      const ms = (a.mstones || []).map(m => {
+        if (m.id) return m;
+        changed = true; return { ...m, id: uid() };
+      });
+      if (ms.length !== (a.mstones || []).length || ms.some((m, i) => m.id !== (a.mstones || [])[i]?.id)) {
+        // ids 已经被补（即使没 changed）也要用新数组
+      }
+      return (!a.id || (a.mstones || []).some((m, i) => ms[i]?.id && !m.id)) ? { ...a, id: aId, mstones: ms } : a;
+    });
+    const normWk = (workGoals || []).map(o => {
+      const oId = o.id || uid(); if (!o.id) changed = true;
+      const krs = (o.krs || []).map(k => {
+        if (k.id) return k;
+        changed = true; return { ...k, id: uid() };
+      });
+      return (!o.id || (o.krs || []).some((k, i) => krs[i]?.id && !k.id)) ? { ...o, id: oId, krs } : o;
+    });
+    if (changed) { setAbilities(normAb); setWorkGoals(normWk); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // 知力 · 漏斗顶部标题与备注（主标题"转化漏斗"+右侧说明"阅读→笔记→践行"），支持点击编辑
   const [funnelHeader, setFunnelHeader] = usePersistentState('annual_cog_funnel_header', () => ({ title: '转化漏斗', sub: '输入→思考→行动→改变' }));
   // 知力 · 漏斗四层阶段的自定义文字（label/sub/convLabel），刷新不丢

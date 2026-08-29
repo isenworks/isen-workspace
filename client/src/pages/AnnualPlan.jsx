@@ -4852,12 +4852,20 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             <div className="min-w-0 flex-1">
               <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors"
                 onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
-              {/* 副标题：目标起止日期（凭证信息跟随标题） */}
-              {o.createdAt && o.deadline && (
-                <div className="text-[10.5px] text-ink-400 tabular-nums leading-tight mt-0.5">
-                  {o.createdAt.slice(0, 10)} → {o.deadline.slice(0, 10)}
-                </div>
-              )}
+              {/* 副标题：目标起止日期（凭证信息跟随标题；起点缺失时与 calcTimeAnchor 同步兜底=该年1月1日） */}
+              {(() => {
+                const dlStr = o.deadline ? String(o.deadline).slice(0, 10) : '';
+                if (!dlStr) return null;
+                const dl = parseDate(dlStr);
+                const csStr = o.createdAt ? String(o.createdAt).slice(0, 10) : '';
+                const cs = parseDate(csStr);
+                const startStr = cs ? csStr : `${dl ? dl.getFullYear() : new Date().getFullYear()}-01-01`;
+                return (
+                  <div className="text-[10.5px] text-ink-400 tabular-nums leading-tight mt-0.5">
+                    {startStr} → {dlStr}
+                  </div>
+                );
+              })()}
             </div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">

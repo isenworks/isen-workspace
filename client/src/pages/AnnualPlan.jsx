@@ -4843,9 +4843,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
       else if (paceAhead) pace = { t: `超前 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(52,199,89,0.10)', fg: '#34C759' };
       else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(255,59,48,0.10)', fg: '#FF3B30' };
     }
+    /* 工作页 renderObjective：容器级 px-1 pt-2 已移除，顶部/左右二次压缩消除，与能力页卡壳 p-3.5 像素级一致：
+       卡顶→标题中心从 35px→27px；左右留白从 18px→14px；只留 pb-2.5 border-b 承担与下方子渲染区的分段语义 */
     return (
-      {/* 移除容器级 px-1 pt-2，顶部/左右二次压缩消除，与能力页卡壳p-3.5像素级一致：
-           卡顶→标题中心从35px→27px；左右留白从18px→14px；只留 pb-2.5 border-b 承担与下方子渲染区的分段语义 */}
       <div className="flex flex-col gap-2 pb-2.5 border-b border-ink-100">
         {/* R1-top：色条 + 标题 + 胶囊 + 加号 —— 严格锁定在这一行内 items-center，
              与"加副标题之前"的原版视觉关系完全一致，右侧胶囊/加号自然与标题文字中线对齐 */}

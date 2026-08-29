@@ -4813,7 +4813,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         avgPct, rm, days, timePct, risks,
         dl: daysLabel(days),
         label: o.label || (o.core ? '主业' : '副业'),
-        color: o.core ? '#FF3B30' : '#FF9500',
+        color: '#FF3B30', // 工作页统一红色系：主业 & 副业卡片都用 #FF3B30（原副业为 #FF9500 橙色，用户要求统一红色）
       };
     });
   }, [dynWk]);
@@ -5056,42 +5056,40 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             </div>
           );
         })}
+      </div>
+    );
+  };
 
-        {/* ===== 关键瓶颈提示：自动分析最低转化率环节（完全对齐知力页） ===== */}
-        {(() => {
-          const conversions = [];
-          for (let i = 0; i < krs.length - 1; i++) {
-            const curr = krs[i], next = krs[i + 1];
-            if (!curr || !next || !curr.v || curr.v <= 0) continue;
-            const rate = Math.round((next.v / curr.v) * 100);
-            conversions.push({ from: curr.t, to: next.t, rate, fromVal: curr.v, toVal: next.v });
-          }
-          if (conversions.length === 0) return null;
-          const minConv = conversions.reduce((a, b) => a.rate < b.rate ? a : b);
-          const tips = [];
-          if (minConv.rate < 50) {
-            tips.push(`从「${minConv.from}」到「${minConv.to}」转化率仅 ${minConv.rate}%，是当前最大瓶颈`);
-          }
-          // 通用建议：聚焦瓶颈环节（工作 KR 为用户自定义文字，无法按类型映射）
-          const suggestion = `优先优化「${minConv.to}」，提升这一环的产出质量`;
-
-          return (
-            <div className="flex items-center gap-2 mt-2 pt-2.5 pb-1 px-3 rounded-lg"
-              style={{ background: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.18)' }}>
-              <svg className="w-[14px] h-[14px] flex-shrink-0" fill="#FF3B30" viewBox="0 0 24 24">
-                <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-              <span className="text-[11px] font-bold text-ink-700 flex-shrink-0">关键瓶颈：</span>
-              <span className="text-[11px] text-ink-600">
-                从「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.from}</span>」
-                到「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.to}</span>」
-                转化率
-                <span style={{ color: '#FF3B30', fontWeight: 800 }}> {minConv.rate}% </span>
-                — {suggestion}
-              </span>
-            </div>
-          );
-        })()}
+  /* ===== 关键瓶颈提示 helper（独立于渲染器，用于放在卡片下方） ===== */
+  // 计算相邻 KR 间转化率，找出最低的一环；适用于 funnel / dashboard / milestone 任何有 ≥2 个 KR 的模式
+  const renderWorkBottleneck = (o, COLOR) => {
+    const krs = o.krs || [];
+    const conversions = [];
+    for (let i = 0; i < krs.length - 1; i++) {
+      const curr = krs[i], next = krs[i + 1];
+      if (!curr || !next || !curr.v || curr.v <= 0) continue;
+      const rate = Math.round((next.v / curr.v) * 100);
+      conversions.push({ from: curr.t, to: next.t, rate });
+    }
+    if (conversions.length === 0) return null;
+    const minConv = conversions.reduce((a, b) => a.rate < b.rate ? a : b);
+    const suggestion = `优先优化「${minConv.to}」，提升这一环的产出质量`;
+    return (
+      <div className="flex items-start gap-2 mx-1 px-3 pt-2.5 pb-2 rounded-lg"
+        style={{ background: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.18)' }}>
+        <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[1px]" fill="#FF3B30" viewBox="0 0 24 24">
+          <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div className="min-w-0 flex-1">
+          <span className="text-[11px] font-bold text-ink-700 flex-shrink-0">关键瓶颈：</span>
+          <span className="text-[11px] text-ink-600 leading-snug">
+            从「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.from}</span>」
+            到「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.to}</span>」
+            转化率
+            <span style={{ color: '#FF3B30', fontWeight: 800 }}> {minConv.rate}% </span>
+            — {suggestion}
+          </span>
+        </div>
       </div>
     );
   };
@@ -5374,10 +5372,15 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <div key={colIdx} className="flex flex-col gap-4">
             {column.map(({ o, i }) => {
               const gs = goalStats[i];
+              const bottleneck = renderWorkBottleneck(o, gs.color);
               return (
-                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col flex-1 min-h-0 group">
-                  {renderObjective(o, gs, i)}
-                  {renderByMode(o, gs, i)}
+                <div key={o.id || o.title + i} className="flex flex-col gap-2 min-w-0">
+                  <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col flex-1 min-h-0 group">
+                    {renderObjective(o, gs, i)}
+                    {renderByMode(o, gs, i)}
+                  </div>
+                  {/* 关键瓶颈：放在卡片下方（独立圆角块），与主业卡片形式一致 */}
+                  {bottleneck}
                 </div>
               );
             })}

@@ -118,12 +118,12 @@ export default function DualMarkerBar({
     else badge = { t: `落后 ${diff}%${deltaContext ? ' · ' + deltaContext : ''}`, bg: hexToRgba(red, 0.1), fg: red };
   }
 
-  const track = { position: 'relative', height: 12, borderRadius: 999, background: hexToRgba(color, 0.1) };
+  const track = { position: 'relative', height: 10, borderRadius: 999, background: hexToRgba(color, 0.1) };
   const segBase = { position: 'absolute', top: 0, bottom: 0, transition: 'left .35s ease, width .35s ease' };
-  const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 6, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
+  const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
   const labelBase = {
-    position: 'absolute', bottom: -18, transform: 'translateX(-50%)',
-    fontSize: 11, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 6,
+    position: 'absolute', bottom: -15, transform: 'translateX(-50%)',
+    fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 6,
     transition: 'left .35s ease', WebkitTapHighlightColor: 'transparent',
   };
   const tipStyle = {
@@ -170,8 +170,8 @@ export default function DualMarkerBar({
         </div>
       )}
 
-      {/* 进度条主体：padding 留出气泡(上) 与 标签(下) 空间 — 上30px 保证气泡 26px高+尾5px=31px 不扎轨（离轨 1px 悬浮） */}
-      <div style={{ position: 'relative', paddingTop: 32, paddingBottom: 24 }}>
+      {/* 进度条主体：整体缩 17% — 轨上28px（气泡18px高+尾4px，净空2.9px 悬浮不扎轨） */}
+      <div style={{ position: 'relative', paddingTop: 28, paddingBottom: 21 }}>
         <div ref={trackRef} style={track}>
           {/* ① 已完成段（0 → min(实际,计划)） */}
           <div style={{ ...segBase, left: 0, width: `${geo ? geo.segW : Math.min(a, p)}%`, background: color, borderRadius: '999px 0 0 999px' }} />
@@ -191,30 +191,30 @@ export default function DualMarkerBar({
           <div style={{ ...dividerBase, left: geo ? geo.dA : undefined }} />
           <div style={{ ...dividerBase, left: geo ? geo.dP : undefined, opacity: geo ? (geo.hideP ? 0 : 1) : 1, transition: 'left .35s ease, opacity .2s' }} />
 
-          {/* 实际气泡：主题色胶囊 + 内嵌无缝三角（尾尖刚好落在轨道顶部 -1px，悬浮不扎轨） */}
+          {/* 实际气泡：主题色胶囊 + 内嵌无缝三角（尾尖离轨2.9px 悬浮不扎轨） */}
           <span ref={bubRef} style={{
-            position: 'absolute', top: -28, transform: 'translateX(-50%)',
+            position: 'absolute', top: -25, transform: 'translateX(-50%)',
             left: geo ? geo.bubL : undefined,
-            background: color, color: '#fff', fontSize: 12, fontWeight: 700,
-            padding: '3px 9px 5px', borderRadius: 999, lineHeight: 1.1,
+            background: color, color: '#fff', fontSize: 11, fontWeight: 700,
+            padding: '2px 8px 4px', borderRadius: 999, lineHeight: 1.1,
             boxShadow: `0 2px 6px ${hexToRgba(color, 0.3)}`,
             whiteSpace: 'nowrap', zIndex: 4, fontVariantNumeric: 'tabular-nums',
             transition: 'left .35s ease', visibility: geo ? 'visible' : 'hidden',
           }}>
             {merged ? `${fmt(a)}% / ${fmt(p)}%` : `${fmt(a)}%`}
             <i style={{
-              position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: -5,
+              position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: -4,
               width: 0, height: 0,
               borderLeft: '4px solid transparent', borderRight: '4px solid transparent',
-              borderTop: `5px solid ${color}`,
+              borderTop: `4px solid ${color}`,
             }} />
           </span>
 
           {/* 计划数字：纯数字，比气泡低 6px 错层（合并态隐藏） */}
           <span ref={pnRef} style={{
-            position: 'absolute', top: -16, transform: 'translateX(-50%)',
+            position: 'absolute', top: -14, transform: 'translateX(-50%)',
             left: geo && !merged ? geo.pnL : undefined,
-            fontSize: 13.5, fontWeight: 800, color: '#1c1c1e', lineHeight: 1,
+            fontSize: 12, fontWeight: 800, color: '#1c1c1e', lineHeight: 1,
             zIndex: 4, fontVariantNumeric: 'tabular-nums',
             transition: 'left .35s ease', visibility: geo && !merged ? 'visible' : 'hidden',
           }}>

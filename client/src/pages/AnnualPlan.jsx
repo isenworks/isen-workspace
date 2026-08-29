@@ -5937,19 +5937,30 @@ export default function AnnualPlan({ standalone = true }) {
       showToast('KR 已删除');
     },
   };
-  // 生活·记录
+  // 生活·记录（类目匹配用 c.key === data.lifeKey；旧实现 i===data.lifeKey 会把 'relation' 当成 number index 永远 false）
   const entryOps = {
     add: (data) => {
-      setLifeData(prev => prev.map((c, i) => i === data.lifeKey ? { ...c, entries: [...c.entries, { ...data, id: uid() }] } : c));
+      if (!data.lifeKey) { alert('请选择一个模块'); return; }
+      setLifeData(prev => prev.map(c => c.key === data.lifeKey ? { ...c, entries: [...c.entries, { ...data, id: uid() }] } : c));
       showToast('记录已添加');
     },
     update: (data) => {
-      setLifeData(prev => prev.map((c, i) => i === data.lifeKey ? { ...c, entries: c.entries.map((e, j) => j === data.entryIdx ? { ...e, t: data.t, n: data.n, d: data.d } : e) } : c));
+      setLifeData(prev => prev.map(c => c.key === data.lifeKey ? { ...c, entries: c.entries.map((e, j) => j === data.entryIdx ? { ...e, t: data.t, n: data.n, d: data.d } : e) } : c));
       showToast('记录已更新');
     },
     remove: ({ lifeKey, entryIdx }) => {
-      setLifeData(prev => prev.map((c, i) => i === lifeKey ? { ...c, entries: c.entries.filter((_, j) => j !== entryIdx) } : c));
+      setLifeData(prev => prev.map(c => c.key === lifeKey ? { ...c, entries: c.entries.filter((_, j) => j !== entryIdx) } : c));
       showToast('记录已删除');
+    },
+  };
+
+  // 生活·模块（大类）：新增 / 改名改色 / 删除（删除带确认）
+  const lifeCatOps = {
+    add: ({ lb, color }) => {
+      const key = uid();
+      setLifeData(prev => [...prev, { key, lb: lb.trim(), color: color || '#AF52DE', entries: [] }]);
+      showToast(`已新增模块「${lb.trim()}」`);
+      return { key };
     },
   };
 
@@ -6138,10 +6149,12 @@ export default function AnnualPlan({ standalone = true }) {
         );
       case 'entry':
         return (
-          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑记录' : '添加记录'}>
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑记录' : '添加记录'} maxWidth={480}>
             <EntryForm
               initial={modal.initial}
               categoryLabel={modal.categoryLabel}
+              lifeCategories={lifeData.map(c => ({ key: c.key, lb: c.lb, color: c.color }))}
+              onAddCategory={(d) => lifeCatOps.add(d)}
               onCancel={closeModal}
               onSaved={(data) => {
                 modal.initial?.id ? entryOps.update(data) : entryOps.add(data);
@@ -6421,7 +6434,8 @@ export default function AnnualPlan({ standalone = true }) {
                 cognition: { type: 'book' },
                 ability:   { type: 'ability' },
                 work:      { type: 'work_goal' },
-                life:      { type: 'entry',      initial: { lifeKey: 'relation' }, categoryLabel: '关系' },
+                // 生活 entry：initial 不传 lifeKey，打开后由 EntryForm 显示模块 chip 选择器（默认第一个 chip），可切换到任意模块或新建
+                life:      { type: 'entry' },
               };
               const act = ADD_ACTIONS[item.key];
               if (!act) return null;

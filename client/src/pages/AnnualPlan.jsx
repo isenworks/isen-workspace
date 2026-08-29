@@ -10,6 +10,7 @@ import AbilityForm from '../components/forms/AbilityForm.jsx';
 import KrForm from '../components/forms/KrForm.jsx';
 import WorkGoalForm from '../components/forms/WorkGoalForm.jsx';
 import EntryForm from '../components/forms/EntryForm.jsx';
+import DualMarkerBar from '../components/DualMarkerBar.jsx';
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
@@ -3398,6 +3399,12 @@ function CognitionView({
     return Math.round(finalKrs.reduce((s, kr) => s + pct(kr.val, kr.tgt), 0) / finalKrs.length);
   }, [finalKrs]);
 
+  // 总体节奏：实际完成率（已读/目标）vs 计划完成率（当前月/12，时间锚点）
+  const paceNow = new Date();
+  const paceMonth = paceNow.getMonth() + 1;
+  const paceActual = funnelData.total > 0 ? Math.round((funnelData.done / funnelData.total) * 1000) / 10 : 0;
+  const pacePlan = Math.round((paceMonth / 12) * 1000) / 10;
+
   // 保存 O
   const commitObj = () => {
     const t = objDraft.trim();
@@ -3485,20 +3492,7 @@ function CognitionView({
                 title="右键编辑O目标"
                 placeholder="填写O目标"
               />
-              {/* 时间进度：按当前月份显示 */}
-              {(() => {
-                const now = new Date();
-                const timePct = Math.round(((now.getMonth() + 1) / 12) * 100);
-                return (
-                  <div className="flex-shrink-0 px-2 py-[5px] rounded-lg whitespace-nowrap flex items-center gap-1"
-                    style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}>
-                    <span className="text-[10px] text-ink-500">时间进度</span>
-                    <span className="text-[12px] font-extrabold tabular-nums leading-none" style={{ color: BLUE }}>
-                      {timePct}<span className="text-[9px] font-bold">%</span>
-                    </span>
-                  </div>
-                );
-              })()}
+              {/* 时间进度胶囊已由下方「阅读节奏」双标记进度条的计划标记取代（同一数据源） */}
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
@@ -3508,6 +3502,19 @@ function CognitionView({
               </button>
             </div>
           )}
+        </div>
+
+        {/* ===== 阅读节奏：实际 vs 计划 双标记进度条（实际=已读/目标，计划=时间进度） ===== */}
+        <div className="mb-2 px-0.5">
+          <DualMarkerBar
+            actual={paceActual}
+            plan={pacePlan}
+            color={BLUE}
+            caption="阅读节奏"
+            actualDetail={`已读完 ${funnelData.done} 本 / 目标 ${funnelData.total} 本 = ${paceActual}%`}
+            planDetail={`${paceMonth} 月 / 12 月 = ${pacePlan}%`}
+            deltaContext={paceMonth >= 12 ? '年度已收官' : `还剩 ${12 - paceMonth} 个月`}
+          />
         </div>
 
         {/* ===== 一体化漏斗：3 列同构 —— 删表头（列语义视觉自解释），O 行 mb-3 已提供呼吸 ===== */}

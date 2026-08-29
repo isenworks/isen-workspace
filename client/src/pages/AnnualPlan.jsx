@@ -3492,13 +3492,13 @@ function CognitionView({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
 
       {/* ===== Row 1: 左 OKR(6) + 右 书架(6) 一体化布局 — 6:6 等分, 书架2列卡片恢复原始尺寸 ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
 
       {/* ===== 左侧·一体化 KR × 漏斗 卡片（6/12 列） ===== */}
-      <div className="xl:col-span-6 bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col min-h-0">
+      <div className="xl:col-span-6 bg-white rounded-2xl border border-ink-100 p-5 flex flex-col min-h-0">
         {/* ===== Header: O目标 + 时间进度 + 新增KR（mb-3 给 O 行和下面内容呼吸感）===== */}
         <div className="mb-3">
           {editingObj ? (
@@ -3719,7 +3719,7 @@ function CognitionView({
       {/* ===== 右侧·书架看板（6/12 列，2列网格恢复原始卡片尺寸） ===== */}
       <div className="xl:col-span-6 flex flex-col min-h-0">
       {/* ===== 书架看板 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-3.5 flex flex-col flex-1 min-h-0">
+      <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col flex-1 min-h-0">
         {/* Header 两行式：第一行(色条+标题+共N本+操作按钮) · 第二行(Tabs左对齐) */}
         <div className="mb-2">
           {/* Row 1：色条 + 标题 + 共N本 + 操作按钮 */}
@@ -4209,10 +4209,10 @@ function CognitionView({
       )}
 
       {/* ===== 读后思考 · 思后行动 · 行后改变（三栏横向布局）===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 pt-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* ========== 卡片一：读后思考 ========== */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+        <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
@@ -4274,7 +4274,7 @@ function CognitionView({
         </div>
 
         {/* ========== 卡片二：思后行动（合并书籍中思后行动 + 旧独立changes）========== */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+        <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
@@ -4383,7 +4383,7 @@ function CognitionView({
         </div>
 
         {/* ========== 卡片三：行后改变 ========== */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
+        <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
@@ -4595,7 +4595,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
     const mstones = a.mstones || [];
 
     return (
-      <div key={a.id || a.title} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-3.5 flex flex-col group">
+      <div key={a.id || a.title} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-5 flex flex-col group">
         {/* 标题行：色条 + 16px 可编辑标题 | 删除(悬停) + 已勾选/总数胶囊 + 26×26 加号 */}
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2 min-w-0">
@@ -5375,7 +5375,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               const bottleneck = renderWorkBottleneck(o, gs.color);
               return (
                 <div key={o.id || o.title + i} className="flex flex-col gap-2 min-w-0">
-                  <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col flex-1 min-h-0 group">
+                  <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-5 flex flex-col flex-1 min-h-0 group">
                     {renderObjective(o, gs, i)}
                     {renderByMode(o, gs, i)}
                   </div>

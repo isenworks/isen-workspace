@@ -4826,6 +4826,23 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
       : (gs.risks.warn || 0) > 0 ? { n: gs.risks.warn, c: '#FF9500', l: '预警' }
       : (gs.risks.done === krTotal && krTotal > 0) ? { n: null, c: '#34C759', l: '已达成' }
       : null;
+    // R3 已收敛：m/topRisk 不再参与卡片渲染（范式子渲染器自有逻辑），留变量防引用错误
+    // eslint-disable-next-line no-unused-vars
+    const _unused = { m, topRisk };
+    // 节奏胶囊：落后/超前 X% · X月Y天（与知力页 paceBadge 同构；无 deadline 或已过期时退化为纯语义）
+    const paceDiff = gs.timePct !== null && gs.timePct !== undefined
+      ? Math.round(Math.abs(gs.avgPct - gs.timePct)) : null;
+    const paceAhead = gs.timePct !== null && gs.avgPct >= gs.timePct;
+    const paceRemainTxt = (gs.days !== null && gs.days !== undefined && gs.days > 0)
+      ? (() => { const mo = Math.floor(gs.days / 30); const dy = gs.days % 30;
+          return mo === 0 ? `${dy} 天` : (dy === 0 ? `${mo} 月` : `${mo} 月 ${dy} 天`); })()
+      : null;
+    let pace = null;
+    if (paceDiff !== null) {
+      if (paceDiff === 0) pace = { t: '节奏匹配', bg: `${color}1a`, fg: color };
+      else if (paceAhead) pace = { t: `超前 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(52,199,89,0.10)', fg: '#34C759' };
+      else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(255,59,48,0.10)', fg: '#FF3B30' };
+    }
     return (
       <div className="flex flex-col gap-2 px-1 pt-2 pb-2.5 border-b border-ink-100">
         {/* R1 同构能力页：色条5px | O标题16px(点击编辑目标) | X/Y胶囊 | 26×26 +按钮 */}
@@ -4836,13 +4853,21 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
               onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</span>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span
-              className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: `${color}1a`, border: `1px solid ${color}40`, color: '#E6352B' }}>
-              <span className="font-extrabold">{krDone}</span>
-              <span className="mx-0.5 opacity-50">/</span>
-              <span className="opacity-70">{krTotal}</span>
-            </span>
+            {/* 节奏胶囊：落后/超前 X% · X月Y天（替代原 1/5 计数胶囊，与知力页同构） */}
+            {pace ? (
+              <span className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-bold tabular-nums leading-none whitespace-nowrap"
+                style={{ background: pace.bg, color: pace.fg }}
+                title={`实际 ${gs.avgPct}% vs 时间 ${gs.timePct}%${krTotal > 0 ? ` · ${krDone}/${krTotal} KR 已完成` : ''}`}>
+                {pace.t}
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
+                style={{ background: `${color}1a`, border: `1px solid ${color}40`, color }}>
+                <span className="font-extrabold">{krDone}</span>
+                <span className="mx-0.5 opacity-50">/</span>
+                <span className="opacity-70">{krTotal}</span>
+              </span>
+            )}
             <button
               onClick={() => onKrAdd?.(goalIdx)}
               className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
@@ -4875,22 +4900,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             />
           </div>
         )}
-        {/* R3 元信息 pill 行：分类·范式 | 截止 | 风险胶囊（右固定） */}
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg flex-shrink-0 text-[10.5px] font-bold"
-            style={{ background: `${color}15`, color }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }}></span>
-            {gs.label} · {m.lb}
-          </span>
-          <span className={`text-[10.5px] font-semibold flex-shrink-0 ${gs.dl.cls}`}>📅{gs.dl.text}</span>
-          {topRisk && (
-            <span className="ml-auto text-[10.5px] font-bold px-1.5 py-0.5 rounded tabular-nums flex-shrink-0 whitespace-nowrap"
-              style={{ background: `${topRisk.c}15`, color: topRisk.c }}>
-              {topRisk.l}{topRisk.n ?? ''}
-            </span>
-          )}
-          {!topRisk && <span className="ml-auto tag tag-b flex-shrink-0" style={{ fontSize: '10px' }}>节奏正常</span>}
-        </div>
+        {/* R3 元信息行已收敛：分类/范式/日期/风险信息分别并入节奏胶囊 tooltip 与双标记进度条 */}
       </div>
     );
   };

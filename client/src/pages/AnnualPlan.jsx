@@ -3464,30 +3464,6 @@ function CognitionView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paceNow, paceMonth]);
 
-  // 节奏徽章：样式与进度条组件内一致，渲染在 O 行 + 按钮左侧
-  const paceBadge = useMemo(() => {
-    const a = Math.max(0, Math.min(100, Number(paceActual) || 0));
-    const p = Math.max(0, Math.min(100, Number(pacePlan) || 0));
-    const diff = Math.round(Math.abs(a - p));
-    const ahead = a >= p;
-    const ctx = paceRemain;
-    let bg = `${BLUE}1A`, fg = BLUE, text = '节奏匹配';
-    if (diff === 0) { /* 匹配，走默认 */ }
-    else if (ahead) {
-      bg = '#34C7591A'; fg = '#34C759'; text = `超前 ${diff}% · ${ctx}`;
-    } else {
-      bg = '#FF3B301A'; fg = '#FF3B30'; text = `落后 ${diff}% · ${ctx}`;
-    }
-    return (
-      <span
-        style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: bg, color: fg, whiteSpace: 'nowrap', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}
-        className="flex-shrink-0"
-      >
-        {text}
-      </span>
-    );
-  }, [paceActual, pacePlan, paceRemain]);
-
   // 保存 O
   const commitObj = () => {
     const t = objDraft.trim();
@@ -3575,8 +3551,6 @@ function CognitionView({
                 title="右键编辑O目标"
                 placeholder="填写O目标"
               />
-              {/* 节奏徽章：落后/超前 X% · X月 Y天（放在 O 行右侧，+按钮左边） */}
-              {paceBadge}
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
@@ -3588,16 +3562,26 @@ function CognitionView({
           )}
         </div>
 
-        {/* ===== 双标记进度条：实际 vs 计划（无独立标题行；节奏徽章已挪至 O 行 + 按钮左侧） ===== */}
+        {/* ===== 双标记进度条：实际 vs 计划（节奏信息整合进「计划」marker tooltip，参考能力页 planDetail 设计） ===== */}
         <div className="mb-2 px-0.5">
-          <DualMarkerBar
-            actual={paceActual}
-            plan={pacePlan}
-            color={BLUE}
-            showBadge={false}
-            actualDetail={`已读完 ${funnelData.done} 本 / 目标 ${funnelData.total} 本 = ${paceActual}%`}
-            planDetail={`${paceMonth} 月 / 12 月 = ${pacePlan}%`}
-          />
+          {(() => {
+            const a = Math.max(0, Math.min(100, Number(paceActual) || 0));
+            const p = Math.max(0, Math.min(100, Number(pacePlan) || 0));
+            const diff = Math.round(Math.abs(a - p));
+            const ahead = a >= p;
+            const diffTxt = diff === 0 ? '节奏匹配' : (ahead ? `超前 ${diff}%` : `落后 ${diff}%`);
+            const remain = paceMonth >= 12 || paceRemain === '年度已收官' ? '年度已收官' : `剩余 ${paceRemain}`;
+            return (
+              <DualMarkerBar
+                actual={paceActual}
+                plan={pacePlan}
+                color={BLUE}
+                showBadge={false}
+                actualDetail={`已读完 ${funnelData.done} 本 / 目标 ${funnelData.total} 本 = ${paceActual}%`}
+                planDetail={`时间锚点 ${pacePlan}%（${paceMonth}/12 月） · ${diffTxt} · ${remain}`}
+              />
+            );
+          })()}
         </div>
 
         {/* ===== 一体化漏斗：3 列同构 —— 删表头（列语义视觉自解释），O 行 mb-3 已提供呼吸 ===== */}

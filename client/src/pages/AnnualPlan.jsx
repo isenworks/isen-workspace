@@ -4852,14 +4852,29 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             </button>
           </div>
         </div>
-        {/* R2 总体完成度：漏斗同构 3 列（-mx-1 对齐漏斗列）— 标签 | flex-1 进度条 | 右固定%（粗细5px不变） */}
-        <div className="flex items-center gap-2.5 -mx-1">
-          <span className="text-[11px] font-semibold text-ink-500 w-[128px] flex-shrink-0 truncate">总体完成度</span>
-          <div className="flex-1 h-[5px] rounded-full bg-ink-100 overflow-hidden min-w-[40px]">
-            <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: color }}></div>
+        {/* R2 总体完成度：双标记进度条（实际 avgPct vs 计划 timePct）— 替换原 5px 细条 */}
+        {gs.timePct === null || gs.timePct === undefined ? (
+          <div className="flex items-center gap-2.5 -mx-1">
+            <span className="text-[11px] font-semibold text-ink-500 w-[128px] flex-shrink-0 truncate">总体完成度</span>
+            <div className="flex-1 h-[5px] rounded-full bg-ink-100 overflow-hidden min-w-[40px]">
+              <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: color }}></div>
+            </div>
+            <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
           </div>
-          <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
-        </div>
+        ) : (
+          <div className="-mx-1" title="">
+            <DualMarkerBar
+              actual={gs.avgPct}
+              plan={gs.timePct}
+              color={color}
+              showBadge={false}
+              actualDetail={`KR 平均完成 ${gs.avgPct}%${krTotal > 0 ? `（${krDone}/${krTotal} 已完成）` : ''}`}
+              planDetail={gs.days !== null && gs.days !== undefined
+                ? `时间锚点 ${gs.timePct}% · 剩余 ${gs.days} 天`
+                : `时间锚点 ${gs.timePct}%`}
+            />
+          </div>
+        )}
         {/* R3 元信息 pill 行：分类·范式 | 截止 | 风险胶囊（右固定） */}
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg flex-shrink-0 text-[10.5px] font-bold"

@@ -4849,8 +4849,16 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
-            <span className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors"
-              onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors"
+                onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
+              {/* 副标题：目标起止日期（凭证信息跟随标题） */}
+              {o.createdAt && o.deadline && (
+                <div className="text-[10.5px] text-ink-400 tabular-nums leading-tight mt-0.5">
+                  {o.createdAt.slice(0, 10)} → {o.deadline.slice(0, 10)}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
@@ -4891,15 +4899,6 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
                 ? `时间锚点 ${gs.timePct}% · 剩余 ${gs.days} 天`
                 : `时间锚点 ${gs.timePct}%`}
             />
-            {/* 进度条注脚：目标起止时间 + 剩余（挂在条形下，语义=时间锚点的直读版本） */}
-            {paceRemainTxt && (
-              <div className="flex items-center justify-between -mt-1 px-0.5 text-[10px] text-ink-400 leading-none">
-                <span className="tabular-nums">{o.createdAt?.slice(0, 10)} → {o.deadline?.slice(0, 10)}</span>
-                <span className="font-bold tabular-nums" style={{ color: paceDiff !== null && !paceAhead ? '#FF3B30' : undefined }}>
-                  {paceDiff !== null && paceDiff > 0 && !paceAhead ? `落后 ${paceDiff}% · ` : ''}剩余 {paceRemainTxt}
-                </span>
-              </div>
-            )}
           </div>
         )}
         {/* R3 元信息行已收敛：分类/范式/日期/风险信息分别并入节奏胶囊 tooltip 与双标记进度条 */}

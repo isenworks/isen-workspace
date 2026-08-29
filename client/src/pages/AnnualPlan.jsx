@@ -4845,33 +4845,13 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
     }
     return (
       <div className="flex flex-col gap-2 px-1 pt-2 pb-2.5 border-b border-ink-100">
-        {/* R1 同构能力页：色条5px | O标题16px(点击编辑目标) + 起止日期副行 | X/Y胶囊 | 26×26 +按钮 */}
+        {/* R1-top：色条 + 标题 + 胶囊 + 加号 —— 严格锁定在这一行内 items-center，
+             与"加副标题之前"的原版视觉关系完全一致，右侧胶囊/加号自然与标题文字中线对齐 */}
         <div className="flex items-center justify-between gap-2 min-w-0">
-          {/* 色条独立单元格h-[19px] + 外层items-start = 色条单元格top与右列标题top严格对齐，
-               单元格内items-center把18px色条精确沉底在标题文本中线，完全无视副标题高度；
-               若用items-center，外层flex会按右列两行总高(≈34px)整体居中 → 色条漂到两行之间 */}
-          <div className="flex items-start gap-2 min-w-0 flex-1">
-            <div className="flex items-center h-[19px] flex-shrink-0">
-              <span className="w-[5px] h-[18px] rounded-full block" style={{ background: color }}></span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors"
-                onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
-              {/* 副标题：目标起止日期（凭证信息跟随标题；起点缺失时与 calcTimeAnchor 同步兜底=该年1月1日） */}
-              {(() => {
-                const dlStr = o.deadline ? String(o.deadline).slice(0, 10) : '';
-                if (!dlStr) return null;
-                const dl = parseDate(dlStr);
-                const csStr = o.createdAt ? String(o.createdAt).slice(0, 10) : '';
-                const cs = parseDate(csStr);
-                const startStr = cs ? csStr : `${dl ? dl.getFullYear() : new Date().getFullYear()}-01-01`;
-                return (
-                  <div className="text-[10.5px] text-ink-400 tabular-nums leading-tight mt-0.5">
-                    {startStr} → {dlStr}
-                  </div>
-                );
-              })()}
-            </div>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
+            <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors min-w-0"
+              onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
@@ -4891,6 +4871,20 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             </button>
           </div>
         </div>
+        {/* R1-bot：起止日期副行，与色条左对齐（色条宽5px+gap2 = 7px缩进匹配R1-top） */}
+        {(() => {
+          const dlStr = o.deadline ? String(o.deadline).slice(0, 10) : '';
+          if (!dlStr) return null;
+          const dl = parseDate(dlStr);
+          const csStr = o.createdAt ? String(o.createdAt).slice(0, 10) : '';
+          const cs = parseDate(csStr);
+          const startStr = cs ? csStr : `${dl ? dl.getFullYear() : new Date().getFullYear()}-01-01`;
+          return (
+            <div className="text-[10.5px] text-ink-400 tabular-nums leading-none pl-[7px]">
+              {startStr} → {dlStr}
+            </div>
+          );
+        })()}
         {/* R2 总体完成度：双标记进度条（实际 avgPct vs 计划 timePct），全宽 */}
         {gs.timePct === null || gs.timePct === undefined ? (
           <div className="flex items-center gap-2.5 -mx-1">

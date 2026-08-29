@@ -4847,9 +4847,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
       <div className="flex flex-col gap-2 px-1 pt-2 pb-2.5 border-b border-ink-100">
         {/* R1 同构能力页：色条5px | O标题16px(点击编辑目标) + 起止日期副行 | X/Y胶囊 | 26×26 +按钮 */}
         <div className="flex items-center justify-between gap-2 min-w-0">
-          {/* 色条独立单元格：高度严格锁定为标题单行盒子(16px leading-tight ≈ 19px)，items-center 把 18px 色条完美居中在标题文本中线；
-               副标题在右列独立渲染，不参与色条对齐，回归原版单行+色条的完全一致视觉关系 */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          {/* 色条独立单元格h-[19px] + 外层items-start = 色条单元格top与右列标题top严格对齐，
+               单元格内items-center把18px色条精确沉底在标题文本中线，完全无视副标题高度；
+               若用items-center，外层flex会按右列两行总高(≈34px)整体居中 → 色条漂到两行之间 */}
+          <div className="flex items-start gap-2 min-w-0 flex-1">
             <div className="flex items-center h-[19px] flex-shrink-0">
               <span className="w-[5px] h-[18px] rounded-full block" style={{ background: color }}></span>
             </div>

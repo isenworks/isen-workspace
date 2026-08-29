@@ -4932,7 +4932,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
       );
     }
     return (
-      <div className="flex flex-col pt-1 max-h-[300px] overflow-y-auto pr-2.5">
+      <div className="flex flex-col pt-1 pr-2.5 flex-1">
         {krs.map((kr, i) => {
           const p = pct(kr.v, kr.tgt);
           const isDone = kr.st === 'done' || p >= 100;
@@ -5326,7 +5326,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
       </div>
 
       {/* ===== 卡片分栏：主业左列 | 副业右列（新增卡片按分组自动落列） ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         {[
           dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core !== false), // 主业列
           dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core === false), // 副业列
@@ -5335,7 +5335,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             {column.map(({ o, i }) => {
               const gs = goalStats[i];
               return (
-                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col">
+                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col flex-1 min-h-0">
                   {renderObjective(o, gs, i)}
                   {renderByMode(o, gs, i)}
                 </div>

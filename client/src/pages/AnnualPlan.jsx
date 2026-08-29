@@ -5303,58 +5303,6 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ===== Hero：风险锚点 + 添加目标入口 ===== */}
-      <div className="glass-card p-5">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#FF3B30' }}></span>
-          <span className="text-[16px] font-bold leading-none text-ink-900">{year}年 · 工作 OKR</span>
-          <div className="flex items-center gap-2 flex-wrap ml-1">
-            {heroStats.earliest !== null && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.10)', border: '1px solid rgba(148,163,184,0.25)' }}>
-                <span className="text-[10px] font-bold text-ink-400">最近截止</span>
-                <span className={`text-[11.5px] font-extrabold tabular-nums ${daysLabel(heroStats.earliest).cls}`}>
-                  {daysLabel(heroStats.earliest).text}
-                </span>
-              </div>
-            )}
-            {heroStats.risk > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF3B30' }}></span>
-                <span className="text-[10px] font-bold text-accent-red">落后</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-accent-red">{heroStats.risk}</span>
-              </div>
-            )}
-            {heroStats.warn > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.25)' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#FF9500' }}></span>
-                <span className="text-[10px] font-bold text-accent-amber">预警</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-accent-amber-600">{heroStats.warn}</span>
-              </div>
-            )}
-            {heroStats.overdue > 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.25)' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
-                <span className="text-[10px] font-bold text-accent-red">过期</span>
-                <span className="text-[11.5px] font-extrabold tabular-nums leading-none text-accent-red">{heroStats.overdue}</span>
-              </div>
-            )}
-            {heroStats.total === 0 && (
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.25)' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M5 13l4 4L19 7"/></svg>
-                <span className="text-[10px] font-bold text-accent-green">节奏正常</span>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => onGoalAdd?.()}
-            className="ml-auto inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-            style={{ background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            添加目标
-          </button>
-        </div>
-      </div>
-
       {/* ===== 卡片分栏：主业左列 | 副业右列（新增卡片按分组自动落列） ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         {[
@@ -6464,32 +6412,38 @@ export default function AnnualPlan({ standalone = true }) {
               <CategoryIcon catKey={item.key} className="w-3.5 h-3.5" />
             </span>
             <span>{item.label}</span>
-            {item.key === 'ability' ? (
-              // 能力 tab：pct% 替换为 + 按钮，点击切到 ability 并弹出添加 Modal（stopPropagation 防止冒泡触发 tab 切换两次）
-              <span
-                role="button"
-                aria-label="添加能力"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setView('ability');
-                  setModal({ type: 'ability' });
-                }}
-                className={[
-                  'w-5 h-5 rounded-md grid place-items-center transition hover:brightness-105 active:scale-90',
-                  on ? 'bg-white/15 text-white' : 'bg-ink-100 text-ink-500 hover:bg-ink-200'
-                ].join(' ')}
-                title="添加能力"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              </span>
-            ) : (
-              pctVal !== null && (
-                <span className={[
-                  'text-xs font-bold tabular-nums px-1.5 py-0.5 rounded-md',
-                  on ? 'bg-white/15 text-white/90' : 'bg-ink-100 text-ink-500'
-                ].join(' ')}>{pctVal}%</span>
-              )
-            )}
+            {/* 所有非 overview tab：pct% 统一替换为 + 按钮，点击切 tab 并弹出对应 add Modal。
+                overview tab 不做 +，保持无后缀（年度概览不是可添加的资源池）。 */}
+            {item.key === 'overview' ? null : (() => {
+              // 各 tab 对应的「添加」Modal 配置：type + 可选 initial
+              const ADD_ACTIONS = {
+                energy:    { type: 'habit',      initial: { growth_type: 'energy', accent_color: '#34C759' } },
+                cognition: { type: 'book' },
+                ability:   { type: 'ability' },
+                work:      { type: 'work_goal' },
+                life:      { type: 'entry',      initial: { lifeKey: 'relation' }, categoryLabel: '关系' },
+              };
+              const act = ADD_ACTIONS[item.key];
+              if (!act) return null;
+              return (
+                <span
+                  role="button"
+                  aria-label={`添加${item.label === '精力' ? '习惯' : item.label === '知力' ? '书籍' : item.label === '工作' ? '目标' : item.label === '生活' ? '记录' : item.label}`}
+                  title={`添加${item.label === '精力' ? '习惯' : item.label === '知力' ? '书籍' : item.label === '工作' ? '目标' : item.label === '生活' ? '记录' : item.label}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setView(item.key);
+                    setModal({ ...act });
+                  }}
+                  className={[
+                    'w-5 h-5 rounded-md grid place-items-center transition hover:brightness-105 active:scale-90',
+                    on ? 'bg-white/15 text-white' : 'bg-ink-100 text-ink-500 hover:bg-ink-200'
+                  ].join(' ')}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </span>
+              );
+            })()}
           </button>
         );
       })}

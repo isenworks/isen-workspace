@@ -3735,19 +3735,22 @@ function CognitionView({
           else if (minConv.to === '改变量') suggestions.push('将行动计划落地，记录真实改变');
 
           return (
-            <div className="flex items-center gap-2 mt-2 pt-2.5 pb-1 px-3 rounded-lg"
+            <div className="flex items-start gap-2 mt-2 pt-2.5 pb-1 px-3 rounded-lg"
               style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.18)' }}>
-              <svg className="w-[14px] h-[14px] flex-shrink-0" fill="#FF9500" viewBox="0 0 24 24">
+              {/* 橙色三角标：与「关键瓶颈」11px/15.4px 行高中心对齐（同工作页红色三角对齐逻辑） */}
+              <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[0.5px]" fill="#FF9500" viewBox="0 0 24 24">
                 <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
-              <span className="text-[11px] font-bold text-ink-700 flex-shrink-0">关键瓶颈：</span>
-              <span className="text-[11px] text-ink-600">
-                从「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.from}</span>」
-                到「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.to}</span>」
-                转化率
-                <span style={{ color: '#FF3B30', fontWeight: 800 }}> {minConv.rate}% </span>
-                — {suggestions[0]}
-              </span>
+              <div className="min-w-0 flex-1 text-[11px] leading-[1.4]">
+                <span className="font-bold text-ink-700">关键瓶颈：</span>
+                <span className="text-ink-600">
+                  从「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.from}</span>」
+                  到「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.to}</span>」
+                  转化率
+                  <span style={{ color: '#FF3B30', fontWeight: 800 }}> {minConv.rate}% </span>
+                  — {suggestions[0]}
+                </span>
+              </div>
             </div>
           );
         })()}
@@ -5126,12 +5129,16 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     return (
       <div className="flex items-start gap-2 mx-1 px-3 pt-2.5 pb-2 rounded-lg"
         style={{ background: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.18)' }}>
-        <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[1px]" fill="#FF3B30" viewBox="0 0 24 24">
+        {/* 三角警告标：始终与「关键瓶颈」四个字的 11px/15px 行高几何中心对齐
+            items-start 前提下：
+            行高 15.4px → 中心 = 7.7px；SVG 14px → 自身中心 7px；偏移差 = 0.7px，
+            用 mt-[0.5px] 再微调 0.5px 到 ~7.5px 中心，与「关/键/瓶/颈」四字笔画中心像素对齐 */}
+        <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[0.5px]" fill="#FF3B30" viewBox="0 0 24 24">
           <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
-        <div className="min-w-0 flex-1">
-          <span className="text-[11px] font-bold text-ink-700 flex-shrink-0">关键瓶颈：</span>
-          <span className="text-[11px] text-ink-600 leading-snug">
+        <div className="min-w-0 flex-1 text-[11px] leading-[1.4]">
+          <span className="font-bold text-ink-700">关键瓶颈：</span>
+          <span className="text-ink-600">
             从「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.from}</span>」
             到「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.to}</span>」
             转化率

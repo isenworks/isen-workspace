@@ -3404,27 +3404,6 @@ function CognitionView({
   const paceMonth = paceNow.getMonth() + 1;
   const paceActual = funnelData.total > 0 ? Math.round((funnelData.done / funnelData.total) * 1000) / 10 : 0;
   const pacePlan = Math.round((paceMonth / 12) * 1000) / 10;
-  // 剩余时间：精确到月+天（年末12月→年度已收官）
-  const paceRemain = useMemo(() => {
-    if (paceMonth >= 12) return '年度已收官';
-    const year = paceNow.getFullYear();
-    const end = new Date(year, 11, 31, 23, 59, 59);
-    const dayMs = 86400000;
-    const totalDays = Math.max(0, Math.ceil((end - paceNow) / dayMs));
-    const months = 12 - paceMonth;
-    // 本月已过天数 = paceNow.getDate()，本月剩余天数
-    const daysInCurMonth = new Date(year, paceNow.getMonth() + 1, 0).getDate();
-    const extraDays = daysInCurMonth - paceNow.getDate();
-    // 其余 months-1 个月用平均 30 天估算，再扣掉得到天数
-    const restDays = Math.max(0, totalDays - extraDays - Math.max(0, months - 1) * 30);
-    if (months === 0) return `${extraDays} 天`;
-    const days = extraDays + (months - 1) * 30 + restDays;
-    // 更准确写法：展示"X月 Y天"（Y 是除去整月后的剩余天数）
-    const estMonths = Math.floor(totalDays / 30);
-    const estDays = totalDays % 30;
-    if (estMonths === 0) return `${estDays} 天`;
-    return `${estMonths} 月 ${estDays} 天`;
-  }, [paceNow, paceMonth]);
 
   // 保存 O
   const commitObj = () => {
@@ -3525,17 +3504,16 @@ function CognitionView({
           )}
         </div>
 
-        {/* ===== 阅读节奏：实际 vs 计划 双标记进度条（紧凑版：省 34px 高度） ===== */}
-        <div className="mb-1 px-0.5">
+        {/* ===== 阅读节奏：实际 vs 计划 双标记进度条（实际=已读/目标，计划=时间进度） ===== */}
+        <div className="mb-2 px-0.5">
           <DualMarkerBar
-            compact
             actual={paceActual}
             plan={pacePlan}
             color={BLUE}
             caption="阅读节奏"
             actualDetail={`已读完 ${funnelData.done} 本 / 目标 ${funnelData.total} 本 = ${paceActual}%`}
             planDetail={`${paceMonth} 月 / 12 月 = ${pacePlan}%`}
-            deltaContext={paceRemain}
+            deltaContext={paceMonth >= 12 ? '年度已收官' : `还剩 ${12 - paceMonth} 个月`}
           />
         </div>
 

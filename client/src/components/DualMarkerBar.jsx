@@ -1,10 +1,12 @@
 import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 
 /* 双标记进度条：实际完成率 vs 计划完成率（时间锚点）
- * compact=true：紧凑版，省 34px（-45% 高度）
- *   - 无独立标题行；徽章贴轨道右上；删除"实际/计划"标签行，改底部数字图例（颜色锚定语义）
- *   - 气泡/数字尺寸略小：11.5/12px
- *   - 底部图例：左(实际%) 中(标题) 右(计划%)，三列对齐
+ * 设计要点（与终版定稿一致）：
+ * 1. 所有标记（气泡/数字/标签/隔断）都是 .track 的子元素 —— 同一参照系，保证垂直对齐
+ * 2. 白色隔断 6×12px 直角，纯白无透明；标签锚定隔断线中心，跟随移动
+ * 3. 实际 = 主题色气泡（内嵌无缝三角）；计划 = 纯数字
+ * 4. 三段轨道：已完成(实心) / 差距(45°斜纹，超前=绿色实心) / 剩余(浅底)
+ * 5. 边界钳制 + 近距合并（"16.7% / 66.7%" 单气泡）+ 触屏 tap tooltip
  */
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -27,27 +29,26 @@ export default function DualMarkerBar({
   color = '#007AFF',
   green = '#34C759',
   red = '#FF3B30',
-  caption = '', // 紧凑版：底部图例中显示
-  actualTip = '真实完成的进度，基于实际完成事项/所有计划事项',
+  caption = '',
+  actualTip = '真实完成的进度，基于已经落地产出/完成的事项计算',
   planTip = '按预设周期时间，理论上应当达成的进度',
   actualDetail = '',
   planDetail = '',
   deltaContext = '',
-  mergeDist = 72,
+  mergeDist = 80,
   showBadge = true,
-  compact = false,
 }) {
   const trackRef = useRef(null);
   const bubRef = useRef(null);
   const pnRef = useRef(null);
-  const bdgRef = useRef(null);
-  const lMRef = useRef(null);
   const lARef = useRef(null);
   const lPRef = useRef(null);
+  const lMRef = useRef(null);
   const [W, setW] = useState(0);
   const [geo, setGeo] = useState(null);
-  const [tip, setTip] = useState(null); // 'a' | 'p' | 'm' | 'b' | null
+  const [tip, setTip] = useState(null); // 'a' | 'p' | 'm' | null
 
+  // 轨道宽度监听：容器伸缩时重算钳制位置
   useLayoutEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -61,6 +62,7 @@ export default function DualMarkerBar({
     return () => { if (ro) ro.disconnect(); };
   }, []);
 
+  // 布局计算：锚点 = 隔断线中心（cA/cP），气泡/数字/标签全部钳制在轨道内
   useLayoutEffect(() => {
     if (!W) { setGeo(null); return; }
     const a = clamp(Number(actual) || 0, 0, 100);
@@ -73,10 +75,10 @@ export default function DualMarkerBar({
     const cP = dP + 3;
     const merged = Math.abs(cA - cP) < mergeDist;
     const mid = (cA + cP) / 2;
-    const bw = (bubRef.current && bubRef.current.offsetWidth) || 38;
-    const nw = (pnRef.current && pnRef.current.offsetWidth) || 32;
-    const law = (lARef.current && lARef.current.offsetWidth) || 34;
-    const lpw = (lPRef.current && lPRef.current.offsetWidth) || 34;
+    const bw = (bubRef.current && bubRef.current.offsetWidth) || 40;
+    const nw = (pnRef.current && pnRef.current.offsetWidth) || 34;
+    const law = (lARef.current && lARef.current.offsetWidth) || 26;
+    const lpw = (lPRef.current && lPRef.current.offsetWidth) || 26;
     const lmw = (lMRef.current && lMRef.current.offsetWidth) || 62;
     setGeo({
       a, p, merged,
@@ -94,6 +96,7 @@ export default function DualMarkerBar({
     });
   }, [W, actual, plan, mergeDist]);
 
+  // 触屏：点外部关闭 tooltip
   useEffect(() => {
     if (!tip) return;
     const close = () => setTip(null);
@@ -107,37 +110,7 @@ export default function DualMarkerBar({
   const ahead = a >= p;
   const merged = !!geo && geo.merged;
 
-  // iOS 风 tooltip 样式（白底 + 轻投影 + 1px 描边）
-  const tipBox = {
-    position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-    bottom: 'calc(100% + 8px)',
-    background: '#fff', color: '#1c1c1e',
-    padding: '9px 12px', borderRadius: 12,
-    fontSize: 11.5, fontWeight: 500, lineHeight: 1.55,
-    minWidth: 188, textAlign: 'left',
-    border: '1px solid rgba(0,0,0,0.06)',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,1) inset',
-    transition: 'opacity .15s, transform .15s',
-    zIndex: 30, pointerEvents: 'none', whiteSpace: 'normal',
-    fontFamily: '-apple-system, "SF Pro Text", "PingFang SC", sans-serif',
-  };
-  const tipArrow = {
-    position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-    width: 0, height: 0,
-    borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-    borderTop: '5px solid #fff',
-  };
-  const tipArrowBorder = {
-    position: 'absolute', top: 'calc(100% + 1px)', left: '50%', transform: 'translateX(-50%)',
-    width: 0, height: 0,
-    borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
-    borderTop: '6px solid rgba(0,0,0,0.06)',
-    zIndex: -1,
-  };
-  const tipVisible = (k) => (tip === k
-    ? { opacity: 1, visibility: 'visible', transform: 'translateX(-50%) translateY(0)' }
-    : { opacity: 0, visibility: 'hidden', transform: 'translateX(-50%) translateY(3px)' });
-
+  // 节奏徽章：落后红 / 超前绿 / 匹配主题色
   let badge = null;
   if (showBadge) {
     if (diff === 0) badge = { t: '节奏匹配', bg: hexToRgba(color, 0.1), fg: color };
@@ -145,255 +118,143 @@ export default function DualMarkerBar({
     else badge = { t: `落后 ${diff}%${deltaContext ? ' · ' + deltaContext : ''}`, bg: hexToRgba(red, 0.1), fg: red };
   }
 
-  // 轨道 & 分隔共用样式
   const track = { position: 'relative', height: 12, borderRadius: 999, background: hexToRgba(color, 0.1) };
   const segBase = { position: 'absolute', top: 0, bottom: 0, transition: 'left .35s ease, width .35s ease' };
   const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 6, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
+  const labelBase = {
+    position: 'absolute', bottom: -18, transform: 'translateX(-50%)',
+    fontSize: 11, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 6,
+    transition: 'left .35s ease', WebkitTapHighlightColor: 'transparent',
+  };
+  const tipStyle = {
+    position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
+    background: 'rgba(0,0,0,0.86)', color: '#fff', padding: '7px 10px', borderRadius: 8,
+    fontSize: 11, fontWeight: 500, lineHeight: 1.55, width: 200, textAlign: 'left',
+    transition: 'opacity .15s', zIndex: 20, pointerEvents: 'none',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.35)', whiteSpace: 'normal',
+  };
+  const tipArrow = {
+    position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+    width: 0, height: 0,
+    borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
+    borderTop: '5px solid rgba(0,0,0,0.86)',
+  };
+  const qMark = { fontSize: 8, opacity: 0.55, verticalAlign: 'super', marginLeft: 1, fontWeight: 800 };
+
+  const tipVisible = (k) => (tip === k ? { opacity: 1, visibility: 'visible' } : { opacity: 0, visibility: 'hidden' });
 
   return (
     <div style={{ userSelect: 'none' }} role="img"
       aria-label={`实际完成率 ${fmt(a)}%，计划完成率 ${fmt(p)}%`}>
-
-      {/* ========== 宽松版（旧）：标题行独立 + 下方标签行 ========== */}
-      {!compact && (
-        <>
-          {(caption || badge) && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-              {caption ? <span style={{ fontSize: 11, fontWeight: 600, color: '#8a9491' }}>{caption}</span> : <span />}
-              {badge && (
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: badge.bg, color: badge.fg, whiteSpace: 'nowrap' }}>
-                  {badge.t}
-                </span>
-              )}
-            </div>
-          )}
-          <div style={{ position: 'relative', paddingTop: 26, paddingBottom: 24 }}>
-            <div ref={trackRef} style={track}>
-              {renderTrackInternals({
-                geo, W, a, p, merged,
-                color, segBase, dividerBase,
-                bubRef, pnRef, lARef, lPRef, lMRef, bdgRef,
-                badge, showBadge,
-                tip, setTip,
-                tipBox, tipArrow, tipArrowBorder, tipVisible,
-                actualTip, actualDetail, planTip, planDetail,
-                compactMode: false,
-              })}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ========== 紧凑版（推荐）：无标题行；徽章贴轨道右上；底部图例三列 ========== */}
-      {compact && (
-        <div style={{ position: 'relative', paddingTop: 16, paddingBottom: 2 }}>
-          {/* 徽章：绝对定位在轨道右上，和气泡同层浮动节省 18px 标题行 */}
+      {/* 顶部行：说明 caption + 节奏徽章 */}
+      {(caption || badge) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+          {caption ? <span style={{ fontSize: 11, fontWeight: 600, color: '#8a9491' }}>{caption}</span> : <span />}
           {badge && (
-            <span ref={bdgRef} style={{
-              position: 'absolute', right: 0, top: -2,
-              fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
-              background: badge.bg, color: badge.fg, whiteSpace: 'nowrap', zIndex: 5,
-            }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: badge.bg, color: badge.fg, whiteSpace: 'nowrap' }}>
               {badge.t}
             </span>
           )}
-          <div ref={trackRef} style={track}>
-            {renderTrackInternals({
-              geo, W, a, p, merged,
-              color, segBase, dividerBase,
-              bubRef, pnRef, lARef, lPRef, lMRef, bdgRef,
-              badge: null, showBadge: false,
-              tip, setTip,
-              tipBox, tipArrow, tipArrowBorder, tipVisible,
-              actualTip, actualDetail, planTip, planDetail,
-              compactMode: true,
-            })}
-          </div>
-          {/* 底部图例三列：左=实际 中=标题 右=计划（颜色锚定 + 数字直接表达，省 18px 标签行） */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 5, fontSize: 10, fontWeight: 600 }}>
-            <span
-              ref={lARef}
-              style={{
-                cursor: merged ? 'default' : 'pointer', color,
-                visibility: merged ? 'hidden' : 'visible',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              onMouseEnter={() => !merged && setTip('a')}
-              onMouseLeave={() => !merged && setTip(null)}
-              onClick={(e) => { if (merged) return; e.stopPropagation(); setTip((t) => (t === 'a' ? null : 'a')); }}
-            >
-              实际 {fmt(a)}%
-            </span>
-            <span style={{ color: '#8a9491' }}>{caption || '节奏'}</span>
-            <span
-              ref={lPRef}
-              style={{
-                cursor: merged ? 'default' : 'pointer', color: '#55565a',
-                visibility: merged ? 'hidden' : 'visible',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              onMouseEnter={() => !merged && setTip('p')}
-              onMouseLeave={() => !merged && setTip(null)}
-              onClick={(e) => { if (merged) return; e.stopPropagation(); setTip((t) => (t === 'p' ? null : 'p')); }}
-            >
-              计划 {fmt(p)}%
-            </span>
-            {/* 合并态：显示「实际/计划」在中间（和图例标题位置相同，保证垂直对齐） */}
-            {merged && (
-              <span
-                ref={lMRef}
-                style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', cursor: 'pointer', color, fontWeight: 700, fontSize: 10 }}
-                onMouseEnter={() => setTip('m')}
-                onMouseLeave={() => setTip(null)}
-                onClick={(e) => { e.stopPropagation(); setTip((t) => (t === 'm' ? null : 'm')); }}
-              >
-                实际/计划（重合）
-              </span>
-            )}
-          </div>
         </div>
       )}
-    </div>
-  );
-}
 
-/* 轨道内部公共渲染：色段 / 隔断 / 气泡 / 计划数字 / 标签 / tooltip
- * compactMode=false：底部用独立 label div（"实际"/"计划"文字）
- * compactMode=true：底部由组件外层画图例（带数字），此处只渲染 tooltip 锚点（不可见 div）
- */
-function renderTrackInternals(o) {
-  const t = o.tip;
-  function TipAnchor({ kind, posRef, style, content }) {
-    // 一个隐藏/可见的触发容器，在其上方弹出 iOS tooltip
-    return (
-      <div
-        ref={posRef}
-        style={{
-          position: 'absolute', bottom: -18, transform: 'translateX(-50%)',
-          ...style,
-          lineHeight: 1,
-          WebkitTapHighlightColor: 'transparent',
-          ...(kind === 'merged'
-            ? { ...style, cursor: 'pointer', zIndex: 6, bottom: -18 }
-            : { cursor: 'pointer', zIndex: 6 }),
-        }}
-        onMouseEnter={() => o.setTip(kind)}
-        onMouseLeave={() => o.setTip(null)}
-        onClick={(e) => { e.stopPropagation(); o.setTip((prev) => (prev === kind ? null : kind)); }}
-      >
-        {content}
-        <span style={{ ...o.tipBox, ...o.tipVisible(kind) }}>
-          {kind === 'm'
-            ? '两标记当前重合：气泡内上值=实际，下值=计划'
-            : (kind === 'a'
-              ? (<>{o.actualTip}{o.actualDetail ? <><br /><br />{o.actualDetail}</> : null}</>)
-              : (<>{o.planTip}{o.planDetail ? <><br /><br />{o.planDetail}</> : null}</>))}
-          <i style={o.tipArrowBorder} />
-          <i style={o.tipArrow} />
-        </span>
+      {/* 进度条主体：padding 留出气泡(上) 与 标签(下) 空间 */}
+      <div style={{ position: 'relative', paddingTop: 26, paddingBottom: 24 }}>
+        <div ref={trackRef} style={track}>
+          {/* ① 已完成段（0 → min(实际,计划)） */}
+          <div style={{ ...segBase, left: 0, width: `${geo ? geo.segW : Math.min(a, p)}%`, background: color, borderRadius: '999px 0 0 999px' }} />
+
+          {/* ② 差距段：落后=斜条纹（极窄退化透明）；超前=绿色实心 */}
+          {geo && geo.gapW > 0 && (
+            <div style={{
+              ...segBase,
+              left: `${geo.segW}%`, width: `${geo.gapW}%`,
+              background: geo.ahead
+                ? green
+                : (geo.thin ? 'transparent' : `repeating-linear-gradient(45deg, ${hexToRgba(color, 0.28)} 0, ${hexToRgba(color, 0.28)} 2px, transparent 2px, transparent 8px)`),
+            }} />
+          )}
+
+          {/* 白色隔断 ×2：实际 / 计划（近重合时隐藏计划隔断避免双线） */}
+          <div style={{ ...dividerBase, left: geo ? geo.dA : undefined }} />
+          <div style={{ ...dividerBase, left: geo ? geo.dP : undefined, opacity: geo ? (geo.hideP ? 0 : 1) : 1, transition: 'left .35s ease, opacity .2s' }} />
+
+          {/* 实际气泡：主题色胶囊 + 内嵌无缝三角（贴轨） */}
+          <span ref={bubRef} style={{
+            position: 'absolute', top: -22, transform: 'translateX(-50%)',
+            left: geo ? geo.bubL : undefined,
+            background: color, color: '#fff', fontSize: 12, fontWeight: 700,
+            padding: '2px 8px 6px', borderRadius: 999, lineHeight: 1.1,
+            boxShadow: `0 2px 6px ${hexToRgba(color, 0.3)}`,
+            whiteSpace: 'nowrap', zIndex: 4, fontVariantNumeric: 'tabular-nums',
+            transition: 'left .35s ease', visibility: geo ? 'visible' : 'hidden',
+          }}>
+            {merged ? `${fmt(a)}% / ${fmt(p)}%` : `${fmt(a)}%`}
+            <i style={{
+              position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: -4,
+              width: 0, height: 0,
+              borderLeft: '4px solid transparent', borderRight: '4px solid transparent',
+              borderTop: `5px solid ${color}`,
+            }} />
+          </span>
+
+          {/* 计划数字：纯数字，比气泡低 6px 错层（合并态隐藏） */}
+          <span ref={pnRef} style={{
+            position: 'absolute', top: -16, transform: 'translateX(-50%)',
+            left: geo && !merged ? geo.pnL : undefined,
+            fontSize: 13.5, fontWeight: 800, color: '#1c1c1e', lineHeight: 1,
+            zIndex: 4, fontVariantNumeric: 'tabular-nums',
+            transition: 'left .35s ease', visibility: geo && !merged ? 'visible' : 'hidden',
+          }}>
+            {fmt(p)}%
+          </span>
+
+          {/* 标签「实际」：隔断线正下方，跟随移动；hover/tap 弹含义 */}
+          <div
+            ref={lARef}
+            style={{ ...labelBase, left: geo && !merged ? geo.lAL : undefined, color, visibility: geo && !merged ? 'visible' : 'hidden' }}
+            onMouseEnter={() => setTip('a')}
+            onMouseLeave={() => setTip(null)}
+            onClick={(e) => { e.stopPropagation(); setTip((t) => (t === 'a' ? null : 'a')); }}
+          >
+            实际<span style={qMark}>?</span>
+            <span style={{ ...tipStyle, ...tipVisible('a') }}>
+              {actualTip}{actualDetail ? <><br /><br />{actualDetail}</> : null}
+              <i style={tipArrow} />
+            </span>
+          </div>
+
+          {/* 标签「计划」 */}
+          <div
+            ref={lPRef}
+            style={{ ...labelBase, left: geo && !merged ? geo.lPL : undefined, color: '#55565a', visibility: geo && !merged ? 'visible' : 'hidden' }}
+            onMouseEnter={() => setTip('p')}
+            onMouseLeave={() => setTip(null)}
+            onClick={(e) => { e.stopPropagation(); setTip((t) => (t === 'p' ? null : 'p')); }}
+          >
+            计划<span style={qMark}>?</span>
+            <span style={{ ...tipStyle, ...tipVisible('p') }}>
+              {planTip}{planDetail ? <><br /><br />{planDetail}</> : null}
+              <i style={tipArrow} />
+            </span>
+          </div>
+
+          {/* 合并态标签：两标记重合时 */}
+          <div
+            ref={lMRef}
+            style={{ ...labelBase, left: merged ? geo.lML : undefined, color, visibility: merged ? 'visible' : 'hidden' }}
+            onMouseEnter={() => setTip('m')}
+            onMouseLeave={() => setTip(null)}
+            onClick={(e) => { e.stopPropagation(); setTip((t) => (t === 'm' ? null : 'm')); }}
+          >
+            实际 / 计划<span style={qMark}>?</span>
+            <span style={{ ...tipStyle, ...tipVisible('m') }}>
+              两标记当前重合：气泡内上值=实际，下值=计划
+              <i style={tipArrow} />
+            </span>
+          </div>
+        </div>
       </div>
-    );
-  }
-
-  return (
-    <>
-      <div style={{ ...o.segBase, left: 0, width: `${o.geo ? o.geo.segW : Math.min(o.a, o.p)}%`, background: o.color, borderRadius: '999px 0 0 999px' }} />
-      {o.geo && o.geo.gapW > 0 && (
-        <div style={{
-          ...o.segBase,
-          left: `${o.geo.segW}%`, width: `${o.geo.gapW}%`,
-          background: o.geo.ahead
-            ? '#34C759'
-            : (o.geo.thin ? 'transparent' : `repeating-linear-gradient(45deg, ${hexToRgba(o.color, 0.28)} 0, ${hexToRgba(o.color, 0.28)} 2px, transparent 2px, transparent 8px)`),
-        }} />
-      )}
-      <div style={{ ...o.dividerBase, left: o.geo ? o.geo.dA : undefined }} />
-      <div style={{ ...o.dividerBase, left: o.geo ? o.geo.dP : undefined, opacity: o.geo ? (o.geo.hideP ? 0 : 1) : 1, transition: 'left .35s ease, opacity .2s' }} />
-
-      {/* 实际气泡（贴轨） */}
-      <span ref={o.bubRef} style={{
-        position: 'absolute', top: o.compactMode ? -18 : -22, transform: 'translateX(-50%)',
-        left: o.geo ? o.geo.bubL : undefined,
-        background: o.color, color: '#fff',
-        fontSize: o.compactMode ? 11.5 : 12, fontWeight: 700,
-        padding: o.compactMode ? '2px 7px 5px' : '2px 8px 6px',
-        borderRadius: 999, lineHeight: 1.1,
-        boxShadow: `0 1.5px 4px ${hexToRgba(o.color, 0.3)}`,
-        whiteSpace: 'nowrap', zIndex: 4, fontVariantNumeric: 'tabular-nums',
-        transition: 'left .35s ease', visibility: o.geo ? 'visible' : 'hidden',
-      }}>
-        {o.merged ? `${fmt(o.a)}% / ${fmt(o.p)}%` : `${fmt(o.a)}%`}
-        <i style={{
-          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          bottom: o.compactMode ? -3 : -4,
-          width: 0, height: 0,
-          borderLeft: `${o.compactMode ? 3 : 4}px solid transparent`,
-          borderRight: `${o.compactMode ? 3 : 4}px solid transparent`,
-          borderTop: `${o.compactMode ? 4 : 5}px solid ${o.color}`,
-        }} />
-      </span>
-
-      {/* 计划数字（非合并态显示） */}
-      <span ref={o.pnRef} style={{
-        position: 'absolute', top: o.compactMode ? -15 : -16, transform: 'translateX(-50%)',
-        left: o.geo && !o.merged ? o.geo.pnL : undefined,
-        fontSize: o.compactMode ? 12 : 13.5, fontWeight: 800, color: '#1c1c1e', lineHeight: 1,
-        zIndex: 4, fontVariantNumeric: 'tabular-nums',
-        transition: 'left .35s ease', visibility: o.geo && !o.merged ? 'visible' : 'hidden',
-      }}>
-        {fmt(o.p)}%
-      </span>
-
-      {/* 徽章：宽松版画在轨道内部（紧凑版画在组件外层） */}
-      {!o.compactMode && o.badge && o.showBadge !== false && (
-        <span ref={o.bdgRef} style={{
-          position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%) translate(0, -26px)',
-          fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
-          background: o.badge.bg, color: o.badge.fg, whiteSpace: 'nowrap', zIndex: 5,
-          marginLeft: 'auto',
-        }}>
-          {o.badge.t}
-        </span>
-      )}
-
-      {/* 宽松版：标签行（"实际"/"计划" 文字 + 问号已删）；提示文字移到父容器 tooltip 触发 */}
-      {!o.compactMode && (
-        <>
-          <TipAnchor
-            kind="a"
-            posRef={o.lARef}
-            style={{
-              left: o.geo && !o.merged ? o.geo.lAL : undefined,
-              color: o.color,
-              visibility: o.geo && !o.merged ? 'visible' : 'hidden',
-              fontSize: 11, fontWeight: 600,
-            }}
-            content={<span style={{ pointerEvents: 'none' }}>实际</span>}
-          />
-          <TipAnchor
-            kind="p"
-            posRef={o.lPRef}
-            style={{
-              left: o.geo && !o.merged ? o.geo.lPL : undefined,
-              color: '#55565a',
-              visibility: o.geo && !o.merged ? 'visible' : 'hidden',
-              fontSize: 11, fontWeight: 600,
-            }}
-            content={<span style={{ pointerEvents: 'none' }}>计划</span>}
-          />
-          <TipAnchor
-            kind="merged"
-            posRef={o.lMRef}
-            style={{
-              left: o.merged ? o.geo.lML : undefined,
-              color: o.color,
-              visibility: o.geo && o.merged ? 'visible' : 'hidden',
-              fontSize: 11, fontWeight: 600,
-            }}
-            content={<span style={{ pointerEvents: 'none' }}>实际 / 计划</span>}
-          />
-        </>
-      )}
-    </>
+    </div>
   );
 }

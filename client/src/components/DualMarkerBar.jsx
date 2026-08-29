@@ -170,8 +170,8 @@ export default function DualMarkerBar({
         </div>
       )}
 
-      {/* 进度条主体：padding 留出气泡(上) 与 标签(下) 空间 */}
-      <div style={{ position: 'relative', paddingTop: 26, paddingBottom: 24 }}>
+      {/* 进度条主体：padding 留出气泡(上) 与 标签(下) 空间 — 上30px 保证气泡 26px高+尾5px=31px 不扎轨（离轨 1px 悬浮） */}
+      <div style={{ position: 'relative', paddingTop: 32, paddingBottom: 24 }}>
         <div ref={trackRef} style={track}>
           {/* ① 已完成段（0 → min(实际,计划)） */}
           <div style={{ ...segBase, left: 0, width: `${geo ? geo.segW : Math.min(a, p)}%`, background: color, borderRadius: '999px 0 0 999px' }} />
@@ -191,19 +191,19 @@ export default function DualMarkerBar({
           <div style={{ ...dividerBase, left: geo ? geo.dA : undefined }} />
           <div style={{ ...dividerBase, left: geo ? geo.dP : undefined, opacity: geo ? (geo.hideP ? 0 : 1) : 1, transition: 'left .35s ease, opacity .2s' }} />
 
-          {/* 实际气泡：主题色胶囊 + 内嵌无缝三角（贴轨） */}
+          {/* 实际气泡：主题色胶囊 + 内嵌无缝三角（尾尖刚好落在轨道顶部 -1px，悬浮不扎轨） */}
           <span ref={bubRef} style={{
-            position: 'absolute', top: -22, transform: 'translateX(-50%)',
+            position: 'absolute', top: -28, transform: 'translateX(-50%)',
             left: geo ? geo.bubL : undefined,
             background: color, color: '#fff', fontSize: 12, fontWeight: 700,
-            padding: '2px 8px 6px', borderRadius: 999, lineHeight: 1.1,
+            padding: '3px 9px 5px', borderRadius: 999, lineHeight: 1.1,
             boxShadow: `0 2px 6px ${hexToRgba(color, 0.3)}`,
             whiteSpace: 'nowrap', zIndex: 4, fontVariantNumeric: 'tabular-nums',
             transition: 'left .35s ease', visibility: geo ? 'visible' : 'hidden',
           }}>
             {merged ? `${fmt(a)}% / ${fmt(p)}%` : `${fmt(a)}%`}
             <i style={{
-              position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: -4,
+              position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: -5,
               width: 0, height: 0,
               borderLeft: '4px solid transparent', borderRight: '4px solid transparent',
               borderTop: `5px solid ${color}`,

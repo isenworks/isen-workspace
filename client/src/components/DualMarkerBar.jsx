@@ -173,23 +173,28 @@ export default function DualMarkerBar({
       {/* 进度条主体：整体缩 17% — 轨上28px（气泡18px高+尾4px，净空2.9px 悬浮不扎轨） */}
       <div style={{ position: 'relative', paddingTop: 28, paddingBottom: 21 }}>
         <div ref={trackRef} style={track}>
-          {/* ① 已完成段（0 → min(实际,计划)） */}
-          <div style={{ ...segBase, left: 0, width: `${geo ? geo.segW : Math.min(a, p)}%`, background: color, borderRadius: '999px 0 0 999px' }} />
+          {/* 轨道内层：圆角胶囊裁剪，包住 ① 已完成段 / ② 差距段 / 隔断线 */}
+          {/* — 解决 0% 时 45° 斜纹突破轨道左侧圆角的问题 */}
+          {/* — 气泡/数字/标签放在外层，不被裁剪，可悬在轨道上下方 */}
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 999, overflow: 'hidden' }}>
+            {/* ① 已完成段（0 → min(实际,计划)） */}
+            <div style={{ ...segBase, left: 0, width: `${geo ? geo.segW : Math.min(a, p)}%`, background: color, borderRadius: '999px 0 0 999px' }} />
 
-          {/* ② 差距段：落后=斜条纹（极窄退化透明）；超前=绿色实心 */}
-          {geo && geo.gapW > 0 && (
-            <div style={{
-              ...segBase,
-              left: `${geo.segW}%`, width: `${geo.gapW}%`,
-              background: geo.ahead
-                ? green
-                : (geo.thin ? 'transparent' : `repeating-linear-gradient(45deg, ${hexToRgba(color, 0.28)} 0, ${hexToRgba(color, 0.28)} 2px, transparent 2px, transparent 8px)`),
-            }} />
-          )}
+            {/* ② 差距段：落后=斜条纹（极窄退化透明）；超前=绿色实心 */}
+            {geo && geo.gapW > 0 && (
+              <div style={{
+                ...segBase,
+                left: `${geo.segW}%`, width: `${geo.gapW}%`,
+                background: geo.ahead
+                  ? green
+                  : (geo.thin ? 'transparent' : `repeating-linear-gradient(45deg, ${hexToRgba(color, 0.28)} 0, ${hexToRgba(color, 0.28)} 2px, transparent 2px, transparent 8px)`),
+              }} />
+            )}
 
-          {/* 白色隔断 ×2：实际 / 计划（近重合时隐藏计划隔断避免双线） */}
-          <div style={{ ...dividerBase, left: geo ? geo.dA : undefined }} />
-          <div style={{ ...dividerBase, left: geo ? geo.dP : undefined, opacity: geo ? (geo.hideP ? 0 : 1) : 1, transition: 'left .35s ease, opacity .2s' }} />
+            {/* 白色隔断 ×2：实际 / 计划（近重合时隐藏计划隔断避免双线） */}
+            <div style={{ ...dividerBase, left: geo ? geo.dA : undefined }} />
+            <div style={{ ...dividerBase, left: geo ? geo.dP : undefined, opacity: geo ? (geo.hideP ? 0 : 1) : 1, transition: 'left .35s ease, opacity .2s' }} />
+          </div>
 
           {/* 实际气泡：主题色胶囊 + 内嵌无缝三角（尾尖离轨2.9px 悬浮不扎轨） */}
           <span ref={bubRef} style={{

@@ -29,8 +29,8 @@ export default function DualMarkerBar({
   color = '#007AFF',
   green = '#34C759',
   red = '#FF3B30',
-  caption = '',
-  actualTip = '真实完成的进度，基于已经落地产出/完成的事项计算',
+  caption = '', // 可选：独立标题行，不传或空字符串则不渲染该行
+  actualTip = '真实完成的进度，基于实际完成事项/所有计划事项',
   planTip = '按预设周期时间，理论上应当达成的进度',
   actualDetail = '',
   planDetail = '',
@@ -127,34 +127,46 @@ export default function DualMarkerBar({
     transition: 'left .35s ease', WebkitTapHighlightColor: 'transparent',
   };
   const tipStyle = {
-    position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
-    background: 'rgba(0,0,0,0.86)', color: '#fff', padding: '7px 10px', borderRadius: 8,
-    fontSize: 11, fontWeight: 500, lineHeight: 1.55, width: 200, textAlign: 'left',
-    transition: 'opacity .15s', zIndex: 20, pointerEvents: 'none',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.35)', whiteSpace: 'normal',
+    position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+    background: '#fff', color: '#1c1c1e',
+    padding: '9px 12px', borderRadius: 12,
+    fontSize: 11.5, fontWeight: 500, lineHeight: 1.55,
+    minWidth: 188, textAlign: 'left',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,1) inset',
+    transition: 'opacity .15s, transform .15s',
+    zIndex: 20, pointerEvents: 'none', whiteSpace: 'normal',
+    fontFamily: '-apple-system, "SF Pro Text", "PingFang SC", sans-serif',
+  };
+  // 双层三角：外层灰色描边（z-index -1，比气泡低1px）+ 内层白
+  const tipArrowOuter = {
+    position: 'absolute', top: 'calc(100% + 1px)', left: '50%', transform: 'translateX(-50%)',
+    width: 0, height: 0,
+    borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
+    borderTop: '6px solid rgba(0,0,0,0.06)',
+    zIndex: -1,
   };
   const tipArrow = {
     position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
     width: 0, height: 0,
     borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-    borderTop: '5px solid rgba(0,0,0,0.86)',
+    borderTop: '5px solid #fff',
   };
   const qMark = { fontSize: 8, opacity: 0.55, verticalAlign: 'super', marginLeft: 1, fontWeight: 800 };
+  // eslint-disable-next-line no-unused-vars
+  const _q = qMark; // 问号已移除，保留定义作备份
 
-  const tipVisible = (k) => (tip === k ? { opacity: 1, visibility: 'visible' } : { opacity: 0, visibility: 'hidden' });
+  const tipVisible = (k) => (tip === k
+    ? { opacity: 1, visibility: 'visible', transform: 'translateX(-50%) translateY(0)' }
+    : { opacity: 0, visibility: 'hidden', transform: 'translateX(-50%) translateY(3px)' });
 
   return (
     <div style={{ userSelect: 'none' }} role="img"
       aria-label={`实际完成率 ${fmt(a)}%，计划完成率 ${fmt(p)}%`}>
-      {/* 顶部行：说明 caption + 节奏徽章 */}
-      {(caption || badge) && (
+      {/* 顶部行：仅当显式传入 caption 时渲染（节奏徽章挪到卡片 O 行右侧） */}
+      {caption && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-          {caption ? <span style={{ fontSize: 11, fontWeight: 600, color: '#8a9491' }}>{caption}</span> : <span />}
-          {badge && (
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: badge.bg, color: badge.fg, whiteSpace: 'nowrap' }}>
-              {badge.t}
-            </span>
-          )}
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#8a9491' }}>{caption}</span>
         </div>
       )}
 
@@ -217,9 +229,10 @@ export default function DualMarkerBar({
             onMouseLeave={() => setTip(null)}
             onClick={(e) => { e.stopPropagation(); setTip((t) => (t === 'a' ? null : 'a')); }}
           >
-            实际<span style={qMark}>?</span>
+            实际
             <span style={{ ...tipStyle, ...tipVisible('a') }}>
               {actualTip}{actualDetail ? <><br /><br />{actualDetail}</> : null}
+              <i style={tipArrowOuter} />
               <i style={tipArrow} />
             </span>
           </div>
@@ -232,9 +245,10 @@ export default function DualMarkerBar({
             onMouseLeave={() => setTip(null)}
             onClick={(e) => { e.stopPropagation(); setTip((t) => (t === 'p' ? null : 'p')); }}
           >
-            计划<span style={qMark}>?</span>
+            计划
             <span style={{ ...tipStyle, ...tipVisible('p') }}>
               {planTip}{planDetail ? <><br /><br />{planDetail}</> : null}
+              <i style={tipArrowOuter} />
               <i style={tipArrow} />
             </span>
           </div>
@@ -247,9 +261,10 @@ export default function DualMarkerBar({
             onMouseLeave={() => setTip(null)}
             onClick={(e) => { e.stopPropagation(); setTip((t) => (t === 'm' ? null : 'm')); }}
           >
-            实际 / 计划<span style={qMark}>?</span>
+            实际 / 计划
             <span style={{ ...tipStyle, ...tipVisible('m') }}>
               两标记当前重合：气泡内上值=实际，下值=计划
+              <i style={tipArrowOuter} />
               <i style={tipArrow} />
             </span>
           </div>

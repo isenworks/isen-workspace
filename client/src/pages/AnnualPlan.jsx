@@ -3405,6 +3405,45 @@ function CognitionView({
   const paceActual = funnelData.total > 0 ? Math.round((funnelData.done / funnelData.total) * 1000) / 10 : 0;
   const pacePlan = Math.round((paceMonth / 12) * 1000) / 10;
 
+  // 精确剩余时间：X月 Y天（按实际日历天数换算，30天为一整月，余下天数）
+  const paceRemain = useMemo(() => {
+    if (paceMonth >= 12) return '年度已收官';
+    const year = paceNow.getFullYear();
+    const end = new Date(year, 11, 31, 23, 59, 59);
+    const totalDays = Math.max(0, Math.ceil((end.getTime() - paceNow.getTime()) / 86400000));
+    if (totalDays <= 0) return '年度已收官';
+    const estMonths = Math.floor(totalDays / 30);
+    const estDays = totalDays % 30;
+    if (estMonths === 0) return `${estDays} 天`;
+    if (estDays === 0) return `${estMonths} 月`;
+    return `${estMonths} 月 ${estDays} 天`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paceNow, paceMonth]);
+
+  // 节奏徽章：样式与进度条组件内一致，渲染在 O 行 + 按钮左侧
+  const paceBadge = useMemo(() => {
+    const a = Math.max(0, Math.min(100, Number(paceActual) || 0));
+    const p = Math.max(0, Math.min(100, Number(pacePlan) || 0));
+    const diff = Math.round(Math.abs(a - p));
+    const ahead = a >= p;
+    const ctx = paceRemain;
+    let bg = `${BLUE}1A`, fg = BLUE, text = '节奏匹配';
+    if (diff === 0) { /* 匹配，走默认 */ }
+    else if (ahead) {
+      bg = '#34C7591A'; fg = '#34C759'; text = `超前 ${diff}% · ${ctx}`;
+    } else {
+      bg = '#FF3B301A'; fg = '#FF3B30'; text = `落后 ${diff}% · ${ctx}`;
+    }
+    return (
+      <span
+        style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: bg, color: fg, whiteSpace: 'nowrap', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}
+        className="flex-shrink-0"
+      >
+        {text}
+      </span>
+    );
+  }, [paceActual, pacePlan, paceRemain]);
+
   // 保存 O
   const commitObj = () => {
     const t = objDraft.trim();
@@ -3492,7 +3531,8 @@ function CognitionView({
                 title="右键编辑O目标"
                 placeholder="填写O目标"
               />
-              {/* 时间进度胶囊已由下方「阅读节奏」双标记进度条的计划标记取代（同一数据源） */}
+              {/* 节奏徽章：落后/超前 X% · X月 Y天（放在 O 行右侧，+按钮左边） */}
+              {paceBadge}
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
@@ -3504,16 +3544,15 @@ function CognitionView({
           )}
         </div>
 
-        {/* ===== 阅读节奏：实际 vs 计划 双标记进度条（实际=已读/目标，计划=时间进度） ===== */}
+        {/* ===== 双标记进度条：实际 vs 计划（无独立标题行；节奏徽章已挪至 O 行 + 按钮左侧） ===== */}
         <div className="mb-2 px-0.5">
           <DualMarkerBar
             actual={paceActual}
             plan={pacePlan}
             color={BLUE}
-            caption="阅读节奏"
+            showBadge={false}
             actualDetail={`已读完 ${funnelData.done} 本 / 目标 ${funnelData.total} 本 = ${paceActual}%`}
             planDetail={`${paceMonth} 月 / 12 月 = ${pacePlan}%`}
-            deltaContext={paceMonth >= 12 ? '年度已收官' : `还剩 ${12 - paceMonth} 个月`}
           />
         </div>
 

@@ -4847,9 +4847,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
       <div className="flex flex-col gap-2 px-1 pt-2 pb-2.5 border-b border-ink-100">
         {/* R1 同构能力页：色条5px | O标题16px(点击编辑目标) + 起止日期副行 | X/Y胶囊 | 26×26 +按钮 */}
         <div className="flex items-center justify-between gap-2 min-w-0">
-          {/* 色条只跟首行标题对齐 (items-start)，不参与副标题的垂直居中，回归单色条+标题的原始视觉关系 */}
-          <div className="flex items-start gap-2 min-w-0 flex-1">
-            <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
+          {/* 色条独立单元格：高度严格锁定为标题单行盒子(16px leading-tight ≈ 19px)，items-center 把 18px 色条完美居中在标题文本中线；
+               副标题在右列独立渲染，不参与色条对齐，回归原版单行+色条的完全一致视觉关系 */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="flex items-center h-[19px] flex-shrink-0">
+              <span className="w-[5px] h-[18px] rounded-full block" style={{ background: color }}></span>
+            </div>
             <div className="min-w-0 flex-1">
               <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors"
                 onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>

@@ -4549,7 +4549,7 @@ function CognitionView({
 }
 
 /* ---------- 9. 视图 · 能力 ---------- */
-function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAdd, scoreHistory, onStartAssessment }) {
+function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAdd, onAbilityEdit, onAbilityRemove, scoreHistory, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const year = new Date().getFullYear();
   const AB_COLOR = '#FF9500';
@@ -4590,14 +4590,25 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
     const mstones = a.mstones || [];
 
     return (
-      <div key={a.id || a.title} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-3.5 flex flex-col">
-        {/* 标题行：色条 + 16px 标题 | 已勾选/总数胶囊 + 26×26 加号 */}
+      <div key={a.id || a.title} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-3.5 flex flex-col group">
+        {/* 标题行：色条 + 16px 可编辑标题 | 删除(悬停) + 已勾选/总数胶囊 + 26×26 加号 */}
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: AB }}></span>
-            <span className="text-[16px] font-bold leading-tight text-ink-900 truncate">{a.title}</span>
+            <span
+              className="text-[16px] font-bold leading-tight text-ink-900 truncate cursor-pointer hover:text-ink-700 transition-colors"
+              onClick={() => onAbilityEdit?.(as.idx)}
+              title="编辑能力目标">{a.title}</span>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* 删除：整卡悬停时可见 */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onAbilityRemove?.(as.idx); }}
+              title="删除此能力目标"
+              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition opacity-0 group-hover:opacity-100 flex-shrink-0 hover:bg-accent-red/10 text-ink-300 hover:text-accent-red active:scale-95"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
             <span
               className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
               style={{ background: `${AB}1a`, border: `1px solid ${AB}40`, color: AB_DARK }}
@@ -4608,7 +4619,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); onMsAdd?.(as.idx); }}
-              title="添加 KR"
+              title="添加里程碑"
               className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
               style={{ background: `${AB}1a`, border: `1px solid ${AB}40` }}
             >
@@ -4617,16 +4628,38 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
           </div>
         </div>
 
-        {/* 进度条：已勾选/总数 = 完成度 */}
-        <div className="mb-2.5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-semibold text-ink-500 leading-none">总体完成度</span>
-            <span className="text-[11px] font-extrabold tabular-nums leading-none" style={{ color: AB_DARK }}>{as.avgPct}%</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${as.avgPct}%`, background: AB }}></div>
-          </div>
-        </div>
+        {/* 进度条：双标记（实际 avgPct / 计划 timePct）— 工作页同款 DualMarkerBar */}
+        {(() => {
+          const remainTxt = (as.days !== null && as.days !== undefined && as.days > 0)
+            ? (() => { const mo = Math.floor(as.days / 30); const dy = as.days % 30;
+                return mo === 0 ? `剩余 ${dy} 天` : (dy === 0 ? `剩余 ${mo} 月` : `剩余 ${mo} 月 ${dy} 天`); })()
+            : null;
+          if (as.timePct === null || as.timePct === undefined) {
+            return (
+              <div className="mb-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-semibold text-ink-500 leading-none">总体完成度</span>
+                  <span className="text-[11px] font-extrabold tabular-nums leading-none" style={{ color: AB_DARK }}>{as.avgPct}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${as.avgPct}%`, background: AB }}></div>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div className="-mt-0.5">
+              <DualMarkerBar
+                actual={as.avgPct}
+                plan={as.timePct}
+                color={AB_COLOR}
+                showBadge={false}
+                actualDetail={`里程碑完成 ${as.mDone}/${as.mTotal}（${as.avgPct}%）`}
+                planDetail={`时间锚点 ${as.timePct}%${remainTxt ? ' · ' + remainTxt : ''}`}
+              />
+            </div>
+          );
+        })()}
 
         {/* KR 列表：复选框 + 主文字 13px + 子说明 11px；max-h 限高对齐三卡 */}
         {mstones.length === 0 ? (
@@ -4753,7 +4786,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 }
 
 /* ---------- 10. 视图 · 工作 (OKR) ---------- */
-function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskTagClick, microActions }) {
+function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = '#FF3B30';
@@ -4856,6 +4889,14 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
               onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* 删除目标：悬停卡片可见 */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onGoalRemove?.(goalIdx); }}
+              title="删除此目标"
+              className="w-[26px] h-[26px] rounded-lg grid place-items-center transition opacity-0 group-hover:opacity-100 flex-shrink-0 hover:bg-accent-red/10 text-ink-300 hover:text-accent-red active:scale-95"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
             <span
               className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
@@ -4946,14 +4987,14 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
 
           return (
             <div key={i}>
-              {/* KR 行：3 列 — 序号+标题+目标 | 漏斗进度条 | 完成率%（对齐知力页结构） */}
-              <div className="flex items-center gap-2.5 py-2 rounded-lg hover:bg-surface-soft transition-colors">
+              {/* KR 行：3 列 — 序号+标题+目标 | 漏斗进度条 | 删除(悬停) + 完成率% */}
+              <div className="group flex items-center gap-2.5 py-2 rounded-lg hover:bg-surface-soft transition-colors">
                 {/* 左区：w-[128px] = 序号22 + gap + 标题+目标，连接线箭头在此区 justify-center 对准标题中心 */}
                 <div className="w-[128px] flex items-center gap-2.5 flex-shrink-0 -mt-[1px]">
                   <span className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none flex-shrink-0"
                     style={{ color: COLOR }}>{padNum}</span>
                   <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
-                    <div onClick={() => onKrEdit?.(goalIdx, i, kr)} className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
+                    <div onClick={() => onKrEdit?.(goalIdx, i, kr)} title="点击编辑 KR" className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
                       <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-ink-700">{kr.t}</span>
                       <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
                         {kr.tgt}{kr.u}
@@ -4987,6 +5028,15 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
                     </div>
                   </div>
                 </div>
+
+                {/* 删除按钮：行悬停时淡入 */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onKrRemove?.(goalIdx, i, kr); }}
+                  title="删除此 KR"
+                  className="w-5 h-5 grid place-items-center rounded transition flex-shrink-0 opacity-0 group-hover:opacity-100 hover:bg-accent-red/10 text-ink-300 hover:text-accent-red active:scale-95"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
 
                 {/* 右侧：完成率 */}
                 <span className="text-[14px] font-extrabold tabular-nums leading-none w-[48px] text-right flex-shrink-0"
@@ -5335,7 +5385,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             {column.map(({ o, i }) => {
               const gs = goalStats[i];
               return (
-                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col flex-1 min-h-0">
+                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-3.5 flex flex-col flex-1 min-h-0 group">
                   {renderObjective(o, gs, i)}
                   {renderByMode(o, gs, i)}
                 </div>
@@ -5993,6 +6043,42 @@ export default function AnnualPlan({ standalone = true }) {
   const onMsEdit = (abilityIdx, msIdx, m) => setModal({ type: 'milestone', initial: { ...m, abilityIdx, msIdx, id: m.id } });
   const onKrAdd = (workIdx) => setModal({ type: 'kr', initial: { workIdx } });
   const onKrEdit = (workIdx, krIdx, k) => setModal({ type: 'kr', initial: { ...k, workIdx, krIdx, id: k.id } });
+  const onKrRemove = (workIdx, krIdx, kr) => {
+    setConfirmDialog({
+      title: '删除 KR',
+      message: `确定删除「${kr?.t || '此条 KR'}」吗？\n删除后不可恢复。`,
+      confirmText: '删除',
+      danger: true,
+      onConfirm: () => { krOps.remove({ workIdx, krIdx }); setConfirmDialog(null); },
+      onCancel: () => setConfirmDialog(null),
+    });
+  };
+  const onAbilityEdit = (abilityIdx) => {
+    const a = abilities[abilityIdx]; if (!a) return;
+    setModal({ type: 'ability', initial: { ...a, id: a.id } });
+  };
+  const onAbilityRemove = (abilityIdx) => {
+    const a = abilities[abilityIdx]; if (!a) return;
+    setConfirmDialog({
+      title: '删除能力目标',
+      message: `确定删除「${a.title}」及其所有里程碑吗？\n删除后不可恢复。`,
+      confirmText: '删除',
+      danger: true,
+      onConfirm: () => { abilityOps.remove(a.id); setConfirmDialog(null); },
+      onCancel: () => setConfirmDialog(null),
+    });
+  };
+  const onWorkGoalRemove = (goalIdx) => {
+    const o = workGoals[goalIdx]; if (!o) return;
+    setConfirmDialog({
+      title: '删除工作目标',
+      message: `确定删除「${o.title}」及其所有 KR 吗？\n删除后不可恢复。`,
+      confirmText: '删除',
+      danger: true,
+      onConfirm: () => { workGoalOps.remove(o.id); setConfirmDialog(null); },
+      onCancel: () => setConfirmDialog(null),
+    });
+  };
   const onEntryAdd = (lifeKey, label) => setModal({ type: 'entry', initial: { lifeKey }, categoryLabel: label });
   const onEntryEdit = (lifeKey, entryIdx, e) => setModal({ type: 'entry', initial: { ...e, lifeKey, entryIdx, id: e.id }, categoryLabel: lifeData[lifeKey]?.lb });
 
@@ -6229,6 +6315,8 @@ export default function AnnualPlan({ standalone = true }) {
       {view === 'ability'   && <AbilityView  abilities={abilities} onMsAdd={onMsAdd} onMsEdit={onMsEdit}
         onMsToggleDone={({ abilityIdx, msIdx }) => msOps.toggleDone({ abilityIdx, msIdx })}
         onAbilityAdd={() => setModal({ type: 'ability' })}
+        onAbilityEdit={onAbilityEdit}
+        onAbilityRemove={onAbilityRemove}
         scoreHistory={abilityScoreHistory} onSetScore={(abilityIdx, newScore) => {
           const ab = abilities[abilityIdx]; if (!ab) return;
           const ym = new Date().toISOString().slice(0,7);
@@ -6237,9 +6325,10 @@ export default function AnnualPlan({ standalone = true }) {
           setAbilities(prev => prev.map((a, i) => i === abilityIdx ? { ...a, score: String(newScore) } : a));
           showToast('自评已更新');
         }} onStartAssessment={() => setModal({ type: 'ability_assess' })} />}
-      {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit}
+      {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit} onKrRemove={onKrRemove}
         onGoalAdd={() => setModal({ type: 'work_goal' })}
         onGoalEdit={(goalIdx) => setModal({ type: 'work_goal', initial: { ...workGoals[goalIdx], goalIdx } })}
+        onGoalRemove={onWorkGoalRemove}
         microActions={workKrMicroActions}
         onRiskTagClick={(workIdx, krIdx, kr, goal, risk) => setModal({ type: 'risk_breakdown', initial: { workIdx, krIdx, kr, goal, risk } })} />}
       {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit}

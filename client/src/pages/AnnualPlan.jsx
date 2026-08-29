@@ -4844,7 +4844,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
       else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(255,59,48,0.10)', fg: '#FF3B30' };
     }
     return (
-      <div className="flex flex-col gap-2 px-1 pt-2 pb-2.5 border-b border-ink-100">
+      {/* 移除容器级 px-1 pt-2，顶部/左右二次压缩消除，与能力页卡壳p-3.5像素级一致：
+           卡顶→标题中心从35px→27px；左右留白从18px→14px；只留 pb-2.5 border-b 承担与下方子渲染区的分段语义 */}
+      <div className="flex flex-col gap-2 pb-2.5 border-b border-ink-100">
         {/* R1-top：色条 + 标题 + 胶囊 + 加号 —— 严格锁定在这一行内 items-center，
              与"加副标题之前"的原版视觉关系完全一致，右侧胶囊/加号自然与标题文字中线对齐 */}
         <div className="flex items-center justify-between gap-2 min-w-0">
@@ -4885,9 +4887,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             </div>
           );
         })()}
-        {/* R2 总体完成度：双标记进度条（实际 avgPct vs 计划 timePct），全宽 */}
+        {/* R2 总体完成度：双标记进度条（实际 avgPct vs 计划 timePct），全宽
+             容器已无 px-1，撤销原来成对的 -mx-1 避免条越出 shell 14px 内边距 */}
         {gs.timePct === null || gs.timePct === undefined ? (
-          <div className="flex items-center gap-2.5 -mx-1">
+          <div className="flex items-center gap-2.5">
             <span className="text-[11px] font-semibold text-ink-500 flex-shrink-0">总体完成度</span>
             <div className="flex-1 h-[5px] rounded-full bg-ink-100 overflow-hidden min-w-[40px]">
               <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: color }}></div>
@@ -4895,7 +4898,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
           </div>
         ) : (
-          <div className="-mx-1">
+          <div>
             <DualMarkerBar
               actual={gs.avgPct}
               plan={gs.timePct}

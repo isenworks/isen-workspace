@@ -396,6 +396,45 @@ const daysLabel = (days) => {
   return { text: `剩${days}天`, cls: 'text-ink-500', urgent: false, overdue: false };
 };
 
+/* 工作页卡片日期副行：截止日期到今天的剩余时间 → 「剩余X个月X天」或「剩余X天」/「今日截止」/「过期X天」
+ * 算法口径（与 calcTimeAnchor 一致，Date 本地时区 0 点对齐，避免跨时区 +-1 天）：
+ *  - totalDays = ceil((deadline - today) / 86400000)，与 gs.days / daysLabel 使用同一口径
+ *  - 月换算：按日历"同月同日差整月"原则；若 deadline 日份 < today 日份，借 1 月补该月天数
+ *  - 输出格式：
+ *      totalDays < 0   → 「过期 X 天」（红色）
+ *      totalDays = 0   → 「今日截止」（红色）
+ *      months >= 1     → 「剩余 N 个月 D 天」（月+天组合，D=0 时只写月）
+ *      months = 0      → 「剩余 D 天」
+ */
+const IOS_SANS = '"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Helvetica,Arial,sans-serif';
+const formatRemainDuration = (deadline, today) => {
+  const t = new Date(today); t.setHours(0,0,0,0);
+  const e = new Date(deadline); e.setHours(0,0,0,0);
+  const totalDays = Math.ceil((e - t) / 86400000);
+  if (totalDays < 0) return { text: `过期 ${Math.abs(totalDays)} 天`, cls: 'text-[#FF3B30]' };
+  if (totalDays === 0) return { text: '今日截止', cls: 'text-[#FF3B30]' };
+  // 日历月差（同月同日锚点整月判定）
+  let months = (e.getFullYear() - t.getFullYear()) * 12 + (e.getMonth() - t.getMonth());
+  const startDay = t.getDate(), endDay = e.getDate();
+  let days = endDay - startDay;
+  if (days < 0) {
+    months -= 1;
+    // 借 1 个月 → days = 月底剩下 + 日份
+    const eom = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    days = (eom - startDay) + endDay;
+  }
+  // 修正：如果 months < 0（仅当总天数<0，但已在上面拦截，兜底）→ 退回纯天展示
+  if (months < 0) months = 0;
+  if (months === 0) {
+    const cls = totalDays <= 30 ? 'text-[#FF9500]' : 'text-ink-500';
+    return { text: `剩余 ${totalDays} 天`, cls };
+  }
+  // 月 + 天
+  const cls = months <= 1 ? 'text-[#FF9500]' : 'text-ink-500';
+  if (days === 0) return { text: `剩余 ${months} 个月`, cls };
+  return { text: `剩余 ${months} 个月 ${days} 天`, cls };
+};
+
 /* 目标模式兜底：当 mode 缺失时基于关键字 & 内容自动推断
  * 工作默认 funnel（求职场景）；能力默认 milestone
  */
@@ -4904,7 +4943,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             </button>
           </div>
         </div>
-        {/* R1-bot：起止日期副行，与色条左对齐（色条宽5px+gap2 = 7px缩进匹配R1-top） */}
+        {/* R1-bot：起止日期副行 · 追加剩余时长（跨月→剩余X个月X天）· iOS/SF 无衬线字体 */}
         {(() => {
           const dlStr = o.deadline ? String(o.deadline).slice(0, 10) : '';
           if (!dlStr) return null;
@@ -4912,9 +4951,19 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           const csStr = o.createdAt ? String(o.createdAt).slice(0, 10) : '';
           const cs = parseDate(csStr);
           const startStr = cs ? csStr : `${dl ? dl.getFullYear() : new Date().getFullYear()}-01-01`;
+          const today = new Date(); today.setHours(0,0,0,0);
+          const remain = dl ? formatRemainDuration(dl, today) : null;
           return (
-            <div className="text-[10.5px] text-ink-400 tabular-nums leading-none pl-[7px]">
-              {startStr} → {dlStr}
+            <div
+              className="text-[11px] text-ink-400 tabular-nums leading-none pl-[7px] tracking-tight"
+              style={{ fontFamily: IOS_SANS }}>
+              <span>{startStr} → {dlStr}</span>
+              {remain && (
+                <>
+                  <span className="mx-1 text-ink-200">·</span>
+                  <span className={remain.cls}>{remain.text}</span>
+                </>
+              )}
             </div>
           );
         })()}

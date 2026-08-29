@@ -4870,42 +4870,38 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onGoalAdd, onGoalEdit, onRiskT
             </button>
           </div>
         </div>
-        {/* R2 总体完成度：进度条（左 flex-1）+ 节奏两行徽章（右固定宽） */}
-        <div className="flex items-center -mx-1 gap-2.5 min-w-0">
-          {gs.timePct === null || gs.timePct === undefined ? (
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              <div className="flex-1 h-[5px] rounded-full bg-ink-100 overflow-hidden min-w-[40px]">
-                <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: color }}></div>
+        {/* R2 总体完成度：双标记进度条（实际 avgPct vs 计划 timePct），全宽 */}
+        {gs.timePct === null || gs.timePct === undefined ? (
+          <div className="flex items-center gap-2.5 -mx-1">
+            <span className="text-[11px] font-semibold text-ink-500 flex-shrink-0">总体完成度</span>
+            <div className="flex-1 h-[5px] rounded-full bg-ink-100 overflow-hidden min-w-[40px]">
+              <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: color }}></div>
+            </div>
+            <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
+          </div>
+        ) : (
+          <div className="-mx-1">
+            <DualMarkerBar
+              actual={gs.avgPct}
+              plan={gs.timePct}
+              color={color}
+              showBadge={false}
+              actualDetail={`KR 平均完成 ${gs.avgPct}%${krTotal > 0 ? `（${krDone}/${krTotal} 已完成）` : ''}`}
+              planDetail={gs.days !== null && gs.days !== undefined
+                ? `时间锚点 ${gs.timePct}% · 剩余 ${gs.days} 天`
+                : `时间锚点 ${gs.timePct}%`}
+            />
+            {/* 进度条注脚：目标起止时间 + 剩余（挂在条形下，语义=时间锚点的直读版本） */}
+            {paceRemainTxt && (
+              <div className="flex items-center justify-between -mt-1 px-0.5 text-[10px] text-ink-400 leading-none">
+                <span className="tabular-nums">{o.createdAt?.slice(0, 10)} → {o.deadline?.slice(0, 10)}</span>
+                <span className="font-bold tabular-nums" style={{ color: paceDiff !== null && !paceAhead ? '#FF3B30' : undefined }}>
+                  {paceDiff !== null && paceDiff > 0 && !paceAhead ? `落后 ${paceDiff}% · ` : ''}剩余 {paceRemainTxt}
+                </span>
               </div>
-              <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
-            </div>
-          ) : (
-            <div className="flex-1 min-w-0">
-              <DualMarkerBar
-                actual={gs.avgPct}
-                plan={gs.timePct}
-                color={color}
-                showBadge={false}
-                actualDetail={`KR 平均完成 ${gs.avgPct}%${krTotal > 0 ? `（${krDone}/${krTotal} 已完成）` : ''}`}
-                planDetail={gs.days !== null && gs.days !== undefined
-                  ? `时间锚点 ${gs.timePct}% · 剩余 ${gs.days} 天`
-                  : `时间锚点 ${gs.timePct}%`}
-              />
-            </div>
-          )}
-          {/* 节奏徽章：两行右对齐（上：落后/超前 X%；下：剩余 X月Y天），行高对齐进度条气泡区 */}
-          {pace && (
-            <div className="flex flex-col items-end justify-center gap-0.5 flex-shrink-0 min-w-[64px] text-right leading-none"
-              title={`实际 ${gs.avgPct}% vs 时间 ${gs.timePct}%`}>
-              <span className="text-[11px] font-bold tabular-nums" style={{ color: pace.fg }}>
-                {paceDiff === 0 ? '节奏匹配' : (paceAhead ? `超前 ${paceDiff}%` : `落后 ${paceDiff}%`)}
-              </span>
-              <span className="text-[10px] font-semibold tabular-nums text-ink-500">
-                {paceRemainTxt ? `剩余 ${paceRemainTxt}` : (gs.days !== null && gs.days <= 0 ? '已到期' : '—')}
-              </span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
         {/* R3 元信息行已收敛：分类/范式/日期/风险信息分别并入节奏胶囊 tooltip 与双标记进度条 */}
       </div>
     );

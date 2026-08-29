@@ -210,9 +210,9 @@ export default function DualMarkerBar({
             }} />
           </span>
 
-          {/* 计划数字：纯数字，比气泡低 6px 错层（合并态隐藏） */}
+          {/* 计划数字：与蓝气泡垂直居中对齐（同水平线，颜色+形制区分） */}
           <span ref={pnRef} style={{
-            position: 'absolute', top: -14, transform: 'translateX(-50%)',
+            position: 'absolute', top: -22, transform: 'translateX(-50%)',
             left: geo && !merged ? geo.pnL : undefined,
             fontSize: 12, fontWeight: 800, color: '#1c1c1e', lineHeight: 1,
             zIndex: 4, fontVariantNumeric: 'tabular-nums',

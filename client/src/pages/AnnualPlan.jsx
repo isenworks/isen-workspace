@@ -4307,8 +4307,13 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
-                {[...(bookActionsList || []), ...(changes || [])].length}条
+              {/* 胶囊：已勾选完成数 / 总条数 — 与卡片内每条 action 的圆形复选框 isCompleted 判定严格一致：c.done || status==='completed'||'reviewed' */}
+              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px] tabular-nums" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
+                {(() => {
+                  const all = [...(bookActionsList || []), ...(changes || [])];
+                  const done = all.filter(c => c.done || c.status === 'completed' || c.status === 'reviewed').length;
+                  return (<><span className="font-extrabold">{done}</span><span className="opacity-50 mx-0.5">/</span>{all.length}条</>);
+                })()}
               </span>
               <button onClick={() => setBookPicker('actions')}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"

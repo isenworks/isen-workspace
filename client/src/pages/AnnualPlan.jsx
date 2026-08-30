@@ -1182,10 +1182,10 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const anchor = curIdx >= 0 && curIdx < N ? pts[curIdx] : null;
   const bubble = (() => {
     if (!anchor) return null;
-    const m = curIdx + 1;                              // 1-based 月份号
-    const txt = `${m}月 ${anchor.v}`;
-    const charW = 5.6;                                 // 11px 数字/汉字在 viewBox 里均宽估算
-    const bw = txt.length * charW + BUBBLE_PAD * 2;    // 气泡宽
+    // ★ ② 气泡去掉「8月」前缀，只留纯值「19」
+    const txt = `${anchor.v}`;
+    const charW = 6.2;                                 // 数字均宽估算（1-2位）
+    const bw = Math.max(24, txt.length * charW + BUBBLE_PAD * 2);
     // 规则1：默认锚定在点正上方；矩形右缘钳制 ≤ width-4（12月也不溢出）
     let bx = anchor.x - bw / 2;
     if (bx + bw > width - 4) bx = width - 4 - bw;      // 右缘钳制（末2槽位→整体左移）
@@ -1225,17 +1225,9 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
   const areaPath = 'M0,' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (width) + ',' + (PAD_T + plotH) + ' Z';
   const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ');
-  // 显示标签策略：★ P4 轴标签减负——全年 12 个月只显 1/4/8/12 锚点（纯数字，去掉「月」字）
-  // 月份跨度 >6 时只显季度锚点 + 首尾；≤6 时全显（短序列不挤）
+  // ★ ① 全 1-12 月标签：不抽样，全部显示
   const showIdx = new Set();
-  if (data.length > 6) {
-    showIdx.add(0);
-    const anchors = [Math.round(N / 3), Math.round(2 * N / 3), N - 1];
-    anchors.forEach(a => { if (a > 0 && a < N - 1) showIdx.add(a); });
-    showIdx.add(N - 1);
-  } else {
-    for (let i = 0; i < data.length; i++) showIdx.add(i);
-  }
+  for (let i = 0; i < data.length; i++) showIdx.add(i);
 
   // 🎯 Voronoi 就近匹配：给定鼠标SVG坐标，找到距离最近的数据点
   // 这是 Recharts/Highcharts/Apple Health 解决频闪的标准工业级方案
@@ -1303,11 +1295,6 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* ★ P2：当前月竖向浅绿锚定带（在填充/折线之下绘制） */}
-        {anchor && (
-          <rect x={anchor.x - stepX / 2} y={PAD_T} width={stepX}
-            height={plotH + PAD_B} fill={color} opacity="0.08" />
-        )}
         {/* ★ 区域填充：有分层时只画过去段；没分层（默认）画全填充 */}
         {pastAreaPath
           ? <path d={pastAreaPath} fill={'url(#' + gid + ')'} />
@@ -1381,12 +1368,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
               stroke={color} strokeWidth="1.2" strokeOpacity="0.6" fill="none" />
           </g>
         )}
-        {/* ★ activeIdx：选月后圆点外层虚线绿环 锚定 */}
-        {activeIdx >= 0 && activeIdx < pts.length && (
-          <circle cx={pts[activeIdx].x} cy={pts[activeIdx].y} r={5.4}
-            fill="none" stroke={color} strokeWidth="1.6"
-            strokeDasharray="2 2" opacity="0.45" />
-        )}
+        {/* ★ activeIdx 保留：仅在底部标签上 underline 锚定（已在 label 里实现）；★ ④ 删外层虚线绿环 */}
         {/* ★ P3 降噪：数值常显标注只留「峰值」一个（历史最大值，非 0）；
              其余月份数值降级到 hover Tooltip；未来月 0 值一律不标 */}
         {(() => {
@@ -1413,18 +1395,13 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
             - activeIdx(选月锚定): 下方绿色 underline */}
         {labels && labels.length === data.length && pts.map((p, i) =>
           showIdx.has(i) && (() => {
-            const isFuture = i >= splitIdx;
-            const isCurrent = i === curIdx;
-            const isHover = hoverIdx === i;
             const isActive = activeIdx === i;
             // ★ 纯数字：从「8月」剥出「8」
             const labRaw = String(labels[i] || '');
             const labTxt = labRaw.replace(/月$/, '');
-            let weight = '700';
-            let fill = '#8E8E93';
-            if (isCurrent) { weight = '900'; fill = color; }
-            else if (isFuture) { weight = '500'; fill = '#9CA3AF'; }
-            if (isHover) fill = color;
+            // ★ ① 统一字重、统一颜色（不再分过去/当前/未来三层样式）
+            const weight = '600';
+            const fill = '#8E8E93';
             return (
               <g key={'l'+i}>
                 <text x={p.x} y={labelY} textAnchor="middle"
@@ -2030,7 +2007,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                      纵向 w-full + Sparkline height=90 放大振幅,mt-1 压缩 KPI 与折线间距,
                      mb -1 让底部月份标签更贴近卡底,最大化 h-[168px] 内部利用 */}
                 <div className="mt-1 w-full -mx-3 px-1 mb-[-4px]">
-                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} height={90}
+                  {/* ★ ⑤ viewBox width 260→420：stepX 变大，12 个月槽位横向更舒展（折线更长、右侧不空）；SVG 仍 width="100%" 按父容器等比缩放 */}
+                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={420} height={90}
                     futureFrom={curMonth + 1} activeIdx={selectedMonth - 1}
                     targetValue={monthTarget} currentIdx={curMonth - 1} />
                 </div>

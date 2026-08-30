@@ -1454,12 +1454,12 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
 };
 
 /* ---------- 6. 视图 · Overview ---------- */
-/* v2 清单化改造:
- * - 删除 L1 总览卡(环+3指标+周月年tabs):环=模块行加权算术冗余,指标=死数据/下游汇总
- * - 模块进度升为唯一 L1,标题行右侧保留唯一总览级信息:时间锚胶囊
- * - 模块头:5列Grid + 锚线 + ↑/↓/±差值胶囊(带%)
- * - 子行:5列Grid 强制左端对齐;精力=习惯/知力=五层漏斗/能力=能力项/工作=主业副业小节/生活=覆盖态
- * - 层级规范:模块名 700 · 子行名 500 · 规格/说明 400 · pct 700 tabular-nums */
+/* v3 卡片网格化改造:
+ * - 5 模块 → 3+2 响应式网格卡(≥760px:3列 / ≥520px:2列 / 小屏:1列)
+ * - 卡头改横向 flex(窄卡放不下 6 列 Grid)
+ * - 卡身 max-h-150px + 独立滚动 + 底部渐隐(解决等高栅格内长短不一的空白)
+ * - 子行 5列→4列(名与规格合并)
+ * - 漏斗行:名称/转化一行,比例条独立一行(窄卡水平摆放不可读) */
 function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData }) {
   const year = new Date().getFullYear();
   const habits = realHabits || HABITS;
@@ -1470,13 +1470,13 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   const now = new Date();
   const perCat = stats.perCat;
 
-  /* 时间锚:dayOfYear/365(每年1月1日=0,12月31日=100%) */
+  /* 时间锚:dayOfYear/365 */
   const start = new Date(year, 0, 1);
   const dayOfYear = Math.floor((now - start) / 86400000);
   const anchor = Math.min(100, Math.round((dayOfYear / 365) * 1000) / 10);
   const daysLeft = Math.max(0, Math.ceil((new Date(year, 11, 31) - now) / 86400000));
 
-  /* 差值胶囊:实际−锚点 → ↑(超前绿)/±(贴近蓝)/↓(落后红),带% */
+  /* 差值胶囊:↑(超前绿)/±(贴近蓝)/↓(落后红),带% */
   const deltaChip = (p) => {
     const d = Math.round(p - anchor);
     if (d > 5) return { txt: `↑${d}%`, cls: 'bg-[#34C759]/14 text-[#1E8E3E]' };
@@ -1484,43 +1484,42 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     return { txt: `±${Math.abs(d)}%`, cls: 'bg-[#007AFF]/10 text-[#0B62D6]' };
   };
 
-  /* 各模块子数据 */
+  /* 漏斗 & 工作 源数据 */
   const bookTarget = (COG_KRS[0]?.tgt) || 12;
   const funnel = (() => {
     const done = dynBooks.filter(b => b.st === 'done').length;
     const notes = dynBooks.reduce((s, b) => s + (b.insights || []).filter(i => i.text?.trim() && i.scene?.trim()).length, 0);
     const changes = dynBooks.reduce((s, b) => s + (b.actions || []).filter(a => a.done && a.text?.trim()).length, 0);
-    const reviews = dynBooks.length; /* 概览无 reviews 传入,以 books 覆盖数近似展示层 */
+    const reviews = dynBooks.length;
     return { total: bookTarget, done, notes, changes, reviews: Math.min(reviews, changes) };
   })();
   const mainWork = dynWork.find(o => o.core) || dynWork[0];
   const sideWork = dynWork.find(o => !o.core && o !== mainWork);
 
-  /* 折叠状态:与「各月数据」卡同交互语言 */
+  /* 折叠状态 */
   const [collapsed, setCollapsed] = useState({ energy: false, cognition: false, ability: false, work: false, life: false });
   const toggle = (k) => setCollapsed(s => ({ ...s, [k]: !s[k] }));
 
-  /* 模块头(与子行同5列栅格 → 条起点严格同x) */
-  const ModuleHead = ({ c, pctVal }) => {
+  /* 卡头(横向 flex,适配窄卡) */
+  const CardHead = ({ c, pctVal }) => {
     const chip = deltaChip(pctVal);
+    const col = c.color;
     return (
-      <div className="grid items-center gap-2 px-3 py-2.5 rounded-t-xl bg-white/60 cursor-pointer select-none group"
-        style={{ gridTemplateColumns: '24px 40px 1fr 46px 48px 14px' }}
-        onClick={() => toggle(c.key)}
-        role="button" aria-expanded={!collapsed[c.key]}>
-        <span className="w-6 h-6 rounded-lg grid place-items-center flex-shrink-0" style={{ color: c.color, background: `${c.color}15` }}>
-          <CategoryIcon catKey={c.key} className="w-3.5 h-3.5" />
+      <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-ink-100/60 bg-white/60 cursor-pointer select-none"
+        onClick={() => toggle(c.key)} role="button" aria-expanded={!collapsed[c.key]}>
+        <span className="w-5.5 h-5.5 rounded-md grid place-items-center flex-shrink-0" style={{ width: 22, height: 22, color: col, background: `${col}15` }}>
+          <CategoryIcon catKey={c.key} className="w-[14px] h-[14px]" />
         </span>
-        <span className="text-[14px] font-bold text-ink-900 leading-none">{c.label}</span>
-        <div className="relative h-[18px]">
-          <div className="absolute left-0 right-0 top-[7px] h-1 rounded-full bg-ink-100" />
-          <div className="absolute left-0 top-[7px] h-1 rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: c.color }} />
-          {/* 时间锚线:黑白细竖线,全模块统一位置 */}
-          <span className="absolute -top-[1px] w-[2px] h-[20px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
+        <span className="text-[13px] font-bold text-ink-900 leading-none flex-shrink-0">{c.label}</span>
+        {/* 主条:弹性,min-w 保证窄卡也能看见 */}
+        <div className="relative h-4 flex-1 min-w-[40px]">
+          <span className="absolute left-0 right-0 top-1.5 h-1 rounded-full bg-ink-100" />
+          <span className="absolute left-0 top-1.5 h-1 rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: col }} />
+          <span className="absolute -top-[1px] w-[2px] h-[18px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
         </div>
-        <span className="text-[13px] font-bold tabular-nums text-right" style={{ color: c.color }}>{Math.round(pctVal)}%</span>
-        <span className={`text-[10px] font-semibold tabular-nums text-center px-1 py-[3px] rounded-full ${chip.cls}`}>{chip.txt}</span>
-        <svg className={`w-3.5 h-3.5 text-ink-300 transition-transform duration-200 ${collapsed[c.key] ? '' : 'rotate-180'}`}
+        <span className="text-[12px] font-bold tabular-nums leading-none flex-shrink-0 text-right" style={{ color: col, width: 36 }}>{Math.round(pctVal)}%</span>
+        <span className={`text-[9.5px] font-semibold tabular-nums px-1 py-[2px] rounded-full leading-none flex-shrink-0 ${chip.cls}`}>{chip.txt}</span>
+        <svg className={`w-3 h-3 text-ink-300 transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
           fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -1528,70 +1527,84 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     );
   };
 
-  /* 子行(5列Grid:名称132px/规格64px/迷你条1fr/数值76px/百分比36px) */
-  const SubRow = ({ name, spec, pct: p, val, color, done, bar = true }) => (
-    <div className="grid items-center gap-2 px-3 py-1.5 pl-11 border-t border-ink-100/50 min-h-[28px]"
-      style={{ gridTemplateColumns: '132px 64px 1fr 76px 36px' }}>
-      <span className={`text-[12px] font-medium leading-none truncate ${done === false ? 'text-ink-400' : 'text-ink-800'}`}>{name}</span>
-      <span className="text-[10px] text-ink-400 leading-none truncate">{spec}</span>
-      <div className="relative h-2">
-        {bar && <div className="absolute left-0 right-0 top-[3px] h-[2.5px] rounded-full bg-ink-100/80" />}
-        {bar && <div className="absolute left-0 top-[3px] h-[2.5px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />}
-        {bar && <span className="absolute -top-[2px] w-[1.5px] h-[12px] rounded-sm bg-ink-900/50" style={{ left: `${anchor}%` }} />}
+  /* 卡身(固定高度+渐隐滚动) */
+  const CardBody = ({ children, show = true }) => (
+    <div className="relative bg-white flex-1" style={{ display: show ? 'block' : 'none' }}>
+      <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 150, padding: '2px 10px 6px' }}>
+        {children}
       </div>
-      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-ink-400' : 'text-ink-600'}`}>{val}</span>
-      <span className="text-[11.5px] font-bold tabular-nums text-right leading-none" style={{ color: done === false ? '#C7C7CC' : color }}>
+      <div className="absolute left-0 right-0 bottom-0 pointer-events-none" style={{ height: 26, background: 'linear-gradient(180deg,transparent,#fff)' }} />
+    </div>
+  );
+
+  /* 子行 4 列 Grid:名称(含规格) / 迷你条 / val / pct */
+  const SubRow = ({ name, pct: p, val, color, done }) => (
+    <div className="grid items-center gap-1.5 py-1 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 54px 42px 28px', minHeight: 26 }}>
+      <span className={`text-[11.5px] font-medium leading-none truncate ${done === false ? 'text-ink-400' : 'text-ink-800'}`}>{name}</span>
+      <div className="relative h-1.5 w-full">
+        {done === undefined && (<>
+          <span className="absolute left-0 right-0 top-[2px] h-[2px] rounded-full bg-ink-100/80" />
+          <span className="absolute left-0 top-[2px] h-[2px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
+          <span className="absolute -top-[2px] w-[1.5px] h-[10px] rounded-sm bg-ink-900/50" style={{ left: `${anchor}%` }} />
+        </>)}
+      </div>
+      <span className={`text-[10px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-ink-400' : 'text-ink-600'}`}>{val}</span>
+      <span className="text-[10.5px] font-bold tabular-nums text-right leading-none" style={{ color: done === false ? '#C7C7CC' : color }}>
         {done === true ? '✓' : done === false ? '–' : `${Math.round(p)}%`}
       </span>
     </div>
   );
 
-  /* 知力五层漏斗行(层宽= count/total,透明度逐层加深) */
-  const FunnelRow = ({ label, count, idx, conv }) => (
-    <div className="grid items-center gap-2 px-3 py-[5px] pl-11 border-t border-ink-100/50"
-      style={{ gridTemplateColumns: '132px 64px 1fr 76px 36px' }}>
-      <span className="text-[12px] font-medium text-ink-800 leading-none">{label}</span>
-      <span className="text-[10px] text-ink-400 leading-none">{idx === 0 ? '年度目标' : `第${idx}层`}</span>
-      <div className="flex items-center h-[14px]">
-        <div className="h-[14px] rounded-[4px] flex items-center relative"
-          style={{ width: `${Math.max(8, (count / funnel.total) * 100)}%`, background: `rgba(0,122,255,${[0.16, 0.28, 0.42, 0.6, 1][idx]})` }}>
-          <span className={`text-[10px] font-semibold tabular-nums ml-1.5 leading-none ${idx === 4 ? 'text-white' : 'text-ink-700'}`}>{count}</span>
+  /* 知力漏斗行:名称+转化一行,比例条下一行(窄卡占满) */
+  const FunnelRow = ({ label, count, idx, conv, total }) => {
+    const pctW = Math.max(8, (count / total) * 100);
+    return (
+      <div className="py-[3px] border-t border-ink-100/40">
+        <div className="flex items-center justify-between gap-1 mb-[3px]">
+          <span className="text-[11px] font-medium text-ink-800 leading-none">{label}</span>
+          <span className="text-[9.5px] font-semibold tabular-nums leading-none text-[#0B62D6]">{conv}</span>
+        </div>
+        <div className="h-[11px] rounded flex items-center relative"
+          style={{ width: `${pctW}%`, background: `rgba(0,122,255,${[0.16, 0.28, 0.42, 0.6, 1][idx]})` }}>
+          <span className={`text-[9px] font-semibold tabular-nums ml-1 leading-none ${idx === 4 ? 'text-white' : 'text-ink-700'}`}>{count}</span>
         </div>
       </div>
-      <span className="text-[10px] text-ink-400 tabular-nums text-right leading-none">—</span>
-      <span className="text-[10px] font-semibold tabular-nums text-right leading-none text-[#0B62D6]">{conv}</span>
-    </div>
-  );
+    );
+  };
 
-  /* 工作小节标题(主业/副业) */
+  /* 工作小节 */
   const WorkSection = ({ title, color, obj }) => {
     const active = (obj?.krs || []).filter(k => k.st !== 'done');
     const doneRow = (obj?.krs || []).filter(k => k.st === 'done');
     return (
       <>
-        <div className="flex items-center gap-1.5 px-3 pt-2 pb-1 pl-11 border-t border-ink-100/50">
-          <span className="w-[3px] h-[10px] rounded-full flex-shrink-0" style={{ background: color }} />
-          <span className="text-[11px] font-bold text-ink-700 leading-none">{title}</span>
-          <span className="text-[10px] text-ink-400 leading-none truncate ml-1">{obj?.title}</span>
+        <div className="flex items-center gap-1 pt-1.5 pb-0.5">
+          <span className="w-[3px] h-[9px] rounded-sm flex-shrink-0" style={{ background: color }} />
+          <span className="text-[10px] font-bold text-ink-700 leading-none">{title}</span>
+          <span className="text-[9.5px] text-ink-400 leading-none truncate ml-0.5">{obj?.title}</span>
         </div>
-        {active.map(k => (
-          <SubRow key={k.id} name={`${k.t.split('(')[0]}`}
-            spec={`${(k.dueBy || '').slice(5).replace('-', '.')} 截止`}
-            pct={pct(k.v, k.tgt)} val={`${k.v}/${k.tgt}`} color="#FF3B30" />
-        ))}
+        {active.map(k => {
+          const due = k.dueBy ? (k.dueBy).slice(5).replace('-', '.') : '';
+          const name = k.t.replace(/\s*\(.*?\)/g, '') + (due ? ` ${due}止` : '');
+          return (
+            <SubRow key={k.id} name={name}
+              pct={pct(k.v, k.tgt)} val={`${k.v}/${k.tgt}`} color="#FF3B30" />
+          );
+        })}
         {doneRow.length > 0 && (
-          <div className="px-3 py-1.5 pl-11 border-t border-ink-100/50 text-[10px] text-ink-400 leading-none">
-            已完成 {doneRow.length} 项 · {doneRow.map(k => k.t.split('(')[0]).join(' / ')}
+          <div className="text-[9.5px] text-ink-400 leading-none py-1 truncate">
+            已完成 {doneRow.length} · {doneRow.map(k => k.t.replace(/\s*\(.*?\)/g, '')).join('/')}
           </div>
         )}
       </>
     );
   };
 
+  const CARD_PAD = 'border border-ink-100/70 rounded-xl overflow-hidden bg-white flex flex-col';
   return (
     <div className="flex flex-col gap-4">
       <div className="glass-card p-4">
-        {/* 标题行:唯一的总览级信息 = 时间锚 */}
+        {/* 标题行 */}
         <div className="flex items-center gap-3 mb-3">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }} />
           <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 模块进度</span>
@@ -1603,94 +1616,97 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          {/* 精力:3 习惯子行 */}
-          <div className="border border-ink-100/70 rounded-xl overflow-hidden">
-            <ModuleHead c={CATEGORIES[0]} pctVal={perCat[0]} />
-            {!collapsed.energy && habits.map(h => (
-              <SubRow key={h.key} name={h.label} spec={`${h.target}${h.unit}/年`}
-                pct={pct(h.val, h.target)} val={`${h.val}/${h.target} ${h.unit}`} color="#34C759" />
-            ))}
+        {/* ★ 3+2 响应式网格:md+ 3列 / sm+ 2列 / 默认1列 */}
+        <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          {/* 精力 */}
+          <div className={CARD_PAD}>
+            <CardHead c={CATEGORIES[0]} pctVal={perCat[0]} />
+            <CardBody show={!collapsed.energy}>
+              {habits.map(h => (
+                <SubRow key={h.key}
+                  name={`${h.label} · ${h.target}${h.unit}/年`}
+                  pct={pct(h.val, h.target)} val={`${h.val}/${h.target}`} color="#34C759" />
+              ))}
+            </CardBody>
           </div>
 
-          {/* 知力:五层漏斗 */}
-          <div className="border border-ink-100/70 rounded-xl overflow-hidden">
-            <ModuleHead c={CATEGORIES[1]} pctVal={perCat[1]} />
-            {!collapsed.cognition && (() => {
-              const rates = [
-                null,
-                funnel.total > 0 ? `${Math.round(funnel.done / funnel.total * 100)}%` : '—',
-                funnel.done > 0 ? `${Math.round(funnel.notes / funnel.done * 100)}%` : '—',
-                funnel.notes > 0 ? `${Math.round(funnel.changes / funnel.notes * 100)}%` : '—',
-                funnel.changes > 0 ? `${Math.round(funnel.reviews / funnel.changes * 100)}%` : '—',
-              ];
-              const labels5 = ['目标量', '输入量', '思考量', '行动量', '改变量'];
-              const counts = [funnel.total, funnel.done, funnel.notes, funnel.changes, funnel.reviews];
-              return (<>
-                {labels5.map((lb, i) => (
-                  <FunnelRow key={lb} label={lb} count={counts[i]} idx={i} conv={rates[i] || '—'} />
-                ))}
-                <div className="px-3 py-1.5 pl-11 border-t border-ink-100/50 text-[10px] text-ink-400 leading-none">
-                  已读 {funnel.done}/{funnel.total} 本 · 待读 {dynBooks.filter(b => b.st === 'pending').length} 本 · 漏斗层间转化率见右列
-                </div>
-              </>);
-            })()}
+          {/* 知力 */}
+          <div className={CARD_PAD}>
+            <CardHead c={CATEGORIES[1]} pctVal={perCat[1]} />
+            <CardBody show={!collapsed.cognition}>
+              {(() => {
+                const rates = [
+                  null,
+                  funnel.total > 0 ? `${Math.round(funnel.done / funnel.total * 100)}%` : '—',
+                  funnel.done > 0 ? `${Math.round(funnel.notes / funnel.done * 100)}%` : '—',
+                  funnel.notes > 0 ? `${Math.round(funnel.changes / funnel.notes * 100)}%` : '—',
+                  funnel.changes > 0 ? `${Math.round(funnel.reviews / funnel.changes * 100)}%` : '—',
+                ];
+                const labels5 = ['目标量', '输入量', '思考量', '行动量', '改变量'];
+                const counts = [funnel.total, funnel.done, funnel.notes, funnel.changes, funnel.reviews];
+                return (<>
+                  {labels5.map((lb, i) => (
+                    <FunnelRow key={lb} label={lb} count={counts[i]} idx={i} conv={rates[i] || '—'} total={funnel.total} />
+                  ))}
+                  <div className="text-[9.5px] text-ink-400 leading-none py-1 truncate">
+                    已读 {funnel.done}/{funnel.total} · 待读 {dynBooks.filter(b => b.st === 'pending').length}
+                  </div>
+                </>);
+              })()}
+            </CardBody>
           </div>
 
-          {/* 能力:能力项子行 */}
-          <div className="border border-ink-100/70 rounded-xl overflow-hidden">
-            <ModuleHead c={CATEGORIES[2]} pctVal={perCat[2]} />
-            {!collapsed.ability && dynAbilities.map(a => {
-              const doneMs = a.mstones.filter(m => m.st === 'done').length;
-              const ap = a.mstones.length > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / a.mstones.length) : 0;
-              const overdue = a.deadline && new Date(a.deadline) < new Date(year, 11, 31) ? `截止 ${(a.deadline).slice(5).replace('-', '.')}` : '里程碑';
-              return (
-                <SubRow key={a.id} name={a.title}
-                  spec={a.deadline && new Date(a.deadline) < new Date(now) + 86400000 * 120 && new Date(a.deadline).getFullYear() === year ? overdue : '里程碑'}
-                  pct={ap} val={`${doneMs}/${a.mstones.length} 项`} color="#FF9500" />
-              );
-            })}
+          {/* 能力 */}
+          <div className={CARD_PAD}>
+            <CardHead c={CATEGORIES[2]} pctVal={perCat[2]} />
+            <CardBody show={!collapsed.ability}>
+              {dynAbilities.map(a => {
+                const doneMs = a.mstones.filter(m => m.st === 'done').length;
+                const ap = a.mstones.length > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / a.mstones.length) : 0;
+                const dueTag = a.deadline && new Date(a.deadline).getFullYear() === year
+                  ? ` · 截止 ${(a.deadline).slice(5).replace('-', '.')}` : '';
+                return (
+                  <SubRow key={a.id} name={`${a.title}${dueTag}`}
+                    pct={ap} val={`${doneMs}/${a.mstones.length}`} color="#FF9500" />
+                );
+              })}
+            </CardBody>
           </div>
 
-          {/* 工作:主业/副业小节 */}
-          <div className="border border-ink-100/70 rounded-xl overflow-hidden">
-            <ModuleHead c={CATEGORIES[3]} pctVal={perCat[3]} />
-            {!collapsed.work && (<>
+          {/* 工作 */}
+          <div className={CARD_PAD}>
+            <CardHead c={CATEGORIES[3]} pctVal={perCat[3]} />
+            <CardBody show={!collapsed.work}>
               <WorkSection title="主业" color="#FF3B30" obj={mainWork} />
               {sideWork && <WorkSection title="副业" color="#FF9500" obj={sideWork} />}
-            </>)}
+            </CardBody>
           </div>
 
-          {/* 生活:覆盖态 */}
-          <div className="border border-ink-100/70 rounded-xl overflow-hidden">
-            <ModuleHead c={CATEGORIES[4]} pctVal={perCat[4]} />
-            {!collapsed.life && dynLife.map(cat => {
-              const n = cat.entries.length;
-              return (
-                <SubRow key={cat.key} name={cat.lb} spec={`${n} 条`}
-                  pct={n > 0 ? 100 : 0} val={n > 0 ? '已覆盖' : '待开启'}
-                  color={cat.color} done={n > 0 ? true : false} bar={false} />
-              );
-            })}
+          {/* 生活 */}
+          <div className={CARD_PAD}>
+            <CardHead c={CATEGORIES[4]} pctVal={perCat[4]} />
+            <CardBody show={!collapsed.life}>
+              {dynLife.map(cat => {
+                const n = cat.entries.length;
+                return (
+                  <SubRow key={cat.key} name={`${cat.lb} · ${n}条`}
+                    pct={0} val={n > 0 ? '已覆盖' : '待开启'}
+                    color={cat.color} done={n > 0 ? true : false} />
+                );
+              })}
+            </CardBody>
           </div>
         </div>
 
         {/* 图例 */}
-        <div className="flex items-center gap-4 mt-3 px-1 text-[10px] text-ink-400">
-          <span className="inline-flex items-center gap-1">
-            <span className="w-[2px] h-[10px] rounded-sm bg-ink-900/55 inline-block" />
-            时间锚 {anchor}%
+        <div className="flex items-center gap-3 mt-3 text-[9.5px] text-ink-400 flex-wrap pl-0.5">
+          <span className="inline-flex items-center gap-1"><span className="w-[2px] h-[10px] rounded-sm bg-ink-900/55 inline-block" />时间锚 {anchor}%</span>
+          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-1 rounded-full bg-[#34C759] inline-block" />实际</span>
+          <span className="inline-flex items-center gap-2">
+            <span><span className="text-[#1E8E3E] font-semibold">↑</span>超前</span>
+            <span><span className="text-[#0B62D6] font-semibold">±</span>贴近</span>
+            <span><span className="text-[#D70015] font-semibold">↓</span>落后</span>
           </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="w-4 h-1 rounded-full bg-[#34C759] inline-block" />
-            实际
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="text-[#1E8E3E] font-semibold">↑</span>超前
-            <span className="text-[#0B62D6] font-semibold ml-2">±</span>贴近
-            <span className="text-[#D70015] font-semibold ml-2">↓</span>落后
-          </span>
-          <span>差值 = 实际 − 锚点</span>
         </div>
       </div>
     </div>

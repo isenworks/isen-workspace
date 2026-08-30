@@ -1223,11 +1223,12 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
 
   const hp = hoverIdx !== null ? pts[hoverIdx] : null;
   return (
-    <div className="relative w-full" style={{ width, height: height + LABEL_H + EXTRA_BOTTOM, overflow: 'visible' }}>
+    <div className="relative w-full" style={{ width: '100%', height: height + LABEL_H + EXTRA_BOTTOM, overflow: 'visible' }}>
       <svg
         ref={svgRef}
-        width={width}
+        width="100%"
         height={height + LABEL_H + EXTRA_BOTTOM}
+        viewBox={`0 0 ${width} ${height + LABEL_H + EXTRA_BOTTOM}`}
         style={{ cursor: 'pointer', overflow: 'visible', display: 'block' }}
         // ✅ 核心修复1：SVG 根级监听 mousemove，全图任意位置都触发找最近点
         //         不再依赖小 rect 命中，鼠标在附近就能锁定
@@ -1374,24 +1375,33 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
           })()
         )}
       </svg>
-      {/* Hover Tooltip */}
-      {hp && (
-        <div className="pointer-events-none absolute z-20"
-          style={{
-            left: Math.min(Math.max(hp.x - 42, 0), width - 84),
-            top: Math.max(hp.y - 34, -2),
-          }}>
-          <div className="px-2.5 py-1.5 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.08)] flex flex-col items-center gap-0.5"
-            style={{ minWidth: 72 }}>
-            {labels && labels[hoverIdx] && (
-              <div className="text-[11px] font-semibold text-ink-400 leading-none">{labels[hoverIdx]}月</div>
-            )}
-            <div className="text-[15px] font-bold tabular-nums leading-tight" style={{ color }}>
-              {hp.v} 次
+      {/* ★ Hover Tooltip · 坐标换算
+           SVG width 改成 100% 铺满父容器后，hp.x/hp.y 是 viewBox 内部坐标(0-260)，
+           Tooltip 用 absolute 绝对定位需要换算成实际像素坐标，否则 Tooltip 会和点错位 */}
+      {(() => {
+        if (!hp) return null;
+        const svgRect = svgRef.current?.getBoundingClientRect();
+        const sx = svgRect ? (svgRect.width / width) : 1;          // viewBox 单位 → 实际像素 的 x 缩放
+        const sy = svgRect
+          ? (svgRect.height / (height + LABEL_H + EXTRA_BOTTOM))
+          : 1;
+        const tipLeft = Math.min(Math.max(hp.x - 42, 0), width - 84) * sx;
+        const tipTop = Math.max(hp.y - 34, -2) * sy;
+        return (
+          <div className="pointer-events-none absolute z-20"
+            style={{ left: tipLeft, top: tipTop }}>
+            <div className="px-2.5 py-1.5 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.08)] flex flex-col items-center gap-0.5"
+              style={{ minWidth: 72 }}>
+              {labels && labels[hoverIdx] && (
+                <div className="text-[11px] font-semibold text-ink-400 leading-none">{labels[hoverIdx]}月</div>
+              )}
+              <div className="text-[15px] font-bold tabular-nums leading-tight" style={{ color }}>
+                {hp.v} 次
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
@@ -1937,8 +1947,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     </div>
                   </div>
                 </div>
-                <div className="self-end mt-3 -mx-1 pb-0">
-                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={60}
+                <div className="mt-3 pb-0 w-full">
+                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} height={60}
                     futureFrom={curMonth + 1} activeIdx={selectedMonth - 1} />
                 </div>
               </div>

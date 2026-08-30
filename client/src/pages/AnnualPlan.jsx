@@ -1166,12 +1166,14 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const currentIdx2 = currentIdx >= 0 ? Math.min(currentIdx, N - 1) : Math.max(0, Math.min(N - 1, splitIdx - 1));
   const curIdx = currentIdx2;
 
-  // =============== ★ P1：目标基准线 y 坐标（19天/月 参考） ===============
-  // 与 pts 用同一套归一化公式：值→y。注意 pts 里 rawY 被 safeCeilY 钳制过，
-  // 基准线一般低于峰值，不受天花板影响，直接算即可；但要保证在绘图区内。
-  const targetY = (targetValue > min && targetValue <= max)
-    ? Math.max(safeCeilY, Math.min(PAD_T + plotH, PAD_T + plotH - (((targetValue - min) / range) * (plotH - 2)) - 1))
-    : null;
+  // =============== ★ P1：目标基准线 y 坐标（月度目标参考） ===============
+  // ★ ② 修正作息无目标线：targetValue >= 0 就画（允许 target > max 表示未达标）；
+  //   之前 target>max 时直接 null → 作息 target=20(按年目标÷12月均摊)>max=19 → 灰线消失
+  let targetY = null;
+  if (targetValue >= 0 && isFinite(targetValue) && range > 0) {
+    const rawY = PAD_T + plotH - (((targetValue - min) / range) * (plotH - 2)) - 1;
+    targetY = Math.max(safeCeilY, Math.min(PAD_T + plotH - 1, rawY));
+  }
 
   // 标签基准 y（必须先算：气泡规则③峰值翻转引用它，放后面会进入 TDZ）
   const labelY = PAD_T + plotH + PAD_B + LABEL_H - 2;
@@ -1257,13 +1259,16 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   };
 
   const hp = hoverIdx !== null ? pts[hoverIdx] : null;
+  const hRatio = (height + LABEL_H + EXTRA_BOTTOM) / Math.max(1, width);
   return (
-    <div className="relative w-full" style={{ width: '100%', height: height + LABEL_H + EXTRA_BOTTOM, overflow: 'visible' }}>
+    <div className="relative w-full"
+      style={{ width: '100%', aspectRatio: `${width} / ${height + LABEL_H + EXTRA_BOTTOM}`, overflow: 'visible' }}>
       <svg
         ref={svgRef}
         width="100%"
-        height={height + LABEL_H + EXTRA_BOTTOM}
+        height="100%"
         viewBox={`0 0 ${width} ${height + LABEL_H + EXTRA_BOTTOM}`}
+        preserveAspectRatio="none"
         style={{ cursor: 'pointer', overflow: 'visible', display: 'block' }}
         // ✅ 核心修复1：SVG 根级监听 mousemove，全图任意位置都触发找最近点
         //         不再依赖小 rect 命中，鼠标在附近就能锁定
@@ -1376,7 +1381,9 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
           for (let i = 0; i < splitIdx; i++) {
             if (pts[i].v > 0 && (peakI < 0 || pts[i].v > pts[peakI].v)) peakI = i;
           }
-          if (peakI < 0) return null;
+          // ★ ③ 修复：峰值点与当前月(curIdx)同月时，气泡已显示当前月数值，不要重复画峰值灰字
+          //    否则 SVG 后序绘制覆盖（灰色 20 在气泡上）→ 出现"绿气泡上面有灰数字"
+          if (peakI < 0 || peakI === curIdx) return null;
           const p = pts[peakI];
           // 峰值点一般在顶部附近，标注放在点下方更安全（不与气泡/线冲突）
           const below = p.y + 14 < labelY - 8;

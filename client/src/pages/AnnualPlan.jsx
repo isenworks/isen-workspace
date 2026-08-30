@@ -6654,56 +6654,72 @@ export default function AnnualPlan({ standalone = true }) {
         const pctVal = item.key !== 'overview'
           ? Math.round(stats.perCat[CATEGORIES.findIndex(c => c.key === item.key)])
           : null;
+        const addLabel = (() => {
+          switch (item.label) {
+            case '精力': return '习惯';
+            case '知力': return '书籍';
+            case '工作': return '目标';
+            case '生活': return '记录';
+            default: return item.label;
+          }
+        })();
         return (
           <button
             key={item.key}
             onClick={() => setView(item.key)}
             className={[
-              'flex-shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all',
+              'flex-shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm transition-all',
               on
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-ink-600 hover:bg-ink-100'
+                ? 'bg-brand-500 text-white font-semibold shadow-sm'
+                : 'text-ink-600 font-medium hover:bg-ink-100'
             ].join(' ')}
           >
-            <span className={[
-              'w-6 h-6 rounded-md grid place-items-center flex-shrink-0',
-              on ? 'text-white' : ''
-            ].join(' ')}
-              style={!on && item.color ? { color: item.color } : !on ? { color: '#8e8e93' } : undefined}>
-              <CategoryIcon catKey={item.key} className="w-3.5 h-3.5" />
-            </span>
+            {/* 图标:升 16px + 删外层幽灵盒 → 真实间距与 gap-2 一致 */}
+            <CategoryIcon
+              catKey={item.key}
+              className="w-4 h-4 flex-shrink-0"
+              style={!on && item.color ? { color: item.color } : !on ? { color: '#8e8e93' } : undefined}
+            />
             <span>{item.label}</span>
-            {/* 所有非 overview tab：pct% 统一替换为 + 按钮，点击切 tab 并弹出对应 add Modal。
-                overview tab 不做 +，保持无后缀（年度概览不是可添加的资源池）。 */}
+            {/* 所有非 overview tab:末尾加号(切 tab 并弹出对应添加 Modal)。
+                overview tab 不加后缀(不是资源池)。
+                加号:真实 button(替代 span role=button),::before 热区扩至 44×44 达 iOS HIG
+                激活态=纯白字形(去底色,消除 chip-in-chip);默认态=灰色小色块 */}
             {item.key === 'overview' ? null : (() => {
-              // 各 tab 对应的「添加」Modal 配置：type + 可选 initial
               const ADD_ACTIONS = {
                 energy:    { type: 'habit',      initial: { growth_type: 'energy', accent_color: '#34C759' } },
                 cognition: { type: 'book' },
                 ability:   { type: 'ability' },
                 work:      { type: 'work_goal' },
-                // 生活 entry：initial 不传 lifeKey，打开后由 EntryForm 显示模块 chip 选择器（默认第一个 chip），可切换到任意模块或新建
                 life:      { type: 'entry' },
               };
               const act = ADD_ACTIONS[item.key];
               if (!act) return null;
               return (
-                <span
-                  role="button"
-                  aria-label={`添加${item.label === '精力' ? '习惯' : item.label === '知力' ? '书籍' : item.label === '工作' ? '目标' : item.label === '生活' ? '记录' : item.label}`}
-                  title={`添加${item.label === '精力' ? '习惯' : item.label === '知力' ? '书籍' : item.label === '工作' ? '目标' : item.label === '生活' ? '记录' : item.label}`}
+                <button
+                  type="button"
+                  aria-label={`添加${addLabel}`}
+                  title={`添加${addLabel}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setView(item.key);
                     setModal({ ...act });
                   }}
                   className={[
-                    'w-5 h-5 rounded-md grid place-items-center transition hover:brightness-105 active:scale-90',
-                    on ? 'bg-white/15 text-white' : 'bg-ink-100 text-ink-500 hover:bg-ink-200'
+                    'relative inline-flex items-center justify-center transition hover:brightness-105 active:scale-90 flex-shrink-0',
+                    on ? 'text-white' : 'rounded-md bg-ink-100 text-ink-500 hover:bg-ink-200',
                   ].join(' ')}
+                  style={on ? {} : { width: 20, height: 20 }}
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                </span>
+                  {/* iOS HIG 最小 44×44 触控热区:扩命中区不影响视觉 */}
+                  <span className="absolute inset-0 -m-[12px]" aria-hidden="true"></span>
+                  {/* 激活态:透明背景纯字形;默认态:14px 字形居中于 20×20 色块 */}
+                  <svg
+                    className={on ? 'w-[13px] h-[13px]' : 'w-[13px] h-[13px]'}
+                    fill="none" stroke="currentColor" strokeWidth="2.4"
+                    viewBox="0 0 24 24" strokeLinecap="round"
+                  ><path d="M12 5v14M5 12h14"/></svg>
+                </button>
               );
             })()}
           </button>

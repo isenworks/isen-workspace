@@ -3799,8 +3799,9 @@ function CognitionView({
           )}
         </div>
 
-        {/* ===== 双标记进度条：实际 vs 计划（节奏信息整合进「计划」marker tooltip，参考能力页 planDetail 设计） ===== */}
-        <div className="mb-2 px-0.5">
+        {/* ===== 双标记进度条：实际 vs 计划（节奏信息整合进「计划」marker tooltip，参考能力页 planDetail 设计）
+            zoom 0.92 整体缩一档：气泡/轨道/下方标签同步变小，视觉层级次于标题行 ===== */}
+        <div className="mb-2 px-0.5" style={{ zoom: 0.92 }}>
           {(() => {
             const a = Math.max(0, Math.min(100, Number(paceActual) || 0));
             const p = Math.max(0, Math.min(100, Number(pacePlan) || 0));
@@ -4894,7 +4895,8 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
           </div>
         </div>
 
-        {/* 进度条：双标记（实际 avgPct / 计划 timePct）— 工作页同款 DualMarkerBar */}
+        {/* 进度条：双标记（实际 avgPct / 计划 timePct）— 工作页同款 DualMarkerBar
+            zoom 0.92 整体缩一档，视觉层级次于标题行 */}
         {(() => {
           const remainTxt = (as.days !== null && as.days !== undefined && as.days > 0)
             ? (() => { const mo = Math.floor(as.days / 30); const dy = as.days % 30;
@@ -4914,7 +4916,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             );
           }
           return (
-            <div className="-mt-0.5">
+            <div className="-mt-0.5" style={{ zoom: 0.92 }}>
               <DualMarkerBar
                 actual={as.avgPct}
                 plan={as.timePct}
@@ -5154,7 +5156,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
           </div>
         ) : (
-          <div>
+          <div style={{ zoom: 0.92 }}>
             <DualMarkerBar
               actual={gs.avgPct}
               plan={gs.timePct}

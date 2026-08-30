@@ -1173,6 +1173,8 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
     ? Math.max(safeCeilY, Math.min(PAD_T + plotH, PAD_T + plotH - (((targetValue - min) / range) * (plotH - 2)) - 1))
     : null;
 
+  // 标签基准 y（必须先算：气泡规则③峰值翻转引用它，放后面会进入 TDZ）
+  const labelY = PAD_T + plotH + PAD_B + LABEL_H - 2;
   // =============== ★ P2：当前月气泡 3 条防重叠规则 ===============
   // 气泡内文案「8月 18」= 2位月 + 空格 + 值；viewBox 单位宽度估算
   const BUBBLE_H = 16;                                 // 气泡高（viewBox 单位）
@@ -1223,7 +1225,6 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
   const areaPath = 'M0,' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (width) + ',' + (PAD_T + plotH) + ' Z';
   const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ');
-  const labelY = PAD_T + plotH + PAD_B + LABEL_H - 2;
   // 显示标签策略：★ P4 轴标签减负——全年 12 个月只显 1/4/8/12 锚点（纯数字，去掉「月」字）
   // 月份跨度 >6 时只显季度锚点 + 首尾；≤6 时全显（短序列不挤）
   const showIdx = new Set();

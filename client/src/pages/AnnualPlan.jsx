@@ -1943,9 +1943,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
           </div>
           <button onClick={() => onAction?.('addHabit')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 text-accent-green text-xs font-bold hover:bg-accent-green/15 transition">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-            添加
+            className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
+            style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.25)', color: '#34C759' }}
+            title="添加精力习惯">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -2222,19 +2223,21 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           </div>
         </div>
 
-        {/* ★ ③ 图例下移：日历格三态颜色语义必须保留（否则「未打卡/未开始」无法区分），缩为紧凑小字行 */}
-        <div className="flex items-center gap-3 text-[11px] text-ink-400 mb-3">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-[14px] h-[14px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(52,199,89,0.25)'}}>
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </span>已打卡
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-[14px] h-[14px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-[14px] h-[14px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
-          </span>
+        {/* ★ ③ 图例移到卡片最右边（flex 居右，与月份 Tab 同级第二行末尾；三态颜色语义保留） */}
+        <div className="flex items-center justify-end text-[11px] text-ink-400 mb-3 ml-auto">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-[14px] h-[14px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(52,199,89,0.25)'}}>
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>已打卡
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-[14px] h-[14px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-[14px] h-[14px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3.5">
@@ -5590,7 +5593,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
       <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活珍藏</span>
+          <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
           <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
             style={{ background: 'rgba(175,82,222,0.12)' }}>
             <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#AF52DE' }}>{lifePct}</span>
@@ -5626,9 +5629,12 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 </div>
                 <span className="text-[15px] font-semibold text-ink-900 leading-none">{c.lb}</span>
                 <span className="text-[12px] font-semibold tabular-nums text-ink-500">· {c.entries.length}</span>
-                {/* 右上角添加按钮 */}
-                <button onClick={() => onEntryAdd?.(ci, c.lb)} className="ml-auto w-7 h-7 rounded-lg grid place-items-center text-ink-400 hover:text-[#AF52DE] hover:bg-[rgba(175,82,222,0.08)] transition cursor-pointer">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                {/* 右上角添加按钮（胶囊，与知力/能力页卡片头部一致） */}
+                <button onClick={() => onEntryAdd?.(ci, c.lb)}
+                  className="ml-auto inline-flex items-center px-2 h-[26px] rounded-lg transition hover:brightness-105 active:scale-95 flex-shrink-0 cursor-pointer"
+                  style={{ background: 'rgba(175,82,222,0.10)', border: '1px solid rgba(175,82,222,0.25)' }}
+                  title={`添加${c.lb}记录`}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="#AF52DE" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 </button>
               </div>
             {/* 条目列表 - 取消overflow-y-auto，日期移至右侧 */}

@@ -1259,10 +1259,8 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   };
 
   const hp = hoverIdx !== null ? pts[hoverIdx] : null;
-  const hRatio = (height + LABEL_H + EXTRA_BOTTOM) / Math.max(1, width);
   return (
-    <div className="relative w-full"
-      style={{ width: '100%', aspectRatio: `${width} / ${height + LABEL_H + EXTRA_BOTTOM}`, overflow: 'visible' }}>
+    <div className="relative w-full" style={{ width: '100%', height: '100%', minHeight: height + LABEL_H + EXTRA_BOTTOM, overflow: 'visible' }}>
       <svg
         ref={svgRef}
         width="100%"
@@ -2009,12 +2007,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     </div>
                   </div>
                 </div>
-                {/* ★ 折线撑满卡片：
-                     横向 -mx-3 突破 mini-card p-3 padding,仅 px-1(左右各4px)安全边,
-                     纵向 w-full + Sparkline height=90 放大振幅,mt-1 压缩 KPI 与折线间距,
-                     mb -1 让底部月份标签更贴近卡底,最大化 h-[168px] 内部利用 */}
-                <div className="mt-1 w-full -mx-3 px-1 mb-[-4px]">
-                  {/* ★ ⑤ viewBox width 260→420：stepX 变大，12 个月槽位横向更舒展（折线更长、右侧不空）；SVG 仍 width="100%" 按父容器等比缩放 */}
+                {/* ★ 折线容器：收敛为单一定位系统（移除 -mx-3 px-1 mb + aspectRatio 三套混合）
+                     - 水平: w-full 不突破 p-3 padding（天然同 KPI 标题左右对齐，Apple Health 同范式）
+                     - 垂直: flex items-end 贴底（h-[120px] 精确分配 168px - KPI行占用 - mt-1 = 折线区高）
+                       消除之前 grid 行 1fr "剩余高度全撂底部" 导致的 "离底间距更大" */}
+                <div className="mt-1 w-full flex items-end justify-center" style={{ height: 120 }}>
+                  {/* ★ ⑤ viewBox width 260→420：stepX 变大，12 个月槽位横向更舒展（折线更长、右侧不空） */}
                   <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={420} height={90}
                     futureFrom={curMonth + 1} activeIdx={selectedMonth - 1}
                     targetValue={monthTarget} currentIdx={curMonth - 1} />

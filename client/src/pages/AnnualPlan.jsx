@@ -1118,7 +1118,6 @@ function Sidebar({ active, onChange, stats }) {
 const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   futureFrom = -1,            // 新：1-based 月份号(如9)，>= 该月份号的索引视为"未来月"；-1=不启用(全为过去/当前)
   activeIdx = -1,             // 新：0-based 选月联动高亮索引（-1=不画）
-  targetValue = -1,           // ★ P1：目标基准线（月度目标次数，如19）；-1=不画
   currentIdx = -1,            // ★ P2：当前月索引（0-based）；-1=不画气泡。不传时默认从 splitIdx-1 推导
 }) => {
   const [hoverIdx, setHoverIdx] = useState(null);
@@ -1165,15 +1164,6 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   // 当前月索引：优先用外部传入（Card3 Pill 联动），否则默认取 splitIdx-1
   const currentIdx2 = currentIdx >= 0 ? Math.min(currentIdx, N - 1) : Math.max(0, Math.min(N - 1, splitIdx - 1));
   const curIdx = currentIdx2;
-
-  // =============== ★ P1：目标基准线 y 坐标（月度目标参考） ===============
-  // ★ ② 修正作息无目标线：targetValue >= 0 就画（允许 target > max 表示未达标）；
-  //   之前 target>max 时直接 null → 作息 target=20(按年目标÷12月均摊)>max=19 → 灰线消失
-  let targetY = null;
-  if (targetValue >= 0 && isFinite(targetValue) && range > 0) {
-    const rawY = PAD_T + plotH - (((targetValue - min) / range) * (plotH - 2)) - 1;
-    targetY = Math.max(safeCeilY, Math.min(PAD_T + plotH - 1, rawY));
-  }
 
   // 标签基准 y（必须先算：气泡规则③峰值翻转引用它，放后面会进入 TDZ）
   const labelY = PAD_T + plotH + PAD_B + LABEL_H - 2;
@@ -1259,14 +1249,17 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   };
 
   const hp = hoverIdx !== null ? pts[hoverIdx] : null;
+  // ★ ⑤ 修复折线拉伸变形：删 preserveAspectRatio="none"（x/y 不等比拉伸导致折线/圆点变形），
+  //   恢复默认 xMidYMid meet 等比缩放；SVG 高固定为 viewBox 高（viewBox 宽 420 会被等比放大，
+  //   实际渲染宽 = 卡内容宽，超出部分被 overflow visible 接住，折线水平居中不变形）
+  const VB_H = height + LABEL_H + EXTRA_BOTTOM;
   return (
-    <div className="relative w-full" style={{ width: '100%', height: '100%', minHeight: height + LABEL_H + EXTRA_BOTTOM, overflow: 'visible' }}>
+    <div className="relative w-full flex justify-center" style={{ width: '100%', height: VB_H, overflow: 'visible' }}>
       <svg
         ref={svgRef}
         width="100%"
-        height="100%"
-        viewBox={`0 0 ${width} ${height + LABEL_H + EXTRA_BOTTOM}`}
-        preserveAspectRatio="none"
+        height={VB_H}
+        viewBox={`0 0 ${width} ${VB_H}`}
         style={{ cursor: 'pointer', overflow: 'visible', display: 'block' }}
         // ✅ 核心修复1：SVG 根级监听 mousemove，全图任意位置都触发找最近点
         //         不再依赖小 rect 命中，鼠标在附近就能锁定
@@ -1302,18 +1295,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
         {pastAreaPath
           ? <path d={pastAreaPath} fill={'url(#' + gid + ')'} />
           : <path d={areaPath} fill={'url(#' + gid + ')'} />}
-        {/* ★ P1：目标基准线（月度目标参考，灰色虚线 + 右端小标） */}
-        {targetY !== null && (
-          <g>
-            <line x1="0" y1={targetY} x2={width} y2={targetY}
-              stroke="#8E8E93" strokeWidth="1" strokeDasharray="5 4" strokeOpacity="0.55" />
-            <text x={width - 2} y={targetY - 3} textAnchor="end" fontSize="9.5"
-              fontWeight="600" fill="#8E8E93" opacity="0.8"
-              style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
-              目标 {targetValue}
-            </text>
-          </g>
-        )}
+        {/* ★ ④ 删除灰色目标虚线（用户确认移除，月度目标信息已由 DualMarkerBar 承担） */}
         {/* ★ 过去段 · 实线折线（splitIdx===N 时无未来段，走过去全实线 = 原 linePath，兼容默认） */}
         {linePastPath && (
           <path d={linePastPath} fill="none" stroke={color} strokeWidth="2"
@@ -1433,12 +1415,15 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
            Tooltip 用 absolute 绝对定位需要换算成实际像素坐标，否则 Tooltip 会和点错位 */}
       {(() => {
         if (!hp) return null;
+        // ★ ⑤ 等比缩放(meet)下，svg box 宽≠图形实际渲染宽：
+        //   图形被高度锁定 VB_H(1:1)，viewBox 宽 420 渲染出来也是 420 逻辑像素；
+        //   若容器比 420 宽，图形居中，左右留边 → Tooltip 需按 (box宽-420)/2 居中偏移修正
         const svgRect = svgRef.current?.getBoundingClientRect();
-        const sx = svgRect ? (svgRect.width / width) : 1;          // viewBox 单位 → 实际像素 的 x 缩放
-        const sy = svgRect
-          ? (svgRect.height / (height + LABEL_H + EXTRA_BOTTOM))
-          : 1;
-        const tipLeft = Math.min(Math.max(hp.x - 42, 0), width - 84) * sx;
+        const drawW = Math.min(svgRect ? svgRect.width : width, width);
+        const offsetL = svgRect ? Math.max(0, (svgRect.width - drawW) / 2) : 0;
+        const sx = 1;                                     // 高度 1:1 → x 也 1:1（等比）
+        const sy = 1;
+        const tipLeft = (Math.min(Math.max(hp.x - 42, 0), width - 84)) * sx + offsetL;
         const tipTop = Math.max(hp.y - 34, -2) * sy;
         return (
           <div className="pointer-events-none absolute z-20"
@@ -1960,7 +1945,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           {habits.map((h, hIdx) => {
             const yearlyPct = pct(h.val, h.target);
             const GREEN = '#34C759';
-            const GREEN_TEXT = '#34C759';
             const padNum = String(hIdx + 1).padStart(2, '0');
             const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
             const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
@@ -1971,9 +1955,6 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               yearCounts.push(h.month?.[m] || 0);
               yearMonthLabels.push(`${m}月`);
             }
-            // ★ P1 月度目标：年度目标按月均摊（Card3 同款公式），折线基准线 & 气泡对照用
-            const YEAR_DAYS = 365;
-            const monthTarget = Math.max(1, Math.ceil((h.target || 0) * (new Date(year, 0, 31).getDate() / YEAR_DAYS)));
 
             return (
               <div key={h.key}
@@ -1990,32 +1971,36 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       {cleanLabel}
                     </span>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0 min-w-[38%]">
-                    <div className="flex items-baseline leading-none">
-                      <span className="text-[16px] font-bold tabular-nums leading-none" style={{color: GREEN_TEXT}}>{yearlyPct}</span>
-                      <span className="text-[12px] font-bold tabular-nums leading-none align-baseline ml-0.5" style={{color: GREEN_TEXT}}>%</span>
-                    </div>
-                    <div className="flex items-baseline leading-none">
-                      <span className="text-[13px] font-semibold tabular-nums text-ink-700">{h.val}</span>
-                      <span className="text-[13px] font-medium tabular-nums text-ink-400 mx-[4px]">/</span>
-                      <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.target}</span>
-                      <span className="text-[13px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
-                    </div>
-                    {/* ★ P5 KPI 微进度条：复用全局 ProgressBar（4px/圆角/主题色），对齐能力页规格 */}
-                    <div className="w-16 mt-0.5">
-                      <ProgressBar value={yearlyPct} color={GREEN} />
-                    </div>
+                  <div className="flex items-center flex-shrink-0">
+                    {/* ★ ③ 56/230天 改为能力页同款胶囊（L4894-4901 规格：px-2 h-[26px] rounded-lg 主题色10底/40框） */}
+                    <span
+                      className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
+                      style={{ background: `${GREEN}1a`, border: `1px solid ${GREEN}40`, color: GREEN }}
+                    >
+                      <span className="font-extrabold">{h.val}</span>
+                      <span className="mx-0.5 opacity-50">/</span>
+                      <span className="opacity-70">{h.target}{h.unit}</span>
+                    </span>
                   </div>
                 </div>
-                {/* ★ 折线容器：收敛为单一定位系统（移除 -mx-3 px-1 mb + aspectRatio 三套混合）
-                     - 水平: w-full 不突破 p-3 padding（天然同 KPI 标题左右对齐，Apple Health 同范式）
-                     - 垂直: flex items-end 贴底（h-[120px] 精确分配 168px - KPI行占用 - mt-1 = 折线区高）
-                       消除之前 grid 行 1fr "剩余高度全撂底部" 导致的 "离底间距更大" */}
-                <div className="mt-1 w-full flex items-end justify-center" style={{ height: 120 }}>
-                  {/* ★ ⑤ viewBox width 260→420：stepX 变大，12 个月槽位横向更舒展（折线更长、右侧不空） */}
+                {/* ★ ① 能力页同款 DualMarkerBar（实际完成率 vs 时间计划锚点） */}
+                <div className="mt-1">
+                  <DualMarkerBar
+                    actual={yearlyPct}
+                    plan={Math.round(curMonth / 12 * 100)}
+                    color={GREEN}
+                    showBadge={false}
+                    actualDetail={`累计打卡 ${h.val} / 年目标 ${h.target}${h.unit} = ${yearlyPct}%`}
+                    planDetail={`时间锚点 ${Math.round(curMonth / 12 * 100)}%（${curMonth}/12 月）`}
+                  />
+                </div>
+                {/* ★ 折线容器：收敛为单一定位系统
+                     - 水平: w-full 不突破 p-3 padding（同 KPI 标题左右对齐，Apple Health 同范式）
+                     - 垂直: flex items-end 贴底 */}
+                <div className="mt-2 w-full flex items-end justify-center">
                   <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={420} height={90}
                     futureFrom={curMonth + 1} activeIdx={selectedMonth - 1}
-                    targetValue={monthTarget} currentIdx={curMonth - 1} />
+                    currentIdx={curMonth - 1} />
                 </div>
               </div>
             );

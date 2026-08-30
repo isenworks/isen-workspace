@@ -2184,11 +2184,11 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
             <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
           </span>
-          {/* 12 月份 Tab · 书架 Tab 同款（px-2.5 py-1 rounded-[10px]，激活=主题色实心+白字+计数徽章） */}
-          <div className="flex items-center gap-1 min-w-0 flex-1 justify-end overflow-x-auto"
+          {/* 12 月份 Tab · 书架 Tab 同款；左侧渐隐(避免溢出时生硬截断)+右侧内边距(保证最右月完整可见) */}
+          <div className="flex items-center gap-1 min-w-0 flex-1 justify-end overflow-x-auto px-2 pr-1"
             style={{
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
-              maskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 18px, black 100%)',
+              maskImage: 'linear-gradient(to right, transparent, black 18px, black 100%)',
             }}>
             {monthIndices.map(m => {
               const isCurrent = m === curMonth;
@@ -5594,11 +5594,6 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
-          <div className="flex items-baseline gap-0.5 px-2.5 py-1 rounded-lg whitespace-nowrap"
-            style={{ background: 'rgba(175,82,222,0.12)' }}>
-            <span className="text-[15px] font-extrabold tabular-nums leading-none" style={{ color: '#AF52DE' }}>{lifePct}</span>
-            <span className="text-[10.5px] font-bold leading-none" style={{ color: 'rgba(175,82,222,0.85)' }}>%</span>
-          </div>
           {/* 年度精选 CTA（Step2-3 牵引入口） */}
           <button
             onClick={() => onStartHighlights?.()}

@@ -1246,6 +1246,30 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60 }
             fillOpacity={(hoverIdx === i || i === pts.length - 1) ? 1 : 0}
           />
         ))}
+        {/* ★ 每月打卡数值 · 浅灰常显标注（自动抓 data[i]）
+             默认放在点正上方；若离SVG顶太近(<10px)翻转到点下方避免撞顶/KPI */}
+        {pts.map((p, i) => {
+          const v = p.v;
+          // 默认：点正上方 y - 5；SVG 顶 >= 5px safe（≈ 9.5px 字半高 + 余裕）
+          const yAbove = p.y - 5;
+          const yBelow = p.y + 11;  // 点下方 11px（9.5字高+1.5余量）
+          const SAFE_TOP = 10;
+          const SAFE_BOTTOM = labelY - 10; // 避免压到底部月份标签
+          let yLabel = yAbove < SAFE_TOP ? yBelow : yAbove;
+          // 如果点本身靠下，yBelow 会压到月份标签，那就用 yAbove（点上方）即使 yAbove 较大
+          if (yLabel > SAFE_BOTTOM) yLabel = yAbove;
+          const isZero = v === 0;
+          const fill = isZero ? 'rgba(156,163,175,0.75)' : '#8E8E93';
+          return (
+            <text key={'vl'+i} x={p.x} y={yLabel} textAnchor="middle"
+              fontSize="9.5"
+              fontWeight="700"
+              fill={fill}
+              style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
+              {v}
+            </text>
+          );
+        })}
         {/* 底部月份标签：1~当前月所有月份统一 fontWeight=700 bold；未来月保持 400 弱化
              🔝 修复：之前只有最后一个月加粗，1-7月视觉上被"降级"为次要信息，现在全部历史月份加粗，视觉权重完全一致 */}
         {labels && labels.length === data.length && pts.map((p, i) =>

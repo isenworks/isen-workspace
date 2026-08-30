@@ -1133,11 +1133,12 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const PAD_T = 6;       // 顶部安全边距：保证折线顶点至少离 SVG 顶 6px，不撞上上方 KPI 数字
   const PAD_B = 4;       // 图表区底边距
   const EXTRA_BOTTOM = 2; // 额外底部空高（emoji/中文数字都有 1-2px descent，防止 SVG 裁剪）
+  const PAD_X = 10;       // ★ 左右安全边距：端点圆点（当前月 r≈8）不出 viewBox，防止两端被容器裁切
   const plotH = height - LABEL_H - PAD_T - PAD_B;
   const max = Math.max(10, Math.max(...data));
   const min = 0;                           // 次数=0是有意义的下限
   const range = Math.max(1, max - min);
-  const stepX = data.length === 1 ? 0 : width / (data.length - 1);
+  const stepX = data.length === 1 ? 0 : (width - 2 * PAD_X) / (data.length - 1);
   // 🔝 安全天花板：任何情况下顶点 y 不得超过 safeCeilY，保证与 KPI 数字区 >=12px 视觉边距
   // 设计惯例：Apple Health / Google Fit 折线图都会给顶部留 20~25% 空高，避免峰值撞头
   const SAFE_CEIL_PCT = 0.22;
@@ -1145,7 +1146,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const gid = 'sg-' + color.replace('#','') + '-' + Math.abs(data.reduce((s,v)=>s+v,0)).toString(36);
 
   const pts = data.map((v, i) => {
-    const x = i * stepX;
+    const x = PAD_X + i * stepX;   // ★ 从 PAD_X 起，两端缩回，圆点不出界
     // 基础 y 计算：min越高越靠上（y=PAD_T 是顶）
     const rawY = PAD_T + plotH - (((v - min) / range) * (plotH - 2)) - 1;
     // 强制不超过安全天花板：越小越靠上，所以取 Math.max（y值越大越靠下）
@@ -1196,10 +1197,10 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
     bubble.y = PAD_T + plotH * 0.3 + 2;
   }
 
-  // 过去填充（只画过去 + 当前，不延伸到未来）
+  // 过去填充（只画过去 + 当前，不延伸到未来）—— 边界跟随缩回后的首/末点 x
   const pastPts = pts.slice(0, splitIdx);
   const pastAreaPath = pastPts.length > 0
-    ? 'M0,' + (PAD_T + plotH) + ' L'
+    ? 'M' + pastPts[0].x + ',' + (PAD_T + plotH) + ' L'
       + pastPts.map(p => `${p.x},${p.y}`).join(' ')
       + ' L' + pastPts[pastPts.length - 1].x + ',' + (PAD_T + plotH)
       + ' Z'
@@ -1215,7 +1216,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
     : '';
 
   const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
-  const areaPath = 'M0,' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (width) + ',' + (PAD_T + plotH) + ' Z';
+  const areaPath = 'M' + pts[0].x + ',' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (pts[pts.length - 1].x) + ',' + (PAD_T + plotH) + ' Z';
   const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ');
   // ★ ① 全 1-12 月标签：不抽样，全部显示
   const showIdx = new Set();
@@ -1985,8 +1986,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     </span>
                   </div>
                 </div>
-                {/* ★ ① 能力页同款 DualMarkerBar（实际完成率 vs 时间计划锚点） */}
-                <div className="mt-1">
+                {/* ★ ① 能力页同款 DualMarkerBar（实际完成率 vs 时间计划锚点）
+                    zoom 0.92 整体缩一档：气泡/轨道/下方标签同步变小，视觉层级次于标题行 */}
+                <div className="mt-1" style={{ zoom: 0.92 }}>
                   <DualMarkerBar
                     actual={yearlyPct}
                     plan={Math.round(curMonth / 12 * 100)}

@@ -1118,6 +1118,8 @@ function Sidebar({ active, onChange, stats }) {
 const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   futureFrom = -1,            // 新：1-based 月份号(如9)，>= 该月份号的索引视为"未来月"；-1=不启用(全为过去/当前)
   activeIdx = -1,             // 新：0-based 选月联动高亮索引（-1=不画）
+  targetValue = -1,           // ★ P1：目标基准线（月度目标次数，如19）；-1=不画
+  currentIdx = -1,            // ★ P2：当前月索引（0-based）；-1=不画气泡。不传时默认从 splitIdx-1 推导
 }) => {
   const [hoverIdx, setHoverIdx] = useState(null);
   // 🛑 频闪修复：鼠标离开SVG时延迟120ms才隐藏Tooltip，快速移出去又移回来不会抖
@@ -1160,7 +1162,45 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const splitIdx = (futureFrom >= 1 && futureFrom <= N + 1)
     ? Math.min(N, Math.max(0, futureFrom - 1))
     : N;                                            // 默认无未来段 → splitIdx=N（全过去）
-  const currentIdx = Math.max(0, Math.min(N - 1, splitIdx - 1));
+  // 当前月索引：优先用外部传入（Card3 Pill 联动），否则默认取 splitIdx-1
+  const currentIdx2 = currentIdx >= 0 ? Math.min(currentIdx, N - 1) : Math.max(0, Math.min(N - 1, splitIdx - 1));
+  const curIdx = currentIdx2;
+
+  // =============== ★ P1：目标基准线 y 坐标（19天/月 参考） ===============
+  // 与 pts 用同一套归一化公式：值→y。注意 pts 里 rawY 被 safeCeilY 钳制过，
+  // 基准线一般低于峰值，不受天花板影响，直接算即可；但要保证在绘图区内。
+  const targetY = (targetValue > min && targetValue <= max)
+    ? Math.max(safeCeilY, Math.min(PAD_T + plotH, PAD_T + plotH - (((targetValue - min) / range) * (plotH - 2)) - 1))
+    : null;
+
+  // =============== ★ P2：当前月气泡 3 条防重叠规则 ===============
+  // 气泡内文案「8月 18」= 2位月 + 空格 + 值；viewBox 单位宽度估算
+  const BUBBLE_H = 16;                                 // 气泡高（viewBox 单位）
+  const BUBBLE_PAD = 6;                                // 气泡左右内边距
+  const anchor = curIdx >= 0 && curIdx < N ? pts[curIdx] : null;
+  const bubble = (() => {
+    if (!anchor) return null;
+    const m = curIdx + 1;                              // 1-based 月份号
+    const txt = `${m}月 ${anchor.v}`;
+    const charW = 5.6;                                 // 11px 数字/汉字在 viewBox 里均宽估算
+    const bw = txt.length * charW + BUBBLE_PAD * 2;    // 气泡宽
+    // 规则1：默认锚定在点正上方；矩形右缘钳制 ≤ width-4（12月也不溢出）
+    let bx = anchor.x - bw / 2;
+    if (bx + bw > width - 4) bx = width - 4 - bw;      // 右缘钳制（末2槽位→整体左移）
+    if (bx < 4) bx = 4;                                // 左缘钳制（1月）
+    // 规则3：峰值翻转——气泡顶部若高于绘图区顶部（顶出图表），翻到点下方
+    let above = true;
+    let by = anchor.y - 24;                            // 点上方 24（含气泡高+间隙）
+    if (by < PAD_T + 4) { above = false; by = anchor.y + 9; }
+    // 下方翻转时若压到月份标签区，再回到上方并贴顶
+    if (!above && by + BUBBLE_H > labelY - 12) { above = true; by = Math.max(PAD_T + 4, anchor.y - 24); }
+    return { x: bx, y: by, w: bw, h: BUBBLE_H, above, txt, anchor };
+  })();
+  // 规则2：AABB 碰撞——KPI 净空带（右上角约前 30% 高度、右侧 40% 宽度区域）
+  // 气泡与其重叠时下移一档（SVG 内无法感知 DOM KPI 实际位置，用保守比例带）
+  if (bubble && bubble.above && bubble.y < PAD_T + plotH * 0.3 && bubble.x + bubble.w > width * 0.6) {
+    bubble.y = PAD_T + plotH * 0.3 + 2;
+  }
 
   // 过去填充（只画过去 + 当前，不延伸到未来）
   const pastPts = pts.slice(0, splitIdx);
@@ -1184,14 +1224,16 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   const areaPath = 'M0,' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (width) + ',' + (PAD_T + plotH) + ' Z';
   const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ');
   const labelY = PAD_T + plotH + PAD_B + LABEL_H - 2;
-  // 显示标签策略：点数<=12 全部显示（全年 1-12 月）；否则原抽样
+  // 显示标签策略：★ P4 轴标签减负——全年 12 个月只显 1/4/8/12 锚点（纯数字，去掉「月」字）
+  // 月份跨度 >6 时只显季度锚点 + 首尾；≤6 时全显（短序列不挤）
   const showIdx = new Set();
-  if (data.length <= 12) {
-    for (let i = 0; i < data.length; i++) showIdx.add(i);
-  } else {
+  if (data.length > 6) {
     showIdx.add(0);
-    showIdx.add(data.length - 1);
-    for (let i = 2; i < data.length - 1; i += 3) showIdx.add(i);
+    const anchors = [Math.round(N / 3), Math.round(2 * N / 3), N - 1];
+    anchors.forEach(a => { if (a > 0 && a < N - 1) showIdx.add(a); });
+    showIdx.add(N - 1);
+  } else {
+    for (let i = 0; i < data.length; i++) showIdx.add(i);
   }
 
   // 🎯 Voronoi 就近匹配：给定鼠标SVG坐标，找到距离最近的数据点
@@ -1260,10 +1302,27 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
+        {/* ★ P2：当前月竖向浅绿锚定带（在填充/折线之下绘制） */}
+        {anchor && (
+          <rect x={anchor.x - stepX / 2} y={PAD_T} width={stepX}
+            height={plotH + PAD_B} fill={color} opacity="0.08" />
+        )}
         {/* ★ 区域填充：有分层时只画过去段；没分层（默认）画全填充 */}
         {pastAreaPath
           ? <path d={pastAreaPath} fill={'url(#' + gid + ')'} />
           : <path d={areaPath} fill={'url(#' + gid + ')'} />}
+        {/* ★ P1：目标基准线（月度目标参考，灰色虚线 + 右端小标） */}
+        {targetY !== null && (
+          <g>
+            <line x1="0" y1={targetY} x2={width} y2={targetY}
+              stroke="#8E8E93" strokeWidth="1" strokeDasharray="5 4" strokeOpacity="0.55" />
+            <text x={width - 2} y={targetY - 3} textAnchor="end" fontSize="9.5"
+              fontWeight="600" fill="#8E8E93" opacity="0.8"
+              style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
+              目标 {targetValue}
+            </text>
+          </g>
+        )}
         {/* ★ 过去段 · 实线折线（splitIdx===N 时无未来段，走过去全实线 = 原 linePath，兼容默认） */}
         {linePastPath && (
           <path d={linePastPath} fill="none" stroke={color} strokeWidth="2"
@@ -1282,10 +1341,10 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
         {/* ★ 数据点圆点（过去/当前/未来 分层绘制 + activeIdx 选月虚线圈） */}
         {pts.map((p, i) => {
           const isFuture = i >= splitIdx;
-          const isCurrent = i === currentIdx;
+          const isCurrent = i === curIdx;
           const isHover = hoverIdx === i;
-          // past i < currentIdx 正常不常显；current + future 按规则：current 实圆白边；未来空心（fill #fff）
-          let r = 2;
+          // ★ P3 降噪：历史点从 r=2 → r=1.5；当前月放大 r=5.5 白边实心（视觉锚点）
+          let r = 1.5;
           let fill = 'transparent';
           let stroke = color;
           let strokeW = 0;
@@ -1293,62 +1352,73 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
           if (isHover) {
             r = 3.5; fill = color; stroke = '#fff'; strokeW = 1.5; fillOp = 1;
           } else if (isCurrent) {
-            r = 2.8; fill = color; stroke = '#fff'; strokeW = 1.2; fillOp = 1;
+            r = 5.5; fill = color; stroke = '#fff'; strokeW = 2.5; fillOp = 1;
           } else if (isFuture) {
             r = 1.9; fill = '#fff'; stroke = color; strokeW = 1.4; fillOp = 0.75;
           } else {
-            r = 2; fill = 'transparent'; stroke = color; strokeW = 0; fillOp = 0;
+            r = 1.5; fill = 'transparent'; stroke = color; strokeW = 0; fillOp = 0;
           }
           return (
             <circle key={i} cx={p.x} cy={p.y} r={r} fill={fill} stroke={stroke}
               strokeWidth={strokeW} fillOpacity={fillOp} />
           );
         })}
+        {/* ★ P2：当前月数值气泡（3 条防重叠规则算好的矩形 + 文本 + 指向线） */}
+        {bubble && (
+          <g>
+            <rect x={bubble.x} y={bubble.y} width={bubble.w} height={bubble.h} rx="6"
+              fill={color} />
+            <text x={bubble.x + bubble.w / 2} y={bubble.y + 11.5} textAnchor="middle"
+              fontSize="10" fontWeight="700" fill="#fff"
+              style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
+              {bubble.txt}
+            </text>
+            {/* 指向线：气泡指向锚点（上方→下指，下方→上指） */}
+            <path d={bubble.above
+              ? `M${bubble.anchor.x},${bubble.anchor.y - 6} L${bubble.anchor.x},${bubble.y + bubble.h + 1}`
+              : `M${bubble.anchor.x},${bubble.anchor.y + 6} L${bubble.anchor.x},${bubble.y - 1}`}
+              stroke={color} strokeWidth="1.2" strokeOpacity="0.6" fill="none" />
+          </g>
+        )}
         {/* ★ activeIdx：选月后圆点外层虚线绿环 锚定 */}
         {activeIdx >= 0 && activeIdx < pts.length && (
           <circle cx={pts[activeIdx].x} cy={pts[activeIdx].y} r={5.4}
             fill="none" stroke={color} strokeWidth="1.6"
             strokeDasharray="2 2" opacity="0.45" />
         )}
-        {/* ★ 每月打卡数值 · 浅灰常显标注（自动抓 data[i]）
-             统一放在点正上方（不加粗）；避免压到底部月份标签时微调 2px；
-             未来月（i>=splitIdx）透明度 0.45 更淡更浅灰 */}
-        {pts.map((p, i) => {
-          const v = p.v;
-          const isFuture = i >= splitIdx;
-          const yAbove = p.y - 5;
-          const SAFE_BOTTOM = labelY - 10;
-          const yLabel = yAbove > SAFE_BOTTOM ? yAbove - 2 : yAbove;
-          const isZero = v === 0;
-          // 3 段：未来月→超浅（0.45 op #9CA3AF）；过去月0→中浅 0.75；过去月非0→主灰
-          let fill = '#8E8E93';
-          let opacity = 1;
-          if (isFuture) { fill = '#9CA3AF'; opacity = 0.45; }
-          else if (isZero) { fill = '#9CA3AF'; opacity = 0.75; }
-          // 未来月字号稍小 9px，拉开与 「X月」标签间距
-          const fs = isFuture ? '9' : '9.5';
+        {/* ★ P3 降噪：数值常显标注只留「峰值」一个（历史最大值，非 0）；
+             其余月份数值降级到 hover Tooltip；未来月 0 值一律不标 */}
+        {(() => {
+          let peakI = -1;
+          for (let i = 0; i < splitIdx; i++) {
+            if (pts[i].v > 0 && (peakI < 0 || pts[i].v > pts[peakI].v)) peakI = i;
+          }
+          if (peakI < 0) return null;
+          const p = pts[peakI];
+          // 峰值点一般在顶部附近，标注放在点下方更安全（不与气泡/线冲突）
+          const below = p.y + 14 < labelY - 8;
           return (
-            <text key={'vl'+i} x={p.x} y={yLabel} textAnchor="middle"
-              fontSize={fs} fontWeight="400" fill={fill} opacity={opacity}
+            <text key={'peak'} x={p.x} y={below ? p.y + 12 : p.y - 5} textAnchor="middle"
+              fontSize="9.5" fontWeight="600" fill="#8E8E93" opacity="0.9"
               style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
-              {v}
+              {p.v}
             </text>
           );
-        })}
-        {/* ★ 底部月份标签：3 段分层
-            - 过去月(i < currentIdx): 700 bold #8E8E93
-            - 当前月(i === currentIdx): 900 bold 主色
-            - 未来月(i >= splitIdx): 500 #9CA3AF
+        })()}
+        {/* ★ P4 底部月份标签：锚点纯数字（去年份「月」字），3 段分层
+            - 过去月: 700 bold #8E8E93
+            - 当前月: 900 bold 主色
+            - 未来月: 500 #9CA3AF
             - activeIdx(选月锚定): 下方绿色 underline */}
         {labels && labels.length === data.length && pts.map((p, i) =>
           showIdx.has(i) && (() => {
             const isFuture = i >= splitIdx;
-            const isCurrent = i === currentIdx;
+            const isCurrent = i === curIdx;
             const isHover = hoverIdx === i;
             const isActive = activeIdx === i;
-            // 3字标签（10月11月12月）字压小到 10px
-            const labLen = String(labels[i]).length;
-            const fs = isFuture ? (labLen >= 3 ? '9.5' : '10') : (labLen >= 3 ? '10.5' : '11');
+            // ★ 纯数字：从「8月」剥出「8」
+            const labRaw = String(labels[i] || '');
+            const labTxt = labRaw.replace(/月$/, '');
             let weight = '700';
             let fill = '#8E8E93';
             if (isCurrent) { weight = '900'; fill = color; }
@@ -1357,7 +1427,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
             return (
               <g key={'l'+i}>
                 <text x={p.x} y={labelY} textAnchor="middle"
-                  fontSize={fs}
+                  fontSize="11"
                   fontWeight={weight}
                   fill={fill}
                   style={{
@@ -1368,7 +1438,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
                     textDecorationThickness: '1.5px',
                     textUnderlineOffset: '3px',
                   }}>
-                  {labels[i]}
+                  {labTxt}
                 </text>
               </g>
             );
@@ -1918,6 +1988,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               yearCounts.push(h.month?.[m] || 0);
               yearMonthLabels.push(`${m}月`);
             }
+            // ★ P1 月度目标：年度目标按月均摊（Card3 同款公式），折线基准线 & 气泡对照用
+            const YEAR_DAYS = 365;
+            const monthTarget = Math.max(1, Math.ceil((h.target || 0) * (new Date(year, 0, 31).getDate() / YEAR_DAYS)));
 
             return (
               <div key={h.key}
@@ -1945,6 +2018,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       <span className="text-[13px] font-medium tabular-nums text-ink-500">{h.target}</span>
                       <span className="text-[13px] font-medium tabular-nums text-ink-400 ml-0.5 align-baseline">{h.unit}</span>
                     </div>
+                    {/* ★ P5 KPI 微进度条：复用全局 ProgressBar（4px/圆角/主题色），对齐能力页规格 */}
+                    <div className="w-16 mt-0.5">
+                      <ProgressBar value={yearlyPct} color={GREEN} />
+                    </div>
                   </div>
                 </div>
                 {/* ★ 折线撑满卡片：
@@ -1953,7 +2030,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                      mb -1 让底部月份标签更贴近卡底,最大化 h-[168px] 内部利用 */}
                 <div className="mt-1 w-full -mx-3 px-1 mb-[-4px]">
                   <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} height={90}
-                    futureFrom={curMonth + 1} activeIdx={selectedMonth - 1} />
+                    futureFrom={curMonth + 1} activeIdx={selectedMonth - 1}
+                    targetValue={monthTarget} currentIdx={curMonth - 1} />
                 </div>
               </div>
             );

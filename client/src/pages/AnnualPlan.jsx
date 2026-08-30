@@ -1115,7 +1115,10 @@ function Sidebar({ active, onChange, stats }) {
 }
 
 /* ---------- 通用 Sparkline 迷你折线图（带月份标注+顶点Hover Tooltip） ---------- */
-const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60 }) => {
+const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
+  futureFrom = -1,            // 新：1-based 月份号(如9)，>= 该月份号的索引视为"未来月"；-1=不启用(全为过去/当前)
+  activeIdx = -1,             // 新：0-based 选月联动高亮索引（-1=不画）
+}) => {
   const [hoverIdx, setHoverIdx] = useState(null);
   // 🛑 频闪修复：鼠标离开SVG时延迟120ms才隐藏Tooltip，快速移出去又移回来不会抖
   // 🛑 显示端滞后：让最近点锁定后有"吸附感"，不会在两点边界反复横跳
@@ -1148,13 +1151,42 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60 }
     const y = Math.max(rawY, safeCeilY);
     return { x, y, v, rawY };
   });
+
+  // =============== ★ 新增：虚实 / 填充分层（past/future 分界） ===============
+  // splitIdx: >= 该索引 的点视为"未来月"。
+  //   futureFrom = 9 (1-based 月份号 9月) → idx = 8 (0-based) = splitIdx。
+  //   过去点 = [0, splitIdx-1]，含当前月(=splitIdx-1)；未来点 = [splitIdx..N-1]。
+  const N = pts.length;
+  const splitIdx = (futureFrom >= 1 && futureFrom <= N + 1)
+    ? Math.min(N, Math.max(0, futureFrom - 1))
+    : N;                                            // 默认无未来段 → splitIdx=N（全过去）
+  const currentIdx = Math.max(0, Math.min(N - 1, splitIdx - 1));
+
+  // 过去填充（只画过去 + 当前，不延伸到未来）
+  const pastPts = pts.slice(0, splitIdx);
+  const pastAreaPath = pastPts.length > 0
+    ? 'M0,' + (PAD_T + plotH) + ' L'
+      + pastPts.map(p => `${p.x},${p.y}`).join(' ')
+      + ' L' + pastPts[pastPts.length - 1].x + ',' + (PAD_T + plotH)
+      + ' Z'
+    : '';
+  // 过去实线
+  const linePastPath = pastPts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ');
+  // 未来虚线：必须从"当前月（最后一个过去点）"连到第一个未来月，否则图会断掉。
+  const futureSegPts = splitIdx <= N
+    ? pts.slice(Math.max(0, splitIdx - 1))
+    : [];
+  const lineFuturePath = futureSegPts.length >= 2
+    ? futureSegPts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ')
+    : '';
+
   const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
   const areaPath = 'M0,' + (PAD_T + plotH) + ' L' + ptsStr + ' L' + (width) + ',' + (PAD_T + plotH) + ' Z';
   const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + `${p.x},${p.y}`).join(' ');
   const labelY = PAD_T + plotH + PAD_B + LABEL_H - 2;
-  // 显示标签策略：点数<=8 全部显示；否则首尾+每2个或首尾+中间
+  // 显示标签策略：点数<=12 全部显示（全年 1-12 月）；否则原抽样
   const showIdx = new Set();
-  if (data.length <= 8) {
+  if (data.length <= 12) {
     for (let i = 0; i < data.length; i++) showIdx.add(i);
   } else {
     showIdx.add(0);
@@ -1227,62 +1259,117 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60 }
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* 区域填充 */}
-        <path d={areaPath} fill={'url(#' + gid + ')'} />
-        {/* 折线 */}
-        <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* ★ 区域填充：有分层时只画过去段；没分层（默认）画全填充 */}
+        {pastAreaPath
+          ? <path d={pastAreaPath} fill={'url(#' + gid + ')'} />
+          : <path d={areaPath} fill={'url(#' + gid + ')'} />}
+        {/* ★ 过去段 · 实线折线（splitIdx===N 时无未来段，走过去全实线 = 原 linePath，兼容默认） */}
+        {linePastPath && (
+          <path d={linePastPath} fill="none" stroke={color} strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" />
+        )}
+        {/* ★ 未来段 · 虚线折线（4/3 段 + 透明度 0.55） */}
+        {lineFuturePath && (
+          <path d={lineFuturePath} fill="none" stroke={color} strokeWidth="2"
+            strokeDasharray="4 3" strokeOpacity="0.55" strokeLinecap="round" strokeLinejoin="round" />
+        )}
         {/* 🔹 辅助垂直追踪线（仅 hover 时显示，强化「已吸附到最近点」的视觉反馈）*/}
         {hp && (
           <line x1={hp.x} y1={PAD_T - 2} x2={hp.x} y2={PAD_T + plotH}
             stroke={color} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.35" />
         )}
-        {/* 数据点圆点（hover显示+最后一个常显）*/}
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y}
-            r={(hoverIdx === i || i === pts.length - 1) ? (i === pts.length - 1 && hoverIdx !== i ? 2.5 : 3.5) : 2}
-            fill={hoverIdx === i ? color : (i === pts.length - 1 ? color : 'transparent')}
-            stroke={hoverIdx === i ? '#fff' : (i === pts.length - 1 ? '#fff' : color)}
-            strokeWidth={hoverIdx === i ? 1.5 : (i === pts.length - 1 ? 1 : 0)}
-            fillOpacity={(hoverIdx === i || i === pts.length - 1) ? 1 : 0}
-          />
-        ))}
+        {/* ★ 数据点圆点（过去/当前/未来 分层绘制 + activeIdx 选月虚线圈） */}
+        {pts.map((p, i) => {
+          const isFuture = i >= splitIdx;
+          const isCurrent = i === currentIdx;
+          const isHover = hoverIdx === i;
+          // past i < currentIdx 正常不常显；current + future 按规则：current 实圆白边；未来空心（fill #fff）
+          let r = 2;
+          let fill = 'transparent';
+          let stroke = color;
+          let strokeW = 0;
+          let fillOp = 0;
+          if (isHover) {
+            r = 3.5; fill = color; stroke = '#fff'; strokeW = 1.5; fillOp = 1;
+          } else if (isCurrent) {
+            r = 2.8; fill = color; stroke = '#fff'; strokeW = 1.2; fillOp = 1;
+          } else if (isFuture) {
+            r = 1.9; fill = '#fff'; stroke = color; strokeW = 1.4; fillOp = 0.75;
+          } else {
+            r = 2; fill = 'transparent'; stroke = color; strokeW = 0; fillOp = 0;
+          }
+          return (
+            <circle key={i} cx={p.x} cy={p.y} r={r} fill={fill} stroke={stroke}
+              strokeWidth={strokeW} fillOpacity={fillOp} />
+          );
+        })}
+        {/* ★ activeIdx：选月后圆点外层虚线绿环 锚定 */}
+        {activeIdx >= 0 && activeIdx < pts.length && (
+          <circle cx={pts[activeIdx].x} cy={pts[activeIdx].y} r={5.4}
+            fill="none" stroke={color} strokeWidth="1.6"
+            strokeDasharray="2 2" opacity="0.45" />
+        )}
         {/* ★ 每月打卡数值 · 浅灰常显标注（自动抓 data[i]）
-             统一放在点正上方（不加粗）；避免压到底部月份标签时微调 2px */}
+             统一放在点正上方（不加粗）；避免压到底部月份标签时微调 2px；
+             未来月（i>=splitIdx）透明度 0.45 更淡更浅灰 */}
         {pts.map((p, i) => {
           const v = p.v;
-          const yAbove = p.y - 5;                        // 点正上方 5px：统一放上面
-          const SAFE_BOTTOM = labelY - 10;              // 避免压到底部 x月 标签
-          // 放上方如果太高（p.y很小），SVG root overflow=visible 保证不会被裁剪，
-          // 只有下方值太靠近月份标签时向上多抬 2px
+          const isFuture = i >= splitIdx;
+          const yAbove = p.y - 5;
+          const SAFE_BOTTOM = labelY - 10;
           const yLabel = yAbove > SAFE_BOTTOM ? yAbove - 2 : yAbove;
           const isZero = v === 0;
-          const fill = isZero ? 'rgba(156,163,175,0.75)' : '#8E8E93';
+          // 3 段：未来月→超浅（0.45 op #9CA3AF）；过去月0→中浅 0.75；过去月非0→主灰
+          let fill = '#8E8E93';
+          let opacity = 1;
+          if (isFuture) { fill = '#9CA3AF'; opacity = 0.45; }
+          else if (isZero) { fill = '#9CA3AF'; opacity = 0.75; }
+          // 未来月字号稍小 9px，拉开与 「X月」标签间距
+          const fs = isFuture ? '9' : '9.5';
           return (
             <text key={'vl'+i} x={p.x} y={yLabel} textAnchor="middle"
-              fontSize="9.5"
-              fontWeight="400"
-              fill={fill}
+              fontSize={fs} fontWeight="400" fill={fill} opacity={opacity}
               style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
               {v}
             </text>
           );
         })}
-        {/* 底部月份标签：1~当前月所有月份统一 fontWeight=700 bold；未来月保持 400 弱化
-             🔝 修复：之前只有最后一个月加粗，1-7月视觉上被"降级"为次要信息，现在全部历史月份加粗，视觉权重完全一致 */}
+        {/* ★ 底部月份标签：3 段分层
+            - 过去月(i < currentIdx): 700 bold #8E8E93
+            - 当前月(i === currentIdx): 900 bold 主色
+            - 未来月(i >= splitIdx): 500 #9CA3AF
+            - activeIdx(选月锚定): 下方绿色 underline */}
         {labels && labels.length === data.length && pts.map((p, i) =>
           showIdx.has(i) && (() => {
-            // i是0-based，对应月=i+1；只要是已发生的月份（非未来）就统一bold
-            const isPastOrCur = (i + 1) <= (data.length); // 折线的 data 只包含 1月→当前月 真实数据
-            const isLast = i === data.length - 1;
+            const isFuture = i >= splitIdx;
+            const isCurrent = i === currentIdx;
             const isHover = hoverIdx === i;
+            const isActive = activeIdx === i;
+            // 3字标签（10月11月12月）字压小到 10px
+            const labLen = String(labels[i]).length;
+            const fs = isFuture ? (labLen >= 3 ? '9.5' : '10') : (labLen >= 3 ? '10.5' : '11');
+            let weight = '700';
+            let fill = '#8E8E93';
+            if (isCurrent) { weight = '900'; fill = color; }
+            else if (isFuture) { weight = '500'; fill = '#9CA3AF'; }
+            if (isHover) fill = color;
             return (
-              <text key={'l'+i} x={p.x} y={labelY} textAnchor="middle"
-                fontSize="11"
-                fontWeight={isPastOrCur ? '700' : '400'}
-                fill={isLast || isHover ? color : '#8E8E93'}
-                style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
-                {labels[i]}
-              </text>
+              <g key={'l'+i}>
+                <text x={p.x} y={labelY} textAnchor="middle"
+                  fontSize={fs}
+                  fontWeight={weight}
+                  fill={fill}
+                  style={{
+                    fontFamily: 'ui-sans-serif, system-ui',
+                    fontVariantNumeric: 'tabular-nums',
+                    textDecoration: isActive ? 'underline' : 'none',
+                    textDecorationColor: color,
+                    textDecorationThickness: '1.5px',
+                    textUnderlineOffset: '3px',
+                  }}>
+                  {labels[i]}
+                </text>
+              </g>
             );
           })()
         )}
@@ -1817,7 +1904,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
 
             const yearCounts = [];
             const yearMonthLabels = [];
-            for (let m = 1; m <= curMonth; m++) {
+            for (let m = 1; m <= 12; m++) {                       // ★ 1..12 全年（不止当前月）
               yearCounts.push(h.month?.[m] || 0);
               yearMonthLabels.push(`${m}月`);
             }
@@ -1851,7 +1938,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   </div>
                 </div>
                 <div className="self-end mt-3 -mx-1 pb-0">
-                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={60} />
+                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={260} height={60}
+                    futureFrom={curMonth + 1} activeIdx={selectedMonth - 1} />
                 </div>
               </div>
             );
@@ -2017,6 +2105,74 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             </span>
           </div>
         </div>
+
+        {/* ★ 12 MONTH PILL 切换条 · 放在标题 & 图例正下方；横滑不换行；三段状态 + cnt 小胶囊预览 */}
+        <div className="relative -mx-5 mt-2 overflow-x-auto overflow-y-hidden"
+          style={{
+            padding: '10px 20px 4px',
+            background: 'linear-gradient(180deg, rgba(52,199,89,0.045), transparent 70%)',
+            borderTop: '1px solid rgba(15,23,42,0.06)',
+            borderBottom: '1px solid rgba(15,23,42,0.06)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
+            maskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
+            marginBottom: 14,
+          }}>
+          <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
+            {monthIndices.map(m => {
+              const isCurrent = m === curMonth;
+              const isPast = m < curMonth;
+              const isFuture = m > curMonth;
+              const selected = m === selectedMonth;
+              const monthTotal = habits.reduce((s, hh) => s + (hh.month?.[m] || 0), 0);
+              const baseCls = 'inline-flex items-center gap-1 rounded-full px-2.5 py-1 border-[1.5px] transition select-none cursor-pointer active:scale-[.96] text-[12px] font-bold whitespace-nowrap';
+              let pillCls = baseCls;
+              let pillStyle = {};
+              if (isCurrent) {
+                pillCls += ' text-white';
+                pillStyle = {
+                  background: '#34C759',
+                  borderColor: 'rgba(52,199,89,0.7)',
+                  boxShadow: '0 2px 8px rgba(52,199,89,0.35)',
+                };
+              } else if (isPast) {
+                pillStyle = {
+                  background: '#fff',
+                  borderColor: selected ? 'rgba(52,199,89,0.7)' : 'rgba(52,199,89,0.5)',
+                  color: '#34C759',
+                  boxShadow: selected
+                    ? '0 0 0 2px rgba(52,199,89,0.18), 0 1px 2px rgba(52,199,89,0.06)'
+                    : '0 1px 2px rgba(52,199,89,0.06)',
+                };
+              } else {
+                pillStyle = {
+                  background: '#fff',
+                  borderColor: selected ? '#D1D5DB' : '#E5E7EB',
+                  color: '#9CA3AF',
+                };
+              }
+              const cntColor = isCurrent
+                ? 'rgba(255,255,255,0.28)'
+                : (isPast ? 'rgba(52,199,89,0.14)' : 'rgba(156,163,175,0.22)');
+              const cntText = isCurrent ? '#fff' : (isPast ? '#34C759' : '#9CA3AF');
+              return (
+                <button key={m} type="button" onClick={() => setSelectedMonth(m)}
+                  className={pillCls} style={pillStyle}
+                  title={`${m}月 · 累计打卡 ${monthTotal}`}>
+                  <span>{m}月</span>
+                  <span className="rounded-full text-[10.5px] font-extrabold tabular-nums px-1.5 py-0.5"
+                    style={{ background: cntColor, color: cntText, minWidth: 18, textAlign: 'center' }}>
+                    {isCurrent || isPast ? monthTotal : 0}
+                  </span>
+                  {isCurrent && (
+                    <span className="w-[6px] h-[6px] rounded-full bg-white ml-0.5"
+                      style={{ boxShadow: '0 0 0 2px rgba(255,255,255,.25)' }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-3.5">
           {habits.map((h, hidx) => {
             const daysTotal = monthMaxDays[selectedMonth - 1];

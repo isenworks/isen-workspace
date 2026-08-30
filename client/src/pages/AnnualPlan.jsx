@@ -1849,6 +1849,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   const [targetDraft, setTargetDraft] = useState('');
   // 联动状态：L2各月数据点击月份 → L3日历切换到对应月
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  // ★ ② Card2「各月数据」折叠状态（默认折叠，只显示标题行）
+  const [monthsCollapsed, setMonthsCollapsed] = useState(true);
 
   if (loading && !realHabits) {
     return (
@@ -1958,8 +1960,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
 
             return (
               <div key={h.key}
-                className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[168px]"
-                style={{ gridTemplateRows: 'auto 1fr' }}>
+                className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[210px]"
+                style={{ gridTemplateRows: 'auto auto 1fr' }}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <span
@@ -1994,10 +1996,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     planDetail={`时间锚点 ${Math.round(curMonth / 12 * 100)}%（${curMonth}/12 月）`}
                   />
                 </div>
-                {/* ★ 折线容器：收敛为单一定位系统
-                     - 水平: w-full 不突破 p-3 padding（同 KPI 标题左右对齐，Apple Health 同范式）
-                     - 垂直: flex items-end 贴底 */}
-                <div className="mt-2 w-full flex items-end justify-center">
+                {/* ★ 折线容器：grid 第 3 行 1fr，Sparkline 高度由父行实际分配（no 溢出） */}
+                <div className="mt-2 w-full flex justify-center items-center overflow-hidden">
                   <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} width={420} height={90}
                     futureFrom={curMonth + 1} activeIdx={selectedMonth - 1}
                     currentIdx={curMonth - 1} />
@@ -2008,12 +2008,34 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         </div>
       </div>
 
-      {/* ========== Card 2 / 3：各月数据趋势 ========== */}
+      {/* ========== Card 2 / 3：各月数据趋势（可折叠） ========== */}
       <div className="glass-card p-5 overflow-hidden">
-        <div className="grid habit-table px-0 py-2 bg-transparent text-[14px] font-semibold text-ink-700 mb-2">
-          <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2 mb-2">
+        {/* ★ ② 标题行可点击折叠/展开：chevron 旋转指示状态 */}
+        <div
+          className="flex items-center justify-between cursor-pointer select-none group"
+          onClick={() => setMonthsCollapsed(v => !v)}
+          role="button"
+          aria-expanded={!monthsCollapsed}
+          aria-label={monthsCollapsed ? '展开各月数据' : '折叠各月数据'}>
+          <div className="flex items-center gap-2">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
             <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-ink-400 font-medium tabular-nums">{habits.length}项</span>
+            <svg
+              className={`w-[18px] h-[18px] text-ink-400 transition-transform duration-200 ${monthsCollapsed ? '' : 'rotate-180'}`}
+              fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        {/* 折叠态：清空下方间距（标题与内容过渡紧凑）；展开态：微间距 */}
+        <div className={monthsCollapsed ? '' : 'mt-2'}></div>
+        {!monthsCollapsed && (
+          <>
+        <div className="grid habit-table px-0 py-1 bg-transparent text-[14px] font-semibold text-ink-700">
+          <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
           </div>
           <div className="text-center whitespace-nowrap rate-gap">完成率</div>
           <div className="text-center whitespace-nowrap cum-gap">累计</div>
@@ -2143,95 +2165,70 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           );
         })}
         </div>
+        </>
+        )}
       </div>
 
       {/* ========== Card 3 / 3：当月打卡日历 ========== */}
       <div className="glass-card p-5 overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <span className="flex items-center gap-2">
+        {/* ★ ③ 标题行：标题居左，月份 Tab 移到同一行最右侧（书架 Tab 同款规格） */}
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <span className="flex items-center gap-2 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
             <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
           </span>
-          <div className="flex items-center gap-3 text-[12px] text-ink-500">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-[17px] h-[17px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(52,199,89,0.25)'}}>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </span>已打卡
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-[17px] h-[17px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-[17px] h-[17px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
-            </span>
-          </div>
-        </div>
-
-        {/* ★ 12 MONTH PILL 切换条 · 放在标题 & 图例正下方；横滑不换行；三段状态 + cnt 小胶囊预览 */}
-        <div className="relative -mx-5 mt-2 overflow-x-auto overflow-y-hidden"
-          style={{
-            padding: '10px 20px 4px',
-            background: 'linear-gradient(180deg, rgba(52,199,89,0.045), transparent 70%)',
-            borderTop: '1px solid rgba(15,23,42,0.06)',
-            borderBottom: '1px solid rgba(15,23,42,0.06)',
-            WebkitMaskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
-            maskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
-            marginBottom: 14,
-          }}>
-          <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
+          {/* 12 月份 Tab · 书架 Tab 同款（px-2.5 py-1 rounded-[10px]，激活=主题色实心+白字+计数徽章） */}
+          <div className="flex items-center gap-1 min-w-0 flex-1 justify-end overflow-x-auto"
+            style={{
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
+              maskImage: 'linear-gradient(to right, transparent, black 18px, black calc(100% - 18px), transparent)',
+            }}>
             {monthIndices.map(m => {
               const isCurrent = m === curMonth;
               const isPast = m < curMonth;
-              const isFuture = m > curMonth;
               const selected = m === selectedMonth;
               const monthTotal = habits.reduce((s, hh) => s + (hh.month?.[m] || 0), 0);
-              const baseCls = 'inline-flex items-center gap-1 rounded-full px-2.5 py-1 border-[1.5px] transition select-none cursor-pointer active:scale-[.96] text-[12px] font-bold whitespace-nowrap';
-              let pillCls = baseCls;
-              let pillStyle = {};
-              if (isCurrent) {
-                pillCls += ' text-white';
-                pillStyle = {
-                  background: '#34C759',
-                  borderColor: 'rgba(52,199,89,0.7)',
-                  boxShadow: '0 2px 8px rgba(52,199,89,0.35)',
-                };
-              } else if (isPast) {
-                pillStyle = {
-                  background: '#fff',
-                  borderColor: selected ? 'rgba(52,199,89,0.7)' : 'rgba(52,199,89,0.5)',
-                  color: '#34C759',
-                  boxShadow: selected
-                    ? '0 0 0 2px rgba(52,199,89,0.18), 0 1px 2px rgba(52,199,89,0.06)'
-                    : '0 1px 2px rgba(52,199,89,0.06)',
-                };
-              } else {
-                pillStyle = {
-                  background: '#fff',
-                  borderColor: selected ? '#D1D5DB' : '#E5E7EB',
-                  color: '#9CA3AF',
-                };
-              }
-              const cntColor = isCurrent
-                ? 'rgba(255,255,255,0.28)'
-                : (isPast ? 'rgba(52,199,89,0.14)' : 'rgba(156,163,175,0.22)');
-              const cntText = isCurrent ? '#fff' : (isPast ? '#34C759' : '#9CA3AF');
               return (
                 <button key={m} type="button" onClick={() => setSelectedMonth(m)}
-                  className={pillCls} style={pillStyle}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150 whitespace-nowrap flex-shrink-0 cursor-pointer active:scale-[.96]"
+                  style={{
+                    background: selected ? '#34C759' : 'transparent',
+                    color: selected ? '#ffffff' : '#64748b',
+                    fontWeight: selected ? 700 : 500,
+                    fontSize: '11.5px',
+                    boxShadow: selected ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
+                  }}
                   title={`${m}月 · 累计打卡 ${monthTotal}`}>
+                  {isCurrent && !selected && (
+                    <span className="w-[5px] h-[5px] rounded-full flex-shrink-0" style={{ background: '#34C759' }} />
+                  )}
                   <span>{m}月</span>
-                  <span className="rounded-full text-[10.5px] font-extrabold tabular-nums px-1.5 py-0.5"
-                    style={{ background: cntColor, color: cntText, minWidth: 18, textAlign: 'center' }}>
+                  <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
+                    style={{
+                      background: selected ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.05)',
+                      color: selected ? '#ffffff' : (isPast ? '#34C759' : '#64748b'),
+                    }}>
                     {isCurrent || isPast ? monthTotal : 0}
                   </span>
-                  {isCurrent && (
-                    <span className="w-[6px] h-[6px] rounded-full bg-white ml-0.5"
-                      style={{ boxShadow: '0 0 0 2px rgba(255,255,255,.25)' }} />
-                  )}
                 </button>
               );
             })}
           </div>
+        </div>
+
+        {/* ★ ③ 图例下移：日历格三态颜色语义必须保留（否则「未打卡/未开始」无法区分），缩为紧凑小字行 */}
+        <div className="flex items-center gap-3 text-[11px] text-ink-400 mb-3">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-[14px] h-[14px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(52,199,89,0.25)'}}>
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </span>已打卡
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-[14px] h-[14px] rounded-md bg-ink-100 shadow-[0_0_0_1px_rgba(17,24,39,0.04)]"></span>未打卡
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-[14px] h-[14px] rounded-md bg-ink-50 border border-ink-200"></span>未开始
+          </span>
         </div>
 
         <div className="flex flex-col gap-3.5">

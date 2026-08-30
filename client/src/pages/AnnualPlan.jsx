@@ -1415,34 +1415,38 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
           })()
         )}
       </svg>
-      {/* ★ Hover Tooltip · 坐标换算
-           SVG width 改成 100% 铺满父容器后，hp.x/hp.y 是 viewBox 内部坐标(0-260)，
-           Tooltip 用 absolute 绝对定位需要换算成实际像素坐标，否则 Tooltip 会和点错位 */}
+      {/* ★ Hover Tooltip · 改 Portal + fixed 视口坐标，彻底避免祖先 overflow-hidden 裁切
+           hp.x/hp.y 仍是 viewBox 内部坐标，乘缩放比 + SVG 视口左上角 = 屏幕绝对位置 */}
       {(() => {
         if (!hp) return null;
-        // ★ ⑤ 等比缩放(meet)下，svg box 宽≠图形实际渲染宽：
-        //   图形被高度锁定 VB_H(1:1)，viewBox 宽 420 渲染出来也是 420 逻辑像素；
-        //   若容器比 420 宽，图形居中，左右留边 → Tooltip 需按 (box宽-420)/2 居中偏移修正
         const svgRect = svgRef.current?.getBoundingClientRect();
-        const drawW = Math.min(svgRect ? svgRect.width : width, width);
-        const offsetL = svgRect ? Math.max(0, (svgRect.width - drawW) / 2) : 0;
-        const sx = 1;                                     // 高度 1:1 → x 也 1:1（等比）
-        const sy = 1;
-        const tipLeft = (Math.min(Math.max(hp.x - 42, 0), width - 84)) * sx + offsetL;
-        const tipTop = Math.max(hp.y - 34, -2) * sy;
-        return (
-          <div className="pointer-events-none absolute z-20"
-            style={{ left: tipLeft, top: tipTop }}>
-            <div className="px-2.5 py-1.5 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.08)] flex flex-col items-center gap-0.5"
-              style={{ minWidth: 72 }}>
+        if (!svgRect) return null;
+        // viewBox (width×height) 等比缩放到 SVG 实际渲染尺寸
+        const scaleX = svgRect.width / width;
+        const scaleY = svgRect.height / height;
+        const drawPxX = (svgRect.width - width * scaleX) / 2; // viewBox 在 SVG 内的水平居中偏移
+        const drawPxY = (svgRect.height - height * scaleY) / 2;
+        // 点在视口的中心坐标
+        const cx = svgRect.left + drawPxX + hp.x * scaleX;
+        const cy = svgRect.top + drawPxY + hp.y * scaleY;
+        // Tooltip 尺寸预估 (与实际类匹配): 最小72宽;两行内容 高≈48(含padding+shadow);箭头无额外高
+        const TIP_W = 84;
+        const TIP_H = 46;
+        const tipLeft = Math.max(8, Math.min(cx - TIP_W / 2, (window.innerWidth || 1e3) - TIP_W - 8));
+        const tipTop = Math.max(8, cy - TIP_H - 4);
+        return createPortal(
+          <div className="pointer-events-none fixed z-[999]"
+            style={{ left: tipLeft, top: tipTop, width: TIP_W }}>
+            <div className="px-2.5 py-1.5 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.12)] flex flex-col items-center gap-0.5 w-full">
               {labels && labels[hoverIdx] && (
-                <div className="text-[11px] font-semibold text-ink-400 leading-none">{labels[hoverIdx]}月</div>
+                <div className="text-[11px] font-semibold text-ink-400 leading-none">{labels[hoverIdx]}</div>
               )}
               <div className="text-[15px] font-bold tabular-nums leading-tight" style={{ color }}>
                 {hp.v} 次
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         );
       })()}
     </div>

@@ -1947,8 +1947,12 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 pb-0 w-full">
-                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} height={60}
+                {/* ★ 折线撑满卡片：
+                     横向 -mx-3 突破 mini-card p-3 padding,仅 px-1(左右各4px)安全边,
+                     纵向 w-full + Sparkline height=90 放大振幅,mt-1 压缩 KPI 与折线间距,
+                     mb -1 让底部月份标签更贴近卡底,最大化 h-[168px] 内部利用 */}
+                <div className="mt-1 w-full -mx-3 px-1 mb-[-4px]">
+                  <Sparkline data={yearCounts} labels={yearMonthLabels} color={GREEN} height={90}
                     futureFrom={curMonth + 1} activeIdx={selectedMonth - 1} />
                 </div>
               </div>

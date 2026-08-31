@@ -1545,7 +1545,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
      名称12.5px/val 11px/pct 11.5px;迷你条放大 6px、列宽 44px;时间锚竖线 白+柔光 3×14 */
   const SubRow = ({ name, pct: p, val, color, done, tail }) => (
     <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 44px 38px', minHeight: 28 }}>
-      <span className={`text-[12.5px] font-medium leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#5A5A5C]'}`}>{name}</span>
+      <span className={`text-[12.5px] font-bold leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#5A5A5C]'}`}>{name}</span>
       <div className="relative h-2 w-full">
         {done === undefined && (<>
           <span className="absolute left-0 right-0 top-[1px] h-[6px] rounded-full bg-ink-100/80" />
@@ -1567,7 +1567,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     const pctW = Math.max(12, (count / (total || 1)) * 60);
     return (
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
-        <span className="text-[12.5px] font-medium text-[#5A5A5C] leading-none w-[48px] flex-shrink-0">{label}</span>
+        <span className="text-[12.5px] font-bold text-[#5A5A5C] leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: '#007AFF' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>

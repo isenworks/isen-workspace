@@ -3770,7 +3770,7 @@ function CognitionView({
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
+                style={{ color: BLUE, background: `${BLUE}10` }}
                 title="新增KR">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -3989,7 +3989,7 @@ function CognitionView({
             <div className="flex items-center gap-1 ml-auto flex-shrink-0">
               <button onClick={doWereadSync} disabled={wereadSyncing}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0 disabled:opacity-50"
-                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
+                style={{ color: BLUE, background: `${BLUE}10` }}
                 title={wereadCfgOk ? '从微信读书同步书架' : '先设置微信读书 API Key'}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 0 0 6.34 5.34L4 9M4 15a8 8 0 0 0 13.66 3.66L20 15" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4005,7 +4005,7 @@ function CognitionView({
                   } catch {}
                 }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
+                style={{ color: BLUE, background: `${BLUE}10` }}
                 title="设置微信读书 API Key">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="3"/>
@@ -4014,7 +4014,7 @@ function CognitionView({
               </button>
               <button onClick={() => onBookAdd?.()}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ color: BLUE, background: `${BLUE}10`, border: `1px solid ${BLUE}25` }}
+                style={{ color: BLUE, background: `${BLUE}10` }}
                 title="添加书籍">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4467,7 +4467,7 @@ function CognitionView({
               </span>
               <button onClick={() => setBookPicker('insights')}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
+                style={{ background: `${BLUE}10`, color: BLUE }}
                 title="添加读后思考">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4534,7 +4534,7 @@ function CognitionView({
               </span>
               <button onClick={() => setBookPicker('actions')}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
+                style={{ background: `${BLUE}10`, color: BLUE }}
                 title="添加行动计划">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4657,7 +4657,7 @@ function CognitionView({
                 });
               }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}
+                style={{ background: `${BLUE}10`, color: BLUE }}
                 title="新增改变">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4867,7 +4867,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
               onClick={(e) => { e.stopPropagation(); onMsAdd?.(as.idx); }}
               title="添加里程碑"
               className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-              style={{ background: `${AB}1a`, border: `1px solid ${AB}40` }}
+              style={{ background: `${AB}1a` }}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke={AB} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
@@ -5094,7 +5094,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <button
               onClick={() => onKrAdd?.(goalIdx)}
               className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-              style={{ background: `${color}1a`, border: `1px solid ${color}40` }}
+              style={{ background: `${color}1a` }}
               title="添加 KR">
               <svg className="w-3.5 h-3.5" fill="none" stroke={color} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>

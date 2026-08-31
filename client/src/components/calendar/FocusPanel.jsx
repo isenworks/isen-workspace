@@ -25,25 +25,16 @@ const MOD_EN = {
   life:      'LIFE',
 };
 
-/* 纯白背景 + 弱化阴影 + 顶 3px 模块色渐变条
-   · 阴影：移除之前的远距厚层（0 4px 14px），只保留单层近距 0 1px 2px × 3%，
-     再额外叠一层 0 0 0 1px × 3% 的外描边柔影 —— "似有似无"的存在感，
-     不再"浮起来"，而是"稳稳地平铺在面板上的一张小卡片"
-   · 顶条 3px：用 overflow-hidden 的容器 + padding-top 预留位置，
-     再放一条 linear-gradient 模块色渐变横条，完全在内部，不碰 rounded-2xl 圆角
-   · hover：只微微加深描边（10→13%），阴影不变厚，保持整体轻量 */
+/* 纯白背景 + 进一步弱化阴影 + 顶 3px 模块色条
+   · 描边：1.5px → 1px，不透明度 6% → 5%；边缘存在感"刚好能区分卡片"，不抢视觉
+   · 投影：去掉冗余的 0-0-0-1px 外环（与描边功能重叠），保留仅 0 1px 2px × 1.4% 近距淡影
+     做到"边界清晰但卡片完全不浮起"，hover 描边从 0.09→0.08，投影保持薄 */
 const GROUP_SURFACE = {
   background:   '#ffffff',
-  border:       '1.5px solid rgba(15,23,42,0.10)',
-  boxShadow:    [
-    '0 0 0 1px rgba(15,23,42,0.03)',
-    '0 1px 2px rgba(15,23,42,0.03)',
-  ].join(', '),
-  hoverBorder:  '1.5px solid rgba(15,23,42,0.13)',
-  hoverShadow:  [
-    '0 0 0 1px rgba(15,23,42,0.04)',
-    '0 1px 2px rgba(15,23,42,0.03)',
-  ].join(', '),
+  border:       '1px solid rgba(15,23,42,0.050)',
+  boxShadow:    '0 1px 2px rgba(15,23,42,0.014)',
+  hoverBorder:  '1px solid rgba(15,23,42,0.080)',
+  hoverShadow:  '0 1px 2px rgba(15,23,42,0.018)',
 };
 
 /**
@@ -64,6 +55,10 @@ export default function FocusPanel({
   onToggle,           // (taskId) => void  — 仅复选框点击触发
   onAdd,              // () => void         — 右上角 + 新增
   onEditTask,         // (task) => void     — 标题/非复选框区域点击触发：打开对应编辑面板
+  onDeleteTask,       // (task) => void     — 任务行删除（右键删除 / 回收站还原等场景）
+  onRestoreTask,      // (task) => void     — 回收站：还原任务
+  deletedTasks,       // 回收站任务数组（若传则底部出现回收站卡）
+  showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
   headerExtra,
 }) {
   // 按模块分组
@@ -87,7 +82,7 @@ export default function FocusPanel({
     <div className="card p-4" style={{
       background: '#fff',
       borderRadius: '18px',
-      boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.05)',
+      boxShadow: '0 0 0 1px rgba(0,0,0,0.025), 0 4px 20px rgba(0,0,0,0.035)',
     }}>
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -225,12 +220,24 @@ export default function FocusPanel({
                       e.preventDefault();
                       onToggle?.(task.id);
                     };
+                    const handleContextMenu = (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // 抓取的事项（带 srcTag 的同步事项）不支持右键删除
+                      if (task.isFromFetch) return;
+                      if (!onDeleteTask) return;
+                      if (confirm(`确认删除「${task.title}」？该事项会移入回收站，可在面板底部还原。`)) {
+                        onDeleteTask(task);
+                      }
+                    };
                     return (
                       <div
                         key={task.id}
                         className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
                         style={{ background: completedBg }}
                         onClick={handleEdit}
+                        onContextMenu={handleContextMenu}
+                        title={task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' : '点击编辑 · 右键删除'}
                         onMouseEnter={(e) => { e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = completedBg; }}
                       >
@@ -315,7 +322,7 @@ export default function FocusPanel({
       </div>
 
       {/* 空状态 */}
-      {grouped.length === 0 && (
+      {grouped.length === 0 && !deletedTasks?.length && (
         <div className="py-8 text-center">
           <div className="text-[12px] text-[#8E8E93]">
             {type === 'month' ? '本月还没有主线任务' : '本周还没有主线任务'}
@@ -323,6 +330,124 @@ export default function FocusPanel({
           <div className="text-[12px] text-[#8E8E93] mt-1">
             从年度规划一键同步 或 点右上角 + 新建
           </div>
+        </div>
+      )}
+
+      {/* 回收站卡片（复用当前卡片设计）：
+         · 同构：顶 3px 灰色条 + 白卡片 + 弱化描边阴影
+         · 行：strikethrough + 灰字；复选框替换成 ↺ 还原按钮
+         · 无内容自动隐藏 */}
+      {deletedTasks?.length > 0 && (
+        <div className="mt-3">
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: '#ffffff',
+              border: '1px solid rgba(142,142,147,0.07)',
+              boxShadow: '0 1px 2px rgba(142,142,147,0.018)',
+            }}
+          >
+            <div aria-hidden="true" style={{ height: 3, width: '100%', background: 'linear-gradient(90deg, #8e8e93, #aeaeb2)' }} />
+            <div style={{ padding: '8px 10px 10px' }}>
+              <div className="flex items-center gap-2 select-none">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full"
+                  style={{ background: 'rgba(142,142,147,0.10)', padding: '3px 10px 3px 3px' }}
+                >
+                  <span
+                    className="flex-shrink-0 rounded-full grid place-items-center"
+                    style={{ width: 22, height: 22, color: '#fff', background: '#8E8E93' }}
+                    aria-hidden="true"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                  </span>
+                  <span className="text-[12px] font-extrabold leading-none" style={{ color: '#636366' }}>回收站</span>
+                  <span className="text-[9.5px] font-extrabold tracking-widest leading-none" style={{ color: '#8e8e93' }}>TRASH</span>
+                </span>
+                <span
+                  className="ml-auto inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums"
+                  style={{ background: 'rgba(142,142,147,0.12)', color: '#636366' }}
+                >
+                  {deletedTasks.length}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-[2px] mt-[6px]">
+                {deletedTasks.map(task => {
+                  const mod = keyToModule(task.moduleKey);
+                  const handleRestore = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onRestoreTask?.(task);
+                  };
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition"
+                      style={{ background: 'transparent', cursor: 'default' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(142,142,147,0.06)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      {/* ↺ 还原按钮（视觉规格与复选框同构，但用回退图标） */}
+                      <button
+                        type="button"
+                        onClick={handleRestore}
+                        title="还原该事项"
+                        className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition"
+                        style={{
+                          borderColor: 'rgba(142,142,147,0.45)',
+                          background: '#fff',
+                          color: '#8e8e93',
+                        }}
+                        aria-label="还原事项"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+                      </button>
+
+                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                        <span className="text-[13px] font-semibold leading-tight truncate text-[#8E8E93] line-through">
+                          {task.title}
+                        </span>
+                        <div className="flex items-center gap-2 text-[11px] font-medium text-[#aeaeb2]">
+                          {task.dueDate && <span>{task.dueDate}</span>}
+                          {task.note && <span>{task.note}</span>}
+                          {!task.dueDate && !task.note && <span style={{ color: mod.color }}>{mod.label}模块</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 详情场景：左下"删除该事项"按钮（需求 2 体检点标题弹面板左下）
+         · 仅当 showDeleteButton=true 并且传入了 onDeleteTask 时出现
+         · 风格与 ScheduleForm 删除按钮一致：红底柔填充 */}
+      {showDeleteButton && onDeleteTask && tasks.length > 0 && (
+        <div className="mt-3 pt-2 flex gap-2" style={{ borderTop: '1px solid rgba(60,60,67,0.08)' }}>
+          <button
+            type="button"
+            onClick={() => {
+              const t = tasks[0];
+              if (!t) return;
+              if (confirm(`确认删除「${t.title}」？该事项会移入回收站。`)) onDeleteTask(t);
+            }}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '9px',
+              fontSize: '13px',
+              fontWeight: '600',
+              background: 'rgba(255,59,48,0.09)',
+              color: '#FF3B30',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all .15s',
+            }}
+          >删除该事项</button>
+          <div className="flex-1" />
         </div>
       )}
 

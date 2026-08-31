@@ -1,9 +1,11 @@
-import { useState, useMemo, useCallback } from 'react';
-import { today as getToday, fromISODate, startOfWeek, endOfWeek, toISODate } from '../utils/date.js';
-import { MODULES, keyToModule } from '../utils/categoryMapping.js';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { today as getToday, fromISODate, startOfWeek, endOfWeek, toISODate, startOfMonth, endOfMonth } from '../utils/date.js';
+import { MODULES, keyToModule, catToModule } from '../utils/categoryMapping.js';
 import MonthCalendarGrid from '../components/calendar/MonthCalendarGrid.jsx';
 import FocusPanel from '../components/calendar/FocusPanel.jsx';
 import Modal from '../components/Modal.jsx';
+import { API } from '../api/client.js';
+import { store } from '../utils/store.js';
 
 /* ============================================================
  * 日历页面 · 月视图容器（v2 交互升级）
@@ -14,16 +16,19 @@ import Modal from '../components/Modal.jsx';
  * ============================================================ */
 
 // ===== Phase 1 本地模拟数据 =====
+// 精力：仅保留 3 个习惯（作息 / 运动 / 喝水） — 睡眠不再作为独立习惯项（按需求 2）
+// 额外的"体检 + 买复合维生素 截止 8/31"是独立日程（非习惯同步），同步到 ethan_schedules → 计划总结页可见
 const MOCK_MONTH_TASKS = [
-  { id: 'm1', moduleKey: 'energy',    title: '睡眠 23点前 · ≥ 23天 / 月',               done: true,  progress: 0.78, srcTag: '≡ 关联 Annual: 精力基建',   srcTagColor: 'rgba(52,199,89,0.08)',  srcTagTextColor: '#34C759' },
-  { id: 'm2', moduleKey: 'energy',    title: '体检 + 买复合维生素',                       done: false, progress: 0.60, dueDate: '截止 8/31' },
-  { id: 'm3', moduleKey: 'energy',    title: '喝水 ≥ 2L · 打卡 20天',                     done: false, progress: 0.60, srcTag: '≡ 习惯同步',           srcTagColor: 'rgba(52,199,89,0.08)',  srcTagTextColor: '#34C759' },
-  { id: 'm4', moduleKey: 'cognition', title: '本月读 2 本书',                              done: true,  progress: 1.00, srcTag: '≡ 关联知力 KR1',         srcTagColor: 'rgba(0,122,255,0.08)', srcTagTextColor: '#0040DD' },
+  { id: 'm1', moduleKey: 'energy', title: '作息 23点前 · ≥ 23天 / 月',               done: false, progress: 0.48, srcTag: '≡ 习惯同步 · 作息', srcTagColor: 'rgba(52,199,89,0.08)', srcTagTextColor: '#34C759', isFromFetch: true },
+  { id: 'm2', moduleKey: 'energy', title: '体检 + 买复合维生素',                      done: false, progress: 0.60, dueDate: '截止 8/31', start_date: '2026-08-25', end_date: '2026-08-31' },
+  { id: 'm3', moduleKey: 'energy', title: '喝水 ≥ 2L · 打卡 20天',                    done: false, progress: 0.60, srcTag: '≡ 习惯同步 · 喝水', srcTagColor: 'rgba(52,199,89,0.08)', srcTagTextColor: '#34C759', isFromFetch: true },
+  { id: 'me', moduleKey: 'energy', title: '运动 · 每周 3 次（有氧+力量）',             done: false, progress: 0.35, srcTag: '≡ 习惯同步 · 运动', srcTagColor: 'rgba(52,199,89,0.08)', srcTagTextColor: '#34C759', isFromFetch: true },
+  { id: 'm4', moduleKey: 'cognition', title: '本月读 2 本书',                              done: true,  progress: 1.00, srcTag: '≡ 关联知力 KR1',         srcTagColor: 'rgba(0,122,255,0.08)', srcTagTextColor: '#0040DD', isFromFetch: true },
   { id: 'm5', moduleKey: 'cognition', title: '《纳瓦尔宝典》· 输出 3 组洞察',              done: false, progress: 0.45, note: '进度 第 2 章' },
-  { id: 'm6', moduleKey: 'ability',   title: '英语口语 M3 · Pronunciation Mastery',        done: false, progress: 0.30, srcTag: '⇣ 拆解为 4 个本周任务',   srcTagColor: 'rgba(255,149,0,0.08)', srcTagTextColor: '#FF9500' },
-  { id: 'm7', moduleKey: 'work',      title: '主业营收 · Q3 达成 K1/K2/K3',                done: false, progress: 0.22, srcTag: '≡ 关联 Work O1',         srcTagColor: 'rgba(255,59,48,0.08)', srcTagTextColor: '#FF3B30' },
-  { id: 'm8', moduleKey: 'work',      title: '副业上线 · 产品 MVP + 50 激活',               done: false, progress: 0.00, srcTag: '⇣ 拆解模式',             srcTagColor: 'rgba(255,59,48,0.08)', srcTagTextColor: '#FF3B30' },
-  { id: 'm9', moduleKey: 'life',      title: '9月东京出行 · 机+酒+签证预订',               done: false, progress: 0.55, note: '截止 9/10' },
+  { id: 'm6', moduleKey: 'ability',   title: '英语口语 M3 · Pronunciation Mastery',        done: false, progress: 0.30, srcTag: '⇣ 拆解为 4 个本周任务',   srcTagColor: 'rgba(255,149,0,0.08)', srcTagTextColor: '#FF9500', isFromFetch: true },
+  { id: 'm7', moduleKey: 'work',      title: '主业营收 · Q3 达成 K1/K2/K3',                done: false, progress: 0.22, srcTag: '≡ 关联 Work O1',         srcTagColor: 'rgba(255,59,48,0.08)', srcTagTextColor: '#FF3B30', isFromFetch: true },
+  { id: 'm8', moduleKey: 'work',      title: '副业上线 · 产品 MVP + 50 激活',               done: false, progress: 0.00, srcTag: '⇣ 拆解模式',             srcTagColor: 'rgba(255,59,48,0.08)', srcTagTextColor: '#FF3B30', isFromFetch: true },
+  { id: 'm9', moduleKey: 'life',      title: '9月东京出行 · 机+酒+签证预订',               done: false, progress: 0.55, note: '截止 9/10', start_date: '2026-08-20', end_date: '2026-09-29' },
 ];
 
 const MOCK_WEEK_TASKS = [
@@ -34,19 +39,59 @@ const MOCK_WEEK_TASKS = [
   { id: 'w5', moduleKey: 'work',      title: '写 PRD v0.1 · 核心用户故事',         done: false, progress: 0.00, dueDate: '周四' },
 ];
 
-/**
- * 月历事项（右侧）：
- *   - 每条事件都加上 moduleKey & taskId 以便与左右卡同步勾选状态（Phase 1 用 title 做模糊匹配）
- *   - 事件本身也保留 is_done 状态，左卡勾选时右侧对应事件行立刻同步（反之亦然）
- */
+/* ========= 工具：双向更强的标题匹配（解决「体检+买复合维生素」↔「体检复合维生素」左右不同步）
+   - 之前用 t.title.slice(0,4) 做单侧前缀，但"体检复合维生素"前4字 = 「体检复合」，主线是「体检+买复合维生素」前4字 = 「体检+买」，前4字不重合导致永不关联
+   - 新算法：将标题去符号/空格/中缀，求最长公共子串 ≥ 3 即匹配；同时做双向 exact 包含 + keyword 词典（如 纳瓦尔/宝典/体检/买复合维生素） */
+function normTitle(s = '') {
+  return String(s).replace(/[\s《》·+—\-\/()（）·,，。.!！?？、:：；;_【】\[\]"'"'≡⇣≥≤]/g, '').toLowerCase();
+}
+function titleMatches(a = '', b = '') {
+  const A = normTitle(a);
+  const B = normTitle(b);
+  if (!A || !B) return false;
+  if (A.includes(B) || B.includes(A)) return true;
+  // 最长公共子串 ≥ 3 字符
+  const [shorter, longer] = A.length <= B.length ? [A, B] : [B, A];
+  for (let n = Math.min(6, shorter.length); n >= 3; n--) {
+    for (let i = 0; i + n <= shorter.length; i++) {
+      if (longer.includes(shorter.slice(i, i + n))) return true;
+    }
+  }
+  return false;
+}
+
 function buildEventsWithTaskLink(raw, tasks) {
   return raw.map(ev => {
     const mod = keyToModule(
       ({ 1:'work', 2:'ability', 5:'life', 6:'energy', 7:'cognition' })[Number(ev.category)] || 'others'
     );
-    const match = tasks.find(t => t.moduleKey === mod.key && (ev.title || '').includes(t.title.slice(0, 4)));
-    return { ...ev, moduleKey: mod.key, taskId: match?.id, is_done: match?.done ?? Boolean(ev.is_done) };
+    // 先 moduleKey 一致再 titleMatches；若 moduleKey 一致也放宽（同名不同模块但跨月少见）
+    let match = tasks.find(t => t.moduleKey === mod.key && titleMatches((ev.title || ''), t.title));
+    if (!match) match = tasks.find(t => titleMatches((ev.title || ''), t.title));
+    const done = match ? !!match.done : Boolean(ev.is_done);
+    return { ...ev, moduleKey: (match?.moduleKey) || mod.key, taskId: match?.id, is_done: done };
   });
+}
+
+/* ========= 月份 span 过滤（需求 3）：
+   · 类别属于五大模块或其他（就是有分类）
+   · 时间覆盖到当前月（start <= monthEnd && (end || start) >= monthStart）
+   · 如果是全年跨度：start 在当年 1/1 且 end 在当年 12/31 → 不显示（避免主线塞满年度目标） */
+function overlapsMonth(task, year, month) {
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  const monthEndObj = endOfMonth(fromISODate(monthStart));
+  const monthEnd = toISODate(monthEndObj);
+  const s = task.start_date || task.schedule_date || task.date || null;
+  const e = task.end_date || task.due || null;
+  if (!s) return true; // 没填日期：默认按"本月"显示
+  const start = s;
+  const end = e || s;
+  if (start > monthEnd || end < monthStart) return false;
+  // 全年跨度排除（Jan 1 到 Dec 31 同一年）
+  const fullYearStart = `${year}-01-01`;
+  const fullYearEnd   = `${year}-12-31`;
+  if (start <= fullYearStart && end >= fullYearEnd) return false;
+  return true;
 }
 
 const MOCK_EVENTS_RAW = [
@@ -130,17 +175,72 @@ export default function CalendarPage({ onEditSchedule }) {
   const [monthTasks, setMonthTasks] = useState(MOCK_MONTH_TASKS);
   const [weekTasks, setWeekTasks] = useState(MOCK_WEEK_TASKS);
 
+  // 回收站：被删除的主线任务（抓取的事项 isFromFetch 除外）
+  const [deletedMonthTasks, setDeletedMonthTasks] = useState([]);
+  const [deletedWeekTasks, setDeletedWeekTasks] = useState([]);
+  // 强制刷新月历事件 done 态引用（MOCK_EVENTS_RAW 是模块级常量，改属性后需要变引用触发 useMemo 重算）
+  const [tick, setTick] = useState(0);
+
   // 需求 4：当日详情弹层 Modal —— 点击日格空白/日期/今日/热力点/+更多 打开
   const [dayDetail, setDayDetail] = useState(null); // { date } | null
 
-  const monthProgress = Math.round(
-    (monthTasks.reduce((s, t) => s + (t.done ? 1 : t.progress), 0) / monthTasks.length) * 100
+  // ====== 需求 2 同步：首次 load 把主线的"独立日程"（非抓取）写入 ethan_schedules，KeyTasks/Timeline 才能显示到计划总结页
+  useEffect(() => {
+    (async () => {
+      try {
+        const monthS = `${year}-${String(month).padStart(2, '0')}-01`;
+        const monthE = toISODate(endOfMonth(fromISODate(monthS)));
+        const remote = await API.schedules.list({ from: monthS, to: monthE });
+        const existing = new Set((remote?.schedules || []).map(s => String(s.title).trim()));
+        const tasksToSeed = [
+          ...MOCK_MONTH_TASKS.filter(t => !t.isFromFetch && overlapsMonth(t, year, month)),
+        ];
+        for (const t of tasksToSeed) {
+          if (existing.has(String(t.title).trim())) continue;
+          const mod = keyToModule(t.moduleKey);
+          const fallbackDate = t.start_date || monthS;
+          try {
+            await API.schedules.create({
+              title: t.title,
+              start_date: fallbackDate,
+              date: fallbackDate,
+              end_date: t.end_date || null,
+              category: mod.cat,
+              is_key: 1,
+              note: [t.dueDate, t.note].filter(Boolean).join(' · ') || null,
+              start_time: null,
+              end_time: null,
+            });
+          } catch (_) { /* ignore duplicate seed */ }
+        }
+        store?.broadcast?.({ type: 'reload' });
+      } catch (_) { /* 离线环境允许跳过 */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month]);
+
+  // 经过需求 3 的月份 span 过滤后的主线任务（展示用）
+  const visibleMonthTasks = useMemo(
+    () => monthTasks.filter(t => overlapsMonth(t, year, month)),
+    [monthTasks, year, month]
   );
+  const visibleWeekTasks = useMemo(
+    () => weekTasks, // week 维度不做全年过滤，保持简洁
+    [weekTasks]
+  );
+
+  const monthProgress = (() => {
+    const arr = visibleMonthTasks;
+    if (!arr.length) return 0;
+    return Math.round((arr.reduce((s, t) => s + (t.done ? 1 : t.progress), 0) / arr.length) * 100);
+  })();
   const monthTimePct = 55;
 
-  const weekProgress = Math.round(
-    (weekTasks.reduce((s, t) => s + (t.done ? 1 : t.progress), 0) / weekTasks.length) * 100
-  );
+  const weekProgress = (() => {
+    const arr = visibleWeekTasks;
+    if (!arr.length) return 0;
+    return Math.round((arr.reduce((s, t) => s + (t.done ? 1 : t.progress), 0) / arr.length) * 100);
+  })();
   const weekTimePct = 48;
 
   const prevMonth = useCallback(() => {
@@ -155,15 +255,49 @@ export default function CalendarPage({ onEditSchedule }) {
     setMonth(m); setYear(y);
   }, [year, month]);
 
-  /* === 勾选主线任务：仅复选框触发（来自 FocusPanel onToggle）=== */
+  /* === 勾选主线任务：仅复选框触发（来自 FocusPanel onToggle）
+       同步修改月格对应事件的 is_done（MOCK_EVENTS_RAW），保证左卡勾完右格立即变色 */
   const toggleTask = useCallback((taskId, isMonth) => {
     const setter = isMonth ? setMonthTasks : setWeekTasks;
-    setter(prev => prev.map(t =>
-      t.id === taskId ? { ...t, done: !t.done, progress: !t.done ? 1 : t.progress } : t
-    ));
+    setter(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const nextDone = !t.done;
+      // 联动：月历事件（标题匹配）的 is_done 立即同步
+      const normT = normTitle(t.title);
+      MOCK_EVENTS_RAW.forEach(raw => {
+        if (titleMatches(raw.title, t.title)) raw.is_done = nextDone;
+      });
+      // 避免未使用变量告警
+      void normT;
+      return { ...t, done: nextDone, progress: nextDone ? 1 : t.progress };
+    }));
+    setTick(v => v + 1);
   }, []);
 
-  /* === 点击 FocusPanel 标题/非复选框区域 → 开对应编辑面板 === */
+  /* === 右键删除 FocusPanel 任务 → 移入回收站
+       仅非抓取任务（!isFromFetch）可删；FocusPanel 自己已做 isFromFetch 门禁 */
+  const deleteTask = useCallback((task, { isMonth = true } = {}) => {
+    const setTasks   = isMonth ? setMonthTasks   : setWeekTasks;
+    const setDeleted = isMonth ? setDeletedMonthTasks : setDeletedWeekTasks;
+    let removed = null;
+    setTasks(prev => {
+      const next = [];
+      for (const t of prev) {
+        if (t.id === task.id) { removed = t; continue; }
+        next.push(t);
+      }
+      return next;
+    });
+    if (removed) setDeleted(prev => [removed, ...prev.filter(x => x.id !== removed.id)]);
+    setTick(v => v + 1);
+  }, []);
+  const restoreTask = useCallback((task, { isMonth = true } = {}) => {
+    const setTasks   = isMonth ? setMonthTasks   : setWeekTasks;
+    const setDeleted = isMonth ? setDeletedMonthTasks : setDeletedWeekTasks;
+    setDeleted(prev => prev.filter(t => t.id !== task.id));
+    setTasks(prev => (prev.find(x => x.id === task.id) ? prev : [...prev, task]));
+    setTick(v => v + 1);
+  }, []);
   const openEditorForTask = useCallback((task, { isMonth = true } = {}) => {
     // 需求 1：点击「纳瓦尔宝典」→ 书籍编辑面板，其他用 ScheduleForm 复用
     const title = task.title || '';
@@ -222,12 +356,8 @@ export default function CalendarPage({ onEditSchedule }) {
       }
     });
     // 强制刷新（改变引用 → useMemo 重建 monthEvents）
-    setMonth(n => n /* noop 不会触发；改用下面的 tick 状态 */);
     setTick(v => v + 1);
   }, []);
-
-  // 事件勾选状态需要强制刷新 monthEvents 的引用
-  const [tick, setTick] = useState(0);
 
   /* === 月历事件标题点击 → 开对应编辑面板（左卡同映射逻辑） === */
   const handleEventClick = useCallback((ev, date) => {
@@ -331,12 +461,15 @@ export default function CalendarPage({ onEditSchedule }) {
               type="month"
               accentColor="#007AFF"
               title={tabView === 'month' ? '本月主线' : '本月 · 上下文'}
-              tasks={monthTasks}
+              tasks={visibleMonthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
               onToggle={(id) => toggleTask(id, true)}
               onAdd={() => onEditSchedule?.()}
               onEditTask={(task) => openEditorForTask(task, { isMonth: true })}
+              onDeleteTask={(task) => deleteTask(task, { isMonth: true })}
+              onRestoreTask={(task) => restoreTask(task, { isMonth: true })}
+              deletedTasks={deletedMonthTasks}
               compact={tabView !== 'month'}
             />
           )}
@@ -346,12 +479,15 @@ export default function CalendarPage({ onEditSchedule }) {
               type="week"
               accentColor="#007AFF"
               title={`本周主线 · ${weekStartStr}-${weekEndStr}`}
-              tasks={weekTasks}
+              tasks={visibleWeekTasks}
               progressPct={weekProgress}
               timePct={weekTimePct}
               onToggle={(id) => toggleTask(id, false)}
               onAdd={() => onEditSchedule?.()}
               onEditTask={(task) => openEditorForTask(task, { isMonth: false })}
+              onDeleteTask={(task) => deleteTask(task, { isMonth: false })}
+              onRestoreTask={(task) => restoreTask(task, { isMonth: false })}
+              deletedTasks={deletedWeekTasks}
             />
           )}
         </div>

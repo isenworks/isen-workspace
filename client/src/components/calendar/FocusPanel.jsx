@@ -262,32 +262,32 @@ export default function FocusPanel({
                       <div
                         key={task.id}
                         className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
-                        style={{ background: completedBg }}
+                        style={{
+                          background: completedBg,
+                          paddingLeft: task.indent ? `${12 + task.indent * 20}px` : undefined,
+                        }}
                         onClick={handleEdit}
                         onContextMenu={handleContextMenu}
                         title={
-                          task.isHabit ? '习惯同步 · 实心圆为打卡标记' :
+                          task.isHabit ? '长期习惯 · 实心圆标记' :
+                          task.isLongTerm ? '跨月事项 · 实心圆标记' :
                           task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
                           '点击编辑 · 右键删除'
                         }
                         onMouseEnter={(e) => { e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = completedBg; }}
                       >
-                        {/* 习惯项：实心圆（与复选框同尺寸 18px），颜色=模块色；点击即打卡/取消
-                             — 区别于普通事项：无环空心+√，习惯是实心填充圆点 */}
-                        {task.isHabit ? (
+                        {/* 需求 7：isHabit || isLongTerm → 实心圆不可点击（长期习惯/跨月事项）
+                             普通事项 → 圆复选框，独立 onClick + stopPropagation */}
+                        {(task.isHabit || task.isLongTerm) ? (
+                          /* 实心圆：纯视觉标记，不可点击（长期习惯不是单次任务）*/
                           <div
-                            onClick={handleToggle}
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 flex items-center justify-center transition select-none"
                             style={{
                               background: task.done ? mod.color : `${mod.color}28`,
                               boxShadow: task.done ? `0 2px 5px ${mod.color}48` : 'none',
                             }}
-                            role="checkbox"
-                            aria-checked={task.done}
-                            tabIndex={0}
-                            onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
-                            title={task.done ? '已打卡 · 点击取消' : '未打卡 · 点击打卡'}
+                            aria-hidden="true"
                           />
                         ) : (
                           /* 普通事项：圆复选框 — 独立 onClick + stopPropagation，只点这里才勾选 */

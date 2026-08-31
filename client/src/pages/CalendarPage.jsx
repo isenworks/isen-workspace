@@ -6,14 +6,27 @@ import FocusPanel from '../components/calendar/FocusPanel.jsx';
 import Modal from '../components/Modal.jsx';
 import { API } from '../api/client.js';
 import { store } from '../utils/store.js';
-/* ===== 需求 3/5/6：从年度规划 AnnualPlan 聚合同源数据（不再写死 MOCK）=====
-   · 精力 HABITS：作息(sleep)/运动(sport)/喝水(water) 三习惯，标题格式「百分比+完成/目标」
-   · 知力 BOOKS：reading/done 状态书籍（点击标题→同款 BookForm 面板）
-   · 能力 ABILITY：里程碑 dueBy 落在本月或状态 doing/done（需求5 自动抓取"学完金字塔原理输出方法"等）
-   · 工作 WORK：KR dueBy 覆盖本月的条目
-   · 生活 LIFE：entries 日期含本月的条目
-   · ethan_schedules API：计划总结页本月事项（catToModule 分类 → 对应模块）*/
-import { HABITS, BOOKS, ABILITY, WORK, LIFE } from './AnnualPlan.jsx';
+/* ===== 需求 1-7：从年度规划 AnnualPlan 聚合同源数据 =====
+   · 精力：useEnergyHabits hook 拉取真实打卡数据（作息/运动/喝水），8月数据
+   · 知力：localStorage 读取书架，只显示在读书 + 自动生成读后思考/思后行动子项
+   · 能力：localStorage 读取能力里程碑，只显示 st='doing' 进行中
+   · 工作：localStorage 读取工作目标，只显示目标级事项（不展开 KR）
+   · 生活：localStorage 读取生活记录，只显示本月事项
+   · 计划总结 ethan_schedules：只进日历右栏，不进主线面板（需求 6）*/
+import { HABITS, BOOKS, ABILITY, WORK, LIFE, useEnergyHabits } from './AnnualPlan.jsx';
+
+/* ===== localStorage 读取年度规划用户真实数据（覆盖静态常量）===== */
+function readAnnualState(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return fallback;
+}
+const LS_BOOKS    = () => readAnnualState('annual_books_v12', BOOKS);
+const LS_ABILITY  = () => readAnnualState('annual_abilities_v2', ABILITY);
+const LS_WORK     = () => readAnnualState('annual_work', WORK);
+const LS_LIFE     = () => readAnnualState('annual_life', LIFE);
 
 /* ============================================================
  * 日历页面 · 月视图容器（v2 交互升级）
@@ -45,13 +58,21 @@ const HABIT_TAG_LABEL = {
 };
 /* 习惯顺序权重（需求 3：严格按 作息→运动→喝水；FocusPanel 也按此排序，isHabit=true 渲染实心圆）*/
 const HABIT_WEIGHT = { sleep: 1, sport: 2, water: 3 };
+/* 从习惯名推断类型 key（realHabits 的 key 是 API ID，需要按名称匹配到 sleep/sport/water）*/
+function inferHabitKey(name = '') {
+  const n = name.toLowerCase();
+  if (/睡|sleep|作息|早睡|熬夜/.test(n)) return 'sleep';
+  if (/运动|exercise|sport|健身|跑步|run|workout|锻炼/.test(n)) return 'sport';
+  if (/喝|water|水|饮水|hydration/.test(n)) return 'water';
+  return null;
+}
 
-/* ===== 需求 3/5/6 聚合器：年度规划 + 计划总结 API 数 → 主线 task 数组（按 {year, month} 过滤）
- * · 返回的 task 对象统一结构：{ id, moduleKey, title, progress, done(=progress===1), srcTag, isFromFetch, isHabit?, habitKey?, ...bookData/milestoneData }
+/* ===== 需求 1-7 聚合器：年度规划真实数据 → 主线 task 数组（按 {year, month} 过滤）
+ * · isLongTerm=true → FocusPanel 渲染实心圆（不可点击）；false → 复选框（可勾选）
+ * · isSubItem=true + indent → 子项缩进（如知力②③归属于①）
  */
 function monthPad(n) { return String(n).padStart(2, '0'); }
 function dueByToYm(dueBy = '') {
-  // '2026-08-31' / '2026-8-31' / '8.31' → { year, month, day }
   if (!dueBy) return null;
   if (/^\d{4}-\d{1,2}/.test(dueBy)) {
     const [y, m] = dueBy.split('-');
@@ -60,27 +81,31 @@ function dueByToYm(dueBy = '') {
   return null;
 }
 function entryDateToMonth(entryD = '') {
-  // '7.28' '7.22' '6.22-6.23' → month 数字 or null
   if (!entryD) return null;
   const m = entryD.match(/^(\d{1,2})[.\-月]/);
   return m ? Number(m[1]) : null;
 }
 
-function aggregateTasksFromAnnualPlan(year, month) {
+function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
   const tasks = [];
-  const uid = (pfx) => `${pfx}_${year}_${monthPad(month)}_${Math.random().toString(36).slice(2,7)}`;
 
-  /* ========== [1] 精力 HABITS（需求 3 核心：作息/运动/喝水 + 百分比+完成次数/目标）
-     · 标题格式：{短标题}  {pct}%  {当月完成}/{月目标}{unit}
-     · 月目标 = Math.ceil(全年 target / 12)，便于 demo 展示（即使8月9月暂未录入飞书也有合理目标）
-     · FocusPanel 渲染 isHabit=true → 实心圆（而非空心+√复选框）*/
-  const HABIT_SORTED = HABITS.slice().sort((a, b) =>
-    (HABIT_WEIGHT[a.key] || 99) - (HABIT_WEIGHT[b.key] || 99)
+  /* ========== [1] 精力 HABITS（需求 1：正确抓取 8 月数据 + 实心圆不可点击）
+     · 数据源：realHabits（API 真实打卡数据）|| HABITS（静态回退）
+     · 标题格式：{短标题}  {月完成率}%  {当月完成}/{月目标}{unit}
+     · isHabit=true, isLongTerm=true → FocusPanel 渲染实心圆，不做复选框功能 */
+  const habitSrc = realHabits || HABITS;
+  const habitList = habitSrc.map(h => {
+    const inferredKey = inferHabitKey(h.label || h.name || '');
+    return { ...h, _inferredKey: inferredKey };
+  }).filter(h => h._inferredKey);
+
+  habitList.sort((a, b) =>
+    (HABIT_WEIGHT[a._inferredKey] || 99) - (HABIT_WEIGHT[b._inferredKey] || 99)
   );
-  for (const h of HABIT_SORTED) {
-    const habitKey = h.key;
-    if (!HABIT_WEIGHT[habitKey]) continue; // 只收 作息/运动/喝水 三习惯（需求 3：排除睡眠等其他）
-    const shortLabel = HABIT_SHORT_LABEL[habitKey];
+
+  for (const h of habitList) {
+    const habitKey = h._inferredKey;
+    const shortLabel = HABIT_SHORT_LABEL[habitKey] || (h.label || h.name || '');
     const monthCur = Number(h.month?.[month] ?? 0);
     const monthTarget = Math.max(1, Math.ceil(Number(h.target) / 12));
     const pct = Math.min(100, Math.round((monthCur / monthTarget) * 100));
@@ -89,6 +114,7 @@ function aggregateTasksFromAnnualPlan(year, month) {
       moduleKey: 'energy',
       habitKey,
       isHabit: true,
+      isLongTerm: true,
       isFromFetch: true,
       title: `${shortLabel}  ${pct}%  ${monthCur}/${monthTarget}${h.unit}`,
       progress: pct / 100,
@@ -100,46 +126,86 @@ function aggregateTasksFromAnnualPlan(year, month) {
     });
   }
 
-  /* ========== [2] 知力 BOOKS（阅读中/已读完书籍 自动进主线）
-     · 标题：《书名》· 状态标签 + pct%
-     · bookData：整本书的初始数据（点击标题通过 openEditorForTask 直接送 BookForm，需求 4 复用书架面板）*/
-  for (const b of BOOKS) {
-    if (b.st === 'pending') continue; // 未开始的不进本月主线
-    const pct = Number(b.pct) || 0;
-    const statusLb = b.st === 'done' ? '已读完' : b.st === 'reading' ? '阅读中' : '进行中';
+  /* ========== [2] 知力 BOOKS（需求 2：只显示在读书 + 读后思考 + 思后行动，②③缩进）
+     · 只抓 st='reading' 的书籍
+     · 每本在读书生成 3 条：①读完《书名》 ②输出1组【核心触动+行动计划】 ③行动计划内容
+     · ②③ isSubItem=true + indent=1 → FocusPanel 缩进渲染
+     · 全部 isLongTerm=true → 实心圆不可点击 */
+  const books = LS_BOOKS();
+  for (const b of books) {
+    if (b.st !== 'reading') continue;
+    const bookId = b.bookId || b.t;
+    // ① 读完《书名》
     tasks.push({
-      id: `book_${b.bookId || b.t}`,
+      id: `book_read_${bookId}`,
       moduleKey: 'cognition',
       isFromFetch: true,
-      title: `《${b.t}》`,
-      progress: pct / 100,
-      done: pct >= 100 || b.st === 'done',
-      note: `${statusLb} · ${b.cat}`,
+      isLongTerm: true,
+      title: `读完《${b.t}》`,
+      progress: (Number(b.pct) || 0) / 100,
+      done: (Number(b.pct) || 0) >= 100,
+      note: `阅读中 · ${b.cat || '知力'}`,
       srcTag: `≡ 年度规划 · 书架同步 · ${b.cat || '知力'}`,
       srcTagColor: 'rgba(0,122,255,0.08)',
       srcTagTextColor: '#0040DD',
-      bookData: { ...b }, // 整本书数据 → 点击直接开 BookForm 同构面板
+      bookData: { ...b },
     });
+    // ② 输出 1组【核心触动+行动计划】
+    tasks.push({
+      id: `book_think_${bookId}`,
+      moduleKey: 'cognition',
+      isFromFetch: true,
+      isLongTerm: true,
+      isSubItem: true,
+      indent: 1,
+      parentId: `book_read_${bookId}`,
+      title: '输出 1组【核心触动+行动计划】',
+      progress: b.hasInsights ? 1 : 0,
+      done: b.hasInsights || false,
+      srcTag: '≡ 年度规划 · 读后思考',
+      srcTagColor: 'rgba(0,122,255,0.08)',
+      srcTagTextColor: '#0040DD',
+    });
+    // ③ 行动计划的内容
+    const actionText = b.action || (b.actions && b.actions[0] ? b.actions[0].text : '');
+    if (actionText) {
+      tasks.push({
+        id: `book_action_${bookId}`,
+        moduleKey: 'cognition',
+        isFromFetch: true,
+        isLongTerm: true,
+        isSubItem: true,
+        indent: 1,
+        parentId: `book_read_${bookId}`,
+        title: actionText,
+        progress: (b.actions && b.actions[0] && b.actions[0].done) ? 1 : 0,
+        done: (b.actions && b.actions[0] && b.actions[0].done) || false,
+        srcTag: '≡ 年度规划 · 思后行动',
+        srcTagColor: 'rgba(0,122,255,0.08)',
+        srcTagTextColor: '#0040DD',
+      });
+    }
   }
 
-  /* ========== [3] 能力 ABILITY（需求 5：自动抓取能力页面里程碑 dueBy 落在本月 / 状态 doing=进行中）
-     · 能力页用户编辑的"学完金字塔原理输出方法"正是 ab_speech_m1（dueBy 2026-04-30），只要是 dueBy 落在当前 month 或 st=doing 的里程碑就进主线 */
-  for (const ab of ABILITY) {
+  /* ========== [3] 能力 ABILITY（需求 3：只显示进行中 st='doing' 的里程碑）
+     · 从 localStorage 读取用户真实数据
+     · 标题：能力标题 · 里程碑标题
+     · isLongTerm：dueBy 螚出本月 → true（实心圆）；否则 false（复选框可勾选）*/
+  const abilities = LS_ABILITY();
+  for (const ab of abilities) {
     const ms = ab.mstones || [];
     for (const m of ms) {
+      if (m.st !== 'doing') continue;
       const ym = dueByToYm(m.dueBy);
-      const matchesMonth = ym && ym.year === year && ym.month === month;
-      const stateProgress = m.st === 'done' ? 1 : m.st === 'doing' ? (Number(m.pct) || 0) / 100 : 0;
-      // 本月到期 或 状态=doing/已完成（进行中的项目肯定是本月要推进）
-      if (!matchesMonth && m.st === 'tg') continue;
-      const pct = Math.round(stateProgress * 100);
+      const isWithinMonth = ym && ym.year === year && ym.month === month;
       tasks.push({
         id: `ms_${ab.id}_${m.id}`,
         moduleKey: 'ability',
         isFromFetch: true,
-        title: m.lb,
-        progress: stateProgress,
-        done: m.st === 'done',
+        isLongTerm: !isWithinMonth,
+        title: `${ab.title} · ${m.lb}`,
+        progress: (Number(m.pct) || 0) / 100,
+        done: false,
         dueDate: m.dueBy ? `截止 ${m.dueBy.slice(5).replace('-', '/')}` : undefined,
         srcTag: `≡ 能力项 · ${ab.title}`,
         srcTagColor: 'rgba(255,149,0,0.08)',
@@ -150,41 +216,42 @@ function aggregateTasksFromAnnualPlan(year, month) {
     }
   }
 
-  /* ========== [4] 工作 WORK：KR dueBy 覆盖本月的条目 */
-  for (const wk of WORK) {
-    const krs = wk.krs || [];
-    for (const kr of krs) {
-      const ym = dueByToYm(kr.dueBy);
-      if (ym && (ym.year !== year || ym.month !== month) && kr.st === 'tg') continue;
-      const v = Number(kr.v) || 0;
-      const tgt = Number(kr.tgt) || 1;
-      const pct = Math.min(100, Math.round((v / tgt) * 100));
-      tasks.push({
-        id: `kr_${wk.id}_${kr.id}`,
-        moduleKey: 'work',
-        isFromFetch: true,
-        title: kr.t,
-        progress: pct / 100,
-        done: kr.st === 'done',
-        dueDate: kr.dueBy ? `截止 ${kr.dueBy.slice(5).replace('-', '/')}` : undefined,
-        srcTag: `≡ ${wk.label}目标 · ${wk.title || ''}`,
-        srcTagColor: 'rgba(255,59,48,0.08)',
-        srcTagTextColor: '#FF3B30',
-        krData: { workId: wk.id, ...kr, initial: { ...kr, workIdx: WORK.indexOf(wk), krIdx: krs.indexOf(kr) } },
-      });
-    }
+  /* ========== [4] 工作 WORK（需求 4：只显示目标级事项，不展开 KR）
+     · 从 localStorage 读取用户真实数据
+     · 只显示目标标题，不显示单个 KR
+     · isLongTerm=true → 实心圆不可点击（年度目标）*/
+  const workGoals = LS_WORK();
+  for (const wk of workGoals) {
+    tasks.push({
+      id: `wk_goal_${wk.id}`,
+      moduleKey: 'work',
+      isFromFetch: true,
+      isLongTerm: true,
+      title: wk.title || '',
+      progress: 0,
+      done: false,
+      note: wk.label ? `${wk.label}目标` : undefined,
+      dueDate: wk.deadline ? `截止 ${wk.deadline.slice(5).replace('-', '/')}` : undefined,
+      srcTag: `≡ 年度规划 · ${wk.label || '工作'}目标`,
+      srcTagColor: 'rgba(255,59,48,0.08)',
+      srcTagTextColor: '#FF3B30',
+    });
   }
 
-  /* ========== [5] 生活 LIFE：entries 日期含本月的条目 */
-  for (const lg of LIFE) {
+  /* ========== [5] 生活 LIFE（需求 5：自动同步本月事项）
+     · 从 localStorage 读取用户真实数据
+     · 只显示 entries 日期含本月的条目
+     · isLongTerm=false → 复选框可勾选（单日事项）*/
+  const lifeData = LS_LIFE();
+  for (const lg of lifeData) {
     for (const e of lg.entries || []) {
       const em = entryDateToMonth(e.d);
       if (em !== null && em !== month) continue;
-      // 没填日期的也显示（life 生活事项按本月展示）
       tasks.push({
-        id: `life_${lg.key}_${e.t || Math.random().toString(36).slice(2,7)}`,
+        id: `life_${lg.key || lg.lb}_${e.t || Math.random().toString(36).slice(2,7)}`,
         moduleKey: 'life',
         isFromFetch: true,
+        isLongTerm: false,
         title: e.t,
         note: e.n || (em ? undefined : lg.lb),
         dueDate: e.d ? e.d : undefined,
@@ -359,12 +426,17 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   const [selectedDate, setSelectedDate] = useState(todayISO);
   const [tabView, setTabView] = useState('month'); // month | week | day
 
-  /* ===== 需求 3/5/6：月主线 — 首次初始化 + 年/月切换时重算（年度规划聚合 + 种子独立事项 + ethan_schedules API）===== */
+  /* ===== 需求 1：从 API 拉取真实精力习惯数据（含 8 月打卡数据）===== */
+  const { realHabits } = useEnergyHabits();
+
+  /* ===== 需求 1-7：月主线 — 首次初始化 + 年/月切换时重算
+     · 只聚合年度规划数据（精力/知力/能力/工作/生活），不再混入 ethan_schedules（需求 6）
+     · 种子独立事项（体检等手动创建）保留在主线 */
   const computeInitialMonthTasks = useCallback((y, m) => {
-    const planTasks = aggregateTasksFromAnnualPlan(y, m);
+    const planTasks = aggregateTasksFromAnnualPlan(y, m, realHabits);
     const seedTasks = SEED_ENERGY_NONHABIT.filter(t => overlapsMonth(t, y, m));
     return [...seedTasks, ...planTasks];
-  }, []);
+  }, [realHabits]);
   const [monthTasks, setMonthTasks] = useState(() => computeInitialMonthTasks(todayObj.getFullYear(), todayObj.getMonth() + 1));
   const [weekTasks, setWeekTasks] = useState(WEEK_SEED);
 
@@ -377,50 +449,51 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   // 需求 4：当日详情弹层 Modal —— 点击日格空白/日期/今日/热力点/+更多 打开
   const [dayDetail, setDayDetail] = useState(null); // { date } | null
 
-  /* ====== 需求 6 聚合：year/month 变化时 → 1) 年度规划重算；2) 拉取 ethan_schedules（计划总结本月事项）====== */
+  /* ====== 需求 6：ethan_schedules 只进日历右栏，不进主线面板 ====== */
+  // 计划总结 API 拉取的日程 → 只用于日历右栏事件显示
+  const [apiSchedules, setApiSchedules] = useState([]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // 1) 年度规划重算（realHabits 变化时也触发）
       const planBase = computeInitialMonthTasks(year, month);
+      if (!cancelled) {
+        setMonthTasks(prev => {
+          const stateMap = new Map(prev.map(p => [p.id, { done: p.done, progress: p.progress }]));
+          return planBase.map(m => {
+            const st = stateMap.get(m.id);
+            if (!st) return m;
+            return { ...m, done: st.done, progress: st.done ? 1 : st.progress };
+          });
+        });
+      }
+
+      // 2) 拉取 ethan_schedules → 只用于日历右栏（需求 6：不进主线面板）
       const monthS = `${year}-${String(month).padStart(2, '0')}-01`;
       const monthE = toISODate(endOfMonth(fromISODate(monthS)));
-      let apiTasks = [];
       try {
         const remote = await API.schedules.list({ from: monthS, to: monthE });
         const remoteSchedules = remote?.schedules || [];
-        for (const s of remoteSchedules) {
-          const mod = catToModule(s.category);
-          if (mod.key === 'others') continue; // 无分类的不进主线（需求 6：要分类 + 月份命中）
-          const v = Number(s.is_done) || 0;
-          const progress = v ? 1 : (Number(s.duration_min) || 0) > 0 ? 0.5 : 0;
-          apiTasks.push({
-            id: `api_${s.id || Math.random().toString(36).slice(2,8)}`,
-            scheduleId: s.id,
-            moduleKey: mod.key,
-            title: s.title,
-            progress,
-            done: !!s.is_done,
-            note: s.note || undefined,
-            start_date: s.start_date || s.schedule_date || s.date,
-            end_date: s.end_date || null,
-            dueDate: s.end_date ? `截止 ${s.end_date.slice(5).replace('-', '/')}` : undefined,
-            srcTag: '≡ 计划总结 · 事项同步',
-            srcTagColor: mod.soft,
-            srcTagTextColor: mod.color,
-          });
+        if (!cancelled) {
+          setApiSchedules(remoteSchedules.map(s => {
+            const mod = catToModule(s.category);
+            return {
+              id: `api_${s.id || Math.random().toString(36).slice(2,8)}`,
+              date: s.start_date || s.schedule_date || s.date,
+              title: s.title,
+              category: s.category,
+              moduleKey: mod.key,
+              is_done: !!s.is_done,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              note: s.note || '',
+            };
+          }));
         }
-      } catch (_) { /* 离线/API 失败：继续用 planBase */ }
+      } catch (_) { if (!cancelled) setApiSchedules([]); }
 
-      // 合并：apiTasks 去重（与 planBase/seed 标题相同的用 planBase），保持 FocusPanel 原排序
-      const seenTitles = new Set(planBase.map(t => normTitle(t.title)));
-      const merged = [...planBase];
-      for (const at of apiTasks) {
-        if (seenTitles.has(normTitle(at.title))) continue;
-        if (!overlapsMonth(at, year, month)) continue;
-        merged.push(at);
-      }
-
-      // 同步：种子独立日程（体检 + 买复合维生素等）写回 ethan_schedules（计划总结页 KeyTasks/时间线才显示）
+      // 3) 同步：种子独立日程（体检等）写回 ethan_schedules（计划总结页 KeyTasks/时间线才显示）
       try {
         const remote2 = await API.schedules.list({ from: monthS, to: monthE });
         const existing = new Set((remote2?.schedules || []).map(s => String(s.title).trim()));
@@ -441,17 +514,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         store?.broadcast?.({ type: 'reload' });
       } catch (_) { /* ignore */ }
 
-      if (cancelled) return;
-      setMonthTasks(prev => {
-        // 保留用户已勾/交互过的 state：按 id 合并 prev 的 done/progress 覆盖新计算值
-        const stateMap = new Map(prev.map(p => [p.id, { done: p.done, progress: p.progress }]));
-        return merged.map(m => {
-          const st = stateMap.get(m.id);
-          if (!st) return m;
-          return { ...m, done: st.done, progress: st.done ? 1 : st.progress };
-        });
-      });
-      setTick(v => v + 1);
+      if (!cancelled) setTick(v => v + 1);
     })();
     return () => { cancelled = true; };
   }, [year, month, computeInitialMonthTasks]);
@@ -536,16 +599,39 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     setTick(v => v + 1);
   }, []);
   const openEditorForTask = useCallback((task, { isMonth = true } = {}) => {
-    // 需求 4：点击知力书籍标题（如《纳瓦尔宝典》）→ 直接复用书架同款 BookForm 面板（带全书 insights/actions/changes 数据，不再只传空 title）
+    // 需求 2/4：点击知力书籍标题或其子项（读后思考/思后行动）→ 复用书架同款 BookForm 面板
+    //   · 主项 ①：标题如「读完《纳瓦尔宝典》」→ task.bookData 直接透传
+    //   · 子项 ②③：isSubItem=true 且有 parentId/bookId → 打开父书籍的 insights 面板
     const title = task.title || '';
     const mod = keyToModule(task.moduleKey);
-    if (task.moduleKey === 'cognition' && /《.+》|宝典|书|读|纳瓦尔/.test(title)) {
-      // 若聚合时已抓取到 bookData（整本书初始）→ 直接透传 BookForm；否则按标题查找 BOOKS 并打开（需求4 精准匹配《纳瓦尔宝典》insights/行动/改变量全显示）
-      const bookInitial = task.bookData || BOOKS.find(b => normTitle(b.t) === normTitle(title.replace(/[《》]/g, ''))) || {
-        t: title.replace(/[《》]/g, ''), author: '', st: 'reading', pct: Math.round((task.progress || 0) * 100),
-      };
+    const isCognitionBook = task.moduleKey === 'cognition' &&
+      (/《.+》|宝典|书|读|纳瓦尔/.test(title) || task.isSubItem || task.parentId);
+    if (isCognitionBook) {
+      // 子项 ②③ → 反查父书籍 bookData
+      let bookInitial = task.bookData;
+      let tab = task.bookData ? 'basic' : 'insights';
+      if (!bookInitial && task.parentId) {
+        // parentId 形如 book_read_<bookId>，找到父项任务再取 bookData
+        const parentTask = monthTasks.find(t => t.id === task.parentId)
+          || weekTasks.find(t => t.id === task.parentId);
+        bookInitial = parentTask?.bookData;
+        if (!bookInitial) {
+          // 通过 parentId 抽取 bookId，再去 BOOKS / localStorage 查找
+          const bookId = task.parentId.replace(/^book_read_/, '');
+          bookInitial = LS_BOOKS().find(b => String(b.bookId) === String(bookId))
+            || BOOKS.find(b => String(b.bookId) === String(bookId));
+        }
+        // 子项点击默认展开 insights（核心触动+行动计划）
+        tab = 'insights';
+      }
+      if (!bookInitial) {
+        // 兜底：按标题匹配 BOOKS（如点击"读完《纳瓦尔宝典》"主项）
+        bookInitial = BOOKS.find(b => normTitle(b.t) === normTitle(title.replace(/[《》]/g, '')))
+          || LS_BOOKS().find(b => normTitle(b.t) === normTitle(title.replace(/[《》]/g, '')))
+          || { t: title.replace(/[《》]/g, ''), author: '', st: 'reading', pct: Math.round((task.progress || 0) * 100) };
+      }
       onEditSchedule?.(
-        { type: 'book', initial: bookInitial, tab: task.bookData ? 'basic' : 'insights' },
+        { type: 'book', initial: bookInitial, tab },
         { module: task.moduleKey, source: 'focusTask' }
       );
       return;
@@ -586,7 +672,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       { type: 'schedule', ...taskToScheduleInitial(task, todayISO) },
       { module: task.moduleKey, source: 'focusTask', isMonth }
     );
-  }, [onEditSchedule, todayISO]);
+  }, [onEditSchedule, todayISO, monthTasks, weekTasks]);
 
   /* === 标签点击跳转：关联/同步/习惯同步·作息 等 srcTag 胶囊
        · 依据 task.moduleKey 映射到 AnnualPlan 的 view：
@@ -671,23 +757,26 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   const weekStartStr = `${weekStart.getMonth() + 1}.${weekStart.getDate()}`;
   const weekEndStr = `${weekEnd.getMonth() + 1}.${weekEnd.getDate()}`;
 
-  /* === 月历事项：加入 taskId/is_done 引用同步左卡 === */
+  /* === 月历事项：加入 taskId/is_done 引用同步左卡
+       需求 6：日历右栏显示「计划总结 ethan_schedules + 本月主线单日事项」=== */
   const allTasks = useMemo(() => [...monthTasks, ...weekTasks], [monthTasks, weekTasks, tick]);
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month).padStart(2, '0')}`;
-    const raw = MOCK_EVENTS_RAW.filter(e => e.date && e.date.startsWith(prefix));
-    return buildEventsWithTaskLink(raw, allTasks);
-  }, [year, month, allTasks]);
+    // 合并：MOCK 演示事件 + API 真实日程（计划总结页创建的事项）
+    const mockRaw = MOCK_EVENTS_RAW.filter(e => e.date && e.date.startsWith(prefix));
+    const apiRaw = apiSchedules.filter(e => e.date && e.date.startsWith(prefix));
+    const combined = [...mockRaw, ...apiRaw];
+    return buildEventsWithTaskLink(combined, allTasks);
+  }, [year, month, allTasks, apiSchedules]);
 
   const weekdayZh = ['日','一','二','三','四','五','六'];
   const detailDateObj = dayDetail?.date ? fromISODate(dayDetail.date) : null;
   const detailEvents = useMemo(() => {
     if (!dayDetail?.date) return [];
-    return buildEventsWithTaskLink(
-      MOCK_EVENTS_RAW.filter(e => e.date === dayDetail.date),
-      allTasks
-    );
-  }, [dayDetail?.date, allTasks]);
+    const mockRaw = MOCK_EVENTS_RAW.filter(e => e.date === dayDetail.date);
+    const apiRaw = apiSchedules.filter(e => e.date === dayDetail.date);
+    return buildEventsWithTaskLink([...mockRaw, ...apiRaw], allTasks);
+  }, [dayDetail?.date, allTasks, apiSchedules]);
 
   return (
     <div className="flex-1 min-w-0 max-w-[1320px] flex flex-col gap-4">

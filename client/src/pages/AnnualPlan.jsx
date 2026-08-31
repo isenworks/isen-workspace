@@ -206,9 +206,9 @@ export const ABILITY = [
     completedAt: null,
     mstones: [
       { id: 'ab_oral_m1', lb: '每日跟读 15 分钟（影子跟读法）', st: 'done', pct: 100, dueBy: '2026-03-31' },
-      { id: 'ab_oral_m2', lb: '背诵常用 500 口语句型', st: 'done', pct: 100, dueBy: '2026-05-31' },
-      { id: 'ab_oral_m3', lb: '完成 10 次即兴独白录音', st: 'done', pct: 100, dueBy: '2026-07-31' },
-      { id: 'ab_oral_m4', lb: '加入 1 次英语角交流', st: 'pending', pct: 0, dueBy: '2026-10-15' },
+      { id: 'ab_oral_m2', lb: '背诵常用 500 口语句型', st: 'doing', pct: 40, dueBy: '2026-08-31' },
+      { id: 'ab_oral_m3', lb: '完成 10 次即兴独白录音', st: 'pending', pct: 0, dueBy: '2026-10-31' },
+      { id: 'ab_oral_m4', lb: '加入 1 次英语角交流', st: 'pending', pct: 0, dueBy: '2026-11-15' },
       { id: 'ab_oral_m5', lb: '月末自评 ≥7/10 分', st: 'pending', pct: 0, dueBy: '2026-12-31' },
     ],
   },
@@ -279,28 +279,44 @@ export const WORK = [
       { id: 'wk_xhs_k3', t: '商业合作 1(个)', v: 0,    tgt: 1,    st: 'tg',    dueBy: '2026-11-30' },
     ],
   },
+  {
+    id: 'wk_jl_quit',
+    core: true, label: '主业', title: '从JL离职+拿到大礼包',
+    mode: 'funnel',
+    createdAt: '2026-07-20',
+    deadline: '2026-09-30',
+    completedAt: null,
+    krs: [
+      { id: 'wk_jl_k1', t: '正式提交离职申请 1(次)', v: 0, tgt: 1, st: 'tg',    dueBy: '2026-08-31' },
+      { id: 'wk_jl_k2', t: '完成工作交接清单 1(项)', v: 0, tgt: 1, st: 'tg',    dueBy: '2026-09-15' },
+      { id: 'wk_jl_k3', t: '拿到 N+1 大礼包 1(项)',  v: 0, tgt: 1, st: 'tg',    dueBy: '2026-09-30' },
+    ],
+  },
 ];
 
 /* 生活 */
 export const LIFE = [
   { key:'relation', lb:'关系', color:'#AF52DE', entries:[ /* violet */
-    { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'7.28' },
+    { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'8.24' },
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },
     { t:'和老婆周末野餐', n:'准备了她爱吃的草莓和可颂', d:'7.09' },
   ]},
   { key:'food', lb:'美食', color:'#B77FE3', entries:[ /* violet-400 */
-    { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'7.22' },
+    { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'8.10' },
     { t:'尝试手冲咖啡', n:'买了一套 Hario V60', d:'7.10' },
   ]},
   { key:'travel', lb:'旅游', color:'#AF52DE', entries:[ /* violet - 符合WCAG AA对比度 */
+    { t:'密云水库两日游', n:'避开人潮，划了小船看夕阳', d:'8.17-8.18' },
     { t:'苏州两日游', n:'去了拙政园和留园', d:'6.22-6.23' },
     { t:'崇明岛露营', n:'和朋友们搭帐篷烧烤', d:'5.18' },
   ]},
   { key:'movie', lb:'电影', color:'#9C48C7', entries:[ /* violet-600 */
+    { t:'沙丘 2', n:'IMAX 音效震撼，保罗保住传承', d:'8.03' },
     { t:'奥本海默', n:'3小时但不闷，诺兰神了', d:'7.01' },
     { t:'蜘蛛侠：纵横宇宙', n:'画风惊艳', d:'6.05' },
   ]},
   { key:'shop', lb:'购物', color:'#7D3AA0', entries:[ /* violet-700 */
+    { t:'Kindle Paperwhite', n:'护眼阅读神器，纳瓦尔宝典已塞进去', d:'8.08' },
     { t:'Sony WH-1000XM5 耳机', n:'降噪封神，通勤必带', d:'7.05' },
     { t:'露营折叠椅', n:'周末去公园躺着很舒服', d:'6.18' },
   ]},
@@ -869,7 +885,7 @@ function LifeStatsBar({ categories }) {
 /* ---------- 2.5 真实习惯数据获取 · Energy ---------- */
 // 从工作台习惯打卡 API 读取精力类习惯的年度数据
 // 未登录/API 失败时回退到 mock HABITS，保证沙盒模式可用
-function useEnergyHabits() {
+export function useEnergyHabits() {
   const [realHabits, setRealHabits] = useState(null); // null = 未获取/失败；[] = 获取到空列表
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // 手动刷新触发
@@ -4918,6 +4934,13 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
           <div className="flex flex-col max-h-[240px] overflow-y-auto">
             {mstones.map((m, i) => {
               const isDone = m.st === 'done';
+              const isDoing = m.st === 'doing';
+              /* 需求 3：状态徽章 — 未开始（灰）/ 进行中（橙·带进度）/ 已完成（绿）*/
+              const STATUS_META = isDone
+                ? { label: '已完成', color: '#34C759' }
+                : isDoing
+                  ? { label: '进行中', color: AB }
+                  : { label: '未开始', color: '#8E8E93' };
               return (
                 <div
                   key={m.id || i}
@@ -4938,8 +4961,17 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
                   </button>
                   {/* 文字区：主文字 13px semibold ink-700 —— 对齐知力页 OKR KR 规格；长标题 2 行截断 */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); onMsEdit?.(as.idx, i, m); }}>
-                    <div className={`text-[13px] font-semibold leading-snug line-clamp-2 ${isDone ? 'text-ink-400 line-through' : 'text-[#48484A]'}`}>
-                      {m.lb}
+                    <div className="flex items-center gap-1.5">
+                      <div className={`text-[13px] font-semibold leading-snug line-clamp-2 ${isDone ? 'text-ink-400 line-through' : 'text-[#48484A]'}`}>
+                        {m.lb}
+                      </div>
+                      {/* 需求 3：状态徽章 */}
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 select-none"
+                        style={{ background: `${STATUS_META.color}15`, color: STATUS_META.color }}
+                      >
+                        {STATUS_META.label}{isDoing && m.pct != null ? ` ${Math.round(Number(m.pct))}%` : ''}
+                      </span>
                     </div>
                     {m.dueBy && (
                       <div className="text-[11px] text-ink-500 mt-0.5 leading-tight">

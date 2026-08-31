@@ -44,16 +44,19 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
       lb: initial?.lb || '',
       startDate: initial?.startDate || '',
       dueBy: initial?.dueBy || '',
-      st: initial?.st === 'done' ? 'done' : 'pending',
+      st: initial?.st === 'done' ? 'done' : initial?.st === 'doing' ? 'doing' : 'pending',
+      pct: initial?.pct != null ? Number(initial.pct) : 0,
     });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   function submit() {
-    if (!form.lb.trim()) return alert('请输入 KR 标题');
+    if (!form.lb.trim()) return alert('请输入里程碑标题');
+    const pct = form.st === 'done' ? 100 : form.st === 'doing' ? (Number(form.pct) || 0) : 0;
     onSaved?.({
       ...form,
       lb: form.lb.trim(),
-      pct: form.st === 'done' ? 100 : 0,
+      st: form.st,
+      pct,
       id: initial?.id,
       abilityIdx: initial?.abilityIdx,
       msIdx: initial?.msIdx,
@@ -62,21 +65,26 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这条 KR？')) return;
+    if (!confirm('确认删除这条里程碑？')) return;
     onDelete?.({ abilityIdx: initial.abilityIdx, msIdx: initial.msIdx });
   }
 
-  const isDone = form.st === 'done';
+  /* 需求 3：三态状态选择器 — 未开始 / 进行中 / 已完成 */
+  const STATUS_OPTIONS = [
+    { key: 'pending', label: '未开始', color: '#8E8E93' },
+    { key: 'doing',   label: '进行中', color: '#FF9500' },
+    { key: 'done',    label: '已完成', color: '#34C759' },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {/* Section 1: KR 内容 */}
-      <SectionCard title="KR 内容">
+      {/* Section 1: 里程碑内容 */}
+      <SectionCard title="里程碑内容">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <FieldRow label="KR 标题">
+          <FieldRow label="里程碑标题">
               <input style={{ ...INPUT_BASE, fontWeight: 600 }}
                 value={form.lb} onChange={e => set('lb', e.target.value)}
-                placeholder="例如：阶段一：单表查询基础（Day1-Day5）" autoFocus />
+                placeholder="例如：背诵常用 500 口语句型" autoFocus />
             </FieldRow>
             <FieldRow label="开始日期（选填）">
               <input type="date" style={INPUT_BASE}
@@ -89,32 +97,48 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
         </div>
       </SectionCard>
 
-      {/* Section 2: 完成状态（复选框语义，与卡片一致） */}
+      {/* Section 2: 完成状态（需求 3：三态 — 未开始 / 进行中 / 已完成） */}
       <SectionCard title="完成状态">
-        <button
-          type="button"
-          onClick={() => set('st', isDone ? 'pending' : 'done')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '7px 10px', borderRadius: '10px',
-            background: '#fff', border: `1px solid ${CARD_BORDER}`,
-            cursor: 'pointer', width: '100%', textAlign: 'left',
-          }}
-        >
-          <span style={{
-            width: '16px', height: '16px', borderRadius: '999px',
-            display: 'grid', placeItems: 'center', flexShrink: 0,
-            background: isDone ? AB : '#fff',
-            border: `1.5px solid ${AB}`,
-          }}>
-            {isDone && (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-            )}
-          </span>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: isDone ? '#94a3b8' : INK, textDecoration: isDone ? 'line-through' : 'none' }}>
-            {form.lb.trim() || '这条 KR'}
-          </span>
-        </button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {STATUS_OPTIONS.map(opt => {
+            const active = form.st === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => set('st', opt.key)}
+                style={{
+                  flex: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  padding: '7px 8px', borderRadius: '10px',
+                  background: active ? `${opt.color}15` : '#fff',
+                  border: `1.5px solid ${active ? opt.color : CARD_BORDER}`,
+                  cursor: 'pointer', transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{
+                  width: '12px', height: '12px', borderRadius: '999px',
+                  background: active ? opt.color : 'transparent',
+                  border: `1.5px solid ${opt.color}`,
+                  flexShrink: 0,
+                }} />
+                <span style={{
+                  fontSize: '12px', fontWeight: 600,
+                  color: active ? opt.color : '#94a3b8',
+                }}>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        {/* 进行中状态：显示进度百分比输入 */}
+        {form.st === 'doing' && (
+          <div style={{ marginTop: '8px' }}>
+            <FieldRow label="完成进度 (%)">
+              <input type="number" min="0" max="100" style={INPUT_BASE}
+                value={form.pct} onChange={e => set('pct', Number(e.target.value) || 0)} />
+            </FieldRow>
+          </div>
+        )}
       </SectionCard>
 
       {/* 底部按钮 */}

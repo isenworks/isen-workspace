@@ -304,23 +304,35 @@ function buildSupabaseAPI() {
         const cat = data.category !== undefined ? Number(data.category) : null;
         const syncIsKey = cat === null ? (data.is_key ? 1 : 0) : ((cat === 1 || cat === 2) ? 1 : 0);
         const finalCat = cat === null ? (syncIsKey ? 2 : 3) : cat;
-        const row = await wrapSB(supabase.from('ethan_schedules').insert({
+        const base = {
           user_id: userId,
-          title: data.title, date: data.date,
+          title: data.title,
+          // start_date 语义化：优先 start_date，其次兼容旧字段 data.date
+          date: data.start_date || data.date,
+          start_date: data.start_date || data.date,
           start_time: data.start_time || null, end_time: data.end_time || null,
           duration_min: data.duration_min || null,
           is_key: syncIsKey, category: finalCat, sort_order: data.sort_order || 0,
-        }).select().single());
+        };
+        // end_date 可选：Supabase schema 若无该列会直接 insert 忽略；若有则生效
+        if (data.end_date) base.end_date = data.end_date;
+        const row = await wrapSB(supabase.from('ethan_schedules').insert(base).select().single());
         return { schedule: row };
       },
 
       async update(id, data) {
         const update = {};
         if (data.title !== undefined) update.title = data.title;
-        if (data.date !== undefined) update.date = data.date;
+        if (data.date !== undefined || data.start_date !== undefined) {
+          const start = data.start_date !== undefined ? data.start_date : data.date;
+          if (start !== undefined) { update.date = start; update.start_date = start; }
+        }
         if (data.start_time !== undefined) update.start_time = data.start_time || null;
         if (data.end_time !== undefined) update.end_time = data.end_time || null;
         if (data.duration_min !== undefined) update.duration_min = data.duration_min || null;
+        if (data.end_date !== undefined) {
+          update.end_date = data.end_date || null;
+        }
         if (data.is_done !== undefined) update.is_done = data.is_done ? 1 : 0;
         if (data.sort_order !== undefined) update.sort_order = data.sort_order;
         if (data.category !== undefined) {
@@ -344,12 +356,15 @@ function buildSupabaseAPI() {
             const cat = it.category !== undefined ? Number(it.category) : null;
             const syncIsKey = cat === null ? (it.is_key ? 1 : 0) : ((cat === 1 || cat === 2) ? 1 : 0);
             const finalCat = cat === null ? (syncIsKey ? 2 : 3) : cat;
-            return {
+            const row = {
               user_id: userId, title: it.title, date,
+              start_date: it.start_date || date,
               start_time: it.start_time || null, end_time: it.end_time || null,
               duration_min: it.duration_min || null,
               is_key: syncIsKey, category: finalCat, is_done: it.is_done ? 1 : 0, sort_order: it.sort_order ?? i,
             };
+            if (it.end_date) row.end_date = it.end_date;
+            return row;
           });
           await wrapSB(supabase.from('ethan_schedules').insert(rows));
         }

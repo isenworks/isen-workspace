@@ -206,14 +206,18 @@ export default function CalendarPage({ onEditSchedule }) {
 
       {/* ===== Body: 12 列网格 ===== */}
       <div className="grid grid-cols-12 gap-4">
-        {/* 左栏：Tab=月→本月 + Tab=周→本周 + Tab=日→今日 */}
+        {/* 左栏：
+            · Tab=月 → 本月主线
+            · Tab=周 → 仅本周主线（不再显示本月·上下文）
+            · Tab=日 → 本月·上下文
+        */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
-          {/* 月 tab 显示本月主线 */}
-          {(tabView === 'month' || tabView === 'week' || tabView === 'day') && (
+          {/* 月 / 日 tab 显示本月主线（日tab作上下文） */}
+          {(tabView === 'month' || tabView === 'day') && (
             <FocusPanel
               type="month"
               accentColor="#007AFF"
-              title={tabView === 'month' ? '本月主线' : tabView === 'week' ? '本月 · 上下文' : '本月 · 上下文'}
+              title={tabView === 'month' ? '本月主线' : '本月 · 上下文'}
               tasks={monthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
@@ -223,11 +227,11 @@ export default function CalendarPage({ onEditSchedule }) {
             />
           )}
 
-          {/* 只在周 tab 显示本周主线；日 tab 不显示本周主线 */}
+          {/* 只在周 tab 显示本周主线；色条统一蓝色 */}
           {tabView === 'week' && (
             <FocusPanel
               type="week"
-              accentColor="#FF9500"
+              accentColor="#007AFF"
               title="本周主线"
               tasks={weekTasks}
               progressPct={weekProgress}
@@ -236,13 +240,13 @@ export default function CalendarPage({ onEditSchedule }) {
               onAdd={() => onEditSchedule?.()}
               headerExtra={
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[10px] text-[12px] font-medium bg-[rgba(255,149,0,0.08)] text-[#AF5200] border border-transparent">
+                  <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[10px] text-[12px] font-medium border border-transparent" style={{ background: 'rgba(0,122,255,0.08)', color: '#0040DD' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
                     </svg>
                     {weekStartStr} 周{weekStartDay} – {weekEndStr} 周{weekEndDay}
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-[10px] text-[12px] font-medium bg-[rgba(0,122,255,0.08)] text-[#0040DD] border border-transparent">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-[10px] text-[12px] font-medium border border-transparent" style={{ background: 'rgba(52,199,89,0.10)', color: '#1A7F37' }}>
                     第 {weekNum} 周 · 节奏 {weekTimePct}%时间 / {weekProgress}%完成
                   </span>
                 </div>
@@ -251,7 +255,7 @@ export default function CalendarPage({ onEditSchedule }) {
           )}
         </div>
 
-        {/* 右栏：月历网格 / 周视图留白占位 Phase2 / 日视图留白占位 Phase2 */}
+        {/* 右栏：始终显示月日历网格（月/周/日 tab 都保持月历可视） */}
         <div className="col-span-12 lg:col-span-8">
           <div
             className="bg-white"
@@ -259,50 +263,34 @@ export default function CalendarPage({ onEditSchedule }) {
               boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06)'
             }}
           >
-            {tabView === 'month' && (
-              <MonthCalendarGrid
-                year={year}
-                month={month}
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                events={monthEvents}
-                habitsMap={MOCK_HABITS}
-                habitTarget={4}
-              />
-            )}
-            {tabView === 'week' && (
-              <div className="flex flex-col items-center justify-center py-20 text-[#8E8E93]">
-                <div className="text-[15px] font-semibold text-[#48484A] mb-2">周视图（Phase 2 迭代）</div>
-                <div className="text-[12px]">按日分列 · 小时时间轴 · 事件色块 · 与月/计划联动</div>
-              </div>
-            )}
-            {tabView === 'day' && (
-              <div className="flex flex-col items-center justify-center py-20 text-[#8E8E93]">
-                <div className="text-[15px] font-semibold text-[#48484A] mb-2">日视图（Phase 2 迭代）</div>
-                <div className="text-[12px]">24h 时间轴 · 与计划总结页 Timeline 复用</div>
-              </div>
-            )}
+            <MonthCalendarGrid
+              year={year}
+              month={month}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              events={monthEvents}
+              habitsMap={MOCK_HABITS}
+              habitTarget={4}
+            />
 
-            {/* 图例（仅月视图显示） */}
-            {tabView === 'month' && (
-              <div className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap">
-                {MODULES.filter(m => m.key !== 'others').map(m => (
-                  <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color: m.color }}>
-                    <span className="w-2 h-2 rounded-full" style={{ background: m.color }} />
-                    {m.label}
-                  </span>
-                ))}
-                <div className="flex-1" />
-                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#007AFF]">
-                  <span className="w-2 h-2 rounded-full" style={{ background: '#007AFF', boxShadow: '0 2px 6px rgba(0,122,255,0.35)' }} />
-                  今日
+            {/* 图例（所有 tab 都显示，便于周/日视图下也能看懂日格颜色语义） */}
+            <div className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap">
+              {MODULES.filter(m => m.key !== 'others').map(m => (
+                <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color: m.color }}>
+                  <span className="w-2 h-2 rounded-full" style={{ background: m.color }} />
+                  {m.label}
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#0040DD]">
-                  <span className="w-2 h-2 rounded-full" style={{ background: 'transparent', boxShadow: 'inset 0 0 0 2px rgba(0,122,255,0.45)' }} />
-                  选中
-                </span>
-              </div>
-            )}
+              ))}
+              <div className="flex-1" />
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#007AFF]">
+                <span className="w-2 h-2 rounded-full" style={{ background: '#007AFF', boxShadow: '0 2px 6px rgba(0,122,255,0.35)' }} />
+                今日
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#0040DD]">
+                <span className="w-2 h-2 rounded-full" style={{ background: 'transparent', boxShadow: 'inset 0 0 0 2px rgba(0,122,255,0.45)' }} />
+                选中
+              </span>
+            </div>
           </div>
         </div>
       </div>

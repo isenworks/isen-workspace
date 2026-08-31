@@ -61,8 +61,9 @@ export default function FocusPanel({
   tasks = [],
   progressPct = 0,
   timePct = 0,
-  onToggle,
-  onAdd,
+  onToggle,           // (taskId) => void  — 仅复选框点击触发
+  onAdd,              // () => void         — 右上角 + 新增
+  onEditTask,         // (task) => void     — 标题/非复选框区域点击触发：打开对应编辑面板
   headerExtra,
 }) {
   // 按模块分组
@@ -217,23 +218,35 @@ export default function FocusPanel({
                     /* Completed Band：已完成任务永久铺一层模块色淡填充，
                        做到一眼扫出每个模块哪些是"已经打勾的"，减少大脑扫描成本 */
                     const completedBg = task.done ? `${grp.color}0E` : 'transparent';
+                    const handleEdit = () => onEditTask?.(task);
+                    const handleToggle = (e) => {
+                      // 仅复选框勾选：阻止冒泡避免进入编辑面板
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onToggle?.(task.id);
+                    };
                     return (
                       <div
                         key={task.id}
                         className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
                         style={{ background: completedBg }}
-                        onClick={() => onToggle?.(task.id)}
+                        onClick={handleEdit}
                         onMouseEnter={(e) => { e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = completedBg; }}
                       >
-                        {/* 圆复选框 */}
+                        {/* 圆复选框 — 独立 onClick + stopPropagation，只点这里才勾选 */}
                         <div
-                          className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition"
+                          onClick={handleToggle}
+                          className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
                           style={{
                             borderColor: task.done ? mod.color : `${mod.color}55`,
                             background: task.done ? mod.color : '#fff',
                             boxShadow: task.done ? `0 2px 6px ${mod.color}40` : 'none',
                           }}
+                          role="checkbox"
+                          aria-checked={task.done}
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
                         >
                           {task.done && (
                             <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
@@ -248,7 +261,7 @@ export default function FocusPanel({
                           )}
                         </div>
 
-                        {/* 左侧标题区 */}
+                        {/* 左侧标题区（点击进入编辑面板，因为父 div onClick=handleEdit）*/}
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <span
                             className={`text-[13px] font-semibold leading-tight truncate ${
@@ -274,8 +287,8 @@ export default function FocusPanel({
                           </div>
                         </div>
 
-                        {/* 右侧进度：确保 6px 高度 + 有填充时加模块色投影（之前写了6px保留，补充投影强度） */}
-                        <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]">
+                        {/* 右侧进度（点击也进入编辑面板，避免进度条空点无反馈） */}
+                        <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]" onClick={handleEdit}>
                           <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
                             {pct}%
                           </span>

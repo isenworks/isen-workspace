@@ -390,7 +390,70 @@ export default function Workspace({ user: propUser }) {
         </div>
       ) : activeMenu === 'calendar' ? (
         <div className="flex-1 min-w-0">
-          <CalendarPage onEditSchedule={() => setModal({ type: 'schedule' })} />
+          <CalendarPage
+            onEditSchedule={(payload, ctx) => {
+              // 日历页回调：按 payload.type / ctx.module 分发到不同编辑面板（需求 1 标题点击开对应面板）
+              const p = payload || {};
+              const type = p.type || 'schedule';
+              switch (type) {
+                case 'book': {
+                  // 知力：书籍编辑面板（复用 AnnualPlan L6227/6228 的 {type:'book', initial, tab} 结构）
+                  setModal({
+                    type: 'book',
+                    initial: { t: p.title, author: p.author || '', progress: Number(p.progress) || 0 },
+                    tab: p.tab || 'basic',
+                  });
+                  break;
+                }
+                case 'milestone': {
+                  // 能力：里程碑面板（作为 schedule 呈现：能力分类 + 截止/颜色合并进 note）
+                  setModal({
+                    type: 'schedule',
+                    data: {
+                      title: p.title,
+                      category: 2,
+                      is_key: true,
+                      note: [p.dueDate, p.color].filter(Boolean).join(' · '),
+                      start_time: '09:00',
+                      end_time: '10:00',
+                      schedule_date: ctx?.date || selectedDate,
+                    },
+                  });
+                  break;
+                }
+                case 'kr': {
+                  // 工作：关键结果面板（复用 schedule：工作=cat 1，进度写入备注）
+                  setModal({
+                    type: 'schedule',
+                    data: {
+                      title: p.title,
+                      category: 1,
+                      is_key: true,
+                      note: `进度 ${Number(p.progress) || 0}%${p.color ? ` · ${p.color}` : ''}`,
+                      start_time: '10:00',
+                      end_time: '11:00',
+                      schedule_date: ctx?.date || selectedDate,
+                    },
+                  });
+                  break;
+                }
+                case 'task':
+                case 'schedule':
+                default: {
+                  // 精力/生活/兜底：计划与总结同款 ScheduleForm
+                  // ScheduleForm 接受 initial 字段（见 L481: initial={modal?.data}）
+                  const initial = (p && typeof p === 'object' && !Array.isArray(p))
+                    ? { ...(p || {}) }
+                    : undefined;
+                  // 如果 payload 内没带日期，使用 ctx.date（事件点击）或当前选中日
+                  if (initial && !initial.schedule_date) {
+                    initial.schedule_date = ctx?.date || selectedDate;
+                  }
+                  setModal({ type: 'schedule', data: initial });
+                }
+              }
+            }}
+          />
         </div>
       ) : (
         <main className="flex-1 min-w-0 max-w-[1180px] flex flex-col gap-4">

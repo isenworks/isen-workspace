@@ -25,13 +25,20 @@ const MOD_EN = {
   life:      'LIFE',
 };
 
-/* 中性底色深浅对比 —— 选"略微加深 + 1px 中性软描边"（专业角度更优）：
-   纯加深会整体偏"灰"、少呼吸感；描边+微加深的组合在保持通透的同时
-   给 5 个容器提供了清晰的壳边界（比纯背景高 40% 的可探测度）。 */
+/* 灰底降灰 + 边缘强化
+   · 底色从 6.5% → 3.0%：消除"显脏"的暗雾感（背景层必须最低才能让彩色印章+胶囊
+     真正跳出来，iOS 卡片设计底层永远是"几乎白"而不是"一块灰"）
+   · 边缘三件套（按优先级排序）：
+     1) 描边加粗 1→1.5px，并把对比度拉高 7%→9%（软而不糊）
+     2) 0.04 极淡 top-inner 白高光 → 形成"壳"的立体边缘（iOS sheet 同款）
+     3) 0.03 超柔外投影 → 强化"卡片叠在白底上"的层级感（而不是同一张纸上印了5格）
+   · hover：描边 12% + 阴影加厚，不引入彩色，保持克制 */
 const GROUP_SURFACE = {
-  background:   'rgba(15,23,42,0.065)',
-  border:       '1px solid rgba(15,23,42,0.07)',
-  hoverBorder:  '1px solid rgba(15,23,42,0.10)',
+  background:   'rgba(15,23,42,0.030)',
+  border:       '1.5px solid rgba(15,23,42,0.09)',
+  boxShadow:    'inset 0 1px 0 rgba(255,255,255,0.80), 0 2px 8px rgba(15,23,42,0.035)',
+  hoverBorder:  '1.5px solid rgba(15,23,42,0.12)',
+  hoverShadow:  'inset 0 1px 0 rgba(255,255,255,0.90), 0 4px 14px rgba(15,23,42,0.06)',
 };
 
 /**
@@ -120,10 +127,17 @@ export default function FocusPanel({
               style={{
                 background: GROUP_SURFACE.background,
                 border: GROUP_SURFACE.border,
+                boxShadow: GROUP_SURFACE.boxShadow,
                 padding: '8px 10px',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.border = GROUP_SURFACE.hoverBorder; }}
-              onMouseLeave={(e) => { e.currentTarget.style.border = GROUP_SURFACE.border; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.border = GROUP_SURFACE.hoverBorder;
+                e.currentTarget.style.boxShadow = GROUP_SURFACE.hoverShadow;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.border = GROUP_SURFACE.border;
+                e.currentTarget.style.boxShadow = GROUP_SURFACE.boxShadow;
+              }}
             >
               {/* 分组头（整行点击切换折叠）
                   · 印章 22×22 深填充 + 白色线条 CategoryIcon（与年度规划 CardHead 同源）

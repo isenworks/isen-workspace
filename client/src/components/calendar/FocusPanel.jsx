@@ -62,10 +62,14 @@ export default function FocusPanel({
   onDeleteTask,       // (task) => void     — 任务行删除（右键删除 / 回收站还原等场景）
   onRestoreTask,      // (task) => void     — 回收站：还原任务
   onTagClick,         // (task) => void     — 点击"习惯同步·作息/书架同步·个人成长"等关联/同步标签 → 跳对应模块页
+  onReorder,          // (groupKey, fromTaskId, toTaskId) => void — 组内拖拽排序回调
   deletedTasks,       // 回收站任务数组（若传则底部出现回收站卡）
   showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
   headerExtra,
 }) {
+  // HTML5 DnD 排序：记录当前拖拽的 { taskId, groupKey } 以及 drop 目标 taskId（用于插入位置视觉提示）
+  const [dragState, setDragState] = useState(null); // { taskId, groupKey } | null
+  const [dragOverId, setDragOverId] = useState(null);
   // 按模块分组
   //   · 精力模块：自定义排序 —— ① 新建非习惯事项（如体检）排最前；② 习惯按 HABIT_ORDER_WEIGHT（作息→运动→喝水）
   //   · 其他模块：保持传入顺序
@@ -258,24 +262,63 @@ export default function FocusPanel({
                       if (!onDeleteTask) return;
                       openDeleteConfirm(task, '任务行');
                     };
+                    // DnD：只有同组内、非习惯（习惯固定顺序按打卡权重，不可打乱）项可拖拽排序
+                    const canDrag = !!onReorder && !task.isHabit && !task.isSubItem;
+                    const isBeingDragged = dragState?.taskId === task.id;
+                    const isDropTarget = dragOverId === task.id && dragState?.groupKey === grp.key;
                     return (
                       <div
                         key={task.id}
+                        draggable={canDrag}
                         className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
                         style={{
-                          background: completedBg,
+                          background: isDropTarget ? `${grp.color}22` : (isBeingDragged ? `${grp.color}08` : completedBg),
                           paddingLeft: task.indent ? `${12 + task.indent * 20}px` : undefined,
+                          borderTop: isDropTarget ? `1.5px solid ${grp.color}` : '1.5px solid transparent',
+                          opacity: isBeingDragged ? 0.45 : 1,
+                          transform: isBeingDragged ? 'scale(0.98)' : 'scale(1)',
                         }}
                         onClick={handleEdit}
                         onContextMenu={handleContextMenu}
                         title={
+                          canDrag ? '拖拽排序 · 点击编辑 · 右键删除' :
                           task.isHabit ? '长期习惯 · 实心圆标记' :
                           task.isLongTerm ? '跨月事项 · 实心圆标记' :
                           task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
                           '点击编辑 · 右键删除'
                         }
-                        onMouseEnter={(e) => { e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = completedBg; }}
+                        onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = isDropTarget ? `${grp.color}22` : completedBg; }}
+                        /* ==== HTML5 DnD：组内拖拽排序 ==== */
+                        onDragStart={(e) => {
+                          if (!canDrag) { e.preventDefault(); return; }
+                          e.dataTransfer.effectAllowed = 'move';
+                          try { e.dataTransfer.setData('text/plain', String(task.id)); } catch {}
+                          e.dataTransfer.setDragImage(e.currentTarget, 24, 18);
+                          setDragState({ taskId: task.id, groupKey: grp.key });
+                        }}
+                        onDragOver={(e) => {
+                          if (!dragState || dragState.groupKey !== grp.key) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverId !== task.id) setDragOverId(task.id);
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverId === task.id) setDragOverId(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (dragState && dragState.groupKey === grp.key && dragState.taskId !== task.id) {
+                            onReorder?.(grp.key, dragState.taskId, task.id);
+                          }
+                          setDragState(null);
+                          setDragOverId(null);
+                        }}
+                        onDragEnd={() => {
+                          setDragState(null);
+                          setDragOverId(null);
+                        }}
                       >
                         {/* 需求 7：isHabit || isLongTerm → 实心圆不可点击（长期习惯/跨月事项）
                              普通事项 → 圆复选框，独立 onClick + stopPropagation */}

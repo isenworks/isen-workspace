@@ -119,7 +119,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       title: `${shortLabel}  ${pct}%  ${monthCur}/${monthTarget}${h.unit}`,
       progress: pct / 100,
       done: pct >= 100,
-      srcTag: `≡ 年度规划 · 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || shortLabel}`,
+      srcTag: `≡ 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || shortLabel}`,
       srcTagColor: 'rgba(52,199,89,0.08)',
       srcTagTextColor: '#34C759',
       habitData: { ...h, monthCur, monthTarget, shortLabel },
@@ -145,7 +145,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       progress: (Number(b.pct) || 0) / 100,
       done: (Number(b.pct) || 0) >= 100,
       note: `阅读中 · ${b.cat || '知力'}`,
-      srcTag: `≡ 年度规划 · 书架同步 · ${b.cat || '知力'}`,
+      srcTag: `≡ 书架同步 · ${b.cat || '知力'}`,
       srcTagColor: 'rgba(0,122,255,0.08)',
       srcTagTextColor: '#0040DD',
       bookData: { ...b },
@@ -162,7 +162,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       title: '输出 1组【核心触动+行动计划】',
       progress: b.hasInsights ? 1 : 0,
       done: b.hasInsights || false,
-      srcTag: '≡ 年度规划 · 读后思考',
+      srcTag: '≡ 读后思考',
       srcTagColor: 'rgba(0,122,255,0.08)',
       srcTagTextColor: '#0040DD',
     });
@@ -180,7 +180,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
         title: actionText,
         progress: (b.actions && b.actions[0] && b.actions[0].done) ? 1 : 0,
         done: (b.actions && b.actions[0] && b.actions[0].done) || false,
-        srcTag: '≡ 年度规划 · 思后行动',
+        srcTag: '≡ 思后行动',
         srcTagColor: 'rgba(0,122,255,0.08)',
         srcTagTextColor: '#0040DD',
       });
@@ -207,7 +207,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
         progress: (Number(m.pct) || 0) / 100,
         done: false,
         dueDate: m.dueBy ? `截止 ${m.dueBy.slice(5).replace('-', '/')}` : undefined,
-        srcTag: `≡ 能力项 · ${ab.title}`,
+        srcTag: `≡ ${ab.title}`,
         srcTagColor: 'rgba(255,149,0,0.08)',
         srcTagTextColor: '#FF9500',
         milestoneData: { abilityId: ab.id, abilityTitle: ab.title, ...m, initial:
@@ -232,7 +232,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       done: false,
       note: wk.label ? `${wk.label}目标` : undefined,
       dueDate: wk.deadline ? `截止 ${wk.deadline.slice(5).replace('-', '/')}` : undefined,
-      srcTag: `≡ 年度规划 · ${wk.label || '工作'}目标`,
+      srcTag: `≡ ${wk.label || '工作'}目标`,
       srcTagColor: 'rgba(255,59,48,0.08)',
       srcTagTextColor: '#FF3B30',
     });
@@ -257,7 +257,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
         dueDate: e.d ? e.d : undefined,
         progress: 1,
         done: true,
-        srcTag: `≡ 生活 · ${lg.lb}记录`,
+        srcTag: `≡ ${lg.lb}`,
         srcTagColor: 'rgba(175,82,222,0.08)',
         srcTagTextColor: '#AF52DE',
       });
@@ -569,6 +569,34 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     setMonth(m); setYear(y);
   }, [year, month]);
 
+  /* === 组内拖拽排序（来自 FocusPanel onReorder）
+       · 跨组禁止（FocusPanel 已通过 groupKey 一致门禁）
+       · 仅在传入 tasks 数组内重排，isolate 到对应月/周状态
+       · 习惯项 (isHabit) & 子项 (isSubItem) 不参与排序（FocusPanel 已禁 draggable） */
+  const reorderTask = useCallback((groupKey, fromId, toId, { isMonth = true } = {}) => {
+    const setter = isMonth ? setMonthTasks : setWeekTasks;
+    setter(prev => {
+      const arr = [...prev];
+      const fromIdx = arr.findIndex(t => t.id === fromId);
+      const toIdx = arr.findIndex(t => t.id === toId);
+      if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return prev;
+      // 限制：只允许同 groupKey 范围内互调
+      const sameGroup = (t) => t.moduleKey === groupKey;
+      // 找到 group 内的序号范围
+      const first = arr.findIndex(sameGroup);
+      const last = [...arr].map((t, i) => sameGroup(t) ? i : -1).filter(i => i >= 0).sort((a, b) => a - b).at(-1);
+      if (first < 0 || last < 0) return prev;
+      // 如果目标在 group 范围外，就夹到边界
+      const safeToIdx = Math.max(first, Math.min(last, toIdx));
+      const [moved] = arr.splice(fromIdx, 1);
+      // 经过 splice 后索引偏回 1：再插回 safeToIdx（考虑删掉后索引收缩）
+      let insertPos = safeToIdx;
+      if (fromIdx < safeToIdx) insertPos -= 1;
+      arr.splice(insertPos, 0, moved);
+      return arr;
+    });
+  }, []);
+
   /* === 勾选主线任务：仅复选框触发（来自 FocusPanel onToggle）
        同步修改月格对应事件的 is_done（MOCK_EVENTS_RAW），保证左卡勾完右格立即变色 */
   const toggleTask = useCallback((taskId, isMonth) => {
@@ -870,6 +898,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               onDeleteTask={(task) => deleteTask(task, { isMonth: true })}
               onRestoreTask={(task) => restoreTask(task, { isMonth: true })}
               onTagClick={handleTagClick}
+              onReorder={(gk, fid, tid) => reorderTask(gk, fid, tid, { isMonth: true })}
               deletedTasks={deletedMonthTasks}
               compact={tabView !== 'month'}
             />
@@ -889,6 +918,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               onDeleteTask={(task) => deleteTask(task, { isMonth: false })}
               onRestoreTask={(task) => restoreTask(task, { isMonth: false })}
               onTagClick={handleTagClick}
+              onReorder={(gk, fid, tid) => reorderTask(gk, fid, tid, { isMonth: false })}
               deletedTasks={deletedWeekTasks}
             />
           )}

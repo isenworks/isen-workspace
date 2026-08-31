@@ -11,10 +11,19 @@ const PALETTE = ['#AF52DE', '#B77FE3', '#8B5CF6', '#C084FC', '#7D3AA0'];
 export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, onDelete, lifeCategories, onAddCategory }) {
   const isEdit = !!(initial && initial.id);
   const today = new Date().toISOString().slice(0, 10);
+  // initial.d 可能是 M.D / M.D-M.D 等混合格式 → 统一回填为 YYYY-MM-DD，让 date input 正常显示
+  const initialD = (() => {
+    if (!initial?.d) return today;
+    const s = String(initial.d);
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return s;
+    const md = s.match(/^(\d{1,2})\.(\d{1,2})/);
+    if (md) return `${new Date().getFullYear()}-${String(md[1]).padStart(2,'0')}-${String(md[2]).padStart(2,'0')}`;
+    return today;
+  })();
   const [form, setForm] = useState({
     t: initial?.t || '',
     n: initial?.n || '',
-    d: initial?.d || today,
+    d: initialD,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -34,11 +43,29 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
   const selCat = cats.find(c => c.key === selectedKey) || null;
   const selColor = selCat?.color || '#AF52DE';
 
+  // type="date" 返回 YYYY-MM-DD → 转为 LIFE 约定的 M.D 格式；为空时原样保留
+  function normalizeDate(d = '') {
+    if (!d) return '';
+    const m = String(d).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return `${Number(m[2])}.${Number(m[3])}`;
+    return d;
+  }
+  // LIFE 已有记录可能是 M.D / M.D-M.D / YYYY-MM-DD 等混合格式 → 回填时尽量识别为 YYYY-MM-DD 供 input date 显示
+  function denormalizeDate(d = '') {
+    if (!d) return new Date().toISOString().slice(0, 10);
+    // 如果已是 YYYY-MM-DD，直接返回
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(d)) return d;
+    // M.D → 当前年-补零
+    const md = String(d).match(/^(\d{1,2})\.(\d{1,2})/);
+    if (md) return `${new Date().getFullYear()}-${String(md[1]).padStart(2,'0')}-${String(md[2]).padStart(2,'0')}`;
+    return new Date().toISOString().slice(0, 10);
+  }
+
   function submit() {
     if (!form.t.trim()) { alert('请输入标题'); return; }
     if (!isEdit && !selectedKey) { alert('请先选择一个模块，或点「+ 新建模块」创建新模块后再记录'); return; }
     const payload = {
-      t: form.t.trim(), n: form.n, d: form.d,
+      t: form.t.trim(), n: form.n, d: normalizeDate(form.d),
       id: initial?.id,
       lifeKey: isEdit ? initial.lifeKey : selectedKey,
       entryIdx: initial?.entryIdx,

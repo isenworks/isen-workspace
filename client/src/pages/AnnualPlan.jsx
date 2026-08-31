@@ -5585,24 +5585,241 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
 }
 
 /* ---------- 11. 视图 · 生活 ---------- */
-function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds }) {
+function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange }) {
   const dynLife = lifeData || LIFE;
   const totalEntries = dynLife.reduce((s, c) => s + c.entries.length, 0);
   // 生活模块完成率：有记录的类目数 / 总类目数 * 100（体验型鼓励每个类目都有内容）
   const lifePct = Math.round((dynLife.filter(c => c.entries.length > 0).length / dynLife.length) * 100);
   const hlCount = Array.isArray(highlightedIds) ? highlightedIds.length : 0;
+
+  /* ===== 需求 2：链接按钮 · 右键菜单增删改 · 点击跳转 ===== */
+  const [linkMenu, setLinkMenu] = useState(null); // { x, y, editingId } | null
+  const [linkListPopup, setLinkListPopup] = useState(null); // { x, y } | null — 多链接时点击弹出选择面板
+  const [linkForm, setLinkForm] = useState({ title: '', url: '' }); // 编辑/新建 mini 表单
+  const links = Array.isArray(docLinks) ? docLinks : [];
+  const closeAllMenus = () => { setLinkMenu(null); setLinkListPopup(null); setLinkForm({ title: '', url: '' }); };
+
+  // 点击链接按钮：1条直接跳转；多条弹出选择
+  function handleLinkButtonClick(e) {
+    e.stopPropagation();
+    if (!links || links.length === 0) {
+      // 没有链接 → 直接触发新建表单（模拟右键→添加）
+      const rect = e.currentTarget.getBoundingClientRect();
+      setLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+      return;
+    }
+    if (links.length === 1) {
+      window.open(links[0].url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    // 多条 → 弹出选择列表面板
+    const rect = e.currentTarget.getBoundingClientRect();
+    setLinkListPopup({ x: rect.left, y: rect.bottom + 6 });
+  }
+  // 右键：弹出增删改菜单
+  function handleLinkButtonContext(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setLinkListPopup(null);
+    setLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+  }
+  // 更新链接列表操作（增/删/改）
+  function addLink() {
+    if (!linkForm.url.trim()) { alert('请输入链接地址'); return; }
+    onDocLinksChange?.([...links, { id: uid(), title: linkForm.title.trim() || linkForm.url.trim(), url: linkForm.url.trim() }]);
+    setLinkForm({ title: '', url: '' });
+    closeAllMenus();
+  }
+  function updateLink(id) {
+    if (!linkForm.url.trim()) { alert('请输入链接地址'); return; }
+    onDocLinksChange?.(links.map(l => l.id === id ? { ...l, title: linkForm.title.trim() || linkForm.url.trim(), url: linkForm.url.trim() } : l));
+    setLinkForm({ title: '', url: '' });
+    closeAllMenus();
+  }
+  function deleteLink(id) {
+    if (!confirm('确认删除此文档链接？')) return;
+    onDocLinksChange?.(links.filter(l => l.id !== id));
+    setLinkForm({ title: '', url: '' });
+    closeAllMenus();
+  }
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" onClick={closeAllMenus}>
       {/* Step1-4 L1区块：紫条 + 16px标题 + 紫胶囊%，与其他4模块一致 */}
       <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
+          {/* 链接按钮（需求 2：圆角正方形；左键跳转 / 右键增删改）—— 在年度精选左边 */}
+          <div className="relative ml-auto">
+            <button
+              onClick={handleLinkButtonClick}
+              onContextMenu={handleLinkButtonContext}
+              title={links.length ? `文档链接（${links.length} 条，右键增删改）` : '右键添加飞书文档链接'}
+              className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-lg transition hover:brightness-105 active:scale-[0.98] mr-2 cursor-pointer"
+              style={{ background: 'rgba(175,82,222,0.10)', border: '1px solid rgba(175,82,222,0.25)' }}>
+              {/* 外链图标：当前 UI 风格线形 · 紫 */}
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="#AF52DE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+            </button>
+
+            {/* ===== 右键菜单：增删改 ===== */}
+            {linkMenu && (
+              <div onClick={(e) => e.stopPropagation()} style={{
+                position: 'fixed', top: linkMenu.y, left: linkMenu.x, zIndex: 200,
+                minWidth: '230px', padding: '6px', borderRadius: '12px',
+                background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
+              }}>
+                {/* 现有链接条目列表 · hover 高亮 · 右侧 edit/delete */}
+                {links.length === 0 && (
+                  <div style={{ padding: '6px 10px', fontSize: '11px', color: '#8e8e93', fontWeight: 600 }}>
+                    暂无文档链接，下面添加一条
+                  </div>
+                )}
+                {links.map(l => (
+                  <div key={l.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 8px', borderRadius: '8px', marginBottom: '2px',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.08)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                    <span style={{
+                      flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                    }}
+                    title={l.url}
+                    onClick={() => { window.open(l.url, '_blank', 'noopener,noreferrer'); closeAllMenus(); }}>
+                      {l.title}
+                    </span>
+                    {/* 编辑按钮 */}
+                    <button title="编辑" onClick={() => { setLinkMenu({ ...linkMenu, editingId: l.id }); setLinkForm({ title: l.title, url: l.url }); }}
+                      style={{
+                        width: '22px', height: '22px', borderRadius: '6px', border: 'none',
+                        background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.14)'; e.currentTarget.style.color = '#AF52DE'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      </svg>
+                    </button>
+                    {/* 删除按钮 */}
+                    <button title="删除" onClick={() => deleteLink(l.id)}
+                      style={{
+                        width: '22px', height: '22px', borderRadius: '6px', border: 'none',
+                        background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.14)'; e.currentTarget.style.color = '#FF3B30'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
+                        <path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+                {/* 分隔线 */}
+                {(linkMenu.editingId || links.length > 0) && (
+                  <div style={{ height: 1, background: 'rgba(15,23,42,0.08)', margin: '4px 2px' }} />
+                )}
+                {/* 编辑表单（在 editingId 非空或 0 条时显示） */}
+                {(linkMenu.editingId || links.length === 0) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '6px 4px' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#AF52DE', letterSpacing: '0.04em' }}>
+                      {linkMenu.editingId ? '编辑链接' : '新增链接'}
+                    </div>
+                    <input placeholder="标题（如：飞书·全年计划表）" value={linkForm.title}
+                      onChange={(e) => setLinkForm(f => ({ ...f, title: e.target.value }))}
+                      style={{
+                        fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
+                        border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                        fontWeight: 500,
+                      }} />
+                    <input placeholder="链接地址（支持 https://）" value={linkForm.url}
+                      onChange={(e) => setLinkForm(f => ({ ...f, url: e.target.value }))}
+                      style={{
+                        fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
+                        border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                        fontWeight: 500,
+                      }} />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                      <button onClick={closeAllMenus}
+                        style={{
+                          padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
+                          border: 'none', cursor: 'pointer',
+                          background: 'rgba(120,120,128,0.12)', color: '#1c1c1e',
+                        }}>取消</button>
+                      <button onClick={() => linkMenu.editingId ? updateLink(linkMenu.editingId) : addLink()}
+                        style={{
+                          padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
+                          border: 'none', cursor: 'pointer',
+                          background: '#AF52DE', color: '#fff',
+                          boxShadow: '0 1px 4px rgba(175,82,222,0.28)',
+                        }}>{linkMenu.editingId ? '保存' : '添加'}</button>
+                    </div>
+                  </div>
+                )}
+                {/* 添加一条新的入口（已有条目且未编辑态） */}
+                {links.length > 0 && !linkMenu.editingId && (
+                  <button onClick={() => { setLinkMenu({ ...linkMenu, editingId: null }); setLinkForm({ title: '', url: '' }); }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '6px 8px', borderRadius: '8px', border: 'none',
+                      background: 'transparent', color: '#AF52DE',
+                      fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.08)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+                      <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    新增一条链接
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* ===== 单左键多链接选择面板（简洁列表） ===== */}
+            {linkListPopup && (
+              <div onClick={(e) => e.stopPropagation()} style={{
+                position: 'fixed', top: linkListPopup.y, left: linkListPopup.x, zIndex: 200,
+                minWidth: '220px', padding: '6px', borderRadius: '12px',
+                background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
+              }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#8e8e93', letterSpacing: '0.04em', padding: '4px 8px' }}>
+                  选择要打开的文档
+                </div>
+                {links.map(l => (
+                  <button key={l.id} onClick={() => { window.open(l.url, '_blank', 'noopener,noreferrer'); closeAllMenus(); }}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left',
+                      padding: '7px 10px', borderRadius: '8px', border: 'none',
+                      background: 'transparent', cursor: 'pointer',
+                      fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.08)'; e.currentTarget.style.color = '#AF52DE'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1c1c1e'; }}
+                    title={l.url}>
+                    {l.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {/* 年度精选 CTA（Step2-3 牵引入口） */}
           <button
             onClick={() => onStartHighlights?.()}
             disabled={totalEntries === 0}
-            className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'linear-gradient(135deg, #AF52DE 0%, #FF2D55 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.25)' }}>
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
@@ -5628,9 +5845,9 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 </div>
                 <span className="text-[15px] font-semibold text-[#48484A] leading-none">{c.lb}</span>
                 <span className="text-[12px] font-semibold tabular-nums text-ink-500">· {c.entries.length}</span>
-                {/* 右上角添加按钮（胶囊，与知力/能力页卡片头部一致） */}
-                <button onClick={() => onEntryAdd?.(ci, c.lb)}
-                  className="ml-auto inline-flex items-center px-2 h-[26px] rounded-lg transition hover:brightness-105 active:scale-95 flex-shrink-0 cursor-pointer"
+                {/* 右上角添加按钮（圆角正方形 w=h 26px，需求 1） */}
+                <button onClick={() => onEntryAdd?.(c.key, c.lb)}
+                  className="ml-auto inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-95 flex-shrink-0 cursor-pointer"
                   style={{ background: 'rgba(175,82,222,0.10)', border: '1px solid rgba(175,82,222,0.25)' }}
                   title={`添加${c.lb}记录`}>
                   <svg className="w-3.5 h-3.5" fill="none" stroke="#AF52DE" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -5662,7 +5879,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               {c.entries.map((e, i) => {
                 const hl = Array.isArray(highlightedIds) && highlightedIds.includes(e.id);
                 return (
-                  <div key={i} onClick={() => onEntryEdit?.(ci, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer relative">
+                  <div key={i} onClick={() => onEntryEdit?.(c.key, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer relative">
                     {hl && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full grid place-items-center"
                         style={{ background: 'linear-gradient(135deg,#AF52DE,#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.35)' }}
@@ -5763,6 +5980,10 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   const [workKrMicroActions, setWorkKrMicroActions] = usePersistentState('annual_work_kr_microactions', () => ({}));
   // 生活·年度精选 - 收藏的条目ID列表
   const [lifeHighlightedIds, setLifeHighlightedIds] = usePersistentState('annual_life_highlights', () => []);
+  // 生活·在线文档链接 - 右键菜单增删改（需求 2）
+  const [lifeDocLinks, setLifeDocLinks] = usePersistentState('annual_life_doc_links', () => [
+    { id: uid(), title: '飞书多维表格 · 全年计划', url: 'https://bytedance.larkoffice.com' },
+  ]);
   // 知力 OKR - O 与 KR 列表均支持编辑增删
   const [cogObjective, setCogObjective] = usePersistentState('annual_cog_o', () => COG_O);
   const [cogKrs, setCogKrs] = usePersistentState('annual_cog_krs', () => COG_KRS.map(k => ({ ...k, id: k.id || uid() })));
@@ -6564,7 +6785,9 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         onRiskTagClick={(workIdx, krIdx, kr, goal, risk) => setModal({ type: 'risk_breakdown', initial: { workIdx, krIdx, kr, goal, risk } })} />}
       {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit}
         highlightedIds={lifeHighlightedIds}
-        onStartHighlights={() => setModal({ type: 'life_highlights' })} />}
+        onStartHighlights={() => setModal({ type: 'life_highlights' })}
+        docLinks={lifeDocLinks}
+        onDocLinksChange={(next) => setLifeDocLinks(next)} />}
     </main>
   );
 

@@ -89,7 +89,9 @@ body {
 ::-webkit-scrollbar-thumb { background: rgba(60,60,67,0.18); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(60,60,67,0.3); }
 
-/* ====== Segmented Tabs ====== */
+/* ====== Segmented Tabs ======
+   语义：外槽 = 圆角矩形（容器），选中段 = 胶囊（"我正处于 X 状态"）；
+   未选中段保持 ghost 圆角方，选中段两端圆，符合 iOS / Material 分段控件标准。 */
 .tab-group {
   display: inline-flex; background: rgba(120,120,128,0.12); border-radius: 9px; padding: 2px;
 }
@@ -100,6 +102,7 @@ body {
 }
 .tab-group button.active {
   background: #007AFF; color: #fff; font-weight: 600;
+  border-radius: 999px;
   box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
 }
 
@@ -108,7 +111,7 @@ body {
   background: rgba(0,122,255,0.06);
 }
 .sum-doc-btn {
-  width: 22px; height: 22px; border-radius: 50%;
+  width: 22px; height: 22px; border-radius: 7px; /* ✅ 圆角方：ghost 动作按钮，不是圆形勾选 */
   border: none; background: transparent;
   color: #c7c7cc; cursor: pointer;
   font-size: 11px;

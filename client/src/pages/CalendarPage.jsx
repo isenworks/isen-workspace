@@ -240,13 +240,14 @@ export default function CalendarPage({ onEditSchedule }) {
               onAdd={() => onEditSchedule?.()}
               headerExtra={
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[10px] text-[12px] font-medium border border-transparent" style={{ background: 'rgba(0,122,255,0.08)', color: '#0040DD' }}>
+                  {/* 日期范围 chip + 节奏 chip = 数据段 → 胶囊 */}
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] font-medium border border-transparent" style={{ background: 'rgba(0,122,255,0.08)', color: '#0040DD' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
                     </svg>
                     {weekStartStr} 周{weekStartDay} – {weekEndStr} 周{weekEndDay}
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-[10px] text-[12px] font-medium border border-transparent" style={{ background: 'rgba(52,199,89,0.10)', color: '#1A7F37' }}>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium border border-transparent" style={{ background: 'rgba(52,199,89,0.10)', color: '#1A7F37' }}>
                     第 {weekNum} 周 · 节奏 {weekTimePct}%时间 / {weekProgress}%完成
                   </span>
                 </div>

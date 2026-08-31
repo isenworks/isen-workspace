@@ -151,12 +151,12 @@ export default function Login() {
             <button
               type="button"
               onClick={() => { setMode('login'); setErr(''); setMsg(''); }}
-              className={`flex-1 py-1.5 rounded-md transition ${mode === 'login' ? 'bg-white shadow-sm text-brand-700 font-medium' : 'text-ink-500'}`}
+              className={`flex-1 py-1.5 transition ${mode === 'login' ? 'bg-white shadow-sm text-brand-700 font-medium rounded-full' : 'text-ink-500 rounded-md'}`}
             >登录</button>
             <button
               type="button"
               onClick={() => { setMode('register'); setErr(''); setMsg(''); }}
-              className={`flex-1 py-1.5 rounded-md transition ${mode === 'register' ? 'bg-white shadow-sm text-brand-700 font-medium' : 'text-ink-500'}`}
+              className={`flex-1 py-1.5 transition ${mode === 'register' ? 'bg-white shadow-sm text-brand-700 font-medium rounded-full' : 'text-ink-500 rounded-md'}`}
             >注册</button>
           </div>
 

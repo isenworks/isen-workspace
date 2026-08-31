@@ -486,7 +486,7 @@ function AddButton({ label, onClick, compact }) {
   if (compact) {
     return (
       <button onClick={onClick || (() => {})} className="mt-auto p-1.5 rounded-lg border border-ink-100 text-ink-500 text-[11px] font-semibold inline-flex items-center justify-center gap-1.5 hover:bg-ink-50 hover:border-ink-200 hover:text-ink-700 transition cursor-pointer w-full">
-        <span className="w-4 h-4 rounded-full bg-ink-100 grid place-items-center text-ink-600 flex-shrink-0">
+        <span className="w-4 h-4 rounded-md bg-ink-100 grid place-items-center text-ink-600 flex-shrink-0">
           <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
         </span>
         <span>{label}</span>
@@ -495,7 +495,7 @@ function AddButton({ label, onClick, compact }) {
   }
   return (
     <button onClick={onClick || (() => {})} className="mt-auto p-2 rounded-xl border border-ink-100 text-ink-500 text-xs font-semibold inline-flex items-center justify-center gap-2 hover:bg-ink-50 hover:border-ink-200 hover:text-ink-700 transition cursor-pointer w-full">
-      <span className="w-5 h-5 rounded-full bg-ink-100 grid place-items-center text-ink-600 flex-shrink-0">
+      <span className="w-5 h-5 rounded-md bg-ink-100 grid place-items-center text-ink-600 flex-shrink-0">
         <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
       </span>
       <span>{label}</span>
@@ -761,7 +761,7 @@ function ReadingFunnel({
                   <div className="w-[2px] h-1.5 rounded-full" style={{ background: `${STAGE_COLORS[i]}88` }} />
                 </div>
                 <svg className="w-3 h-3 flex-shrink-0" style={{ color: STAGE_COLORS[i] }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                <span className="font-bold tabular-nums px-2 py-px rounded-md flex-shrink-0"
+                <span className="font-bold tabular-nums px-3 py-0.5 rounded-full flex-shrink-0"
                   style={{
                     color: STAGE_COLORS[Math.min(i + 1, 4)],
                     background: `${STAGE_COLORS[Math.min(i + 1, 4)]}12`,
@@ -847,7 +847,7 @@ function LifeStatsBar({ categories }) {
           const share = Math.round((c.count / total) * 100);
           return (
             <div key={c.key} className="flex items-center gap-2.5">
-              <span className="text-xs w-4 h-4 rounded-md grid place-items-center flex-shrink-0 font-bold"
+              <span className="text-xs w-4 h-4 rounded-full grid place-items-center flex-shrink-0 font-bold"
                 style={{ background: `${c.color}15`, color: c.color }}>
                 {i + 1}
               </span>
@@ -1568,7 +1568,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     return (
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
         <span className="text-[12.5px] font-semibold text-[#48484A] leading-none w-[48px] flex-shrink-0">{label}</span>
-        <div className="h-[14px] rounded flex items-center flex-shrink-0"
+        <div className="h-[14px] rounded-full flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: '#007AFF' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
         </div>
@@ -1954,8 +1954,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   <div className="flex items-center flex-shrink-0">
                     {/* ★ ③ 56/230天 改为能力页同款胶囊（L4894-4901 规格：px-2 h-[26px] rounded-lg 主题色10底/40框） */}
                     <span
-                      className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
-                      style={{ background: `${GREEN}1a`, border: `1px solid ${GREEN}40`, color: GREEN }}
+                      className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
+                      style={{ background: `${GREEN}14`, color: GREEN }}
                     >
                       <span className="font-extrabold">{h.val}</span>
                       <span className="mx-0.5 opacity-50">/</span>
@@ -2631,7 +2631,7 @@ function BookPickerModal({ mode, books, onPick, onAddNew, onClose }) {
                   </svg>
                   <span className="text-[13px] font-semibold text-[#48484A] truncate flex-1 min-w-0">{b.t}</span>
                   {b.author && <span className="text-[11px] text-ink-400 flex-shrink-0 truncate max-w-[90px]">{b.author}</span>}
-                  <span className="text-[10px] font-semibold px-1.5 rounded-md flex-shrink-0"
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                     style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
                     {isInsights ? `${cnt}组` : `${cnt}条`}
                   </span>
@@ -3846,12 +3846,12 @@ function CognitionView({
                     </div>
                   </div>
 
-                  {/* 中部：漏斗进度条（flex-1） */}
+                  {/* 中部：漏斗进度条（flex-1） — 计数填充条 → 胶囊（语义：数值色块） */}
                   <div className="flex-1 flex items-center min-w-0">
-                    <div className="flex-1 h-[22px] rounded-lg overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
+                    <div className="flex-1 h-[22px] rounded-full overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
                       <div className="relative w-full h-full flex items-center">
                         <div
-                          className="h-full rounded-lg transition-all duration-500 flex items-center justify-start pl-2"
+                          className="h-full rounded-full transition-all duration-500 flex items-center justify-start pl-2"
                           style={{
                             width: `${pctWidth}%`,
                             background: isDone
@@ -4462,7 +4462,7 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
+              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: `${BLUE}14`, color: BLUE }}>
                 {totalInsightCount}组
               </span>
               <button onClick={() => setBookPicker('insights')}
@@ -4525,7 +4525,7 @@ function CognitionView({
             </div>
             <div className="flex items-center gap-1.5">
               {/* 胶囊：已勾选完成数 / 总条数 — 与卡片内每条 action 的圆形复选框 isCompleted 判定严格一致：c.done || status==='completed'||'reviewed' */}
-              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px] tabular-nums" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
+              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: `${BLUE}14`, color: BLUE }}>
                 {(() => {
                   const all = [...(bookActionsList || []), ...(changes || [])];
                   const done = all.filter(c => c.done || c.status === 'completed' || c.status === 'reviewed').length;
@@ -4638,7 +4638,7 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-2 rounded-lg inline-flex items-center h-[26px]" style={{ background: `${BLUE}10`, border: `1px solid ${BLUE}25`, color: BLUE }}>
+              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: `${BLUE}14`, color: BLUE }}>
                 {(reviews || []).length}个
               </span>
               <button onClick={() => {
@@ -4856,8 +4856,8 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* 删除：整卡悬停时可见 */}
             <span
-              className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: `${AB}1a`, border: `1px solid ${AB}40`, color: AB_DARK }}
+              className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
+              style={{ background: `${AB}14`, color: AB_DARK }}
             >
               <span className="font-extrabold">{as.mDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
@@ -5085,8 +5085,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
             <span
-              className="inline-flex items-center px-2 h-[26px] rounded-lg text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: `${color}1a`, border: `1px solid ${color}40`, color }}>
+              className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
+              style={{ background: `${color}14`, color }}>
               <span className="font-extrabold">{krDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
               <span className="opacity-70">{krTotal}</span>
@@ -5199,12 +5199,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                   </div>
                 </div>
 
-                {/* 中部：漏斗进度条（flex-1） */}
+                {/* 中部：漏斗进度条（flex-1） — 计数填充条 → 胶囊（语义：数值色块，与知力/能力进度条统一） */}
                 <div className="flex-1 flex items-center min-w-0">
-                  <div className="flex-1 h-[22px] rounded-lg overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
+                  <div className="flex-1 h-[22px] rounded-full overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
                     <div className="relative w-full h-full flex items-center">
                       <div
-                        className="h-full rounded-lg transition-all duration-500 flex items-center justify-start pl-2"
+                        className="h-full rounded-full transition-all duration-500 flex items-center justify-start pl-2"
                         style={{
                           width: `${pctWidth}%`,
                           background: isDone ? '#34C759' : COLOR,

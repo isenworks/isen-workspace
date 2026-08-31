@@ -459,7 +459,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
               ></circle>
             </svg>
           </div>
-          <span className="text-[12px] font-medium text-[#1c1c1e]">{done} / {list.length}</span>
+          <span className="text-[12px] font-bold tabular-nums text-[#1c1c1e] inline-flex items-center px-2 py-[3px] rounded-full" style={{ background: 'rgba(120,120,128,0.10)' }}><span className="font-extrabold">{done}</span><span className="opacity-40 mx-[2px]">/</span><span className="opacity-75">{list.length}</span></span>
           <button onClick={onNew} className="btn-secondary text-xs px-2 py-1" title="添加">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
           </button>

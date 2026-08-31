@@ -404,8 +404,12 @@ function taskToScheduleInitial(task, defaultDate) {
 
 function eventToScheduleInitial(ev, date) {
   const mod = keyToModule(ev.moduleKey || 'others');
+  // 只保留纯数字 id（真实 ethan_schedules API 记录），聚合生成的字符串 id（life_xxx / book_xxx / ms_xxx 等）
+  // 必须丢弃，否则 ScheduleForm 进入 edit 态调用 update → 服务器 Number(id) 失败报"缺少id"
+  const rawId = ev.id;
+  const isRealScheduleId = typeof rawId === 'number' || /^\d+$/.test(String(rawId));
   return {
-    id: ev.id,
+    id: isRealScheduleId ? rawId : undefined,
     title: ev.title || ev.name,
     category: mod.cat,
     is_key: true,

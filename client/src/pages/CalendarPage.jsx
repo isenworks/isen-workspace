@@ -408,14 +408,20 @@ function eventToScheduleInitial(ev, date) {
   // 必须丢弃，否则 ScheduleForm 进入 edit 态调用 update → 服务器 Number(id) 失败报"缺少id"
   const rawId = ev.id;
   const isRealScheduleId = typeof rawId === 'number' || /^\d+$/.test(String(rawId));
+  // 真实 API 日程：category 用原始数字字段（用户可能手动改成过"生活=5/工作=1/..."），不要用 keyToModule 反查的 cat，
+  //   这样 ScheduleForm 能正确高亮当前类型并允许切换"管理类型"
+  // 聚合事件：category 用 moduleKey 对应的默认数字
+  const category = isRealScheduleId && ev.category != null ? Number(ev.category) : mod.cat;
   return {
     id: isRealScheduleId ? rawId : undefined,
     title: ev.title || ev.name,
-    category: mod.cat,
-    is_key: true,
+    category,
+    is_key: (category === 1 || category === 2) ? 1 : (ev.is_key ? 1 : 0),
     note: ev.note || '',
     start_time: ev.start_time || '09:00',
     end_time: ev.end_time || '10:00',
+    duration_min: ev.duration_min != null ? Number(ev.duration_min) : undefined,
+    is_done: ev.is_done,
     schedule_date: date || ev.date,
   };
 }
@@ -483,7 +489,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           setApiSchedules(remoteSchedules.map(s => {
             const mod = catToModule(s.category);
             return {
-              id: `api_${s.id || Math.random().toString(36).slice(2,8)}`,
+              // 必须保留纯数字 id（不包 api_ 前缀），否则 eventToScheduleInitial 正则 /^\d+$/ 丢弃为 undefined，
+              // ScheduleForm 误走入"新建事项"模式并丢失编辑能力；同时服务器 Number(id) 也只认数字
+              id: s.id,
+              __origin: 'api',  // 仅本地调试标记
               date: s.start_date || s.schedule_date || s.date,
               title: s.title,
               category: s.category,
@@ -491,6 +500,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               is_done: !!s.is_done,
               start_time: s.start_time,
               end_time: s.end_time,
+              duration_min: s.duration_min,
               note: s.note || '',
             };
           }));

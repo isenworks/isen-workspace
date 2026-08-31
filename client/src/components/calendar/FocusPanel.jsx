@@ -25,29 +25,24 @@ const MOD_EN = {
   life:      'LIFE',
 };
 
-/* 纯白背景 + 最优"壳边缘"配方（iOS Cards 标准）
-   · 背景：完全 #fff —— 干净，不引入任何灰度，印章/胶囊/进度条的彩色
-     就能用最高对比度承担"区分模块"的唯一职能（之前的灰底一直在稀释彩色信号）
-   · 描边：1.5px × 10%（中性850 纯黑 10%，软但明确；1px会糊、2px会重）
-   · 阴影双层（Apple 近年卡片统一配方）：
-     1) 0 1px 2px × 5%   —— 近距"贴边地平面"阴影，解决边缘落在哪里
-     2) 0 4px 14px × 4%  —— 远距柔光浮起，表达层级（这层最让卡片像真的"站"在背景上）
-   · 顶缘 1px 白高光保留，但从 80% 降到 60%，因为现在是纯白底，高光再强就会
-     与背景融为一体 → 改为 60%+0.02的近白（比纯白略冷半度），形成极细边缘光泽
-   · hover：描边 14% + 阴影加厚远距层到 0 6px 20px × 6%，不引入彩色 */
+/* 纯白背景 + 弱化阴影 + 顶 3px 模块色渐变条
+   · 阴影：移除之前的远距厚层（0 4px 14px），只保留单层近距 0 1px 2px × 3%，
+     再额外叠一层 0 0 0 1px × 3% 的外描边柔影 —— "似有似无"的存在感，
+     不再"浮起来"，而是"稳稳地平铺在面板上的一张小卡片"
+   · 顶条 3px：用 overflow-hidden 的容器 + padding-top 预留位置，
+     再放一条 linear-gradient 模块色渐变横条，完全在内部，不碰 rounded-2xl 圆角
+   · hover：只微微加深描边（10→13%），阴影不变厚，保持整体轻量 */
 const GROUP_SURFACE = {
   background:   '#ffffff',
   border:       '1.5px solid rgba(15,23,42,0.10)',
   boxShadow:    [
-    'inset 0 1px 0 rgba(255,255,255,0.60)',
-    '0 1px 2px rgba(15,23,42,0.05)',
-    '0 4px 14px rgba(15,23,42,0.04)',
+    '0 0 0 1px rgba(15,23,42,0.03)',
+    '0 1px 2px rgba(15,23,42,0.03)',
   ].join(', '),
-  hoverBorder:  '1.5px solid rgba(15,23,42,0.14)',
+  hoverBorder:  '1.5px solid rgba(15,23,42,0.13)',
   hoverShadow:  [
-    'inset 0 1px 0 rgba(255,255,255,0.70)',
-    '0 1px 2px rgba(15,23,42,0.06)',
-    '0 6px 20px rgba(15,23,42,0.06)',
+    '0 0 0 1px rgba(15,23,42,0.04)',
+    '0 1px 2px rgba(15,23,42,0.03)',
   ].join(', '),
 };
 
@@ -133,12 +128,11 @@ export default function FocusPanel({
           return (
             <div
               key={grp.key}
-              className="rounded-2xl transition-[background-color,border-color,box-shadow]"
+              className="rounded-2xl overflow-hidden transition-[background-color,border-color,box-shadow]"
               style={{
                 background: GROUP_SURFACE.background,
                 border: GROUP_SURFACE.border,
                 boxShadow: GROUP_SURFACE.boxShadow,
-                padding: '8px 10px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.border = GROUP_SURFACE.hoverBorder;
@@ -149,38 +143,48 @@ export default function FocusPanel({
                 e.currentTarget.style.boxShadow = GROUP_SURFACE.boxShadow;
               }}
             >
+              {/* 顶 3px 模块色渐变条（完全在容器内，圆角有 overflow-hidden 截断）
+                   配方：模块色纯 → 同色 20% 从左到右柔化衰减，不做彩虹渐变 */}
+              <div
+                aria-hidden="true"
+                style={{
+                  height: 3,
+                  width: '100%',
+                  background: `linear-gradient(90deg, ${grp.color} 0%, ${grp.color} 55%, ${grp.color}33 100%)`,
+                }}
+              />
+              {/* 内容主体 padding */}
+              <div style={{ padding: '8px 10px 10px' }}>
               {/* 分组头（整行点击切换折叠）
-                  · 印章 22×22 深填充 + 白色线条 CategoryIcon（与年度规划 CardHead 同源）
-                  · 中英双字标签胶囊（软填充 = 8% × 模块色）
-                  · 计数：done/total 进模块色胶囊（删除 ✓）
-                  · 折叠箭头 */}
+                  · 整个「ICON印章 + 中英文标签」统一装进 1 个模块色胶囊里
+                  · 计数：done/total 独立模块色胶囊（无 ✓）
+                  · 折叠箭头使用模块色 */}
               <div
                 className="flex items-center gap-2 select-none cursor-pointer"
                 onClick={() => toggleGroup(grp.key)}
                 role="button"
                 aria-expanded={!off}
               >
-                {/* 1. ICON 印章 */}
+                {/* 1. 单胶囊：印章 + 中文 + EN 全部装进去
+                     印章内部继续保持深填充白线形 = 模块色印章在软填充胶囊内自带层次 */}
                 <span
-                  className="flex-shrink-0 rounded-[7px] grid place-items-center"
-                  style={{
-                    width: 22, height: 22, color: '#fff', background: grp.color,
-                    boxShadow: `0 2px 5px ${grp.color}3A`,
-                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full"
+                  style={{ background: `${grp.color}14`, padding: '3px 10px 3px 3px' }}
                 >
-                  <CategoryIcon catKey={grp.key} className="w-[13px] h-[13px]" />
-                </span>
-
-                {/* 2. 中 + EN 双字胶囊 */}
-                <span
-                  className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full"
-                  style={{ background: `${grp.color}14` }}
-                >
+                  <span
+                    className="flex-shrink-0 rounded-[7px] grid place-items-center"
+                    style={{
+                      width: 22, height: 22, color: '#fff', background: grp.color,
+                      boxShadow: `0 2px 5px ${grp.color}3A`,
+                    }}
+                  >
+                    <CategoryIcon catKey={grp.key} className="w-[13px] h-[13px]" />
+                  </span>
                   <span className="text-[12px] font-extrabold leading-none" style={{ color: grp.color }}>{grp.label}</span>
                   <span className="text-[9.5px] font-extrabold tracking-widest leading-none" style={{ color: `${grp.color}B0` }}>{MOD_EN[grp.key]}</span>
                 </span>
 
-                {/* 3. 计数 1/3 胶囊（无 ✓） */}
+                {/* 2. 计数 1/3 胶囊（无 ✓） */}
                 <span
                   className="ml-auto inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
                   style={{ background: `${grp.color}18`, color: grp.color }}
@@ -190,7 +194,7 @@ export default function FocusPanel({
                   <span style={{ opacity: 0.80 }}>{totalN}</span>
                 </span>
 
-                {/* 4. 折叠箭头 */}
+                {/* 3. 折叠箭头 */}
                 <svg
                   className={`w-[15px] h-[15px] flex-shrink-0 transition-transform duration-200 ${off ? '' : 'rotate-180'}`}
                   style={{ color: `${grp.color}C0` }}
@@ -206,13 +210,17 @@ export default function FocusPanel({
                   {grp.items.map(task => {
                     const mod = keyToModule(task.moduleKey);
                     const pct = Math.round((task.progress || 0) * 100);
+                    /* Completed Band：已完成任务永久铺一层模块色淡填充，
+                       做到一眼扫出每个模块哪些是"已经打勾的"，减少大脑扫描成本 */
+                    const completedBg = task.done ? `${grp.color}0E` : 'transparent';
                     return (
                       <div
                         key={task.id}
                         className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
+                        style={{ background: completedBg }}
                         onClick={() => onToggle?.(task.id)}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = `${grp.color}12`; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = completedBg; }}
                       >
                         {/* 圆复选框 */}
                         <div
@@ -262,7 +270,7 @@ export default function FocusPanel({
                           </div>
                         </div>
 
-                        {/* 右侧进度 */}
+                        {/* 右侧进度：确保 6px 高度 + 有填充时加模块色投影（之前写了6px保留，补充投影强度） */}
                         <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]">
                           <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
                             {pct}%
@@ -270,7 +278,11 @@ export default function FocusPanel({
                           <div className="w-[72px] h-[6px] rounded-full overflow-hidden" style={{ background: `${mod.color}18` }}>
                             <div
                               className="h-full rounded-full transition-all"
-                              style={{ width: `${pct}%`, background: mod.color, boxShadow: pct > 0 ? `0 1px 3px ${mod.color}40` : 'none' }}
+                              style={{
+                                width: `${pct}%`,
+                                background: mod.color,
+                                boxShadow: pct > 0 ? `0 1px 4px ${mod.color}55` : 'none',
+                              }}
                             />
                           </div>
                         </div>
@@ -279,6 +291,7 @@ export default function FocusPanel({
                   })}
                 </div>
               )}
+              </div>{/* end padding */}
             </div>
           );
         })}

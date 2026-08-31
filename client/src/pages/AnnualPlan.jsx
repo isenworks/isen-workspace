@@ -1500,26 +1500,30 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   const [collapsed, setCollapsed] = useState({ energy: false, cognition: false, ability: false, work: false, life: false });
   const toggle = (k) => setCollapsed(s => ({ ...s, [k]: !s[k] }));
 
-  /* 卡头(横向 flex,适配窄卡) */
+  /* 年度概览标题：右键可改（复用 InlineEdit contextmenu 设计） */
+  const [ovTitle, setOvTitle] = useState(null);
+
+  /* 卡头(横向 flex,适配窄卡) —— 文字层级对齐精力页卡片(名称14px/间距p-3) */
   const CardHead = ({ c, pctVal }) => {
     const chip = deltaChip(pctVal);
     const col = c.color;
     return (
-      <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-ink-100/60 bg-white/60 cursor-pointer select-none"
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-ink-100/60 bg-white/60 cursor-pointer select-none"
         onClick={() => toggle(c.key)} role="button" aria-expanded={!collapsed[c.key]}>
-        <span className="w-5.5 h-5.5 rounded-md grid place-items-center flex-shrink-0" style={{ width: 22, height: 22, color: col, background: `${col}15` }}>
-          <CategoryIcon catKey={c.key} className="w-[14px] h-[14px]" />
+        {/* 图标：深色填充底 + 白色线形 */}
+        <span className="rounded-md grid place-items-center flex-shrink-0" style={{ width: 24, height: 24, color: '#fff', background: col }}>
+          <CategoryIcon catKey={c.key} className="w-[15px] h-[15px]" />
         </span>
-        <span className="text-[13px] font-bold text-ink-900 leading-none flex-shrink-0">{c.label}</span>
-        {/* 主条:弹性,min-w 保证窄卡也能看见 */}
-        <div className="relative h-4 flex-1 min-w-[40px]">
-          <span className="absolute left-0 right-0 top-1.5 h-1 rounded-full bg-ink-100" />
-          <span className="absolute left-0 top-1.5 h-1 rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: col }} />
-          <span className="absolute -top-[1px] w-[2px] h-[18px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
+        <span className="text-[14px] font-bold text-ink-900 leading-none flex-shrink-0">{c.label}</span>
+        {/* 主条:max-w 适当缩短 / 5px 加粗;时间锚竖线统一 2px 且缩短 */}
+        <div className="relative h-4 flex-1 min-w-[36px] max-w-[130px]">
+          <span className="absolute left-0 right-0 top-[5.5px] h-[5px] rounded-full bg-ink-100" />
+          <span className="absolute left-0 top-[5.5px] h-[5px] rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: col }} />
+          <span className="absolute top-[2px] w-[2px] h-[12px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
         </div>
-        <span className="text-[12px] font-bold tabular-nums leading-none flex-shrink-0 text-right" style={{ color: col, width: 36 }}>{Math.round(pctVal)}%</span>
-        <span className={`text-[9.5px] font-semibold tabular-nums px-1 py-[2px] rounded-full leading-none flex-shrink-0 ${chip.cls}`}>{chip.txt}</span>
-        <svg className={`w-3 h-3 text-ink-300 transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
+        <span className="text-[13px] font-bold tabular-nums leading-none flex-shrink-0 text-right ml-auto" style={{ color: col, width: 38 }}>{Math.round(pctVal)}%</span>
+        <span className={`text-[10.5px] font-semibold tabular-nums px-1.5 py-[3px] rounded-full leading-none flex-shrink-0 ${chip.cls}`}>{chip.txt}</span>
+        <svg className={`w-3.5 h-3.5 text-ink-300 transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
           fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -1527,47 +1531,48 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     );
   };
 
-  /* 卡身(固定高度+渐隐滚动) */
+  /* 卡身(固定高度+渐隐滚动) —— 内边距对齐卡头 px-3 */
   const CardBody = ({ children, show = true }) => (
     <div className="relative bg-white flex-1" style={{ display: show ? 'block' : 'none' }}>
-      <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 150, padding: '2px 10px 6px' }}>
+      <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 165, padding: '3px 12px 8px' }}>
         {children}
       </div>
       <div className="absolute left-0 right-0 bottom-0 pointer-events-none" style={{ height: 26, background: 'linear-gradient(180deg,transparent,#fff)' }} />
     </div>
   );
 
-  /* 子行 4 列 Grid:名称(含规格) / 迷你条 / val / pct */
-  const SubRow = ({ name, pct: p, val, color, done }) => (
-    <div className="grid items-center gap-1.5 py-1 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 54px 42px 28px', minHeight: 26 }}>
-      <span className={`text-[11.5px] font-medium leading-none truncate ${done === false ? 'text-ink-400' : 'text-ink-800'}`}>{name}</span>
+  /* 子行 4 列 Grid:名称(含规格) / 迷你条 / val / pct(或 tail 自定义尾元素)
+     文字放大一级:名称12.5px/val 11px/pct 11.5px;迷你条 3px 加粗、46px 缩短;竖线统一 2px */
+  const SubRow = ({ name, pct: p, val, color, done, tail }) => (
+    <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 46px 44px 38px', minHeight: 28 }}>
+      <span className={`text-[12.5px] font-medium leading-none truncate ${done === false ? 'text-ink-400' : 'text-ink-800'}`}>{name}</span>
       <div className="relative h-1.5 w-full">
         {done === undefined && (<>
-          <span className="absolute left-0 right-0 top-[2px] h-[2px] rounded-full bg-ink-100/80" />
-          <span className="absolute left-0 top-[2px] h-[2px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
-          <span className="absolute -top-[2px] w-[1.5px] h-[10px] rounded-sm bg-ink-900/50" style={{ left: `${anchor}%` }} />
+          <span className="absolute left-0 right-0 top-[1.5px] h-[3px] rounded-full bg-ink-100/80" />
+          <span className="absolute left-0 top-[1.5px] h-[3px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
+          <span className="absolute -top-[2px] w-[2px] h-[10px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
         </>)}
       </div>
-      <span className={`text-[10px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-ink-400' : 'text-ink-600'}`}>{val}</span>
-      <span className="text-[10.5px] font-bold tabular-nums text-right leading-none" style={{ color: done === false ? '#C7C7CC' : color }}>
-        {done === true ? '✓' : done === false ? '–' : `${Math.round(p)}%`}
-      </span>
+      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-ink-400' : 'text-ink-600'}`}>{val}</span>
+      {tail ?? (
+        <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: done === false ? '#C7C7CC' : color }}>
+          {done === true ? '✓' : done === false ? '–' : `${Math.round(p)}%`}
+        </span>
+      )}
     </div>
   );
 
-  /* 知力漏斗行:名称+转化一行,比例条下一行(窄卡占满) */
+  /* 知力漏斗行:标题与色块同一行对齐;色块宽度上限 60%(整体缩短),数值嵌色块内,转化率随行右对齐 */
   const FunnelRow = ({ label, count, idx, conv, total }) => {
-    const pctW = Math.max(8, (count / total) * 100);
+    const pctW = Math.max(12, (count / (total || 1)) * 60);
     return (
-      <div className="py-[3px] border-t border-ink-100/40">
-        <div className="flex items-center justify-between gap-1 mb-[3px]">
-          <span className="text-[11px] font-medium text-ink-800 leading-none">{label}</span>
-          <span className="text-[9.5px] font-semibold tabular-nums leading-none text-[#0B62D6]">{conv}</span>
-        </div>
-        <div className="h-[11px] rounded flex items-center relative"
+      <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
+        <span className="text-[12.5px] font-medium text-ink-800 leading-none w-[48px] flex-shrink-0">{label}</span>
+        <div className="h-[14px] rounded flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: `rgba(0,122,255,${[0.16, 0.28, 0.42, 0.6, 1][idx]})` }}>
-          <span className={`text-[9px] font-semibold tabular-nums ml-1 leading-none ${idx === 4 ? 'text-white' : 'text-ink-700'}`}>{count}</span>
+          <span className={`text-[10px] font-semibold tabular-nums ml-1.5 leading-none ${idx === 4 ? 'text-white' : 'text-ink-700'}`}>{count}</span>
         </div>
+        <span className="text-[10.5px] font-semibold tabular-nums leading-none text-[#0B62D6] flex-shrink-0 ml-auto">{conv}</span>
       </div>
     );
   };
@@ -1578,10 +1583,10 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     const doneRow = (obj?.krs || []).filter(k => k.st === 'done');
     return (
       <>
-        <div className="flex items-center gap-1 pt-1.5 pb-0.5">
-          <span className="w-[3px] h-[9px] rounded-sm flex-shrink-0" style={{ background: color }} />
-          <span className="text-[10px] font-bold text-ink-700 leading-none">{title}</span>
-          <span className="text-[9.5px] text-ink-400 leading-none truncate ml-0.5">{obj?.title}</span>
+        <div className="flex items-center gap-1.5 pt-1.5 pb-1">
+          <span className="w-[3px] h-[10px] rounded-sm flex-shrink-0" style={{ background: color }} />
+          <span className="text-[11px] font-bold text-ink-700 leading-none">{title}</span>
+          <span className="text-[10.5px] text-ink-400 leading-none truncate ml-0.5">{obj?.title}</span>
         </div>
         {active.map(k => {
           const due = k.dueBy ? (k.dueBy).slice(5).replace('-', '.') : '';
@@ -1592,7 +1597,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           );
         })}
         {doneRow.length > 0 && (
-          <div className="text-[9.5px] text-ink-400 leading-none py-1 truncate">
+          <div className="text-[10.5px] text-ink-400 leading-none py-1 truncate">
             已完成 {doneRow.length} · {doneRow.map(k => k.t.replace(/\s*\(.*?\)/g, '')).join('/')}
           </div>
         )}
@@ -1606,8 +1611,13 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       <div className="glass-card p-4">
         {/* 标题行 */}
         <div className="flex items-center gap-3 mb-3">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }} />
-          <span className="text-[16px] font-bold text-ink-900 leading-none">{year}年 · 模块进度</span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#007AFF' }} />
+          <InlineEdit
+            value={ovTitle ?? `${year}年 · 模块概览`}
+            onChange={setOvTitle}
+            mode="contextmenu"
+            title="右键修改标题"
+            className="text-[16px] font-bold text-ink-900 leading-none" />
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[10px] font-semibold text-ink-800 bg-ink-100 border border-ink-200 rounded-full px-2 py-[2px] leading-none">
               ⌖ 时间锚 {anchor}%
@@ -1648,7 +1658,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                   {labels5.map((lb, i) => (
                     <FunnelRow key={lb} label={lb} count={counts[i]} idx={i} conv={rates[i] || '—'} total={funnel.total} />
                   ))}
-                  <div className="text-[9.5px] text-ink-400 leading-none py-1 truncate">
+                  <div className="text-[10.5px] text-ink-400 leading-none py-1 truncate">
                     已读 {funnel.done}/{funnel.total} · 待读 {dynBooks.filter(b => b.st === 'pending').length}
                   </div>
                 </>);
@@ -1688,10 +1698,14 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             <CardBody show={!collapsed.life}>
               {dynLife.map(cat => {
                 const n = cat.entries.length;
+                /* 排版:关系  已记录  3条(3条加粗紫色) */
                 return (
-                  <SubRow key={cat.key} name={`${cat.lb} · ${n}条`}
-                    pct={0} val={n > 0 ? '已覆盖' : '待开启'}
-                    color={cat.color} done={n > 0 ? true : false} />
+                  <SubRow key={cat.key} name={cat.lb}
+                    pct={0} val={n > 0 ? '已记录' : '待开启'}
+                    color={cat.color} done={n > 0 ? true : false}
+                    tail={n > 0 ? (
+                      <span className="text-[12.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: '#AF52DE' }}>{n}条</span>
+                    ) : undefined} />
                 );
               })}
             </CardBody>

@@ -558,13 +558,14 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               ></circle>
             </svg>
           </div>
-          <span className="section-sub">{done} / {habits.length}</span>
+          <span className="text-[12px] font-bold tabular-nums text-[#1c1c1e] inline-flex items-center px-2 py-[3px] rounded-full" style={{ background: 'rgba(120,120,128,0.10)' }}><span className="font-extrabold">{done}</span><span className="opacity-40 mx-[2px]">/</span><span className="opacity-75">{habits.length}</span></span>
           <button
             onClick={() => { window.__openHabitModal && window.__openHabitModal(null); }}
-            className="btn-secondary text-xs px-2 py-1"
+            className="inline-flex items-center justify-center rounded-[8px] text-[#1c1c1e] text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
+            style={{ background: 'rgba(120,120,128,0.12)' }}
             title="添加习惯"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
           </button>
         </div>
       </div>

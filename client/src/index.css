@@ -102,7 +102,7 @@ body {
 }
 .tab-group button.active {
   background: #007AFF; color: #fff; font-weight: 600;
-  border-radius: 999px;
+  border-radius: 7px; /* 动作/容器圆角方：今日 tab / 月tab 等选中段保持方角，仅小 7px 倒角 */
   box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
 }
 

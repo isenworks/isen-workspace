@@ -1545,7 +1545,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
      名称12.5px/val 11px/pct 11.5px;迷你条放大 6px、列宽 44px;时间锚竖线 白+柔光 3×14 */
   const SubRow = ({ name, pct: p, val, color, done, tail }) => (
     <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 44px 38px', minHeight: 28 }}>
-      <span className={`text-[12.5px] font-bold leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#5A5A5C]'}`}>{name}</span>
+      <span className={`text-[12.5px] font-semibold leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#48484A]'}`}>{name}</span>
       <div className="relative h-2 w-full">
         {done === undefined && (<>
           <span className="absolute left-0 right-0 top-[1px] h-[6px] rounded-full bg-ink-100/80" />
@@ -1567,7 +1567,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     const pctW = Math.max(12, (count / (total || 1)) * 60);
     return (
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
-        <span className="text-[12.5px] font-bold text-[#5A5A5C] leading-none w-[48px] flex-shrink-0">{label}</span>
+        <span className="text-[12.5px] font-semibold text-[#48484A] leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: '#007AFF' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
@@ -1947,7 +1947,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       style={{ color: GREEN }}>
                       {padNum}
                     </span>
-                    <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-ink-700">
+                    <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-[#48484A]">
                       {cleanLabel}
                     </span>
                   </div>
@@ -2013,7 +2013,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className={monthsCollapsed ? '' : 'mt-2'}></div>
         {!monthsCollapsed && (
           <>
-        <div className="grid habit-table px-0 py-1 bg-transparent text-[14px] font-semibold text-ink-700">
+        <div className="grid habit-table px-0 py-1 bg-transparent text-[14px] font-semibold text-[#48484A]">
           <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
           </div>
           <div className="text-center whitespace-nowrap rate-gap">完成率</div>
@@ -2062,7 +2062,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   style={{ color: GREEN }}>
                   {padNum}
                 </span>
-                <span className="text-[14px] font-semibold truncate leading-none text-ink-700">{cleanLabel}</span>
+                <span className="text-[14px] font-semibold truncate leading-none text-[#48484A]">{cleanLabel}</span>
               </div>
               <div className="flex justify-center items-center cursor-pointer rate-gap" onClick={() => onAction?.('editHabit', h)}>
                 {h.target > 0 ? (
@@ -2241,7 +2241,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     style={{ color: GREEN }}>
                     {padNum}
                   </span>
-                  <span className="text-[14px] font-semibold truncate leading-none text-ink-700 min-w-0 flex-1">
+                  <span className="text-[14px] font-semibold truncate leading-none text-[#48484A] min-w-0 flex-1">
                     {cleanLabel}
                   </span>
                 </div>
@@ -2263,7 +2263,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         </span>
                       </span>
                       <div className="flex items-baseline leading-none flex-shrink-0">
-                        <span className="text-[12.5px] font-semibold tabular-nums text-ink-700">{doneCount}</span>
+                        <span className="text-[12.5px] font-semibold tabular-nums text-[#48484A]">{doneCount}</span>
                         <span className="text-[12.5px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
                         <span className="text-[12.5px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
                         <span className="text-[12.5px] font-medium tabular-nums text-ink-400 ml-[2px]">{h.unit || '天'}</span>
@@ -2629,7 +2629,7 @@ function BookPickerModal({ mode, books, onPick, onAddNew, onClose }) {
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   </svg>
-                  <span className="text-[13px] font-semibold text-ink-900 truncate flex-1 min-w-0">{b.t}</span>
+                  <span className="text-[13px] font-semibold text-[#48484A] truncate flex-1 min-w-0">{b.t}</span>
                   {b.author && <span className="text-[11px] text-ink-400 flex-shrink-0 truncate max-w-[90px]">{b.author}</span>}
                   <span className="text-[10px] font-semibold px-1.5 rounded-md flex-shrink-0"
                     style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
@@ -3838,7 +3838,7 @@ function CognitionView({
                       style={{ color: BLUE }}>{padNum}</span>
                     <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
                       <div onClick={() => openEditKrModal(kr)} className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-[13px] font-semibold text-ink-700 truncate leading-none group-hover:text-ink-900">{cleanLb}</span>
+                        <span className="text-[13px] font-semibold text-[#48484A] truncate leading-none group-hover:text-ink-900">{cleanLb}</span>
                         <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
                           {kr.tgt}{kr.u}
                         </span>
@@ -4217,8 +4217,8 @@ function CognitionView({
                               {/* 行1：书名 左 + 跳转↗ 右 */}
                               <div className="flex items-start justify-between gap-2 min-w-0">
                                 <div className="min-w-0 flex-1">
-                                  <div className={`min-w-0 truncate text-[15px] font-bold leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
-                                    style={{ color: isDone ? '#64748b' : '#0f172a', letterSpacing: '0.1px' }}>
+                                  <div className={`min-w-0 truncate text-[15px] leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
+                                    style={{ fontWeight: 600, color: isDone ? '#8E8E93' : '#48484A', letterSpacing: '0.1px' }}>
                                     {b.t}
                                   </div>
                                 </div>
@@ -4685,7 +4685,7 @@ function CognitionView({
                     style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
                     onClick={() => setEditingReview(r)}>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-[12px] font-semibold text-ink-900 leading-snug line-clamp-2 flex-1 min-w-0">{r.text || '未命名改变'}</div>
+                      <div className="text-[12px] font-semibold text-[#48484A] leading-snug line-clamp-2 flex-1 min-w-0">{r.text || '未命名改变'}</div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{
                           background: tm.bg, border: `1px solid ${tm.bd}`,
@@ -4938,7 +4938,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
                   </button>
                   {/* 文字区：主文字 13px semibold ink-700 —— 对齐知力页 OKR KR 规格；长标题 2 行截断 */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); onMsEdit?.(as.idx, i, m); }}>
-                    <div className={`text-[13px] font-semibold leading-snug line-clamp-2 ${isDone ? 'text-ink-400 line-through' : 'text-ink-700'}`}>
+                    <div className={`text-[13px] font-semibold leading-snug line-clamp-2 ${isDone ? 'text-ink-400 line-through' : 'text-[#48484A]'}`}>
                       {m.lb}
                     </div>
                     {m.dueBy && (
@@ -5191,7 +5191,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                     style={{ color: COLOR }}>{padNum}</span>
                   <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
                     <div onClick={() => onKrEdit?.(goalIdx, i, kr)} title="点击编辑 KR" className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
-                      <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-ink-700">{kr.t}</span>
+                      <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[#48484A]">{kr.t}</span>
                       <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
                         {kr.tgt}{kr.u}
                       </span>
@@ -5353,7 +5353,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: rm.color }}></span>
-                    <span className="text-[11.5px] font-semibold text-ink-800 truncate leading-tight">{kr.t}</span>
+                    <span className="text-[11.5px] font-semibold text-[#48484A] truncate leading-tight">{kr.t}</span>
                   </div>
                   <button
                     className="text-[9.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap transition flex-shrink-0"
@@ -5464,7 +5464,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               </div>
               {/* 里程碑标题（O 的阶段子项） */}
               <div className="flex-1 min-w-0 pl-1">
-                <div className={`text-[11.5px] font-semibold truncate leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-ink-800'}`}>
+                <div className={`text-[11.5px] font-semibold truncate leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-[#48484A]'}`}>
                   {kr.t}
                 </div>
                 {!isDone && kr.v !== undefined && kr.tgt && (
@@ -5594,7 +5594,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                     {c.key === 'shop' && (<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>)}
                   </svg>
                 </div>
-                <span className="text-[15px] font-semibold text-ink-900 leading-none">{c.lb}</span>
+                <span className="text-[15px] font-semibold text-[#48484A] leading-none">{c.lb}</span>
                 <span className="text-[12px] font-semibold tabular-nums text-ink-500">· {c.entries.length}</span>
                 {/* 右上角添加按钮（胶囊，与知力/能力页卡片头部一致） */}
                 <button onClick={() => onEntryAdd?.(ci, c.lb)}
@@ -5639,7 +5639,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                       </div>
                     )}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="text-xs font-semibold text-ink-900 leading-snug flex-1 min-w-0">{e.t}</div>
+                      <div className="text-xs font-semibold text-[#48484A] leading-snug flex-1 min-w-0">{e.t}</div>
                       <div className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
                     </div>
                     {e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-1">{e.n}</div>}

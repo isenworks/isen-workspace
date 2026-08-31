@@ -562,7 +562,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           <button
             onClick={() => { window.__openHabitModal && window.__openHabitModal(null); }}
             className="inline-flex items-center justify-center rounded-lg text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
-            style={{ background: 'rgba(120,120,128,0.08)', border: '1px solid rgba(120,120,128,0.22)', color: '#8E8E93' }}
+            style={{ background: 'rgba(120,120,128,0.12)', color: '#8E8E93' }}
             title="添加习惯"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>

@@ -1476,12 +1476,12 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   const anchor = Math.min(100, Math.round((dayOfYear / 365) * 1000) / 10);
   const daysLeft = Math.max(0, Math.ceil((new Date(year, 11, 31) - now) / 86400000));
 
-  /* 差值胶囊:↑(超前绿)/±(贴近蓝)/↓(落后红),带% */
+  /* 差值胶囊:↑(超前绿)/±(贴近蓝)/↓(落后红),带% — iOS色系饱和填充 */
   const deltaChip = (p) => {
     const d = Math.round(p - anchor);
-    if (d > 5) return { txt: `↑${d}%`, cls: 'bg-[#34C759]/14 text-[#1E8E3E]' };
-    if (d < -5) return { txt: `↓${Math.abs(d)}%`, cls: 'bg-[#FF3B30]/12 text-[#D70015]' };
-    return { txt: `±${Math.abs(d)}%`, cls: 'bg-[#007AFF]/10 text-[#0B62D6]' };
+    if (d > 5) return { txt: `↑${d}%`, cls: 'bg-[#34C759]/20 text-[#248A3D]' };
+    if (d < -5) return { txt: `↓${Math.abs(d)}%`, cls: 'bg-[#FF3B30]/18 text-[#D70015]' };
+    return { txt: `±${Math.abs(d)}%`, cls: 'bg-[#007AFF]/15 text-[#0040DD]' };
   };
 
   /* 漏斗 & 工作 源数据 */
@@ -1514,16 +1514,16 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
         <span className="rounded-md grid place-items-center flex-shrink-0" style={{ width: 24, height: 24, color: '#fff', background: col }}>
           <CategoryIcon catKey={c.key} className="w-[15px] h-[15px]" />
         </span>
-        <span className="text-[14px] font-bold text-ink-900 leading-none flex-shrink-0">{c.label}</span>
-        {/* 主条:--bar-sm 6px; 时间锚竖线 白色隔断+柔光 4×12 */}
-        <div className="relative h-5 flex-1 min-w-[36px] max-w-[130px]">
-          <span className="absolute left-0 right-0 top-[7px] h-[6px] rounded-full bg-ink-100" />
-          <span className="absolute left-0 top-[7px] h-[6px] rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: col }} />
-          <span className="absolute top-[4px] w-[4px] h-[12px] rounded-sm bg-white" style={{ left: `${anchor}%`, boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />
+        <span className="text-[14px] font-bold text-[#000000] leading-none flex-shrink-0">{c.label}</span>
+        {/* 主条:--bar-sm 放大 8px; 时间锚竖线 白色隔断+柔光 4×14 */}
+        <div className="relative h-6 flex-1 min-w-[36px] max-w-[130px]">
+          <span className="absolute left-0 right-0 top-[8px] h-[8px] rounded-full bg-ink-100" />
+          <span className="absolute left-0 top-[8px] h-[8px] rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: col }} />
+          <span className="absolute top-[5px] w-[4px] h-[14px] rounded-sm bg-white" style={{ left: `${anchor}%`, boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />
         </div>
         <span className="text-[13px] font-bold tabular-nums leading-none flex-shrink-0 text-right ml-auto" style={{ color: col, width: 38 }}>{Math.round(pctVal)}%</span>
         <span className={`text-[10.5px] font-semibold tabular-nums px-1.5 py-[3px] rounded-full leading-none flex-shrink-0 ${chip.cls}`}>{chip.txt}</span>
-        <svg className={`w-3.5 h-3.5 text-ink-300 transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
+        <svg className={`w-3.5 h-3.5 text-[#C7C7CC] transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
           fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -1542,18 +1542,18 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   );
 
   /* 子行 4 列 Grid:名称(含规格) / 迷你条 / val / pct(或 tail 自定义尾元素)
-     名称12.5px/val 11px/pct 11.5px;迷你条 --bar-xs 4px、列宽 44px;时间锚竖线 白+柔光 3×12 */
+     名称12.5px/val 11px/pct 11.5px;迷你条放大 6px、列宽 44px;时间锚竖线 白+柔光 3×14 */
   const SubRow = ({ name, pct: p, val, color, done, tail }) => (
     <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 44px 38px', minHeight: 28 }}>
-      <span className={`text-[12.5px] font-medium leading-none truncate ${done === false ? 'text-ink-400' : 'text-ink-800'}`}>{name}</span>
-      <div className="relative h-1.5 w-full">
+      <span className={`text-[12.5px] font-bold leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#1C1C1E]'}`}>{name}</span>
+      <div className="relative h-2 w-full">
         {done === undefined && (<>
-          <span className="absolute left-0 right-0 top-[1px] h-[4px] rounded-full bg-ink-100/80" />
-          <span className="absolute left-0 top-[1px] h-[4px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
-          <span className="absolute -top-[2px] w-[3px] h-[12px] rounded-sm bg-white" style={{ left: `${anchor}%`, boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />
+          <span className="absolute left-0 right-0 top-[1px] h-[6px] rounded-full bg-ink-100/80" />
+          <span className="absolute left-0 top-[1px] h-[6px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
+          <span className="absolute -top-[3px] w-[3px] h-[14px] rounded-sm bg-white" style={{ left: `${anchor}%`, boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />
         </>)}
       </div>
-      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-ink-400' : 'text-ink-600'}`}>{val}</span>
+      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-[#8E8E93]' : 'text-[#6C6C70]'}`}>{val}</span>
       {tail ?? (
         <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: done === false ? '#C7C7CC' : color }}>
           {done === true ? '✓' : done === false ? '–' : `${Math.round(p)}%`}
@@ -1567,12 +1567,12 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     const pctW = Math.max(12, (count / (total || 1)) * 60);
     return (
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
-        <span className="text-[12.5px] font-medium text-ink-800 leading-none w-[48px] flex-shrink-0">{label}</span>
+        <span className="text-[12.5px] font-bold text-[#1C1C1E] leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: '#007AFF' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
         </div>
-        <span className="text-[10.5px] font-semibold tabular-nums leading-none text-[#0B62D6] flex-shrink-0 ml-auto">{conv}</span>
+        <span className="text-[11.5px] font-bold tabular-nums leading-none text-[#0040DD] flex-shrink-0 ml-auto">{conv}</span>
       </div>
     );
   };
@@ -1585,8 +1585,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       <>
         <div className="flex items-center gap-1.5 pt-1.5 pb-1">
           <span className="w-[3px] h-[12px] rounded-sm flex-shrink-0" style={{ background: color }} />
-          <span className="text-[11px] font-bold text-ink-700 leading-none">{title}</span>
-          <span className="text-[10.5px] text-ink-400 leading-none truncate ml-0.5">{obj?.title}</span>
+          <span className="text-[11px] font-bold text-[#3C3C43] leading-none">{title}</span>
+          <span className="text-[10.5px] text-[#8E8E93] leading-none truncate ml-0.5">{obj?.title}</span>
         </div>
         {active.map(k => {
           const due = k.dueBy ? (k.dueBy).slice(5).replace('-', '.') : '';
@@ -1597,7 +1597,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           );
         })}
         {doneRow.length > 0 && (
-          <div className="text-[10.5px] text-ink-400 leading-none py-1 truncate">
+          <div className="text-[10.5px] text-[#8E8E93] leading-none py-1 truncate">
             已完成 {doneRow.length} · {doneRow.map(k => k.t.replace(/\s*\(.*?\)/g, '')).join('/')}
           </div>
         )}
@@ -1658,7 +1658,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                   {labels5.map((lb, i) => (
                     <FunnelRow key={lb} label={lb} count={counts[i]} idx={i} conv={rates[i] || '—'} total={funnel.total} />
                   ))}
-                  <div className="text-[10.5px] text-ink-400 leading-none py-1 truncate">
+                  <div className="text-[10.5px] text-[#8E8E93] leading-none py-1 truncate">
                     已读 {funnel.done}/{funnel.total} · 待读 {dynBooks.filter(b => b.st === 'pending').length}
                   </div>
                 </>);
@@ -1699,10 +1699,10 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                 /* 排版:关系  已记录  3条(3条加粗紫色) */
                 return (
                   <SubRow key={cat.key} name={cat.lb}
-                    pct={0} val={n > 0 ? '已记录' : '待开启'}
+                    pct={0} val={n > 0 ? '' : '待开启'}
                     color={cat.color} done={n > 0 ? true : false}
                     tail={n > 0 ? (
-                      <span className="text-[12.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: '#AF52DE' }}>{n}条</span>
+                      <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: '#AF52DE' }}>{n}条</span>
                     ) : undefined} />
                 );
               })}
@@ -1710,14 +1710,14 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           </div>
         </div>
 
-        {/* 图例:竖线 白+柔光 4×12 跟卡头一致;色块 h-1.5(6px) 跟卡头条一致 */}
-        <div className="flex items-center gap-3 mt-3 text-[10.5px] text-ink-400 flex-wrap pl-0.5">
-          <span className="inline-flex items-center gap-1"><span className="w-[4px] h-[12px] rounded-sm bg-white inline-block" style={{ boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />时间锚 {anchor}%</span>
-          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-1.5 rounded-full bg-[#34C759] inline-block" />实际</span>
+        {/* 图例:竖线 白+柔光 4×14 跟卡头一致;色块 h-2(8px) 跟卡头条一致 */}
+        <div className="flex items-center gap-3 mt-3 text-[10.5px] text-[#8E8E93] flex-wrap pl-0.5">
+          <span className="inline-flex items-center gap-1"><span className="w-[4px] h-[14px] rounded-sm bg-white inline-block" style={{ boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />时间锚 {anchor}%</span>
+          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-2 rounded-full bg-[#34C759] inline-block" />实际</span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(52,199,89,0.12)', color: '#1E8E3E' }}><span className="font-semibold">↑</span>超前</span>
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(0,122,255,0.10)', color: '#0B62D6' }}><span className="font-semibold">±</span>贴近</span>
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(255,59,44,0.10)', color: '#D70015' }}><span className="font-semibold">↓</span>落后</span>
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(52,199,89,0.20)', color: '#248A3D' }}><span className="font-semibold">↑</span>超前</span>
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(0,122,255,0.15)', color: '#0040DD' }}><span className="font-semibold">±</span>贴近</span>
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(255,59,44,0.18)', color: '#D70015' }}><span className="font-semibold">↓</span>落后</span>
           </span>
         </div>
       </div>

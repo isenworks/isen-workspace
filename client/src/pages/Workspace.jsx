@@ -19,6 +19,7 @@ import { API } from '../api/client.js';
 import SettingsModal from '../components/SettingsModal.jsx';
 import { store } from '../utils/store.js';
 import AnnualPlan from './AnnualPlan.jsx';
+import CalendarPage from './CalendarPage.jsx';
 
 const VIEW_RANGES = {
   today: (d) => ({ from: d, to: d }),
@@ -386,6 +387,10 @@ export default function Workspace({ user: propUser }) {
       {activeMenu === 'annual' ? (
         <div className="flex-1 min-w-0">
           <AnnualPlan standalone={false} />
+        </div>
+      ) : activeMenu === 'calendar' ? (
+        <div className="flex-1 min-w-0">
+          <CalendarPage onEditSchedule={() => setModal({ type: 'schedule' })} />
         </div>
       ) : (
         <main className="flex-1 min-w-0 max-w-[1180px] flex flex-col gap-4">

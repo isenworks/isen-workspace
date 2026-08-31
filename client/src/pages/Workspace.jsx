@@ -37,6 +37,7 @@ export default function Workspace({ user: propUser }) {
   const user = propUser || authUser;
   const logout = authLogout || (() => {});
   const [activeMenu, setActiveMenu] = useState('plan');
+  const [annualView, setAnnualView] = useState('overview');
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [view, setView] = useState('today');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -390,7 +391,7 @@ export default function Workspace({ user: propUser }) {
       {/* 主内容区 */}
       {activeMenu === 'annual' ? (
         <div className="flex-1 min-w-0">
-          <AnnualPlan standalone={false} />
+          <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} />
         </div>
       ) : activeMenu === 'calendar' ? (
         <div className="flex-1 min-w-0">
@@ -450,6 +451,13 @@ export default function Workspace({ user: propUser }) {
                   setModal({ type: 'schedule', data: initial });
                 }
               }
+            }}
+            onJumpToAnnualView={(viewKey) => {
+              // 主线卡片：点击"习惯同步·作息 / 书架同步 / 能力项·XX / 工作目标 / 生活记录"
+              // 等 srcTag 关联/同步标签 → 关闭所有 modal & 跳转年度规划对应模块页
+              setModal(null);
+              setAnnualView(viewKey);
+              setActiveMenu('annual');
             }}
           />
         </div>

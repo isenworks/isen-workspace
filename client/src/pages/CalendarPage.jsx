@@ -32,11 +32,16 @@ import { HABITS, BOOKS, ABILITY, WORK, LIFE } from './AnnualPlan.jsx';
  *   · 5) 数据源：年度规划 HABITS/BOOKS/ABILITY/WORK/LIFE + 计划总结 ethan_schedules API 聚合同源（需求 3/5/6）
  * ============================================================ */
 
-/* ===== 精力 habitKey → 标题简写（AnnualPlan 里的 label 是"睡觉 23:00 前"等，主线要更凝练）===== */
 const HABIT_SHORT_LABEL = {
   sleep: '作息 23点前',
   sport: '运动 ≥30 分',
   water: '喝水 ≥2L',
+};
+/* 习惯子标签（与短标题对应，用于"习惯同步·作息"场景）*/
+const HABIT_TAG_LABEL = {
+  sleep: '作息',
+  sport: '运动',
+  water: '喝水',
 };
 /* 习惯顺序权重（需求 3：严格按 作息→运动→喝水；FocusPanel 也按此排序，isHabit=true 渲染实心圆）*/
 const HABIT_WEIGHT = { sleep: 1, sport: 2, water: 3 };
@@ -88,7 +93,7 @@ function aggregateTasksFromAnnualPlan(year, month) {
       title: `${shortLabel}  ${pct}%  ${monthCur}/${monthTarget}${h.unit}`,
       progress: pct / 100,
       done: pct >= 100,
-      srcTag: '≡ 年度规划 · 习惯同步',
+      srcTag: `≡ 年度规划 · 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || shortLabel}`,
       srcTagColor: 'rgba(52,199,89,0.08)',
       srcTagTextColor: '#34C759',
       habitData: { ...h, monthCur, monthTarget, shortLabel },
@@ -110,7 +115,7 @@ function aggregateTasksFromAnnualPlan(year, month) {
       progress: pct / 100,
       done: pct >= 100 || b.st === 'done',
       note: `${statusLb} · ${b.cat}`,
-      srcTag: '≡ 年度规划 · 书架同步',
+      srcTag: `≡ 年度规划 · 书架同步 · ${b.cat || '知力'}`,
       srcTagColor: 'rgba(0,122,255,0.08)',
       srcTagTextColor: '#0040DD',
       bookData: { ...b }, // 整本书数据 → 点击直接开 BookForm 同构面板
@@ -345,7 +350,7 @@ function eventToScheduleInitial(ev, date) {
 }
 
 /* ========= CalendarPage 容器 ========= */
-export default function CalendarPage({ onEditSchedule }) {
+export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   const todayISO = getToday();
   const todayObj = fromISODate(todayISO);
 
@@ -583,6 +588,22 @@ export default function CalendarPage({ onEditSchedule }) {
     );
   }, [onEditSchedule, todayISO]);
 
+  /* === 标签点击跳转：关联/同步/习惯同步·作息 等 srcTag 胶囊
+       · 依据 task.moduleKey 映射到 AnnualPlan 的 view：
+         energy→energy | cognition→cognition | ability→ability | work→work | life→life */
+  const MODULE_TO_ANNUAL_VIEW = {
+    energy:    'energy',
+    cognition: 'cognition',
+    ability:   'ability',
+    work:      'work',
+    life:      'life',
+  };
+  const handleTagClick = useCallback((task) => {
+    if (!task || !onJumpToAnnualView) return;
+    const viewKey = MODULE_TO_ANNUAL_VIEW[task.moduleKey] || 'overview';
+    onJumpToAnnualView(viewKey, { task });
+  }, [onJumpToAnnualView]);
+
   /* === 月历勾选同步：事件行复选框 → 若有 taskId 则同步主线 done；否则仅翻转事件 is_done === */
   const handleEventToggle = useCallback((ev, date) => {
     // 1) 如果与左卡关联，先同步左卡 done
@@ -724,6 +745,7 @@ export default function CalendarPage({ onEditSchedule }) {
               onEditTask={(task) => openEditorForTask(task, { isMonth: true })}
               onDeleteTask={(task) => deleteTask(task, { isMonth: true })}
               onRestoreTask={(task) => restoreTask(task, { isMonth: true })}
+              onTagClick={handleTagClick}
               deletedTasks={deletedMonthTasks}
               compact={tabView !== 'month'}
             />
@@ -742,6 +764,7 @@ export default function CalendarPage({ onEditSchedule }) {
               onEditTask={(task) => openEditorForTask(task, { isMonth: false })}
               onDeleteTask={(task) => deleteTask(task, { isMonth: false })}
               onRestoreTask={(task) => restoreTask(task, { isMonth: false })}
+              onTagClick={handleTagClick}
               deletedTasks={deletedWeekTasks}
             />
           )}
@@ -836,6 +859,9 @@ export default function CalendarPage({ onEditSchedule }) {
                     done: Boolean(ev.is_done || ev.done),
                     progress: ev.is_done ? 1 : 0,
                     note: [ev.start_time, ev.end_time].filter(Boolean).join(' - ') || undefined,
+                    srcTag: ev.srcTag,
+                    srcTagColor: ev.srcTagColor,
+                    srcTagTextColor: ev.srcTagTextColor,
                   };
                 })}
                 onToggle={(id) => {
@@ -846,6 +872,7 @@ export default function CalendarPage({ onEditSchedule }) {
                   { type: 'schedule', schedule_date: dayDetail.date, start_time: '09:00', end_time: '10:00' },
                   { source: 'dayDetailAdd', date: dayDetail.date }
                 )}
+                onTagClick={handleTagClick}
                 onEditTask={(task) => {
                   const ev = detailEvents.find(e => (e.id || `${e.date}-${detailEvents.indexOf(e)}`) === task.id);
                   if (ev) handleEventClick(ev, dayDetail.date);

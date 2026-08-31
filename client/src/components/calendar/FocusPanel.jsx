@@ -61,6 +61,7 @@ export default function FocusPanel({
   onEditTask,         // (task) => void     — 标题/非复选框区域点击触发：打开对应编辑面板
   onDeleteTask,       // (task) => void     — 任务行删除（右键删除 / 回收站还原等场景）
   onRestoreTask,      // (task) => void     — 回收站：还原任务
+  onTagClick,         // (task) => void     — 点击"习惯同步·作息/书架同步·个人成长"等关联/同步标签 → 跳对应模块页
   deletedTasks,       // 回收站任务数组（若传则底部出现回收站卡）
   showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
   headerExtra,
@@ -329,11 +330,21 @@ export default function FocusPanel({
                           <div className="flex items-center gap-2 text-[11px] font-medium text-[#8E8E93]">
                             {task.srcTag && (
                               <span
-                                className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold select-none"
                                 style={{
                                   background: task.srcTagColor || mod.soft,
                                   color: task.srcTagTextColor || mod.color,
+                                  cursor: onTagClick ? 'pointer' : 'default',
+                                  transition: 'opacity 0.15s ease, transform 0.15s ease',
                                 }}
+                                onClick={(e) => {
+                                  if (!onTagClick) return;
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  onTagClick(task);
+                                }}
+                                onMouseDown={(e) => { if (onTagClick) e.stopPropagation(); }}
+                                title={onTagClick ? `点击跳转到「${mod.label}」模块` : ''}
                               >
                                 {task.srcTag}
                               </span>

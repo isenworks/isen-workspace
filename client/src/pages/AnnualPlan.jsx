@@ -5696,8 +5696,18 @@ function usePersistentState(key, initial) {
 }
 
 /* ---------- 14. 入口组件 ---------- */
-export default function AnnualPlan({ standalone = true }) {
-  const [view, setView] = useState('overview');
+export default function AnnualPlan({ standalone = true, initialView, onViewChange }) {
+  const [view, setViewState] = useState(initialView || 'overview');
+  // 受控切换：Workspace 可以从外部跳转（如日历点击标签），内部 tab 切换也同步回调
+  const setView = (next) => {
+    setViewState(next);
+    if (typeof onViewChange === 'function') onViewChange(next);
+  };
+  // initialView 变化（外部跳模块）时，内部 view 同步刷新
+  useEffect(() => {
+    if (initialView !== undefined && initialView !== null) setViewState(initialView);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialView]);
   const [toast, setToast] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();

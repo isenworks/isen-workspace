@@ -1534,7 +1534,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   /* 卡身(固定高度+渐隐滚动) —— 内边距对齐卡头 px-3 */
   const CardBody = ({ children, show = true }) => (
     <div className="relative bg-white flex-1" style={{ display: show ? 'block' : 'none' }}>
-      <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 165, padding: '3px 12px 8px' }}>
+      <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 165, padding: '3px 12px 8px 16px' }}>
         {children}
       </div>
       <div className="absolute left-0 right-0 bottom-0 pointer-events-none" style={{ height: 26, background: 'linear-gradient(180deg,transparent,#fff)' }} />
@@ -1569,8 +1569,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
         <span className="text-[12.5px] font-medium text-ink-800 leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded flex items-center flex-shrink-0"
-          style={{ width: `${pctW}%`, background: `rgba(0,122,255,${[0.16, 0.28, 0.42, 0.6, 1][idx]})` }}>
-          <span className={`text-[10px] font-semibold tabular-nums ml-1.5 leading-none ${idx === 4 ? 'text-white' : 'text-ink-700'}`}>{count}</span>
+          style={{ width: `${pctW}%`, background: '#007AFF' }}>
+          <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
         </div>
         <span className="text-[10.5px] font-semibold tabular-nums leading-none text-[#0B62D6] flex-shrink-0 ml-auto">{conv}</span>
       </div>
@@ -1634,7 +1634,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             <CardBody show={!collapsed.energy}>
               {habits.map(h => (
                 <SubRow key={h.key}
-                  name={`${h.label} · ${h.target}${h.unit}/年`}
+                  name={h.label}
                   pct={pct(h.val, h.target)} val={`${h.val}/${h.target}`} color="#34C759" />
               ))}
             </CardBody>
@@ -1673,10 +1673,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
               {dynAbilities.map(a => {
                 const doneMs = a.mstones.filter(m => m.st === 'done').length;
                 const ap = a.mstones.length > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / a.mstones.length) : 0;
-                const dueTag = a.deadline && new Date(a.deadline).getFullYear() === year
-                  ? ` · 截止 ${(a.deadline).slice(5).replace('-', '.')}` : '';
                 return (
-                  <SubRow key={a.id} name={`${a.title}${dueTag}`}
+                  <SubRow key={a.id} name={a.title}
                     pct={ap} val={`${doneMs}/${a.mstones.length}`} color="#FF9500" />
                 );
               })}
@@ -1688,7 +1686,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             <CardHead c={CATEGORIES[3]} pctVal={perCat[3]} />
             <CardBody show={!collapsed.work}>
               <WorkSection title="主业" color="#FF3B30" obj={mainWork} />
-              {sideWork && <WorkSection title="副业" color="#FF9500" obj={sideWork} />}
+              {sideWork && <WorkSection title="副业" color="#FF3B30" obj={sideWork} />}
             </CardBody>
           </div>
 
@@ -1716,10 +1714,10 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
         <div className="flex items-center gap-3 mt-3 text-[10.5px] text-ink-400 flex-wrap pl-0.5">
           <span className="inline-flex items-center gap-1"><span className="w-[4px] h-[12px] rounded-sm bg-white inline-block" style={{ boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />时间锚 {anchor}%</span>
           <span className="inline-flex items-center gap-1"><span className="w-3.5 h-1.5 rounded-full bg-[#34C759] inline-block" />实际</span>
-          <span className="inline-flex items-center gap-2">
-            <span><span className="text-[#1E8E3E] font-semibold">↑</span>超前</span>
-            <span><span className="text-[#0B62D6] font-semibold">±</span>贴近</span>
-            <span><span className="text-[#D70015] font-semibold">↓</span>落后</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(52,199,89,0.12)', color: '#1E8E3E' }}><span className="font-semibold">↑</span>超前</span>
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(0,122,255,0.10)', color: '#0B62D6' }}><span className="font-semibold">±</span>贴近</span>
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(255,59,44,0.10)', color: '#D70015' }}><span className="font-semibold">↓</span>落后</span>
           </span>
         </div>
       </div>

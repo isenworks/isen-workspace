@@ -42,7 +42,7 @@ const __mockMonthDates = (pattern /* 字符串，'1'=打卡 '.'=未打卡，长�
   }
   return { [m]: s };
 };
-const HABITS = [
+export const HABITS = [
   // 精力基建真实数据（方案A·严格按实际录入飞书记录：2026年1月/5月/6月/7月）
   // 来源：飞书多维表格「🟩精力基建(习惯打卡)」tblJOJ5X77aMIzQG
   // 语义：1=打卡 . = 未打卡 / 未记录，2月/3月/4月/8月暂未录入不显示
@@ -73,7 +73,7 @@ const HABITS = [
 ];
 
 /* 认知 · 书籍 */
-const BOOKS = [
+export const BOOKS = [
   { t: '纳瓦尔宝典',   author: 'Eric Jorgenson', cat: '认知成长', st: 'reading', pct: 60, src: '电子书',
     bookId: 'e1e32b00729fc94fe1e824d',
     ebookUrl: 'https://weread.qq.com/web/reader/e1e32b00729fc94fe1e824d',
@@ -194,7 +194,7 @@ function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar })
  * createdAt / deadline / completedAt：时间追踪四件套
  * 里程碑条目级 dueBy：可选（微截止）
  */
-const ABILITY = [
+export const ABILITY = [
   {
     id: 'ab_oral',
     title: '英语口语',
@@ -250,7 +250,7 @@ const ABILITY = [
  * createdAt / deadline / completedAt：时间追踪四件套
  * kr 条目级 dueBy：可选（微截止）
  */
-const WORK = [
+export const WORK = [
   {
     id: 'wk_offer',
     core: true, label: '主业', title: '用户运营offer，薪资≥20k',
@@ -282,7 +282,7 @@ const WORK = [
 ];
 
 /* 生活 */
-const LIFE = [
+export const LIFE = [
   { key:'relation', lb:'关系', color:'#AF52DE', entries:[ /* violet */
     { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'7.28' },
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },

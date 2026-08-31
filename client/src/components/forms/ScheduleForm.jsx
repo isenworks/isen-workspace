@@ -181,6 +181,8 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
   const [cats, setCats] = useState(() => readCats());
   const [catEditorOpen, setCatEditorOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  /* 删除确认弹窗（iOS 风格：需求 2 截图样式 → 与 FocusPanel 同构） */
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
   function refreshCats() { setCats(readCats()); }
@@ -291,13 +293,24 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
     setBusy(false);
   }
 
-  async function remove() {
+  async function doDelete() {
     if (!initial?.id) return;
-    if (!confirm('确认删除该日程？')) return;
     try {
       await API.schedules.remove(initial.id);
+      setConfirmDialog(null);
       onSaved?.();
     } catch (e) { toast.error(e.message); }
+  }
+  function openDeleteConfirm() {
+    if (!initial?.id) return;
+    setConfirmDialog({
+      title: '删除日程',
+      message: `确定删除「${initial.title || '该日程'}」吗？\n删除后不可恢复。`,
+      danger: true,
+      confirmText: '删除',
+      onConfirm: doDelete,
+      onCancel: () => setConfirmDialog(null),
+    });
   }
 
   return (
@@ -426,7 +439,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         <div>
           {initial?.id && (
             <button
-              onClick={remove}
+              onClick={openDeleteConfirm}
               style={{
                 ...BTN_GHOST,
                 color: '#FF3B30',
@@ -450,6 +463,67 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
           </button>
         </div>
       </div>
+
+      {/* ===== iOS 风格删除确认弹窗（与 FocusPanel 同构） ===== */}
+      {confirmDialog && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 80,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(28,28,30,0.40)',
+            backdropFilter: 'blur(4px) saturate(180%)',
+          }}
+          onClick={confirmDialog.onCancel}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            style={{
+              width: 360, background: '#ffffff', borderRadius: '16px', overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '20px 20px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em', margin: 0 }}>
+                {confirmDialog.title}
+              </h3>
+              <p style={{
+                whiteSpace: 'pre-line', marginTop: '6px', marginBottom: 0,
+                fontSize: '13px', lineHeight: 1.55, color: '#8E8E93',
+              }}>{confirmDialog.message}</p>
+            </div>
+            <div style={{ display: 'flex', borderTop: '0.5px solid rgba(60,60,67,0.18)' }}>
+              <button
+                onClick={confirmDialog.onCancel}
+                style={{
+                  flex: 1, padding: '14px 0', fontSize: '15px', fontWeight: 600,
+                  color: '#007AFF', background: 'transparent',
+                  border: 'none', borderRight: '0.5px solid rgba(60,60,67,0.18)',
+                  cursor: 'pointer', transition: 'background .15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.035)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >取消</button>
+              <button
+                onClick={confirmDialog.onConfirm}
+                style={{
+                  flex: 1, padding: '14px 0', fontSize: '15px',
+                  fontWeight: confirmDialog.danger ? 700 : 600,
+                  color: confirmDialog.danger ? '#FF3B30' : '#007AFF',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  transition: 'background .15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = confirmDialog.danger
+                    ? 'rgba(255,59,48,0.06)' : 'rgba(0,122,255,0.06)';
+                }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >{confirmDialog.confirmText || '确认'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -588,6 +662,8 @@ const COLOR_SWATCHES = [
 function CategoryEditor({ cats, onClose, onChange }) {
   const [list, setList] = useState(() => cats.map(c => ({ ...c })));
   const [focusIdx, setFocusIdx] = useState(-1);
+  /* iOS 风格删除确认弹窗（与 FocusPanel / AnnualPlan 同构：需求 2 截图样式） */
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   function patch(idx, diff) {
     setList(prev => prev.map((it, i) => i === idx ? { ...it, ...diff } : it));
@@ -595,9 +671,19 @@ function CategoryEditor({ cats, onClose, onChange }) {
   function remove(idx) {
     const item = list[idx];
     if (!item || item.builtin) return;
-    if (!confirm(`确认删除「${item.label}」？原有日程将统一降级为「其他」`)) return;
-    const next = list.filter((_, i) => i !== idx);
-    onChange(next, 3);
+    // 替换原生 confirm → iOS Alert（双按钮横排：取消 / 删除·红）
+    setConfirmDialog({
+      title: '删除类型',
+      message: `确定删除「${item.label}」吗？\n原有日程将统一降级为「其他」。`,
+      danger: true,
+      confirmText: '删除',
+      onConfirm: () => {
+        setConfirmDialog(null);
+        const next = list.filter((_, i) => i !== idx);
+        onChange(next, 3);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
   }
   function add() {
     const v = nextCustomCatId(list);
@@ -828,6 +914,67 @@ function CategoryEditor({ cats, onClose, onChange }) {
           <button type="button" onClick={save} style={BTN_PRIMARY}>保存</button>
         </div>
       </div>
+
+      {/* ===== iOS 风格类型删除确认弹窗（需求 2：与截图样式完全一致） ===== */}
+      {confirmDialog && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 80,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(28,28,30,0.40)',
+            backdropFilter: 'blur(4px) saturate(180%)',
+          }}
+          onClick={confirmDialog.onCancel}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            style={{
+              width: 360, background: '#ffffff', borderRadius: '16px', overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '20px 20px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em', margin: 0 }}>
+                {confirmDialog.title}
+              </h3>
+              <p style={{
+                whiteSpace: 'pre-line', marginTop: '6px', marginBottom: 0,
+                fontSize: '13px', lineHeight: 1.55, color: '#8E8E93',
+              }}>{confirmDialog.message}</p>
+            </div>
+            <div style={{ display: 'flex', borderTop: '0.5px solid rgba(60,60,67,0.18)' }}>
+              <button
+                onClick={confirmDialog.onCancel}
+                style={{
+                  flex: 1, padding: '14px 0', fontSize: '15px', fontWeight: 600,
+                  color: '#007AFF', background: 'transparent',
+                  border: 'none', borderRight: '0.5px solid rgba(60,60,67,0.18)',
+                  cursor: 'pointer', transition: 'background .15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.035)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >取消</button>
+              <button
+                onClick={confirmDialog.onConfirm}
+                style={{
+                  flex: 1, padding: '14px 0', fontSize: '15px',
+                  fontWeight: confirmDialog.danger ? 700 : 600,
+                  color: confirmDialog.danger ? '#FF3B30' : '#007AFF',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  transition: 'background .15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = confirmDialog.danger
+                    ? 'rgba(255,59,48,0.06)' : 'rgba(0,122,255,0.06)';
+                }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >{confirmDialog.confirmText || '确认'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

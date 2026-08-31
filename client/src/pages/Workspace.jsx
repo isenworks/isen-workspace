@@ -12,6 +12,10 @@ import Modal from '../components/Modal.jsx';
 import ScheduleForm from '../components/forms/ScheduleForm.jsx';
 import TaskForm from '../components/forms/TaskForm.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
+import BookForm from '../components/forms/BookForm.jsx';
+import KrForm from '../components/forms/KrForm.jsx';
+import MilestoneForm from '../components/forms/MilestoneForm.jsx';
+import AbilityForm from '../components/forms/AbilityForm.jsx';
 import FixedScheduleForm from '../components/forms/FixedScheduleForm.jsx';
 import FixedSchedulesPanel from '../components/FixedSchedulesPanel.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
@@ -392,60 +396,54 @@ export default function Workspace({ user: propUser }) {
         <div className="flex-1 min-w-0">
           <CalendarPage
             onEditSchedule={(payload, ctx) => {
-              // 日历页回调：按 payload.type / ctx.module 分发到不同编辑面板（需求 1 标题点击开对应面板）
+              // 日历页回调：按 payload.type / ctx.module 分发到对应编辑面板（需求 4：书籍→书架同款 BookForm）
+              //   新版 CalendarPage 直接在 payload 内携带 initial（book/milestone/kr）；兼容旧版字段 p.title/progress/color
               const p = payload || {};
               const type = p.type || 'schedule';
               switch (type) {
                 case 'book': {
-                  // 知力：书籍编辑面板（复用 AnnualPlan L6227/6228 的 {type:'book', initial, tab} 结构）
+                  // 知力：书籍编辑面板 — 优先使用 payload.initial（CalendarPage 已从 BOOKS 常量或事件匹配注入全书数据）
+                  //   确保点击《纳瓦尔宝典》直接看到 insights/行动/改变量（与 AnnualPlan 书架面板完全同构）
+                  const fallback = { t: p.title || '', author: p.author || '', pct: Number(p.progress) || 0 };
                   setModal({
                     type: 'book',
-                    initial: { t: p.title, author: p.author || '', progress: Number(p.progress) || 0 },
+                    initial: p.initial || fallback,
                     tab: p.tab || 'basic',
                   });
                   break;
                 }
                 case 'milestone': {
-                  // 能力：里程碑面板（作为 schedule 呈现：能力分类 + 截止/颜色合并进 note）
-                  setModal({
-                    type: 'schedule',
-                    data: {
-                      title: p.title,
-                      category: 2,
-                      is_key: true,
-                      note: [p.dueDate, p.color].filter(Boolean).join(' · '),
-                      start_time: '09:00',
-                      end_time: '10:00',
-                      schedule_date: ctx?.date || selectedDate,
-                    },
-                  });
+                  // 能力：里程碑 MilestoneForm（原生面板，initial 结构={lb, st, pct, dueBy, id}）
+                  //   旧版兼容：若仅传 title/dueDate，转为 initial 结构
+                  const fallback = {
+                    lb: p.title || '', pct: 0,
+                    dueBy: p.dueDate?.replace(/^截止 /, '').replace('/', '-'),
+                    st: 'doing',
+                  };
+                  setModal({ type: 'milestone', initial: p.initial || fallback });
                   break;
                 }
                 case 'kr': {
-                  // 工作：关键结果面板（复用 schedule：工作=cat 1，进度写入备注）
-                  setModal({
-                    type: 'schedule',
-                    data: {
-                      title: p.title,
-                      category: 1,
-                      is_key: true,
-                      note: `进度 ${Number(p.progress) || 0}%${p.color ? ` · ${p.color}` : ''}`,
-                      start_time: '10:00',
-                      end_time: '11:00',
-                      schedule_date: ctx?.date || selectedDate,
-                    },
-                  });
+                  // 工作：KR 关键结果 KrForm（原生面板，initial={t, v, tgt, u, st, id}）
+                  //   旧版兼容：仅传 title/progress → initial.t/v 自动填入
+                  const fallback = {
+                    t: p.title || '',
+                    v: Number(p.progress) || 0, tgt: 100, u: '%', st: 'doing',
+                  };
+                  setModal({ type: 'kr', initial: p.initial || fallback });
+                  break;
+                }
+                case 'ability': {
+                  setModal({ type: 'ability', initial: p.initial || { title: p.title || '' } });
                   break;
                 }
                 case 'task':
                 case 'schedule':
                 default: {
                   // 精力/生活/兜底：计划与总结同款 ScheduleForm
-                  // ScheduleForm 接受 initial 字段（见 L481: initial={modal?.data}）
                   const initial = (p && typeof p === 'object' && !Array.isArray(p))
                     ? { ...(p || {}) }
                     : undefined;
-                  // 如果 payload 内没带日期，使用 ctx.date（事件点击）或当前选中日
                   if (initial && !initial.schedule_date) {
                     initial.schedule_date = ctx?.date || selectedDate;
                   }
@@ -532,6 +530,10 @@ export default function Workspace({ user: propUser }) {
         title={
           !modal ? '新建'
           : modal.type === 'summary' ? '每日总结'
+          : modal.type === 'book' ? ((modal.initial?.t ? `《${modal.initial.t}》· 编辑书籍` : '新增书籍'))
+          : modal.type === 'kr' ? (modal.initial?.id ? '编辑 KR' : '新增 KR')
+          : modal.type === 'milestone' ? (modal.initial?.id ? '编辑里程碑' : '新增里程碑')
+          : modal.type === 'ability' ? (modal.initial?.id ? '编辑能力目标' : '新增能力目标')
           : modal.type === 'schedule' ? (modal.data?.id ? '编辑事项' : '新建事项')
           : modal.type === 'habit' ? (modal.data?.id ? '编辑习惯' : '新建习惯')
           : modal.type === 'fixedSchedules' ? '固定日程管理'
@@ -545,6 +547,40 @@ export default function Workspace({ user: propUser }) {
             defaultDate={selectedDate}
             onSaved={() => { setModal(null); refresh(); }}
             onCancel={() => setModal(null)}
+          />
+        )}
+        {/* ===== 需求 4：知力卡片点击《纳瓦尔宝典》→ 复用 AnnualPlan 书架同款 BookForm 面板 ===== */}
+        {modal?.type === 'book' && (
+          <BookForm
+            initial={modal?.initial}
+            initialTab={modal?.tab || 'basic'}
+            onSaved={() => { setModal(null); refresh(); store?.broadcast?.({ type: 'reload' }); }}
+            onCancel={() => setModal(null)}
+            onDelete={() => { setModal(null); refresh(); store?.broadcast?.({ type: 'reload' }); }}
+          />
+        )}
+        {modal?.type === 'kr' && (
+          <KrForm
+            initial={modal?.initial}
+            onSaved={() => { setModal(null); refresh(); store?.broadcast?.({ type: 'reload' }); }}
+            onCancel={() => setModal(null)}
+            onDelete={() => { setModal(null); refresh(); }}
+          />
+        )}
+        {modal?.type === 'milestone' && (
+          <MilestoneForm
+            initial={modal?.initial}
+            onSaved={() => { setModal(null); refresh(); store?.broadcast?.({ type: 'reload' }); }}
+            onCancel={() => setModal(null)}
+            onDelete={() => { setModal(null); refresh(); }}
+          />
+        )}
+        {modal?.type === 'ability' && (
+          <AbilityForm
+            initial={modal?.initial}
+            onSaved={() => { setModal(null); refresh(); store?.broadcast?.({ type: 'reload' }); }}
+            onCancel={() => setModal(null)}
+            onDelete={() => { setModal(null); refresh(); }}
           />
         )}
         {modal?.type === 'task' && (

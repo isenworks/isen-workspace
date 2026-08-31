@@ -1,6 +1,10 @@
 import { useState, useMemo } from 'react';
 import { MODULES, keyToModule, paceStatus } from '../../utils/categoryMapping.js';
 
+/* 习惯顺序权重：作息 > 运动 > 喝水（需求 3：精力卡习惯排序约定）*/
+export const HABIT_ORDER_WEIGHT = { sleep: 1, sport: 2, water: 3 };
+const HABIT_KEYS = Object.keys(HABIT_ORDER_WEIGHT);
+
 /* —— 年度规划同源 CategoryIcon（不用 emoji，直接复用 Lucide 线形白图标印章）—— */
 function CategoryIcon({ catKey, className }) {
   const cls = className || 'w-4 h-4';
@@ -25,16 +29,16 @@ const MOD_EN = {
   life:      'LIFE',
 };
 
-/* 纯白背景 + 进一步弱化阴影 + 顶 3px 模块色条
-   · 描边：1.5px → 1px，不透明度 6% → 5%；边缘存在感"刚好能区分卡片"，不抢视觉
-   · 投影：去掉冗余的 0-0-0-1px 外环（与描边功能重叠），保留仅 0 1px 2px × 1.4% 近距淡影
-     做到"边界清晰但卡片完全不浮起"，hover 描边从 0.09→0.08，投影保持薄 */
+/* 纯白背景 + 恰到好处的描边阴影 + 顶 3px 模块色条（需求 1：阴影再增强一点点）
+   · 描边：0.060 → 0.072（维持"隐形描边"气质，但存在感再 +20%）
+   · 投影：0.022 → 0.028（近距淡影，刚好让卡片与背景拉开层次又不浮起）
+   · hover：描边 0.095 → 0.105，投影 0.028 → 0.034 */
 const GROUP_SURFACE = {
   background:   '#ffffff',
-  border:       '1px solid rgba(15,23,42,0.050)',
-  boxShadow:    '0 1px 2px rgba(15,23,42,0.014)',
-  hoverBorder:  '1px solid rgba(15,23,42,0.080)',
-  hoverShadow:  '0 1px 2px rgba(15,23,42,0.018)',
+  border:       '1px solid rgba(15,23,42,0.072)',
+  boxShadow:    '0 1px 2px rgba(15,23,42,0.028)',
+  hoverBorder:  '1px solid rgba(15,23,42,0.105)',
+  hoverShadow:  '0 1px 2px rgba(15,23,42,0.034)',
 };
 
 /**
@@ -62,11 +66,20 @@ export default function FocusPanel({
   headerExtra,
 }) {
   // 按模块分组
+  //   · 精力模块：自定义排序 —— ① 新建非习惯事项（如体检）排最前；② 习惯按 HABIT_ORDER_WEIGHT（作息→运动→喝水）
+  //   · 其他模块：保持传入顺序
   const grouped = useMemo(
-    () => MODULES.filter(m => m.key !== 'others').map(mod => ({
-      ...mod,
-      items: tasks.filter(t => t.moduleKey === mod.key),
-    })).filter(g => g.items.length > 0),
+    () => MODULES.filter(m => m.key !== 'others').map(mod => {
+      const raw = tasks.filter(t => t.moduleKey === mod.key);
+      if (mod.key === 'energy') {
+        const habits = raw.filter(t => t.isHabit).sort((a, b) =>
+          (HABIT_ORDER_WEIGHT[a.habitKey] || 99) - (HABIT_ORDER_WEIGHT[b.habitKey] || 99)
+        );
+        const nonHabits = raw.filter(t => !t.isHabit);
+        return { ...mod, items: [...nonHabits, ...habits] };
+      }
+      return { ...mod, items: raw };
+    }).filter(g => g.items.length > 0),
     [tasks]
   );
 
@@ -78,7 +91,23 @@ export default function FocusPanel({
   const isCollapsed = (key) => !!collapsed[key];
   const toggleGroup = (key) => setCollapsed(s => ({ ...s, [key]: !s[key] }));
 
+  /* ===== iOS 风格删除确认弹窗（复用 AnnualPlan confirmDialog 视觉：需求 2 截图样式）
+       · 标题粗黑 / 正文两行灰字（whitespace-pre-line 支持 \n）/ 底部分割线 / 左取消 右删除(红)
+       · 使用 confirmDialog state 取代原生 confirm()，避免 alert 弹窗打断体验 */
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const openDeleteConfirm = (task, sourceLabel) => {
+    setConfirmDialog({
+      title: sourceLabel === '回收站' ? '永久删除' : '删除事项',
+      message: `确定删除「${task.title}」吗？\n删除后不可恢复。`,
+      danger: true,
+      confirmText: '删除',
+      onConfirm: () => { setConfirmDialog(null); onDeleteTask?.(task); },
+      onCancel:  () => { setConfirmDialog(null); },
+    });
+  };
+
   return (
+    <>
     <div className="card p-4" style={{
       background: '#fff',
       borderRadius: '18px',
@@ -223,12 +252,10 @@ export default function FocusPanel({
                     const handleContextMenu = (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      // 抓取的事项（带 srcTag 的同步事项）不支持右键删除
+                      // 抓取的习惯（isFromFetch = true 的习惯项）不支持直接删；其他非抓取正常走删除弹窗
                       if (task.isFromFetch) return;
                       if (!onDeleteTask) return;
-                      if (confirm(`确认删除「${task.title}」？该事项会移入回收站，可在面板底部还原。`)) {
-                        onDeleteTask(task);
-                      }
+                      openDeleteConfirm(task, '任务行');
                     };
                     return (
                       <div
@@ -237,36 +264,58 @@ export default function FocusPanel({
                         style={{ background: completedBg }}
                         onClick={handleEdit}
                         onContextMenu={handleContextMenu}
-                        title={task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' : '点击编辑 · 右键删除'}
+                        title={
+                          task.isHabit ? '习惯同步 · 实心圆为打卡标记' :
+                          task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
+                          '点击编辑 · 右键删除'
+                        }
                         onMouseEnter={(e) => { e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = completedBg; }}
                       >
-                        {/* 圆复选框 — 独立 onClick + stopPropagation，只点这里才勾选 */}
-                        <div
-                          onClick={handleToggle}
-                          className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
-                          style={{
-                            borderColor: task.done ? mod.color : `${mod.color}55`,
-                            background: task.done ? mod.color : '#fff',
-                            boxShadow: task.done ? `0 2px 6px ${mod.color}40` : 'none',
-                          }}
-                          role="checkbox"
-                          aria-checked={task.done}
-                          tabIndex={0}
-                          onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
-                        >
-                          {task.done && (
-                            <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
-                              <path
-                                d="M1 4.5L3.5 7L7 1.5"
-                                stroke="#fff"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          )}
-                        </div>
+                        {/* 习惯项：实心圆（与复选框同尺寸 18px），颜色=模块色；点击即打卡/取消
+                             — 区别于普通事项：无环空心+√，习惯是实心填充圆点 */}
+                        {task.isHabit ? (
+                          <div
+                            onClick={handleToggle}
+                            className="w-[18px] h-[18px] rounded-full flex-shrink-0 flex items-center justify-center transition select-none"
+                            style={{
+                              background: task.done ? mod.color : `${mod.color}28`,
+                              boxShadow: task.done ? `0 2px 5px ${mod.color}48` : 'none',
+                            }}
+                            role="checkbox"
+                            aria-checked={task.done}
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
+                            title={task.done ? '已打卡 · 点击取消' : '未打卡 · 点击打卡'}
+                          />
+                        ) : (
+                          /* 普通事项：圆复选框 — 独立 onClick + stopPropagation，只点这里才勾选 */
+                          <div
+                            onClick={handleToggle}
+                            className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
+                            style={{
+                              borderColor: task.done ? mod.color : `${mod.color}55`,
+                              background: task.done ? mod.color : '#fff',
+                              boxShadow: task.done ? `0 2px 6px ${mod.color}40` : 'none',
+                            }}
+                            role="checkbox"
+                            aria-checked={task.done}
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
+                          >
+                            {task.done && (
+                              <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
+                                <path
+                                  d="M1 4.5L3.5 7L7 1.5"
+                                  stroke="#fff"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        )}
 
                         {/* 左侧标题区（点击进入编辑面板，因为父 div onClick=handleEdit）*/}
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -425,7 +474,7 @@ export default function FocusPanel({
 
       {/* 详情场景：左下"删除该事项"按钮（需求 2 体检点标题弹面板左下）
          · 仅当 showDeleteButton=true 并且传入了 onDeleteTask 时出现
-         · 风格与 ScheduleForm 删除按钮一致：红底柔填充 */}
+         · 点击 → 打开 iOS 风格双按钮确认弹窗 */}
       {showDeleteButton && onDeleteTask && tasks.length > 0 && (
         <div className="mt-3 pt-2 flex gap-2" style={{ borderTop: '1px solid rgba(60,60,67,0.08)' }}>
           <button
@@ -433,7 +482,7 @@ export default function FocusPanel({
             onClick={() => {
               const t = tasks[0];
               if (!t) return;
-              if (confirm(`确认删除「${t.title}」？该事项会移入回收站。`)) onDeleteTask(t);
+              openDeleteConfirm(t, '详情');
             }}
             style={{
               padding: '6px 14px',
@@ -453,5 +502,71 @@ export default function FocusPanel({
 
       {/* 底部统计条：根据用户 2026-08-31 需求删除（原来显示「共 X 项·已完成 Y  ZZ%」） */}
     </div>
+
+    {/* ===== iOS 风格确认弹窗（与 AnnualPlan confirmEl 同构）
+         · 遮罩：40% 黑 + backdrop-blur-sm · 卡 360px · 圆角 16
+         · 左右双按钮横排（取消 / 删除红色） ，顶部大标题粗体 · 正文小字体换行 */}
+    {confirmDialog && (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center"
+        style={{ background: 'rgba(28,28,30,0.40)', backdropFilter: 'blur(4px) saturate(180%)' }}
+        onClick={confirmDialog.onCancel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="focuspanel-confirm-title"
+      >
+        <div
+          className="overflow-hidden"
+          style={{
+            width: 360, background: '#ffffff', borderRadius: '16px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ padding: '20px 20px 18px', textAlign: 'center' }}>
+            <h3
+              id="focuspanel-confirm-title"
+              style={{ fontSize: '17px', fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em' }}
+            >{confirmDialog.title}</h3>
+            <p
+              className="whitespace-pre-line"
+              style={{
+                marginTop: '6px', fontSize: '13px', lineHeight: 1.55,
+                color: '#8E8E93',
+              }}
+            >{confirmDialog.message}</p>
+          </div>
+          <div style={{ display: 'flex', borderTop: '0.5px solid rgba(60,60,67,0.18)' }}>
+            <button
+              onClick={confirmDialog.onCancel}
+              style={{
+                flex: 1, padding: '14px 0', fontSize: '15px', fontWeight: 600,
+                color: '#007AFF', background: 'transparent',
+                border: 'none', borderRight: '0.5px solid rgba(60,60,67,0.18)',
+                cursor: 'pointer', transition: 'background .15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.035)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >取消</button>
+            <button
+              onClick={confirmDialog.onConfirm}
+              style={{
+                flex: 1, padding: '14px 0', fontSize: '15px',
+                fontWeight: confirmDialog.danger ? 700 : 600,
+                color: confirmDialog.danger ? '#FF3B30' : '#007AFF',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                transition: 'background .15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = confirmDialog.danger
+                  ? 'rgba(255,59,48,0.06)' : 'rgba(0,122,255,0.06)';
+              }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >{confirmDialog.confirmText || '确认'}</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

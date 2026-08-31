@@ -253,11 +253,6 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
             >
               <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
               <span className="flex-1 min-w-0 truncate">{item.label}</span>
-              {item.key === 'annual' && (
-                <span className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-md bg-brand-500/10 text-brand-500">
-                  40%
-                </span>
-              )}
             </div>
           ))}
 

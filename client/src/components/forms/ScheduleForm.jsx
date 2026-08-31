@@ -301,7 +301,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
         <label style={LABEL_STYLE}>标题</label>
         <input
@@ -621,184 +621,211 @@ function CategoryEditor({ cats, onClose, onChange }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'rgba(0,0,0,0.35)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '16px',
-    }} onClick={onClose}>
+    // 内嵌覆盖式：外层 Modal/glass-card 的 body 容器 padding 为 px-6 py-4 = 24px / 16px
+    // 因此用 negative inset 精确贴到外层容器 18px 倒角内缘，不再叠一层独立 Modal 遮罩 → 消除"双重外框"
+    <div
+      style={{
+        position: 'absolute',
+        top: '-16px',
+        left: '-24px',
+        right: '-24px',
+        bottom: '-16px',
+        zIndex: 50,
+        background: 'rgba(242,242,247,0.94)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        borderRadius: '0 0 18px 18px',  // 顶部贴合外 Modal 的标题分隔线，只保留底部 18px 圆角与容器边缘一致
+        padding: '20px 24px 20px',
+        display: 'flex', flexDirection: 'column', gap: '14px',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        // 外 Modal 主体用了 overflow-y:auto，内嵌覆盖层需要允许内部自己滚动
+        maxHeight: 'calc(90vh - 60px)', // 约等于外 Modal max-h-[90vh] 再扣除标题栏 ~60px
+      }}
+      onClick={onClose}
+    >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: '560px',
-          background: '#F2F2F7',
-          borderRadius: '18px',
-          padding: '20px',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
-          display: 'flex', flexDirection: 'column', gap: '14px',
-          maxHeight: '82vh', overflow: 'hidden',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: '16px', fontWeight: '700', color: '#1c1c1e' }}>类型管理</div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              width: '28px', height: '28px', borderRadius: '999px',
-              border: 'none', background: 'rgba(120,120,128,0.12)',
-              color: '#636366', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '14px'
-            }}
-          >×</button>
-        </div>
-        <div style={{ fontSize: '12px', color: '#636366', marginTop: '-6px' }}>
-          支持修改类型名称和颜色；内置 6 大类（精力/知力/能力/工作/生活/其他）不可删除，以保持年度规划 · 日历联动。
-        </div>
+        <div style={{ fontSize: '16px', fontWeight: '700', color: '#1c1c1e' }}>类型管理</div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="关闭类型管理"
+          style={{
+            width: '28px', height: '28px', borderRadius: '999px',
+            border: 'none', background: 'rgba(120,120,128,0.16)',
+            color: '#636366', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '14px'
+          }}
+        >×</button>
+      </div>
+      <div style={{ fontSize: '12px', color: '#636366', marginTop: '-6px', lineHeight: '1.55' }}>
+        支持修改类型名称和颜色；内置 6 大类（精力/知力/能力/工作/生活/其他）不可删除，以保持年度规划 · 日历联动。
+      </div>
 
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: '10px',
-          overflowY: 'auto', paddingRight: '4px',
-        }}>
-          {list.map((c, i) => {
-            const focused = focusIdx === i;
-            return (
-              <div
-                key={c.v}
-                style={{
-                  background: '#ffffff',
-                  borderRadius: '11px',
-                  padding: '10px 12px',
-                  border: focused ? '1.5px solid #007AFF' : '1px solid #e5e5ea',
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                }}
-                onClick={() => setFocusIdx(i)}
-              >
-                {/* 色块选择器 */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    type="button"
-                    title="点击换色"
-                    style={{
-                      width: '28px', height: '28px', borderRadius: '9px',
-                      background: c.dot, border: '1px solid rgba(0,0,0,0.06)',
-                      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.5)',
-                      cursor: 'pointer', padding: 0,
-                    }}
-                    onClick={(e) => { e.stopPropagation(); setFocusIdx(i); }}
-                  />
-                  {focused && (
-                    <div
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        position: 'absolute', top: '34px', left: 0, zIndex: 10,
-                        width: '240px', padding: '10px',
-                        background: '#ffffff', borderRadius: '11px',
-                        border: '1px solid #e5e5ea',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                        display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px'
-                      }}
-                    >
-                      {COLOR_SWATCHES.map(col => (
-                        <button
-                          key={col}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            patch(i, { dot: col });
-                          }}
-                          title={col}
-                          style={{
-                            width: '28px', height: '28px', borderRadius: '7px',
-                            background: col, cursor: 'pointer',
-                            border: c.dot === col ? '2px solid #007AFF' : '1px solid rgba(0,0,0,0.06)',
-                            padding: 0,
-                          }}
-                        />
-                      ))}
-                      <label style={{
-                        gridColumn: '1 / -1', marginTop: '2px',
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        fontSize: '11px', color: '#8e8e93',
-                      }}>
-                        <span>自定义</span>
-                        <input
-                          type="color"
-                          value={c.dot}
-                          onChange={e => patch(i, { dot: e.target.value })}
-                          style={{
-                            width: '28px', height: '28px', border: 'none',
-                            borderRadius: '7px', padding: 0, cursor: 'pointer', background: 'none'
-                          }}
-                        />
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* 名称输入 */}
-                <input
-                  value={c.label}
-                  onChange={e => patch(i, { label: e.target.value })}
-                  onClick={e => e.stopPropagation()}
-                  onFocus={() => setFocusIdx(i)}
-                  placeholder="类型名称"
-                  style={{
-                    flex: 1, minWidth: 0,
-                    padding: '6px 10px',
-                    border: 'none', background: 'rgba(120,120,128,0.08)',
-                    borderRadius: '7px',
-                    fontSize: '13px', color: '#1c1c1e',
-                    outline: 'none'
-                  }}
-                />
-
-                {/* 内置/自定义 标签 */}
-                <span style={{
-                  fontSize: '10px', fontWeight: '600',
-                  padding: '3px 8px', borderRadius: '999px',
-                  background: c.builtin ? 'rgba(0,122,255,0.10)' : 'rgba(142,142,147,0.12)',
-                  color: c.builtin ? '#007AFF' : '#8e8e93',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {c.builtin ? '内置' : '自定义'}
-                </span>
-
-                {/* 删除（仅自定义） */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: '10px',
+        overflowY: 'auto', paddingRight: '2px',
+      }}>
+        {list.map((c, i) => {
+          const focused = focusIdx === i;
+          return (
+            <div
+              key={c.v}
+              style={{
+                background: '#ffffff',
+                borderRadius: '12px',
+                padding: '10px 12px',
+                border: focused
+                  ? `1.5px solid ${c.dot || '#007AFF'}`
+                  : '1px solid rgba(60,60,67,0.10)',
+                boxShadow: focused
+                  ? `0 0 0 3px ${hexToRgba(c.dot || '#007AFF', 0.14)}`
+                  : 'none',
+                display: 'flex', alignItems: 'center', gap: '10px',
+                transition: 'all .15s',
+              }}
+              onClick={() => setFocusIdx(i)}
+            >
+              {/* 色块选择器 */}
+              <div style={{ position: 'relative' }}>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); remove(i); }}
-                  disabled={c.builtin}
-                  title={c.builtin ? '内置类型不可删除' : '删除'}
+                  title="点击换色"
                   style={{
-                    width: '26px', height: '26px', borderRadius: '999px',
-                    border: 'none', cursor: c.builtin ? 'not-allowed' : 'pointer',
-                    background: c.builtin ? 'rgba(142,142,147,0.06)' : 'rgba(255,59,48,0.08)',
-                    color: c.builtin ? '#c7c7cc' : '#FF3B30',
-                    fontSize: '13px', lineHeight: '1',
+                    width: '30px', height: '30px', borderRadius: '9px',
+                    background: c.dot,
+                    border: `1px solid ${hexToRgba(c.dot, 0.35)}`,
+                    boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.6), 0 2px 6px ${hexToRgba(c.dot, 0.22)}`,
+                    cursor: 'pointer', padding: 0,
+                    flexShrink: 0,
                   }}
-                >×</button>
+                  onClick={(e) => { e.stopPropagation(); setFocusIdx(i); }}
+                />
+                {focused && (
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: 'absolute', top: '36px', left: 0, zIndex: 10,
+                      width: '252px', padding: '10px',
+                      background: '#ffffff', borderRadius: '12px',
+                      border: '1px solid rgba(60,60,67,0.10)',
+                      boxShadow: '0 10px 28px rgba(0,0,0,0.14)',
+                      display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '7px'
+                    }}
+                  >
+                    {COLOR_SWATCHES.map(col => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          patch(i, { dot: col });
+                        }}
+                        title={col}
+                        style={{
+                          width: '30px', height: '30px', borderRadius: '8px',
+                          background: col, cursor: 'pointer',
+                          border: c.dot === col
+                            ? `2px solid #007AFF`
+                            : `1px solid ${hexToRgba(col, 0.3)}`,
+                          padding: 0,
+                          boxShadow: c.dot === col ? '0 0 0 2px rgba(0,122,255,0.15)' : 'none',
+                        }}
+                      />
+                    ))}
+                    <label style={{
+                      gridColumn: '1 / -1', marginTop: '2px',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      fontSize: '11px', color: '#8e8e93',
+                    }}>
+                      <span>自定义</span>
+                      <input
+                        type="color"
+                        value={c.dot}
+                        onChange={e => patch(i, { dot: e.target.value })}
+                        style={{
+                          width: '30px', height: '30px', border: 'none',
+                          borderRadius: '8px', padding: 0, cursor: 'pointer', background: 'none'
+                        }}
+                      />
+                      <span style={{ marginLeft: 'auto', color: '#8e8e93' }}>{c.dot}</span>
+                    </label>
+                  </div>
+                )}
               </div>
-            );
-          })}
-        </div>
 
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2px' }}>
-          <button
-            type="button"
-            onClick={add}
-            style={{
-              padding: '7px 14px', borderRadius: '7px',
-              background: 'rgba(0,122,255,0.08)',
-              color: '#007AFF', border: 'none', cursor: 'pointer',
-              fontSize: '13px', fontWeight: '600',
-            }}
-          >+ 新增类型</button>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button type="button" onClick={onClose} style={BTN_GHOST}>取消</button>
-            <button type="button" onClick={save} style={BTN_PRIMARY}>保存</button>
-          </div>
+              {/* 名称输入 */}
+              <input
+                value={c.label}
+                onChange={e => patch(i, { label: e.target.value })}
+                onClick={e => e.stopPropagation()}
+                onFocus={() => setFocusIdx(i)}
+                placeholder="类型名称"
+                style={{
+                  flex: 1, minWidth: 0,
+                  padding: '8px 12px',
+                  border: 'none', background: 'rgba(120,120,128,0.08)',
+                  borderRadius: '9px',
+                  fontSize: '14px', fontWeight: '500', color: '#1c1c1e',
+                  outline: 'none',
+                }}
+              />
+
+              {/* 内置/自定义 标签 */}
+              <span style={{
+                fontSize: '10px', fontWeight: '700',
+                padding: '4px 10px', borderRadius: '999px',
+                background: c.builtin ? 'rgba(0,122,255,0.11)' : 'rgba(142,142,147,0.14)',
+                color: c.builtin ? '#007AFF' : '#636366',
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                {c.builtin ? '内置' : '自定义'}
+              </span>
+
+              {/* 删除（仅自定义） */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); remove(i); }}
+                disabled={c.builtin}
+                title={c.builtin ? '内置类型不可删除' : '删除'}
+                style={{
+                  width: '28px', height: '28px', borderRadius: '999px',
+                  border: 'none', cursor: c.builtin ? 'not-allowed' : 'pointer',
+                  background: c.builtin ? 'rgba(142,142,147,0.08)' : 'rgba(255,59,48,0.09)',
+                  color: c.builtin ? '#c7c7cc' : '#FF3B30',
+                  fontSize: '14px', lineHeight: '1', flexShrink: 0,
+                  opacity: c.builtin ? 0.55 : 1,
+                }}
+                aria-label="删除该类型"
+              >×</button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{
+        display: 'flex', gap: '10px', justifyContent: 'space-between',
+        alignItems: 'center', paddingTop: '2px', flexShrink: 0,
+      }}>
+        <button
+          type="button"
+          onClick={add}
+          style={{
+            padding: '8px 16px', borderRadius: '9px',
+            background: 'rgba(0,122,255,0.10)',
+            color: '#007AFF', border: 'none', cursor: 'pointer',
+            fontSize: '13px', fontWeight: '600',
+          }}
+        >+ 新增类型</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button type="button" onClick={onClose} style={BTN_GHOST}>取消</button>
+          <button type="button" onClick={save} style={BTN_PRIMARY}>保存</button>
         </div>
       </div>
     </div>

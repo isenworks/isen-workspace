@@ -1572,7 +1572,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           style={{ width: `${pctW}%`, background: '#007AFF' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
         </div>
-        <span className="text-[11.5px] font-bold tabular-nums leading-none text-[#0040DD] flex-shrink-0 ml-auto">{conv}</span>
+        <span className="text-[11.5px] font-bold tabular-nums leading-none text-[#007AFF] flex-shrink-0 ml-auto">{conv}</span>
       </div>
     );
   };

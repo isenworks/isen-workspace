@@ -1515,11 +1515,11 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           <CategoryIcon catKey={c.key} className="w-[15px] h-[15px]" />
         </span>
         <span className="text-[14px] font-bold text-ink-900 leading-none flex-shrink-0">{c.label}</span>
-        {/* 主条:max-w 适当缩短 / 5px 加粗;时间锚竖线统一 2px 且缩短 */}
-        <div className="relative h-4 flex-1 min-w-[36px] max-w-[130px]">
-          <span className="absolute left-0 right-0 top-[5.5px] h-[5px] rounded-full bg-ink-100" />
-          <span className="absolute left-0 top-[5.5px] h-[5px] rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: col }} />
-          <span className="absolute top-[2px] w-[2px] h-[12px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
+        {/* 主条:--bar-sm 6px; 时间锚竖线统一 2.5px×12px */}
+        <div className="relative h-5 flex-1 min-w-[36px] max-w-[130px]">
+          <span className="absolute left-0 right-0 top-[7px] h-[6px] rounded-full bg-ink-100" />
+          <span className="absolute left-0 top-[7px] h-[6px] rounded-full" style={{ width: `${Math.min(100, pctVal)}%`, background: col }} />
+          <span className="absolute top-[4px] w-[2.5px] h-[12px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
         </div>
         <span className="text-[13px] font-bold tabular-nums leading-none flex-shrink-0 text-right ml-auto" style={{ color: col, width: 38 }}>{Math.round(pctVal)}%</span>
         <span className={`text-[10.5px] font-semibold tabular-nums px-1.5 py-[3px] rounded-full leading-none flex-shrink-0 ${chip.cls}`}>{chip.txt}</span>
@@ -1542,15 +1542,15 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   );
 
   /* 子行 4 列 Grid:名称(含规格) / 迷你条 / val / pct(或 tail 自定义尾元素)
-     文字放大一级:名称12.5px/val 11px/pct 11.5px;迷你条 3px 加粗、46px 缩短;竖线统一 2px */
+     名称12.5px/val 11px/pct 11.5px;迷你条 --bar-xs 4px、列宽 44px;竖线 2.5×12 与卡头/图例统一 */
   const SubRow = ({ name, pct: p, val, color, done, tail }) => (
-    <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 46px 44px 38px', minHeight: 28 }}>
+    <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 44px 38px', minHeight: 28 }}>
       <span className={`text-[12.5px] font-medium leading-none truncate ${done === false ? 'text-ink-400' : 'text-ink-800'}`}>{name}</span>
       <div className="relative h-1.5 w-full">
         {done === undefined && (<>
-          <span className="absolute left-0 right-0 top-[1.5px] h-[3px] rounded-full bg-ink-100/80" />
-          <span className="absolute left-0 top-[1.5px] h-[3px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
-          <span className="absolute -top-[2px] w-[2px] h-[10px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
+          <span className="absolute left-0 right-0 top-[1px] h-[4px] rounded-full bg-ink-100/80" />
+          <span className="absolute left-0 top-[1px] h-[4px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
+          <span className="absolute -top-[2px] w-[2.5px] h-[12px] rounded-sm bg-ink-900/55" style={{ left: `${anchor}%` }} />
         </>)}
       </div>
       <span className={`text-[11px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-ink-400' : 'text-ink-600'}`}>{val}</span>
@@ -1584,7 +1584,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     return (
       <>
         <div className="flex items-center gap-1.5 pt-1.5 pb-1">
-          <span className="w-[3px] h-[10px] rounded-sm flex-shrink-0" style={{ background: color }} />
+          <span className="w-[3px] h-[12px] rounded-sm flex-shrink-0" style={{ background: color }} />
           <span className="text-[11px] font-bold text-ink-700 leading-none">{title}</span>
           <span className="text-[10.5px] text-ink-400 leading-none truncate ml-0.5">{obj?.title}</span>
         </div>
@@ -1712,10 +1712,10 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           </div>
         </div>
 
-        {/* 图例 */}
-        <div className="flex items-center gap-3 mt-3 text-[9.5px] text-ink-400 flex-wrap pl-0.5">
-          <span className="inline-flex items-center gap-1"><span className="w-[2px] h-[10px] rounded-sm bg-ink-900/55 inline-block" />时间锚 {anchor}%</span>
-          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-1 rounded-full bg-[#34C759] inline-block" />实际</span>
+        {/* 图例:竖线 2.5×12 跟卡头/子行一致;色块 h-1.5(6px) 跟卡头条一致 */}
+        <div className="flex items-center gap-3 mt-3 text-[10.5px] text-ink-400 flex-wrap pl-0.5">
+          <span className="inline-flex items-center gap-1"><span className="w-[2.5px] h-[12px] rounded-sm bg-ink-900/55 inline-block" />时间锚 {anchor}%</span>
+          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-1.5 rounded-full bg-[#34C759] inline-block" />实际</span>
           <span className="inline-flex items-center gap-2">
             <span><span className="text-[#1E8E3E] font-semibold">↑</span>超前</span>
             <span><span className="text-[#0B62D6] font-semibold">±</span>贴近</span>

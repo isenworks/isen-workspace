@@ -98,20 +98,24 @@ export default function MonthCalendarGrid({
               }}
               onClick={() => onSelectDate?.(cell.date)}
             >
-              {/* Layer 1: 日期数字 */}
+              {/* Layer 1: 日期数字 —— 极简，不用圆形徽章背景/投影，仅靠颜色区分 */}
               <div className="flex items-center justify-between">
                 <span
-                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full text-[14px] font-semibold tabular-nums"
+                  className="inline-flex items-center justify-center text-[14px] font-semibold tabular-nums leading-none px-[5px] py-[3px] rounded-md transition"
                   style={{
-                    color: isToday ? '#fff' : '#48484A',
-                    background: isToday ? '#007AFF' : 'transparent',
-                    boxShadow: isToday ? '0 2px 8px rgba(0,122,255,0.35)' : 'none',
+                    color: isToday ? '#fff' : isSelected ? '#0040DD' : '#1C1C1E',
+                    background: isToday
+                      ? '#007AFF'
+                      : isSelected
+                      ? 'rgba(0,122,255,0.12)'
+                      : 'transparent',
+                    fontWeight: isToday || isSelected ? 700 : 600,
                   }}
                 >
                   {day}
                 </span>
                 {isToday && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[rgba(0,122,255,0.08)] text-[#0040DD]">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: '#fff', background: '#007AFF' }}>
                     今日
                   </span>
                 )}

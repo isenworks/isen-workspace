@@ -1476,12 +1476,12 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   const anchor = Math.min(100, Math.round((dayOfYear / 365) * 1000) / 10);
   const daysLeft = Math.max(0, Math.ceil((new Date(year, 11, 31) - now) / 86400000));
 
-  /* 差值胶囊:↑(超前绿)/±(贴近蓝)/↓(落后红),带% — iOS色系饱和填充 */
+  /* 差值胶囊:↑(超前绿)/±(贴近蓝)/↓(落后红),带% — iOS色系饱和填充(内联style确保生效) */
   const deltaChip = (p) => {
     const d = Math.round(p - anchor);
-    if (d > 5) return { txt: `↑${d}%`, cls: 'bg-[#34C759]/20 text-[#248A3D]' };
-    if (d < -5) return { txt: `↓${Math.abs(d)}%`, cls: 'bg-[#FF3B30]/18 text-[#D70015]' };
-    return { txt: `±${Math.abs(d)}%`, cls: 'bg-[#007AFF]/15 text-[#0040DD]' };
+    if (d > 5) return { txt: `↑${d}%`, style: { background: 'rgba(52,199,89,0.20)', color: '#248A3D' } };
+    if (d < -5) return { txt: `↓${Math.abs(d)}%`, style: { background: 'rgba(255,59,48,0.18)', color: '#D70015' } };
+    return { txt: `±${Math.abs(d)}%`, style: { background: 'rgba(0,122,255,0.15)', color: '#0040DD' } };
   };
 
   /* 漏斗 & 工作 源数据 */
@@ -1522,7 +1522,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           <span className="absolute top-[5px] w-[4px] h-[14px] rounded-sm bg-white" style={{ left: `${anchor}%`, boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />
         </div>
         <span className="text-[13px] font-bold tabular-nums leading-none flex-shrink-0 text-right ml-auto" style={{ color: col, width: 38 }}>{Math.round(pctVal)}%</span>
-        <span className={`text-[10.5px] font-semibold tabular-nums px-1.5 py-[3px] rounded-full leading-none flex-shrink-0 ${chip.cls}`}>{chip.txt}</span>
+        <span className="text-[10.5px] font-semibold tabular-nums px-1.5 py-[3px] rounded-full leading-none flex-shrink-0" style={chip.style}>{chip.txt}</span>
         <svg className={`w-3.5 h-3.5 text-[#C7C7CC] transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
           fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -1545,7 +1545,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
      名称12.5px/val 11px/pct 11.5px;迷你条放大 6px、列宽 44px;时间锚竖线 白+柔光 3×14 */
   const SubRow = ({ name, pct: p, val, color, done, tail }) => (
     <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 44px 38px', minHeight: 28 }}>
-      <span className={`text-[12.5px] font-bold leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#1C1C1E]'}`}>{name}</span>
+      <span className={`text-[12.5px] font-medium leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#5A5A5C]'}`}>{name}</span>
       <div className="relative h-2 w-full">
         {done === undefined && (<>
           <span className="absolute left-0 right-0 top-[1px] h-[6px] rounded-full bg-ink-100/80" />
@@ -1567,7 +1567,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     const pctW = Math.max(12, (count / (total || 1)) * 60);
     return (
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
-        <span className="text-[12.5px] font-bold text-[#1C1C1E] leading-none w-[48px] flex-shrink-0">{label}</span>
+        <span className="text-[12.5px] font-medium text-[#5A5A5C] leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: '#007AFF' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
@@ -1605,7 +1605,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
     );
   };
 
-  const CARD_PAD = 'border border-ink-100/70 rounded-xl overflow-hidden bg-white flex flex-col';
+  const CARD_PAD = 'border border-ink-200/80 rounded-xl overflow-hidden bg-white flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.06)]';
   return (
     <div className="flex flex-col gap-4">
       <div className="glass-card p-4">
@@ -1646,11 +1646,11 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
             <CardBody show={!collapsed.cognition}>
               {(() => {
                 const rates = [
-                  null,
-                  funnel.total > 0 ? `${Math.round(funnel.done / funnel.total * 100)}%` : '—',
-                  funnel.done > 0 ? `${Math.round(funnel.notes / funnel.done * 100)}%` : '—',
-                  funnel.notes > 0 ? `${Math.round(funnel.changes / funnel.notes * 100)}%` : '—',
-                  funnel.changes > 0 ? `${Math.round(funnel.reviews / funnel.changes * 100)}%` : '—',
+                  '100%',
+                  funnel.total > 0 ? `${Math.round(funnel.done / funnel.total * 100)}%` : '0%',
+                  funnel.done > 0 ? `${Math.round(funnel.notes / funnel.done * 100)}%` : '0%',
+                  funnel.notes > 0 ? `${Math.round(funnel.changes / funnel.notes * 100)}%` : '0%',
+                  funnel.changes > 0 ? `${Math.round(funnel.reviews / funnel.changes * 100)}%` : '0%',
                 ];
                 const labels5 = ['目标量', '输入量', '思考量', '行动量', '改变量'];
                 const counts = [funnel.total, funnel.done, funnel.notes, funnel.changes, funnel.reviews];

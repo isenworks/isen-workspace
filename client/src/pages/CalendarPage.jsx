@@ -156,15 +156,15 @@ export default function CalendarPage({ onEditSchedule }) {
       {/* ===== Header ===== */}
       <div className="glass-card px-5 py-3.5">
         <div className="flex items-center gap-4 flex-wrap">
-          {/* 月份导航 —— 图标用主色调，减少灰色 */}
+          {/* 月份导航 —— 与计划总结页 WeekCalendar L130/L134 风格统一：#8e8e93 灰 + hover 黑5% 软底，不用强调蓝色 */}
           <div className="flex items-center gap-1">
-            <button onClick={prevMonth} className="w-8 h-8 rounded-xl hover:bg-[rgba(0,122,255,0.06)] flex items-center justify-center flex-shrink-0 transition" style={{ color: '#0040DD' }}>
+            <button onClick={prevMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
             </button>
             <span className="text-[15px] font-bold text-[#1c1c1e] min-w-[92px] text-center tracking-tight">
               {year}年{month}月
             </span>
-            <button onClick={nextMonth} className="w-8 h-8 rounded-xl hover:bg-[rgba(0,122,255,0.06)] flex items-center justify-center flex-shrink-0 transition" style={{ color: '#0040DD' }}>
+            <button onClick={nextMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
             </button>
           </div>
@@ -183,15 +183,6 @@ export default function CalendarPage({ onEditSchedule }) {
           </span>
 
           <div className="flex-1" />
-
-          {/* 今天 —— 用蓝色软填充代替灰色，减少整体灰度 */}
-          <button
-            onClick={goToday}
-            className="px-3.5 py-1.5 rounded-[9px] text-[13px] font-semibold transition border-none cursor-pointer"
-            style={{ background: 'rgba(0,122,255,0.08)', color: '#0040DD' }}
-          >
-            今天
-          </button>
 
           {/* 新建 */}
           <button

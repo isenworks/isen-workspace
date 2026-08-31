@@ -95,18 +95,23 @@ export default function FocusPanel({
           {title}
         </div>
         <div className="flex items-center gap-2">
+          {/* 卡片右上：持平/超前/落后标签 → 统一改为完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
           <span
-            className="px-2.5 py-0.5 rounded-full text-[12px] font-bold tabular-nums"
-            style={{ color: pace.color, background: pace.bg }}
+            className="inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
+            style={{ background: `${accentColor}18`, color: accentColor }}
           >
-            {pace.label}
+            <span>{totalDone}</span>
+            <span style={{ opacity: 0.35 }}>/</span>
+            <span style={{ opacity: 0.80 }}>{tasks.length}</span>
           </span>
+          {/* +号印章：圆角方填充（与能力页 AnnualPlan.jsx L5095 加号设计同构：rounded-lg + 色软填充 1a + stroke=主题色 + w3.5 h3.5） */}
           <button
             onClick={onAdd}
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#8E8E93] hover:bg-[rgba(120,120,128,0.10)] hover:text-[#007AFF] transition"
+            className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
+            style={{ background: `${accentColor}1a` }}
             aria-label="新增主线任务"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-3.5 h-3.5" fill="none" stroke={accentColor} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
           </button>
@@ -143,14 +148,13 @@ export default function FocusPanel({
                 e.currentTarget.style.boxShadow = GROUP_SURFACE.boxShadow;
               }}
             >
-              {/* 顶 3px 模块色渐变条（完全在容器内，圆角有 overflow-hidden 截断）
-                   配方：模块色纯 → 同色 20% 从左到右柔化衰减，不做彩虹渐变 */}
+      {/* 顶 3px 模块色「纯色」条（去掉渐变，视觉更干净） */}
               <div
                 aria-hidden="true"
                 style={{
                   height: 3,
                   width: '100%',
-                  background: `linear-gradient(90deg, ${grp.color} 0%, ${grp.color} 55%, ${grp.color}33 100%)`,
+                  background: grp.color,
                 }}
               />
               {/* 内容主体 padding */}
@@ -172,7 +176,7 @@ export default function FocusPanel({
                   style={{ background: `${grp.color}14`, padding: '3px 10px 3px 3px' }}
                 >
                   <span
-                    className="flex-shrink-0 rounded-[7px] grid place-items-center"
+                    className="flex-shrink-0 rounded-full grid place-items-center"
                     style={{
                       width: 22, height: 22, color: '#fff', background: grp.color,
                       boxShadow: `0 2px 5px ${grp.color}3A`,
@@ -309,13 +313,7 @@ export default function FocusPanel({
         </div>
       )}
 
-      {/* 底部统计 */}
-      {grouped.length > 0 && (
-        <div className="mt-3 pt-3 text-[12px] font-medium flex items-center justify-between" style={{ borderTop: '1px solid rgba(60,60,67,0.06)', color: '#636366' }}>
-          <span>共 {tasks.length} 项 · 已完成 <span style={{ color: accentColor, fontWeight: 700 }}>{totalDone}</span></span>
-          <span className="tabular-nums font-bold" style={{ color: accentColor }}>{progressPct}%</span>
-        </div>
-      )}
+      {/* 底部统计条：根据用户 2026-08-31 需求删除（原来显示「共 X 项·已完成 Y  ZZ%」） */}
     </div>
   );
 }

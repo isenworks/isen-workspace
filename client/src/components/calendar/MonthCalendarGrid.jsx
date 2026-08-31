@@ -64,11 +64,8 @@ export default function MonthCalendarGrid({
         ))}
       </div>
 
-      {/* 网格 */}
-      <div
-        className="grid grid-cols-7 gap-px mx-2 mb-4 border-t border-b"
-        style={{ borderColor: 'rgba(60,60,67,0.10)', background: 'rgba(60,60,67,0.10)' }}
-      >
+      {/* 网格 —— 改用阴影 + 淡色分割代替大面积灰色背景分割 */}
+      <div className="grid grid-cols-7 gap-0 mx-4 mb-4 rounded-2xl overflow-hidden" style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.04)' }}>
         {grid.map((cell, i) => {
           const dateObj = fromISODate(cell.date);
           const day = dateObj.getDate();
@@ -93,10 +90,12 @@ export default function MonthCalendarGrid({
               key={i}
               className={`min-h-[88px] p-2 flex flex-col gap-1 cursor-pointer transition-colors relative ${
                 !cell.inMonth ? 'opacity-40' : ''
-              } ${isWeekend ? 'bg-[rgba(120,120,128,0.03)]' : 'bg-white'} ${
-                isSelected && !isToday ? 'bg-[rgba(0,122,255,0.08)]' : ''
-              }`}
-              style={isSelected && !isToday ? { boxShadow: 'inset 0 0 0 2px rgba(0,122,255,0.45)' } : undefined}
+              } ${isSelected && !isToday ? 'bg-[rgba(0,122,255,0.08)]' : isWeekend ? 'bg-[rgba(0,122,255,0.025)]' : 'bg-white'}`}
+              style={{
+                boxShadow: isSelected && !isToday
+                  ? 'inset 0 0 0 2px rgba(0,122,255,0.45)'
+                  : 'inset -1px -1px 0 rgba(0,0,0,0.04)',
+              }}
               onClick={() => onSelectDate?.(cell.date)}
             >
               {/* Layer 1: 日期数字 */}
@@ -137,13 +136,13 @@ export default function MonthCalendarGrid({
                   );
                 })}
                 {dayEvents.length > 3 && (
-                  <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md text-[#8E8E93] bg-[rgba(120,120,128,0.08)] self-start">
+                  <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md self-start" style={{ color: '#0040DD', background: 'rgba(0,122,255,0.08)' }}>
                     +{dayEvents.length - 3} 更多…
                   </span>
                 )}
               </div>
 
-              {/* Layer 3: 习惯热力点 */}
+              {/* Layer 3: 习惯热力点 —— 未点用软蓝代替灰色 */}
               {cell.inMonth && (
                 <div className="flex items-center gap-1.5 mt-auto">
                   <div className="flex gap-0.5">
@@ -151,11 +150,11 @@ export default function MonthCalendarGrid({
                       <span
                         key={j}
                         className="w-1 h-1 rounded-full"
-                        style={{ background: on ? '#34C759' : 'rgba(120,120,128,0.2)' }}
+                        style={{ background: on ? '#34C759' : 'rgba(0,122,255,0.12)' }}
                       />
                     ))}
                   </div>
-                  <span className="ml-auto text-[10px] font-medium tabular-nums text-[#8E8E93]">
+                  <span className="ml-auto text-[10px] font-medium tabular-nums" style={{ color: habitDone > 0 ? '#34C759' : 'rgba(0,122,255,0.5)' }}>
                     {habitDone > 0 ? `${habitDone}/${habitTarget}` : ''}
                   </span>
                 </div>

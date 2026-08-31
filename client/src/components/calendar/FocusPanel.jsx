@@ -38,7 +38,11 @@ export default function FocusPanel({
   const pace = paceStatus(progressPct, timePct);
 
   return (
-    <div className="card p-4" style={{ background: '#fff', border: '1px solid rgba(60,60,67,0.10)', borderRadius: '18px' }}>
+    <div className="card p-4" style={{
+      background: '#fff',
+      borderRadius: '18px',
+      boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.05)',
+    }}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-[5px] h-[18px] rounded-[3px] flex-shrink-0" style={{ background: accentColor }} />
@@ -70,8 +74,8 @@ export default function FocusPanel({
         </div>
       )}
 
-      {/* 分隔线 */}
-      <div className="h-px bg-[rgba(60,60,67,0.10)] my-3" />
+      {/* 分隔线 —— 用淡色渐变代替灰色描边，减少灰度 */}
+      <div className="h-px my-3" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}14, transparent)` }} />
 
       {/* 分组列表 */}
       {grouped.map(grp =>
@@ -105,8 +109,9 @@ export default function FocusPanel({
                   <div
                     className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition"
                     style={{
-                      borderColor: task.done ? mod.color : '#C7C7CC',
+                      borderColor: task.done ? mod.color : `${mod.color}55`,
                       background: task.done ? mod.color : '#fff',
+                      boxShadow: task.done ? `0 2px 6px ${mod.color}40` : 'none',
                     }}
                   >
                     {task.done && (
@@ -150,10 +155,10 @@ export default function FocusPanel({
 
                   {/* 右侧进度 */}
                   <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]">
-                    <span className="text-[12px] font-bold tabular-nums text-[#48484A]">
+                    <span className="text-[12px] font-bold tabular-nums" style={{ color: task.done ? mod.color : '#48484A' }}>
                       {pct}%
                     </span>
-                    <div className="w-[72px] h-[5px] rounded-full bg-[rgba(120,120,128,0.12)] overflow-hidden">
+                    <div className="w-[72px] h-[5px] rounded-full overflow-hidden" style={{ background: `${mod.color}14` }}>
                       <div
                         className="h-full rounded-full transition-all"
                         style={{ width: `${pct}%`, background: mod.color }}
@@ -181,9 +186,9 @@ export default function FocusPanel({
 
       {/* 底部统计 */}
       {tasks.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-[rgba(60,60,67,0.10)] text-[12px] font-medium text-[#8E8E93] flex items-center justify-between">
-          <span>共 {tasks.length} 项 · 已完成 {totalDone}</span>
-          <span className="tabular-nums">{progressPct}%</span>
+        <div className="mt-3 pt-3 text-[12px] font-medium flex items-center justify-between" style={{ borderTop: '1px solid rgba(60,60,67,0.06)', color: '#636366' }}>
+          <span>共 {tasks.length} 项 · 已完成 <span style={{ color: accentColor, fontWeight: 700 }}>{totalDone}</span></span>
+          <span className="tabular-nums font-bold" style={{ color: accentColor }}>{progressPct}%</span>
         </div>
       )}
     </div>

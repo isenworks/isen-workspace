@@ -80,94 +80,110 @@ export default function FocusPanel({
       {/* 分组列表 */}
       {grouped.map(grp =>
         grp.items.length > 0 ? (
-          <div key={grp.key} className="mt-4 first:mt-3">
-            {/* 分组标签 */}
-            <div className="flex items-center gap-2 mb-2 px-0.5">
-              <div className="w-3.5 h-3.5 rounded" style={{ background: grp.color }} />
+          <div
+            key={grp.key}
+            className="mt-[10px] first:mt-2 rounded-2xl overflow-hidden"
+            style={{
+              background: `${grp.color}0A`,
+              boxShadow: `inset 3px 0 0 ${grp.color}`,
+              padding: '10px 12px 10px 13px',
+            }}
+          >
+            {/* 分组标签：色块放大+字号加大+完成计数模块色强调 */}
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-4 h-4 rounded-[5px] flex-shrink-0" style={{ background: grp.color, boxShadow: `0 2px 6px ${grp.color}40` }} />
               <span
-                className="text-[11px] font-bold uppercase tracking-wider"
+                className="text-[12px] font-extrabold tracking-wide"
                 style={{ color: grp.color }}
               >
                 {grp.label}
               </span>
-              <span className="flex-1 text-right text-[12px] font-medium tabular-nums text-[#8E8E93]">
-                {grp.items.filter(i => i.done).length} / {grp.items.length} ✓
+              <span className="flex-1 text-right text-[12px] font-bold tabular-nums" style={{ color: grp.color }}>
+                <span className="opacity-100">{grp.items.filter(i => i.done).length}</span>
+                <span className="opacity-35 mx-0.5">/</span>
+                <span className="opacity-70">{grp.items.length}</span>
+                <span className="opacity-60 ml-1 font-semibold">✓</span>
               </span>
             </div>
 
             {/* 任务行 */}
-            {grp.items.map(task => {
-              const mod = keyToModule(task.moduleKey);
-              const pct = Math.round((task.progress || 0) * 100);
-              return (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-[rgba(0,0,0,0.02)] transition cursor-pointer"
-                  onClick={() => onToggle?.(task.id)}
-                >
-                  {/* 圆复选框 */}
+            <div className="flex flex-col gap-[2px]">
+              {grp.items.map(task => {
+                const mod = keyToModule(task.moduleKey);
+                const pct = Math.round((task.progress || 0) * 100);
+                return (
                   <div
-                    className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition"
-                    style={{
-                      borderColor: task.done ? mod.color : `${mod.color}55`,
-                      background: task.done ? mod.color : '#fff',
-                      boxShadow: task.done ? `0 2px 6px ${mod.color}40` : 'none',
-                    }}
+                    key={task.id}
+                    className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
+                    style={{ background: 'transparent' }}
+                    onClick={() => onToggle?.(task.id)}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = `${grp.color}12`; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                   >
-                    {task.done && (
-                      <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
-                        <path
-                          d="M1 4.5L3.5 7L7 1.5"
-                          stroke="#fff"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* 左侧标题区 */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                    <span
-                      className={`text-[13px] font-semibold leading-tight truncate ${
-                        task.done ? 'text-[#8E8E93] line-through' : 'text-[#48484A]'
-                      }`}
+                    {/* 圆复选框 */}
+                    <div
+                      className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition"
+                      style={{
+                        borderColor: task.done ? mod.color : `${mod.color}55`,
+                        background: task.done ? mod.color : '#fff',
+                        boxShadow: task.done ? `0 2px 6px ${mod.color}40` : 'none',
+                      }}
                     >
-                      {task.title}
-                    </span>
-                    <div className="flex items-center gap-2 text-[11px] font-medium text-[#8E8E93]">
-                      {task.srcTag && (
-                        <span
-                          className="px-1.5 py-0.5 rounded text-[10px] font-bold"
-                          style={{
-                            background: task.srcTagColor || mod.soft,
-                            color: task.srcTagTextColor || mod.color,
-                          }}
-                        >
-                          {task.srcTag}
-                        </span>
+                      {task.done && (
+                        <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
+                          <path
+                            d="M1 4.5L3.5 7L7 1.5"
+                            stroke="#fff"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                       )}
-                      {task.dueDate && <span>{task.dueDate}</span>}
-                      {task.note && <span>{task.note}</span>}
                     </div>
-                  </div>
 
-                  {/* 右侧进度 */}
-                  <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]">
-                    <span className="text-[12px] font-bold tabular-nums" style={{ color: task.done ? mod.color : '#48484A' }}>
-                      {pct}%
-                    </span>
-                    <div className="w-[72px] h-[5px] rounded-full overflow-hidden" style={{ background: `${mod.color}14` }}>
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, background: mod.color }}
-                      />
+                    {/* 左侧标题区 */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      <span
+                        className={`text-[13px] font-semibold leading-tight truncate ${
+                          task.done ? 'text-[#8E8E93] line-through' : 'text-[#1C1C1E]'
+                        }`}
+                      >
+                        {task.title}
+                      </span>
+                      <div className="flex items-center gap-2 text-[11px] font-medium text-[#8E8E93]">
+                        {task.srcTag && (
+                          <span
+                            className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            style={{
+                              background: task.srcTagColor || mod.soft,
+                              color: task.srcTagTextColor || mod.color,
+                            }}
+                          >
+                            {task.srcTag}
+                          </span>
+                        )}
+                        {task.dueDate && <span>{task.dueDate}</span>}
+                        {task.note && <span>{task.note}</span>}
+                      </div>
+                    </div>
+
+                    {/* 右侧进度：数字+进度条高度加粗，区分模块 */}
+                    <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]">
+                      <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
+                        {pct}%
+                      </span>
+                      <div className="w-[72px] h-[6px] rounded-full overflow-hidden" style={{ background: `${mod.color}18` }}>
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${pct}%`, background: mod.color, boxShadow: pct > 0 ? `0 1px 3px ${mod.color}40` : 'none' }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ) : null
       )}

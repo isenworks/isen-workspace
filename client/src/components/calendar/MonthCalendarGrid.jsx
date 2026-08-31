@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { calendarGrid, toISODate, today as getToday, fromISODate } from '../../utils/date.js';
+import { calendarGrid, toISODate, today as getToday, fromISODate, startOfWeek, endOfWeek } from '../../utils/date.js';
 import { WEEK_LABELS_MON, scheduleModule } from '../../utils/categoryMapping.js';
 
 /**
@@ -28,6 +28,12 @@ export default function MonthCalendarGrid({
 }) {
   const todayISO = getToday();
   const grid = useMemo(() => calendarGrid(year, month - 1), [year, month]);
+  const weekStartISO = useMemo(() => toISODate(startOfWeek(todayISO)), [todayISO]);
+  const weekEndISO   = useMemo(() => toISODate(endOfWeek(todayISO)),   [todayISO]);
+  const inCurrentWeek = (iso) => iso >= weekStartISO && iso <= weekEndISO;
+  // 周六/周日列统一灰色：原 weekend 之前用淡蓝，改为浅灰（60/67 级透明度）；优先级低于选中/今日
+  const CURRENT_WEEK_BG_MONFRI = 'rgba(0,122,255,0.08)'; // 当周 周一-周五 浅蓝
+  const WEEKEND_BG            = 'rgba(60,60,67,0.06)';   // 周六/周日列 浅灰（替代原浅蓝 2.5%）
 
   // 按日期分组事项
   const eventsByDate = useMemo(() => {
@@ -76,6 +82,17 @@ export default function MonthCalendarGrid({
           const dayEvents = eventsByDate[cell.date] || [];
           const habitDots = habitDotsForDate(cell.date);
           const habitDone = habitsMap[cell.date] || 0;
+          /* 日格背景优先级（从低到高覆盖，后面的条件越重越先写）：
+               ① 平日白底  ←  ② 周末列浅灰（替代原浅蓝）  ←  ③ 当周周一-周五叠加浅蓝
+                                                             ←  ④ 选中浅蓝(已存在)
+                                                             ←  ⑤ 今日不影响外背景(只改数字徽章)
+          */
+          const weekInRange = inCurrentWeek(cell.date);
+          let cellBg = '#ffffff';
+          if (isWeekend) cellBg = WEEKEND_BG;
+          if (!isWeekend && weekInRange) cellBg = CURRENT_WEEK_BG_MONFRI;
+          // 当周周六/周日：不要浅蓝填充，仍保持浅灰（需求：周末列从浅蓝改成浅灰）
+          if (isSelected && !isToday) cellBg = 'rgba(0,122,255,0.08)'; // 选中覆盖优先
 
           const cellClasses = [
             'cell',
@@ -83,6 +100,7 @@ export default function MonthCalendarGrid({
             isWeekend ? 'weekend' : '',
             isToday ? 'today' : '',
             isSelected && !isToday ? 'selected' : '',
+            weekInRange ? 'week-now' : '',
           ].filter(Boolean).join(' ');
 
           return (
@@ -90,8 +108,9 @@ export default function MonthCalendarGrid({
               key={i}
               className={`min-h-[88px] p-2 flex flex-col gap-1 cursor-pointer transition-colors relative ${
                 !cell.inMonth ? 'opacity-40' : ''
-              } ${isSelected && !isToday ? 'bg-[rgba(0,122,255,0.08)]' : isWeekend ? 'bg-[rgba(0,122,255,0.025)]' : 'bg-white'}`}
+              }`}
               style={{
+                background: cellBg,
                 boxShadow: isSelected && !isToday
                   ? 'inset 0 0 0 2px rgba(0,122,255,0.45)'
                   : 'inset -1px -1px 0 rgba(0,0,0,0.04)',

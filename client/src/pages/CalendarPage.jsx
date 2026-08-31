@@ -613,33 +613,42 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     setTick(v => v + 1);
   }, []);
   const openEditorForTask = useCallback((task, { isMonth = true } = {}) => {
-    // 需求 2/4：点击知力书籍标题或其子项（读后思考/思后行动）→ 复用书架同款 BookForm 面板
-    //   · 主项 ①：标题如「读完《纳瓦尔宝典》」→ task.bookData 直接透传
-    //   · 子项 ②③：isSubItem=true 且有 parentId/bookId → 打开父书籍的 insights 面板
     const title = task.title || '';
     const mod = keyToModule(task.moduleKey);
+    const tid = String(task.id || '');
+
+    // 真实 ethan_schedules 记录（纯数字 id 或 __origin='api'）：统一走 ScheduleForm「编辑事项」
+    const isRealApiSchedule = task.__origin === 'api'
+      || (typeof task.id === 'number' || /^\d+$/.test(tid));
+    if (isRealApiSchedule) {
+      onEditSchedule?.(
+        { type: 'schedule', ...taskToScheduleInitial(task, todayISO) },
+        { module: task.moduleKey, source: 'focusTask', isMonth }
+      );
+      return;
+    }
+
+    // —— 以下仅处理来自 AnnualPlan 聚合层的合成任务（带 bookData/milestoneData/krData 或 id 前缀可识别）——
+
+    // 知力：① 书籍本身 bookData 存在 OR id 前缀 book_(read|think|action)_ OR 标题含书名/宝典 OR isSubItem（②③）
     const isCognitionBook = task.moduleKey === 'cognition' &&
-      (/《.+》|宝典|书|读|纳瓦尔/.test(title) || task.isSubItem || task.parentId);
+      (task.bookData || /^book_(read|think|action)_/.test(tid)
+        || /《.+》|宝典|书|读|纳瓦尔/.test(title) || task.isSubItem || task.parentId);
     if (isCognitionBook) {
-      // 子项 ②③ → 反查父书籍 bookData
       let bookInitial = task.bookData;
       let tab = task.bookData ? 'basic' : 'insights';
       if (!bookInitial && task.parentId) {
-        // parentId 形如 book_read_<bookId>，找到父项任务再取 bookData
         const parentTask = monthTasks.find(t => t.id === task.parentId)
           || weekTasks.find(t => t.id === task.parentId);
         bookInitial = parentTask?.bookData;
         if (!bookInitial) {
-          // 通过 parentId 抽取 bookId，再去 BOOKS / localStorage 查找
           const bookId = task.parentId.replace(/^book_read_/, '');
           bookInitial = LS_BOOKS().find(b => String(b.bookId) === String(bookId))
             || BOOKS.find(b => String(b.bookId) === String(bookId));
         }
-        // 子项点击默认展开 insights（核心触动+行动计划）
         tab = 'insights';
       }
       if (!bookInitial) {
-        // 兜底：按标题匹配 BOOKS（如点击"读完《纳瓦尔宝典》"主项）
         bookInitial = BOOKS.find(b => normTitle(b.t) === normTitle(title.replace(/[《》]/g, '')))
           || LS_BOOKS().find(b => normTitle(b.t) === normTitle(title.replace(/[《》]/g, '')))
           || { t: title.replace(/[《》]/g, ''), author: '', st: 'reading', pct: Math.round((task.progress || 0) * 100) };
@@ -650,8 +659,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       );
       return;
     }
-    if (task.moduleKey === 'ability') {
-      // 能力里程碑：透传 milestoneData.initial → Workspace MilestoneForm 接收 initial 属性
+
+    // 能力：只有携带 milestoneData.initial（来自 aggregateTasksFromAnnualPlan）才开 MilestoneForm；
+    // 没有 milestoneData 的普通 category=2 任务（如用户通过 +新增 → 分类勾到"能力"的普通任务）→ 走 ScheduleForm
+    if (task.moduleKey === 'ability' && (task.milestoneData?.initial || /^ms_/.test(tid))) {
       const msInitial = task.milestoneData?.initial || {
         id: task.id, lb: title, st: task.done ? 'done' : task.progress > 0 ? 'doing' : 'pending',
         pct: Math.round((task.progress || 0) * 100), dueBy: task.dueDate?.replace(/^截止 /, '')?.replace('/', '-') || undefined,
@@ -662,8 +673,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       );
       return;
     }
-    if (task.moduleKey === 'work') {
-      // 工作 KR：透传 krData.initial → KrForm
+
+    // 工作：只有携带 krData.initial 或 id 前缀 wk_goal_ 才开 KrForm；
+    // 没有 krData 的普通 category=1 任务 → 走 ScheduleForm
+    if (task.moduleKey === 'work' && (task.krData?.initial || /^wk_goal_/.test(tid))) {
       const krInitial = task.krData?.initial || {
         id: task.id, t: title, v: Math.round((task.progress || 0) * 100), tgt: 100, u: '%',
         st: task.done ? 'done' : task.progress > 0 ? 'doing' : 'pending',
@@ -674,14 +687,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       );
       return;
     }
-    if (task.moduleKey === 'life') {
-      onEditSchedule?.(
-        { type: 'schedule', ...taskToScheduleInitial(task, todayISO) },
-        { module: task.moduleKey, source: 'focusTask' }
-      );
-      return;
-    }
-    // 精力 / 兜底
+
+    // 生活 / 精力 / 以及以上所有"虽 moduleKey=ability/work 但无专属数据"的普通任务 → 统一走 ScheduleForm
     onEditSchedule?.(
       { type: 'schedule', ...taskToScheduleInitial(task, todayISO) },
       { module: task.moduleKey, source: 'focusTask', isMonth }
@@ -730,8 +737,22 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   const handleEventClick = useCallback((ev, date) => {
     const mod = keyToModule(ev.moduleKey || 'others');
     const title = ev.title || ev.name || '';
+    const isRealApiSchedule = ev.__origin === 'api'
+      || (typeof ev.id === 'number' || /^\d+$/.test(String(ev.id)));
+
+    // ====== 最高优先级：真实 ethan_schedules（计划总结页创建的事项）一律走 ScheduleForm「编辑事项」
+    //        标题如"给家树买生日礼物、看电影《奥德赛》" → 用户点标题时必须可直接改类型/时间/删除
+    if (isRealApiSchedule) {
+      onEditSchedule?.(
+        { type: 'schedule', ...eventToScheduleInitial(ev, date) },
+        { module: ev.moduleKey, source: 'calendarEvent', date }
+      );
+      return;
+    }
+
+    // ====== 非真实 API 事件（MOCK 演示数据 / AnnualPlan 聚合 overlay）：
+    //        按 moduleKey + 标题特征分流到专用面板；匹配不到才走 ScheduleForm「新建事项」兜底
     if (ev.moduleKey === 'cognition' && /《.+》|宝典|书|读|纳瓦尔|笔记/.test(title)) {
-      // 日历事件点击：按标题匹配 BOOKS（可能是别名"纳瓦尔笔记"/"读完《纳瓦尔宝典》"）
       const matched = BOOKS.find(b =>
         titleMatches(b.t, title) || normTitle(title).includes(normTitle(b.t))
       );

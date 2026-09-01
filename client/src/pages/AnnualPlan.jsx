@@ -5023,7 +5023,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 }
 
 /* ---------- 10. 视图 · 工作 (OKR) ---------- */
-function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onRiskTagClick, microActions }) {
+function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = '#FF3B30';
@@ -5075,6 +5075,111 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     });
     return { risk, warn, overdue, urgent, total, earliest };
   }, [goalStats]);
+
+  /* —— 状态分区：进行中 / 已完成 / 搁置归档 —— */
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [sideOpen, setSideOpen] = useState(true);
+  const [sideTab, setSideTab] = useState('done'); // 'done' | 'shelf'
+  const [detailGoal, setDetailGoal] = useState(null); // { o, gs, goalIdx } | null
+  const [openDropIdx, setOpenDropIdx] = useState(null); // key → goal.id|title+idx+'@'+location (location: 'active'|'modal')
+
+  const _isOverdueNotDone = (o) => {
+    if (!o?.deadline) return false;
+    if (o.deadline >= todayISO) return false;
+    const krs = o.krs || [];
+    if (krs.length === 0) return true;
+    return !krs.every(k => k.st === 'done');
+  };
+
+  const _statusOf = (o) => {
+    if (o?.status === 'done') return 'done';
+    if (o?.archived === true || o?.status === 'shelf') return 'shelf';
+    if (_isOverdueNotDone(o)) return 'shelf';
+    return 'active';
+  };
+
+  const partitionedGoals = useMemo(() => {
+    const active = [];
+    const done = [];
+    const shelf = [];
+    dynWk.forEach((o, i) => {
+      const gs = goalStats[i];
+      const st = _statusOf(o);
+      const entry = { o, gs, goalIdx: i };
+      if (st === 'done') done.push(entry);
+      else if (st === 'shelf') shelf.push(entry);
+      else active.push(entry);
+    });
+    return { active, done, shelf };
+  }, [dynWk, goalStats, todayISO]);
+
+  /* —— 卡片右上角下拉菜单 ⋮ —— */
+  const renderCardMenu = ({ entry, location }) => {
+    const { o, goalIdx } = entry;
+    const st = _statusOf(o);
+    const isArchived = st === 'done' || st === 'shelf';
+    const goalKey = (o.id || o.title + goalIdx) + '@' + location;
+    const isOpen = openDropIdx === goalKey;
+    const toggleDrop = (e) => {
+      e.stopPropagation();
+      setOpenDropIdx(prev => prev === goalKey ? null : goalKey);
+    };
+    const closeDrop = () => setOpenDropIdx(null);
+    return (
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={toggleDrop}
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] hover:bg-[#f2f2f7] active:bg-[#e5e5ea] transition-colors"
+          title="更多操作"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>
+          </svg>
+        </button>
+        {isOpen && (
+          <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-ink-100 py-1.5 w-44 overflow-hidden animate-[fadeIn_0.12s_ease-out]">
+            {!isArchived ? (
+              <>
+                <button onClick={() => { closeDrop(); onGoalMarkDone && onGoalMarkDone(o.id || o.title); }}
+                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] flex items-center gap-2.5">
+                  <span className="text-[15px]">✅</span><span>标记完成</span>
+                </button>
+                <button onClick={() => { closeDrop(); onGoalShelf && onGoalShelf(o.id || o.title); }}
+                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] flex items-center gap-2.5">
+                  <span className="text-[15px]">📦</span><span>归档搁置</span>
+                </button>
+                <div className="h-px bg-[#e5e5ea] my-1"/>
+                <button onClick={() => { closeDrop(); onGoalRemove(goalIdx); }}
+                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#FF3B30] hover:bg-[#fff0f0] flex items-center gap-2.5">
+                  <span className="text-[15px]">🗑</span><span>删除</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => { closeDrop(); onGoalUnarchive && onGoalUnarchive(o.id || o.title); }}
+                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] flex items-center gap-2.5">
+                  <span className="text-[15px]">↺</span><span>取消归档</span>
+                </button>
+                <div className="h-px bg-[#e5e5ea] my-1"/>
+                <button onClick={() => { closeDrop(); onGoalRemove(goalIdx); }}
+                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#FF3B30] hover:bg-[#fff0f0] flex items-center gap-2.5">
+                  <span className="text-[15px]">🗑</span><span>删除</span>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  /* —— 点击外部关闭下拉 —— */
+  useEffect(() => {
+    if (!openDropIdx) return;
+    const handler = () => setOpenDropIdx(null);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openDropIdx]);
 
   /* ============================================================
    * Objective 统领层组件（2 行结构 · 适配横向窄卡）
@@ -5566,39 +5671,247 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     }
   };
 
-  return (
-    <div className="flex flex-col gap-4">
-      {/* ===== 卡片分栏：主业左列 | 副业右列（新增卡片按分组自动落列） ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        {[
-          dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core !== false), // 主业列
-          dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core === false), // 副业列
-        ].map((column, colIdx) => (
-          <div key={colIdx} className="flex flex-col gap-4">
-            {column.map(({ o, i }) => {
-              const gs = goalStats[i];
-              const bottleneck = renderWorkBottleneck(o, gs.color);
-              return (
-                <div
-                  key={o.id || o.title + i}
-                  className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-5 flex flex-col overflow-hidden group"
-                  style={{ contain: 'layout paint' }}>
-                  {renderObjective(o, gs, i)}
-                  {/* 主体内容区：min-h-0 仅用于在父级是 flex-1 时才让内部滚动，这里卡片自身不撑满，移除内部 min-h-0 避免子元素被错误压缩
-                       overflow-y-auto 保证当内容超长时能滚动而不是溢出到卡片下方，被下一张卡片"切掉 / 分割" */}
-                  <div className="flex-1 pt-3 overflow-y-auto">
-                    {renderByMode(o, gs, i)}
-                  </div>
-                  {/* 关键瓶颈：放回卡壳内部底端，主/副业两侧位置一致、统一在卡片底部内 */}
-                  {bottleneck && (
-                    <div className="mt-3">{bottleneck}</div>
-                  )}
-                </div>
-              );
-            })}
+  /* —— 缩略预览卡片（侧栏用） —— */
+  const renderThumbCard = (entry) => {
+    const { o, gs } = entry;
+    const st = _statusOf(o);
+    const color = gs.color;
+    const krs = o.krs || [];
+    const krDone = krs.filter(k => k.st === 'done').length;
+    const krTotal = krs.length;
+    const avgPct = gs.avgPct;
+    const timePct = Math.max(0, Math.min(100, gs.timePct || 0));
+    const cleanLabel = (s) => String(s || '').replace(new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}✅📌🎯💡🚀🔥⭐💰🏆📖🧠❤️⚡️🔑🎨📊⏰📝🔍🌱✨]\s*`, 'gu'), '');
+    const statusPill = st === 'done'
+      ? { txt: '已完成', bg: 'rgba(52,199,89,0.10)', fg: '#34C759' }
+      : { txt: '搁置', bg: 'rgba(142,142,147,0.12)', fg: '#8e8e93' };
+    return (
+      <div
+        onClick={() => setDetailGoal(entry)}
+        className="group cursor-pointer bg-white rounded-xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.07)] hover:-translate-y-[1px] transition-all p-3 overflow-hidden"
+      >
+        {/* R1: 色条 + 标题 + 胶囊 */}
+        <div className="flex items-start gap-2">
+          <div className="shrink-0 w-1 h-8 rounded-full mt-0.5" style={{ background: color }}/>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[13px] font-semibold text-[#1d1d1f] truncate leading-tight"
+                title={o.title}>{cleanLabel(o.title)}</span>
+              <span className="shrink-0 text-[10.5px] font-medium rounded-full px-1.5 py-[1px]"
+                style={{ background: statusPill.bg, color: statusPill.fg }}>{statusPill.txt}</span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[10.5px] text-[#8e8e93] leading-none">
+              <span className="font-medium text-[#1d1d1f] tabular-nums">{avgPct}%</span>
+              <span className="opacity-40">·</span>
+              <span className="tabular-nums">时间 {timePct}%</span>
+              <span className="opacity-40">·</span>
+              <span className="tabular-nums">KR {krDone}/{krTotal}</span>
+            </div>
           </div>
-        ))}
+        </div>
+        {/* R2: 双进度条（6px，原卡片 8px） */}
+        <div className="mt-2 flex flex-col gap-1">
+          {/* 时间进度 — 条纹渐变（与原卡一致） */}
+          <div className="relative w-full h-[6px] rounded-full overflow-hidden bg-[#f2f2f7]">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full"
+              style={{
+                width: `${timePct}%`,
+                background: `repeating-linear-gradient(135deg, ${color}33, ${color}33 4px, ${color}55 4px, ${color}55 8px)`,
+              }}
+            />
+          </div>
+          {/* 实际完成进度 — 纯色 */}
+          <div className="relative w-full h-[6px] rounded-full overflow-hidden bg-[#f2f2f7]">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full transition-[width]"
+              style={{ width: `${avgPct}%`, background: color }}
+            />
+          </div>
+        </div>
       </div>
+    );
+  };
+
+  const sideList = sideTab === 'done' ? partitionedGoals.done : partitionedGoals.shelf;
+
+  return (
+    <div className="flex flex-col min-[1100px]:flex-row gap-4 items-start">
+      {/* ========== 左 70%：进行中卡片区（流式 masonry 两列） ========== */}
+      <div className="w-full min-[1100px]:w-[70%] flex flex-row flex-wrap content-start gap-4">
+        {partitionedGoals.active.length === 0 ? (
+          <div className="w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+            <div className="text-5xl mb-3">🎯</div>
+            <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">没有进行中的目标</div>
+            <div className="text-[12.5px] text-[#8e8e93]">点击右上角「+ 新建目标」来开启新篇章</div>
+          </div>
+        ) : partitionedGoals.active.map((entry) => {
+          const { o, gs, goalIdx } = entry;
+          const bottleneck = renderWorkBottleneck(o, gs.color);
+          return (
+            <div
+              key={'act-' + (o.id || o.title + goalIdx)}
+              className="w-full min-[1100px]:w-[calc(50%-0.5rem)] relative"
+            >
+              {/* ⋮ 下拉：绝对定位注入在原卡壳右上角之外，不侵入 renderObjective 内部 */}
+              <div className="relative -mx-2 -mt-2 mb-2">
+                <div className="absolute right-0 top-0 z-20">
+                  {renderCardMenu({ entry, location: 'active' })}
+                </div>
+              </div>
+              <div
+                className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-5 flex flex-col overflow-hidden group"
+                style={{ contain: 'layout paint' }}>
+                {renderObjective(o, gs, goalIdx)}
+                <div className="flex-1 pt-3 overflow-y-auto">
+                  {renderByMode(o, gs, goalIdx)}
+                </div>
+                {bottleneck && <div className="mt-3">{bottleneck}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ========== 右 30%：归档侧边栏 ========== */}
+      {!sideOpen ? (
+        /* —— 收起态：仅显示数字条 + 展开按钮 —— */
+        <div className="w-full min-[1100px]:w-auto flex min-[1100px]:flex-col min-[1100px]:w-9 items-center justify-start gap-2.5 min-[1100px]:py-3 py-2 px-2.5 rounded-2xl glass-card">
+          <button onClick={() => setSideOpen(true)}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[#8e8e93] hover:text-[#007AFF] hover:bg-[rgba(0,122,255,0.08)] transition-colors shrink-0"
+            title="展开归档侧栏">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+          <div className="text-[12px] font-semibold text-[#34C759] tabular-nums leading-none" title="已完成">✅{partitionedGoals.done.length}</div>
+          <div className="min-[1100px]:hidden h-4 w-px bg-[#e5e5ea]"/>
+          <div className="text-[12px] font-semibold text-[#8e8e93] tabular-nums leading-none" title="搁置归档">📦{partitionedGoals.shelf.length}</div>
+        </div>
+      ) : (
+        /* —— 展开态：顶栏 + Tab + 缩略卡列表 —— */
+        <div className="w-full min-[1100px]:w-[30%] flex flex-col gap-3 shrink-0">
+          {/* Header：标题 + Tab segmented + 收起按钮 */}
+          <div className="glass-card rounded-2xl p-2.5 flex items-center gap-2.5">
+            <div className="pl-1 pr-1 flex items-center gap-1.5 shrink-0">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span className="text-[12.5px] font-semibold text-[#1d1d1f] whitespace-nowrap">归档</span>
+            </div>
+            {/* Tab Segmented：pill 风格 */}
+            <div className="flex-1 flex bg-[#e5e5ea]/60 rounded-lg p-[3px]">
+              {[
+                { k: 'done', label: '已完成', icon: '✅', n: partitionedGoals.done.length, activeColor: '#34C759' },
+                { k: 'shelf', label: '搁置归档', icon: '📦', n: partitionedGoals.shelf.length, activeColor: '#8e8e93' },
+              ].map(t => {
+                const active = sideTab === t.k;
+                return (
+                  <button key={t.k}
+                    onClick={() => setSideTab(t.k)}
+                    className={`flex-1 min-w-0 flex items-center justify-center gap-1 rounded-md text-[12px] font-medium transition-all ${active ? 'bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#8e8e93] hover:text-[#1d1d1f]'}`}
+                    style={active ? { color: t.activeColor, padding: '4px 6px' } : { padding: '4px 6px' }}>
+                    <span className="text-[11px] leading-none">{t.icon}</span>
+                    <span className="truncate leading-none">{t.label}</span>
+                    <span className="text-[10.5px] tabular-nums font-semibold rounded-full px-1.5 leading-none"
+                      style={active ? { background: `${t.activeColor}15`, color: t.activeColor, paddingTop: 2, paddingBottom: 2 } : { background: 'rgba(142,142,147,0.12)', color: '#8e8e93', paddingTop: 2, paddingBottom: 2 }}>
+                      {t.n}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={() => setSideOpen(false)}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[#8e8e93] hover:text-[#007AFF] hover:bg-[rgba(0,122,255,0.08)] transition-colors shrink-0"
+              title="收起归档侧栏">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Thumbnail List */}
+          <div className="flex flex-col gap-2.5 max-h-[calc(100vh-360px)] min-h-[200px] overflow-y-auto pr-[2px]">
+            {sideList.length === 0 ? (
+              <div className="flex-1 glass-card rounded-2xl py-10 px-5 flex flex-col items-center justify-center text-center">
+                <div className="text-4xl mb-2.5">{sideTab === 'done' ? '🏅' : '📦'}</div>
+                <div className="text-[13.5px] font-semibold text-[#1d1d1f] mb-0.5">
+                  {sideTab === 'done' ? '还没有已完成的目标' : '暂无比搁置归档的目标'}
+                </div>
+                <div className="text-[11.5px] text-[#8e8e93] leading-relaxed mt-0.5 max-w-[220px]">
+                  {sideTab === 'done'
+                    ? '在进行中卡片右上角 ⋮ 选择「标记完成」即可移动到这里'
+                    : '手动归档，或过期未完成的目标会自动出现在这里'}
+                </div>
+              </div>
+            ) : sideList.map((entry, i) => (
+              <div key={'side-' + (entry.o.id || entry.o.title + entry.goalIdx) + i}>
+                {renderThumbCard(entry)}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========== 详情弹窗（缩略卡点击 → 完整原卡 0 修改展示） ========== */}
+      {detailGoal && (() => {
+        const { o, gs, goalIdx } = detailGoal;
+        const bottleneck = renderWorkBottleneck(o, gs.color);
+        const st = _statusOf(o);
+        const statusPill = st === 'done'
+          ? { txt: '已完成', bg: 'rgba(52,199,89,0.10)', fg: '#34C759', icon: '✅' }
+          : { txt: '搁置归档', bg: 'rgba(142,142,147,0.12)', fg: '#8e8e93', icon: '📦' };
+        const stop = (e) => e.stopPropagation();
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+            onClick={() => setDetailGoal(null)}
+          >
+            <div className="w-full max-w-[720px] max-h-[90vh] flex flex-col bg-[#f5f5f7] rounded-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.24)]"
+              onClick={stop}>
+              {/* Modal Header */}
+              <div className="shrink-0 flex items-center gap-3 px-5 py-3.5 border-b border-[#e5e5ea] bg-white/80 backdrop-blur">
+                <div className="shrink-0 w-1 h-8 rounded-full" style={{ background: gs.color }}/>
+                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <h3 className="text-[17px] font-semibold text-[#1d1d1f] truncate leading-tight" title={o.title}>{o.title}</h3>
+                  <span className="shrink-0 text-[11.5px] font-medium rounded-full px-2 py-[2px] flex items-center gap-1"
+                    style={{ background: statusPill.bg, color: statusPill.fg }}>
+                    <span>{statusPill.icon}</span>{statusPill.txt}
+                  </span>
+                </div>
+                {st !== 'active' && (
+                  <button onClick={() => { onGoalUnarchive && onGoalUnarchive(o.id || o.title); setDetailGoal(null); }}
+                    className="shrink-0 h-8 px-3 rounded-full flex items-center gap-1.5 text-[12.5px] font-medium transition-colors"
+                    style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                    <span>↺</span><span>取消归档</span>
+                  </button>
+                )}
+                {/* ⋮ 菜单（弹窗内归档卡也可直接删/取消归档） */}
+                <div className="shrink-0 -mr-1">
+                  {renderCardMenu({ entry: detailGoal, location: 'modal' })}
+                </div>
+                <button onClick={() => setDetailGoal(null)}
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] hover:bg-[#f2f2f7] transition-colors"
+                  title="关闭">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              {/* Modal Body：完整原卡 0 修改直接复用 */}
+              <div className="flex-1 overflow-y-auto p-5">
+                <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] p-5 flex flex-col overflow-hidden">
+                  {renderObjective(o, gs, goalIdx)}
+                  <div className="flex-1 pt-3 overflow-y-auto">
+                    {renderByMode(o, gs, goalIdx)}
+                  </div>
+                  {bottleneck && <div className="mt-3">{bottleneck}</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -6418,6 +6731,19 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
       setWorkGoals(prev => prev.filter(o => o.id !== id));
       showToast('目标已删除');
     },
+    markDone: (id) => {
+      const now = new Date().toISOString().slice(0, 10);
+      setWorkGoals(prev => prev.map(o => o.id === id ? { ...o, status: 'done', completedAt: o.completedAt || now, archived: false } : o));
+      showToast('目标已标记为完成');
+    },
+    shelf: (id) => {
+      setWorkGoals(prev => prev.map(o => o.id === id ? { ...o, status: 'shelf', archived: true, completedAt: null } : o));
+      showToast('目标已归档搁置');
+    },
+    unarchive: (id) => {
+      setWorkGoals(prev => prev.map(o => o.id === id ? { ...o, status: 'active', archived: false, completedAt: null } : o));
+      showToast('目标已取消归档，回到进行中');
+    },
   };
   // 工作·KR
   const krOps = {
@@ -6800,6 +7126,9 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         onGoalAdd={() => setModal({ type: 'work_goal' })}
         onGoalEdit={(goalIdx) => setModal({ type: 'work_goal', initial: { ...workGoals[goalIdx], goalIdx } })}
         onGoalRemove={onWorkGoalRemove}
+        onGoalMarkDone={(id) => workGoalOps.markDone(id)}
+        onGoalShelf={(id) => workGoalOps.shelf(id)}
+        onGoalUnarchive={(id) => workGoalOps.unarchive(id)}
         microActions={workKrMicroActions}
         onRiskTagClick={(workIdx, krIdx, kr, goal, risk) => setModal({ type: 'risk_breakdown', initial: { workIdx, krIdx, kr, goal, risk } })} />}
       {view === 'life'      && <LifeView     lifeData={lifeData} onEntryAdd={onEntryAdd} onEntryEdit={onEntryEdit}

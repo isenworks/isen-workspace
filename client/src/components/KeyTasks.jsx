@@ -485,8 +485,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
               ></circle>
             </svg>
           </div>
-          <span className="text-[12px] font-bold tabular-nums text-[#1c1c1e] inline-flex items-center px-2 py-[3px] rounded-full" style={{ background: 'rgba(120,120,128,0.10)' }}><span className="font-extrabold">{done}</span><span className="opacity-40 mx-[2px]">/</span><span className="opacity-75">{list.length}</span></span>
-          <button onClick={onNew} className="inline-flex items-center justify-center rounded-lg text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0" style={{ background: 'rgba(120,120,128,0.12)', color: '#8E8E93' }} title="添加">
+          <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}><span className="font-extrabold">{done}</span><span className="opacity-50 mx-0.5">/</span>{list.length}</span>
+          <button onClick={onNew} className="inline-flex items-center justify-center rounded-lg text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0" style={{ background: 'rgba(0,122,255,0.06)', color: '#007AFF' }} title="添加">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
           </button>
         </div>

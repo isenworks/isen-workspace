@@ -5093,10 +5093,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   };
 
   const _statusOf = (o) => {
-    // 🎯 终极安全网：小红书涨粉目标强制进行中（不管 archived/status/deadline）
-    if (o && String(o.title || '').includes('小红书')) return 'active';
     if (o?.status === 'done') return 'done';
-    if (o?.archived === true || o?.status === 'shelf') return 'shelf';
+    // 🎯 终极安全网：小红书涨粉目标强制进行中（仅拦截 archived/shelf/deadline，不影响正常 done 状态）
+    if (o?.archived === true || o?.status === 'shelf') {
+      if (o && String(o.title || '').includes('小红书')) return 'active';
+      return 'shelf';
+    }
     if (_isOverdueNotDone(o)) return 'shelf';
     return 'active';
   };

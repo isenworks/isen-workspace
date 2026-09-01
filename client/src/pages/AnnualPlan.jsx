@@ -5569,7 +5569,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   return (
     <div className="flex flex-col gap-4">
       {/* ===== 卡片分栏：主业左列 | 副业右列（新增卡片按分组自动落列） ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {[
           dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core !== false), // 主业列
           dynWk.map((o, i) => ({ o, i })).filter(x => x.o.core === false), // 副业列
@@ -5579,10 +5579,14 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               const gs = goalStats[i];
               const bottleneck = renderWorkBottleneck(o, gs.color);
               return (
-                <div key={o.id || o.title + i} className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-5 flex flex-col flex-1 min-h-0 group">
+                <div
+                  key={o.id || o.title + i}
+                  className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-5 flex flex-col overflow-hidden group"
+                  style={{ contain: 'layout paint' }}>
                   {renderObjective(o, gs, i)}
-                  {/* 主体内容区：flex-1 撑满中间空白，保证卡壳占满列高（两列卡片等高） */}
-                  <div className="flex-1 min-h-0">
+                  {/* 主体内容区：min-h-0 仅用于在父级是 flex-1 时才让内部滚动，这里卡片自身不撑满，移除内部 min-h-0 避免子元素被错误压缩
+                       overflow-y-auto 保证当内容超长时能滚动而不是溢出到卡片下方，被下一张卡片"切掉 / 分割" */}
+                  <div className="flex-1 pt-3 overflow-y-auto">
                     {renderByMode(o, gs, i)}
                   </div>
                   {/* 关键瓶颈：放回卡壳内部底端，主/副业两侧位置一致、统一在卡片底部内 */}

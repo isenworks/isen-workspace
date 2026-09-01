@@ -5240,7 +5240,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors min-w-0"
               onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-2.5 flex-shrink-0">
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
             <span
               className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
@@ -5756,7 +5756,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     // ⋮ 红色绝对定位 right-3（12px）正好占据新增区域，视觉上紧贴加号右侧(加号结束于-48，⋮开始于-40，8px 间隔)
     return (
       <div
-        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-12 pt-5 pb-5 flex flex-col overflow-hidden group relative"
+        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-14 pt-5 pb-5 flex flex-col overflow-hidden group relative"
         style={{ contain: 'layout paint' }}
       >
         {/* ⋮ 红色下拉：absolute right-3 top-[18px] 卡壳 paddingBox 内额外 12px 右侧区域 = 加号右侧（不侵入 renderObjective）*/}

@@ -5668,44 +5668,35 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     );
   };
 
-  /* —— 🎯 单次事件型范式（event mode）：达成点✅直接结束 —— */
+  /* —— 🎯 单次事件型范式（event mode）：达成点直接结束 —— */
   const renderEventRow = (o, gs, goalIdx) => {
     const isDone = o?.status === 'done';
     const RED = '#FF3B30';
     const GREEN = '#34C759';
     const COL = isDone ? GREEN : RED;
     return (
-      <div className="flex flex-col items-center py-6 gap-4">
+      <div className="w-full py-4 flex items-center gap-3">
+        {/* 左侧百分比 */}
+        <span className="text-[13px] font-semibold shrink-0" style={{ color: COL }}>
+          {isDone ? '100%' : '0%'}
+        </span>
         {/* 进度条 */}
-        <div className="w-full flex items-center gap-3">
-          <span className="text-[13px] font-semibold" style={{ color: COL }}>{isDone ? '100%' : '0%'}</span>
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-[#F2F2F7]">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: isDone ? '100%' : '0%', backgroundColor: COL }}
-            />
-          </div>
-          <span className="text-[11px] text-ink-300">
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-[#F2F2F7]">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: isDone ? '100%' : '0%', backgroundColor: COL }}
+          />
+        </div>
+        {/* 右侧：未完成 → 时间进度；已完成 → 绿勾标签 */}
+        {isDone ? (
+          <span className="text-[11px] font-semibold shrink-0 flex items-center gap-1" style={{ color: GREEN }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            已达成
+          </span>
+        ) : (
+          <span className="text-[11px] text-ink-300 shrink-0">
             计划 {gs.timePct || 0}%
           </span>
-        </div>
-        {/* 大 ✅ 按钮 */}
-        {!isDone ? (
-          <button
-            onClick={() => onGoalMarkDone && onGoalMarkDone(o.id)}
-            className="group relative flex items-center gap-2 px-6 py-3 rounded-full border-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{ borderColor: RED, color: RED }}
-          >
-            <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors" style={{ borderColor: RED }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={RED} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-100 transition-opacity"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <span className="text-[14px] font-semibold">已达成，标记完成 ✅</span>
-          </button>
-        ) : (
-          <div className="flex items-center gap-2 px-6 py-3 rounded-full" style={{ backgroundColor: 'rgba(52,199,89,0.08)', color: GREEN }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span className="text-[14px] font-semibold">已达成 ✅</span>
-          </div>
         )}
       </div>
     );

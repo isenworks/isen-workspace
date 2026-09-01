@@ -43,6 +43,7 @@ const MODES = [
   { v: 'dashboard', lb: '仪表盘（多 KPI 并列量化）' },
   { v: 'milestone', lb: '里程碑门（门控阶段通过）' },
   { v: 'balance',   lb: '平衡雷达（多维度平衡）' },
+  { v: 'event',     lb: '单次事件（达成点直接结束）' },
 ];
 
 export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {

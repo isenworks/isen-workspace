@@ -42,7 +42,7 @@ function getMoodMeta(v) {
 
 // 判断是否为睡眠类习惯
 function isSleepHabit(h) {
-  return /睡/.test(h.name);
+  return /睡|作息|入睡|起床|就寝/.test(h.name);
 }
 
 export default function HabitsPanel({ date, refreshSignal, onChange }) {
@@ -516,30 +516,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           )}
         </div>
 
-        {/* 右侧：坚持天数 chip + 作息铅笔 + 分类色 dot
-           - chip：总是显示「连续X/目标Y天」，X就是用户看到的"右侧0"，这里把语义讲清楚
-           - 作息铅笔：白底灰描边，不再被右栏压缩得几乎看不见
-           - dot：分类色圆点 */}
+        {/* 右侧：作息铅笔 + 分类色 dot */}
         <span className="inline-flex items-center gap-2 flex-shrink-0 self-center">
-          {(() => {
-            const cur = Number(h.streak) || 0;
-            const goal = Number(h.streak_goal) || 0;
-            const achieved = goal > 0 && cur >= goal;
-            const hasGoal = goal > 0;
-            // chip 统一形状：无目标时显示「连续 0 天」解释右边单独出现的 0 含义
-            return (
-              <span
-                className="text-[11px] font-extrabold tabular-nums px-2 py-[3px] rounded-full whitespace-nowrap inline-flex items-center gap-1"
-                style={{
-                  background: achieved ? 'rgba(52,199,89,0.12)' : (hasGoal ? 'rgba(0,122,255,0.08)' : 'rgba(120,120,128,0.10)'),
-                  color: achieved ? '#34C759' : (hasGoal ? '#007AFF' : '#3a3a3c'),
-                }}
-                title={hasGoal ? `连续打卡 ${cur}/${goal} 天` : `连续打卡 ${cur} 天（未设置 streak_goal）`}
-              >
-                {achieved ? '✓ ' : ''}{cur}{hasGoal ? `/${goal}` : ''}<span className="font-semibold opacity-70">天</span>
-              </span>
-            );
-          })()}
           {isSleep && (
             <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
           )}

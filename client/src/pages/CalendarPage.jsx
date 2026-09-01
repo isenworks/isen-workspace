@@ -470,11 +470,17 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (!cancelled) {
         setMonthTasks(prev => {
           const stateMap = new Map(prev.map(p => [p.id, { done: p.done, progress: p.progress }]));
-          return planBase.map(m => {
+          const base = planBase.map(m => {
             const st = stateMap.get(m.id);
             if (!st) return m;
             return { ...m, done: st.done, progress: st.done ? 1 : st.progress };
           });
+          // 关键：保留用户通过 ScheduleForm 保存后注入的真实 API 事项（__fromSchedule），
+          // 否则 realHabits 异步到达触发本 effect 重算时，会把刚建的主线条目整个冲掉（"出现没多久就不见了"）
+          const injected = prev.filter(t =>
+            t.__fromSchedule && !base.find(b => String(b.id) === String(t.id)) && overlapsMonth(t, year, month)
+          );
+          return [...base, ...injected];
         });
       }
 
@@ -903,13 +909,19 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   /* === 月历事项：加入 taskId/is_done 引用同步左卡
        需求 6：日历右栏显示「计划总结 ethan_schedules + 本月主线单日事项」=== */
   const allTasks = useMemo(() => [...monthTasks, ...weekTasks], [monthTasks, weekTasks, tick]);
+  // MOCK 演示事件 vs API 真实日程去重：同 date+title 优先保留 API 记录（有 id → 点击走 ScheduleForm，
+  // 才有左下角删除按钮 + 类型修改落库；MOCK 副本没有 id 会被路由到 KrForm/MilestoneForm）
+  function dedupeMockVsApi(mockRaw, apiRaw) {
+    const apiKeys = new Set(apiRaw.map(e => `${e.date}|${String(e.title || '').trim()}`));
+    const mockOnly = mockRaw.filter(e => !apiKeys.has(`${e.date}|${String(e.title || '').trim()}`));
+    return [...apiRaw, ...mockOnly];
+  }
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month).padStart(2, '0')}`;
-    // 合并：MOCK 演示事件 + API 真实日程（计划总结页创建的事项）
+    // 合并：API 真实日程（含种子化的演示事件）+ 尚未种子化的 MOCK 事件（其他月份/新环境首屏）
     const mockRaw = MOCK_EVENTS_RAW.filter(e => e.date && e.date.startsWith(prefix));
     const apiRaw = apiSchedules.filter(e => e.date && e.date.startsWith(prefix));
-    const combined = [...mockRaw, ...apiRaw];
-    return buildEventsWithTaskLink(combined, allTasks);
+    return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);
   }, [year, month, allTasks, apiSchedules]);
 
   const weekdayZh = ['日','一','二','三','四','五','六'];
@@ -918,7 +930,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     if (!dayDetail?.date) return [];
     const mockRaw = MOCK_EVENTS_RAW.filter(e => e.date === dayDetail.date);
     const apiRaw = apiSchedules.filter(e => e.date === dayDetail.date);
-    return buildEventsWithTaskLink([...mockRaw, ...apiRaw], allTasks);
+    return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);
   }, [dayDetail?.date, allTasks, apiSchedules]);
 
   return (

@@ -42,6 +42,40 @@ function isSeedDoneForMonth(y, m) {
 function markSeedDoneForMonth(y, m) {
   try { localStorage.setItem(`seed_done_${curUserId()}_${y}_${m}`, '1'); } catch { /* ignore */ }
 }
+/* 本地"已删除的 ethan_schedules 记录" tombstone（持久化兜底）
+   · 场景：用户通过 FocusPanel 删除主线/周主线某条真实 ethan_schedules 事项时，
+     正常链路会同步 API.schedules.remove；但如果 API 失败、或刷新窗口期 re-inject
+     还把删除的条目又注入 monthTasks，这里用 id 黑名单做最后一道过滤。
+   · create/edit 写入时应把 id 从黑名单移出（见 schedule_saved 广播） */
+const DELETED_SCHEDULE_LS_KEY = () => `deleted_schedules_${curUserId()}`;
+function isScheduleDeletedLocally(id) {
+  if (id == null) return false;
+  try {
+    const raw = localStorage.getItem(DELETED_SCHEDULE_LS_KEY());
+    const set = raw ? new Set(JSON.parse(raw)) : new Set();
+    return set.has(String(id));
+  } catch { return false; }
+}
+function markScheduleDeletedLocally(id) {
+  if (id == null) return;
+  try {
+    const raw = localStorage.getItem(DELETED_SCHEDULE_LS_KEY());
+    const set = raw ? new Set(JSON.parse(raw)) : new Set();
+    set.add(String(id));
+    localStorage.setItem(DELETED_SCHEDULE_LS_KEY(), JSON.stringify([...set]));
+  } catch { /* ignore */ }
+}
+function unmarkScheduleDeletedLocally(id) {
+  if (id == null) return;
+  try {
+    const raw = localStorage.getItem(DELETED_SCHEDULE_LS_KEY());
+    if (!raw) return;
+    const set = new Set(JSON.parse(raw));
+    if (!set.has(String(id))) return;
+    set.delete(String(id));
+    localStorage.setItem(DELETED_SCHEDULE_LS_KEY(), JSON.stringify([...set]));
+  } catch { /* ignore */ }
+}
 const LS_BOOKS    = () => readAnnualState('annual_books_v12', BOOKS);
 const LS_ABILITY  = () => readAnnualState('annual_abilities_v2', ABILITY);
 const LS_WORK     = () => readAnnualState('annual_work', WORK);
@@ -596,7 +630,9 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             start_date: s.start_date || s.date,
           };
         });
-        if (!cancelled) { setApiSchedules(mapped); setSeedDone(true); }
+        // 从 apiSchedules 里也剔除本地 tombstone 记录（防止日历右栏/月历再显示"已删"事项）
+        const cleaned = mapped.filter(s => s.id == null || !isScheduleDeletedLocally(s.id));
+        if (!cancelled) { setApiSchedules(cleaned); setSeedDone(true); }
 
         // 只注入「用户通过 ScheduleForm 新建」的事项到 monthTasks（切页回来恢复）
         // 排除：① planBase 已有（按 title 去重，因为 planBase 用字符串 id、API 用数字 id，id 比对无效）
@@ -619,6 +655,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
                 const nt = normTitle(s.title || '');
                 return !existingTitles.has(nt) && !mockTitles.has(nt);
               })
+              // 兜底：本地 tombstone 里标记为已删除的 API 记录，即便拉到也不再注入主线
+              .filter(s => s.id == null || !isScheduleDeletedLocally(s.id))
               .map(s => {
                 const mod = catToModule(Number(s.category));
                 return {
@@ -662,6 +700,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   useEffect(() => {
     function upsertScheduleIntoMonthTasks(s) {
       if (!s) return;
+      // 本地 tombstone 兜底：刚刚被用户删掉的 id 即使 API 短暂回返也不注入主线
+      if (s.id != null && isScheduleDeletedLocally(s.id)) return;
       const cat = Number(s.category);
       const mod = catToModule(cat);
       // 只保留五大主线模块；cat=3(其他)不进本月主线
@@ -705,6 +745,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     const unsub = store.subscribe((msg) => {
       if (!msg) return;
       if (msg.type === 'schedule_saved') {
+        // 保存回来（新建 / 编辑）：从 tombstone 移出，避免用户先删再改标题新建回来时被误过滤
+        if (msg.schedule?.id != null) unmarkScheduleDeletedLocally(msg.schedule.id);
         upsertScheduleIntoMonthTasks(msg.schedule);
         // 同步更新 apiSchedules（日历事件源），否则删除/编辑后日历格子不刷新
         setApiSchedules(prev => {
@@ -824,20 +866,53 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   }, []);
 
   /* === 右键删除 FocusPanel 任务 → 移入回收站
-       仅非抓取任务（!isFromFetch）可删；FocusPanel 自己已做 isFromFetch 门禁 */
+       · 合成任务（id 非纯数字、非 API 来源）：仅本地删除 + 入回收站（原行为）
+       · 真实 ethan_schedules 记录（数字 id / __origin='api' / __fromSchedule）：
+           同步调 API.schedules.remove 真正从 DB 删除，否则"刷新后 effect 重新拉 API
+           会把该记录再次注入 monthTasks → 删不掉复活"，这是本次根因；
+           同时写入本地 tombstone 双保险（极端离线/接口失败也过滤）；
+           并且不放入回收站（回收站只存 AnnualPlan 合成任务，避免"还原"一个 DB 已删的东西） */
   const deleteTask = useCallback((task, { isMonth = true } = {}) => {
     const setTasks   = isMonth ? setMonthTasks   : setWeekTasks;
     const setDeleted = isMonth ? setDeletedMonthTasks : setDeletedWeekTasks;
+    const tid = task?.id;
+    const tidStr = String(tid || '');
+    const isRealApiSchedule = (task && (task.__origin === 'api' || task.__fromSchedule === true))
+      || (tid != null && /^\d+$/.test(tidStr));
+
+    // 1) 乐观更新：从主线/周主线立即移除（UI 立刻消失）
     let removed = null;
     setTasks(prev => {
       const next = [];
       for (const t of prev) {
-        if (t.id === task.id) { removed = t; continue; }
+        if (String(t.id) === tidStr) { removed = t; continue; }
         next.push(t);
       }
       return next;
     });
-    if (removed) setDeleted(prev => [removed, ...prev.filter(x => x.id !== removed.id)]);
+
+    // 2) 真实 API 任务：后端删除 + 广播 + 本地 tombstone；不进回收站
+    if (isRealApiSchedule) {
+      // 写 tombstone（先写，防止异步删除窗口期有重注入）
+      markScheduleDeletedLocally(tid);
+      const category = Number(task.category ?? task.schedulePayload?.category ?? null);
+      const schedulePayload = task?.schedulePayload ?? { id: tid };
+      // 广播：让 apiSchedules 也立刻移除（日历右栏/月历小圆点同步消失）
+      store?.broadcast?.({ type: 'schedule_deleted', schedule: { id: tid, category } });
+      // 异步调后端 DELETE，完成后再广播一次确保下游 listeners 都知道
+      (async () => {
+        try {
+          if (API?.schedules?.remove) await API.schedules.remove(tid);
+        } catch (_) { /* ignore；tombstone 会兜底过滤 */ }
+        store?.broadcast?.({ type: 'schedule_deleted', schedule: { id: tid, category } });
+      })();
+      setTick(v => v + 1);
+      void schedulePayload;
+      return;
+    }
+
+    // 3) 合成任务（AnnualPlan / Seed）：原逻辑 → 本地移除 + 入回收站
+    if (removed) setDeleted(prev => [removed, ...prev.filter(x => String(x.id) !== tidStr)]);
     setTick(v => v + 1);
   }, []);
   const restoreTask = useCallback((task, { isMonth = true } = {}) => {

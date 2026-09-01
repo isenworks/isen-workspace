@@ -5081,6 +5081,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   const [workTab, setWorkTab] = useState('active'); // 'active' | 'done' | 'shelf' — 书架风 Tab 3 项（标题右）
   const [detailGoal, setDetailGoal] = useState(null); // { o, gs, goalIdx } | null
   const [openDropIdx, setOpenDropIdx] = useState(null); // key → goal.id|title+idx+'@'+location (location: 'active'|'modal')
+  const [localTitle, setLocalTitle] = useState(`${year}年 · 工作目标`); // Header 标题：右击可编辑
+  const [titleEditing, setTitleEditing] = useState(false);
 
   const _isOverdueNotDone = (o) => {
     if (!o?.deadline) return false;
@@ -5138,7 +5140,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           </svg>
         </button>
         {isOpen && (
-          <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-ink-100 py-1.5 w-44 overflow-hidden animate-[fadeIn_0.12s_ease-out]">
+          <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-ink-100 py-1.5 w-44 overflow-hidden animate-[fadeIn_0.12s_ease-out]"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             {!isArchived ? (
               <>
                 <button onClick={() => { closeDrop(); onGoalMarkDone && onGoalMarkDone(o.id || o.title); }}
@@ -5760,17 +5765,38 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
 
   const activeMain = partitionedGoals.active.filter(e => !!e.o.core);
   const activeSide = partitionedGoals.active.filter(e => !e.o.core);
+  const totalMain = dynWk.filter(o => !!o.core).length;
+  const totalSide = dynWk.filter(o => o.core === false).length;
 
   return (
     <div className="flex flex-col gap-4 items-start">
       {/* ========== Header · 书架风（色条 + 标题·共N项 左边）/（3 Tab·进行中·已完成·已归档 标题右边）/（右操作按钮 蓝色）========== */}
       <div className="w-full glass-card rounded-2xl p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* 左：色条 + 标题 + 共 N 项 */}
+          {/* 左：色条 + 标题(右击编辑) + 主业·N | 副业·N */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: RED }}></span>
-            <span className="text-[15.5px] font-bold text-ink-900 leading-none whitespace-nowrap">{year}年 · 工作目标</span>
-            <span className="text-[11px] text-ink-400 tabular-nums leading-none whitespace-nowrap">共 {dynWk.length} 项</span>
+            {titleEditing ? (
+              <input
+                autoFocus
+                defaultValue={localTitle}
+                onBlur={(e) => { setLocalTitle(e.target.value.trim() || `${year}年 · 工作目标`); setTitleEditing(false); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.target.blur(); } else if (e.key === 'Escape') { setTitleEditing(false); } }}
+                onClick={(e) => e.stopPropagation()}
+                className="text-[15.5px] font-bold text-ink-900 leading-none bg-transparent border border-[#FF3B30] rounded px-1 py-0 outline-none min-w-[120px]"
+              />
+            ) : (
+              <span
+                className="text-[15.5px] font-bold text-ink-900 leading-none whitespace-nowrap cursor-default"
+                onContextMenu={(e) => { e.preventDefault(); setTitleEditing(true); }}
+                title="右击编辑标题"
+              >{localTitle}</span>
+            )}
+            <span className="text-[11px] text-ink-400 tabular-nums leading-none whitespace-nowrap">
+              <span style={{ color: RED }}>主业 · {totalMain}</span>
+              <span className="mx-1 opacity-40">|</span>
+              <span style={{ color: '#FF9500' }}>副业 · {totalSide}</span>
+            </span>
           </div>
 
           {/* 中：3 Tab（标题右边）—— 书架同款 pill 样式 */}
@@ -5834,11 +5860,6 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* 主业 */}
           <div className="w-full flex flex-col gap-4">
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-[3px] h-3.5 rounded-full flex-shrink-0" style={{ background: RED }}></span>
-              <span className="text-[12.5px] font-semibold text-ink-700">主业</span>
-              <span className="text-[11px] text-ink-400 tabular-nums">共 {activeMain.length} 项</span>
-            </div>
             {activeMain.length === 0 ? (
               <div className="w-full glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center">
                 <div className="text-4xl mb-2">💼</div>
@@ -5849,11 +5870,6 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           </div>
           {/* 副业 */}
           <div className="w-full flex flex-col gap-4">
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-[3px] h-3.5 rounded-full flex-shrink-0" style={{ background: '#FF9500' }}></span>
-              <span className="text-[12.5px] font-semibold text-ink-700">副业</span>
-              <span className="text-[11px] text-ink-400 tabular-nums">共 {activeSide.length} 项</span>
-            </div>
             {activeSide.length === 0 ? (
               <div className="w-full glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center">
                 <div className="text-4xl mb-2">🚀</div>

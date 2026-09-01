@@ -520,7 +520,29 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           store?.broadcast?.({ type: 'reload' });
           return;
         }
-        const remotes = await API.schedules.list({ from: monthS, to: monthE });
+        let remotes = await API.schedules.list({ from: monthS, to: monthE });
+        // 清理重复：同一 title+date 可能因多次种子化产生多条，只留 id 最小的那条
+        // （用户删一条还剩多条 → "删了还在"假象）
+        const allSchedules = remotes?.schedules || [];
+        const seenKey = new Map();
+        const dupIds = [];
+        for (const s of allSchedules) {
+          const k = `${String(s.title || '').trim()}|${s.date || ''}`;
+          if (seenKey.has(k)) {
+            const prev = seenKey.get(k);
+            const keep = Number(prev.id) < Number(s.id) ? prev : s;
+            const kill = Number(prev.id) < Number(s.id) ? s : prev;
+            dupIds.push(kill.id);
+            seenKey.set(k, keep);
+          } else {
+            seenKey.set(k, s);
+          }
+        }
+        for (const id of dupIds) {
+          try { await API.schedules.remove(id); } catch (_) { /* ignore */ }
+        }
+        // 重新拉取（去重后）
+        remotes = await API.schedules.list({ from: monthS, to: monthE });
         const existing = new Set((remotes?.schedules || []).map(s => String(s.title).trim()));
         const seeds = [];
         // 2a) 独立种子（体检等）

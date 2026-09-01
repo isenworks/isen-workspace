@@ -372,15 +372,15 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     );
   }
 
-  // 右侧统一按钮（只保留图标，无文字）
+  // 右侧统一按钮（白底灰描边，更醒目）
   function RightActionButton({ hasSleepData, onClick }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); onClick(); }}
-        className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#f2f2f7] border border-[#e5e5ea] hover:bg-[#e9e9ef] text-[#4a4a4f] transition-colors"
-        title={hasSleepData ? '编辑睡眠记录' : '记录睡眠'}
+        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#d1d1d6] hover:bg-[#f2f2f7] active:scale-[0.97] text-[#4a4a4f] transition-colors shadow-[0_1px_1px_rgba(15,23,42,0.04)]"
+        title={hasSleepData ? '编辑睡眠记录（实际睡眠 + 精力 + 心情）' : '点击记录昨晚入睡/起床 + 醒后精力、心情'}
       >
-        <Pencil size={12.5} strokeWidth={2} />
+        <Pencil size={13} strokeWidth={2} />
       </button>
     );
   }
@@ -395,6 +395,9 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     const moodMeta = getMoodMeta(h.mood_state);
     const thirdLine = isSleep ? sleepThirdLine(h) : null;
 
+    // 睡眠习惯：点击空白（非按钮/非复选框）也直接打开睡眠记录弹窗（用户找不到铅笔也能点）
+    const rowClick = () => { if (isSleep) openSleepPopover(h); };
+
     return (
       <div
         key={h.id}
@@ -403,10 +406,11 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           background: getBg(h),
           opacity: isDragging ? 0.4 : 1,
           borderTop: isDragOver ? '2px solid #007AFF' : '2px solid transparent',
-          cursor: 'grab',
+          cursor: isSleep ? 'pointer' : 'grab',
           transition: 'opacity .15s, border-top-color .15s',
         }}
         draggable
+        onClick={rowClick}
         onDragStart={(e) => handleDragStart(e, h)}
         onDragOver={(e) => handleDragOver(e, h)}
         onDrop={(e) => handleDrop(e, h)}
@@ -468,56 +472,71 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               </div>
             );
           })()}
-          {/* 第三行：仅睡眠习惯且有实际数据 */}
-          {isSleep && hasSleepData && thirdLine && (
-            <>
-              <div className="my-2 h-px bg-[#e5e5ea]" style={{ opacity: 0.8 }}></div>
-              <div className="flex items-center gap-1 text-[12px] text-[#4a4a4f] w-full">
-                <Clock size={12.5} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
-                <span className="whitespace-nowrap flex-shrink-0">
-                  {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
-                </span>
-                <span className="flex-shrink-0 text-[#c8c8cc]">·</span>
-                {thirdLine.dur >= thirdLine.target ? (
-                  <span className="text-[#34C759] whitespace-nowrap flex-shrink-0">达成目标</span>
-                ) : (
-                  <span className="text-[#FF9500] whitespace-nowrap flex-shrink-0">
-                    差{formatDuration(thirdLine.target - thirdLine.dur)}
+          {/* 第三行：睡眠习惯
+             · 有实际数据 → 显示 入睡-起床、时长、是否达标、精力/心情 chips（旧版功能）
+             · 无实际数据 → 显示灰色引导：「点击 📝 或本行记录昨晚入睡/起床 + 精力/心情」，
+               避免用户误以为这项功能丢了（与用户 Q2 对应）*/}
+          {isSleep && (
+            hasSleepData && thirdLine ? (
+              <>
+                <div className="my-2 h-px bg-[#e5e5ea]" style={{ opacity: 0.8 }}></div>
+                <div className="flex items-center gap-1 text-[12px] text-[#4a4a4f] w-full">
+                  <Clock size={12.5} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
+                  <span className="whitespace-nowrap flex-shrink-0">
+                    实际 {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
                   </span>
-                )}
-                <span className="flex-1"></span>
-                <span
-                  className="inline-flex items-center gap-1 flex-shrink-0"
-                  style={{
-                    marginRight: isSleep ? -56 : 0,
-                  }}
-                >
-                  {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}
-                  {moodMeta && energyMeta && (
-                    <span style={{ color: moodMeta.color }}>·</span>
+                  <span className="flex-shrink-0 text-[#c8c8cc]">·</span>
+                  {thirdLine.dur >= thirdLine.target ? (
+                    <span className="text-[#34C759] whitespace-nowrap flex-shrink-0 font-semibold">达标</span>
+                  ) : (
+                    <span className="text-[#FF9500] whitespace-nowrap flex-shrink-0 font-medium">
+                      差{formatDuration(thirdLine.target - thirdLine.dur)}
+                    </span>
                   )}
-                  {moodMeta && <StateChip icon={Heart} label={moodMeta.label} color={moodMeta.color} />}
-                </span>
+                  <span className="flex-1"></span>
+                  <span className="inline-flex items-center gap-1 flex-shrink-0">
+                    {energyMeta && <StateChip icon={Zap} label={energyMeta.label} color={energyMeta.color} />}
+                    {moodMeta && energyMeta && (
+                      <span className="text-[#c8c8cc]">·</span>
+                    )}
+                    {moodMeta && <StateChip icon={Heart} label={moodMeta.label} color={moodMeta.color} />}
+                  </span>
+                </div>
+                {h.sleep_note && (
+                  <p className="mt-1 text-[11px] text-[#8e8e93] whitespace-pre-wrap leading-snug">💭 {h.sleep_note}</p>
+                )}
+              </>
+            ) : (
+              <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-[8px]"
+                style={{ background: 'rgba(120,120,128,0.08)', color: '#8e8e93' }}>
+                <Pencil size={11} strokeWidth={2} />
+                <span>未记录睡眠 · 点本行 / 右侧铅笔填写 入睡·起床·精力·心情</span>
               </div>
-            </>
+            )
           )}
         </div>
 
-        {/* 右侧操作：坚持目标chip + 编辑按钮 + 小圆点 + 删除按钮 */}
+        {/* 右侧：坚持天数 chip + 作息铅笔 + 分类色 dot
+           - chip：总是显示「连续X/目标Y天」，X就是用户看到的"右侧0"，这里把语义讲清楚
+           - 作息铅笔：白底灰描边，不再被右栏压缩得几乎看不见
+           - dot：分类色圆点 */}
         <span className="inline-flex items-center gap-2 flex-shrink-0 self-center">
-          {h.streak_goal && (() => {
-            const cur = h.streak || 0;
-            const goal = Number(h.streak_goal);
-            const achieved = cur >= goal;
+          {(() => {
+            const cur = Number(h.streak) || 0;
+            const goal = Number(h.streak_goal) || 0;
+            const achieved = goal > 0 && cur >= goal;
+            const hasGoal = goal > 0;
+            // chip 统一形状：无目标时显示「连续 0 天」解释右边单独出现的 0 含义
             return (
               <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                className="text-[11px] font-extrabold tabular-nums px-2 py-[3px] rounded-full whitespace-nowrap inline-flex items-center gap-1"
                 style={{
-                  background: achieved ? 'rgba(52,199,89,0.12)' : 'rgba(0,122,255,0.08)',
-                  color: achieved ? '#34C759' : '#007AFF',
+                  background: achieved ? 'rgba(52,199,89,0.12)' : (hasGoal ? 'rgba(0,122,255,0.08)' : 'rgba(120,120,128,0.10)'),
+                  color: achieved ? '#34C759' : (hasGoal ? '#007AFF' : '#3a3a3c'),
                 }}
+                title={hasGoal ? `连续打卡 ${cur}/${goal} 天` : `连续打卡 ${cur} 天（未设置 streak_goal）`}
               >
-                {achieved ? '✓ ' : ''}{cur}/{goal}天
+                {achieved ? '✓ ' : ''}{cur}{hasGoal ? `/${goal}` : ''}<span className="font-semibold opacity-70">天</span>
               </span>
             );
           })()}
@@ -525,13 +544,14 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
             <RightActionButton hasSleepData={hasSleepData} onClick={() => openSleepPopover(h)} />
           )}
           <span
-            className="w-2 h-2 rounded-full flex-shrink-0"
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-white"
             style={{ background: getDotColor(h) }}
+            title={`${GROWTH_TYPES[gt]?.label || '习惯'}模块`}
           ></span>
           <button
             onClick={(e) => { e.stopPropagation(); remove(h); }}
             className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#FF3B30] text-xs px-1 flex-shrink-0"
-            title="删除"
+            title="归档/删除该习惯"
           >×</button>
         </span>
       </div>

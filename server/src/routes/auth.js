@@ -51,14 +51,56 @@ router.post('/register', (req, res) => {
   return res.json({ user, token: sign(user) });
 });
 
-// 登录
+// 登录（D1 单人模式 + 常规登录双兼容）
 router.post('/login', (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: '用户名和密码必填' });
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  if (!user) return res.status(400).json({ error: '用户不存在' });
-  if (!bcrypt.compareSync(password, user.password)) return res.status(400).json({ error: '密码错误' });
+  const { username, password, email } = req.body || {};
+  const uname = username || email || '';
+  const pwd = password || '';
 
+  // D1 单人免登录模式：Pages Functions 同款，空邮箱空密码 = 解锁进入
+  if (!uname && !pwd) {
+    const user = db.prepare('SELECT id, username, avatar FROM users ORDER BY id LIMIT 1').get();
+    if (!user) return res.status(400).json({ error: '请先注册用户' });
+    // D1 版默认习惯初始化
+    const count = db.prepare('SELECT COUNT(*) as c FROM habits WHERE user_id = ? AND archived = 0').get(user.id).c;
+    if (count === 0) {
+      const insertHabit = db.prepare(`
+        INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order,
+                            start_time, end_time, growth_type, target_mode, streak_goal, auto_log)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      const tx = db.transaction((habits) => {
+        habits.forEach((h, i) => {
+          const sleep = /睡|作息/.test(h.name);
+          const exercise = /运动/.test(h.name);
+          const water = /水/.test(h.name);
+          const reading = /看书/.test(h.name);
+          const growthType = sleep || exercise || water ? 'energy' : (reading ? 'mind' : 'skill');
+          insertHabit.run(
+            user.id, h.name, h.emoji, h.accent_color,
+            h.target_time, h.duration_min, i,
+            sleep ? '23:30' : (h.target_time || null),
+            sleep ? '06:44' : null,
+            growthType,
+            water ? 'count' : 'check',
+            water ? 2 : null, '天',
+            30, 1
+          );
+        });
+      });
+      tx(DEFAULT_HABITS);
+    }
+    const token = sign(user);
+    return res.json({
+      user: { id: String(user.id), username: user.username, avatar: user.avatar },
+      token,
+    });
+  }
+
+  if (!uname || !pwd) return res.status(400).json({ error: '用户名和密码必填' });
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
+  if (!user) return res.status(400).json({ error: '用户不存在' });
+  if (!bcrypt.compareSync(pwd, user.password)) return res.status(400).json({ error: '密码错误' });
   const safe = { id: user.id, username: user.username, avatar: user.avatar };
   return res.json({ user: safe, token: sign(user) });
 });

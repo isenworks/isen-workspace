@@ -117,13 +117,60 @@ try {
 
 // habits 表迁移：若没有 accent_color 列则添加
 try {
-  const cols = db.prepare("PRAGMA table_info(habits)").all();
+  let cols = db.prepare("PRAGMA table_info(habits)").all();
   const hasAccent = cols.some(c => c.name === 'accent_color');
   if (!hasAccent) {
     db.exec(`ALTER TABLE habits ADD COLUMN accent_color TEXT DEFAULT '#34c759'`);
   }
+  // 对齐 ethan_habits 扩展字段（d1_create_tables.sql / ethan_habits）
+  // 注意：SQLite ALTER TABLE 不允许添加带"非恒定默认值"（如 datetime('now')）的列，
+  //       所以 updated_at 先以无默认值方式加入，必要时在 UPDATE 里填充
+  const constCols = [
+    ['start_time',   'TEXT'],
+    ['end_time',     'TEXT'],
+    ['growth_type',  "TEXT DEFAULT 'energy'"],
+    ['target_mode',  "TEXT DEFAULT 'check'"],
+    ['target_value', 'REAL'],
+    ['target_unit',  'TEXT'],
+    ['streak_goal',  'INTEGER'],
+    ['auto_log',     'INTEGER DEFAULT 1'],
+    ['updated_at',   'TEXT'],   // 动态默认值单独处理
+  ];
+  cols = db.prepare("PRAGMA table_info(habits)").all();
+  constCols.forEach(([name, def]) => {
+    if (!cols.some(c => c.name === name)) {
+      try {
+        db.exec(`ALTER TABLE habits ADD COLUMN ${name} ${def}`);
+      } catch (e2) {
+        console.warn(`  alter habits add ${name} skip:`, e2.message);
+      }
+    }
+  });
 } catch (e) {
-  console.warn('migrate accent_color warn:', e.message);
+  console.warn('migrate habits extension warn:', e.message);
+}
+
+// habit_logs 表迁移：对齐 ethan_habit_logs 全部增强字段（sleep / energy / mood / count）
+try {
+  const cols = db.prepare("PRAGMA table_info(habit_logs)").all();
+  const newCols = [
+    ['sleep_start',  'TEXT',                      null],
+    ['sleep_end',    'TEXT',                      null],
+    ['wake_state',   'TEXT',                      null],
+    ['energy_state', 'TEXT',                      null],
+    ['mood_state',   'TEXT',                      null],
+    ['sleep_note',   'TEXT',                      null],
+    ['data_source',  'TEXT',                      null],
+    ['actual_value', 'REAL DEFAULT 0',             0],
+    ['note',         'TEXT',                      null],
+  ];
+  newCols.forEach(([name, def]) => {
+    if (!cols.some(c => c.name === name)) {
+      db.exec(`ALTER TABLE habit_logs ADD COLUMN ${name} ${def}`);
+    }
+  });
+} catch (e) {
+  console.warn('migrate habit_logs extension warn:', e.message);
 }
 
 export default db;

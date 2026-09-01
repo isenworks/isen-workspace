@@ -35,14 +35,27 @@ router.post('/init-defaults', (req, res) => {
   res.json({ created: missing.length });
 });
 
+function calcDurationMin(start, end) {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  if ([sh, sm, eh, em].some(n => Number.isNaN(n))) return null;
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins <= 0) mins += 24 * 60; // 跨天（如 23:00 -> 06:44）
+  return mins;
+}
+
+const LOG_FIELDS_SQL = `SELECT habit_id, done, sleep_start, sleep_end, wake_state, energy_state, mood_state, sleep_note, data_source, actual_value, note
+                         FROM habit_logs WHERE user_id = ? AND date = ?`;
+
 // 列出习惯（含某日打卡情况）
 router.get('/', (req, res) => {
   const date = req.query.date; // 可选，若提供则附带该日打卡状态
   const habits = db.prepare(`SELECT * FROM habits WHERE user_id = ? AND archived = 0 ORDER BY sort_order, id`).all(req.user.id);
   let logsByHabit = {};
   if (date) {
-    const logs = db.prepare(`SELECT habit_id, done FROM habit_logs WHERE user_id = ? AND date = ?`).all(req.user.id, date);
-    logsByHabit = Object.fromEntries(logs.map(l => [l.habit_id, l.done]));
+    const logs = db.prepare(LOG_FIELDS_SQL).all(req.user.id, date);
+    logsByHabit = Object.fromEntries(logs.map(l => [l.habit_id, l]));
   }
   // 连续天数
   const today = new Date();
@@ -68,21 +81,40 @@ router.get('/', (req, res) => {
     streaks[h.id] = streak;
   }
   res.json({
-    habits: habits.map(h => ({
-      ...h,
-      done_today: date ? (logsByHabit[h.id] === 1) : null,
-      streak: streaks[h.id] || 0
-    }))
+    habits: habits.map(h => {
+      const log = logsByHabit[h.id];
+      return {
+        ...h,
+        done_today: date ? !!((log && log.done) === 1 || (typeof log === 'object' && log && log.done)) : null,
+        streak: streaks[h.id] || 0,
+        // 增强字段（来自 ethan_habit_logs / D1 对齐）
+        sleep_start:  log ? log.sleep_start  : null,
+        sleep_end:    log ? log.sleep_end    : null,
+        wake_state:   log ? log.wake_state   : null,
+        energy_state: log ? log.energy_state : null,
+        mood_state:   log ? log.mood_state   : null,
+        sleep_note:   log ? log.sleep_note   : null,
+        data_source:  log ? log.data_source  : null,
+        actual_value: log ? Number(log.actual_value || 0) : 0,
+        log_note:     log ? log.note         : null,
+      };
+    })
   });
 });
 
 router.post('/', (req, res) => {
-  const { name, emoji, accent_color, target_time, duration_min, sort_order } = req.body || {};
+  const b = req.body || {};
+  const { name, emoji, accent_color, target_time, duration_min, sort_order,
+          start_time, end_time, growth_type, target_mode, target_value, target_unit, streak_goal, auto_log } = b;
   if (!name) return res.status(400).json({ error: '习惯名称必填' });
   const info = db.prepare(`
-    INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(req.user.id, name, emoji || '✅', accent_color || '#34c759', target_time || null, duration_min || null, sort_order || 0);
+    INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order,
+                        start_time, end_time, growth_type, target_mode, target_value, target_unit, streak_goal, auto_log)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.user.id, name, emoji || '✅', accent_color || '#34c759', target_time || null, duration_min || null, sort_order || 0,
+         start_time || null, end_time || null, growth_type || 'energy',
+         target_mode || 'check', target_value ?? null, target_unit || null, streak_goal ?? null,
+         auto_log === undefined ? 1 : (auto_log ? 1 : 0));
   res.json({ habit: db.prepare('SELECT * FROM habits WHERE id = ?').get(info.lastInsertRowid) });
 });
 
@@ -90,7 +122,9 @@ router.put('/:id', (req, res) => {
   const id = Number(req.params.id);
   const cur = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(id, req.user.id);
   if (!cur) return res.status(404).json({ error: '习惯不存在' });
-  const { name, emoji, accent_color, target_time, duration_min, sort_order, archived } = req.body || {};
+  const b = req.body || {};
+  const { name, emoji, accent_color, target_time, duration_min, sort_order, archived,
+          start_time, end_time, growth_type, target_mode, target_value, target_unit, streak_goal, auto_log } = b;
   db.prepare(`
     UPDATE habits SET
       name = COALESCE(?, name),
@@ -99,11 +133,27 @@ router.put('/:id', (req, res) => {
       target_time = COALESCE(?, target_time),
       duration_min = COALESCE(?, duration_min),
       sort_order = COALESCE(?, sort_order),
-      archived = COALESCE(?, archived)
+      archived = COALESCE(?, archived),
+      start_time = COALESCE(?, start_time),
+      end_time = COALESCE(?, end_time),
+      growth_type = COALESCE(?, growth_type),
+      target_mode = COALESCE(?, target_mode),
+      target_value = ?,
+      target_unit = COALESCE(?, target_unit),
+      streak_goal = ?,
+      auto_log = ?,
+      updated_at = datetime('now')
     WHERE id = ? AND user_id = ?
-  `).run(name ?? null, emoji ?? null, accent_color ?? null, target_time ?? null, duration_min ?? null,
-         sort_order ?? null, archived === undefined ? null : (archived ? 1 : 0),
-         id, req.user.id);
+  `).run(
+    name ?? null, emoji ?? null, accent_color ?? null, target_time ?? null, duration_min ?? null,
+    sort_order ?? null, archived === undefined ? null : (archived ? 1 : 0),
+    start_time ?? null, end_time ?? null, growth_type ?? null, target_mode ?? null,
+    target_value === undefined ? null : target_value,
+    target_unit ?? null,
+    streak_goal === undefined ? null : streak_goal,
+    auto_log === undefined ? null : (auto_log ? 1 : 0),
+    id, req.user.id
+  );
   res.json({ habit: db.prepare('SELECT * FROM habits WHERE id = ?').get(id) });
 });
 
@@ -181,8 +231,8 @@ router.post('/list', (req, res) => {
   const habits = db.prepare(`SELECT * FROM habits WHERE user_id = ? AND archived = 0 ORDER BY sort_order, id`).all(req.user.id);
   let logsByHabit = {};
   if (date) {
-    const logs = db.prepare(`SELECT habit_id, done FROM habit_logs WHERE user_id = ? AND date = ?`).all(req.user.id, date);
-    logsByHabit = Object.fromEntries(logs.map(l => [l.habit_id, l.done]));
+    const logs = db.prepare(LOG_FIELDS_SQL).all(req.user.id, date);
+    logsByHabit = Object.fromEntries(logs.map(l => [l.habit_id, l]));
   }
   const today = new Date();
   const streaks = {};
@@ -205,35 +255,72 @@ router.post('/list', (req, res) => {
     }
     streaks[h.id] = streak;
   }
-  res.json({ habits: habits.map(h => ({ ...h, done_today: date ? (logsByHabit[h.id] === 1) : null, streak: streaks[h.id] || 0 })) });
+  res.json({
+    habits: habits.map(h => {
+      const log = logsByHabit[h.id];
+      return {
+        ...h,
+        done_today: date ? !!((log && log.done) === 1 || (typeof log === 'object' && log && log.done)) : null,
+        streak: streaks[h.id] || 0,
+        sleep_start:  log ? log.sleep_start  : null,
+        sleep_end:    log ? log.sleep_end    : null,
+        wake_state:   log ? log.wake_state   : null,
+        energy_state: log ? log.energy_state : null,
+        mood_state:   log ? log.mood_state   : null,
+        sleep_note:   log ? log.sleep_note   : null,
+        data_source:  log ? log.data_source  : null,
+        actual_value: log ? Number(log.actual_value || 0) : 0,
+        log_note:     log ? log.note         : null,
+      };
+    })
+  });
 });
 
 router.post('/create', (req, res) => {
-  const { name, emoji, accent_color, target_time, duration_min, sort_order } = req.body || {};
+  const b = req.body || {};
+  const { name, emoji, accent_color, target_time, duration_min, sort_order,
+          start_time, end_time, growth_type, target_mode, target_value, target_unit, streak_goal, auto_log } = b;
   if (!name) return res.status(400).json({ error: '习惯名称必填' });
   const info = db.prepare(`
-    INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(req.user.id, name, emoji || '✅', accent_color || '#34c759', target_time || null, duration_min || null, sort_order || 0);
+    INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order,
+                        start_time, end_time, growth_type, target_mode, target_value, target_unit, streak_goal, auto_log)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.user.id, name, emoji || '✅', accent_color || '#34c759', target_time || null, duration_min || null, sort_order || 0,
+         start_time || null, end_time || null, growth_type || 'energy',
+         target_mode || 'check', target_value ?? null, target_unit || null, streak_goal ?? null,
+         auto_log === undefined ? 1 : (auto_log ? 1 : 0));
   res.json({ habit: db.prepare('SELECT * FROM habits WHERE id = ?').get(info.lastInsertRowid), id: info.lastInsertRowid });
 });
 
 router.post('/update', (req, res) => {
-  const body = req.body || {};
-  const id = Number(body.id);
+  const b = req.body || {};
+  const id = Number(b.id);
   if (!id) return res.status(400).json({ error: 'id 必填' });
   const cur = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(id, req.user.id);
   if (!cur) return res.status(404).json({ error: '习惯不存在' });
-  const { name, emoji, accent_color, target_time, duration_min, sort_order, archived } = body;
+  const { name, emoji, accent_color, target_time, duration_min, sort_order, archived,
+          start_time, end_time, growth_type, target_mode, target_value, target_unit, streak_goal, auto_log } = b;
   db.prepare(`
     UPDATE habits SET
       name = COALESCE(?, name), emoji = COALESCE(?, emoji), accent_color = COALESCE(?, accent_color),
       target_time = COALESCE(?, target_time), duration_min = COALESCE(?, duration_min),
-      sort_order = COALESCE(?, sort_order), archived = COALESCE(?, archived)
+      sort_order = COALESCE(?, sort_order), archived = COALESCE(?, archived),
+      start_time = COALESCE(?, start_time), end_time = COALESCE(?, end_time),
+      growth_type = COALESCE(?, growth_type), target_mode = COALESCE(?, target_mode),
+      target_value = ?, target_unit = COALESCE(?, target_unit),
+      streak_goal = ?, auto_log = ?,
+      updated_at = datetime('now')
     WHERE id = ? AND user_id = ?
-  `).run(name ?? null, emoji ?? null, accent_color ?? null, target_time ?? null, duration_min ?? null,
-         sort_order ?? null, archived === undefined ? null : (archived ? 1 : 0),
-         id, req.user.id);
+  `).run(
+    name ?? null, emoji ?? null, accent_color ?? null, target_time ?? null, duration_min ?? null,
+    sort_order ?? null, archived === undefined ? null : (archived ? 1 : 0),
+    start_time ?? null, end_time ?? null, growth_type ?? null, target_mode ?? null,
+    target_value === undefined ? null : target_value,
+    target_unit ?? null,
+    streak_goal === undefined ? null : streak_goal,
+    auto_log === undefined ? null : (auto_log ? 1 : 0),
+    id, req.user.id
+  );
   res.json({ habit: db.prepare('SELECT * FROM habits WHERE id = ?').get(id) });
 });
 
@@ -270,6 +357,82 @@ router.post('/toggle', (req, res) => {
     db.prepare('INSERT INTO habit_logs (habit_id, user_id, date, done) VALUES (?, ?, ?, ?)').run(habitId, req.user.id, finalDate, done);
   }
   res.json({ habit_id: habitId, date: finalDate, done: !!done });
+});
+
+// ========= 睡眠记录（对齐 ethan_habit_logs / logSleep D1 接口） =========
+router.post('/logSleep', (req, res) => {
+  const b = req.body || {};
+  const habitId = Number(b.habitId ?? b.habit_id);
+  const date = (b.date || new Date().toISOString().slice(0, 10));
+  if (!habitId) return res.status(400).json({ error: 'habitId 必填' });
+  const habit = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(habitId, req.user.id);
+  if (!habit) return res.status(404).json({ error: '习惯不存在' });
+  const { sleep_start, sleep_end, energy_state, mood_state, sleep_note } = b;
+  // 计算是否达标（有起止时间才计算）
+  const durMin = calcDurationMin(sleep_start, sleep_end);
+  const targetMin = habit.duration_min || 420;
+  let done = 0;
+  if (durMin != null && durMin >= targetMin) done = 1;
+  const existing = db.prepare('SELECT id FROM habit_logs WHERE habit_id = ? AND date = ? AND user_id = ?').get(habitId, date, req.user.id);
+  const payload = {
+    sleep_start: sleep_start || null,
+    sleep_end: sleep_end || null,
+    wake_state: null,
+    energy_state: energy_state || null,
+    mood_state: mood_state || null,
+    sleep_note: sleep_note || null,
+    data_source: 'manual',
+  };
+  if (existing) {
+    db.prepare(`
+      UPDATE habit_logs SET
+        habit_id=?, user_id=?, date=?, done=?,
+        sleep_start=?, sleep_end=?, wake_state=?, energy_state=?, mood_state=?, sleep_note=?, data_source=?
+      WHERE id=?
+    `).run(habitId, req.user.id, date, done,
+           payload.sleep_start, payload.sleep_end, payload.wake_state,
+           payload.energy_state, payload.mood_state, payload.sleep_note,
+           payload.data_source, existing.id);
+  } else {
+    db.prepare(`
+      INSERT INTO habit_logs
+        (habit_id, user_id, date, done, sleep_start, sleep_end, wake_state, energy_state, mood_state, sleep_note, data_source, actual_value, note)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `).run(habitId, req.user.id, date, done,
+           payload.sleep_start, payload.sleep_end, payload.wake_state,
+           payload.energy_state, payload.mood_state, payload.sleep_note,
+           payload.data_source, 0, null);
+  }
+  res.json({ done: !!done, duration_min: durMin, target_min: targetMin });
+});
+
+// ========= 量化打卡（对齐 ethan_habit_logs / logCount D1 接口） =========
+router.post('/logCount', (req, res) => {
+  const b = req.body || {};
+  const habitId = Number(b.habitId ?? b.habit_id);
+  const date = (b.date || new Date().toISOString().slice(0, 10));
+  if (!habitId) return res.status(400).json({ error: 'habitId 必填' });
+  const habit = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(habitId, req.user.id);
+  if (!habit) return res.status(404).json({ error: '习惯不存在' });
+  const addValue = Number(b.add_value ?? b.addValue ?? 0);
+  const note = b.note || null;
+  const existing = db.prepare('SELECT * FROM habit_logs WHERE habit_id=? AND date=? AND user_id=?').get(habitId, date, req.user.id);
+  let actualValue;
+  if (existing) {
+    actualValue = Number(existing.actual_value || 0) + addValue;
+    const target = Number(habit.target_value) || 1;
+    const done = actualValue >= target ? 1 : 0;
+    db.prepare(`UPDATE habit_logs SET done=?, actual_value=?, note=COALESCE(?, note) WHERE id=?`)
+      .run(done, actualValue, note, existing.id);
+    res.json({ done: !!done, actual_value: actualValue, target_value: Number(habit.target_value) || 0 });
+  } else {
+    actualValue = Math.max(0, addValue);
+    const target = Number(habit.target_value) || 1;
+    const done = actualValue >= target ? 1 : 0;
+    db.prepare(`INSERT INTO habit_logs (habit_id,user_id,date,done,actual_value,note) VALUES (?,?,?,?,?,?)`)
+      .run(habitId, req.user.id, date, done, actualValue, note);
+    res.json({ done: !!done, actual_value: actualValue, target_value: Number(habit.target_value) || 0 });
+  }
 });
 
 router.post('/stats', (req, res) => {

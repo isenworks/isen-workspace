@@ -5126,7 +5126,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     };
     const closeDrop = () => setOpenDropIdx(null);
     return (
-      <div className="relative" onClick={(e) => e.stopPropagation()}>
+      <div className="relative" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
         <button
           onClick={toggleDrop}
           className="w-7 h-7 rounded-full flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] hover:bg-[#f2f2f7] active:bg-[#e5e5ea] transition-colors"

@@ -439,6 +439,15 @@ const formatRemainDuration = (deadline, today) => {
     const eom = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
     days = (eom - startDay) + endDay;
   }
+  // 修：剩余天数 ≥ 借位的那个月天数 → 语义 = 差N天就整4个月，避免"3个月30天"这种近整月尴尬
+  // 例：2026-09-01 至 2026-12-31，months=3, days=30 → 当前月(9月)有30天，days=30≥30 → 进1个月=4个月
+  if (months > 0 && days > 0) {
+    const todayMonthDays = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    if (days >= todayMonthDays - 1) {
+      months += 1;
+      days = 0;
+    }
+  }
   // 修正：如果 months < 0（仅当总天数<0，但已在上面拦截，兜底）→ 退回纯天展示
   if (months < 0) months = 0;
   if (months === 0) {
@@ -1981,7 +1990,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 </div>
                 {/* ★ ① 能力页同款 DualMarkerBar（实际完成率 vs 时间计划锚点）
                     zoom 0.92 整体缩一档：气泡/轨道/下方标签同步变小，视觉层级次于标题行 */}
-                <div className="mt-1" style={{ zoom: 0.92 }}>
+                <div className="mt-1" style={{ }}>
                   <DualMarkerBar
                     actual={yearlyPct}
                     plan={Math.round(curMonth / 12 * 100)}
@@ -3796,7 +3805,7 @@ function CognitionView({
 
         {/* ===== 双标记进度条：实际 vs 计划（节奏信息整合进「计划」marker tooltip，参考能力页 planDetail 设计）
             zoom 0.92 整体缩一档：气泡/轨道/下方标签同步变小，视觉层级次于标题行 ===== */}
-        <div className="mb-2 px-0.5" style={{ zoom: 0.92 }}>
+        <div className="mb-2 px-0.5" style={{ }}>
           {(() => {
             const a = Math.max(0, Math.min(100, Number(paceActual) || 0));
             const p = Math.max(0, Math.min(100, Number(pacePlan) || 0));
@@ -3830,6 +3839,7 @@ function CognitionView({
             const isBehind = p < timePct && !isDone;
             const remaining = Math.max(0, (kr.tgt || 0) - (kr.val || 0));
             const pctWidth = Math.max(6, Math.min(100, p));
+            const minPxWidth = p === 0 ? 22 : Math.max(16, Math.round(22 * 0.7));
             const krTypeMap = { goal: '目标量', thinking: '思考量', action: '行动量', change: '改变量' };
             const krType = kr.type ? (krTypeMap[kr.type] || kr.type) : '';
             const padNum = String(idx + 1).padStart(2, '0');
@@ -3870,6 +3880,7 @@ function CognitionView({
                           className="h-full rounded-full transition-all duration-500 flex items-center justify-start pl-2"
                           style={{
                             width: `${pctWidth}%`,
+                            minWidth: `${minPxWidth}px`,
                             background: isDone
                               ? '#34C759'
                               : `${BLUE}`,
@@ -4911,7 +4922,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             );
           }
           return (
-            <div className="-mt-0.5" style={{ zoom: 0.92 }}>
+            <div className="-mt-0.5" style={{ }}>
               <DualMarkerBar
                 actual={as.avgPct}
                 plan={as.timePct}
@@ -5167,7 +5178,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
           </div>
         ) : (
-          <div style={{ zoom: 0.92 }}>
+          <div style={{ }}>
             <DualMarkerBar
               actual={gs.avgPct}
               plan={gs.timePct}
@@ -5207,6 +5218,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           const isDone = kr.st === 'done' || p >= 100;
           const isBehind = p < gs.timePct && !isDone;
           const pctWidth = Math.max(6, Math.min(100, p));
+          // 0% 时填充条仅 5% ≈ 5px 宽，高度 22px → 视觉上变成"小红圆点"而非进度条
+          // 给一个像素级 minWidth 保证始终是"胶囊"（最小高度/宽度比例 ≥ 1:1）
+          const minPxWidth = p === 0 ? 22 : Math.max(16, Math.round(22 * 0.7));
           const padNum = String(i + 1).padStart(2, '0');
           const nextKr = krs[i + 1];
           // 转化率：与知力页同算法（前一层实际量 > 0 才计算）
@@ -5239,6 +5253,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                         className="h-full rounded-full transition-all duration-500 flex items-center justify-start pl-2"
                         style={{
                           width: `${pctWidth}%`,
+                          minWidth: `${minPxWidth}px`,
                           background: isDone ? '#34C759' : COLOR,
                           boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${COLOR}25`,
                         }}>

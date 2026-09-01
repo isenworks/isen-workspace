@@ -6364,7 +6364,29 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     }
   }, [books?.length]);
   const [abilities, setAbilities] = usePersistentState('annual_abilities_v2', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
-  const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
+  // 初始化时同步修复 wk_xhs 归档状态（直接在 usePersistentState 的初始化函数里做，同步、无竞态）
+  const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => {
+    const fresh = WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) }));
+    try {
+      const saved = localStorage.getItem('annual_work');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // 直接改 localStorage —— 下次 usePersistentState 内部 useEffect 写回时就是正确的
+          const fixed = parsed.map(o => {
+            if (o && String(o.title || '').includes('小红书')) {
+              return { ...o, archived: false, status: 'active' };
+            }
+            return o;
+          });
+          localStorage.setItem('annual_work', JSON.stringify(fixed));
+          // 用 fixed 作为 state 初始值
+          return fixed;
+        }
+      }
+    } catch (_) { /* ignore */ }
+    return fresh;
+  });
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
   // 精力习惯 - 用户自定义年度目标（覆盖默认推断值 120/230）
   const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));
@@ -6417,26 +6439,6 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 🎯 强制 wk_xhs 小红书涨粉目标留在进行中（用 title 匹配，兼容 id 被重建变 uid 的情况）
-  // —— 独立 useEffect 依赖 workGoals，每次变化都检查，needsFix 守卫防无限循环
-  React.useEffect(() => {
-    const xhsTitle = '小红书';
-    const needsFix = (workGoals || []).some(o => {
-      const t = String(o?.title || '');
-      if (!t.includes(xhsTitle)) return false;
-      return o.archived === true || o.status === 'shelf';
-    });
-    if (!needsFix) return;
-    setWorkGoals(prev => prev.map(o => {
-      const t = String(o?.title || '');
-      if (!t.includes(xhsTitle)) return o;
-      if (o.archived === true || o.status === 'shelf') {
-        return { ...o, archived: false, status: 'active' };
-      }
-      return o;
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workGoals?.length, workGoals]);
   // 知力 · 漏斗顶部标题与备注（主标题"转化漏斗"+右侧说明"阅读→笔记→践行"），支持点击编辑
   const [funnelHeader, setFunnelHeader] = usePersistentState('annual_cog_funnel_header', () => ({ title: '转化漏斗', sub: '输入→思考→行动→改变' }));
   // 知力 · 漏斗四层阶段的自定义文字（label/sub/convLabel），刷新不丢

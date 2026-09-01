@@ -42,7 +42,6 @@ const MODES = [
   { v: 'funnel',    lb: '漏斗（漏斗转化率 · 链路型）' },
   { v: 'dashboard', lb: '仪表盘（多 KPI 并列量化）' },
   { v: 'milestone', lb: '里程碑门（门控阶段通过）' },
-  { v: 'balance',   lb: '平衡雷达（多维度平衡）' },
   { v: 'event',     lb: '单次事件（达成点直接结束）' },
 ];
 

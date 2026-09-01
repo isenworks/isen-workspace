@@ -484,6 +484,9 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         });
       }
 
+      const monthS = `${year}-${String(month).padStart(2, '0')}-01`;
+      const monthE = toISODate(endOfMonth(fromISODate(monthS)));
+
       // 2) 种子同步：把 seed 独立日程 + MOCK 演示事件（仅限当前月）统一写入 ethan_schedules
       //    · 第一次打开时用户能看到月历上所有示例事件；之后改类型/删除都能落到真实 API 上
       //    · 已存在的（按 title.trim 去重）跳过，避免重复插入

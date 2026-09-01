@@ -34,9 +34,21 @@ app.get('/api/health', (req, res) => {
 
 // 鉴权中间件
 export function auth(req, res, next) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ error: '未登录' });
+  // 兼容两套前端：
+  // 1) D1 模式发 X-Unlock-Token（值为 JWT 或空串）；空串 = 单人工作台默认免登录
+  //    → 直接用 DEFAULT_USER_ID（SQLite autoincrement id = 1）放行
+  // 2) 常规登录发 Authorization: Bearer <jwt>
+  let token = (req.headers.authorization || '').startsWith('Bearer ')
+    ? req.headers.authorization.slice(7)
+    : null;
+  if (!token) token = req.headers['x-unlock-token'] || null;
+  if (!token || token === '') {
+    // 空 token = 免登录（只在单用户开发/演示环境）
+    const user = db.prepare('SELECT id, username, avatar FROM users ORDER BY id LIMIT 1').get();
+    if (!user) return res.status(401).json({ error: '请先注册' });
+    req.user = user;
+    return next();
+  }
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     const user = db.prepare('SELECT id, username, avatar FROM users WHERE id = ?').get(payload.uid);

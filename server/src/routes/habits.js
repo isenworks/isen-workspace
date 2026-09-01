@@ -175,4 +175,135 @@ router.post('/:id/restore', (req, res) => {
   res.json({ ok: true });
 });
 
+// === D1 动作式路由别名 ===
+router.post('/list', (req, res) => {
+  const date = (req.body || {}).date;
+  const habits = db.prepare(`SELECT * FROM habits WHERE user_id = ? AND archived = 0 ORDER BY sort_order, id`).all(req.user.id);
+  let logsByHabit = {};
+  if (date) {
+    const logs = db.prepare(`SELECT habit_id, done FROM habit_logs WHERE user_id = ? AND date = ?`).all(req.user.id, date);
+    logsByHabit = Object.fromEntries(logs.map(l => [l.habit_id, l.done]));
+  }
+  const today = new Date();
+  const streaks = {};
+  for (const h of habits) {
+    let streak = 0;
+    let d = new Date(today);
+    while (true) {
+      const ds = d.toISOString().slice(0, 10);
+      const log = db.prepare(`SELECT done FROM habit_logs WHERE habit_id = ? AND date = ?`).get(h.id, ds);
+      if (log && log.done) {
+        streak++;
+        d.setDate(d.getDate() - 1);
+      } else {
+        if (streak === 0 && d.toISOString().slice(0, 10) === today.toISOString().slice(0, 10)) {
+          d.setDate(d.getDate() - 1);
+          continue;
+        }
+        break;
+      }
+    }
+    streaks[h.id] = streak;
+  }
+  res.json({ habits: habits.map(h => ({ ...h, done_today: date ? (logsByHabit[h.id] === 1) : null, streak: streaks[h.id] || 0 })) });
+});
+
+router.post('/create', (req, res) => {
+  const { name, emoji, accent_color, target_time, duration_min, sort_order } = req.body || {};
+  if (!name) return res.status(400).json({ error: '习惯名称必填' });
+  const info = db.prepare(`
+    INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(req.user.id, name, emoji || '✅', accent_color || '#34c759', target_time || null, duration_min || null, sort_order || 0);
+  res.json({ habit: db.prepare('SELECT * FROM habits WHERE id = ?').get(info.lastInsertRowid), id: info.lastInsertRowid });
+});
+
+router.post('/update', (req, res) => {
+  const body = req.body || {};
+  const id = Number(body.id);
+  if (!id) return res.status(400).json({ error: 'id 必填' });
+  const cur = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(id, req.user.id);
+  if (!cur) return res.status(404).json({ error: '习惯不存在' });
+  const { name, emoji, accent_color, target_time, duration_min, sort_order, archived } = body;
+  db.prepare(`
+    UPDATE habits SET
+      name = COALESCE(?, name), emoji = COALESCE(?, emoji), accent_color = COALESCE(?, accent_color),
+      target_time = COALESCE(?, target_time), duration_min = COALESCE(?, duration_min),
+      sort_order = COALESCE(?, sort_order), archived = COALESCE(?, archived)
+    WHERE id = ? AND user_id = ?
+  `).run(name ?? null, emoji ?? null, accent_color ?? null, target_time ?? null, duration_min ?? null,
+         sort_order ?? null, archived === undefined ? null : (archived ? 1 : 0),
+         id, req.user.id);
+  res.json({ habit: db.prepare('SELECT * FROM habits WHERE id = ?').get(id) });
+});
+
+router.post('/remove', (req, res) => {
+  const id = Number((req.body || {}).id);
+  if (!id) return res.status(400).json({ error: 'id 必填' });
+  const info = db.prepare('DELETE FROM habits WHERE id = ? AND user_id = ?').run(id, req.user.id);
+  if (info.changes === 0) return res.status(404).json({ error: '习惯不存在' });
+  res.json({ ok: true });
+});
+
+router.post('/reorder', (req, res) => {
+  const { orderedIds } = req.body || {};
+  if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds 必填' });
+  const stmt = db.prepare('UPDATE habits SET sort_order = ? WHERE id = ? AND user_id = ?');
+  const tx = db.transaction(() => orderedIds.forEach((id, i) => stmt.run(i, Number(id), req.user.id)));
+  tx();
+  res.json({ ok: true });
+});
+
+router.post('/toggle', (req, res) => {
+  const { id, date, targetDone } = req.body || {};
+  const habitId = Number(id);
+  const finalDate = date || new Date().toISOString().slice(0, 10);
+  const habit = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(habitId, req.user.id);
+  if (!habit) return res.status(404).json({ error: '习惯不存在' });
+  const log = db.prepare('SELECT * FROM habit_logs WHERE habit_id = ? AND date = ?').get(habitId, finalDate);
+  let done;
+  if (log) {
+    done = targetDone !== undefined ? (targetDone ? 1 : 0) : (log.done ? 0 : 1);
+    db.prepare('UPDATE habit_logs SET done = ? WHERE id = ?').run(done, log.id);
+  } else {
+    done = targetDone !== undefined ? (targetDone ? 1 : 0) : 1;
+    db.prepare('INSERT INTO habit_logs (habit_id, user_id, date, done) VALUES (?, ?, ?, ?)').run(habitId, req.user.id, finalDate, done);
+  }
+  res.json({ habit_id: habitId, date: finalDate, done: !!done });
+});
+
+router.post('/stats', (req, res) => {
+  const { from, to } = req.body || {};
+  if (!from || !to) return res.status(400).json({ error: '请提供 from 与 to' });
+  const habits = db.prepare(`SELECT id FROM habits WHERE user_id = ? AND archived = 0`).all(req.user.id);
+  const stats = habits.map(h => {
+    const rows = db.prepare(`SELECT date, done FROM habit_logs WHERE habit_id = ? AND date >= ? AND date <= ?`).all(h.id, from, to);
+    return { habit_id: h.id, total_days: rows.length, done_days: rows.filter(r => r.done).length, dates: rows.filter(r => r.done).map(r => r.date) };
+  });
+  res.json({ stats });
+});
+
+router.post('/archivedList', (req, res) => {
+  const list = db.prepare(`SELECT * FROM habits WHERE user_id = ? AND archived = 1 ORDER BY updated_at DESC, id DESC`).all(req.user.id);
+  res.json({ habits: list });
+});
+
+router.post('/archive', (req, res) => {
+  const id = Number((req.body || {}).id);
+  if (!id) return res.status(400).json({ error: 'id 必填' });
+  const cur = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(id, req.user.id);
+  if (!cur) return res.status(404).json({ error: '习惯不存在' });
+  db.prepare('UPDATE habits SET archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?').run(id, req.user.id);
+  res.json({ ok: true });
+});
+
+router.post('/restore', (req, res) => {
+  const id = Number((req.body || {}).id);
+  if (!id) return res.status(400).json({ error: 'id 必填' });
+  const cur = db.prepare('SELECT * FROM habits WHERE id = ? AND user_id = ?').get(id, req.user.id);
+  if (!cur) return res.status(404).json({ error: '习惯不存在' });
+  db.prepare('UPDATE habits SET archived = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?').run(id, req.user.id);
+  res.json({ ok: true });
+});
+
 export default router;

@@ -23,6 +23,25 @@ function readAnnualState(key, fallback) {
   } catch { /* ignore */ }
   return fallback;
 }
+/* 当前用户 id（用于按用户隔离种子化完成标记）*/
+function curUserId() {
+  try {
+    const raw = localStorage.getItem('pw_user');
+    const obj = raw ? JSON.parse(raw) : null;
+    return (obj && obj.id) ? String(obj.id) : 'anon';
+  } catch { return 'anon'; }
+}
+/* 本月是否已完成种子化（持久化到 localStorage，刷新后依然生效）
+   · 标记存在 → seedCreateAll 直接跳过，用户删除的种子事件不会再被复活
+   · 切换月份/用户后 key 不同，对新月份仍会触发首次种子化 */
+function isSeedDoneForMonth(y, m) {
+  try {
+    return localStorage.getItem(`seed_done_${curUserId()}_${y}_${m}`) === '1';
+  } catch { return false; }
+}
+function markSeedDoneForMonth(y, m) {
+  try { localStorage.setItem(`seed_done_${curUserId()}_${y}_${m}`, '1'); } catch { /* ignore */ }
+}
 const LS_BOOKS    = () => readAnnualState('annual_books_v12', BOOKS);
 const LS_ABILITY  = () => readAnnualState('annual_abilities_v2', ABILITY);
 const LS_WORK     = () => readAnnualState('annual_work', WORK);
@@ -493,7 +512,14 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       // 2) 种子同步：把 seed 独立日程 + MOCK 演示事件（仅限当前月）统一写入 ethan_schedules
       //    · 第一次打开时用户能看到月历上所有示例事件；之后改类型/删除都能落到真实 API 上
       //    · 已存在的（按 title.trim 去重）跳过，避免重复插入
+      //    · 持久化标记：种子化只在"本用户+本月"首次刷新时执行一次，
+      //      之后用户删除的事件刷新后不会被重新种子化复活（根因修复）
       const seedCreateAll = async () => {
+        if (isSeedDoneForMonth(year, month)) {
+          // 已种子化过：仅刷新日历事件源，不再 create 任何 seed
+          store?.broadcast?.({ type: 'reload' });
+          return;
+        }
         const remotes = await API.schedules.list({ from: monthS, to: monthE });
         const existing = new Set((remotes?.schedules || []).map(s => String(s.title).trim()));
         const seeds = [];
@@ -529,6 +555,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         for (const s of seeds) {
           try { await API.schedules.create(s); } catch (_) { /* dup */ }
         }
+        // 落标记：后续刷新不再种子化，删除的事件不会被复活
+        markSeedDoneForMonth(year, month);
         store?.broadcast?.({ type: 'reload' });
       };
       try { await seedCreateAll(); } catch (_) { /* ignore */ }

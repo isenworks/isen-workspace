@@ -477,7 +477,7 @@ async function handleHabitsToggle(env, body) {
 
 async function handleHabitsLogSleep(env, body) {
   const userId = uid(env);
-  const habitId = Number(body?.habit_id);
+  const habitId = Number(body?.habit_id ?? body?.habitId);
   const dateRaw = body?.date || getLocalDate();
   const dateCheck = validateDate(dateRaw);
   if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
@@ -527,12 +527,12 @@ async function handleHabitsLogSleep(env, body) {
 
 async function handleHabitsLogCount(env, body) {
   const userId = uid(env);
-  const habitId = Number(body?.habit_id);
+  const habitId = Number(body?.habit_id ?? body?.habitId);
   const dateRaw = body?.date || getLocalDate();
   const dateCheck = validateDate(dateRaw);
   if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
   const today = dateCheck.value;
-  const add_value = Number(body?.add_value || 0);
+  const add_value = Number(body?.add_value || body?.addValue || 0);
   const note = body?.note || null;
   if (!habitId) return json({ error: '缺少 habit_id' }, 400);
 

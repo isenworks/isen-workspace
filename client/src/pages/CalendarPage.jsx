@@ -461,6 +461,9 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   /* ====== 需求 6：ethan_schedules 只进日历右栏，不进主线面板 ====== */
   // 计划总结 API 拉取的日程 → 只用于日历右栏事件显示
   const [apiSchedules, setApiSchedules] = useState([]);
+  // 种子化完成标记：为 true 后不再用 MOCK_EVENTS_RAW 做 fallback
+  // （否则用户删除 API 事件后 MOCK 副本会重新出现 → "删除不成功"假象）
+  const [seedDone, setSeedDone] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -554,7 +557,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             start_date: s.start_date || s.date,
           };
         });
-        if (!cancelled) setApiSchedules(mapped);
+        if (!cancelled) { setApiSchedules(mapped); setSeedDone(true); }
 
         // 只注入「用户通过 ScheduleForm 新建」的事项到 monthTasks（切页回来恢复）
         // 排除：① planBase 已有（按 title 去重，因为 planBase 用字符串 id、API 用数字 id，id 比对无效）
@@ -1005,20 +1008,20 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   }
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month).padStart(2, '0')}`;
-    // 合并：API 真实日程（含种子化的演示事件）+ 尚未种子化的 MOCK 事件（其他月份/新环境首屏）
-    const mockRaw = MOCK_EVENTS_RAW.filter(e => e.date && e.date.startsWith(prefix));
     const apiRaw = apiSchedules.filter(e => e.date && e.date.startsWith(prefix));
+    // 种子化完成后：只用 API 数据（用户删除 API 事件后不会被 MOCK fallback 复活）
+    const mockRaw = seedDone ? [] : MOCK_EVENTS_RAW.filter(e => e.date && e.date.startsWith(prefix));
     return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);
-  }, [year, month, allTasks, apiSchedules]);
+  }, [year, month, allTasks, apiSchedules, seedDone]);
 
   const weekdayZh = ['日','一','二','三','四','五','六'];
   const detailDateObj = dayDetail?.date ? fromISODate(dayDetail.date) : null;
   const detailEvents = useMemo(() => {
     if (!dayDetail?.date) return [];
-    const mockRaw = MOCK_EVENTS_RAW.filter(e => e.date === dayDetail.date);
     const apiRaw = apiSchedules.filter(e => e.date === dayDetail.date);
+    const mockRaw = seedDone ? [] : MOCK_EVENTS_RAW.filter(e => e.date === dayDetail.date);
     return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);
-  }, [dayDetail?.date, allTasks, apiSchedules]);
+  }, [dayDetail?.date, allTasks, apiSchedules, seedDone]);
 
   return (
     <div className="flex-1 min-w-0 max-w-[1320px] flex flex-col gap-4">

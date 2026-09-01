@@ -372,15 +372,15 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     );
   }
 
-  // 右侧统一按钮（白底灰描边，更醒目）
+  // 右侧铅笔按钮：无圆圈无填充，单纯图标，hover 高亮
   function RightActionButton({ hasSleepData, onClick }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); onClick(); }}
-        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#d1d1d6] hover:bg-[#f2f2f7] active:scale-[0.97] text-[#4a4a4f] transition-colors shadow-[0_1px_1px_rgba(15,23,42,0.04)]"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#8e8e93] hover:text-[#007AFF] hover:bg-[rgba(0,122,255,0.08)] active:scale-[0.97] transition-colors"
         title={hasSleepData ? '编辑睡眠记录（实际睡眠 + 精力 + 心情）' : '点击记录昨晚入睡/起床 + 醒后精力、心情'}
       >
-        <Pencil size={13} strokeWidth={2} />
+        <Pencil size={16} strokeWidth={2} />
       </button>
     );
   }

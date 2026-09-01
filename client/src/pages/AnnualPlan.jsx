@@ -5144,37 +5144,35 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           </svg>
         </button>
         {isOpen && (
-          <div className="wk-card-menu absolute right-0 top-8 z-50 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-ink-100 py-1.5 w-44 overflow-hidden animate-[fadeIn_0.12s_ease-out]"
+          <div className="wk-card-menu absolute right-0 top-8 z-50 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-ink-100 py-1.5 w-36 overflow-hidden animate-[fadeIn_0.12s_ease-out]"
           >
-            {!isArchived ? (
-              <>
-                <button onClick={() => { closeDrop(); onGoalMarkDone && onGoalMarkDone(o.id || o.title); }}
-                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] flex items-center gap-2.5">
-                  <span className="text-[15px]">✅</span><span>标记完成</span>
-                </button>
-                <button onClick={() => { closeDrop(); onGoalShelf && onGoalShelf(o.id || o.title); }}
-                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] flex items-center gap-2.5">
-                  <span className="text-[15px]">📦</span><span>归档搁置</span>
-                </button>
-                <div className="h-px bg-[#e5e5ea] my-1"/>
-                <button onClick={() => { closeDrop(); onGoalRemove(goalIdx); }}
-                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#FF3B30] hover:bg-[#fff0f0] flex items-center gap-2.5">
-                  <span className="text-[15px]">🗑</span><span>删除</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => { closeDrop(); onGoalUnarchive && onGoalUnarchive(o.id || o.title); }}
-                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] flex items-center gap-2.5">
-                  <span className="text-[15px]">↺</span><span>取消归档</span>
-                </button>
-                <div className="h-px bg-[#e5e5ea] my-1"/>
-                <button onClick={() => { closeDrop(); onGoalRemove(goalIdx); }}
-                  className="w-full text-left px-3.5 py-2 text-[13px] text-[#FF3B30] hover:bg-[#fff0f0] flex items-center gap-2.5">
-                  <span className="text-[15px]">🗑</span><span>删除</span>
-                </button>
-              </>
+            {/* ① 进行中（已完成/已归档时显示，点了就 unarchive） */}
+            {st !== 'active' && (
+              <button onClick={() => { closeDrop(); onGoalUnarchive && onGoalUnarchive(o.id || o.title); }}
+                className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] hover:rounded-md transition-colors">
+                进行中
+              </button>
             )}
+            {/* ② 已完成（非 done 时显示） */}
+            {st !== 'done' && (
+              <button onClick={() => { closeDrop(); onGoalMarkDone && onGoalMarkDone(o.id || o.title); }}
+                className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#e8f8ec] hover:rounded-md transition-colors">
+                已完成
+              </button>
+            )}
+            {/* ③ 已归档（非 shelf 时显示） */}
+            {st !== 'shelf' && (
+              <button onClick={() => { closeDrop(); onGoalShelf && onGoalShelf(o.id || o.title); }}
+                className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] hover:rounded-md transition-colors">
+                已归档
+              </button>
+            )}
+            {/* ④ 删除 — 分割线 + 红色 */}
+            <div className="h-px bg-[#e5e5ea] my-1"/>
+            <button onClick={() => { closeDrop(); onGoalRemove(goalIdx); }}
+              className="w-full text-left px-3.5 py-2 text-[13px] text-[#FF3B30] hover:bg-[#fff0f0] hover:rounded-md transition-colors">
+              删除
+            </button>
           </div>
         )}
       </div>

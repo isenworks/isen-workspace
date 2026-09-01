@@ -556,23 +556,27 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         });
         if (!cancelled) setApiSchedules(mapped);
 
-        // 把五大模块的 API schedule 注入 monthTasks（作为 __fromSchedule）
-        // 避免和 planBase 已有的同 id 重复
+        // 只注入「用户通过 ScheduleForm 新建」的事项到 monthTasks（切页回来恢复）
+        // 排除：① planBase 已有（按 title 去重，因为 planBase 用字符串 id、API 用数字 id，id 比对无效）
+        //       ② 种子化的 MOCK 演示事件（按 title 匹配 MOCK_EVENTS_RAW，这些不该进主线面板）
         if (!cancelled) {
           setMonthTasks(prev => {
-            const existingIds = new Set(prev.map(t => String(t.id)));
+            const existingTitles = new Set(prev.map(t => normTitle(t.title || '')));
+            const mockTitles = new Set(MOCK_EVENTS_RAW.map(e => normTitle(e.title || '')));
             const toInject = mapped
               .filter(s => {
                 const cat = Number(s.category);
-                return [1, 2, 5, 6, 7].includes(cat); // 五大模块才进主线
+                return [1, 2, 5, 6, 7].includes(cat);
               })
               .filter(s => {
-                // overlapsMonth 校验
                 const sd = s.start_date || s.date;
                 if (!sd) return true;
                 return sd >= monthS && sd <= monthE;
               })
-              .filter(s => !existingIds.has(String(s.id)))
+              .filter(s => {
+                const nt = normTitle(s.title || '');
+                return !existingTitles.has(nt) && !mockTitles.has(nt);
+              })
               .map(s => {
                 const mod = catToModule(Number(s.category));
                 return {
@@ -987,9 +991,17 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   // MOCK 演示事件 vs API 真实日程去重：同 date+title 优先保留 API 记录（有 id → 点击走 ScheduleForm，
   // 才有左下角删除按钮 + 类型修改落库；MOCK 副本没有 id 会被路由到 KrForm/MilestoneForm）
   function dedupeMockVsApi(mockRaw, apiRaw) {
-    const apiKeys = new Set(apiRaw.map(e => `${e.date}|${String(e.title || '').trim()}`));
+    // 先对 apiRaw 自身去重（DB 可能因多次种子化产生重复条目），按 date|title 保留第一个
+    const seenApi = new Set();
+    const apiDeduped = apiRaw.filter(e => {
+      const k = `${e.date}|${String(e.title || '').trim()}`;
+      if (seenApi.has(k)) return false;
+      seenApi.add(k);
+      return true;
+    });
+    const apiKeys = new Set(apiDeduped.map(e => `${e.date}|${String(e.title || '').trim()}`));
     const mockOnly = mockRaw.filter(e => !apiKeys.has(`${e.date}|${String(e.title || '').trim()}`));
-    return [...apiRaw, ...mockOnly];
+    return [...apiDeduped, ...mockOnly];
   }
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month).padStart(2, '0')}`;

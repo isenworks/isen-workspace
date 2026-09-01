@@ -377,7 +377,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); onClick(); }}
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#8e8e93] hover:text-[#007AFF] hover:bg-[rgba(0,122,255,0.08)] active:scale-[0.97] transition-colors"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#8e8e93] hover:text-[#34C759] hover:bg-[rgba(52,199,89,0.10)] active:scale-[0.97] transition-colors"
         title={hasSleepData ? '编辑睡眠记录（实际睡眠 + 精力 + 心情）' : '点击记录昨晚入睡/起床 + 醒后精力、心情'}
       >
         <Pencil size={16} strokeWidth={2} />

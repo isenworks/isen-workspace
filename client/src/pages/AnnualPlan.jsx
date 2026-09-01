@@ -6411,7 +6411,14 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         if (k.id) return k;
         changed = true; return { ...k, id: uid() };
       });
-      return (!o.id || (o.krs || []).some((k, i) => krs[i]?.id && !k.id)) ? { ...o, id: oId, krs } : o;
+      let result = (!o.id || (o.krs || []).some((k, i) => krs[i]?.id && !k.id)) ? { ...o, id: oId, krs } : o;
+      // 🎯 精准迁移：wk_xhs 被误归档（之前冒泡 bug 导致 ⋮ 取消归档不生效 → 用户手动归档后留在了 shelf）
+      // 强制移回进行中 —— 仅限 wk_xhs，用户手动归档其他目标不受影响
+      if (o.id === 'wk_xhs' && (o.archived === true || o.status === 'shelf')) {
+        result = { ...result, archived: false, status: 'active' };
+        changed = true;
+      }
+      return result;
     });
     if (changed) { setAbilities(normAb); setWorkGoals(normWk); }
     // eslint-disable-next-line react-hooks/exhaustive-deps

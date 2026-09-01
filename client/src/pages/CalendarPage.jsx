@@ -76,6 +76,93 @@ function unmarkScheduleDeletedLocally(id) {
     localStorage.setItem(DELETED_SCHEDULE_LS_KEY(), JSON.stringify([...set]));
   } catch { /* ignore */ }
 }
+/* 周主线 WEEK_SEED 的"已删除 id"持久化（刷新后不再复活）
+   · 与 ethan_schedules 分开一套：WEEK_SEED 是本地写死的字符串 id（w1..w5），
+     它们不会出现在 ethan_schedules 表里，所以走另一套 LS tombstone。
+   · 新建的本周主线任务（真实 ethan_schedules 记录）仍走上面 deleted_schedules_* */
+const DELETED_WEEK_SEED_LS_KEY = () => `deleted_week_seed_${curUserId()}`;
+function isWeekSeedDeletedLocally(id) {
+  if (id == null) return false;
+  try {
+    const raw = localStorage.getItem(DELETED_WEEK_SEED_LS_KEY());
+    const set = raw ? new Set(JSON.parse(raw)) : new Set();
+    return set.has(String(id));
+  } catch { return false; }
+}
+function markWeekSeedDeletedLocally(id) {
+  if (id == null) return;
+  try {
+    const raw = localStorage.getItem(DELETED_WEEK_SEED_LS_KEY());
+    const set = raw ? new Set(JSON.parse(raw)) : new Set();
+    set.add(String(id));
+    localStorage.setItem(DELETED_WEEK_SEED_LS_KEY(), JSON.stringify([...set]));
+  } catch { /* ignore */ }
+}
+function unmarkWeekSeedDeletedLocally(id) {
+  if (id == null) return;
+  try {
+    const raw = localStorage.getItem(DELETED_WEEK_SEED_LS_KEY());
+    if (!raw) return;
+    const set = new Set(JSON.parse(raw));
+    if (!set.has(String(id))) return;
+    set.delete(String(id));
+    localStorage.setItem(DELETED_WEEK_SEED_LS_KEY(), JSON.stringify([...set]));
+  } catch { /* ignore */ }
+}
+/* 判断任务/事项的日期 span 是否覆盖到给定周（weekStart~weekEnd 闭区间）*/
+function overlapsWeek(t, weekStartISO, weekEndISO) {
+  const sd = t.start_date || t.schedule_date || t.date;
+  const ed = t.end_date || sd;
+  if (!sd) return true; // 无日期的默认算在本周
+  return sd <= weekEndISO && ed >= weekStartISO;
+}
+/* 初始化 weekTasks：先过滤本地已删的 WEEK_SEED，再追加 ethan_schedules 本周内属于五大模块的真实记录 */
+function computeInitialWeekTasks(weekStartISO, weekEndISO, remoteSchedules = []) {
+  const seed = WEEK_SEED.filter(t => !isWeekSeedDeletedLocally(t.id));
+  const fromSchedules = remoteSchedules
+    .filter(s => {
+      const cat = Number(s.category);
+      if (![1, 2, 5, 6, 7].includes(cat)) return false;
+      const sd = s.start_date || s.schedule_date || s.date;
+      const ed = s.end_date || sd;
+      if (!sd) return false;
+      return sd <= weekEndISO && ed >= weekStartISO;
+    })
+    .filter(s => s.id == null || !isScheduleDeletedLocally(s.id))
+    .map(s => {
+      const mod = catToModule(Number(s.category));
+      const sd = s.start_date || s.date;
+      return {
+        id: s.id,
+        __origin: 'api',
+        __fromSchedule: true,
+        moduleKey: mod.key,
+        title: s.title || '',
+        done: !!s.is_done,
+        progress: s.is_done ? 1 : 0,
+        start_date: sd,
+        end_date: s.end_date || null,
+        schedule_date: sd,
+        date: sd,
+        note: s.note || '',
+        isLongTerm: false,
+        start_time: s.start_time || null,
+        end_time: s.end_time || null,
+        category: Number(s.category),
+        srcTag: `≡ ${mod.label}事项`,
+        srcTagColor: mod.soft,
+        srcTagTextColor: mod.color,
+      };
+    });
+  // 去重：同 id 以 seed 优先（一般 seed 为 w1..w5 不会和数字 id 冲突）
+  const seenIds = new Set();
+  return [...seed, ...fromSchedules].filter(t => {
+    const k = String(t.id);
+    if (seenIds.has(k)) return false;
+    seenIds.add(k);
+    return true;
+  });
+}
 const LS_BOOKS    = () => readAnnualState('annual_books_v12', BOOKS);
 const LS_ABILITY  = () => readAnnualState('annual_abilities_v2', ABILITY);
 const LS_WORK     = () => readAnnualState('annual_work', WORK);
@@ -489,7 +576,14 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     return [...seedTasks, ...planTasks];
   }, [realHabits]);
   const [monthTasks, setMonthTasks] = useState(() => computeInitialMonthTasks(todayObj.getFullYear(), todayObj.getMonth() + 1));
-  const [weekTasks, setWeekTasks] = useState(WEEK_SEED);
+  // 本周主线：首次挂载先按 WEEK_SEED（过滤本地已删）占位；后续 API.schedules.list 拉完后
+  // 再把 ethan_schedules 里"本周内的五大模块事项"追加进来（避免刷新后用户新建的本周任务丢失）
+  const [weekTasks, setWeekTasks] = useState(() => {
+    const todayISO = toISODate(new Date());
+    const ws = toISODate(startOfWeek(todayISO));
+    const we = toISODate(endOfWeek(todayISO));
+    return computeInitialWeekTasks(ws, we, []);
+  });
 
   // 回收站：被删除的主线任务（抓取的事项 isFromFetch 除外）
   const [deletedMonthTasks, setDeletedMonthTasks] = useState([]);
@@ -684,6 +778,27 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             if (toInject.length === 0) return prev;
             return [...prev, ...toInject];
           });
+
+          // 同步重算 weekTasks：WEEK_SEED(过滤已删) + ethan_schedules 本周 span 五大模块事项
+          // 解决：1) WEEK_SEED 中被删的 id 刷新后不再复活 2) 用户新建的本周 span 事项刷 新后仍存在
+          const weekSISO = toISODate(startOfWeek(todayISO));
+          const weekEISO = toISODate(endOfWeek(todayISO));
+          setWeekTasks(prevWeek => {
+            // 保留用户在 WEEK_SEED 合成任务上改过的 done/progress（否则刷新后进度丢失）
+            const seedStateMap = new Map();
+            prevWeek.forEach(t => {
+              if (t && typeof t.id === 'string' && /^w\d+$/.test(t.id)) {
+                seedStateMap.set(String(t.id), { done: !!t.done, progress: Number(t.progress || 0) });
+              }
+            });
+            const recomputed = computeInitialWeekTasks(weekSISO, weekEISO, cleaned);
+            // merge: 如果 recomputed 里已经有同 id（真实 api schedule）→ 保留；否则补上 seedState 改动
+            return recomputed.map(t => {
+              const st = seedStateMap.get(String(t.id));
+              if (!st) return t;
+              return { ...t, done: st.done, progress: st.done ? 1 : st.progress };
+            });
+          });
         }
       } catch (_) { if (!cancelled) setApiSchedules([]); }
 
@@ -698,18 +813,12 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
        · "更新"操作：先删旧（按 id）再新增，保持分类/配色/span 与最新数据一致
        · "删除"操作：按 id 移除主线条目 */
   useEffect(() => {
-    function upsertScheduleIntoMonthTasks(s) {
-      if (!s) return;
-      // 本地 tombstone 兜底：刚刚被用户删掉的 id 即使 API 短暂回返也不注入主线
-      if (s.id != null && isScheduleDeletedLocally(s.id)) return;
+    function buildProxyTask(s) {
       const cat = Number(s.category);
       const mod = catToModule(cat);
-      // 只保留五大主线模块；cat=3(其他)不进本月主线
-      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
-      const scheduleDate = s.start_date || s.schedule_date || s.date;
-      const start_date = scheduleDate || null;
+      const start_date = (s.start_date || s.schedule_date || s.date) || null;
       const end_date = s.end_date || null;
-      const proxyTask = {
+      return {
         id: Number(s.id),
         __origin: 'api',
         __fromSchedule: true,
@@ -731,10 +840,38 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         srcTagColor: mod.soft,
         srcTagTextColor: mod.color,
       };
+    }
+    function upsertScheduleIntoMonthTasks(s) {
+      if (!s) return;
+      // 本地 tombstone 兜底：刚刚被用户删掉的 id 即使 API 短暂回返也不注入主线
+      if (s.id != null && isScheduleDeletedLocally(s.id)) return;
+      const mod = catToModule(Number(s.category));
+      // 只保留五大主线模块；cat=3(其他)不进本月主线
+      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
+      const proxyTask = buildProxyTask(s);
       if (!overlapsMonth(proxyTask, year, month)) return;
       setMonthTasks(prev => {
         const filtered = prev.filter(t => String(t.id) !== String(proxyTask.id));
-        // 插到同 moduleKey 组的第一个位置（让用户新建的事立即能在本组顶部看到）
+        const groupFirstIdx = filtered.findIndex(t => t.moduleKey === mod.key);
+        if (groupFirstIdx < 0) return [...filtered, proxyTask];
+        const copy = [...filtered];
+        copy.splice(groupFirstIdx, 0, proxyTask);
+        return copy;
+      });
+    }
+    /* 与上面对称：schedule_saved 如果落在本周 span → 也注入 weekTasks，
+       保证用户在"本月主线/本周主线"任一 +按钮新建的本周事项，本周面板立刻可见 */
+    function upsertScheduleIntoWeekTasks(s) {
+      if (!s) return;
+      if (s.id != null && isScheduleDeletedLocally(s.id)) return;
+      const mod = catToModule(Number(s.category));
+      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
+      const proxyTask = buildProxyTask(s);
+      const ws = toISODate(startOfWeek(todayISO));
+      const we = toISODate(endOfWeek(todayISO));
+      if (!overlapsWeek(proxyTask, ws, we)) return;
+      setWeekTasks(prev => {
+        const filtered = prev.filter(t => String(t.id) !== String(proxyTask.id));
         const groupFirstIdx = filtered.findIndex(t => t.moduleKey === mod.key);
         if (groupFirstIdx < 0) return [...filtered, proxyTask];
         const copy = [...filtered];
@@ -748,6 +885,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         // 保存回来（新建 / 编辑）：从 tombstone 移出，避免用户先删再改标题新建回来时被误过滤
         if (msg.schedule?.id != null) unmarkScheduleDeletedLocally(msg.schedule.id);
         upsertScheduleIntoMonthTasks(msg.schedule);
+        upsertScheduleIntoWeekTasks(msg.schedule);
         // 同步更新 apiSchedules（日历事件源），否则删除/编辑后日历格子不刷新
         setApiSchedules(prev => {
           const idx = prev.findIndex(s => String(s.id) === String(msg.schedule.id));
@@ -773,14 +911,15 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         setTick(v => v + 1);
       } else if (msg.type === 'schedule_deleted' && msg.schedule?.id != null) {
         const delId = String(msg.schedule.id);
-        // 从主线 + 日历事件源双删
+        // 从主线 + 周主线 + 日历事件源 三处一起删（避免本周卡片/月历里还看得到）
         setMonthTasks(prev => prev.filter(t => String(t.id) !== delId));
+        setWeekTasks(prev => prev.filter(t => String(t.id) !== delId));
         setApiSchedules(prev => prev.filter(s => String(s.id) !== delId));
         setTick(v => v + 1);
       }
     });
     return unsub;
-  }, [year, month]);
+  }, [year, month, todayISO]);
 
   // 经过月份 span 过滤后的主线任务（展示用）
   const visibleMonthTasks = useMemo(
@@ -911,13 +1050,24 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       return;
     }
 
-    // 3) 合成任务（AnnualPlan / Seed）：原逻辑 → 本地移除 + 入回收站
+    // 3) 合成任务（AnnualPlan / Seed / WEEK_SEED）：
+    //    - WEEK_SEED 任务（id 形如 w1..w5、且是周面板删除）→ 额外写 LS tombstone
+    //      （刷新后 useState(computeInitialWeekTasks) 会按 tombstone 过滤掉 → 不再复活）
+    //    - 其他 AnnualPlan 合成任务：原逻辑入回收站（可还原，不持久化删除）
     if (removed) setDeleted(prev => [removed, ...prev.filter(x => String(x.id) !== tidStr)]);
+    if (!isMonth && typeof tid === 'string' && /^w\d+$/.test(tidStr)) {
+      markWeekSeedDeletedLocally(tid);
+    }
     setTick(v => v + 1);
   }, []);
   const restoreTask = useCallback((task, { isMonth = true } = {}) => {
     const setTasks   = isMonth ? setMonthTasks   : setWeekTasks;
     const setDeleted = isMonth ? setDeletedMonthTasks : setDeletedWeekTasks;
+    // 还原 WEEK_SEED：从本地 tombstone 里一并移除，不然刷新就又消失了
+    const tid = task?.id;
+    if (!isMonth && typeof tid === 'string' && /^w\d+$/.test(String(tid || ''))) {
+      unmarkWeekSeedDeletedLocally(tid);
+    }
     setDeleted(prev => prev.filter(t => t.id !== task.id));
     setTasks(prev => (prev.find(x => x.id === task.id) ? prev : [...prev, task]));
     setTick(v => v + 1);

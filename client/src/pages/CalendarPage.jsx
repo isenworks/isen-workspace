@@ -408,26 +408,34 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
 
 /* 精力："体检 + 买复合维生素"等独立事项（用户手动创建的示例，非习惯同步）
    · 与 ethan_schedules 双向同步，FocusPanel 排序排在三个习惯前面（isHabit=false 的非习惯项自动排最前）*/
-const SEED_ENERGY_NONHABIT = [
-  { id: 'seed_checkup', moduleKey: 'energy', title: '体检 + 买复合维生素',
-    done: false, progress: 0.60, dueDate: '截止 8/31',
-    start_date: '2026-08-25', end_date: '2026-08-31' },
+/* ===== 用户白名单：只显示这 3 个事项 + 用户手动新建的事项（localStorage 存 id）===== */
+const USER_ONLY_TITLES = [
+  '准备面试-伊利 · 客户经理(渠道运营)',
+  '提前还房贷2万',
+  '杭州宠物博览会（抖音团购票）',
 ];
+function getUserCreatedIds() {
+  try { return JSON.parse(localStorage.getItem(`user_created_schedule_ids_${curUserId()}`) || '[]'); } catch { return []; }
+}
+function saveUserCreatedIds(ids) {
+  try { localStorage.setItem(`user_created_schedule_ids_${curUserId()}`, JSON.stringify(ids)); } catch { /* ignore */ }
+}
+function isUserSchedule(ev) {
+  if (!ev) return false;
+  // ① id 在用户手动新建集合里 → 放行
+  if (ev.id != null && getUserCreatedIds().some(id => String(id) === String(ev.id))) return true;
+  // ② title 匹配白名单 → 放行
+  const nt = normTitle(String(ev?.title || ''));
+  if (!nt) return false;
+  return USER_ONLY_TITLES.some(w => {
+    const wn = normTitle(w);
+    return nt.includes(wn) || wn.includes(nt);
+  });
+}
 
-/* ===== 周主线：从月主线拆解出的"本周任务"示例（暂保留静态，后续与周拆解能力联动）===== */
-const WEEK_SEED = [
-  { id: 'w1', moduleKey: 'cognition', title: '《纳瓦尔》第 5-6 章 · 做卡片笔记',
-    done: false, progress: 0.50, srcTag: '≡ 继承月主线',
-    srcTagColor: 'rgba(0,122,255,0.08)', srcTagTextColor: '#0040DD', dueDate: '周三 9/2' },
-  { id: 'w2', moduleKey: 'ability',   title: '① Shadowing 连读训练 5 天',
-    done: true,  progress: 1.00 },
-  { id: 'w3', moduleKey: 'ability',   title: '② 音标纠音 · R/L/TH 发音',
-    done: false, progress: 0.28, note: '2/7' },
-  { id: 'w4', moduleKey: 'work',      title: '买域名 + 后端基础骨架',
-    done: false, progress: 0.30, dueDate: '周二' },
-  { id: 'w5', moduleKey: 'work',      title: '写 PRD v0.1 · 核心用户故事',
-    done: false, progress: 0.00, dueDate: '周四' },
-];
+const SEED_ENERGY_NONHABIT = [];
+const WEEK_SEED = [];
+const MOCK_EVENTS_RAW = [];
 
 /* ========= 工具：双向更强的标题匹配（解决「体检+买复合维生素」↔「体检复合维生素」左右不同步）
    - 之前用 t.title.slice(0,4) 做单侧前缀，但"体检复合维生素"前4字 = 「体检复合」，主线是「体检+买复合维生素」前4字 = 「体检+买」，前4字不重合导致永不关联
@@ -484,36 +492,7 @@ function overlapsMonth(task, year, month) {
   return true;
 }
 
-/* ===== 月格事件：保留 demo 数据（月历格子内的小圆点 + 复选框直观展示）
-   真实 ethan_schedules 也会在 fetch 后通过 tick 加入渲染引用
-   （需求 6 已通过 aggregateTasksFromAnnualPlan + useEffect API 聚合呈现主线）*/
-const MOCK_EVENTS_RAW = [
-  { date: '2026-08-31', title: '体检复合维生素',             category: 6 },
-  { date: '2026-08-31', title: '纳瓦尔 5-6 章',               category: 7 },
-  { date: '2026-08-31', title: 'OKR Q3 复盘',                  category: 1 },
-  { date: '2026-08-31', title: '写 PRD v0.1',                  category: 1 },
-  { date: '2026-09-01', title: '发音练习 R/L',                 category: 2 },
-  { date: '2026-09-02', title: '买域名 + 后端骨架',           category: 1 },
-  { date: '2026-09-02', title: '纳瓦尔笔记',                   category: 7 },
-  { date: '2026-09-04', title: 'OKR Q3 复盘会 14:00',         category: 1 },
-  { date: '2026-09-05', title: '写 PRD v0.1',                  category: 1 },
-  { date: '2026-09-05', title: '签证资料提交',                 category: 5 },
-  { date: '2026-09-06', title: 'Shadowing 50min',             category: 2 },
-  { date: '2026-09-07', title: '露营 · 延庆',                  category: 5 },
-  { date: '2026-09-07', title: '徒步 8km',                    category: 6 },
-  { date: '2026-09-08', title: '体检医院 · 9:30',              category: 6 },
-  { date: '2026-09-10', title: '东京行机票出签',               category: 5 },
-  { date: '2026-09-12', title: '客户 Demo',                    category: 1 },
-  { date: '2026-09-15', title: '读完《纳瓦尔宝典》',           category: 7 },
-  { date: '2026-09-17', title: '英语口语 M3 测评',             category: 2 },
-  { date: '2026-09-19', title: '洞察组 + 践行发布',           category: 7 },
-  { date: '2026-09-21', title: '家族聚会',                      category: 5 },
-  { date: '2026-09-24', title: '副业 MVP v0.1 上线',           category: 1 },
-  { date: '2026-09-27', title: 'Q3 月末结算',                   category: 1 },
-  { date: '2026-09-29', title: '✈ 出发东京',                    category: 5 },
-  { date: '2026-09-30', title: '月度复盘 · 知力输出',           category: 7 },
-  { date: '2026-10-01', title: '8月主线完成度核查',            category: 1 },
-];
+/* MOCK_EVENTS_RAW 已在上方清空 const MOCK_EVENTS_RAW = [] — 不再有 demo 注入 */
 
 /* ========= 工具：主线任务 → ScheduleForm 初始值 ========= */
 function taskToScheduleInitial(task, defaultDate) {
@@ -725,7 +704,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           };
         });
         // 从 apiSchedules 里也剔除本地 tombstone 记录（防止日历右栏/月历再显示"已删"事项）
-        const cleaned = mapped.filter(s => s.id == null || !isScheduleDeletedLocally(s.id));
+        const cleaned = mapped
+          .filter(s => s.id == null || !isScheduleDeletedLocally(s.id))
+          // 白名单过滤：只显示用户明确创建的 3 个事项
+          .filter(isUserSchedule);
         if (!cancelled) { setApiSchedules(cleaned); setSeedDone(true); }
 
         // 只注入「用户通过 ScheduleForm 新建」的事项到 monthTasks（切页回来恢复）
@@ -884,6 +866,13 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (msg.type === 'schedule_saved') {
         // 保存回来（新建 / 编辑）：从 tombstone 移出，避免用户先删再改标题新建回来时被误过滤
         if (msg.schedule?.id != null) unmarkScheduleDeletedLocally(msg.schedule.id);
+        // 用户新建的事项：存 id 到 localStorage，白名单 filter 放行（避免刷新被过滤）
+        if (msg.schedule?.id != null) {
+          const ids = getUserCreatedIds();
+          if (!ids.some(x => String(x) === String(msg.schedule.id))) {
+            saveUserCreatedIds([...ids, msg.schedule.id]);
+          }
+        }
         upsertScheduleIntoMonthTasks(msg.schedule);
         upsertScheduleIntoWeekTasks(msg.schedule);
         // 同步更新 apiSchedules（日历事件源），否则删除/编辑后日历格子不刷新

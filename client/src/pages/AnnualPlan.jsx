@@ -6368,29 +6368,29 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     }
   }, [books?.length]);
   const [abilities, setAbilities] = usePersistentState('annual_abilities_v2', () => ABILITY.map(a => ({ ...a, id: uid(), mstones: a.mstones.map(m => ({ ...m, id: uid() })) })));
-  // 初始化时同步修复 wk_xhs 归档状态（直接在 usePersistentState 的初始化函数里做，同步、无竞态）
-  const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => {
-    const fresh = WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) }));
+  // 🎯 终极修复：在 usePersistentState 读 localStorage 之前先同步修 wk_xhs 的 archived
+  // —— usePersistentState 内部先读 localStorage 有值就直接返回，initial 函数不会被调用！
+  // —— 所以必须在 usePersistentState 之前手动修 localStorage
+  (() => {
     try {
       const saved = localStorage.getItem('annual_work');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // 直接改 localStorage —— 下次 usePersistentState 内部 useEffect 写回时就是正确的
+          let changed = false;
           const fixed = parsed.map(o => {
-            if (o && String(o.title || '').includes('小红书')) {
+            if (o && String(o.title || '').includes('小红书') && (o.archived === true || o.status === 'shelf')) {
+              changed = true;
               return { ...o, archived: false, status: 'active' };
             }
             return o;
           });
-          localStorage.setItem('annual_work', JSON.stringify(fixed));
-          // 用 fixed 作为 state 初始值
-          return fixed;
+          if (changed) localStorage.setItem('annual_work', JSON.stringify(fixed));
         }
       }
     } catch (_) { /* ignore */ }
-    return fresh;
-  });
+  })();
+  const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
   // 精力习惯 - 用户自定义年度目标（覆盖默认推断值 120/230）
   const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));

@@ -6411,18 +6411,32 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         if (k.id) return k;
         changed = true; return { ...k, id: uid() };
       });
-      let result = (!o.id || (o.krs || []).some((k, i) => krs[i]?.id && !k.id)) ? { ...o, id: oId, krs } : o;
-      // 🎯 精准迁移：wk_xhs 被误归档（之前冒泡 bug 导致 ⋮ 取消归档不生效 → 用户手动归档后留在了 shelf）
-      // 强制移回进行中 —— 仅限 wk_xhs，用户手动归档其他目标不受影响
-      if (o.id === 'wk_xhs' && (o.archived === true || o.status === 'shelf')) {
-        result = { ...result, archived: false, status: 'active' };
-        changed = true;
-      }
-      return result;
+      return (!o.id || (o.krs || []).some((k, i) => krs[i]?.id && !k.id)) ? { ...o, id: oId, krs } : o;
     });
     if (changed) { setAbilities(normAb); setWorkGoals(normWk); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 🎯 强制 wk_xhs 小红书涨粉目标留在进行中（用 title 匹配，兼容 id 被重建变 uid 的情况）
+  // —— 独立 useEffect 依赖 workGoals，每次变化都检查，needsFix 守卫防无限循环
+  React.useEffect(() => {
+    const xhsTitle = '小红书';
+    const needsFix = (workGoals || []).some(o => {
+      const t = String(o?.title || '');
+      if (!t.includes(xhsTitle)) return false;
+      return o.archived === true || o.status === 'shelf';
+    });
+    if (!needsFix) return;
+    setWorkGoals(prev => prev.map(o => {
+      const t = String(o?.title || '');
+      if (!t.includes(xhsTitle)) return o;
+      if (o.archived === true || o.status === 'shelf') {
+        return { ...o, archived: false, status: 'active' };
+      }
+      return o;
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workGoals?.length, workGoals]);
   // 知力 · 漏斗顶部标题与备注（主标题"转化漏斗"+右侧说明"阅读→笔记→践行"），支持点击编辑
   const [funnelHeader, setFunnelHeader] = usePersistentState('annual_cog_funnel_header', () => ({ title: '转化漏斗', sub: '输入→思考→行动→改变' }));
   // 知力 · 漏斗四层阶段的自定义文字（label/sub/convLabel），刷新不丢

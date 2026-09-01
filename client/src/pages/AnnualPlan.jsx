@@ -5793,9 +5793,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               >{localTitle}</span>
             )}
             <span className="text-[11px] text-ink-400 tabular-nums leading-none whitespace-nowrap">
-              <span style={{ color: RED }}>主业 · {totalMain}</span>
+              主业 · {totalMain}
               <span className="mx-1 opacity-40">|</span>
-              <span style={{ color: '#FF9500' }}>副业 · {totalSide}</span>
+              副业 · {totalSide}
             </span>
           </div>
 

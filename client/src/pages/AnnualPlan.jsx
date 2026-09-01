@@ -5140,9 +5140,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           </svg>
         </button>
         {isOpen && (
-          <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-ink-100 py-1.5 w-44 overflow-hidden animate-[fadeIn_0.12s_ease-out]"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
+          <div className="wk-card-menu absolute right-0 top-8 z-50 bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-ink-100 py-1.5 w-44 overflow-hidden animate-[fadeIn_0.12s_ease-out]"
           >
             {!isArchived ? (
               <>
@@ -5179,10 +5177,14 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     );
   };
 
-  /* —— 点击外部关闭下拉 —— */
+  /* —— 点击外部关闭下拉（用 target.closest('.wk-card-menu') 判断是否在菜单内，避免 React 合成事件 stopPropagation 不影响原生 document 监听的冒泡 bug）—— */
   useEffect(() => {
     if (!openDropIdx) return;
-    const handler = () => setOpenDropIdx(null);
+    const handler = (e) => {
+      // 如果点击的是下拉菜单本身或其内部元素 → 不关（让菜单项 onClick 正常触发）
+      if (e.target && typeof e.target.closest === 'function' && e.target.closest('.wk-card-menu')) return;
+      setOpenDropIdx(null);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [openDropIdx]);

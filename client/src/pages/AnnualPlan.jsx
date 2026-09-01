@@ -282,15 +282,11 @@ export const WORK = [
   {
     id: 'wk_jl_quit',
     core: true, label: '主业', title: '从JL离职+拿到大礼包',
-    mode: 'funnel',
+    mode: 'event', // 🎯 单次事件型：达成点✅直接结束，无需KR拆解
     createdAt: '2026-07-20',
     deadline: '2026-09-30',
     completedAt: null,
-    krs: [
-      { id: 'wk_jl_k1', t: '正式提交离职申请 1(次)', v: 0, tgt: 1, st: 'tg',    dueBy: '2026-08-31' },
-      { id: 'wk_jl_k2', t: '完成工作交接清单 1(项)', v: 0, tgt: 1, st: 'tg',    dueBy: '2026-09-15' },
-      { id: 'wk_jl_k3', t: '拿到 N+1 大礼包 1(项)',  v: 0, tgt: 1, st: 'tg',    dueBy: '2026-09-30' },
-    ],
+    krs: [],
   },
 ];
 
@@ -5034,18 +5030,22 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
       const mode = inferMode(o, 'work');
       const krs = o.krs || [];
       const krPcts = krs.map(k => pct(k.v, k.tgt));
-      const avgPct = krs.length ? Math.round(krPcts.reduce((s,p)=>s+p,0) / krs.length) : 0;
+      // 🎯 event 范式：avgPct 直接看 status，不需要 KR 均值
+      const avgPct = mode === 'event'
+        ? (o?.status === 'done' ? 100 : 0)
+        : (krs.length ? Math.round(krPcts.reduce((s,p)=>s+p,0) / krs.length) : 0);
       const { days, timePct } = calcTimeAnchor(o.deadline, o.createdAt);
-      const rm = calcRisk(avgPct, timePct, krs.length && krs.every(k => k.st === 'done'));
+      const rm = calcRisk(avgPct, timePct, mode === 'event' ? o?.status === 'done' : (krs.length && krs.every(k => k.st === 'done')));
 
       const risks = { risk: 0, warn: 0, ahead: 0, normal: 0, done: 0 };
-      krs.forEach((k, i) => {
-        const kPct = krPcts[i];
-        // KR 级也可以有 dueBy（微截止），优先 dueBy 算风险，否则用目标级
-        const microTA = k.dueBy ? calcTimeAnchor(k.dueBy, o.createdAt || k.dueBy) : { timePct };
-        const krm = calcRisk(kPct, microTA.timePct, k.st === 'done');
-        risks[krm.q] = (risks[krm.q] || 0) + 1;
-      });
+      if (mode !== 'event') {
+        krs.forEach((k, i) => {
+          const kPct = krPcts[i];
+          const microTA = k.dueBy ? calcTimeAnchor(k.dueBy, o.createdAt || k.dueBy) : { timePct };
+          const krm = calcRisk(kPct, microTA.timePct, k.st === 'done');
+          risks[krm.q] = (risks[krm.q] || 0) + 1;
+        });
+      }
 
       return {
         mode, idx,
@@ -5670,11 +5670,55 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     );
   };
 
+  /* —— 🎯 单次事件型范式（event mode）：达成点✅直接结束 —— */
+  const renderEventRow = (o, gs, goalIdx) => {
+    const isDone = o?.status === 'done';
+    const RED = '#FF3B30';
+    const GREEN = '#34C759';
+    const COL = isDone ? GREEN : RED;
+    return (
+      <div className="flex flex-col items-center py-6 gap-4">
+        {/* 进度条 */}
+        <div className="w-full flex items-center gap-3">
+          <span className="text-[13px] font-semibold" style={{ color: COL }}>{isDone ? '100%' : '0%'}</span>
+          <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-[#F2F2F7]">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: isDone ? '100%' : '0%', backgroundColor: COL }}
+            />
+          </div>
+          <span className="text-[11px] text-ink-300">
+            计划 {gs.timePct || 0}%
+          </span>
+        </div>
+        {/* 大 ✅ 按钮 */}
+        {!isDone ? (
+          <button
+            onClick={() => onGoalMarkDone && onGoalMarkDone(o.id)}
+            className="group relative flex items-center gap-2 px-6 py-3 rounded-full border-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ borderColor: RED, color: RED }}
+          >
+            <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors" style={{ borderColor: RED }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={RED} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-100 transition-opacity"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span className="text-[14px] font-semibold">已达成，标记完成 ✅</span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 px-6 py-3 rounded-full" style={{ backgroundColor: 'rgba(52,199,89,0.08)', color: GREEN }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span className="text-[14px] font-semibold">已达成 ✅</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   /* ============================================================
    * 统一分派器：根据 mode 选渲染器（balance 雷达暂未实现，fallback dashboard）
    * ============================================================ */
   const renderByMode = (o, gs, goalIdx) => {
     switch (gs.mode) {
+      case 'event':     return renderEventRow(o, gs, goalIdx);
       case 'funnel':    return renderFunnelRows(o, gs, goalIdx);
       case 'milestone': return renderMilestoneRows(o, gs, goalIdx);
       case 'dashboard': // KPI 仪表盘（已改名）
@@ -6379,9 +6423,15 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         if (Array.isArray(parsed)) {
           let changed = false;
           const fixed = parsed.map(o => {
+            // 小红书：强制进行中（仅拦 archived/shelf）
             if (o && String(o.title || '').includes('小红书') && (o.archived === true || o.status === 'shelf')) {
               changed = true;
               return { ...o, archived: false, status: 'active' };
+            }
+            // JL 离职：升级为 event 范式（mode + 清空旧 KR）
+            if (o && String(o.title || '').includes('JL离职') && (o.mode !== 'event' || (o.krs || []).length > 0)) {
+              changed = true;
+              return { ...o, mode: 'event', krs: [] };
             }
             return o;
           });
@@ -6795,7 +6845,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         core: !!data.core,
         label: data.label || (data.core ? '主业' : '副业'),
         title: data.title?.trim() || '新目标',
-        mode: ['funnel', 'dashboard', 'milestone', 'balance'].includes(data.mode) ? data.mode : 'funnel',
+        mode: ['funnel', 'dashboard', 'milestone', 'balance', 'event'].includes(data.mode) ? data.mode : 'funnel',
         createdAt: data.createdAt || new Date().toISOString().slice(0, 10),
         deadline: data.deadline || '',
         completedAt: null,
@@ -6810,7 +6860,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         core: data.core !== undefined ? !!data.core : o.core,
         label: data.label || (data.core !== undefined ? (data.core ? '主业' : '副业') : o.label),
         title: data.title !== undefined ? data.title.trim() || o.title : o.title,
-        mode: ['funnel', 'dashboard', 'milestone', 'balance'].includes(data.mode) ? data.mode : o.mode,
+        mode: ['funnel', 'dashboard', 'milestone', 'balance', 'event'].includes(data.mode) ? data.mode : o.mode,
         createdAt: data.createdAt || o.createdAt,
         deadline: data.deadline !== undefined ? data.deadline : o.deadline,
       } : o));

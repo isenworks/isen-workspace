@@ -478,9 +478,50 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         });
       }
 
-      // 2) 拉取 ethan_schedules → 只用于日历右栏（需求 6：不进主线面板）
-      const monthS = `${year}-${String(month).padStart(2, '0')}-01`;
-      const monthE = toISODate(endOfMonth(fromISODate(monthS)));
+      // 2) 种子同步：把 seed 独立日程 + MOCK 演示事件（仅限当前月）统一写入 ethan_schedules
+      //    · 第一次打开时用户能看到月历上所有示例事件；之后改类型/删除都能落到真实 API 上
+      //    · 已存在的（按 title.trim 去重）跳过，避免重复插入
+      const seedCreateAll = async () => {
+        const remotes = await API.schedules.list({ from: monthS, to: monthE });
+        const existing = new Set((remotes?.schedules || []).map(s => String(s.title).trim()));
+        const seeds = [];
+        // 2a) 独立种子（体检等）
+        for (const t of SEED_ENERGY_NONHABIT) {
+          if (!overlapsMonth(t, year, month)) continue;
+          if (existing.has(String(t.title).trim())) continue;
+          const mod = keyToModule(t.moduleKey);
+          const fbDate = t.start_date || monthS;
+          seeds.push({
+            title: t.title, start_date: fbDate, date: fbDate, end_date: t.end_date || null,
+            category: mod.cat, is_key: 1,
+            note: [t.dueDate, t.note].filter(Boolean).join(' · ') || null,
+            start_time: null, end_time: null,
+          });
+        }
+        // 2b) MOCK_EVENTS_RAW 当前月内的演示事件 — 写进 ethan_schedules 变成真实 API 记录
+        //     （这样月历上所有"OKR Q3 复盘会 14:00"等事项点进去都是 ScheduleForm，能改类型、能删除）
+        const mockPrefix = `${year}-${String(month).padStart(2, '0')}`;
+        for (const ev of MOCK_EVENTS_RAW) {
+          if (!ev.date?.startsWith(mockPrefix)) continue;
+          const title = String(ev.title || '').trim();
+          if (!title || existing.has(title)) continue;
+          const cat = Number(ev.category);
+          seeds.push({
+            title, start_date: ev.date, date: ev.date, end_date: null,
+            category: Number.isFinite(cat) ? cat : 3,
+            is_key: cat === 1 || cat === 2 ? 1 : 0,
+            note: null,
+            start_time: null, end_time: null,
+          });
+        }
+        for (const s of seeds) {
+          try { await API.schedules.create(s); } catch (_) { /* dup */ }
+        }
+        store?.broadcast?.({ type: 'reload' });
+      };
+      try { await seedCreateAll(); } catch (_) { /* ignore */ }
+
+      // 3) 拉取 ethan_schedules → 只用于日历右栏（需求 6：不进主线面板）
       try {
         const remote = await API.schedules.list({ from: monthS, to: monthE });
         const remoteSchedules = remote?.schedules || [];
@@ -505,27 +546,6 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           }));
         }
       } catch (_) { if (!cancelled) setApiSchedules([]); }
-
-      // 3) 同步：种子独立日程（体检等）写回 ethan_schedules（计划总结页 KeyTasks/时间线才显示）
-      try {
-        const remote2 = await API.schedules.list({ from: monthS, to: monthE });
-        const existing = new Set((remote2?.schedules || []).map(s => String(s.title).trim()));
-        for (const t of SEED_ENERGY_NONHABIT) {
-          if (!overlapsMonth(t, year, month)) continue;
-          if (existing.has(String(t.title).trim())) continue;
-          const mod = keyToModule(t.moduleKey);
-          const fbDate = t.start_date || monthS;
-          try {
-            await API.schedules.create({
-              title: t.title, start_date: fbDate, date: fbDate, end_date: t.end_date || null,
-              category: mod.cat, is_key: 1,
-              note: [t.dueDate, t.note].filter(Boolean).join(' · ') || null,
-              start_time: null, end_time: null,
-            });
-          } catch (_) { /* dup */ }
-        }
-        store?.broadcast?.({ type: 'reload' });
-      } catch (_) { /* ignore */ }
 
       if (!cancelled) setTick(v => v + 1);
     })();

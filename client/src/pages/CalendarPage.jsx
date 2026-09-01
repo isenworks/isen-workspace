@@ -394,17 +394,6 @@ const MOCK_EVENTS_RAW = [
   { date: '2026-10-01', title: '8月主线完成度核查',            category: 1 },
 ];
 
-// 习惯打卡热力图：月历日格右下角的彩色 1-4 圆点数（保持模拟数据做直观效果）
-const MOCK_HABITS = {};
-for (let d = 16; d <= 31; d++) {
-  const dateISO = `2026-08-${String(d).padStart(2, '0')}`;
-  MOCK_HABITS[dateISO] = Math.max(1, Math.min(4, Math.floor(Math.random() * 3) + 1));
-}
-for (let d = 1; d <= 15; d++) {
-  const dateISO = `2026-09-${String(d).padStart(2, '0')}`;
-  MOCK_HABITS[dateISO] = Math.max(1, Math.min(4, Math.floor(Math.random() * 4) + 1));
-}
-
 /* ========= 工具：主线任务 → ScheduleForm 初始值 ========= */
 function taskToScheduleInitial(task, defaultDate) {
   const mod = keyToModule(task.moduleKey);
@@ -1064,6 +1053,21 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);
   }, [year, month, allTasks, apiSchedules, seedDone]);
 
+  /* 习惯打卡热力图：从 realHabits（API 真实数据）聚合
+     · realHabits = null 时（网络/未登录）回退空对象 → 格子右下角不显示
+     · realHabits[i].allDates 是该习惯所有打卡日期 ["2026-09-01", ...]
+     · habitsMap[date] = 当天完成的习惯数量
+     · habitTarget = 习惯总数（动态分母）*/
+  const { habitsMap, habitTarget } = useMemo(() => {
+    if (!realHabits || realHabits.length === 0) return { habitsMap: {}, habitTarget: 0 };
+    const map = {};
+    for (const h of realHabits) {
+      const dates = h.allDates || [];
+      for (const d of dates) map[d] = (map[d] || 0) + 1;
+    }
+    return { habitsMap: map, habitTarget: realHabits.length };
+  }, [realHabits]);
+
   const weekdayZh = ['日','一','二','三','四','五','六'];
   const detailDateObj = dayDetail?.date ? fromISODate(dayDetail.date) : null;
   const detailEvents = useMemo(() => {
@@ -1168,8 +1172,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
               events={monthEvents}
-              habitsMap={MOCK_HABITS}
-              habitTarget={4}
+              habitsMap={habitsMap}
+              habitTarget={habitTarget}
               onEventToggle={handleEventToggle}
               onEventClick={handleEventClick}
               onCellOpenDay={(date) => setDayDetail({ date })}

@@ -285,10 +285,17 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         category: cat,
         is_key: (cat === 1 || cat === 2) ? 1 : 0,
       };
-      if (initial?.id) await API.schedules.update(initial.id, payload);
-      else await API.schedules.create(payload);
+      let savedSchedule = null;
+      if (initial?.id) {
+        const r = await API.schedules.update(initial.id, payload);
+        savedSchedule = r?.schedule || { ...payload, id: initial.id, is_done: payload.is_done ?? initial.is_done };
+      } else {
+        const r = await API.schedules.create(payload);
+        savedSchedule = r?.schedule || null;
+      }
+      store.broadcast({ type: 'schedule_saved', schedule: savedSchedule, action: initial?.id ? 'update' : 'create', category: cat });
       store.broadcast({ type: 'reload' });
-      onSaved?.();
+      onSaved?.(savedSchedule);
     } catch (e) { toast.error(e.message); }
     setBusy(false);
   }
@@ -298,6 +305,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
     try {
       await API.schedules.remove(initial.id);
       setConfirmDialog(null);
+      store.broadcast({ type: 'schedule_deleted', schedule: { id: initial.id, category: initial.category } });
       onSaved?.();
     } catch (e) { toast.error(e.message); }
   }

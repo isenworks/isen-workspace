@@ -533,6 +533,67 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     return () => { cancelled = true; };
   }, [year, month, computeInitialMonthTasks]);
 
+  /* ===== 跨组件同步：ScheduleForm 保存/删除事项后，实时注入或移除主线对应条目
+       · 只有属于五大主线模块（精力=6/知力=7/能力=2/工作=1/生活=5）的事项才进本月主线
+       · 并且时间 span 与当前月有交集（overlapsMonth），避免把 2025 年的事项塞进 2026 年视图
+       · "更新"操作：先删旧（按 id）再新增，保持分类/配色/span 与最新数据一致
+       · "删除"操作：按 id 移除主线条目 */
+  useEffect(() => {
+    function upsertScheduleIntoMonthTasks(s) {
+      if (!s) return;
+      const cat = Number(s.category);
+      const mod = catToModule(cat);
+      // 只保留五大主线模块；cat=3(其他)不进本月主线
+      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
+      const scheduleDate = s.start_date || s.schedule_date || s.date;
+      const start_date = scheduleDate || null;
+      const end_date = s.end_date || null;
+      const proxyTask = {
+        id: Number(s.id),
+        __origin: 'api',
+        __fromSchedule: true,
+        moduleKey: mod.key,
+        title: s.title || '',
+        done: !!s.is_done,
+        progress: s.is_done ? 1 : 0,
+        start_date,
+        end_date,
+        schedule_date: start_date,
+        date: start_date,
+        note: s.note || '',
+        isLongTerm: false,
+        start_time: s.start_time || null,
+        end_time: s.end_time || null,
+        category: mod.cat,
+        schedulePayload: s,
+        srcTag: `≡ ${mod.label}事项`,
+        srcTagColor: mod.soft,
+        srcTagTextColor: mod.color,
+      };
+      if (!overlapsMonth(proxyTask, year, month)) return;
+      setMonthTasks(prev => {
+        const filtered = prev.filter(t => String(t.id) !== String(proxyTask.id));
+        // 插到同 moduleKey 组的第一个位置（让用户新建的事立即能在本组顶部看到）
+        const groupFirstIdx = filtered.findIndex(t => t.moduleKey === mod.key);
+        if (groupFirstIdx < 0) return [...filtered, proxyTask];
+        const copy = [...filtered];
+        copy.splice(groupFirstIdx, 0, proxyTask);
+        return copy;
+      });
+    }
+    const unsub = store.subscribe((msg) => {
+      if (!msg) return;
+      if (msg.type === 'schedule_saved') {
+        upsertScheduleIntoMonthTasks(msg.schedule);
+        setTick(v => v + 1);
+      } else if (msg.type === 'schedule_deleted' && msg.schedule?.id != null) {
+        setMonthTasks(prev => prev.filter(t => String(t.id) !== String(msg.schedule.id)));
+        setTick(v => v + 1);
+      }
+    });
+    return unsub;
+  }, [year, month]);
+
   // 经过月份 span 过滤后的主线任务（展示用）
   const visibleMonthTasks = useMemo(
     () => monthTasks.filter(t => overlapsMonth(t, year, month)),

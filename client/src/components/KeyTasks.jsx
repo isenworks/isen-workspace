@@ -19,7 +19,7 @@ const PRESET_TEMPLATES = [
   { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#FF9500', bg: '#fff4d8' },
 ];
 
-// category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫)
+// category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫), 6=精力(绿), 7=知力(蓝)
 // cat=4 的习惯类日程不展示在重点事项，独立习惯统一由 HabitsPanel 管理，避免重复
 function isDisplayInKeyTasks(s) {
   return catOf(s) !== 4;
@@ -31,6 +31,8 @@ function catOf(s) {
   if (cat === 3) return 3;
   if (cat === 4) return 4;
   if (cat === 5) return 5;
+  if (cat === 6) return 6;
+  if (cat === 7) return 7;
   // 旧数据兼容：无 category 按 is_key + 时间段推
   if (s.is_key) {
     const st = s.start_time;
@@ -129,13 +131,17 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const done = list.filter(s => s.is_done).length;
 
   // ====== 排序函数 ======
+  // 优先级权重（越小越靠前）：1(工作) < 2(能力) < 7(知力) < 6(精力) < 5(生活) < 3(常规) < 4(习惯)
+  const CAT_PRIORITY = { 1: 10, 2: 20, 7: 30, 6: 40, 5: 50, 3: 90, 4: 95 };
   function sortByPriority(items) {
     return [...items].sort((a, b) => {
-      // 1) 重要性：1(工作) < 2(能力) < 3(常规)
+      // 1) 重要性：按权重表排序，避免 cat 原始数字打乱预期顺序
       //    注意：is_done 放在最后，勾选后不跨分类挪动位置
       const catA = catOf(a);
       const catB = catOf(b);
-      if (catA !== catB) return catA - catB;
+      const wA = CAT_PRIORITY[catA] ?? 99;
+      const wB = CAT_PRIORITY[catB] ?? 99;
+      if (wA !== wB) return wA - wB;
       // 2) 同重要性：按 start_time 升序(无时间排后面)
       const ta = a.start_time || '99:99';
       const tb = b.start_time || '99:99';
@@ -155,7 +161,9 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       if (ta !== tb) return ta.localeCompare(tb);
       const catA = catOf(a);
       const catB = catOf(b);
-      if (catA !== catB) return catA - catB;
+      const wA = CAT_PRIORITY[catA] ?? 99;
+      const wB = CAT_PRIORITY[catB] ?? 99;
+      if (wA !== wB) return wA - wB;
       // 同时间同分类：未完成在前
       const doneA = a.is_done ? 1 : 0;
       const doneB = b.is_done ? 1 : 0;
@@ -209,6 +217,24 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         borderColor: '#AF52DE',
         dotColor: '#AF52DE',
         doneColor: '#AF52DE'
+      };
+    }
+    // 精力（cat=6）绿色 — 与主线精力模块一致（#34C759）
+    if (cat === 6) {
+      return {
+        bg: 'linear-gradient(90deg,#e5f6ea 0%,transparent 70%)',
+        borderColor: '#34C759',
+        dotColor: '#34C759',
+        doneColor: '#34C759'
+      };
+    }
+    // 知力（cat=7）蓝色 — 与主线知力模块一致（#007AFF）
+    if (cat === 7) {
+      return {
+        bg: 'linear-gradient(90deg,#e0ecff 0%,transparent 70%)',
+        borderColor: '#007AFF',
+        dotColor: '#007AFF',
+        doneColor: '#007AFF'
       };
     }
     // 常规事项

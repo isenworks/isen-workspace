@@ -164,7 +164,9 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
   const dateTitle = `${yy}${String(mm).padStart(2, '0')}${String(dd).padStart(2, '0')}${weekdays[dt.getDay()]}`;
 
   // === 重点事项 ===
-  const keySchedules = (schedules || []).filter(s => s.is_key === 1 || s.category === 1 || s.category === 2);
+  // 五大主线模块（工作=1/能力=2/生活=5/精力=6/知力=7）统一列入重点事项
+  const KEY_CATS = new Set([1, 2, 5, 6, 7]);
+  const keySchedules = (schedules || []).filter(s => s.is_key === 1 || KEY_CATS.has(Number(s.category)));
   const keyDone = keySchedules.filter(s => s.is_done).length;
   const keyTotal = keySchedules.length;
   const keyRate = keyTotal === 0 ? 0 : Math.round((keyDone / keyTotal) * 100);
@@ -172,6 +174,9 @@ function buildMarkdown({ dateStr, schedules, habits, energyState, moodState, tem
   const catLabel = (cat) => {
     if (cat === 1) return '🔴';
     if (cat === 2) return '🟠';
+    if (cat === 5) return '🟣';
+    if (cat === 6) return '🟢';
+    if (cat === 7) return '🔵';
     return '';
   };
   const stateLabel = (done) => done ? '✅ 完成' : '❌ 未完成';

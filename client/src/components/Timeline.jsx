@@ -13,13 +13,15 @@ const GROWTH_TYPES = {
   skill:  { color: '#FF9500', bg: '#FFF4D8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500' },
 };
 
-// 事项分类颜色
+// 事项分类颜色（1=工作,2=能力,3=常规,4=习惯,5=生活,6=精力,7=知力）
 const CAT_COLORS = {
   1: { color: '#FF3B30', bg: '#FFEEED', borderColor: '#FF3B30', doneColor: '#FF3B30', lineColor: '#FF3B30', timeColor: '#FF3B30' },
   2: { color: '#FF9500', bg: '#fff4d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500', timeColor: '#FF9500' },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
   4: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
   5: { color: '#AF52DE', bg: '#f3e8ff', borderColor: '#AF52DE', doneColor: '#AF52DE', lineColor: '#AF52DE', timeColor: '#AF52DE' },
+  6: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
+  7: { color: '#007AFF', bg: '#e0ecff', borderColor: '#007AFF', doneColor: '#007AFF', lineColor: '#007AFF', timeColor: '#007AFF' },
 };
 
 // 获取习惯的成长类型（优先级：用户显式选择 > 颜色分析 > 关键词推断 > 默认）
@@ -369,7 +371,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   function getCat(s) {
     if (s.isHabit) return 4;
     const cat = Number(s.category);
-    if (cat === 1 || cat === 2 || cat === 3 || cat === 4 || cat === 5) return cat;
+    if (cat === 1 || cat === 2 || cat === 3 || cat === 4 || cat === 5 || cat === 6 || cat === 7) return cat;
     if (s.is_key) {
       const st = s.start_time;
       if (st && Number(st.split(':')[0]) <= 12) return 1;

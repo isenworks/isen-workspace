@@ -14,7 +14,7 @@ function dateLabel(dateStr) {
 
 // 预设模板：3 个空白模板，点击直接打开新建弹窗
 const PRESET_TEMPLATES = [
-  { key: 't1', category: 1, label: '工作', bold: '增现金流', dotColor: '#FF3B30', bg: '#FFEEED' },
+  { key: 't1', category: 1, label: '工作', bold: '增收入', dotColor: '#FF3B30', bg: '#FFEEED' },
   { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#FF3B30', bg: '#FFEEED' },
   { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#FF9500', bg: '#fff4d8' },
 ];
@@ -385,10 +385,13 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     const todayList = list.filter(s => s.date === date);
     const sorted = applySort(todayList);
 
+    // 有至少 1 条真实事项（非空 todayList）就关闭预设提示占位
+    const hasAnyRealItem = todayList.length > 0;
+
     return (
       <div className="space-y-1.5">
-        {/* 预设模板行：弱化显示（浅灰文字不加粗），仅占位提示，点击进入弹窗不预填真实标题 */}
-        {PRESET_TEMPLATES.map(tpl => (
+        {/* 预设模板行：仅在无任何真实事项时显示，弱化浅灰文字不加粗，仅占位提示，点击进入弹窗不预填真实标题 */}
+        {!hasAnyRealItem && PRESET_TEMPLATES.map(tpl => (
           <div
             key={tpl.key}
             className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-grab group transition-opacity"
@@ -445,34 +448,39 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   return (
     <div className="glass-card p-5">
-      <div className="flex items-center justify-between section-header">
-        <div className="flex items-center gap-2">
-          <span className="section-accent" style={{background:'#007AFF'}}></span>
-          <h3 className="section-title">{titleText}</h3>
-          {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
-          <button
-            onClick={() => setSortBy(sortBy === 'priority' ? 'time' : 'priority')}
-            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
-            title={sortBy === 'priority' ? '按重要性排序（点击切换为按时间）' : '按时间排序（点击切换为按重要性）'}
-            aria-label={sortBy === 'priority' ? '按重要性排序' : '按时间排序'}
-          >
-            {sortBy === 'priority' ? (
-              <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
-                <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#FF3B30"/>
-                <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#FF9500"/>
-                <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
-              </svg>
-            ) : (
-              <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
-                <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
-                  <line x1="1.5" y1="3" x2="12.5" y2="3"/>
-                  <line x1="1.5" y1="7" x2="9.5" y2="7"/>
-                  <line x1="1.5" y1="11" x2="6.5" y2="11"/>
-                </g>
-              </svg>
-            )}
-          </button>
-        </div>
+      <div className="flex items-start justify-between gap-2 section-header">
+          <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="section-accent" style={{background:'#007AFF'}}></span>
+              <h3 className="section-title">{titleText}</h3>
+              {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
+              <button
+                onClick={() => setSortBy(sortBy === 'priority' ? 'time' : 'priority')}
+                className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
+                title={sortBy === 'priority' ? '按重要性排序（点击切换为按时间）' : '按时间排序（点击切换为按重要性）'}
+                aria-label={sortBy === 'priority' ? '按重要性排序' : '按时间排序'}
+              >
+                {sortBy === 'priority' ? (
+                  <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
+                    <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#FF3B30"/>
+                    <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#FF9500"/>
+                    <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
+                  </svg>
+                ) : (
+                  <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
+                    <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
+                      <line x1="1.5" y1="3" x2="12.5" y2="3"/>
+                      <line x1="1.5" y1="7" x2="9.5" y2="7"/>
+                      <line x1="1.5" y1="11" x2="6.5" y2="11"/>
+                    </g>
+                  </svg>
+                )}
+              </button>
+            </div>
+            <p className="text-[12px] font-normal tracking-tight leading-tight ml-[13px]" style={{ color: '#8e8e93', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif' }}>
+              增收入 · 建资产 · 提能力
+            </p>
+          </div>
         <div className="flex items-center gap-2">
           <div className="relative w-6 h-6">
             <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">

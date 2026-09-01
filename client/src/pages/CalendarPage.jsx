@@ -530,29 +530,76 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       };
       try { await seedCreateAll(); } catch (_) { /* ignore */ }
 
-      // 3) 拉取 ethan_schedules → 只用于日历右栏（需求 6：不进主线面板）
+      // 3) 拉取 ethan_schedules → 日历事件源 + 注入五大模块事项到本月主线
+      //    （切页回来后 CalendarPage 重新挂载，monthTasks 初始值为 planBase，
+      //     用户新建的事项只存在 API 里，需要从这里重新注入主线）
       try {
         const remote = await API.schedules.list({ from: monthS, to: monthE });
         const remoteSchedules = remote?.schedules || [];
+        const mapped = remoteSchedules.map(s => {
+          const mod = catToModule(s.category);
+          return {
+            id: s.id,
+            __origin: 'api',
+            date: s.start_date || s.schedule_date || s.date,
+            title: s.title,
+            category: s.category,
+            moduleKey: mod.key,
+            is_done: !!s.is_done,
+            start_time: s.start_time,
+            end_time: s.end_time,
+            duration_min: s.duration_min,
+            note: s.note || '',
+            end_date: s.end_date || null,
+            start_date: s.start_date || s.date,
+          };
+        });
+        if (!cancelled) setApiSchedules(mapped);
+
+        // 把五大模块的 API schedule 注入 monthTasks（作为 __fromSchedule）
+        // 避免和 planBase 已有的同 id 重复
         if (!cancelled) {
-          setApiSchedules(remoteSchedules.map(s => {
-            const mod = catToModule(s.category);
-            return {
-              // 必须保留纯数字 id（不包 api_ 前缀），否则 eventToScheduleInitial 正则 /^\d+$/ 丢弃为 undefined，
-              // ScheduleForm 误走入"新建事项"模式并丢失编辑能力；同时服务器 Number(id) 也只认数字
-              id: s.id,
-              __origin: 'api',  // 仅本地调试标记
-              date: s.start_date || s.schedule_date || s.date,
-              title: s.title,
-              category: s.category,
-              moduleKey: mod.key,
-              is_done: !!s.is_done,
-              start_time: s.start_time,
-              end_time: s.end_time,
-              duration_min: s.duration_min,
-              note: s.note || '',
-            };
-          }));
+          setMonthTasks(prev => {
+            const existingIds = new Set(prev.map(t => String(t.id)));
+            const toInject = mapped
+              .filter(s => {
+                const cat = Number(s.category);
+                return [1, 2, 5, 6, 7].includes(cat); // 五大模块才进主线
+              })
+              .filter(s => {
+                // overlapsMonth 校验
+                const sd = s.start_date || s.date;
+                if (!sd) return true;
+                return sd >= monthS && sd <= monthE;
+              })
+              .filter(s => !existingIds.has(String(s.id)))
+              .map(s => {
+                const mod = catToModule(Number(s.category));
+                return {
+                  id: s.id,
+                  __origin: 'api',
+                  __fromSchedule: true,
+                  moduleKey: mod.key,
+                  title: s.title || '',
+                  done: !!s.is_done,
+                  progress: s.is_done ? 1 : 0,
+                  start_date: s.start_date,
+                  end_date: s.end_date || null,
+                  schedule_date: s.start_date,
+                  date: s.start_date,
+                  note: s.note || '',
+                  isLongTerm: false,
+                  start_time: s.start_time || null,
+                  end_time: s.end_time || null,
+                  category: Number(s.category),
+                  srcTag: `≡ ${mod.label}事项`,
+                  srcTagColor: mod.soft,
+                  srcTagTextColor: mod.color,
+                };
+              });
+            if (toInject.length === 0) return prev;
+            return [...prev, ...toInject];
+          });
         }
       } catch (_) { if (!cancelled) setApiSchedules([]); }
 
@@ -613,9 +660,34 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (!msg) return;
       if (msg.type === 'schedule_saved') {
         upsertScheduleIntoMonthTasks(msg.schedule);
+        // 同步更新 apiSchedules（日历事件源），否则删除/编辑后日历格子不刷新
+        setApiSchedules(prev => {
+          const idx = prev.findIndex(s => String(s.id) === String(msg.schedule.id));
+          const mod = catToModule(Number(msg.schedule.category));
+          const mapped = {
+            id: msg.schedule.id,
+            __origin: 'api',
+            date: msg.schedule.start_date || msg.schedule.date,
+            title: msg.schedule.title,
+            category: msg.schedule.category,
+            moduleKey: mod.key,
+            is_done: !!msg.schedule.is_done,
+            start_time: msg.schedule.start_time,
+            end_time: msg.schedule.end_time,
+            duration_min: msg.schedule.duration_min,
+            note: msg.schedule.note || '',
+          };
+          if (idx < 0) return [...prev, mapped];
+          const copy = [...prev];
+          copy[idx] = mapped;
+          return copy;
+        });
         setTick(v => v + 1);
       } else if (msg.type === 'schedule_deleted' && msg.schedule?.id != null) {
-        setMonthTasks(prev => prev.filter(t => String(t.id) !== String(msg.schedule.id)));
+        const delId = String(msg.schedule.id);
+        // 从主线 + 日历事件源双删
+        setMonthTasks(prev => prev.filter(t => String(t.id) !== delId));
+        setApiSchedules(prev => prev.filter(s => String(s.id) !== delId));
         setTick(v => v + 1);
       }
     });

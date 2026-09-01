@@ -306,6 +306,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
       await API.schedules.remove(initial.id);
       setConfirmDialog(null);
       store.broadcast({ type: 'schedule_deleted', schedule: { id: initial.id, category: initial.category } });
+      store.broadcast({ type: 'reload' });
       onSaved?.();
     } catch (e) { toast.error(e.message); }
   }

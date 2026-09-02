@@ -5023,8 +5023,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = '#FF3B30';           // 结构红：色条/按钮/序号/Tab/告警框（不变）
-  const RED_DATA = '#E5534B';      // 方案A · 数据进度红：进度条/气泡/百分比数字（降饱和）
-  const RED_RISK = '#ED544D';      // 落后警示（进度红稍亮，语义层比进度强、比结构弱）
+  const RED_DATA = '#F3613B';      // 方案A·改：亮橙红偏暖（匹配图标右下U色），高饱和不暗
+  const RED_RISK = '#F76F4D';      // 落后警示：比进度稍亮一档
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {

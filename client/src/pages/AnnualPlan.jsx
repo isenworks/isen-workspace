@@ -5054,7 +5054,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         avgPct, rm, days, timePct, risks,
         dl: daysLabel(days),
         label: o.label || (o.core ? '主业' : '副业'),
-        color: '#FF3B30', // 工作页统一红色系：主业 & 副业卡片都用 #FF3B30（原副业为 #FF9500 橙色，用户要求统一红色）
+        color: RED, // 工作页统一红色系：主业 & 副业卡片都用 RED（档A结构色·原副业#FF9500已统一）
       };
     });
   }, [dynWk]);
@@ -5127,7 +5127,6 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     const isArchived = st === 'done' || st === 'shelf';
     const goalKey = (o.id || o.title + goalIdx) + '@' + location;
     const isOpen = openDropIdx === goalKey;
-    const RED = '#FF3B30';
     const toggleDrop = (e) => {
       e.stopPropagation();
       setOpenDropIdx(prev => prev === goalKey ? null : goalKey);
@@ -5292,7 +5291,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <div className="flex items-center gap-2.5">
             <span className="text-[11px] font-semibold text-ink-500 flex-shrink-0">总体完成度</span>
             <div className="flex-1 h-[5px] rounded-full bg-ink-100 overflow-hidden min-w-[40px]">
-              <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: color }}></div>
+              <div className="h-full rounded-full transition-all" style={{ width: `${gs.avgPct}%`, background: RED_DATA }}></div>
             </div>
             <span className="text-[13px] font-extrabold tabular-nums text-ink-700 w-[48px] text-right flex-shrink-0">{gs.avgPct}%</span>
           </div>
@@ -5453,7 +5452,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             items-start 前提下：
             行高 15.4px → 中心 = 7.7px；SVG 14px → 自身中心 7px；偏移差 = 0.7px，
             用 mt-[0.5px] 再微调 0.5px 到 ~7.5px 中心，与「关/键/瓶/颈」四字笔画中心像素对齐 */}
-        <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[0.5px]" fill="#FF3B30" viewBox="0 0 24 24">
+        <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[0.5px]" fill={RED} viewBox="0 0 24 24">
           <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
         <div className="min-w-0 flex-1 text-[11px] leading-[1.4]">
@@ -5820,7 +5819,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 onBlur={(e) => { setLocalTitle(e.target.value.trim() || `${year}年 · 工作目标`); setTitleEditing(false); }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.target.blur(); } else if (e.key === 'Escape') { setTitleEditing(false); } }}
                 onClick={(e) => e.stopPropagation()}
-                className="text-[15.5px] font-bold text-ink-900 leading-none bg-transparent border border-[#FF3B30] rounded px-1 py-0 outline-none min-w-[120px]"
+                className="text-[15.5px] font-bold text-ink-900 leading-none bg-transparent border border-[#FF4035] rounded px-1 py-0 outline-none min-w-[120px]"
               />
             ) : (
               <span

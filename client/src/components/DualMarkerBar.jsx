@@ -156,7 +156,7 @@ export default function DualMarkerBar({
   const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
   const labelBase = {
     position: 'absolute', bottom: -15, transform: 'translateX(-50%)',
-    fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 6,
+    fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 2147483647,
     transition: 'left .35s ease', WebkitTapHighlightColor: 'transparent',
     whiteSpace: 'nowrap',
   };
@@ -169,7 +169,7 @@ export default function DualMarkerBar({
     border: '1px solid rgba(0,0,0,0.06)',
     boxShadow: '0 8px 24px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,1) inset',
     transition: 'opacity .15s, transform .15s',
-    zIndex: 20, pointerEvents: 'none', whiteSpace: 'normal',
+    zIndex: 2147483647, pointerEvents: 'none', whiteSpace: 'normal',
     fontFamily: '-apple-system, "SF Pro Text", "PingFang SC", sans-serif',
   };
   // 双层三角：外层灰色描边（z-index -1，比气泡低1px）+ 内层白

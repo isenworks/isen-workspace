@@ -5893,9 +5893,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <div className="w-full flex flex-col gap-4">
             {activeMain.length === 0 ? (
               <div className="w-full glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center">
-                <div className="text-4xl mb-2">💼</div>
-                <div className="text-[14px] font-semibold text-[#1d1d1f] mb-0.5">暂无主业进行中目标</div>
-                <div className="text-[12px] text-[#8e8e93]">点击右上角 + 新建目标（core=true 标记为主业）</div>
+                <div className="text-[14px] font-semibold text-[#1d1d1f] mb-1">暂无主业目标</div>
+                <div className="text-[12px] text-[#8e8e93]">点右上角 +，分组选「主业」后保存</div>
               </div>
             ) : activeMain.map(entry => renderFullCard(entry, 'active'))}
           </div>
@@ -5903,9 +5902,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <div className="w-full flex flex-col gap-4">
             {activeSide.length === 0 ? (
               <div className="w-full glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center">
-                <div className="text-4xl mb-2">🚀</div>
-                <div className="text-[14px] font-semibold text-[#1d1d1f] mb-0.5">暂无副业进行中目标</div>
-                <div className="text-[12px] text-[#8e8e93]">点击右上角 + 新建目标（core=false 自动归副业栏）</div>
+                <div className="text-[14px] font-semibold text-[#1d1d1f] mb-1">暂无副业目标</div>
+                <div className="text-[12px] text-[#8e8e93]">点右上角 +，分组选「副业」后保存</div>
               </div>
             ) : activeSide.map(entry => renderFullCard(entry, 'active'))}
           </div>
@@ -5917,9 +5915,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         <div className="w-full grid grid-cols-1 min-[1100px]:grid-cols-2 gap-4">
           {partitionedGoals.done.length === 0 ? (
             <div className="w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center col-span-full">
-              <div className="text-5xl mb-3">🏅</div>
-              <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">还没有已完成的目标</div>
-              <div className="text-[12.5px] text-[#8e8e93]">在「进行中」Tab 打开任意目标右上角红色 ⋮ 点「✅标记完成」即可移动到这里</div>
+              <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无已完成目标</div>
+              <div className="text-[12.5px] text-[#8e8e93]">任意目标右上角 ⋮ → 已完成</div>
             </div>
           ) : partitionedGoals.done.map(entry => (
             <div key={'done-' + (entry.o.id || entry.o.title + entry.goalIdx)}>
@@ -5934,9 +5931,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         <div className="w-full grid grid-cols-1 min-[1100px]:grid-cols-2 gap-4">
           {partitionedGoals.shelf.length === 0 ? (
             <div className="w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center col-span-full">
-              <div className="text-5xl mb-3">📦</div>
-              <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无比已归档搁置的目标</div>
-              <div className="text-[12.5px] text-[#8e8e93]">在「进行中」任意目标红色 ⋮ 点「📦 归档搁置」，或过期未完成的目标会自动出现在这里</div>
+              <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无已归档目标</div>
+              <div className="text-[12.5px] text-[#8e8e93]">任意目标右上角 ⋮ → 已归档，或超期自动进入</div>
             </div>
           ) : partitionedGoals.shelf.map(entry => (
             <div key={'shelf-' + (entry.o.id || entry.o.title + entry.goalIdx)}>

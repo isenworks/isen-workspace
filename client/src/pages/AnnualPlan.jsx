@@ -5758,7 +5758,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     // pr-5 = 20px 正常留白，三者 gap-2(8px) 整体靠右，避免两套坐标系失控
     return (
       <div
-        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-hidden group relative"
+        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-visible group relative"
         style={{ contain: 'layout paint' }}
       >
         {/* 统一容器：KR 计数胶囊（event 模式隐藏） + 添加 KR 加号 + ⋮ 更多菜单
@@ -5786,7 +5786,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           {renderCardMenu({ entry, location })}
         </div>
         {renderObjective(o, gs, goalIdx)}
-        <div className="flex-1 pt-3 overflow-y-auto">
+        <div className="flex-1 min-h-0 pt-3 overflow-y-auto">
           {renderByMode(o, gs, goalIdx)}
         </div>
         {bottleneck && <div className="mt-3">{bottleneck}</div>}
@@ -5993,7 +5993,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               <div className="flex-1 overflow-y-auto p-5">
                 <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] p-5 flex flex-col overflow-hidden">
                   {renderObjective(o, gs, goalIdx)}
-                  <div className="flex-1 pt-3 overflow-y-auto">
+                  <div className="flex-1 min-h-0 pt-3 overflow-y-auto">
                     {renderByMode(o, gs, goalIdx)}
                   </div>
                   {bottleneck && <div className="mt-3">{bottleneck}</div>}

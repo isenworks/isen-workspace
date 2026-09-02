@@ -63,21 +63,21 @@ export default function DualMarkerBar({
   }, []);
 
   // side gutter：轨道主体左右各缩 14px 留视觉呼吸边（Apple Fitness / Linear 惯例）
-  // 进度百分比映射到内层 W' = W - 2·14，绝对定位再统一 +14 偏移
   const GUTTER = 14;
 
-  // 布局计算：锚点 = 隔断线中心（cA/cP），气泡/数字/标签全部钳制在轨道内
+  // 布局计算（专业语义分层）：
+  //   ① 数据锚点（分隔点 dA/cA, dP/cP）= 忠实映射百分比，100% = TW 端点，0% = 左端点
+  //   ② 浮动装饰（气泡 bubL）= 物理宽度受限单独 clamp，尾尖水平修正 tailOffset 指回分隔点
+  //   ③ 标签（lAL/lPL）= 分隔点的名字，跟随分隔点，不跟随气泡身体
   useLayoutEffect(() => {
     if (!W) { setGeo(null); return; }
     const TW = Math.max(W - GUTTER * 2, 40); // 轨道可视主体宽度
     const a = clamp(Number(actual) || 0, 0, 100);
     const p = clamp(Number(plan) || 0, 0, 100);
-    const ax = (a / 100) * TW;
-    const px = (p / 100) * TW;
-    const dA0 = clamp(ax - 2.5, 0, TW - 5);
-    const dP0 = clamp(px - 2.5, 0, TW - 5);
-    const cA = dA0 + 2.5;
-    const cP = dP0 + 2.5;
+    const ax = (a / 100) * TW;           // 实际端点（TW 系，忠实映射，0..TW 两端可达）
+    const px = (p / 100) * TW;           // 计划端点（TW 系，忠实映射）
+    const cA = clamp(ax, 2.5, TW - 2.5); // 分隔点中心（width=5 留 2.5 边距防溢出）
+    const cP = clamp(px, 2.5, TW - 2.5);
     const merged = Math.abs(cA - cP) < mergeDist;
     const mid = (cA + cP) / 2;
     const bw = (bubRef.current && bubRef.current.offsetWidth) || 40;
@@ -85,24 +85,44 @@ export default function DualMarkerBar({
     const law = (lARef.current && lARef.current.offsetWidth) || 26;
     const lpw = (lPRef.current && lPRef.current.offsetWidth) || 26;
     const lmw = (lMRef.current && lMRef.current.offsetWidth) || 62;
-    // 统一有效锚点（TW 坐标系下）：以最宽元素钳制，保证三要素同垂线
-    const effCA = merged ? clamp(mid, bw / 2, TW - bw / 2) : clamp(cA, bw / 2, TW - bw / 2);
-    const effCP = clamp(cP, nw / 2, TW - nw / 2);
+
+    // 分隔点 → 外层坐标（加 GUTTER）
+    const cAOuter = cA + GUTTER;
+    const cPUOuter = cP + GUTTER;
+    const midOuter = mid + GUTTER;
+
+    // 气泡：允许完全进入 GUTTER 区贴边（外层系 clamp bw/2..W-bw/2）
+    const effCA = merged
+      ? clamp(midOuter, bw / 2, W - bw / 2)
+      : clamp(cAOuter, bw / 2, W - bw / 2);
+    const effCP = clamp(cPUOuter, nw / 2, W - nw / 2);
+
+    // 尾尖水平修正量：气泡身体被 clamp 偏移后，尾尖三角向左/右移动指回真实分隔点
+    const tailOffsetA = (merged ? midOuter : cAOuter) - effCA;
+    const planLabelOffset = cPUOuter - effCP;
+    const planNumOuter = merged ? 0 : effCP;
+
+    // dA/dP：内层容器 left（TW 系），忠实百分比
+    const dA0 = cA - 2.5;
+    const dP0 = cP - 2.5;
+
     setGeo({
       a, p, merged,
       segW: Math.min(a, p),
       gapW: Math.abs(a - p),
       ahead: a >= p,
-      // dA/dP 直接是 track 内层的绝对 left（内层 width=TW left=GUTTER；内层 inset 自动对齐，无需加 GUTTER）
-      dA: clamp(effCA - 2.5, 0, TW - 5),
-      dP: clamp(effCP - 2.5, 0, TW - 5),
+      dA: dA0,
+      dP: dP0,
       hideP: Math.abs(ax - px) < 8,
-      // bubL / pnL / lAL 等是外层坐标系的绝对 left，需加 GUTTER
-      bubL: effCA + GUTTER,
-      pnL: effCP + GUTTER,
-      lAL: clamp(effCA + GUTTER, GUTTER + law / 2, GUTTER + TW - law / 2),
-      lPL: clamp(effCP + GUTTER, GUTTER + lpw / 2, GUTTER + TW - lpw / 2),
-      lML: clamp(mid + GUTTER, GUTTER + lmw / 2, GUTTER + TW - lmw / 2),
+      bubL: effCA,
+      pnL: planNumOuter,
+      // 尾尖三角的 X 修正（像素，可正可负）
+      tailOffsetA,
+      tailOffsetP: planLabelOffset,
+      // 标签跟随真实分隔点（外层系），必要时标签自身宽度钳制
+      lAL: clamp(cAOuter, GUTTER + law / 2, GUTTER + TW - law / 2),
+      lPL: clamp(cPUOuter, GUTTER + lpw / 2, GUTTER + TW - lpw / 2),
+      lML: clamp(midOuter, GUTTER + lmw / 2, GUTTER + TW - lmw / 2),
       thin: (Math.abs(a - p) / 100) * TW < 4,
     });
   }, [W, actual, plan, mergeDist, GUTTER]);
@@ -129,7 +149,7 @@ export default function DualMarkerBar({
     else badge = { t: `落后 ${diff}%${deltaContext ? ' · ' + deltaContext : ''}`, bg: hexToRgba(red, 0.1), fg: red };
   }
 
-  const track = { position: 'relative', height: 10, borderRadius: 999, background: hexToRgba(color, 0.1) };
+  const track = { position: 'relative', height: 10 };
   const segBase = { position: 'absolute', top: 0, bottom: 0, transition: 'left .35s ease, width .35s ease' };
   const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
   const labelBase = {
@@ -186,9 +206,9 @@ export default function DualMarkerBar({
            side gutter 14px ×2：轨道视觉主体不贴容器边缘，Apple Fitness / Linear 规范 */}
       <div style={{ position: 'relative', paddingTop: 28, paddingBottom: 21 }}>
         <div ref={trackRef} style={track}>
-          {/* 轨道内层：在 track 内部左右各缩 GUTTER=14px 作为真正的进度条区域；
-               position:relative → segBase/divider 的 %宽度 和 absolute left 都相对内层 TW 自动正确 */}
-          <div style={{ position: 'relative', marginLeft: GUTTER, marginRight: GUTTER, height: '100%', borderRadius: 999, overflow: 'hidden' }}>
+          {/* 轨道内层：margin 14 ×2 左右留呼吸边，position:relative 作为子元素 absolute 参考
+               浅红底色只画在内层 → GUTTER 14px 区域透明，不再两端露浅红边噪点 */}
+          <div style={{ position: 'relative', marginLeft: GUTTER, marginRight: GUTTER, height: '100%', borderRadius: 999, overflow: 'hidden', background: hexToRgba(color, 0.1) }}>
             {/* ① 已完成段（0 → min(实际,计划)） */}
             <div style={{ ...segBase, left: 0, width: `${geo ? geo.segW : Math.min(a, p)}%`, background: color, borderRadius: '999px 0 0 999px' }} />
 
@@ -221,10 +241,13 @@ export default function DualMarkerBar({
           }}>
             {merged ? `${fmt(a)}% / ${fmt(p)}%` : `${fmt(a)}%`}
             <i style={{
-              position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: -4,
+              position: 'absolute', left: '50%',
+              transform: `translateX(calc(-50% + ${geo ? geo.tailOffsetA : 0}px))`,
+              bottom: -4,
               width: 0, height: 0,
               borderLeft: '4px solid transparent', borderRight: '4px solid transparent',
               borderTop: `4px solid ${color}`,
+              transition: 'transform .35s ease',
             }} />
           </span>
 

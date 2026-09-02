@@ -5840,13 +5840,13 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <div className="flex items-center gap-1 ml-auto flex-shrink-0" style={{ marginRight: 0 }}>
             {(() => {
               const TABS = [
-                { key: 'active', lb: '进行中', col: RED,    n: partitionedGoals.active.length },
+                { key: 'active', lb: '进行中', col: RED_DATA,    n: partitionedGoals.active.length },
                 { key: 'done',   lb: '已完成', col: '#34C759', n: partitionedGoals.done.length   },
                 { key: 'shelf',  lb: '已归档', col: '#64748b', n: partitionedGoals.shelf.length  },
               ];
               return TABS.map(t => {
                 const active = workTab === t.key;
-                const activeBg = active ? RED : 'transparent';
+                const activeBg = active ? RED_DATA : 'transparent';
                 const activeFg = active ? '#ffffff' : t.col;
                 return (
                   <button

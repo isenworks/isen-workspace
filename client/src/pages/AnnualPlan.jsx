@@ -5022,9 +5022,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
-  const RED = '#FF3B30';           // 结构红：色条/按钮/序号/Tab/告警框（不变）
-  const RED_DATA = '#FA503E';      // 方案②：iOS Settings 轻红 · 系统标准亮红派生（H7° S≈96 最iOS本味）
-  const RED_RISK = '#FF6A4D';      // 落后警示：比进度亮一档
+  const RED = '#FF4035';           // ②系统一结构红：H4° S≈94（比原#FF3B30亮一档+同家族，保持层级最强）
+  const RED_DATA = '#FA503E';      // 数据进度红（不变）
+  const RED_RISK = '#FF6A4D';      // 落后警示（不变）
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {

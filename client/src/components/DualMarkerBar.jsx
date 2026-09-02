@@ -156,7 +156,7 @@ export default function DualMarkerBar({
   const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
   const labelBase = {
     position: 'absolute', bottom: -15, transform: 'translateX(-50%)',
-    fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 2147483647,
+    fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 5,
     transition: 'left .35s ease', WebkitTapHighlightColor: 'transparent',
     whiteSpace: 'nowrap',
   };

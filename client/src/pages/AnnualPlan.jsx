@@ -5248,9 +5248,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
             <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors min-w-0 select-none"
-              onDoubleClick={(e) => { e.stopPropagation(); toggleCollapsed(o, goalIdx); }}
-              title="双击折叠 / 展开卡片"
-              onClick={() => onGoalEdit?.(goalIdx)}>{o.title}</div>
+              onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标（双击卡片空白处折叠）">{o.title}</div>
           </div>
           {/* 【原右组隐藏】胶囊/加号/⋮ 已由 renderFullCard 外层统一 absolute flex 容器接管（同一坐标系 gap-2 等距 + 圆形统一形状）
                此处保留结构 0 修改，仅加 hidden 避免重复渲染 */}
@@ -5775,8 +5773,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     // pr-5 = 20px 正常留白，三者 gap-2(8px) 整体靠右，避免两套坐标系失控
     return (
       <div
-        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-visible group relative"
+        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-visible group relative select-none"
         style={{}}
+        onDoubleClick={() => toggleCollapsed(o, goalIdx)}
       >
         {/* 折叠态徽章（右上角，控件容器下方避免遮挡） */}
         {collapsed && (

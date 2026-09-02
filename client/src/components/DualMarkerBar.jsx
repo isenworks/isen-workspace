@@ -76,8 +76,10 @@ export default function DualMarkerBar({
     const p = clamp(Number(plan) || 0, 0, 100);
     const ax = (a / 100) * TW;           // 实际端点（TW 系，忠实映射，0..TW 两端可达）
     const px = (p / 100) * TW;           // 计划端点（TW 系，忠实映射）
-    const cA = clamp(ax, 2.5, TW - 2.5); // 分隔点中心（width=5 留 2.5 边距防溢出）
-    const cP = clamp(px, 2.5, TW - 2.5);
+    // R=5（height=10 borderRadius=999→圆弧半径5），白间隔矩形 5×10 必须落在直线段：
+    // cA ± 2.5 ∈ [5, TW-5]（圆弧起点） → cA ∈ [7.5, TW-7.5]，保证两端圆弧完整露出不被覆盖
+    const cA = clamp(ax, 7.5, TW - 7.5);
+    const cP = clamp(px, 7.5, TW - 7.5);
     const merged = Math.abs(cA - cP) < mergeDist;
     const mid = (cA + cP) / 2;
     const bw = (bubRef.current && bubRef.current.offsetWidth) || 40;

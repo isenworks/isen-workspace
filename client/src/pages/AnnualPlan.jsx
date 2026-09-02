@@ -5959,7 +5959,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <div className="text-[12.5px] text-[#8e8e93]">任意目标右上角 ⋮ → 已完成</div>
           </div>
         ) : (
-        <div className="w-full grid grid-cols-[320px_1fr] gap-4 items-start">
+        <div className="w-full grid grid-cols-2 gap-4 items-start">
           {/* 左栏 Master · 缩略卡列表 */}
           <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] overflow-hidden">
             {partitionedGoals.done.map(entry => {

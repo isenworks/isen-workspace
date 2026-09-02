@@ -5022,9 +5022,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
-  const RED = '#FF4035';           // ②系统一结构红：H4° S≈94（比原#FF3B30亮一档+同家族，保持层级最强）
-  const RED_DATA = '#FA503E';      // 数据进度红（不变）
-  const RED_RISK = '#FF6A4D';      // 落后警示（不变）
+  const RED = '#FA503E';           // 统一单档：结构/数据/警示 全部 #FA503E
+  const RED_DATA = '#FA503E';
+  const RED_RISK = '#FA503E';
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {

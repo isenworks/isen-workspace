@@ -5759,7 +5759,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     return (
       <div
         className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-visible group relative"
-        style={{ contain: 'layout paint' }}
+        style={{ contain: 'layout' }}
       >
         {/* 统一容器：KR 计数胶囊（event 模式隐藏） + 添加 KR 加号 + ⋮ 更多菜单
             top-[17px] 对齐 renderObjective 标题基线（标题 top=20 中线=29，按钮中心=17+14=31） */}

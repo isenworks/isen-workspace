@@ -5022,9 +5022,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
-  const RED = '#FA503E';           // 统一单档：结构/数据/警示 全部 #FA503E
-  const RED_DATA = '#FA503E';
-  const RED_RISK = '#FA503E';
+  const RED = '#FF4035';           // 档A 结构+警示：Tab/按钮/序号/色条/落后胶囊/lowConv/KPIRisk（小面积强语义）
+  const RED_DATA = '#FA503E';      // 档B 数据进度：DualMarkerBar/进度条/气泡/完成率%/瓶颈高亮名（大面积展示）
+  const RED_RISK = '#FF4035';      // 警示并入档A（与结构同色靠形态跳脱）
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {

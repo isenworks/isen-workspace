@@ -62,17 +62,22 @@ export default function DualMarkerBar({
     return () => { if (ro) ro.disconnect(); };
   }, []);
 
+  // side gutter：轨道主体左右各缩 14px 留视觉呼吸边（Apple Fitness / Linear 惯例）
+  // 进度百分比映射到内层 W' = W - 2·14，绝对定位再统一 +14 偏移
+  const GUTTER = 14;
+
   // 布局计算：锚点 = 隔断线中心（cA/cP），气泡/数字/标签全部钳制在轨道内
   useLayoutEffect(() => {
     if (!W) { setGeo(null); return; }
+    const TW = Math.max(W - GUTTER * 2, 40); // 轨道可视主体宽度
     const a = clamp(Number(actual) || 0, 0, 100);
     const p = clamp(Number(plan) || 0, 0, 100);
-    const ax = (a / 100) * W;
-    const px = (p / 100) * W;
-    const dA = clamp(ax - 3, W * 0.012, W - 6 - W * 0.012);
-    const dP = clamp(px - 3, W * 0.012, W - 6 - W * 0.012);
-    const cA = dA + 3;
-    const cP = dP + 3;
+    const ax = (a / 100) * TW;
+    const px = (p / 100) * TW;
+    const dA0 = clamp(ax - 2.5, 0, TW - 5);
+    const dP0 = clamp(px - 2.5, 0, TW - 5);
+    const cA = dA0 + 2.5;
+    const cP = dP0 + 2.5;
     const merged = Math.abs(cA - cP) < mergeDist;
     const mid = (cA + cP) / 2;
     const bw = (bubRef.current && bubRef.current.offsetWidth) || 40;
@@ -80,27 +85,27 @@ export default function DualMarkerBar({
     const law = (lARef.current && lARef.current.offsetWidth) || 26;
     const lpw = (lPRef.current && lPRef.current.offsetWidth) || 26;
     const lmw = (lMRef.current && lMRef.current.offsetWidth) || 62;
-    // 统一有效锚点：以被 clamp 过的气泡/数字中心为唯一基准（这些元素最宽，钳制要求最严）
-    // 保证「气泡尾尖（水平中心） - 白色隔断中心 - 标签文字中心」三者永远在同一垂线上
-    const effCA = merged ? clamp(mid, bw / 2, W - bw / 2) : clamp(cA, bw / 2, W - bw / 2);
-    const effCP = clamp(cP, nw / 2, W - nw / 2);
+    // 统一有效锚点（TW 坐标系下）：以最宽元素钳制，保证三要素同垂线
+    const effCA = merged ? clamp(mid, bw / 2, TW - bw / 2) : clamp(cA, bw / 2, TW - bw / 2);
+    const effCP = clamp(cP, nw / 2, TW - nw / 2);
     setGeo({
       a, p, merged,
       segW: Math.min(a, p),
       gapW: Math.abs(a - p),
       ahead: a >= p,
-      // 隔断 width=5，中心锚定 effC，left = 中心 - 2.5（极近轨道端点时进一步钳制不溢出 0 / W-5）
-      dA: clamp(effCA - 2.5, 0, W - 5),
-      dP: clamp(effCP - 2.5, 0, W - 5),
+      // dA/dP 直接是 track 内层的绝对 left（内层 width=TW left=GUTTER；内层 inset 自动对齐，无需加 GUTTER）
+      dA: clamp(effCA - 2.5, 0, TW - 5),
+      dP: clamp(effCP - 2.5, 0, TW - 5),
       hideP: Math.abs(ax - px) < 8,
-      bubL: merged ? effCA : effCA,
-      pnL: effCP,
-      lAL: clamp(effCA, law / 2, W - law / 2),
-      lPL: clamp(effCP, lpw / 2, W - lpw / 2),
-      lML: clamp(mid, lmw / 2, W - lmw / 2),
-      thin: (Math.abs(a - p) / 100) * W < 4,
+      // bubL / pnL / lAL 等是外层坐标系的绝对 left，需加 GUTTER
+      bubL: effCA + GUTTER,
+      pnL: effCP + GUTTER,
+      lAL: clamp(effCA + GUTTER, GUTTER + law / 2, GUTTER + TW - law / 2),
+      lPL: clamp(effCP + GUTTER, GUTTER + lpw / 2, GUTTER + TW - lpw / 2),
+      lML: clamp(mid + GUTTER, GUTTER + lmw / 2, GUTTER + TW - lmw / 2),
+      thin: (Math.abs(a - p) / 100) * TW < 4,
     });
-  }, [W, actual, plan, mergeDist]);
+  }, [W, actual, plan, mergeDist, GUTTER]);
 
   // 触屏：点外部关闭 tooltip
   useEffect(() => {
@@ -177,13 +182,13 @@ export default function DualMarkerBar({
         </div>
       )}
 
-      {/* 进度条主体：整体缩 17% — 轨上28px（气泡18px高+尾4px，净空2.9px 悬浮不扎轨） */}
+      {/* 进度条主体：整体缩 17% — 轨上28px（气泡18px高+尾4px，净空2.9px 悬浮不扎轨）
+           side gutter 14px ×2：轨道视觉主体不贴容器边缘，Apple Fitness / Linear 规范 */}
       <div style={{ position: 'relative', paddingTop: 28, paddingBottom: 21 }}>
         <div ref={trackRef} style={track}>
-          {/* 轨道内层：圆角胶囊裁剪，包住 ① 已完成段 / ② 差距段 / 隔断线 */}
-          {/* — 解决 0% 时 45° 斜纹突破轨道左侧圆角的问题 */}
-          {/* — 气泡/数字/标签放在外层，不被裁剪，可悬在轨道上下方 */}
-          <div style={{ position: 'absolute', inset: 0, borderRadius: 999, overflow: 'hidden' }}>
+          {/* 轨道内层：在 track 内部左右各缩 GUTTER=14px 作为真正的进度条区域；
+               position:relative → segBase/divider 的 %宽度 和 absolute left 都相对内层 TW 自动正确 */}
+          <div style={{ position: 'relative', marginLeft: GUTTER, marginRight: GUTTER, height: '100%', borderRadius: 999, overflow: 'hidden' }}>
             {/* ① 已完成段（0 → min(实际,计划)） */}
             <div style={{ ...segBase, left: 0, width: `${geo ? geo.segW : Math.min(a, p)}%`, background: color, borderRadius: '999px 0 0 999px' }} />
 
@@ -198,7 +203,8 @@ export default function DualMarkerBar({
               }} />
             )}
 
-            {/* 白色隔断 ×2：实际 / 计划（近重合时隐藏计划隔断避免双线） */}
+            {/* 白色隔断 ×2：实际 / 计划（近重合时隐藏计划隔断避免双线）
+                 dA/dP 是内层坐标系（0..TW-5），直接用无需加 GUTTER */}
             <div style={{ ...dividerBase, left: geo ? geo.dA : undefined }} />
             <div style={{ ...dividerBase, left: geo ? geo.dP : undefined, opacity: geo ? (geo.hideP ? 0 : 1) : 1, transition: 'left .35s ease, opacity .2s' }} />
           </div>

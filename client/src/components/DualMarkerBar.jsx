@@ -76,8 +76,8 @@ export default function DualMarkerBar({
     const p = clamp(Number(plan) || 0, 0, 100);
     const ax = (a / 100) * TW;           // 实际端点（TW 系，忠实映射，0..TW 两端可达）
     const px = (p / 100) * TW;           // 计划端点（TW 系，忠实映射）
-    const cA = clamp(ax, 2.5, TW - 2.5); // 分隔点中心（width=5 留 2.5 边距防溢出）
-    const cP = clamp(px, 2.5, TW - 2.5);
+    const cA = clamp(ax, 3, TW - 3); // 分隔点中心（端点留 3px 安全距离，保证胶囊圆角始终可见 1px，不被切平）
+    const cP = clamp(px, 3, TW - 3);
     const merged = Math.abs(cA - cP) < mergeDist;
     const mid = (cA + cP) / 2;
     const bw = (bubRef.current && bubRef.current.offsetWidth) || 40;
@@ -151,7 +151,7 @@ export default function DualMarkerBar({
 
   const track = { position: 'relative', height: 10 };
   const segBase = { position: 'absolute', top: 0, bottom: 0, transition: 'left .35s ease, width .35s ease' };
-  const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
+  const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: '#fff', zIndex: 3, transition: 'left .35s ease', borderRadius: 999 };
   const labelBase = {
     position: 'absolute', bottom: -15, transform: 'translateX(-50%)',
     fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 6,

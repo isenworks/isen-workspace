@@ -5022,7 +5022,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
-  const RED = '#FF3B30';
+  const RED = '#FF3B30';           // 结构红：色条/按钮/序号/Tab/告警框（不变）
+  const RED_DATA = '#E5534B';      // 方案A · 数据进度红：进度条/气泡/百分比数字（降饱和）
+  const RED_RISK = '#ED544D';      // 落后警示（进度红稍亮，语义层比进度强、比结构弱）
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {
@@ -5226,7 +5228,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     if (paceDiff !== null) {
       if (paceDiff === 0) pace = { t: '节奏匹配', bg: `${color}1a`, fg: color };
       else if (paceAhead) pace = { t: `超前 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(52,199,89,0.10)', fg: '#34C759' };
-      else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(255,59,48,0.10)', fg: '#FF3B30' };
+      else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(237,84,77,0.10)', fg: RED_RISK };
     }
     /* 工作页 renderObjective：容器级 px-1 pt-2 已移除，顶部/左右二次压缩消除，与能力页卡壳 p-3.5 像素级一致：
        卡顶→标题中心从 35px→27px；左右留白从 18px→14px；只留 pb-2.5 border-b 承担与下方子渲染区的分段语义 */
@@ -5299,7 +5301,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <DualMarkerBar
               actual={gs.avgPct}
               plan={gs.timePct}
-              color={color}
+              color={RED_DATA}
               showBadge={false}
               actualDetail={`KR 平均完成 ${gs.avgPct}%${krTotal > 0 ? `（${krDone}/${krTotal} 已完成）` : ''}`}
               planDetail={gs.days !== null && gs.days !== undefined
@@ -5318,7 +5320,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
    * ============================================================ */
   const renderFunnelRows = (o, gs, goalIdx) => {
     const krs = o.krs || [];
-    const COLOR = gs.color;
+    const COLOR = RED_DATA;
     // 空状态引导（对齐能力页 KR 空态）
     if (krs.length === 0) {
       return (
@@ -5351,7 +5353,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 {/* 左区：w-[128px] = 序号22 + gap + 标题+目标，连接线箭头在此区 justify-center 对准标题中心 */}
                 <div className="w-[128px] flex items-center gap-2.5 flex-shrink-0 -mt-[1px]">
                   <span className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none flex-shrink-0"
-                    style={{ color: COLOR }}>{padNum}</span>
+                    style={{ color: RED }}>{padNum}</span>
                   <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
                     <div onClick={() => onKrEdit?.(goalIdx, i, kr)} title="点击编辑 KR" className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
                       <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[#48484A]">{kr.t}</span>
@@ -5400,7 +5402,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
 
                 {/* 右侧：完成率 */}
                 <span className="text-[14px] font-extrabold tabular-nums leading-none w-[48px] text-right flex-shrink-0"
-                  style={{ color: isDone ? '#111827' : (isBehind ? '#FF3B30' : COLOR) }}>
+                  style={{ color: isDone ? '#111827' : (isBehind ? RED_RISK : COLOR) }}>
                   {p}<span className="text-[11px] font-bold">%</span>
                 </span>
               </div>
@@ -5416,7 +5418,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                   <div className="flex-1 flex items-center justify-center min-w-0">
                     <span
                       className="font-bold tabular-nums"
-                      style={{ color: lowConv ? '#FF3B30' : '#8a9491' }}>
+                      style={{ color: lowConv ? RED_RISK : '#8a9491' }}>
                       {conv ?? 0}%
                     </span>
                   </div>
@@ -5457,10 +5459,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         <div className="min-w-0 flex-1 text-[11px] leading-[1.4]">
           <span className="font-bold text-ink-700">关键瓶颈：</span>
           <span className="text-ink-600">
-            从「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.from}</span>」
-            到「<span style={{ color: COLOR, fontWeight: 700 }}>{minConv.to}</span>」
+            从「<span style={{ color: RED_DATA, fontWeight: 700 }}>{minConv.from}</span>」
+            到「<span style={{ color: RED_DATA, fontWeight: 700 }}>{minConv.to}</span>」
             转化率
-            <span style={{ color: '#FF3B30', fontWeight: 800 }}> {minConv.rate}% </span>
+            <span style={{ color: RED_RISK, fontWeight: 800 }}> {minConv.rate}% </span>
             — {suggestion}
           </span>
         </div>
@@ -5485,7 +5487,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     const sorted = [...items].sort((a, b) => {
       const order = { risk: 0, warn: 1, normal: 2, ahead: 3, done: 4 };
       return (order[a.rm.q] ?? 0) - (order[b.rm.q] ?? 0);
-    });
+    }).map(x => ({
+      ...x,
+      rm: { ...x.rm, color: x.rm.q === 'risk' ? RED_RISK : x.rm.color },
+    }));
     // 拆成未完成组（显示完整）和已完成组（折叠成一行）
     const active = sorted.filter(x => x.rm.q !== 'done');
     const done = sorted.filter(x => x.rm.q === 'done');
@@ -5547,7 +5552,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 {/* 底部：时间进度 vs KR 落差微提示 + dueBy */}
                 <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-dashed border-ink-100">
                   {microTA.timePct !== null ? (
-                    <span className="text-[9.5px] font-semibold" style={{ color: krPct < microTA.timePct - 5 ? '#FF3B30' : '#8a9491' }}>
+                    <span className="text-[9.5px] font-semibold" style={{ color: krPct < microTA.timePct - 5 ? RED_RISK : '#8a9491' }}>
                       时间 {microTA.timePct}% {krPct < microTA.timePct - 5 ? `↓${microTA.timePct - krPct}%` : krPct > microTA.timePct + 5 ? `↑${krPct - microTA.timePct}%` : '节奏匹配'}
                     </span>
                   ) : <span className="text-[9.5px] text-ink-400">长期KPI</span>}
@@ -5603,6 +5608,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           const krPct = pct(kr.v, kr.tgt);
           const microTA = kr.dueBy ? calcTimeAnchor(kr.dueBy, o.createdAt || kr.dueBy) : { timePct: gs.timePct, days: null };
           const rm = calcRisk(krPct, microTA.timePct, kr.st === 'done');
+          const rmColor = rm.q === 'risk' ? RED_RISK : rm.color;
           const isDone = kr.st === 'done';
           const dueLbl = microTA.days !== undefined ? daysLabel(microTA.days) : daysLabel(gs.days);
           return (
@@ -5616,9 +5622,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 <div
                   className="w-6 h-6 rounded-full grid place-items-center font-extrabold text-[10px] flex-shrink-0"
                   style={{
-                    background: isDone ? '#34C75920' : rm.color + '15',
-                    color: isDone ? '#34C759' : rm.color,
-                    border: `1.5px solid ${isDone ? '#34C759' : rm.color}`,
+                    background: isDone ? '#34C75920' : rmColor + '15',
+                    color: isDone ? '#34C759' : rmColor,
+                    border: `1.5px solid ${isDone ? '#34C759' : rmColor}`,
                   }}
                 >
                   {isDone ? (
@@ -5640,7 +5646,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               {/* 阶段进度条（简单，因为门控是布尔通过/不通过，进度为中间值） */}
               <div className="w-[60px] grid place-items-center">
                 <div className="w-[52px] h-1.5 rounded-full bg-ink-100 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${krPct}%`, background: isDone ? '#34C759' : rm.color }}></div>
+                  <div className="h-full rounded-full" style={{ width: `${krPct}%`, background: isDone ? '#34C759' : rmColor }}></div>
                 </div>
               </div>
               {/* 验收门结果 */}

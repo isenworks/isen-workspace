@@ -5095,6 +5095,21 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   });
   const isCollapsed = (o, goalIdx) => collapsedIds.has(makeGoalKey(o, goalIdx));
 
+  // Step 2: 已完成tab Master-Detail 选中状态
+  const [selectedDoneKey, setSelectedDoneKey] = useState(null);
+  useEffect(() => {
+    if (workTab !== 'done') return;
+    const doneList = partitionedGoals.done;
+    if (doneList.length === 0) { setSelectedDoneKey(null); return; }
+    // 保持已有选择（仍在done列表中），否则默选第一个
+    const stillExists = selectedDoneKey && doneList.find(e => makeGoalKey(e.o, e.goalIdx) === selectedDoneKey);
+    if (!stillExists) setSelectedDoneKey(makeGoalKey(doneList[0].o, doneList[0].goalIdx));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workTab, partitionedGoals.done]);
+  const selectedDoneEntry = useMemo(() =>
+    partitionedGoals.done.find(e => makeGoalKey(e.o, e.goalIdx) === selectedDoneKey) || null,
+    [partitionedGoals.done, selectedDoneKey]);
+
   const _isOverdueNotDone = (o) => {
     if (!o?.deadline) return false;
     if (o.deadline >= todayISO) return false;
@@ -5937,20 +5952,53 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         </div>
       )}
 
-      {/* —— Tab 2：已完成 → 单列 / 双列网格 完整原卡（带取消归档 & 删除）—— */}
+      {/* —— Tab 2：已完成 → Master-Detail（左缩略卡扫描 · 右完整卡详情）—— */}
       {workTab === 'done' && (
-        <div className="w-full grid grid-cols-1 min-[1100px]:grid-cols-2 gap-4">
-          {partitionedGoals.done.length === 0 ? (
-            <div className="w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center col-span-full">
-              <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无已完成目标</div>
-              <div className="text-[12.5px] text-[#8e8e93]">任意目标右上角 ⋮ → 已完成</div>
-            </div>
-          ) : partitionedGoals.done.map(entry => (
-            <div key={'done-' + (entry.o.id || entry.o.title + entry.goalIdx)}>
-              {renderFullCard(entry, 'done')}
-            </div>
-          ))}
+        partitionedGoals.done.length === 0 ? (
+          <div className="w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+            <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无已完成目标</div>
+            <div className="text-[12.5px] text-[#8e8e93]">任意目标右上角 ⋮ → 已完成</div>
+          </div>
+        ) : (
+        <div className="w-full grid grid-cols-[320px_1fr] gap-4 items-start">
+          {/* 左栏 Master · 缩略卡列表 */}
+          <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] overflow-hidden">
+            {partitionedGoals.done.map(entry => {
+              const k = makeGoalKey(entry.o, entry.goalIdx);
+              const isSel = selectedDoneKey === k;
+              const start = entry.o.createdAt ? String(entry.o.createdAt).slice(0,10) : '';
+              const end = entry.o.deadline || '';
+              const startShort = start ? start.slice(5) : '—';
+              const endShort = end ? end.slice(5) : '—';
+              return (
+                <div
+                  key={'tn-' + k}
+                  onClick={() => setSelectedDoneKey(k)}
+                  className={`relative flex items-center gap-3 px-3 py-3 border-b border-ink-100 last:border-b-0 cursor-pointer transition-colors ${
+                    isSel ? 'bg-[#007AFF0A]' : 'hover:bg-ink-50'
+                  }`}
+                >
+                  {isSel && <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#007AFF]" />}
+                  <div className="w-[18px] h-[18px] rounded-md grid place-items-center bg-[#34C759] text-white flex-shrink-0" style={{ boxShadow: 'inset 0 0 0 1px rgba(52,199,89,.5)' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[12.5px] truncate leading-tight ${isSel ? 'font-bold text-[#1d1d1f]' : 'font-semibold text-[#48484A]'}`}>{entry.o.title}</div>
+                    <div className="text-[10.5px] font-medium text-[#8e8e93] tabular-nums mt-[2px]">{startShort} → {endShort}</div>
+                  </div>
+                  <div style={{ width: 28, flexShrink: 0 }}>
+                    {renderCardMenu({ entry, location: 'done' })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* 右栏 Detail · 完整卡结构（复用 renderFullCard + 四模式渲染器 0 修改） */}
+          <div>
+            {selectedDoneEntry && renderFullCard(selectedDoneEntry, 'done')}
+          </div>
         </div>
+        )
       )}
 
       {/* —— Tab 3：已归档 → 单列 / 双列网格 完整原卡（搁置归档 快捷取消归档）—— */}

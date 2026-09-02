@@ -125,6 +125,7 @@ export default function DualMarkerBar({
     position: 'absolute', bottom: -15, transform: 'translateX(-50%)',
     fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 6,
     transition: 'left .35s ease', WebkitTapHighlightColor: 'transparent',
+    whiteSpace: 'nowrap',
   };
   const tipStyle = {
     position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',

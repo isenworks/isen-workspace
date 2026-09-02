@@ -5085,6 +5085,15 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   const [openDropIdx, setOpenDropIdx] = useState(null); // key → goal.id|title+idx+'@'+location (location: 'active'|'modal')
   const [localTitle, setLocalTitle] = useState(`${year}年 · 工作目标`); // Header 标题：右击可编辑
   const [titleEditing, setTitleEditing] = useState(false);
+  const [collapsedIds, setCollapsedIds] = useState(() => new Set()); // 进行中tab双击折叠: Set<goalKey = id | title|idx>
+  const makeGoalKey = (o, goalIdx) => o.id || `${o.title}|${goalIdx}`;
+  const toggleCollapsed = (o, goalIdx) => setCollapsedIds(prev => {
+    const k = makeGoalKey(o, goalIdx);
+    const next = new Set(prev);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    return next;
+  });
+  const isCollapsed = (o, goalIdx) => collapsedIds.has(makeGoalKey(o, goalIdx));
 
   const _isOverdueNotDone = (o) => {
     if (!o?.deadline) return false;
@@ -5238,8 +5247,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
-            <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors min-w-0"
-              onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
+            <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors min-w-0 select-none"
+              onDoubleClick={(e) => { e.stopPropagation(); toggleCollapsed(o, goalIdx); }}
+              title="双击折叠 / 展开卡片"
+              onClick={() => onGoalEdit?.(goalIdx)}>{o.title}</div>
           </div>
           {/* 【原右组隐藏】胶囊/加号/⋮ 已由 renderFullCard 外层统一 absolute flex 容器接管（同一坐标系 gap-2 等距 + 圆形统一形状）
                此处保留结构 0 修改，仅加 hidden 避免重复渲染 */}
@@ -5758,6 +5769,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   /* —— 统一卡壳：进行中（主业/副业两栏）& 非进行中（网格）都用同一 wrapper，⋮红+紧贴加号右边，原 renderObjective 0修改 —— */
   const renderFullCard = (entry, location) => {
     const { o, gs, goalIdx } = entry;
+    const collapsed = isCollapsed(o, goalIdx);
     const bottleneck = renderWorkBottleneck(o, gs.color);
     // 右上角三控件（胶囊+加号+⋮）统一 absolute flex 容器，
     // pr-5 = 20px 正常留白，三者 gap-2(8px) 整体靠右，避免两套坐标系失控
@@ -5766,6 +5778,15 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-visible group relative"
         style={{}}
       >
+        {/* 折叠态徽章（右上角，控件容器下方避免遮挡） */}
+        {collapsed && (
+          <span
+            className="absolute right-4 bottom-3 text-[10px] font-extrabold px-2 py-[3px] rounded-full text-white select-none pointer-events-none z-10"
+            style={{ background: 'rgba(138,148,145,0.85)' }}
+            title="双击标题可重新展开">
+            已折叠 · ⤢
+          </span>
+        )}
         {/* 统一容器：KR 计数胶囊（event 模式隐藏） + 添加 KR 加号 + ⋮ 更多菜单
             top-[17px] 对齐 renderObjective 标题基线（标题 top=20 中线=29，按钮中心=17+14=31） */}
         <div className="absolute right-3 top-[17px] z-20 flex items-center gap-2">
@@ -5791,10 +5812,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           {renderCardMenu({ entry, location })}
         </div>
         {renderObjective(o, gs, goalIdx)}
-        <div className="flex-1 min-h-0 pt-3 overflow-y-auto">
-          {renderByMode(o, gs, goalIdx)}
-        </div>
-        {bottleneck && <div className="mt-3">{bottleneck}</div>}
+        {!collapsed && (
+          <div className="flex-1 min-h-0 pt-3 overflow-y-auto">
+            {renderByMode(o, gs, goalIdx)}
+          </div>
+        )}
+        {!collapsed && bottleneck && <div className="mt-3">{bottleneck}</div>}
       </div>
     );
   };

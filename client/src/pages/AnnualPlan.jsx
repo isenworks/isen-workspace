@@ -5095,21 +5095,6 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   });
   const isCollapsed = (o, goalIdx) => collapsedIds.has(makeGoalKey(o, goalIdx));
 
-  // Step 2: 已完成tab Master-Detail 选中状态
-  const [selectedDoneKey, setSelectedDoneKey] = useState(null);
-  useEffect(() => {
-    if (workTab !== 'done') return;
-    const doneList = partitionedGoals.done;
-    if (doneList.length === 0) { setSelectedDoneKey(null); return; }
-    // 保持已有选择（仍在done列表中），否则默选第一个
-    const stillExists = selectedDoneKey && doneList.find(e => makeGoalKey(e.o, e.goalIdx) === selectedDoneKey);
-    if (!stillExists) setSelectedDoneKey(makeGoalKey(doneList[0].o, doneList[0].goalIdx));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workTab, partitionedGoals.done]);
-  const selectedDoneEntry = useMemo(() =>
-    partitionedGoals.done.find(e => makeGoalKey(e.o, e.goalIdx) === selectedDoneKey) || null,
-    [partitionedGoals.done, selectedDoneKey]);
-
   const _isOverdueNotDone = (o) => {
     if (!o?.deadline) return false;
     if (o.deadline >= todayISO) return false;
@@ -5143,6 +5128,20 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     });
     return { active, done, shelf };
   }, [dynWk, goalStats, todayISO]);
+
+  // Step 2: 已完成tab Master-Detail 选中状态（必须在 partitionedGoals 之后声明，否则 TDZ 报错）
+  const [selectedDoneKey, setSelectedDoneKey] = useState(null);
+  useEffect(() => {
+    if (workTab !== 'done') return;
+    const doneList = partitionedGoals.done;
+    if (doneList.length === 0) { setSelectedDoneKey(null); return; }
+    const stillExists = selectedDoneKey && doneList.find(e => makeGoalKey(e.o, e.goalIdx) === selectedDoneKey);
+    if (!stillExists) setSelectedDoneKey(makeGoalKey(doneList[0].o, doneList[0].goalIdx));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workTab, partitionedGoals.done]);
+  const selectedDoneEntry = useMemo(() =>
+    partitionedGoals.done.find(e => makeGoalKey(e.o, e.goalIdx) === selectedDoneKey) || null,
+    [partitionedGoals.done, selectedDoneKey]);
 
   /* —— 卡片右上角下拉菜单 ⋮ —— */
   const renderCardMenu = ({ entry, location }) => {

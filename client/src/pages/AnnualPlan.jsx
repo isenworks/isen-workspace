@@ -5774,10 +5774,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               <span className="opacity-70">{gs.krTotal}</span>
             </span>
           )}
-          {/* ➕ 添加 KR：圆形 28×28，和 ⋮ 按钮同尺寸同形状 */}
+          {/* ➕ 添加 KR：圆角方形 28×28 */}
           <button
             onClick={() => onKrAdd?.(goalIdx)}
-            className="w-7 h-7 rounded-full grid place-items-center transition hover:brightness-110 active:scale-95 flex-shrink-0"
+            className="w-7 h-7 rounded-lg grid place-items-center transition hover:brightness-110 active:scale-95 flex-shrink-0"
             style={{ backgroundColor: `${gs.color}12` }}
             title="添加 KR">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={gs.color} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>

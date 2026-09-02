@@ -80,17 +80,23 @@ export default function DualMarkerBar({
     const law = (lARef.current && lARef.current.offsetWidth) || 26;
     const lpw = (lPRef.current && lPRef.current.offsetWidth) || 26;
     const lmw = (lMRef.current && lMRef.current.offsetWidth) || 62;
+    // 统一有效锚点：以被 clamp 过的气泡/数字中心为唯一基准（这些元素最宽，钳制要求最严）
+    // 保证「气泡尾尖（水平中心） - 白色隔断中心 - 标签文字中心」三者永远在同一垂线上
+    const effCA = merged ? clamp(mid, bw / 2, W - bw / 2) : clamp(cA, bw / 2, W - bw / 2);
+    const effCP = clamp(cP, nw / 2, W - nw / 2);
     setGeo({
       a, p, merged,
       segW: Math.min(a, p),
       gapW: Math.abs(a - p),
       ahead: a >= p,
-      dA, dP,
+      // 隔断 width=5，中心锚定 effC，left = 中心 - 2.5（极近轨道端点时进一步钳制不溢出 0 / W-5）
+      dA: clamp(effCA - 2.5, 0, W - 5),
+      dP: clamp(effCP - 2.5, 0, W - 5),
       hideP: Math.abs(ax - px) < 8,
-      bubL: merged ? clamp(mid, bw / 2, W - bw / 2) : clamp(cA, bw / 2, W - bw / 2),
-      pnL: clamp(cP, nw / 2, W - nw / 2),
-      lAL: clamp(cA, law / 2, W - law / 2),
-      lPL: clamp(cP, lpw / 2, W - lpw / 2),
+      bubL: merged ? effCA : effCA,
+      pnL: effCP,
+      lAL: clamp(effCA, law / 2, W - law / 2),
+      lPL: clamp(effCP, lpw / 2, W - lpw / 2),
       lML: clamp(mid, lmw / 2, W - lmw / 2),
       thin: (Math.abs(a - p) / 100) * W < 4,
     });

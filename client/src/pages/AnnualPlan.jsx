@@ -5780,10 +5780,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         {/* 折叠态徽章（右上角，控件容器下方避免遮挡） */}
         {collapsed && (
           <span
-            className="absolute right-4 bottom-3 text-[10px] font-extrabold px-2 py-[3px] rounded-full text-white select-none pointer-events-none z-10"
-            style={{ background: 'rgba(138,148,145,0.85)' }}
-            title="双击标题可重新展开">
-            已折叠 · ⤢
+            className="absolute right-4 bottom-3 text-[10px] font-extrabold px-2 py-[3px] rounded-full select-none pointer-events-none z-10"
+            style={{ color: 'rgba(138,148,145,0.85)' }}
+            title="双击卡片展开">
+            展开 ▾
           </span>
         )}
         {/* 统一容器：KR 计数胶囊（event 模式隐藏） + 添加 KR 加号 + ⋮ 更多菜单

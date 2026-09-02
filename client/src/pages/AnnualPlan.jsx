@@ -5240,7 +5240,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors min-w-0"
               onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标">{o.title}</div>
           </div>
-          <div className="flex items-center gap-2.5 flex-shrink-0">
+          {/* 【原右组隐藏】胶囊/加号/⋮ 已由 renderFullCard 外层统一 absolute flex 容器接管（同一坐标系 gap-2 等距 + 圆形统一形状）
+               此处保留结构 0 修改，仅加 hidden 避免重复渲染 */}
+          <div className="flex items-center gap-2.5 flex-shrink-0 hidden">
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
             <span
               className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
@@ -5752,15 +5754,35 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   const renderFullCard = (entry, location) => {
     const { o, gs, goalIdx } = entry;
     const bottleneck = renderWorkBottleneck(o, gs.color);
-    // pr-12（48px）在卡壳右侧额外预留 28px 空位，让 renderObjective R1 内最右的「加号 + 添加 KR」整体左移 28px，
-    // ⋮ 红色绝对定位 right-3（12px）正好占据新增区域，视觉上紧贴加号右侧(加号结束于-48，⋮开始于-40，8px 间隔)
+    // 右上角三控件（胶囊+加号+⋮）统一 absolute flex 容器，
+    // pr-5 = 20px 正常留白，三者 gap-2(8px) 整体靠右，避免两套坐标系失控
     return (
       <div
-        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-14 pt-5 pb-5 flex flex-col overflow-hidden group relative"
+        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-hidden group relative"
         style={{ contain: 'layout paint' }}
       >
-        {/* ⋮ 红色下拉：absolute right-3 top-[18px] 卡壳 paddingBox 内额外 12px 右侧区域 = 加号右侧（不侵入 renderObjective）*/}
-        <div className="absolute right-3 top-[18px] z-20">
+        {/* 统一容器：KR 计数胶囊（event 模式隐藏） + 添加 KR 加号 + ⋮ 更多菜单
+            top-[17px] 对齐 renderObjective 标题基线（标题 top=20 中线=29，按钮中心=17+14=31） */}
+        <div className="absolute right-3 top-[17px] z-20 flex items-center gap-2">
+          {/* KR 计数胶囊：krTotal=0 时隐藏（单次事件型无需 KR 拆解） */}
+          {gs.krTotal > 0 && (
+            <span
+              className="inline-flex items-center px-3 h-[24px] rounded-full text-[11px] font-semibold tabular-nums leading-none flex-shrink-0"
+              style={{ background: `${gs.color}14`, color: gs.color }}>
+              <span className="font-extrabold">{gs.krDone}</span>
+              <span className="mx-0.5 opacity-50">/</span>
+              <span className="opacity-70">{gs.krTotal}</span>
+            </span>
+          )}
+          {/* ➕ 添加 KR：圆形 28×28，和 ⋮ 按钮同尺寸同形状 */}
+          <button
+            onClick={() => onKrAdd?.(goalIdx)}
+            className="w-7 h-7 rounded-full grid place-items-center transition hover:brightness-110 active:scale-95 flex-shrink-0"
+            style={{ backgroundColor: `${gs.color}12` }}
+            title="添加 KR">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={gs.color} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          {/* ⋮ 更多菜单 */}
           {renderCardMenu({ entry, location })}
         </div>
         {renderObjective(o, gs, goalIdx)}

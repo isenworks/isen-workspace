@@ -424,9 +424,11 @@ function isUserSchedule(ev) {
   if (!ev) return false;
   // ① id 在用户手动新建集合里 → 放行
   if (ev.id != null && getUserCreatedIds().some(id => String(id) === String(ev.id))) return true;
-  // ② title 匹配白名单 → 放行
   const nt = normTitle(String(ev?.title || ''));
   if (!nt) return false;
+  // ①' 生日/纪念日类每年重复事项（含迁移录入）→ 放行
+  if (nt.includes('生日')) return true;
+  // ② title 匹配白名单 → 放行
   return USER_ONLY_TITLES.some(w => {
     const wn = normTitle(w);
     return nt.includes(wn) || wn.includes(nt);

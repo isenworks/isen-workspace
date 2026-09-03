@@ -26,11 +26,11 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
-  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: '#34C759' }, /* accent-green */
-  { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: '#007AFF' }, /* accent-blue  */
-  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: '#FF9500' }, /* accent-amber/orange */
-  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: '#FF3B30' }, /* accent-red   */
-  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: '#AF52DE' }, /* accent-violet/purple */
+  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: 'var(--m-energy)' },
+  { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: 'var(--m-cognition)' },
+  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: 'var(--m-ability)' },
+  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: 'var(--m-work)' },
+  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: 'var(--m-life)' },
 ];
 
 /* 习惯打卡 (精力) */
@@ -1591,10 +1591,10 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
         <span className="text-[12.5px] font-semibold text-[#48484A] leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded-full flex items-center flex-shrink-0"
-          style={{ width: `${pctW}%`, background: '#007AFF' }}>
+          style={{ width: `${pctW}%`, background: 'var(--m-cognition)' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
         </div>
-        <span className="text-[11.5px] font-bold tabular-nums leading-none text-[#007AFF] flex-shrink-0 ml-auto">{conv}</span>
+        <span className="text-[11.5px] font-bold tabular-nums leading-none flex-shrink-0 ml-auto" style={{ color: 'var(--m-cognition)' }}>{conv}</span>
       </div>
     );
   };
@@ -1633,7 +1633,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       <div className="glass-card p-4">
         {/* 标题行 */}
         <div className="flex items-center gap-3 mb-3">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#007AFF' }} />
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-cognition)' }} />
           <InlineEdit
             value={ovTitle ?? `${year}年 · 模块概览`}
             onChange={setOvTitle}
@@ -1724,7 +1724,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                     pct={0} val={n > 0 ? '' : '待开启'}
                     color={cat.color} done={n > 0 ? true : false}
                     tail={n > 0 ? (
-                      <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: '#AF52DE' }}>{n}条</span>
+                      <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: 'var(--m-life)' }}>{n}条</span>
                     ) : undefined} />
                 );
               })}

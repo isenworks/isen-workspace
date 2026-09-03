@@ -1,4 +1,4 @@
-import { lunarLib } from '../lib/lunar.js';
+import lunarLib from '../lib/lunar.js';
 
 // 一次性迁移：录入生日事项（阳历=yearly, 农历=lunar-yearly）
 // 访问 /api/birthday-migrate 触发

@@ -14,10 +14,8 @@ function lunarBadge(iso) {
   const full = `农历${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
   const fests = [...lunar.getFestivals(), ...solar.getFestivals()];
   if (fests.length > 0) {
-    // 显示名：保留原名（国庆节/端午节/中秋节），特殊映射（劳动节→五一）
-    const ALIAS = { '劳动节': '五一', '建军节': '建军', '青年节': '青年', '妇女节': '妇女' };
-    const raw = fests[0];
-    const text = ALIAS[raw] || raw;
+    // 显示名：直接使用节日全称（国庆节/劳动节/建军节…）
+    const text = fests[0];
     return { text, full, color: '#FF3B30', weight: 600 };
   }
   const jq = lunar.getJieQi();

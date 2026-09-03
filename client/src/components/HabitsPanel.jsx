@@ -495,7 +495,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   </span>
                   <span className="flex-shrink-0 text-[#c8c8cc]">·</span>
                   {thirdLine.dur >= thirdLine.target ? (
-                    <span className="text-[#34C759] whitespace-nowrap flex-shrink-0 font-medium">达标</span>
+                    <span className="text-[#2BAD5E] whitespace-nowrap flex-shrink-0 font-medium">达标</span>
                   ) : (
                     <span className="text-[#FF9500] whitespace-nowrap flex-shrink-0 font-medium">
                       差{formatDuration(thirdLine.target - thirdLine.dur)}
@@ -503,11 +503,11 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   )}
                   <span className="flex-1"></span>
                   <span className="inline-flex items-center gap-1 flex-shrink-0">
-                    {energyMeta && <StateChip icon={ZapFilled} label={energyMeta.label} color={energyMeta.color} />}
+                    {energyMeta && <StateChip icon={ZapFilled} label={energyMeta.label} color="#2BAD5E" />}
                     {moodMeta && energyMeta && (
                       <span className="text-[#c8c8cc]">·</span>
                     )}
-                    {moodMeta && <StateChip icon={HeartFilled} label={moodMeta.label} color={moodMeta.color} />}
+                    {moodMeta && <StateChip icon={HeartFilled} label={moodMeta.label} color="#2BAD5E" />}
                   </span>
                 </div>
                 {h.sleep_note && (

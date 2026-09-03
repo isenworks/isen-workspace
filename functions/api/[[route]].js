@@ -1465,6 +1465,11 @@ async function handleBirthdayMigrate(env) {
   const userId = uid(env);
   await ensureScheduleRepeat(env);
 
+  // 存量修正：把所有生日事项统一归为「生活」(category=5)
+  await env.DB.prepare(
+    `UPDATE ethan_schedules SET category=5 WHERE user_id=? AND title LIKE '%生日%'`
+  ).bind(userId).run();
+
   const BIRTHDAYS = [
     { title: '🎂溪客生日', solar: { month: 10, day: 9 }, type: 'yearly' },
     { title: '🎂宝贝生日', lunar: { month: 9, day: 10 }, type: 'lunar-yearly' },
@@ -1507,7 +1512,7 @@ async function handleBirthdayMigrate(env) {
     ).bind(
       userId, bd.title, dateStr,
       null, null, null,
-      0, 3, 0, 0, bd.type
+      0, 5, 0, 0, bd.type
     ).run();
     results.push({ title: bd.title, date: dateStr, repeat: bd.type, status: 'created' });
   }

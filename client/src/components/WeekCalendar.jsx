@@ -4,7 +4,7 @@ import { API } from '../api/client.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
-export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal }) {
+export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal, view, onViewChange }) {
   const today = getToday();
   const todayObj = fromISODate(today);
   const todayYear = todayObj.getFullYear();
@@ -138,6 +138,15 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
 
         <div className="flex-1 overflow-x-auto pb-1.5" ref={scrollRef}>
           <div className="flex items-center gap-1 px-2">{days}</div>
+        </div>
+      </div>
+
+      {/* 今日/本周/本月 视图切换（位于 ＜ 9月 ＞ 下方） */}
+      <div className="mt-2.5 flex items-center">
+        <div className="tab-group">
+          <button className={view === 'today' ? 'active' : ''} onClick={() => onViewChange?.('today')}>今日</button>
+          <button className={view === 'week' ? 'active' : ''} onClick={() => onViewChange?.('week')}>本周</button>
+          <button className={view === 'month' ? 'active' : ''} onClick={() => onViewChange?.('month')}>本月</button>
         </div>
       </div>
     </div>

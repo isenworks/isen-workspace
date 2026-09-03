@@ -4,7 +4,6 @@ import { useToast } from '../context/ToastContext.jsx';
 import { today as getToday, toISODate, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDaysISO, calcDurationMin } from '../utils/date.js';
 import Sidebar from '../components/Sidebar.jsx';
 import WeekCalendar from '../components/WeekCalendar.jsx';
-import StatsBar from '../components/StatsBar.jsx';
 import KeyTasks from '../components/KeyTasks.jsx';
 import HabitsPanel from '../components/HabitsPanel.jsx';
 import Timeline from '../components/Timeline.jsx';
@@ -466,23 +465,13 @@ export default function Workspace({ user: propUser }) {
         </div>
       ) : (
         <main className="flex-1 min-w-0 max-w-[1180px] flex flex-col gap-4">
-          {/* 顶部日历条 */}
+          {/* 顶部日历条（含 今日/本周/本月 视图切换） */}
           <WeekCalendar
             selectedDate={selectedDate}
             onSelectDate={handleSelectDate}
             refreshSignal={refreshKey}
-          />
-
-          {/* Tab 栏 + 统计胶囊 */}
-          <StatsBar
-            date={selectedDate}
-            range={range}
             view={view}
-            refreshSignal={refreshKey}
             onViewChange={handleViewChange}
-            onNew={(type) => setModal({ type: type || 'schedule' })}
-            onSummaryToggle={() => setShowSummary(v => !v)}
-            showSummary={showSummary}
           />
 
           {/* 主体：12 列网格（左 5 + 右 7） */}
@@ -528,6 +517,8 @@ export default function Workspace({ user: propUser }) {
                   onAdd={(info) => setModal({ type: 'schedule', data: { start_time: info.start_time } })}
                   onManageFixedSchedules={() => setModal({ type: 'fixedSchedules' })}
                   onChange={refresh}
+                  onSummaryToggle={() => setShowSummary(v => !v)}
+                  showSummary={showSummary}
                 />
               )}
             </div>

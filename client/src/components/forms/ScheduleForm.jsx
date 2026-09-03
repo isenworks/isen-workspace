@@ -160,10 +160,23 @@ const BTN_PRIMARY = {
   boxShadow: '0 3px 8px rgba(0,122,255,0.25)'
 };
 
+const REPEAT_OPTS = [
+  { v: 'none',    label: '不重复' },
+  { v: 'daily',   label: '每天' },
+  { v: 'weekly',  label: '每周' },
+  { v: 'monthly', label: '每月' },
+  { v: 'yearly',  label: '每年' },
+];
+const REPEAT_LABEL = Object.fromEntries(REPEAT_OPTS.map(o => [o.v, o.label]));
+
 export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }) {
   const toast = useToast();
   // isPreset 时：initial.title 只做 placeholder 提示，不预填真实值
   const presetHint = initial?.isPreset && initial?.title ? initial.title : null;
+  // 新建默认 00:00；编辑保留原值（原值为空则留空）
+  const initStartTime = initial?.start_time || (initial?.id ? '' : '00:00');
+  const initEndTime = initial?.end_time || (initial?.id ? '' : '00:00');
+  const isRecurring = !!initial?.repeat_rule && initial.repeat_rule !== 'none';
   const [form, setForm] = useState(() => {
     const startDate = initial?.date || initial?.start_date || initial?.schedule_date || defaultDate;
     const endDate = initial?.end_date || '';
@@ -171,11 +184,12 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
       title: initial?.isPreset ? '' : (initial?.title || ''),
       start_date: startDate,
       end_date: endDate && endDate !== startDate ? endDate : '',
-      start_time: initial?.start_time || '',
-      end_time: initial?.end_time || '',
+      start_time: initStartTime,
+      end_time: initEndTime,
       duration_min: initial?.duration_min || '',
       category: initialCategory(initial),
       is_key: initial?.is_key ? 1 : 0,
+      repeat_rule: isRecurring ? initial.repeat_rule : 'none',
     };
   });
   const [cats, setCats] = useState(() => readCats());
@@ -206,7 +220,8 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
 
   // 双向自动计算（无条件重算，不依赖 duration_min 是否缺失）
   // ref 记录"由程序写入"的字段值，避免程序写入再次触发 effect 造成死循环
-  const programmaticRef = useRef({ start: '', end: '', dur: '' });
+  // 初始值与 form 初始值对齐：新建的 00:00 默认值不算用户改动，不触发时长自动计算
+  const programmaticRef = useRef({ start: initStartTime, end: initEndTime, dur: '' });
 
   useEffect(() => {
     const start = form.start_time || '';
@@ -274,9 +289,14 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
     const cat = Number(safeCategory());
     setBusy(true);
     try {
+      // 重复事项编辑语义（iOS「所有事件」）：
+      //   保持重复 → 锚点用 master 原始日期，修改应用到整个序列（不因点开某次实例而漂移锚点）
+      //   改为不重复 → 落在当前显示的日期上，变成单次事项
+      const keepAnchor = isRecurring && form.repeat_rule !== 'none';
+      const anchorDate = keepAnchor ? (initial?._anchor_date || initial?.date || form.start_date) : form.start_date;
       const payload = {
         title: finalTitle,
-        date: form.start_date,                    // 兼容原字段 date → 作为开始日期
+        date: anchorDate,                         // 兼容原字段 date → 作为开始日期
         start_date: form.start_date,              // 新增：开始日期（Supabase 若未建列会走 client.schedules 容错忽略该列）
         end_date: form.end_date || null,          // 新增：可选截止日期
         start_time: form.start_time || null,
@@ -284,6 +304,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         duration_min: form.duration_min ? Number(form.duration_min) : null,
         category: cat,
         is_key: (cat === 1 || cat === 2) ? 1 : 0,
+        repeat_rule: form.repeat_rule || 'none',
       };
       let savedSchedule = null;
       if (initial?.id) {
@@ -421,6 +442,48 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
           <span style={{ fontSize: '11px', color: '#8e8e93', marginTop: '4px', marginLeft: '10px', display: 'inline-block' }}>
             {formatDuration(Number(form.duration_min))}
           </span>
+        )}
+      </div>
+
+      {/* 重复 · iOS segmented 风格五选一 */}
+      <div>
+        <label style={LABEL_STYLE}>重复</label>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {REPEAT_OPTS.map(o => {
+            const on = (form.repeat_rule || 'none') === o.v;
+            return (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => set('repeat_rule', o.v)}
+                style={{
+                  flex: 1,
+                  padding: '7px 0',
+                  borderRadius: '9px',
+                  fontSize: '12.5px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all .15s',
+                  background: on ? '#007AFF' : 'rgba(120,120,128,0.12)',
+                  color: on ? '#fff' : '#1c1c1e',
+                  boxShadow: on ? '0 2px 6px rgba(0,122,255,0.3)' : 'none'
+                }}
+              >{o.label}</button>
+            );
+          })}
+        </div>
+        {isRecurring && (
+          <div style={{
+            fontSize: '11px', color: '#8e8e93', marginTop: '7px',
+            display: 'flex', alignItems: 'center', gap: '4px'
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            此事项{REPEAT_LABEL[initial.repeat_rule] || '按规则'}重复，修改与删除将应用到所有日期
+          </div>
         )}
       </div>
 

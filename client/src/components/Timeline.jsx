@@ -140,7 +140,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   // 订阅 patch：其他面板 toggle 时即时同步，无需重新 load
   useEffect(() => store.subscribe(patch => {
     if (patch.type === 'schedule' && patch.id !== undefined) {
-      setSchedules(ss => ss.map(x => x.id === patch.id ? { ...x, is_done: patch.is_done } : x));
+      // patch.date 存在时仅更新该日期的实例（重复事项的虚拟实例按 id+date 定位）
+      setSchedules(ss => ss.map(x => (x.id === patch.id && (!patch.date || x.date === patch.date)) ? { ...x, is_done: patch.is_done } : x));
     } else if (patch.type === 'habit' && patch.id !== undefined) {
       setHabits(hs => hs.map(x => x.id === patch.id ? { ...x, done_today: patch.done_today } : x));
     } else if (patch.type === 'task' && patch.id !== undefined) {
@@ -155,13 +156,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   async function toggleSchedule(s) {
     const nextDone = s.is_done ? 0 : 1;
-    setSchedules(ss => ss.map(x => x.id === s.id ? { ...x, is_done: nextDone } : x));
-    store.broadcast({ type: 'schedule', id: s.id, is_done: nextDone });
+    setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: nextDone } : x));
+    store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: nextDone });
     try {
-      await API.schedules.update(s.id, { is_done: nextDone });
+      // 重复事项的虚拟实例：传 occurrence_date，后端把完成状态记到该日期（不影响整个序列）
+      await API.schedules.update(s.id, { is_done: nextDone, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
     } catch (e) {
-      setSchedules(ss => ss.map(x => x.id === s.id ? { ...x, is_done: s.is_done } : x));
-      store.broadcast({ type: 'schedule', id: s.id, is_done: s.is_done });
+      setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done } : x));
+      store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done });
       toast.error(e.message);
     }
   }

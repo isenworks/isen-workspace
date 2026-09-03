@@ -72,9 +72,10 @@ export default function StatsBar({ date, range, view, refreshSignal, onViewChang
   // 订阅 patch：其他面板 toggle 时即时更新本地数据，无需重新 load
   useEffect(() => store.subscribe(patch => {
     if (patch.type === 'schedule' && patch.id !== undefined) {
+      // patch.date 存在时仅更新该日期的实例（重复事项的虚拟实例按 id+date 定位）
       setRawData(prev => ({
         ...prev,
-        schedules: prev.schedules.map(s => s.id === patch.id ? { ...s, is_done: patch.is_done } : s)
+        schedules: prev.schedules.map(s => (s.id === patch.id && (!patch.date || s.date === patch.date)) ? { ...s, is_done: patch.is_done } : s)
       }));
     } else if (patch.type === 'habit' && patch.id !== undefined) {
       setRawData(prev => ({

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { API, IS_D1_BACKEND } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import { THEMES, getThemeKey, applyTheme } from '../utils/theme.js';
+import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, isValidHex } from '../utils/theme.js';
 
 const ADMIN_EMAIL = '1429000825@qq.com';
 
@@ -346,85 +346,280 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
 }
 
 function AppearanceTab({ themeKey, onSelect }) {
+  const [editing, setEditing] = useState(null); // { mode: 'add'|'edit', key?, hex, label }
+  const [allThemes, setAllThemes] = useState(() => Object.values(getAllThemes()));
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const refresh = () => setAllThemes(Object.values(getAllThemes()));
+
+  const handleSelect = (k) => { applyTheme(k); onSelect(k); };
+
+  const handleSaveTheme = (hex, label, editKey) => {
+    if (editKey) updateCustomTheme(editKey, hex, label);
+    else addCustomTheme(hex, label);
+    refresh();
+    // 如果正在使用被编辑的主题，重新 apply
+    if (editKey === themeKey) { applyTheme(editKey); }
+    setEditing(null);
+  };
+
+  const handleDelete = (key) => {
+    deleteCustomTheme(key);
+    refresh();
+    if (key === themeKey) { applyTheme('blue'); onSelect('blue'); }
+    setConfirmDel(null);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '4px' }}>
-          主题颜色
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>主题颜色</div>
+          <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>点击切换结构模块配色，自动保存</div>
         </div>
-        <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.5 }}>
-          点击切换工作台结构模块（按钮、tab 选中态、链接、复选框等交互元素）的配色，选择会自动保存。
-        </div>
+        <button onClick={() => setEditing({ mode: 'add', hex: '#007AFF', label: '' })} style={{
+          padding: '6px 14px', borderRadius: '8px', border: 'none',
+          background: 'var(--s-main)', color: '#fff', fontSize: '12px', fontWeight: '600',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+          boxShadow: '0 1px 4px rgba(var(--s-rgb),0.3)', transition: 'all 0.15s',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新增
+        </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-        {Object.values(THEMES).map(t => {
+      {/* 紧凑主题列表 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {allThemes.map(t => {
           const active = t.key === themeKey;
           return (
-            <button
-              key={t.key}
-              onClick={() => onSelect(t.key)}
-              style={{
-                border: active ? '2px solid var(--s-main)' : '1.5px solid #e5e5ea',
-                borderRadius: '14px',
-                background: active ? 'rgba(var(--s-rgb), 0.06)' : '#fff',
-                padding: '14px 12px',
-                cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-                transition: 'all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                boxShadow: active ? '0 4px 14px rgba(var(--s-rgb), 0.18)' : 'none',
-                outline: 'none',
-              }}
-            >
-              {/* 渐变预览胶囊 */}
+            <div key={t.key} onClick={() => handleSelect(t.key)} style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 10px', borderRadius: '9px',
+              background: active ? 'rgba(var(--s-rgb),0.06)' : '#f5f5f7',
+              border: active ? '1.5px solid var(--s-main)' : '1.5px solid transparent',
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}>
+              {/* 色块 */}
               <div style={{
-                width: '100%', height: '34px', borderRadius: '9px',
+                width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
                 background: `linear-gradient(135deg, ${t.gradFrom} 0%, ${t.gradTo} 100%)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.35)',
-              }}>
-                {active && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                )}
+                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.3)',
+              }} />
+              {/* 名称 + hex */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>{t.label}</span>
+                <span style={{ fontSize: '11px', color: '#8e8e93', marginLeft: '8px', fontFamily: 'SF Mono, Menlo, monospace' }}>
+                  {t.gradFrom === t.gradTo ? t.main : `${t.gradFrom}→${t.gradTo}`}
+                </span>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>{t.label}</div>
-                <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>{t.desc}</div>
-              </div>
-            </button>
+              {/* 操作按钮 */}
+              {t.custom && (
+                <>
+                  <button onClick={(e) => { e.stopPropagation(); setEditing({ mode: 'edit', key: t.key, hex: t.main, label: t.label }); }} style={{
+                    width: '26px', height: '26px', borderRadius: '6px', border: 'none',
+                    background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
+                  }} title="编辑">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); setConfirmDel(t.key); }} style={{
+                    width: '26px', height: '26px', borderRadius: '6px', border: 'none',
+                    background: 'rgba(255,59,48,0.10)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF3B30',
+                  }} title="删除">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </>
+              )}
+              {/* 选中标记 */}
+              {active && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--s-main)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
+              )}
+            </div>
           );
         })}
       </div>
 
-      {/* 效果预览：用当前主题变量实时渲染典型交互元素 */}
+      {/* 效果预览 */}
       <div style={{
-        borderRadius: '12px', background: '#f5f5f7', padding: '14px 16px',
-        display: 'flex', flexDirection: 'column', gap: '12px',
+        borderRadius: '10px', background: '#f5f5f7', padding: '10px 14px',
+        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
       }}>
-        <div style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93' }}>效果预览</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <span style={{
-            padding: '7px 16px', borderRadius: '9px', background: 'var(--s-grad-bg)',
-            color: '#fff', fontSize: '13px', fontWeight: '600',
-            boxShadow: '0 2px 8px rgba(var(--s-rgb), 0.3)',
-          }}>主按钮</span>
-          <div className="tab-group">
-            <button style={{
-              padding: '4px 13px', fontSize: '13px', fontWeight: '500', border: 'none', cursor: 'pointer',
-              borderRadius: '7px', color: '#fff', background: 'var(--s-grad-bg)',
-            }}>Tab 选中</button>
-            <button style={{
-              padding: '4px 13px', fontSize: '13px', fontWeight: '500', border: 'none', cursor: 'pointer',
-              borderRadius: '7px', color: '#3c3c43', background: 'transparent',
-            }}>未选中</button>
+        <span style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93' }}>预览</span>
+        <span style={{
+          padding: '5px 14px', borderRadius: '8px', background: 'var(--s-grad-bg)',
+          color: '#fff', fontSize: '12px', fontWeight: '600',
+          boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)',
+        }}>主按钮</span>
+        <span style={{ fontSize: '12px', color: 'var(--s-main)', fontWeight: '500' }}>链接</span>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#1c1c1e', cursor: 'pointer' }}>
+          <input type="checkbox" className="cb-square" defaultChecked readOnly />
+          复选框
+        </label>
+      </div>
+
+      {/* 新增/编辑弹窗 */}
+      {editing && (
+        <ThemeEditorModal
+          mode={editing.mode}
+          initialHex={editing.hex}
+          initialLabel={editing.label}
+          editKey={editing.key}
+          onSave={handleSaveTheme}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {/* 删除确认 */}
+      {confirmDel && (
+        <div style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10, borderRadius: '14px',
+        }} onClick={() => setConfirmDel(null)}>
+          <div style={{
+            background: '#fff', borderRadius: '14px', padding: '24px 20px', width: '300px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: '15px', fontWeight: '600', textAlign: 'center', marginBottom: '8px' }}>删除该主题色？</div>
+            <div style={{ fontSize: '12px', color: '#8e8e93', textAlign: 'center', marginBottom: '18px' }}>删除后不可恢复</div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setConfirmDel(null)} style={{
+                flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
+                background: '#f5f5f7', color: '#1c1c1e', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+              }}>取消</button>
+              <button onClick={() => handleDelete(confirmDel)} style={{
+                flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
+                background: '#FF3B30', color: '#fff', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+              }}>确认删除</button>
+            </div>
           </div>
-          <span style={{ fontSize: '13px', color: 'var(--s-main)', fontWeight: '500', cursor: 'pointer' }}>链接文字</span>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#1c1c1e' }}>
-            <input type="checkbox" className="cb-square" defaultChecked readOnly />
-            复选框
-          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---- 主题新增/编辑弹窗 ---- */
+function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, onSave, onClose }) {
+  const [hex, setHex] = useState(initialHex || '#007AFF');
+  const [label, setLabel] = useState(initialLabel || '');
+  const valid = isValidHex(hex);
+  // 派生预览色（内联，不依赖 theme.js 内部函数）
+  const previewBg = valid ? `linear-gradient(135deg, ${hex} 0%, ${hex} 100%)` : '#ccc';
+  const previewMain = valid ? hex : '#ccc';
+  const previewRgb = valid ? (() => {
+    const h = hex.replace('#', '');
+    return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`;
+  })() : '0,0,0';
+
+  const handleHexInput = (v) => {
+    let s = v.trim();
+    if (s && !s.startsWith('#')) s = '#' + s;
+    setHex(s);
+  };
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 10, borderRadius: '14px',
+    }} onClick={onClose}>
+      <div style={{
+        background: '#fff', borderRadius: '14px', padding: '22px 20px', width: '380px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>{mode === 'edit' ? '编辑主题色' : '新增主题色'}</h4>
+          <button onClick={onClose} style={{
+            width: '24px', height: '24px', borderRadius: '50%', border: 'none',
+            background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        {/* 颜色码输入 + 取色器 */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93', display: 'block', marginBottom: '5px' }}>颜色码</label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              value={hex}
+              onChange={(e) => handleHexInput(e.target.value)}
+              placeholder="#007AFF"
+              style={{
+                flex: 1, padding: '8px 10px', borderRadius: '8px',
+                border: valid ? '1px solid #e5e5ea' : '1.5px solid #FF3B30',
+                fontSize: '13px', fontFamily: 'SF Mono, Menlo, monospace',
+                outline: 'none', color: '#1c1c1e', background: '#fafafa',
+              }}
+            />
+            <input
+              type="color"
+              value={valid ? hex : '#007AFF'}
+              onChange={(e) => setHex(e.target.value)}
+              style={{
+                width: '34px', height: '34px', borderRadius: '8px',
+                border: '1px solid #e5e5ea', cursor: 'pointer', padding: 0,
+                background: 'none',
+              }}
+            />
+          </div>
+          {!valid && <div style={{ fontSize: '11px', color: '#FF3B30', marginTop: '4px' }}>格式无效，需 # + 6位十六进制</div>}
+        </div>
+
+        {/* 名称输入 */}
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93', display: 'block', marginBottom: '5px' }}>名称</label>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="如：克莱因蓝"
+            style={{
+              width: '100%', padding: '8px 10px', borderRadius: '8px',
+              border: '1px solid #e5e5ea', fontSize: '13px',
+              outline: 'none', color: '#1c1c1e', background: '#fafafa',
+            }}
+          />
+        </div>
+
+        {/* 效果预览（跟随输入 hex 实时渲染） */}
+        <div style={{
+          borderRadius: '10px', background: '#f5f5f7', padding: '12px 14px',
+          marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93' }}>预览</span>
+          <span style={{
+            padding: '5px 14px', borderRadius: '8px', background: previewBg,
+            color: '#fff', fontSize: '12px', fontWeight: '600',
+            boxShadow: `0 2px 6px rgba(${previewRgb},0.25)`,
+          }}>主按钮</span>
+          <span style={{ fontSize: '12px', color: previewMain, fontWeight: '500' }}>链接</span>
+          <span style={{
+            width: '16px', height: '16px', borderRadius: '50%',
+            background: previewMain, display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: '10px', fontWeight: '700',
+          }}>✓</span>
+        </div>
+
+        {/* 按钮 */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
+            background: '#f5f5f7', color: '#1c1c1e', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+          }}>取消</button>
+          <button
+            onClick={() => onSave(hex, label || hex.toUpperCase(), editKey)}
+            disabled={!valid}
+            style={{
+              flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
+              background: valid ? previewMain : '#ccc', color: '#fff',
+              fontWeight: '600', fontSize: '13px', cursor: valid ? 'pointer' : 'not-allowed',
+            }}
+          >{mode === 'edit' ? '保存' : '确认添加'}</button>
         </div>
       </div>
     </div>

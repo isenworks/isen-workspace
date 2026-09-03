@@ -3540,10 +3540,11 @@ function CognitionView({
     }
   };
 
-  const BLUE = 'var(--s-main)'; // 计划总结页结构主色（跟随主题 --s-main）
+  const BLUE = '#007AFF'; // 知力页内容固定经典蓝（不跟随主题；仅顶部 tab 按钮跟随）
   const BLUE_DARK = '#0062cc';  // 深蓝
   const BLUE_LIGHT = 'rgba(0,122,255,0.08)'; // 对应今日页浅色背景 rgba(0,122,255,0.08)（仅用于"认知成长"分类底色）
-  const BLUE_BG = 'rgba(var(--s-rgb),0.12)';
+  const BLUE_BG = 'rgba(0,122,255,0.12)';
+  const S_RGB = '0,122,255'; // 知力页固定 RGB（用于 rgba(S_RGB, α) 透明合成）
   // 分类色标：4 大类固定颜色（身份识别）
   const CAT_COLORS = {
     '认知成长': '#007AFF', // 蓝（知力主色）
@@ -3792,7 +3793,7 @@ function CognitionView({
               <button
                 onClick={() => { setAddingKr(true); setNewKr({ lb: '', tgt: 12, val: 0, u: '本', sub: '' }); }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ color: BLUE, background: 'rgba(var(--s-rgb),0.06)' }}
+                style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}
                 title="新增KR">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -3881,7 +3882,7 @@ function CognitionView({
                             background: isDone
                               ? '#34C759'
                               : `${BLUE}`,
-                            boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px rgba(var(--s-rgb),0.15)`,
+                            boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px rgba(${S_RGB},0.15)`,
                           }}>
                           {p >= 15 && (
                             <span className="text-[10px] font-bold text-white/90 tabular-nums">
@@ -4013,7 +4014,7 @@ function CognitionView({
             <div className="flex items-center gap-1 ml-auto flex-shrink-0">
               <button onClick={doWereadSync} disabled={wereadSyncing}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0 disabled:opacity-50"
-                style={{ color: BLUE, background: 'rgba(var(--s-rgb),0.06)' }}
+                style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}
                 title={wereadCfgOk ? '从微信读书同步书架' : '先设置微信读书 API Key'}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 0 0 6.34 5.34L4 9M4 15a8 8 0 0 0 13.66 3.66L20 15" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4029,7 +4030,7 @@ function CognitionView({
                   } catch {}
                 }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ color: BLUE, background: 'rgba(var(--s-rgb),0.06)' }}
+                style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}
                 title="设置微信读书 API Key">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="3"/>
@@ -4038,7 +4039,7 @@ function CognitionView({
               </button>
               <button onClick={() => onBookAdd?.()}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ color: BLUE, background: 'rgba(var(--s-rgb),0.06)' }}
+                style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}
                 title="添加书籍">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4443,7 +4444,7 @@ function CognitionView({
                 style={{ background: 'rgba(15,23,42,0.04)', color: '#64748b' }}>取消</button>
               <button onClick={commitAddKr}
                 className="px-5 py-1.5 text-[13px] text-white rounded-[10px] transition"
-                style={{ background: BLUE, boxShadow: `0 2px 8px rgba(var(--s-rgb),0.21)` }}>添加</button>
+                style={{ background: BLUE, boxShadow: `0 2px 8px rgba(${S_RGB},0.21)` }}>添加</button>
             </>
           }>
           <KrFormFields
@@ -4466,7 +4467,7 @@ function CognitionView({
                 style={{ background: 'rgba(15,23,42,0.04)', color: '#64748b' }}>取消</button>
               <button onClick={commitEditKr}
                 className="px-5 py-1.5 text-[13px] text-white rounded-[10px] transition"
-                style={{ background: BLUE, boxShadow: `0 2px 8px rgba(var(--s-rgb),0.21)` }}>保存</button>
+                style={{ background: BLUE, boxShadow: `0 2px 8px rgba(${S_RGB},0.21)` }}>保存</button>
             </>
           }>
           <KrFormFields
@@ -4486,12 +4487,12 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: 'rgba(var(--s-rgb),0.08)', color: BLUE }}>
+              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: `rgba(${S_RGB},0.08)`, color: BLUE }}>
                 {totalInsightCount}组
               </span>
               <button onClick={() => setBookPicker('insights')}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ background: 'rgba(var(--s-rgb),0.06)', color: BLUE }}
+                style={{ background: `rgba(${S_RGB},0.06)`, color: BLUE }}
                 title="添加读后思考">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4549,7 +4550,7 @@ function CognitionView({
             </div>
             <div className="flex items-center gap-1.5">
               {/* 胶囊：已勾选完成数 / 总条数 — 与卡片内每条 action 的圆形复选框 isCompleted 判定严格一致：c.done || status==='completed'||'reviewed' */}
-              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: 'rgba(var(--s-rgb),0.08)', color: BLUE }}>
+              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: `rgba(${S_RGB},0.08)`, color: BLUE }}>
                 {(() => {
                   const all = [...(bookActionsList || []), ...(changes || [])];
                   const done = all.filter(c => c.done || c.status === 'completed' || c.status === 'reviewed').length;
@@ -4558,7 +4559,7 @@ function CognitionView({
               </span>
               <button onClick={() => setBookPicker('actions')}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ background: 'rgba(var(--s-rgb),0.06)', color: BLUE }}
+                style={{ background: `rgba(${S_RGB},0.06)`, color: BLUE }}
                 title="添加行动计划">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4662,7 +4663,7 @@ function CognitionView({
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: 'rgba(var(--s-rgb),0.08)', color: BLUE }}>
+              <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: `rgba(${S_RGB},0.08)`, color: BLUE }}>
                 {(reviews || []).length}个
               </span>
               <button onClick={() => {
@@ -4681,7 +4682,7 @@ function CognitionView({
                 });
               }}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-                style={{ background: 'rgba(var(--s-rgb),0.06)', color: BLUE }}
+                style={{ background: `rgba(${S_RGB},0.06)`, color: BLUE }}
                 title="新增改变">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
               </button>
@@ -4696,10 +4697,10 @@ function CognitionView({
               (reviews || []).slice(0, 5).map(r => {
                 // 标签：蓝色明度分层（10% / 28% / 实心），旧数据自动迁移
                 const tagMeta = {
-                  cognition:    { lb: '认知更新', color: BLUE, bg: 'rgba(var(--s-rgb),0.06)', bd: 'rgba(var(--s-rgb),0.15)' },
-                  habit:        { lb: '长期习惯', color: BLUE, bg: 'rgba(var(--s-rgb),0.16)', bd: 'rgba(var(--s-rgb),0.27)' },
+                  cognition:    { lb: '认知更新', color: BLUE, bg: `rgba(${S_RGB},0.06)`, bd: `rgba(${S_RGB},0.15)` },
+                  habit:        { lb: '长期习惯', color: BLUE, bg: `rgba(${S_RGB},0.16)`, bd: `rgba(${S_RGB},0.27)` },
                   internalized: { lb: '已内化', color: '#fff', bg: BLUE, bd: BLUE, solid: true },
-                  decision:     { lb: '认知更新', color: BLUE, bg: 'rgba(var(--s-rgb),0.06)', bd: 'rgba(var(--s-rgb),0.15)' },
+                  decision:     { lb: '认知更新', color: BLUE, bg: `rgba(${S_RGB},0.06)`, bd: `rgba(${S_RGB},0.15)` },
                   sop:          { lb: '已内化', color: '#fff', bg: BLUE, bd: BLUE, solid: true },
                 };
                 const tm = tagMeta[r.tag] || tagMeta.cognition;
@@ -4804,7 +4805,7 @@ function CognitionView({
                 style={{ background: 'rgba(15,23,42,0.04)', color: '#64748b' }}>取消</button>
               <button onClick={doWereadSave}
                 className="px-5 py-1.5 text-[13px] text-white rounded-[10px] transition"
-                style={{ background: BLUE, boxShadow: `0 2px 8px rgba(var(--s-rgb),0.21)` }}>保存</button>
+                style={{ background: BLUE, boxShadow: `0 2px 8px rgba(${S_RGB},0.21)` }}>保存</button>
             </>
           }>
           <div className="flex flex-col gap-3">

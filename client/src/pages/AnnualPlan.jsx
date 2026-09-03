@@ -5974,7 +5974,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                   key={'tn-' + k}
                   onClick={() => setSelectedDoneKey(k)}
                   className={`relative flex items-center gap-3 px-3 py-3 border-b border-ink-100 last:border-b-0 cursor-pointer transition-colors ${
-                    isSel ? 'bg-[#FA503E14]' : 'hover:bg-ink-50'
+                    isSel ? 'bg-[#FA503E0A]' : 'hover:bg-ink-50'
                   }`}
                 >
                   {isSel && <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full" style={{ background: '#FA503E' }} />}

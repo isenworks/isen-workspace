@@ -242,6 +242,15 @@ export async function onRequest(context) {
     if (path === '/api/fixedSchedules/remove' && method === 'POST') return handleFixedSchedulesRemove(env, body);
 
     // ------------------------------------------------------------
+    // /api/recycleBin/*  — 回收站（软删除快照：删除前先入站，可还原/永久删除/清空）
+    //   source_type: task | schedule | habit | fixedSchedule | summary
+    // ------------------------------------------------------------
+    if ((path === '/api/recycleBin/list') && (method === 'GET' || method === 'POST')) return handleRecycleBinList(env);
+    if (path === '/api/recycleBin/restore' && method === 'POST') return handleRecycleBinRestore(env, body);
+    if (path === '/api/recycleBin/remove' && method === 'POST') return handleRecycleBinRemove(env, body);
+    if (path === '/api/recycleBin/clear' && method === 'POST') return handleRecycleBinClear(env);
+
+    // ------------------------------------------------------------
     // /api/auth/*  — 工作台解锁（部署者可选：设置 Pages Var UNLOCK_PASSWORD_HASH 开启）
     //              — 未设置 Var 时：直接放行（个人私用工作台默认免密码）
     // ------------------------------------------------------------
@@ -444,6 +453,9 @@ async function handleHabitsArchive(env, body, archived) {
 async function handleHabitsRemove(env, body) {
   const id = Number(body?.id);
   if (!id) return json({ error: '缺少 id' }, 400);
+  // 回收站快照：习惯定义 + 全部打卡日志
+  const logs = await dbAll(env.DB, `SELECT * FROM ethan_habit_logs WHERE habit_id = ?`, [id]);
+  await recycleSnapshot(env, 'habit', id, 'ethan_habits', { logs });
   await dbRun(env.DB, `DELETE FROM ethan_habit_logs WHERE habit_id = ?`, [id]);
   await dbRun(env.DB, `DELETE FROM ethan_habits WHERE id = ?`, [id]);
   return json({ ok: true });
@@ -645,6 +657,7 @@ async function handleTasksUpdate(env, body) {
 async function handleTasksRemove(env, body) {
   const id = Number(body?.id);
   if (!id) return json({ error: '缺少 id' }, 400);
+  await recycleSnapshot(env, 'task', id, 'ethan_tasks');
   await dbRun(env.DB, `DELETE FROM ethan_tasks WHERE id=?`, [id]);
   return json({ ok: true });
 }
@@ -723,6 +736,7 @@ async function handleSchedulesUpdate(env, body) {
 async function handleSchedulesRemove(env, body) {
   const id = Number(body?.id);
   if (!id) return json({ error: '缺少 id' }, 400);
+  await recycleSnapshot(env, 'schedule', id, 'ethan_schedules');
   await dbRun(env.DB, `DELETE FROM ethan_schedules WHERE id=?`, [id]);
   return json({ ok: true });
 }
@@ -796,6 +810,9 @@ async function handleSummariesRemove(env, body) {
   const dateCheck = validateDate(dateRaw);
   if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
   const date = dateCheck.value;
+  // 回收站快照（按 user+date 定位的删除）
+  const row = await dbFirst(env.DB, `SELECT * FROM ethan_summaries WHERE user_id=? AND date=?`, [uid(env), date]);
+  if (row) await recycleSnapshot(env, 'summary', row.id, 'ethan_summaries');
   await dbRun(env.DB, `DELETE FROM ethan_summaries WHERE user_id=? AND date=?`, [uid(env), date]);
   return json({ ok: true });
 }
@@ -840,6 +857,7 @@ async function handleFixedSchedulesUpdate(env, body) {
 async function handleFixedSchedulesRemove(env, body) {
   const id = Number(body?.id);
   if (!id) return json({ error: '缺少 id' }, 400);
+  await recycleSnapshot(env, 'fixedSchedule', id, 'ethan_fixed_schedules');
   await dbRun(env.DB, `DELETE FROM ethan_fixed_schedules WHERE id=?`, [id]);
   return json({ ok: true });
 }
@@ -882,6 +900,85 @@ async function handleUserSettingsGet(env, k) {
 async function handleUserSettingsSet(env, body) {
   if (!body || typeof body.k !== 'string') return json({ error: '缺少 k' }, 400);
   await settingSet(env, body.k, body.v == null ? '' : String(body.v));
+  return json({ ok: true });
+}
+
+// ============================================================================
+// ethan_recycle_bin 回收站：软删除快照（user_id, source_type, source_id, payload, deleted_at）
+// ============================================================================
+async function ensureRecycleBinTable(env) {
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_recycle_bin (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      source_id INTEGER,
+      payload TEXT NOT NULL,
+      deleted_at TEXT
+    )`).run();
+  } catch (_) {}
+}
+// 删除前快照入站（extra 可挂附加数据，如习惯的打卡日志）。失败不阻断原删除流程。
+async function recycleSnapshot(env, sourceType, sourceId, table, extra) {
+  try {
+    await ensureRecycleBinTable(env);
+    const row = await dbFirst(env.DB, `SELECT * FROM ${table} WHERE id = ?`, [sourceId]);
+    if (!row) return;
+    const payload = extra ? { row, ...extra } : { row };
+    await env.DB.prepare(
+      `INSERT INTO ethan_recycle_bin (user_id, source_type, source_id, payload, deleted_at) VALUES (?,?,?,?,?)`
+    ).bind(uid(env), sourceType, sourceId, JSON.stringify(payload), nowIso()).run();
+  } catch (_) { /* 回收站写入失败时继续硬删除，避免用户删不掉 */ }
+}
+const RECYCLE_TABLES = {
+  task: 'ethan_tasks',
+  schedule: 'ethan_schedules',
+  habit: 'ethan_habits',
+  fixedSchedule: 'ethan_fixed_schedules',
+  summary: 'ethan_summaries',
+};
+async function handleRecycleBinList(env) {
+  await ensureRecycleBinTable(env);
+  const items = await dbAll(env.DB, `SELECT * FROM ethan_recycle_bin WHERE user_id=? ORDER BY id DESC`, [uid(env)]);
+  return json({ ok: true, items });
+}
+async function handleRecycleBinRestore(env, body) {
+  const id = Number(body?.id);
+  if (!id) return json({ error: '缺少 id' }, 400);
+  await ensureRecycleBinTable(env);
+  const item = await dbFirst(env.DB, `SELECT * FROM ethan_recycle_bin WHERE id=? AND user_id=?`, [id, uid(env)]);
+  if (!item) return json({ error: '条目不存在' }, 404);
+  let payload = null;
+  try { payload = JSON.parse(item.payload); } catch (_) {}
+  const table = RECYCLE_TABLES[item.source_type];
+  if (!table || !payload || !payload.row) return json({ error: '快照数据无效，无法还原' }, 400);
+  // 按原 id 还原（行已删除，id 空闲；异常冲突时 REPLACE 兜底）
+  const cols = Object.keys(payload.row);
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO ${table} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`
+  ).bind(...cols.map(c => payload.row[c])).run();
+  // 习惯：连同打卡日志一起还原
+  if (item.source_type === 'habit' && Array.isArray(payload.logs)) {
+    for (const log of payload.logs) {
+      const lc = Object.keys(log);
+      await env.DB.prepare(
+        `INSERT OR REPLACE INTO ethan_habit_logs (${lc.join(',')}) VALUES (${lc.map(() => '?').join(',')})`
+      ).bind(...lc.map(c => log[c])).run();
+    }
+  }
+  await dbRun(env.DB, `DELETE FROM ethan_recycle_bin WHERE id=?`, [id]);
+  return json({ ok: true });
+}
+async function handleRecycleBinRemove(env, body) {
+  const id = Number(body?.id);
+  if (!id) return json({ error: '缺少 id' }, 400);
+  await ensureRecycleBinTable(env);
+  await dbRun(env.DB, `DELETE FROM ethan_recycle_bin WHERE id=? AND user_id=?`, [id, uid(env)]);
+  return json({ ok: true });
+}
+async function handleRecycleBinClear(env) {
+  await ensureRecycleBinTable(env);
+  await dbRun(env.DB, `DELETE FROM ethan_recycle_bin WHERE user_id=?`, [uid(env)]);
   return json({ ok: true });
 }
 

@@ -187,6 +187,13 @@ function buildD1API() {
       async remove(date) { return fetchPages('/summaries/remove', { date }); },
     },
 
+    recycleBin: {
+      async list() { return fetchPages('/recycleBin/list'); },
+      async restore(id) { return fetchPages('/recycleBin/restore', { id }); },
+      async remove(id) { return fetchPages('/recycleBin/remove', { id }); },
+      async clear() { return fetchPages('/recycleBin/clear', {}); },
+    },
+
     migrate: {
       async run(payload) { return fetchPages('/migrate', payload); },
     },

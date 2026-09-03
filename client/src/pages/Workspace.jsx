@@ -24,6 +24,7 @@ import SettingsModal from '../components/SettingsModal.jsx';
 import { store } from '../utils/store.js';
 import AnnualPlan from './AnnualPlan.jsx';
 import CalendarPage from './CalendarPage.jsx';
+import RecycleBinPage from './RecycleBinPage.jsx';
 
 const VIEW_RANGES = {
   today: (d) => ({ from: d, to: d }),
@@ -393,6 +394,8 @@ export default function Workspace({ user: propUser }) {
         <div className="flex-1 min-w-0">
           <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} />
         </div>
+      ) : activeMenu === 'recycle' ? (
+        <RecycleBinPage />
       ) : activeMenu === 'calendar' ? (
         <div className="flex-1 min-w-0">
           <CalendarPage

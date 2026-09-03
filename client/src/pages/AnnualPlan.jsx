@@ -1633,7 +1633,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
       <div className="glass-card p-4">
         {/* 标题行 */}
         <div className="flex items-center gap-3 mb-3">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-cognition)' }} />
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--s-main)' }} />
           <InlineEdit
             value={ovTitle ?? `${year}年 · 模块概览`}
             onChange={setOvTitle}

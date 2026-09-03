@@ -127,7 +127,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
     >
       {/* 左右布局：左侧 = ＜ 9月 ＞ 导航(上) + 今日/本周/本月 tab(下)；右侧 = 横向日期条 */}
       <div className="flex items-center gap-4">
-        <div className="flex flex-col items-start gap-1.5 flex-shrink-0">
+        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
           <div className="flex items-center gap-0.5">
             <button onClick={prevMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>

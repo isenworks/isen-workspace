@@ -166,6 +166,7 @@ const REPEAT_OPTS = [
   { v: 'weekly',  label: '每周' },
   { v: 'monthly', label: '每月' },
   { v: 'yearly',  label: '每年' },
+  { v: 'lunar-yearly', label: '农历每年' },
 ];
 const REPEAT_LABEL = Object.fromEntries(REPEAT_OPTS.map(o => [o.v, o.label]));
 
@@ -482,7 +483,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
               <polyline points="23 4 23 10 17 10"></polyline>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
             </svg>
-            此事项{REPEAT_LABEL[initial.repeat_rule] || '按规则'}重复，修改与删除将应用到所有日期
+            此事项{REPEAT_LABEL[initial.repeat_rule] || '按规则'}重复{initial.repeat_rule === 'lunar-yearly' ? '（按农历日期对齐，闰年自动对应）' : ''}，修改与删除将应用到所有日期
           </div>
         )}
       </div>

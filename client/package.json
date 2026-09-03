@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",
     "lucide-react": "^1.31.0",
+    "lunar-javascript": "^1.7.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

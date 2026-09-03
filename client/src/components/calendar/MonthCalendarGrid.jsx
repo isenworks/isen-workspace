@@ -1,6 +1,32 @@
 import { useMemo } from 'react';
 import { calendarGrid, toISODate, today as getToday, fromISODate, startOfWeek, endOfWeek } from '../../utils/date.js';
 import { WEEK_LABELS_MON, scheduleModule } from '../../utils/categoryMapping.js';
+import lunarLib from '../../vendor/lunar.js';
+
+/* 每格农历标注：优先级 节日 > 节气 > 农历日（初一显示农历月名）
+   · 节日：红（春节/端午/中秋/国庆…，农历+公历都取）
+   · 节气：青（白露/立春…）
+   · 农历日：灰（初一那格显示"八月"月名，略深一档做月份锚点） */
+function lunarBadge(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const solar = lunarLib.Solar.fromYmd(y, m, d);
+  const lunar = solar.getLunar();
+  const full = `农历${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
+  const fests = [...lunar.getFestivals(), ...solar.getFestivals()];
+  if (fests.length > 0) {
+    // 显示名：三字以上去尾"节"（端午/中秋/国庆），特殊映射（劳动节→五一），二字保留（春节/元旦）
+    const ALIAS = { '劳动节': '五一', '建军节': '建军', '青年节': '青年', '妇女节': '妇女' };
+    const raw = fests[0];
+    const text = ALIAS[raw] || (raw.length >= 3 && raw.endsWith('节') ? raw.slice(0, -1) : raw);
+    return { text, full, color: '#FF3B30', weight: 600 };
+  }
+  const jq = lunar.getJieQi();
+  if (jq) return { text: jq, full, color: '#30B0C7', weight: 600 };
+  if (lunar.getDay() === 1) {
+    return { text: (lunar.getMonth() < 0 ? '闰' : '') + lunar.getMonthInChinese() + '月', full, color: '#6D6D72', weight: 600 };
+  }
+  return { text: lunar.getDayInChinese(), full, color: '#8E8E93', weight: 500 };
+}
 
 /**
  * 月历网格组件（v2 交互升级）
@@ -153,9 +179,9 @@ export default function MonthCalendarGrid({
                    事件行内部会自行 stopPropagation，防止冒泡到这里 */
               onClick={(e) => emitOpenDay('cell', e)}
             >
-              {/* Layer 1: 日期数字 + 今日徽章（点击 → 当日面板） */}
+              {/* Layer 1: 日期数字（左上） + 农历/节气/节日（右上） + 今日徽章（点击 → 当日面板） */}
               <div
-                className="flex items-center justify-between"
+                className="flex items-center justify-between gap-1"
                 onClick={(e) => emitOpenDay('dateBadge', e)}
               >
                 <span
@@ -172,14 +198,28 @@ export default function MonthCalendarGrid({
                 >
                   {day}
                 </span>
-                {isToday && (
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={{ color: '#fff', background: '#007AFF' }}
-                  >
-                    今日
-                  </span>
-                )}
+                <span className="flex items-center gap-1 min-w-0">
+                  {(() => {
+                    const lb = lunarBadge(cell.date);
+                    return (
+                      <span
+                        className="text-[10.5px] leading-none truncate"
+                        style={{ color: lb.color, fontWeight: lb.weight }}
+                        title={lb.full}
+                      >
+                        {lb.text}
+                      </span>
+                    );
+                  })()}
+                  {isToday && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      style={{ color: '#fff', background: '#007AFF' }}
+                    >
+                      今日
+                    </span>
+                  )}
+                </span>
               </div>
 
               {/* Layer 2: 事项行 · 小圆点 → 复选框（与左FocusPanel同构） */}

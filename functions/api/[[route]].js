@@ -7,6 +7,9 @@
 //           USER_ID（单人用户 UUID，默认 50f12e1e-d561-423e-a424-d07a21d00cf2）
 // ============================================================
 
+// 农历库（lunar-javascript，vendored UMD）：农历/节气/节日换算
+import lunarLib from '../../lib/lunar.js';
+
 const DEFAULT_USER_ID = '50f12e1e-d561-423e-a424-d07a21d00cf2';
 
 // ------------------------------------------------------------
@@ -677,11 +680,17 @@ async function ensureScheduleRepeat(env) {
     )`).run();
   } catch (_) {}
 }
-const REPEAT_RULES = ['daily', 'weekly', 'monthly', 'yearly'];
+const REPEAT_RULES = ['daily', 'weekly', 'monthly', 'yearly', 'lunar-yearly'];
 function addDaysISO(iso) {
   const d = new Date(iso + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+// 农历日期 key：月（闰月为负）+ 日。例 2026-09-07 → '7-26'
+function lunarKey(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const l = lunarLib.Solar.fromYmd(y, m, d).getLunar();
+  return `${l.getMonth()}-${l.getDay()}`;
 }
 // 判断日期 d 是否匹配以 anchor 为锚点的重复规则（月/年重复对月末日期做钳制：31日→2月取28/29）
 function scheduleRepeatMatches(anchor, rule, d) {
@@ -702,6 +711,10 @@ function scheduleRepeatMatches(anchor, rule, d) {
       return ym === 2 && yd === (isLeap ? 29 : 28);
     }
     return ym === am && yd === ad;
+  }
+  // 每年（农历）：农历月+日相同即命中（生日场景；闰月按同号正月对齐，与民间习惯一致）
+  if (rule === 'lunar-yearly') {
+    return lunarKey(anchor) === lunarKey(d);
   }
   return false;
 }

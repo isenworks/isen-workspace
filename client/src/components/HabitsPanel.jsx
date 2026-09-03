@@ -373,8 +373,10 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
   // 实心填充图标（lucide 只有线性描边，精力充沛/积极心情需要实心强调）
   const ZapFilled = ({ size = 12.5, color }) => (
-    // 和睡眠记录弹窗充沛/一般/疲惫按钮上的 lucide Zap 同款形状（polygon 6个拐点完全对齐），纯实心填充
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || 'currentColor'} xmlns="http://www.w3.org/2000/svg"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    // 和本项目 lucide-react@1.31.0 弹窗充沛/一般/疲惫 ⚡完全同款（读取 Zap 源码 iconNode path 1:1），只把 fill=none 改成实心填充color
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || 'currentColor'} xmlns="http://www.w3.org/2000/svg">
+      <path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"/>
+    </svg>
   );
   const HeartFilled = ({ size = 12.5, color }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color || 'currentColor'} xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3 9.24 3 10.91 3.81 12 5.09 13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z"/></svg>

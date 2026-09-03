@@ -117,7 +117,7 @@ export default function RecycleBinPage({ onBack }) {
       {/* ===== Header：色条 + 标题 + 清空按钮 ===== */}
       <div className="glass-card rounded-2xl p-4">
         <div className="flex items-center gap-3">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#8E8E93' }}></span>
+          <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
           <div className="flex-1 min-w-0">
             <div className="text-[15.5px] font-bold text-ink-900 leading-none">回收站</div>
             <div className="text-[11px] text-ink-400 leading-none mt-1.5">

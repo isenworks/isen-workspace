@@ -35,6 +35,26 @@ export const THEMES = {
     gradFrom: '#6E6E73',
     gradTo: '#3A3A3C',
   },
+  teal: {
+    key: 'teal',
+    label: '水鸭青',
+    desc: '浅青 → 深青渐变（iOS Teal）',
+    main: '#2FA8B1',
+    deep: '#238A92',
+    rgb: '47,168,177',
+    gradFrom: '#4CD5DE',
+    gradTo: '#2FA8B1',
+  },
+  indigo: {
+    key: 'indigo',
+    label: '靛青蓝',
+    desc: '淡蓝紫 → 深靛蓝渐变（iOS Indigo）',
+    main: '#5856D6',
+    deep: '#4846B8',
+    rgb: '88,86,214',
+    gradFrom: '#7A7CEB',
+    gradTo: '#5856D6',
+  },
 };
 
 const LS_KEY = 'ws_theme';

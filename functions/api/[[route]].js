@@ -8,7 +8,7 @@
 // ============================================================
 
 // 农历库（lunar-javascript，vendored UMD）：农历/节气/节日换算
-import lunarLib from '../../lib/lunar.js';
+import lunarLib from '../lib/lunar.js';
 
 const DEFAULT_USER_ID = '50f12e1e-d561-423e-a424-d07a21d00cf2';
 

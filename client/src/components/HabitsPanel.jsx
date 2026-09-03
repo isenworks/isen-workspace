@@ -510,7 +510,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-[8px]"
                 style={{ background: 'rgba(120,120,128,0.08)', color: '#8e8e93' }}>
                 <Pencil size={11} strokeWidth={2} />
-                <span>未记录睡眠 · 点本行 / 右侧铅笔填写 入睡·起床·精力·心情</span>
+                <span>点击记录实际睡眠时间和精力心情</span>
               </div>
             )
           )}

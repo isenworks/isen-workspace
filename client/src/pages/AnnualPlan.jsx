@@ -1065,7 +1065,7 @@ function Sidebar({ active, onChange, stats }) {
       {/* Logo + 总进度环 · 宽屏完整 / 窄屏压缩为一行 */}
       <div className="glass-card p-4 lg:w-full">
         <div className="flex items-center gap-3 lg:w-full lg:mb-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }}>
             {yy}
           </div>
           <div className="flex flex-col flex-1 min-w-0">
@@ -1107,9 +1107,10 @@ function Sidebar({ active, onChange, stats }) {
             const pctVal = item.cat ? Math.round(stats.perCat[CATEGORIES.findIndex(c => c.key === item.cat)]) : null;
             return (
               <button key={item.key} onClick={() => onChange(item.key)}
+                style={on ? { background: 'var(--s-grad-bg)' } : undefined}
                 className={[
                   'lg:w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] transition-all whitespace-nowrap flex-shrink-0 lg:flex-shrink',
-                  on ? 'bg-brand-500 text-white font-semibold shadow-sm'
+                  on ? 'text-white font-semibold shadow-sm'
                      : 'text-ink-700 font-medium hover:bg-ink-100'
                 ].join(' ')}>
                 <span className={['w-6 h-6 rounded-md grid place-items-center flex-shrink-0',
@@ -7369,7 +7370,8 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         <div className="flex border-t border-ink-100">
           <button onClick={confirmDialog.onCancel} className="flex-1 py-3.5 text-sm font-semibold text-ink-600 hover:bg-ink-100 transition">取消</button>
           <button onClick={confirmDialog.onConfirm}
-            className={['flex-1 py-3.5 text-sm font-bold transition', confirmDialog.danger ? 'text-accent-red hover:bg-accent-red/10' : 'text-brand-500 hover:bg-brand-500/10'].join(' ')}>
+            className={['flex-1 py-3.5 text-sm font-bold transition', confirmDialog.danger ? 'text-accent-red hover:bg-accent-red/10' : 'hover:bg-ink-100'].join(' ')}
+            style={confirmDialog.danger ? undefined : { color: 'var(--s-main)' }}>
             {confirmDialog.confirmText || '确认'}
           </button>
         </div>
@@ -7459,10 +7461,11 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
           <button
             key={item.key}
             onClick={() => setView(item.key)}
+            style={on ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)' } : undefined}
             className={[
               'flex-shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm transition-all',
               on
-                ? 'bg-brand-500 text-white font-semibold shadow-sm'
+                ? 'text-white font-semibold shadow-sm'
                 : 'text-ink-600 font-medium hover:bg-ink-100'
             ].join(' ')}
           >

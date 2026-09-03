@@ -5960,8 +5960,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           </div>
         ) : (
         <div className="w-full grid grid-cols-2 gap-4 items-start">
-          {/* 左栏 Master · 缩略卡列表 */}
-          <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] overflow-hidden">
+          {/* 左栏 Master · 缩略卡列表（内缩圆角块，间距分组，无边框线） */}
+          <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] p-1.5 flex flex-col gap-0.5">
             {partitionedGoals.done.map(entry => {
               const k = makeGoalKey(entry.o, entry.goalIdx);
               const isSel = selectedDoneKey === k;
@@ -5973,10 +5973,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 <div
                   key={'tn-' + k}
                   onClick={() => setSelectedDoneKey(k)}
-                  className={`relative flex items-center gap-3 px-3 py-3 border-b border-ink-100 last:border-b-0 cursor-pointer transition-all duration-150 ${
-                    isSel ? 'bg-[#FA503E12]' : 'hover:bg-ink-50'
+                  className={`relative flex items-center gap-3 px-2.5 py-2.5 rounded-xl cursor-pointer transition-all duration-150 ${
+                    isSel ? 'bg-[#FA503E0D]' : 'hover:bg-ink-50'
                   }`}
-                  style={isSel ? { boxShadow: 'inset 0 0 0 1px rgba(250,80,62,0.45), 0 4px 12px rgba(250,80,62,0.18)' } : undefined}
+                  style={isSel ? { boxShadow: 'inset 0 0 0 1px rgba(250,80,62,0.35), 0 2px 8px rgba(250,80,62,0.12)' } : undefined}
                 >
                   <div className="w-[18px] h-[18px] rounded-full grid place-items-center bg-[#34C759] text-white flex-shrink-0" style={{ boxShadow: 'inset 0 0 0 1px rgba(52,199,89,.5)' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>

@@ -5974,10 +5974,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                   key={'tn-' + k}
                   onClick={() => setSelectedDoneKey(k)}
                   className={`relative flex items-center gap-3 px-3 py-3 border-b border-ink-100 last:border-b-0 cursor-pointer transition-colors ${
-                    isSel ? 'bg-[#007AFF0A]' : 'hover:bg-ink-50'
+                    isSel ? 'bg-[#FA503E14]' : 'hover:bg-ink-50'
                   }`}
                 >
-                  {isSel && <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#007AFF]" />}
+                  {isSel && <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full" style={{ background: '#FF4035' }} />}
                   <div className="w-[18px] h-[18px] rounded-md grid place-items-center bg-[#34C759] text-white flex-shrink-0" style={{ boxShadow: 'inset 0 0 0 1px rgba(52,199,89,.5)' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>
                   </div>

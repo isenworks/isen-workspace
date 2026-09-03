@@ -125,28 +125,29 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
       className="glass-card px-5 py-3.5"
       style={{ opacity: loading && !hasData ? 0.7 : 1, transition: 'opacity .2s ease' }}
     >
+      {/* 左右布局：左侧 = ＜ 9月 ＞ 导航(上) + 今日/本周/本月 tab(下)；右侧 = 横向日期条 */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1">
-          <button onClick={prevMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
-          </button>
-          <span className="text-[15px] font-semibold text-[#1c1c1e] min-w-[44px] text-center">{month}月</span>
-          <button onClick={nextMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
-          </button>
+        <div className="flex flex-col items-start gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-0.5">
+            <button onClick={prevMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
+            </button>
+            <span className="text-[14px] font-semibold text-[#1c1c1e] min-w-[36px] text-center">{month}月</span>
+            <button onClick={nextMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
+            </button>
+          </div>
+
+          {/* 今日/本周/本月 视图切换（紧凑版，紧跟 ＜ 9月 ＞ 下方） */}
+          <div className="tab-group compact">
+            <button className={view === 'today' ? 'active' : ''} onClick={() => onViewChange?.('today')}>今日</button>
+            <button className={view === 'week' ? 'active' : ''} onClick={() => onViewChange?.('week')}>本周</button>
+            <button className={view === 'month' ? 'active' : ''} onClick={() => onViewChange?.('month')}>本月</button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto pb-1.5" ref={scrollRef}>
+        <div className="flex-1 overflow-x-auto pb-1.5 self-center" ref={scrollRef}>
           <div className="flex items-center gap-1 px-2">{days}</div>
-        </div>
-      </div>
-
-      {/* 今日/本周/本月 视图切换（位于 ＜ 9月 ＞ 下方） */}
-      <div className="mt-2.5 flex items-center">
-        <div className="tab-group">
-          <button className={view === 'today' ? 'active' : ''} onClick={() => onViewChange?.('today')}>今日</button>
-          <button className={view === 'week' ? 'active' : ''} onClick={() => onViewChange?.('week')}>本周</button>
-          <button className={view === 'month' ? 'active' : ''} onClick={() => onViewChange?.('month')}>本月</button>
         </div>
       </div>
     </div>

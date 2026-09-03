@@ -105,6 +105,8 @@ body {
   border-radius: 7px; /* 动作/容器圆角方：今日 tab / 月tab 等选中段保持方角，仅小 7px 倒角 */
   box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
 }
+/* 紧凑变体：横条日历左侧 今日/本周/本月（间距收窄） */
+.tab-group.compact button { padding: 3px 9px; font-size: 12px; }
 
 /* ====== Summary Menu: doc row hover ====== */
 .sum-doc-row:hover {

@@ -502,8 +502,8 @@ function taskToScheduleInitial(task, defaultDate) {
     category: mod.cat,
     is_key: true,
     note: [task.dueDate, task.note, task.srcTag].filter(Boolean).join(' · '),
-    start_time: '09:00',
-    end_time: '10:00',
+    start_time: '00:00',
+    end_time: '00:00',
     schedule_date: defaultDate,
     ...(task?.schedulePayload || {}),
   };
@@ -1435,7 +1435,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               style={{ boxShadow: '0 3px 8px rgba(0,122,255,0.25)' }}
               onClick={() => {
                 onEditSchedule?.(
-                  { type: 'schedule', schedule_date: dayDetail.date, start_time: '09:00', end_time: '10:00' },
+                  { type: 'schedule', schedule_date: dayDetail.date, start_time: '00:00', end_time: '00:00' },
                   { source: 'dayDetailNew', date: dayDetail.date }
                 );
               }}
@@ -1473,7 +1473,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
                   if (ev) handleEventToggle(ev, dayDetail.date);
                 }}
                 onAdd={() => onEditSchedule?.(
-                  { type: 'schedule', schedule_date: dayDetail.date, start_time: '09:00', end_time: '10:00' },
+                  { type: 'schedule', schedule_date: dayDetail.date, start_time: '00:00', end_time: '00:00' },
                   { source: 'dayDetailAdd', date: dayDetail.date }
                 )}
                 onTagClick={handleTagClick}

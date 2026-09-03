@@ -278,6 +278,11 @@ export async function onRequest(context) {
     if (path === '/api/cover/search' && method === 'GET') return handleCoverSearch(env, q);
     if (path === '/api/cover/proxy' && method === 'GET') return handleCoverProxy(env, q.url || '');
 
+    // ------------------------------------------------------------
+    // /api/birthday-migrate  — 一次性迁移：录入生日事项
+    // ------------------------------------------------------------
+    if (path === '/api/birthday-migrate' && method === 'GET') return handleBirthdayMigrate(env);
+
     // 404
     return json({ error: 'Not Found: ' + method + ' ' + path }, 404);
   } catch (err) {
@@ -1453,6 +1458,66 @@ async function handleCoverProxy(env, url) {
   } catch (e) {
     return new Response('proxy error: ' + e.message, { status: 502 });
   }
+}
+
+// ----------------------------- birthday-migrate（一次性录入生日事项）
+async function handleBirthdayMigrate(env) {
+  const userId = uid(env);
+  await ensureScheduleRepeat(env);
+
+  const BIRTHDAYS = [
+    { title: '🎂溪客生日', solar: { month: 10, day: 9 }, type: 'yearly' },
+    { title: '🎂宝贝生日', lunar: { month: 9, day: 10 }, type: 'lunar-yearly' },
+    { title: '🎂丈母娘生日', lunar: { month: 9, day: 14 }, type: 'lunar-yearly' },
+    { title: '🎂老妈生日', lunar: { month: 9, day: 17 }, type: 'lunar-yearly' },
+    { title: '🎂我的生日', lunar: { month: 9, day: 26 }, type: 'lunar-yearly' },
+    { title: '🎂三姐生日', lunar: { month: 12, day: 4 }, type: 'lunar-yearly' },
+    { title: '🎂大姐生日', lunar: { month: 12, day: 13 }, type: 'lunar-yearly' },
+    { title: '🎂拾柒生日', solar: { month: 2, day: 28 }, type: 'yearly' },
+    { title: '🎂哥生日', lunar: { month: 2, day: 27 }, type: 'lunar-yearly' },
+    { title: '🎂二姐生日', lunar: { month: 3, day: 24 }, type: 'lunar-yearly' },
+    { title: '🎂老爸生日', lunar: { month: 5, day: 8 }, type: 'lunar-yearly' },
+    { title: '🎂嘉澍生日', solar: { month: 8, day: 11 }, type: 'yearly' },
+    { title: '🎂云峰生日', solar: { month: 8, day: 22 }, type: 'yearly' },
+  ];
+
+  // 去重：查已有同名事项
+  const existing = await env.DB.prepare(
+    `SELECT title FROM ethan_schedules WHERE user_id=? AND repeat_rule IN ('yearly','lunar-yearly')`
+  ).bind(userId).all();
+  const existingTitles = new Set((existing.results || []).map(r => r.title));
+
+  const results = [];
+  for (const bd of BIRTHDAYS) {
+    if (existingTitles.has(bd.title)) {
+      results.push({ title: bd.title, status: 'skipped' });
+      continue;
+    }
+    // 计算初始日期（2026年对应的阳历日期）
+    let dateStr;
+    if (bd.type === 'lunar-yearly') {
+      const lunar = lunarLib.Lunar.fromYmd(2026, bd.lunar.month, bd.lunar.day);
+      const solar = lunar.getSolar();
+      dateStr = `${solar.getYear()}-${String(solar.getMonth()).padStart(2,'0')}-${String(solar.getDay()).padStart(2,'0')}`;
+    } else {
+      dateStr = `2026-${String(bd.solar.month).padStart(2,'0')}-${String(bd.solar.day).padStart(2,'0')}`;
+    }
+    await env.DB.prepare(
+      `INSERT INTO ethan_schedules (user_id, title, date, start_time, end_time, duration_min, is_key, category, is_done, sort_order, repeat_rule) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+    ).bind(
+      userId, bd.title, dateStr,
+      null, null, null,
+      0, 3, 0, 0, bd.type
+    ).run();
+    results.push({ title: bd.title, date: dateStr, repeat: bd.type, status: 'created' });
+  }
+
+  return json({
+    total: BIRTHDAYS.length,
+    created: results.filter(r => r.status === 'created').length,
+    skipped: results.filter(r => r.status === 'skipped').length,
+    results
+  });
 }
 
 // ----------------------------- migrate（一次性批量写入 6 表，前端点按钮调用）

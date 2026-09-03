@@ -1186,7 +1186,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
         {todaySchedules.length === 0 && todayTasks.length === 0 && todayHabits.length === 0 && (
           <div className="text-center py-8 text-sm text-[#8e8e93]">
-            <div className="text-2xl mb-2">🕐</div>
+            <svg className="w-6 h-6 mx-auto mb-2 text-[#c7c7cc]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9"></circle>
+              <polyline points="12 7 12 12 15.5 14"></polyline>
+            </svg>
             今天还没有安排
           </div>
         )}
@@ -1211,7 +1214,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     if (sortedDates.length === 0) {
       return (
         <div className="text-center py-8 text-sm text-[#8e8e93]">
-          <div className="text-2xl mb-2">🕐</div>
+          <svg className="w-6 h-6 mx-auto mb-2 text-[#c7c7cc]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15.5 14"></polyline>
+          </svg>
           {view === 'week' ? '本周' : '本月'}还没有安排
         </div>
       );
@@ -1355,7 +1361,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           onMouseEnter={e => { e.currentTarget.style.color = '#6c6c70'; e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.15) 0%, transparent 65%)'; }}
           onMouseLeave={e => { e.currentTarget.style.color = '#8e8e93'; e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)'; }}
         >
-          <span style={{ fontSize: '13px' }}>📌</span>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{flexShrink:0}}>
+            <path d="M12 17v5"></path>
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path>
+          </svg>
           固定日程
         </button>
       </div>

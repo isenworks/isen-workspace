@@ -5977,12 +5977,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                     isSel ? 'bg-[#FA503E14]' : 'hover:bg-ink-50'
                   }`}
                 >
-                  {isSel && <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full" style={{ background: '#FF4035' }} />}
+                  {isSel && <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full" style={{ background: '#FA503E' }} />}
                   <div className="w-[18px] h-[18px] rounded-md grid place-items-center bg-[#34C759] text-white flex-shrink-0" style={{ boxShadow: 'inset 0 0 0 1px rgba(52,199,89,.5)' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-[12.5px] truncate leading-tight ${isSel ? 'font-bold text-[#1d1d1f]' : 'font-semibold text-[#48484A]'}`}>{entry.o.title}</div>
+                    <div className="text-[16px] font-bold text-ink-900 truncate leading-tight">{entry.o.title}</div>
                     <div className="text-[10.5px] font-medium text-[#8e8e93] tabular-nums mt-[2px]">{startShort} → {endShort}</div>
                   </div>
                   <div style={{ width: 28, flexShrink: 0 }}>

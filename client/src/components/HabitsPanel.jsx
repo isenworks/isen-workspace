@@ -365,7 +365,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   function StateChip({ icon, label, color }) {
     const Icon = icon;
     return (
-      <span className="inline-flex items-center gap-1 text-[12px] font-bold" style={{ color }}>
+      <span className="inline-flex items-center gap-1 text-[12px] font-medium" style={{ color }}>
         <Icon size={12.5} />
         <span>{label}</span>
       </span>
@@ -373,7 +373,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
   // 实心填充图标（lucide 只有线性描边，精力充沛/积极心情需要实心强调）
   const ZapFilled = ({ size = 12.5, color }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || 'currentColor'} xmlns="http://www.w3.org/2000/svg"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg>
+    // 圆润版实心闪电（Apple Health 能量风：加粗中段、两端圆弧过渡，避免尖角刺眼）
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color || 'currentColor'} xmlns="http://www.w3.org/2000/svg"><path d="M14.5 2.5 5 14.25h6L9.5 22 20 9.5h-6l1-6.1c.07-.42.53-.66.95-.53.42.13.63.58.55 1.03Z" stroke={color || 'currentColor'} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round"/></svg>
   );
   const HeartFilled = ({ size = 12.5, color }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color || 'currentColor'} xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3 9.24 3 10.91 3.81 12 5.09 13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z"/></svg>
@@ -494,7 +495,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   </span>
                   <span className="flex-shrink-0 text-[#c8c8cc]">·</span>
                   {thirdLine.dur >= thirdLine.target ? (
-                    <span className="text-[#34C759] whitespace-nowrap flex-shrink-0 font-semibold">达标</span>
+                    <span className="text-[#34C759] whitespace-nowrap flex-shrink-0 font-medium">达标</span>
                   ) : (
                     <span className="text-[#FF9500] whitespace-nowrap flex-shrink-0 font-medium">
                       差{formatDuration(thirdLine.target - thirdLine.dur)}

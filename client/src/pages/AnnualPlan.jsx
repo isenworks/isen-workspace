@@ -5083,7 +5083,18 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   const [workTab, setWorkTab] = useState('active'); // 'active' | 'done' | 'shelf' — 书架风 Tab 3 项（标题右）
   const [detailGoal, setDetailGoal] = useState(null); // { o, gs, goalIdx } | null
   const [openDropIdx, setOpenDropIdx] = useState(null); // key → goal.id|title+idx+'@'+location (location: 'active'|'modal')
-  const [localTitle, setLocalTitle] = useState(`${year}年 · 工作目标`); // Header 标题：右击可编辑
+  const [localTitle, setLocalTitle] = useState(`${year}年 · 工作目标`); // Header 标题：右击可编辑（持久化到 D1 userSettings）
+  // 挂载时读回持久化标题
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/userSettings/get?k=annual_work_title');
+        const j = await r.json().catch(() => ({}));
+        const v = j?.data?.annual_work_title;
+        if (v) setLocalTitle(String(v));
+      } catch { /* 读取失败用默认值 */ }
+    })();
+  }, []);
   const [titleEditing, setTitleEditing] = useState(false);
   const [collapsedIds, setCollapsedIds] = useState(() => new Set()); // 进行中tab双击折叠: Set<goalKey = id | title|idx>
   const makeGoalKey = (o, goalIdx) => o.id || `${o.title}|${goalIdx}`;
@@ -5845,14 +5856,25 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
       {/* ========== Header · 书架风（色条 + 标题·共N项 左边）/（3 Tab·进行中·已完成·已归档 标题右边）/（右操作按钮 蓝色）========== */}
       <div className="w-full glass-card rounded-2xl p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* 左：色条 + 标题(右击编辑) + 主业·N | 副业·N */}
-          <div className="flex items-center gap-2.5 flex-shrink-0">
+          {/* 左：色条 + 标题(右击编辑) + 主业·N | 副业·N
+              gap-3(12px) + p-4(16px) + 色条5px = 33px，与下方卡片标题 pl-5(20)+色条(5)+gap-2(8)=33px 左端精确对齐 */}
+          <div className="flex items-center gap-3 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: RED }}></span>
             {titleEditing ? (
               <input
                 autoFocus
                 defaultValue={localTitle}
-                onBlur={(e) => { setLocalTitle(e.target.value.trim() || `${year}年 · 工作目标`); setTitleEditing(false); }}
+                onBlur={(e) => {
+                  const v = e.target.value.trim() || `${year}年 · 工作目标`;
+                  setLocalTitle(v);
+                  setTitleEditing(false);
+                  // 持久化到 D1，刷新/重开后保持
+                  fetch('/api/userSettings/set', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ k: 'annual_work_title', v }),
+                  }).catch(() => {});
+                }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.target.blur(); } else if (e.key === 'Escape') { setTitleEditing(false); } }}
                 onClick={(e) => e.stopPropagation()}
                 className="text-[15.5px] font-bold text-ink-900 leading-none bg-transparent border border-[#FF4035] rounded px-1 py-0 outline-none min-w-[120px]"

@@ -4,6 +4,18 @@
 
 :root { color-scheme: light; }
 
+/* ====== 工作台结构色主题变量（utils/theme.js 动态覆盖；默认经典蓝） ======
+   --s-main    主色（链接/文字/复选框/描边）
+   --s-deep    深色文字（浅底胶囊上的强调文字）
+   --s-rgb     主色 RGB 三元组，用于 rgba(var(--s-rgb), α) 合成各级透明底
+   --s-grad-bg 主按钮/选中段渐变背景 */
+:root {
+  --s-main: #007AFF;
+  --s-deep: #0040DD;
+  --s-rgb: 0,122,255;
+  --s-grad-bg: linear-gradient(135deg, #007AFF 0%, #007AFF 100%);
+}
+
 html, body { min-height: 100%; }
 #root { min-height: 100vh; }
 
@@ -44,7 +56,7 @@ body {
 /* ====== Checkboxes ====== */
 .cb-square {
   --cb-border: #d1d1d6;
-  --cb-color: #007AFF;
+  --cb-color: var(--s-main);
   appearance: none; width: 18px; height: 18px; border-radius: 50%;
   border: 1.5px solid var(--cb-border); background: #fff;
   cursor: pointer; flex-shrink: 0; display: inline-flex;
@@ -59,7 +71,7 @@ body {
 }
 .cb-round {
   --cb-border: #d1d1d6;
-  --cb-color: #007AFF;
+  --cb-color: var(--s-main);
   appearance: none; width: 18px; height: 18px; border-radius: 50%;
   border: 1.5px solid var(--cb-border); background: #fff;
   cursor: pointer; flex-shrink: 0; display: inline-flex;
@@ -101,16 +113,16 @@ body {
   border: none; background: transparent; cursor: pointer;
 }
 .tab-group button.active {
-  background: #007AFF; color: #fff; font-weight: 600;
+  background: var(--s-main); color: #fff; font-weight: 600;
   border-radius: 7px; /* 动作/容器圆角方：今日 tab / 月tab 等选中段保持方角，仅小 7px 倒角 */
-  box-shadow: 0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04);
+  box-shadow: 0 3px 8px rgba(var(--s-rgb),0.25), 0 1px 1px rgba(0,0,0,0.04);
 }
 /* 紧凑变体：横条日历左侧 今日/本周/本月（间距收窄） */
 .tab-group.compact button { padding: 3px 9px; font-size: 12px; }
 
 /* ====== Summary Menu: doc row hover ====== */
 .sum-doc-row:hover {
-  background: rgba(0,122,255,0.06);
+  background: rgba(var(--s-rgb),0.06);
 }
 .sum-doc-btn {
   width: 22px; height: 22px; border-radius: 7px; /* ✅ 圆角方：ghost 动作按钮，不是圆形勾选 */
@@ -126,8 +138,8 @@ body {
 .sum-doc-btn.del { font-size: 13px; font-weight: 500; }
 .sum-doc-row:hover .sum-doc-btn { opacity: 1; }
 .sum-doc-btn:hover {
-  background: rgba(0,122,255,0.10);
-  color: #007AFF;
+  background: rgba(var(--s-rgb),0.10);
+  color: var(--s-main);
 }
 .sum-doc-btn.del:hover {
   background: rgba(255,59,48,0.10);
@@ -147,8 +159,8 @@ body {
 .cal-day:hover { background: rgba(120,120,128,0.08); }
 .cal-day.past .cal-weekday, .cal-day.past .cal-date { opacity: 0.4; }
 .cal-day.today {
-  background: #007AFF; color: #fff;
-  box-shadow: 0 2px 8px rgba(0,122,255,0.35);
+  background: var(--s-main); color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--s-rgb),0.35);
 }
 .cal-day.today .cal-weekday { opacity: 0.85; color: #fff; }
 .cal-day.today .cal-date { color: #fff; }
@@ -200,14 +212,14 @@ body {
   position: relative;
 }
 .timeline-empty-row:hover {
-  background: rgba(0,122,255,0.06);
-  border: 1px dashed rgba(0,122,255,0.35);
+  background: rgba(var(--s-rgb),0.06);
+  border: 1px dashed rgba(var(--s-rgb),0.35);
   padding-top: 4px;
   padding-bottom: 4px;
   margin: 2px 0;
 }
 .timeline-empty-row:hover .timeline-line {
-  background: rgba(0,122,255,0.4) !important;
+  background: rgba(var(--s-rgb),0.4) !important;
   height: 24px !important;
 }
 .timeline-empty-content {
@@ -220,7 +232,7 @@ body {
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #007AFF;
+  color: var(--s-main);
 }
 .timeline-empty-row:hover .timeline-empty-hint {
   display: inline-flex;
@@ -229,7 +241,7 @@ body {
   font-size: 14px;
   font-weight: 400;
   line-height: 1;
-  color: #007AFF;
+  color: var(--s-main);
   opacity: 0.7;
 }
 
@@ -375,8 +387,8 @@ body {
   z-index: 1;
 }
 .tl-grid-empty-cell:hover {
-  background: rgba(0,122,255,0.06);
-  outline: 1px dashed rgba(0,122,255,0.35);
+  background: rgba(var(--s-rgb),0.06);
+  outline: 1px dashed rgba(var(--s-rgb),0.35);
   outline-offset: -1px;
 }
 .tl-grid-empty-cell-hint {
@@ -384,7 +396,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100%;
-  font-size: 12px; font-weight: 500; color: #007AFF;
+  font-size: 12px; font-weight: 500; color: var(--s-main);
   gap: 4px;
 }
 .tl-grid-empty-cell:hover .tl-grid-empty-cell-hint { display: inline-flex; }
@@ -405,7 +417,7 @@ body {
 
 /* ====== Buttons ====== */
 .btn-primary {
-  background: #007AFF; color: #fff;
+  background: var(--s-main); color: #fff;
   padding: 6px 14px; border-radius: 9px;
   font-size: 13px; font-weight: 600;
   display: inline-flex; align-items: center; gap: 6px;
@@ -532,8 +544,8 @@ body {
 }
 .sb-nav-item:hover { background: rgba(120,120,128,0.08); }
 .sb-nav-item.active {
-  background: rgba(0,122,255,0.1);
-  color: #007AFF;
+  background: rgba(var(--s-rgb),0.1);
+  color: var(--s-main);
   font-weight: 600;
 }
 .sb-nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
@@ -583,7 +595,7 @@ body {
 .sync-icon-btn.syncing { color: #FF9500; }
 .sync-icon-btn.synced { color: #34C759; }
 .sync-icon-btn.error { color: #FF3B30; }
-.sync-icon-btn:hover { background: rgba(0,122,255,0.08); color: #007AFF !important; }
+.sync-icon-btn:hover { background: rgba(var(--s-rgb),0.08); color: var(--s-main) !important; }
 
 /* ====== Toast ====== */
 .toast-layer {
@@ -628,7 +640,7 @@ body {
 .toast-error { background: rgba(207, 19, 34, 0.92); }
 .toast-success { background: rgba(52, 199, 89, 0.92); }
 .toast-warn { background: rgba(255, 149, 0, 0.92); }
-.toast-info { background: rgba(0, 122, 255, 0.92); }
+.toast-info { background: rgba(var(--s-rgb), 0.92); }
 
 /* ====== Form inputs (统一 focus 高亮) ====== */
 .form-input {
@@ -646,8 +658,8 @@ body {
 }
 .form-input:focus,
 .form-input:focus-visible {
-  border-color: #007AFF !important;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15) !important;
+  border-color: var(--s-main) !important;
+  box-shadow: 0 0 0 3px rgba(var(--s-rgb), 0.15) !important;
 }
 textarea.form-input { resize: vertical; line-height: 1.5; min-height: 60px; }
 

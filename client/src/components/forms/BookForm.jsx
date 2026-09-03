@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { INPUT_STYLE } from '../../utils/uiConstants.js';
 
-const BLUE = '#007AFF';
-const BLUE_DARK = '#0062cc';
-const BLUE_LIGHT = '#f0f6ff';
-const BLUE_BORDER = 'rgba(0,122,255,0.22)';
-const BLUE_SOFT = 'rgba(0,122,255,0.08)';
+const BLUE = 'var(--s-main)';
+const BLUE_DARK = 'var(--s-deep)';
+const BLUE_LIGHT = 'rgba(var(--s-rgb),0.06)';
+const BLUE_BORDER = 'rgba(var(--s-rgb),0.22)';
+const BLUE_SOFT = 'rgba(var(--s-rgb),0.08)';
 const INK = '#1c1c1e';
 const INK_MUTE = '#64748b';
 const INK_LIGHT = '#94a3b8';
@@ -359,7 +359,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
           <button onClick={submit} style={{
             padding: '6px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
             background: BLUE, color: '#fff', border: 'none', cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,122,255,0.25)',
+            boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)',
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
@@ -369,7 +369,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
 
 // ===== Tab 图标 =====
 function TabIcon({ name, active }) {
-  const c = active ? '#007AFF' : '#94a3b8';
+  const c = active ? 'var(--s-main)' : '#94a3b8';
   const common = { width: '13px', height: '13px', stroke: c, fill: 'none', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' };
   if (name === 'book') return (
     <svg viewBox="0 0 24 24" {...common}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>

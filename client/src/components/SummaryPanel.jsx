@@ -296,14 +296,14 @@ function renderMdToHtml(md) {
     const h2 = line.match(/^## (.+)$/);
     if (h2) {
       closeUl(); closeTable(); closeBlockquote(); flushPara();
-      html += `<h2 style="font-size:14px;margin:14px 0 6px;color:#007AFF;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:#007AFF"></span>${escape(h2[1])}</h2>`;
+      html += `<h2 style="font-size:14px;margin:14px 0 6px;color:var(--s-main);display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:var(--s-main)"></span>${escape(h2[1])}</h2>`;
       continue;
     }
     // blockquote
     if (line.startsWith('>')) {
       closeUl(); closeTable(); flushPara();
       const txt = line.replace(/^>\s?/, '');
-      if (!inBlockquote) { html += '<blockquote style="border-left:3px solid #007AFF;background:rgba(0,122,255,0.04);padding:6px 10px;margin:6px 0;border-radius:0 8px 8px 0;color:#3c3c43;font-size:12px;line-height:1.7">'; inBlockquote = true; }
+      if (!inBlockquote) { html += '<blockquote style="border-left:3px solid var(--s-main);background:rgba(var(--s-rgb),0.04);padding:6px 10px;margin:6px 0;border-radius:0 8px 8px 0;color:#3c3c43;font-size:12px;line-height:1.7">'; inBlockquote = true; }
       else html += '<br>';
       html += escape(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/  /g, '&nbsp;&nbsp;');
       continue;
@@ -315,7 +315,7 @@ function renderMdToHtml(md) {
     if (ul) {
       closeTable(); flushPara();
       if (!inUl) { html += '<ul style="padding-left:18px;margin:4px 0">'; inUl = true; }
-      html += `<li style="margin:2px 0;line-height:1.7">${escape(ul[1]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/\[(.+?)\]/g, '<span style="color:#007AFF;font-weight:600">[$1]</span>')}</li>`;
+      html += `<li style="margin:2px 0;line-height:1.7">${escape(ul[1]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/\[(.+?)\]/g, '<span style="color:var(--s-main);font-weight:600">[$1]</span>')}</li>`;
       continue;
     } else {
       closeUl();
@@ -838,8 +838,8 @@ export default function SummaryPanel({
             padding: '6px 10px',
             borderRadius: '8px',
             cursor: 'pointer',
-            background: templateId === t.id ? 'rgba(0,122,255,0.08)' : 'transparent',
-            color: templateId === t.id ? '#007AFF' : '#1c1c1e',
+            background: templateId === t.id ? 'rgba(var(--s-rgb),0.08)' : 'transparent',
+            color: templateId === t.id ? 'var(--s-main)' : '#1c1c1e',
             transition: 'background .1s',
             fontSize: '13px',
           }}
@@ -852,7 +852,7 @@ export default function SummaryPanel({
             {t.name}
           </span>
           {templateId === t.id && (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--s-main)" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
           )}
           {templateId !== t.id && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -870,7 +870,7 @@ export default function SummaryPanel({
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}
                 title="编辑"
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#007AFF'; e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--s-main)'; e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
               >✎</button>
               <button
@@ -904,12 +904,12 @@ export default function SummaryPanel({
               padding: '6px 10px',
               borderRadius: '8px',
               cursor: 'pointer',
-              color: '#007AFF',
+              color: 'var(--s-main)',
               fontSize: '13px',
               fontWeight: '500',
               transition: 'background .1s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           >
             <span style={{ fontSize: '14px' }}>+</span>
@@ -926,8 +926,8 @@ export default function SummaryPanel({
     padding: '4px 10px', borderRadius: '8px',
     border: 'none', cursor: 'pointer',
     fontSize: '12px', fontWeight: '500',
-    color: '#007AFF',
-    background: hover || tplMenuOpen ? 'rgba(0,122,255,0.15)' : 'rgba(0,122,255,0.08)',
+    color: 'var(--s-main)',
+    background: hover || tplMenuOpen ? 'rgba(var(--s-rgb),0.15)' : 'rgba(var(--s-rgb),0.08)',
     transition: 'all 0.15s',
   });
 
@@ -937,9 +937,9 @@ export default function SummaryPanel({
     padding: '5px 12px', borderRadius: '8px',
     fontSize: '12px', fontWeight: '600',
     cursor: 'pointer', transition: 'all .15s',
-    background: tplMenuOpen ? 'rgba(0,122,255,0.10)' : 'rgba(120,120,128,0.10)',
+    background: tplMenuOpen ? 'rgba(var(--s-rgb),0.10)' : 'rgba(120,120,128,0.10)',
     color: '#1c1c1e',
-    border: tplMenuOpen ? '1px solid rgba(0,122,255,0.2)' : '1px solid transparent',
+    border: tplMenuOpen ? '1px solid rgba(var(--s-rgb),0.2)' : '1px solid transparent',
   });
 
   const tplArrow = (
@@ -997,11 +997,11 @@ export default function SummaryPanel({
         <div style={{
           padding: '12px 14px',
           borderRadius: '12px',
-          border: '1px solid rgba(0,122,255,0.12)',
-          background: 'rgba(0,122,255,0.03)',
+          border: '1px solid rgba(var(--s-rgb),0.12)',
+          background: 'rgba(var(--s-rgb),0.03)',
           display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#007AFF' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--s-main)' }}>
             {editingTplId ? (isPresetId(editingTplId) ? '编辑预设模板' : '编辑自定义模板') : '新建自定义模板'}
           </div>
           <input
@@ -1050,7 +1050,7 @@ export default function SummaryPanel({
               disabled={!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())}
               style={{
                 padding: '5px 12px', borderRadius: '8px', border: 'none',
-                background: '#007AFF', color: '#fff',
+                background: 'var(--s-main)', color: '#fff',
                 fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                 opacity: (!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())) ? 0.5 : 1,
               }}
@@ -1125,7 +1125,7 @@ export default function SummaryPanel({
       }}>
         <div style={{ fontSize: '11px', color: '#8e8e93', display: 'flex', gap: '8px', alignItems: 'center' }}>
           {saving
-            ? <span style={{ color: '#007AFF', fontWeight: '600' }}>⟳ 保存中…</span>
+            ? <span style={{ color: 'var(--s-main)', fontWeight: '600' }}>⟳ 保存中…</span>
             : savedTime
               ? (
                 <>
@@ -1174,7 +1174,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: copied ? '#34C759' : '#007AFF', color: '#fff',
+              background: copied ? '#34C759' : 'var(--s-main)', color: '#fff',
             }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
@@ -1308,7 +1308,7 @@ export default function SummaryPanel({
             Markdown 预览
             <span style={{
               fontSize: '10px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px',
-              background: 'rgba(0,122,255,0.10)', color: '#007AFF',
+              background: 'rgba(var(--s-rgb),0.10)', color: 'var(--s-main)',
             }}>可粘贴到飞书 / Notion</span>
           </div>
           <button
@@ -1369,7 +1369,7 @@ export default function SummaryPanel({
                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                 padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                 fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-                background: copied ? '#34C759' : '#007AFF', color: '#fff',
+                background: copied ? '#34C759' : 'var(--s-main)', color: '#fff',
               }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
@@ -1390,7 +1390,7 @@ export default function SummaryPanel({
         }}>
           <div style={{ fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
-              width: '5px', height: '18px', borderRadius: '3px', background: '#007AFF', flexShrink: 0,
+              width: '5px', height: '18px', borderRadius: '3px', background: 'var(--s-main)', flexShrink: 0,
             }}></span>
             每日总结
             <span style={{
@@ -1408,12 +1408,12 @@ export default function SummaryPanel({
                   padding: '4px 10px', borderRadius: '8px',
                   border: 'none', cursor: 'pointer',
                   fontSize: '12px', fontWeight: '500',
-                  color: '#007AFF',
-                  background: 'rgba(0,122,255,0.08)',
+                  color: 'var(--s-main)',
+                  background: 'rgba(var(--s-rgb),0.08)',
                   transition: 'all 0.15s',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.15)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.08)'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--s-rgb),0.15)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"></polyline>

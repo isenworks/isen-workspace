@@ -1316,8 +1316,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             <button className={tabView === 'day'   ? 'active' : ''} onClick={() => setTabView('day')}>日</button>
           </div>
 
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] font-bold bg-[rgba(0,122,255,0.08)] text-[#0040DD]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#0040DD]" />
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] font-bold bg-[rgba(var(--s-rgb),0.08)] text-[color:var(--s-deep)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--s-deep)]" />
             本月主线 · 已完成 {monthProgress}%
           </span>
 
@@ -1325,8 +1325,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
           <button
             onClick={() => onEditSchedule?.()}
-            className="px-3.5 py-1.5 rounded-[9px] text-[13px] font-semibold text-white bg-[#007AFF] hover:brightness-105 transition border-none cursor-pointer"
-            style={{ boxShadow: '0 3px 8px rgba(0,122,255,0.25)' }}
+            className="px-3.5 py-1.5 rounded-[9px] text-[13px] font-semibold text-white bg-[color:var(--s-main)] hover:brightness-105 transition border-none cursor-pointer"
+            style={{ boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)' }}
           >
             + 新建
           </button>
@@ -1339,7 +1339,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           {(tabView === 'month' || tabView === 'day') && (
             <FocusPanel
               type="month"
-              accentColor="#007AFF"
+              accentColor="var(--s-main)"
               title={tabView === 'month' ? '本月主线' : '本月 · 上下文'}
               tasks={visibleMonthTasks}
               progressPct={monthProgress}
@@ -1359,7 +1359,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           {tabView === 'week' && (
             <FocusPanel
               type="week"
-              accentColor="#007AFF"
+              accentColor="var(--s-main)"
               title={`本周主线 · ${weekStartStr}-${weekEndStr}`}
               tasks={visibleWeekTasks}
               progressPct={weekProgress}
@@ -1403,12 +1403,12 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
                 </span>
               ))}
               <div className="flex-1" />
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#007AFF]">
-                <span className="w-2 h-2 rounded-full" style={{ background: '#007AFF', boxShadow: '0 2px 6px rgba(0,122,255,0.35)' }} />
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[color:var(--s-main)]">
+                <span className="w-2 h-2 rounded-full" style={{ background: 'var(--s-main)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.35)' }} />
                 今日
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#0040DD]">
-                <span className="w-2 h-2 rounded-full" style={{ background: 'transparent', boxShadow: 'inset 0 0 0 2px rgba(0,122,255,0.45)' }} />
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[color:var(--s-deep)]">
+                <span className="w-2 h-2 rounded-full" style={{ background: 'transparent', boxShadow: 'inset 0 0 0 2px rgba(var(--s-rgb),0.45)' }} />
                 选中
               </span>
             </div>
@@ -1424,7 +1424,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           title={
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-bold"
-                style={{ background: 'rgba(0,122,255,0.10)', color: '#0040DD' }}>
+                style={{ background: 'rgba(var(--s-rgb),0.10)', color: 'var(--s-deep)' }}>
                 {detailDateObj.getMonth() + 1}.{detailDateObj.getDate()} 周{weekdayZh[detailDateObj.getDay()]}
               </span>
               <span className="text-[#1c1c1e]">当日事项</span>
@@ -1433,8 +1433,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           }
           footer={
             <button
-              className="px-3.5 py-1.5 rounded-[7px] text-[13px] font-semibold text-white bg-[#007AFF] hover:brightness-105 transition border-none cursor-pointer"
-              style={{ boxShadow: '0 3px 8px rgba(0,122,255,0.25)' }}
+              className="px-3.5 py-1.5 rounded-[7px] text-[13px] font-semibold text-white bg-[color:var(--s-main)] hover:brightness-105 transition border-none cursor-pointer"
+              style={{ boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)' }}
               onClick={() => {
                 onEditSchedule?.(
                   { type: 'schedule', schedule_date: dayDetail.date, start_time: '00:00', end_time: '00:00' },
@@ -1454,7 +1454,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             ) : (
               <FocusPanel
                 type="day"
-                accentColor="#007AFF"
+                accentColor="var(--s-main)"
                 title={`${detailDateObj.getMonth()+1}.${detailDateObj.getDate()} 周${weekdayZh[detailDateObj.getDay()]} 事项`}
                 tasks={detailEvents.map((ev, idx) => {
                   const mod = keyToModule(ev.moduleKey || 'others');

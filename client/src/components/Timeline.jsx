@@ -631,10 +631,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   const titleText = view === 'today'
-    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007AFF]">今日</span></>
+    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">今日</span></>
     : view === 'week'
-    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007AFF]">本周</span></>
-    : <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[#007AFF]">本月</span></>;
+    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">本周</span></>
+    : <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">本月</span></>;
 
   // 计算事项在 [hHour:00, hHour+1:00) 半开区间内占用的分钟数（用于分段行高）
   function minutesInHour(item, hHour) {
@@ -870,14 +870,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 style={{
                   top: `${dragOverY}px`,
                   height: '2px',
-                  background: '#007AFF',
-                  boxShadow: '0 0 8px rgba(0,122,255,0.5)',
+                  background: 'var(--s-main)',
+                  boxShadow: '0 0 8px rgba(var(--s-rgb),0.5)',
                   zIndex: 1000,
                 }}
               >
                 <span
                   className="absolute right-2 -translate-y-full text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                  style={{ background: '#007AFF', color: '#fff' }}
+                  style={{ background: 'var(--s-main)', color: '#fff' }}
                 >
                   {fmtHHMM(snapMin(pxToMin(dragOverY)))}
                 </span>
@@ -1315,7 +1315,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     <div className="glass-card p-5 h-full">
       <div className="flex items-center justify-between section-header">
         <div className="flex items-center gap-2">
-          <span className="section-accent" style={{background:'#007AFF'}}></span>
+          <span className="section-accent" style={{background:'var(--s-main)'}}></span>
           <h3 className="section-title">{titleText}</h3>
 
           {/* 总结按钮 — 紧跟标题后面 */}
@@ -1328,10 +1328,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 fontSize: '13px',
                 fontWeight: showSummary ? 600 : 500,
                 ...(showSummary ? {
-                  background: '#007AFF',
+                  background: 'var(--s-main)',
                   color: '#fff',
                   border: 'none',
-                  boxShadow: '0 3px 8px rgba(0,122,255,0.25), 0 1px 1px rgba(0,0,0,0.04)',
+                  boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25), 0 1px 1px rgba(0,0,0,0.04)',
                 } : {}),
               }}
             >
@@ -1433,21 +1433,21 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             cursor: 'pointer', borderRadius: '8px',
             display: 'flex', alignItems: 'center', gap: '10px',
             fontWeight: showSummary ? 600 : 500,
-            color: '#007AFF',
-            background: showSummary ? 'rgba(0,122,255,0.10)' : 'transparent',
+            color: 'var(--s-main)',
+            background: showSummary ? 'rgba(var(--s-rgb),0.10)' : 'transparent',
             minHeight: '34px',
             transition: 'background .12s',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = showSummary ? 'rgba(0,122,255,0.10)' : 'transparent'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = showSummary ? 'rgba(var(--s-rgb),0.10)' : 'transparent'; }}
         >
           <div style={{
             width: '15px', height: '15px', borderRadius: '4px',
-            background: 'rgba(0,122,255,0.12)',
+            background: 'rgba(var(--s-rgb),0.12)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="2.5">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--s-main)" strokeWidth="2.5">
               <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
             </svg>
           </div>
@@ -1456,7 +1456,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             <span style={{
               fontSize: '10px', fontWeight: 700,
               padding: '2px 7px', borderRadius: '4px',
-              background: '#007AFF', color: '#fff',
+              background: 'var(--s-main)', color: '#fff',
               letterSpacing: '0.02em',
             }}>已打开</span>
           )}
@@ -1470,23 +1470,23 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           <div
             onClick={() => setEditingDoc({ id: 'new', name: '', url: '' })}
             style={{
-              padding: '7px 10px', fontSize: '13px', color: '#007AFF',
+              padding: '7px 10px', fontSize: '13px', color: 'var(--s-main)',
               cursor: 'pointer', borderRadius: '8px',
               display: 'flex', alignItems: 'center', gap: '10px',
               fontWeight: 500,
               transition: 'background .12s',
               minHeight: '34px',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,122,255,0.08)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           >
             <div style={{
               width: '15px', height: '15px', borderRadius: '4px',
-              background: 'rgba(0,122,255,0.12)',
+              background: 'rgba(var(--s-rgb),0.12)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="3.5"><path d="M12 5v14m-7-7h14"></path></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--s-main)" strokeWidth="3.5"><path d="M12 5v14m-7-7h14"></path></svg>
             </div>
             添加文档
           </div>
@@ -1541,13 +1541,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           <div style={{
             padding: '8px 10px',
             display: 'flex', flexDirection: 'column', gap: '7px',
-            background: 'rgba(0,122,255,0.04)',
+            background: 'rgba(var(--s-rgb),0.04)',
             borderRadius: '8px',
             margin: '2px 0',
           }}>
             <div style={{
               fontSize: '11px', fontWeight: 600,
-              color: '#007AFF', textAlign: 'center',
+              color: 'var(--s-main)', textAlign: 'center',
               padding: '2px 0 4px',
             }}>{editingDoc.id === 'new' ? '添加新文档' : '编辑文档'}</div>
             <input
@@ -1609,17 +1609,17 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 disabled={!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')}
                 style={{
                   padding: '5px 12px', borderRadius: '8px', border: 'none',
-                  background: (!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')) ? '#a0c8ff' : '#007AFF',
+                  background: (!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')) ? 'rgba(var(--s-rgb),0.4)' : 'var(--s-main)',
                   color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   transition: 'all .12s',
                 }}
                 onMouseEnter={(e) => {
                   const disabled = !editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '');
-                  if (!disabled) e.currentTarget.style.background = '#0062CC';
+                  if (!disabled) e.currentTarget.style.background = 'var(--s-deep)';
                 }}
                 onMouseLeave={(e) => {
                   const disabled = !editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '');
-                  if (!disabled) e.currentTarget.style.background = '#007AFF';
+                  if (!disabled) e.currentTarget.style.background = 'var(--s-main)';
                 }}
               >{editingDoc.id === 'new' ? '添加' : '保存'}</button>
             </div>

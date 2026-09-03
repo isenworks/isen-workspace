@@ -152,12 +152,12 @@ const BTN_PRIMARY = {
   borderRadius: '9px',
   fontSize: '13px',
   fontWeight: '600',
-  background: '#007AFF',
+  background: 'var(--s-main)',
   color: '#fff',
   border: 'none',
   cursor: 'pointer',
   transition: 'all .15s',
-  boxShadow: '0 3px 8px rgba(0,122,255,0.25)'
+  boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)'
 };
 
 const REPEAT_OPTS = [
@@ -466,9 +466,9 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
                   border: 'none',
                   cursor: 'pointer',
                   transition: 'all .15s',
-                  background: on ? '#007AFF' : 'rgba(120,120,128,0.12)',
+                  background: on ? 'var(--s-main)' : 'rgba(120,120,128,0.12)',
                   color: on ? '#fff' : '#1c1c1e',
-                  boxShadow: on ? '0 2px 6px rgba(0,122,255,0.3)' : 'none'
+                  boxShadow: on ? '0 2px 6px rgba(var(--s-rgb),0.3)' : 'none'
                 }}
               >{o.label}</button>
             );
@@ -571,7 +571,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
                 onClick={confirmDialog.onCancel}
                 style={{
                   flex: 1, padding: '14px 0', fontSize: '15px', fontWeight: 600,
-                  color: '#007AFF', background: 'transparent',
+                  color: 'var(--s-main)', background: 'transparent',
                   border: 'none', borderRight: '0.5px solid rgba(60,60,67,0.18)',
                   cursor: 'pointer', transition: 'background .15s',
                 }}
@@ -583,13 +583,13 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
                 style={{
                   flex: 1, padding: '14px 0', fontSize: '15px',
                   fontWeight: confirmDialog.danger ? 700 : 600,
-                  color: confirmDialog.danger ? '#FF3B30' : '#007AFF',
+                  color: confirmDialog.danger ? '#FF3B30' : 'var(--s-main)',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   transition: 'background .15s',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = confirmDialog.danger
-                    ? 'rgba(255,59,48,0.06)' : 'rgba(0,122,255,0.06)';
+                    ? 'rgba(255,59,48,0.06)' : 'rgba(var(--s-rgb),0.06)';
                 }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >{confirmDialog.confirmText || '确认'}</button>
@@ -660,7 +660,7 @@ function PickerCell({ c, active, onClick, onEdit }) {
         className="cat-pencil-btn"
       >✎</button>
       <style>{`
-        .cat-pencil-btn:hover { background: rgba(0,122,255,0.10); color: #007AFF; }
+        .cat-pencil-btn:hover { background: rgba(var(--s-rgb),0.10); color: var(--s-main); }
         div:hover > .cat-pencil-btn, button:hover + .cat-pencil-btn { opacity: 1; }
         @media (hover: none) { .cat-pencil-btn { opacity: 1; } }
       `}</style>
@@ -681,8 +681,8 @@ function CategoryPicker({ cats, value, onSelect, onManage }) {
             type="button"
             onClick={onManage}
             style={{
-              fontSize: '11px', fontWeight: '500', color: '#007AFF',
-              background: 'rgba(0,122,255,0.08)',
+              fontSize: '11px', fontWeight: '500', color: 'var(--s-main)',
+              background: 'rgba(var(--s-rgb),0.08)',
               padding: '3px 10px', borderRadius: '999px',
               border: 'none', cursor: 'pointer'
             }}
@@ -891,10 +891,10 @@ function CategoryEditor({ cats, onClose, onChange }) {
                           width: '30px', height: '30px', borderRadius: '8px',
                           background: col, cursor: 'pointer',
                           border: c.dot === col
-                            ? `2px solid #007AFF`
+                            ? `2px solid var(--s-main)`
                             : `1px solid ${hexToRgba(col, 0.3)}`,
                           padding: 0,
-                          boxShadow: c.dot === col ? '0 0 0 2px rgba(0,122,255,0.15)' : 'none',
+                          boxShadow: c.dot === col ? '0 0 0 2px rgba(var(--s-rgb),0.15)' : 'none',
                         }}
                       />
                     ))}
@@ -940,8 +940,8 @@ function CategoryEditor({ cats, onClose, onChange }) {
               <span style={{
                 fontSize: '10px', fontWeight: '700',
                 padding: '4px 10px', borderRadius: '999px',
-                background: c.builtin ? 'rgba(0,122,255,0.11)' : 'rgba(142,142,147,0.14)',
-                color: c.builtin ? '#007AFF' : '#636366',
+                background: c.builtin ? 'rgba(var(--s-rgb),0.11)' : 'rgba(142,142,147,0.14)',
+                color: c.builtin ? 'var(--s-main)' : '#636366',
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}>
                 {c.builtin ? '内置' : '自定义'}
@@ -977,8 +977,8 @@ function CategoryEditor({ cats, onClose, onChange }) {
           onClick={add}
           style={{
             padding: '8px 16px', borderRadius: '9px',
-            background: 'rgba(0,122,255,0.10)',
-            color: '#007AFF', border: 'none', cursor: 'pointer',
+            background: 'rgba(var(--s-rgb),0.10)',
+            color: 'var(--s-main)', border: 'none', cursor: 'pointer',
             fontSize: '13px', fontWeight: '600',
           }}
         >+ 新增类型</button>
@@ -1022,7 +1022,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
                 onClick={confirmDialog.onCancel}
                 style={{
                   flex: 1, padding: '14px 0', fontSize: '15px', fontWeight: 600,
-                  color: '#007AFF', background: 'transparent',
+                  color: 'var(--s-main)', background: 'transparent',
                   border: 'none', borderRight: '0.5px solid rgba(60,60,67,0.18)',
                   cursor: 'pointer', transition: 'background .15s',
                 }}
@@ -1034,13 +1034,13 @@ function CategoryEditor({ cats, onClose, onChange }) {
                 style={{
                   flex: 1, padding: '14px 0', fontSize: '15px',
                   fontWeight: confirmDialog.danger ? 700 : 600,
-                  color: confirmDialog.danger ? '#FF3B30' : '#007AFF',
+                  color: confirmDialog.danger ? '#FF3B30' : 'var(--s-main)',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   transition: 'background .15s',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = confirmDialog.danger
-                    ? 'rgba(255,59,48,0.06)' : 'rgba(0,122,255,0.06)';
+                    ? 'rgba(255,59,48,0.06)' : 'rgba(var(--s-rgb),0.06)';
                 }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >{confirmDialog.confirmText || '确认'}</button>

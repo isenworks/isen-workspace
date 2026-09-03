@@ -208,7 +208,7 @@ export default function RecycleBinPage({ onBack }) {
                   <button
                     disabled={busy}
                     onClick={() => handleRestore(it.id)}
-                    className="text-[12.5px] font-medium text-[#007AFF] px-2.5 py-1.5 rounded-lg hover:bg-[#007AFF14] disabled:opacity-40 transition-colors"
+                    className="text-[12.5px] font-medium text-[color:var(--s-main)] px-2.5 py-1.5 rounded-lg hover:bg-[rgba(var(--s-rgb),0.08)] disabled:opacity-40 transition-colors"
                   >
                     恢复
                   </button>

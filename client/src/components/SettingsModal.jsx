@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { API, IS_D1_BACKEND } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { THEMES, getThemeKey, applyTheme } from '../utils/theme.js';
 
 const ADMIN_EMAIL = '1429000825@qq.com';
 
@@ -19,7 +20,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
   const toast = useToast();
   const { user: authUser } = useAuth();
   const user = propUser || authUser;
-  const [tab, setTab] = useState('invites');
+  const [tab, setTab] = useState('appearance');
+  const [themeKey, setThemeKey] = useState(() => getThemeKey());
   const [invites, setInvites] = useState([]);
   const [users, setUsers] = useState([]);
   const [newCode, setNewCode] = useState(null);
@@ -195,10 +197,24 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
         </div>
 
         {!isAdmin && (
-          <div style={{ padding: '40px 20px', textAlign: 'center', color: '#8e8e93' }}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔒</div>
-            <div style={{ fontSize: '14px' }}>仅管理员可访问此页面</div>
-          </div>
+          <>
+            {/* Tabs（非管理员仅展示外观设置） */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
+              {[{ key: 'appearance', label: '外观' }].map(t => (
+                <button key={t.key} onClick={() => setTab(t.key)} style={{
+                  flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
+                  cursor: 'pointer', fontSize: '14px',
+                  fontWeight: tab === t.key ? '600' : '400',
+                  color: tab === t.key ? 'var(--s-main)' : '#8e8e93',
+                  borderBottom: tab === t.key ? '2px solid var(--s-main)' : '2px solid transparent',
+                  transition: 'all 0.15s'
+                }}>{t.label}</button>
+              ))}
+            </div>
+            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+              <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />
+            </div>
+          </>
         )}
 
         {isAdmin && (
@@ -206,6 +222,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
             {/* Tabs */}
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
               {[
+                { key: 'appearance', label: '外观' },
                 !IS_D1_BACKEND && { key: 'invites', label: '邀请码管理' },
                 !IS_D1_BACKEND && { key: 'users', label: '用户管理' },
                 IS_D1_BACKEND && { key: 'migrate', label: 'D1 数据迁移' },
@@ -214,8 +231,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                   flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
                   cursor: 'pointer', fontSize: '14px',
                   fontWeight: tab === t.key ? '600' : '400',
-                  color: tab === t.key ? '#007AFF' : '#8e8e93',
-                  borderBottom: tab === t.key ? '2px solid #007AFF' : '2px solid transparent',
+                  color: tab === t.key ? 'var(--s-main)' : '#8e8e93',
+                  borderBottom: tab === t.key ? '2px solid var(--s-main)' : '2px solid transparent',
                   transition: 'all 0.15s'
                 }}>{t.label}</button>
               ))}
@@ -242,7 +259,9 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
 
             {/* Tab content */}
             <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
-              {tab === 'invites' ? (
+              {tab === 'appearance' ? (
+                <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />
+              ) : tab === 'invites' ? (
                 <InviteCodesTab
                   invites={invites}
                   newCode={newCode}
@@ -326,6 +345,92 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
   );
 }
 
+function AppearanceTab({ themeKey, onSelect }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '4px' }}>
+          主题颜色
+        </div>
+        <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.5 }}>
+          点击切换工作台结构模块（按钮、tab 选中态、链接、复选框等交互元素）的配色，选择会自动保存。
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+        {Object.values(THEMES).map(t => {
+          const active = t.key === themeKey;
+          return (
+            <button
+              key={t.key}
+              onClick={() => onSelect(t.key)}
+              style={{
+                border: active ? '2px solid var(--s-main)' : '1.5px solid #e5e5ea',
+                borderRadius: '14px',
+                background: active ? 'rgba(var(--s-rgb), 0.06)' : '#fff',
+                padding: '14px 12px',
+                cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+                transition: 'all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                boxShadow: active ? '0 4px 14px rgba(var(--s-rgb), 0.18)' : 'none',
+                outline: 'none',
+              }}
+            >
+              {/* 渐变预览胶囊 */}
+              <div style={{
+                width: '100%', height: '34px', borderRadius: '9px',
+                background: `linear-gradient(135deg, ${t.gradFrom} 0%, ${t.gradTo} 100%)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.35)',
+              }}>
+                {active && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                )}
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>{t.label}</div>
+                <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>{t.desc}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 效果预览：用当前主题变量实时渲染典型交互元素 */}
+      <div style={{
+        borderRadius: '12px', background: '#f5f5f7', padding: '14px 16px',
+        display: 'flex', flexDirection: 'column', gap: '12px',
+      }}>
+        <div style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93' }}>效果预览</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <span style={{
+            padding: '7px 16px', borderRadius: '9px', background: 'var(--s-grad-bg)',
+            color: '#fff', fontSize: '13px', fontWeight: '600',
+            boxShadow: '0 2px 8px rgba(var(--s-rgb), 0.3)',
+          }}>主按钮</span>
+          <div className="tab-group">
+            <button style={{
+              padding: '4px 13px', fontSize: '13px', fontWeight: '500', border: 'none', cursor: 'pointer',
+              borderRadius: '7px', color: '#fff', background: 'var(--s-grad-bg)',
+            }}>Tab 选中</button>
+            <button style={{
+              padding: '4px 13px', fontSize: '13px', fontWeight: '500', border: 'none', cursor: 'pointer',
+              borderRadius: '7px', color: '#3c3c43', background: 'transparent',
+            }}>未选中</button>
+          </div>
+          <span style={{ fontSize: '13px', color: 'var(--s-main)', fontWeight: '500', cursor: 'pointer' }}>链接文字</span>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#1c1c1e' }}>
+            <input type="checkbox" className="cb-square" defaultChecked readOnly />
+            复选框
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, onCopy }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -338,10 +443,10 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
           生成新的一次性邀请码，分享给朋友注册
         </div>
         <button onClick={onCreate} disabled={busy} style={{
-          padding: '9px 18px', borderRadius: '8px', background: busy ? '#ccc' : '#007AFF',
+          padding: '9px 18px', borderRadius: '8px', background: busy ? '#ccc' : 'var(--s-main)',
           color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px',
           cursor: busy ? 'not-allowed' : 'pointer',
-          boxShadow: busy ? 'none' : '0 1px 3px rgba(0,122,255,0.3)',
+          boxShadow: busy ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.3)',
           transition: 'all 0.15s'
         }}>{busy ? '生成中...' : '+ 生成邀请码'}</button>
       </div>
@@ -595,11 +700,11 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
 
       <button onClick={onRun} disabled={busy || !hasAny} style={{
         padding: '13px 22px', borderRadius: '10px',
-        background: busy ? '#ccc' : (!hasAny ? '#B5D4FF' : '#007AFF'),
+        background: busy ? '#ccc' : (!hasAny ? '#B5D4FF' : 'var(--s-main)'),
         color: '#fff', border: 'none', fontWeight: '600', fontSize: '14px',
         cursor: busy || !hasAny ? 'not-allowed' : 'pointer',
         transition: 'all 0.15s',
-        boxShadow: busy || !hasAny ? 'none' : '0 1px 3px rgba(0,122,255,0.3)',
+        boxShadow: busy || !hasAny ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.3)',
       }}>
         {busy ? '迁移中（写入 6 张表，约 10 秒）...' : '🚀 一键迁移写入 D1'}
       </button>

@@ -64,7 +64,7 @@ export default function MonthCalendarGrid({
   const weekStartISO = useMemo(() => toISODate(startOfWeek(todayISO)), [todayISO]);
   const weekEndISO   = useMemo(() => toISODate(endOfWeek(todayISO)),   [todayISO]);
   const inCurrentWeek = (iso) => iso >= weekStartISO && iso <= weekEndISO;
-  const CURRENT_WEEK_BG_MONFRI = 'rgba(0,122,255,0.08)'; // 当周 周一-周五 浅蓝
+  const CURRENT_WEEK_BG_MONFRI = 'rgba(var(--s-rgb),0.08)'; // 当周 周一-周五 浅蓝
   // 周六/周日列：需求 3 明确「周六日两列灰色→白色」
   const WEEKEND_BG = '#ffffff';
 
@@ -150,7 +150,7 @@ export default function MonthCalendarGrid({
           let cellBg = '#ffffff';
           if (isWeekend) cellBg = WEEKEND_BG;
           if (!isWeekend && weekInRange) cellBg = CURRENT_WEEK_BG_MONFRI;
-          if (isSelected && !isToday) cellBg = 'rgba(0,122,255,0.08)';
+          if (isSelected && !isToday) cellBg = 'rgba(var(--s-rgb),0.08)';
 
           const date = cell.date;
           const emitOpenDay = (source, e) => {
@@ -170,7 +170,7 @@ export default function MonthCalendarGrid({
                 background: cellBg,
                 cursor: 'pointer',
                 boxShadow: isSelected && !isToday
-                  ? 'inset 0 0 0 2px rgba(0,122,255,0.45)'
+                  ? 'inset 0 0 0 2px rgba(var(--s-rgb),0.45)'
                   : 'inset -1px -1px 0 rgba(0,0,0,0.04)',
               }}
               /* 整个日格背景/空白兜底点击 → 开当日事项面板
@@ -185,11 +185,11 @@ export default function MonthCalendarGrid({
                 <span
                   className="inline-flex items-center justify-center text-[14px] font-semibold tabular-nums leading-none px-[5px] py-[3px] rounded-md transition"
                   style={{
-                    color: isToday ? '#fff' : isSelected ? '#0040DD' : '#1C1C1E',
+                    color: isToday ? '#fff' : isSelected ? 'var(--s-deep)' : '#1C1C1E',
                     background: isToday
-                      ? '#007AFF'
+                      ? 'var(--s-main)'
                       : isSelected
-                      ? 'rgba(0,122,255,0.12)'
+                      ? 'rgba(var(--s-rgb),0.12)'
                       : 'transparent',
                     fontWeight: isToday || isSelected ? 700 : 600,
                   }}
@@ -212,7 +212,7 @@ export default function MonthCalendarGrid({
                   {isToday && (
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                      style={{ color: '#fff', background: '#007AFF' }}
+                      style={{ color: '#fff', background: 'var(--s-main)' }}
                     >
                       今日
                     </span>
@@ -256,7 +256,7 @@ export default function MonthCalendarGrid({
                   <span
                     onClick={(e) => emitOpenDay('more', e)}
                     className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md self-start cursor-pointer"
-                    style={{ color: '#0040DD', background: 'rgba(0,122,255,0.08)' }}
+                    style={{ color: 'var(--s-deep)', background: 'rgba(var(--s-rgb),0.08)' }}
                   >
                     +{dayEvents.length - 3} 更多…
                   </span>
@@ -274,11 +274,11 @@ export default function MonthCalendarGrid({
                       <span
                         key={j}
                         className="w-1 h-1 rounded-full"
-                        style={{ background: on ? '#34C759' : 'rgba(0,122,255,0.12)' }}
+                        style={{ background: on ? '#34C759' : 'rgba(var(--s-rgb),0.12)' }}
                       />
                     ))}
                   </div>
-                  <span className="ml-auto text-[10px] font-medium tabular-nums" style={{ color: habitDone > 0 ? '#34C759' : 'rgba(0,122,255,0.5)' }}>
+                  <span className="ml-auto text-[10px] font-medium tabular-nums" style={{ color: habitDone > 0 ? '#34C759' : 'rgba(var(--s-rgb),0.5)' }}>
                     {habitDone > 0 ? `${habitDone}/${habitTarget}` : ''}
                   </span>
                 </div>

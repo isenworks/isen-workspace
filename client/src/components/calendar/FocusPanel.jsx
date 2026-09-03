@@ -51,7 +51,7 @@ const GROUP_SURFACE = {
  */
 export default function FocusPanel({
   type = 'month',
-  accentColor = '#007AFF',
+  accentColor = 'var(--s-main)',
   title,
   tasks = [],
   progressPct = 0,
@@ -128,7 +128,7 @@ export default function FocusPanel({
           {/* 卡片右上：持平/超前/落后标签 → 统一改为完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
           <span
             className="inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
-            style={{ background: `${accentColor}18`, color: accentColor }}
+            style={{ background: 'rgba(var(--s-rgb),0.09)', color: accentColor }}
           >
             <span>{totalDone}</span>
             <span style={{ opacity: 0.35 }}>/</span>
@@ -138,7 +138,7 @@ export default function FocusPanel({
           <button
             onClick={onAdd}
             className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
-            style={{ background: `${accentColor}1a` }}
+            style={{ background: 'rgba(var(--s-rgb),0.10)' }}
             aria-label="新增主线任务"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke={accentColor} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round">
@@ -152,7 +152,7 @@ export default function FocusPanel({
       {headerExtra && <div className="mt-2">{headerExtra}</div>}
 
       {/* 分隔线 */}
-      <div className="h-px my-3" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}14, transparent)` }} />
+      <div className="h-px my-3" style={{ background: 'linear-gradient(90deg, transparent, rgba(var(--s-rgb),0.08), transparent)' }} />
 
       {/* 分组列表：方案 A · 无左色条 */}
       <div className="flex flex-col gap-[8px]">
@@ -595,7 +595,7 @@ export default function FocusPanel({
               onClick={confirmDialog.onCancel}
               style={{
                 flex: 1, padding: '14px 0', fontSize: '15px', fontWeight: 600,
-                color: '#007AFF', background: 'transparent',
+                color: 'var(--s-main)', background: 'transparent',
                 border: 'none', borderRight: '0.5px solid rgba(60,60,67,0.18)',
                 cursor: 'pointer', transition: 'background .15s',
               }}
@@ -607,13 +607,13 @@ export default function FocusPanel({
               style={{
                 flex: 1, padding: '14px 0', fontSize: '15px',
                 fontWeight: confirmDialog.danger ? 700 : 600,
-                color: confirmDialog.danger ? '#FF3B30' : '#007AFF',
+                color: confirmDialog.danger ? '#FF3B30' : 'var(--s-main)',
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 transition: 'background .15s',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = confirmDialog.danger
-                  ? 'rgba(255,59,48,0.06)' : 'rgba(0,122,255,0.06)';
+                  ? 'rgba(255,59,48,0.06)' : 'rgba(var(--s-rgb),0.06)';
               }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >{confirmDialog.confirmText || '确认'}</button>

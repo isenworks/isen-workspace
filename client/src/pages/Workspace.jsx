@@ -648,7 +648,7 @@ export default function Workspace({ user: propUser }) {
               cursor: 'pointer',
               borderRadius: '6px'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,122,255,0.08)'}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             onClick={() => handleCtxAction('edit')}
           >✏️ 编辑</div>

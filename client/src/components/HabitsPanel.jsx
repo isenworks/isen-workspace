@@ -415,7 +415,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         style={{
           background: getBg(h),
           opacity: isDragging ? 0.4 : 1,
-          borderTop: isDragOver ? '2px solid #007AFF' : '2px solid transparent',
+          borderTop: isDragOver ? '2px solid var(--s-main)' : '2px solid transparent',
           cursor: isSleep ? 'pointer' : 'grab',
           transition: 'opacity .15s, border-top-color .15s',
         }}
@@ -551,7 +551,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       <div className="glass-card p-5 flex-1">
       <div className="flex items-center justify-between section-header">
         <div className="flex items-center gap-2">
-          <span className="section-accent" style={{background:'#007AFF'}}></span>
+          <span className="section-accent" style={{background:'var(--s-main)'}}></span>
           <h3 className="section-title">习惯</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -560,17 +560,17 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" strokeWidth="3"></circle>
               <circle
                 cx="12" cy="12" r="10" fill="none"
-                stroke="#007AFF" strokeWidth="3" strokeLinecap="round"
+                stroke="var(--s-main)" strokeWidth="3" strokeLinecap="round"
                 strokeDasharray={2 * Math.PI * 10}
                 strokeDashoffset={habits.length > 0 ? 2 * Math.PI * 10 * (1 - done / habits.length) : 2 * Math.PI * 10}
               ></circle>
             </svg>
           </div>
-          <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}><span className="font-extrabold">{done}</span><span className="opacity-50 mx-0.5">/</span>{habits.length}</span>
+          <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}><span className="font-extrabold">{done}</span><span className="opacity-50 mx-0.5">/</span>{habits.length}</span>
           <button
             onClick={() => { window.__openHabitModal && window.__openHabitModal(null); }}
             className="inline-flex items-center justify-center rounded-lg text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
-            style={{ background: 'rgba(0,122,255,0.06)', color: '#007AFF' }}
+            style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
             title="添加习惯"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
@@ -618,7 +618,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         >
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-[16px] font-semibold text-[#1c1c1e] flex items-center gap-2">
-              <Moon size={18} strokeWidth={1.75} className="text-[#007AFF]" />
+              <Moon size={18} strokeWidth={1.75} className="text-[color:var(--s-main)]" />
               <span>{sleepPopover.habitName} · 睡眠记录</span>
             </h3>
             <button
@@ -638,7 +638,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                 type="time"
                 value={sleepPopover.sleepStart}
                 onChange={(e) => setSleepPopover(s => ({ ...s, sleepStart: e.target.value }))}
-                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007AFF] bg-white"
+                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
               />
             </div>
             <div>
@@ -647,7 +647,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                 type="time"
                 value={sleepPopover.sleepEnd}
                 onChange={(e) => setSleepPopover(s => ({ ...s, sleepEnd: e.target.value }))}
-                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[#007AFF] bg-white"
+                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
               />
             </div>
           </div>
@@ -730,7 +730,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               onChange={(e) => setSleepPopover(s => ({ ...s, sleepNote: e.target.value }))}
               placeholder="例如：昨晚做梦了，中间醒了一次..."
               rows={2}
-              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[#007AFF] resize-none bg-white"
+              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] resize-none bg-white"
             />
           </div>
 
@@ -745,7 +745,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
             <button
               onClick={saveSleepLog}
               className="px-4 py-2 rounded-lg text-[14px] text-white font-medium"
-              style={{ background: '#007AFF' }}
+              style={{ background: 'var(--s-main)' }}
             >
               保存
             </button>
@@ -799,7 +799,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   </div>
                   <div className="h-1.5 rounded-full bg-[#e5e5ea] overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${pct}%`, background: pct >= 100 ? '#34C759' : '#007AFF' }}
+                      style={{ width: `${pct}%`, background: pct >= 100 ? '#34C759' : 'var(--s-main)' }}
                     />
                   </div>
                 </>
@@ -823,7 +823,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                 step="1"
                 value={countLog.addValue}
                 onChange={(e) => setCountLog(s => ({ ...s, addValue: e.target.value }))}
-                className="flex-1 border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-center text-[#1c1c1e] focus:outline-none focus:border-[#007AFF] bg-white"
+                className="flex-1 border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-center text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
               />
               <button
                 onClick={() => setCountLog(s => ({ ...s, addValue: (Number(s.addValue) || 0) + 1 }))}
@@ -840,7 +840,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               onChange={(e) => setCountLog(s => ({ ...s, note: e.target.value }))}
               placeholder="记录本次打卡的感受或细节..."
               rows={3}
-              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[#007AFF] resize-none bg-white"
+              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] resize-none bg-white"
             />
           </div>
 
@@ -855,7 +855,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
             <button
               onClick={saveCountLog}
               className="px-4 py-2 rounded-lg text-[14px] text-white font-medium"
-              style={{ background: '#007AFF' }}
+              style={{ background: 'var(--s-main)' }}
             >
               保存记录
             </button>

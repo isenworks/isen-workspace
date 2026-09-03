@@ -50,12 +50,12 @@ const BTN_PRIMARY = {
   borderRadius: '9px',
   fontSize: '13px',
   fontWeight: '600',
-  background: '#007AFF',
+  background: 'var(--s-main)',
   color: '#fff',
   border: 'none',
   cursor: 'pointer',
   transition: 'all .15s',
-  boxShadow: '0 3px 8px rgba(0,122,255,0.25)'
+  boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)'
 };
 
 export default function TaskForm({ initial, defaultDate, onSaved, onCancel }) {

@@ -41,7 +41,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
         borderRadius: '10px',
       }}>
         <div style={{ fontSize: '12px', color: '#6c6c70', lineHeight: '1.5', flex: 1 }}>
-          <span style={{ fontWeight: '600', color: '#007AFF' }}>📌 固定日程</span>
+          <span style={{ fontWeight: '600', color: 'var(--s-main)' }}>📌 固定日程</span>
           <span> · 每天重复显示在时间线，仅作提醒，不可打卡</span>
         </div>
         <button
@@ -51,11 +51,11 @@ export default function FixedSchedulesPanel({ onEdit }) {
             borderRadius: '9px',
             fontSize: '13px',
             fontWeight: '600',
-            background: '#007AFF',
+            background: 'var(--s-main)',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',
-            boxShadow: '0 3px 8px rgba(0,122,255,0.25)',
+            boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)',
             display: 'flex', alignItems: 'center', gap: '4px',
             whiteSpace: 'nowrap',
           }}
@@ -99,7 +99,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
                   cursor: 'pointer',
                   transition: 'all .15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(90deg, rgba(0,122,255,0.08) 0%, transparent 65%)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(90deg, rgba(var(--s-rgb),0.08) 0%, transparent 65%)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)'; }}
                 onClick={() => onEdit?.(s)}
               >

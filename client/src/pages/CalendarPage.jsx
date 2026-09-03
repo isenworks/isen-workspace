@@ -1395,7 +1395,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
             <div className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap">
               {MODULES.filter(m => m.key !== 'others').map(m => (
-                <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color: m.color }}>
+                <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#8E8E93]">
                   <span className="w-2 h-2 rounded-full" style={{ background: m.color }} />
                   {m.label}
                 </span>

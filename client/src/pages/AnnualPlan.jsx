@@ -3540,17 +3540,17 @@ function CognitionView({
     }
   };
 
-  const BLUE = '#007AFF'; // 知力页内容固定经典蓝（不跟随主题；仅顶部 tab 按钮跟随）
+  const BLUE = 'var(--m-cognition)'; // 知力页卡片跟随知力模块色
   const BLUE_DARK = '#0062cc';  // 深蓝
-  const BLUE_LIGHT = 'rgba(0,122,255,0.08)'; // 对应今日页浅色背景 rgba(0,122,255,0.08)（仅用于"认知成长"分类底色）
-  const BLUE_BG = 'rgba(0,122,255,0.12)';
-  const S_RGB = '0,122,255'; // 知力页固定 RGB（用于 rgba(S_RGB, α) 透明合成）
+  const BLUE_LIGHT = 'rgba(var(--m-cognition-rgb),0.08)';
+  const BLUE_BG = 'rgba(var(--m-cognition-rgb),0.12)';
+  const S_RGB = 'var(--m-cognition-rgb)'; // 知力模块 RGB（用于 rgba(${S_RGB}, α) 透明合成）
   // 分类色标：4 大类固定颜色（身份识别）
   const CAT_COLORS = {
-    '认知成长': '#007AFF', // 蓝（知力主色）
-    '人际沟通': '#AF52DE', // 紫（人际/感性）
-    '商业职场': '#FF9500', // 橙（商业/行动力）
-    '人文叙事': '#34C759', // 绿（叙事/成长感）
+    '认知成长': 'var(--m-cognition)',
+    '人际沟通': 'var(--m-life)',
+    '商业职场': 'var(--m-ability)',
+    '人文叙事': 'var(--m-energy)',
   };
   const catColorOf = (c) => CAT_COLORS[c] || BLUE;
   const year = new Date().getFullYear();

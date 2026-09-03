@@ -10,17 +10,20 @@ import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
 
 // 精力状态（3档）
+// color: 弹窗按钮底色（iOS 系统色，保持原样）
+// rowColor: 习惯行内 chip 文字色（比底色加深一档，与行内 12px 小字可读性对齐；
+//           绿沿用既有 #2BAD5E，蓝/红按同 hue 加深，保持"文字一档深"统一处理）
 const ENERGY_STATES = [
-  { value: 'energized', label: '充沛', color: '#34C759' },
-  { value: 'normal',    label: '一般', color: '#007AFF' },
-  { value: 'poor',      label: '疲惫', color: '#FF3B30' },
+  { value: 'energized', label: '充沛', color: '#34C759', rowColor: '#2BAD5E' },
+  { value: 'normal',    label: '一般', color: '#007AFF', rowColor: '#0068D6' },
+  { value: 'poor',      label: '疲惫', color: '#FF3B30', rowColor: '#D70015' },
 ];
 
 // 心情状态（3档）
 const MOOD_STATES = [
-  { value: 'positive', label: '积极', color: '#34C759' },
-  { value: 'neutral',  label: '平淡', color: '#007AFF' },
-  { value: 'negative', label: '消极', color: '#FF3B30' },
+  { value: 'positive', label: '积极', color: '#34C759', rowColor: '#2BAD5E' },
+  { value: 'neutral',  label: '平淡', color: '#007AFF', rowColor: '#0068D6' },
+  { value: 'negative', label: '消极', color: '#FF3B30', rowColor: '#D70015' },
 ];
 
 // 兼容旧 wake_state 的映射（数据迁移期间）
@@ -505,11 +508,11 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   )}
                   <span className="flex-1"></span>
                   <span className="inline-flex items-center gap-1 flex-shrink-0">
-                    {energyMeta && <StateChip icon={ZapFilled} label={energyMeta.label} color="#2BAD5E" />}
+                    {energyMeta && <StateChip icon={ZapFilled} label={energyMeta.label} color={energyMeta.rowColor} />}
                     {moodMeta && energyMeta && (
                       <span className="text-[#c8c8cc]">·</span>
                     )}
-                    {moodMeta && <StateChip icon={HeartFilled} label={moodMeta.label} color="#2BAD5E" />}
+                    {moodMeta && <StateChip icon={HeartFilled} label={moodMeta.label} color={moodMeta.rowColor} />}
                   </span>
                 </div>
                 {h.sleep_note && (

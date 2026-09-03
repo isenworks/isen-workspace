@@ -233,9 +233,6 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
       {/* 导航卡片 */}
       <div className="sb-nav-card">
         <div className="sb-nav-scroll">
-          <div className="hairline mx-2 mb-3"></div>
-
-          <div className="sb-label">主要功能</div>
           {NAV_MAIN.map(item => (
             <div
               key={item.key}

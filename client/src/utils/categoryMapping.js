@@ -9,12 +9,12 @@
  * ============================================================ */
 
 const BASE_MODULES = [
-  { key: 'energy',    label: '精力', cat: 6, color: '#34C759', soft: 'rgba(52,199,89,0.08)',   weight: 0.15 },
-  { key: 'cognition', label: '知力', cat: 7, color: '#007AFF', soft: 'rgba(0,122,255,0.08)',   weight: 0.20 },
-  { key: 'ability',   label: '能力', cat: 2, color: '#FF9500', soft: 'rgba(255,149,0,0.08)',   weight: 0.25 },
-  { key: 'work',      label: '工作', cat: 1, color: '#FF3B30', soft: 'rgba(255,59,48,0.08)',   weight: 0.25 },
-  { key: 'life',      label: '生活', cat: 5, color: '#AF52DE', soft: 'rgba(175,82,222,0.08)',   weight: 0.15 },
-  { key: 'others',    label: '其他', cat: 3, color: '#8E8E93', soft: 'rgba(142,142,147,0.08)', weight: 0    },
+  { key: 'energy',    label: '精力', cat: 6, color: 'var(--m-energy)',    soft: 'rgba(var(--m-energy-rgb),0.08)',   weight: 0.15 },
+  { key: 'cognition', label: '知力', cat: 7, color: 'var(--m-cognition)', soft: 'rgba(var(--m-cognition-rgb),0.08)', weight: 0.20 },
+  { key: 'ability',   label: '能力', cat: 2, color: 'var(--m-ability)',   soft: 'rgba(var(--m-ability-rgb),0.08)',   weight: 0.25 },
+  { key: 'work',      label: '工作', cat: 1, color: 'var(--m-work)',      soft: 'rgba(var(--m-work-rgb),0.08)',      weight: 0.25 },
+  { key: 'life',      label: '生活', cat: 5, color: 'var(--m-life)',      soft: 'rgba(var(--m-life-rgb),0.08)',      weight: 0.15 },
+  { key: 'others',    label: '其他', cat: 3, color: '#8E8E93',            soft: 'rgba(142,142,147,0.08)',            weight: 0    },
 ];
 
 const LS_KEY = 'schedule_cats_v1';

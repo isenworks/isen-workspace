@@ -3,6 +3,7 @@ import { API, IS_D1_BACKEND } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, isValidHex } from '../utils/theme.js';
+import { MODULE_COLORS, getModuleColors, saveModuleColor, resetModuleColor, resetAllModuleColors, applyModuleColors, isValidHex as isValidModuleHex } from '../utils/moduleTheme.js';
 
 const ADMIN_EMAIL = '1429000825@qq.com';
 
@@ -370,6 +371,12 @@ function AppearanceTab({ themeKey, onSelect }) {
     setConfirmDel(null);
   };
 
+  const handleSaveModuleColor = (moduleKey, hex) => {
+    saveModuleColor(moduleKey, hex);
+    applyModuleColors();
+    setEditing(null);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -459,6 +466,9 @@ function AppearanceTab({ themeKey, onSelect }) {
         </label>
       </div>
 
+      {/* ===== 模块颜色分区 ===== */}
+      <ModuleColorSection onEdit={(hex, label, key) => setEditing({ mode: 'edit', hex, label, moduleKey: key })} />
+
       {/* 新增/编辑弹窗 */}
       {editing && (
         <ThemeEditorModal
@@ -466,7 +476,10 @@ function AppearanceTab({ themeKey, onSelect }) {
           initialHex={editing.hex}
           initialLabel={editing.label}
           editKey={editing.key}
-          onSave={handleSaveTheme}
+          moduleKey={editing.moduleKey}
+          onSave={editing.moduleKey
+            ? (hex, label) => handleSaveModuleColor(editing.moduleKey, hex)
+            : handleSaveTheme}
           onClose={() => setEditing(null)}
         />
       )}
@@ -501,8 +514,84 @@ function AppearanceTab({ themeKey, onSelect }) {
   );
 }
 
+/* ---- 五大模块色分区 ---- */
+function ModuleColorSection({ onEdit }) {
+  const [colors, setColors] = useState(() => getModuleColors());
+
+  const refresh = () => setColors(getModuleColors());
+
+  const handleReset = (key) => {
+    resetModuleColor(key);
+    applyModuleColors();
+    refresh();
+  };
+
+  const handleResetAll = () => {
+    resetAllModuleColors();
+    applyModuleColors();
+    refresh();
+  };
+
+  return (
+    <div style={{
+      borderTop: '1px solid #e5e5ea', paddingTop: '12px', marginTop: '4px',
+      display: 'flex', flexDirection: 'column', gap: '8px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>模块颜色</div>
+          <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>精力 / 知力 / 能力 / 工作 / 生活 五大模块分类色</div>
+        </div>
+        <button onClick={handleResetAll} style={{
+          padding: '4px 10px', borderRadius: '7px', border: 'none',
+          background: 'rgba(120,120,128,0.12)', color: '#8e8e93',
+          fontSize: '11px', fontWeight: '500', cursor: 'pointer',
+        }}>全部重置</button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        {Object.values(colors).map(m => {
+          const isDefault = m.hex === m.default;
+          return (
+            <div key={m.key} style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '7px 10px', borderRadius: '8px', background: '#f5f5f7',
+            }}>
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+                background: m.hex, boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.25)',
+              }} />
+              <span style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>{m.label}</span>
+              <span style={{
+                fontSize: '11px', color: '#8e8e93', fontFamily: 'SF Mono, Menlo, monospace',
+                flex: 1,
+              }}>{m.hex.toUpperCase()}</span>
+              <button onClick={() => onEdit(m.hex, m.label, m.key)} style={{
+                width: '24px', height: '24px', borderRadius: '6px', border: 'none',
+                background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
+              }} title="编辑">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              {!isDefault && (
+                <button onClick={() => handleReset(m.key)} style={{
+                  width: '24px', height: '24px', borderRadius: '6px', border: 'none',
+                  background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
+                }} title="重置">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ---- 主题新增/编辑弹窗 ---- */
-function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, onSave, onClose }) {
+function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, onSave, onClose }) {
   const [hex, setHex] = useState(initialHex || '#007AFF');
   const [label, setLabel] = useState(initialLabel || '');
   const valid = isValidHex(hex);
@@ -531,7 +620,7 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, onSave, onC
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>{mode === 'edit' ? '编辑主题色' : '新增主题色'}</h4>
+          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>{moduleKey ? `编辑${initialLabel || '模块'}色` : (mode === 'edit' ? '编辑主题色' : '新增主题色')}</h4>
           <button onClick={onClose} style={{
             width: '24px', height: '24px', borderRadius: '50%', border: 'none',
             background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
@@ -570,7 +659,8 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, onSave, onC
           {!valid && <div style={{ fontSize: '11px', color: '#FF3B30', marginTop: '4px' }}>格式无效，需 # + 6位十六进制</div>}
         </div>
 
-        {/* 名称输入 */}
+        {/* 名称输入（模块色模式隐藏） */}
+        {!moduleKey && (
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93', display: 'block', marginBottom: '5px' }}>名称</label>
           <input
@@ -584,6 +674,7 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, onSave, onC
             }}
           />
         </div>
+        )}
 
         {/* 效果预览（跟随输入 hex 实时渲染） */}
         <div style={{

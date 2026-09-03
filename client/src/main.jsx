@@ -7,9 +7,11 @@ import { ToastProvider } from './context/ToastContext.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { supabase } from './lib/supabase.js';
 import { initTheme } from './utils/theme.js';
+import { initModuleColors } from './utils/moduleTheme.js';
 
-// 渲染前应用持久化的工作台主题色（避免主题闪烁）
+// 渲染前应用持久化的工作台主题色 + 五大模块色（避免主题闪烁）
 initTheme();
+initModuleColors();
 
 // 调试用：暴露 supabase 到全局，方便控制台操作数据
 if (import.meta.env.DEV || true) {

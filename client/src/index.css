@@ -16,6 +16,17 @@
   --s-grad-bg: linear-gradient(135deg, #007AFF 0%, #007AFF 100%);
 }
 
+/* ====== 五大模块色变量（utils/moduleTheme.js 动态覆盖；默认 iOS 标准色） ======
+   --m-{key}       模块主色
+   --m-{key}-rgb   RGB 三元组，用于 rgba(var(--m-{key}-rgb), α) 合成各级透明底 */
+:root {
+  --m-energy: #34C759;    --m-energy-rgb: 52,199,89;
+  --m-cognition: #007AFF; --m-cognition-rgb: 0,122,255;
+  --m-ability: #FF9500;   --m-ability-rgb: 255,149,0;
+  --m-work: #FF3B30;      --m-work-rgb: 255,59,48;
+  --m-life: #AF52DE;     --m-life-rgb: 175,82,222;
+}
+
 html, body { min-height: 100%; }
 #root { min-height: 100vh; }
 

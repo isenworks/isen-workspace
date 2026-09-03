@@ -1,24 +1,24 @@
-// 成长类型配置：精力(绿) / 知力(蓝) / 能力(金)
+// 成长类型配置：精力(绿) / 知力(蓝) / 能力(金) — 跟随五大模块 CSS 变量
 export const GROWTH_TYPES = {
-  energy: { label: '精力型', color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759' },
-  mind:   { label: '知力型', color: '#007AFF', bg: '#e0ecff', borderColor: '#007AFF', doneColor: '#007AFF', lineColor: '#007AFF' },
-  skill:  { label: '能力型', color: '#FF9500', bg: '#FFF4D8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500' },
+  energy: { label: '精力型', color: 'var(--m-energy)', bg: 'rgba(var(--m-energy-rgb),0.08)', borderColor: 'var(--m-energy)', doneColor: 'var(--m-energy)', lineColor: 'var(--m-energy)' },
+  mind:   { label: '知力型', color: 'var(--m-cognition)', bg: 'rgba(var(--m-cognition-rgb),0.08)', borderColor: 'var(--m-cognition)', doneColor: 'var(--m-cognition)', lineColor: 'var(--m-cognition)' },
+  skill:  { label: '能力型', color: 'var(--m-ability)', bg: 'rgba(var(--m-ability-rgb),0.08)', borderColor: 'var(--m-ability)', doneColor: 'var(--m-ability)', lineColor: 'var(--m-ability)' },
 };
 
-// 仅用于习惯分类色选择器（圆圈色块）
+// 仅用于习惯分类色选择器（圆圈色块） — 跟随五大模块 CSS 变量
 export const GROWTH_TYPE_COLORS = {
-  energy: '#34C759',
-  mind:   '#007AFF',
-  skill:  '#FF9500',
+  energy: 'var(--m-energy)',
+  mind:   'var(--m-cognition)',
+  skill:  'var(--m-ability)',
 };
 
-// 事项分类颜色：紧急度 / 常规 / 习惯日程
+// 事项分类颜色：紧急度 / 常规 / 习惯日程 — cat 1=工作 2=能力 4=习惯(精力) 5=生活 跟随模块色
 export const CATEGORY_COLORS = {
-  1: { color: '#FF3B30', bg: '#FFEEED', borderColor: '#FF3B30', doneColor: '#FF3B30', lineColor: '#FF3B30', timeColor: '#FF3B30' },
-  2: { color: '#FF9500', bg: '#fff4d8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500', timeColor: '#FF9500' },
+  1: { color: 'var(--m-work)', bg: 'rgba(var(--m-work-rgb),0.08)', borderColor: 'var(--m-work)', doneColor: 'var(--m-work)', lineColor: 'var(--m-work)', timeColor: 'var(--m-work)' },
+  2: { color: 'var(--m-ability)', bg: 'rgba(var(--m-ability-rgb),0.08)', borderColor: 'var(--m-ability)', doneColor: 'var(--m-ability)', lineColor: 'var(--m-ability)', timeColor: 'var(--m-ability)' },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
-  4: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
-  5: { color: '#AF52DE', bg: '#f3e8ff', borderColor: '#AF52DE', doneColor: '#AF52DE', lineColor: '#AF52DE', timeColor: '#AF52DE' },
+  4: { color: 'var(--m-energy)', bg: 'rgba(var(--m-energy-rgb),0.08)', borderColor: 'var(--m-energy)', doneColor: 'var(--m-energy)', lineColor: 'var(--m-energy)', timeColor: 'var(--m-energy)' },
+  5: { color: 'var(--m-life)', bg: 'rgba(var(--m-life-rgb),0.08)', borderColor: 'var(--m-life)', doneColor: 'var(--m-life)', lineColor: 'var(--m-life)', timeColor: 'var(--m-life)' },
 };
 
 // 通用标签、输入框样式（供所有表单组件复用）

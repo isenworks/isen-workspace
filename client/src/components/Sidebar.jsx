@@ -20,10 +20,10 @@ const ICONS = {
 const NAV_MAIN = [
   { key: 'plan',     label: '计划总结' },
   { key: 'calendar', label: '日历' },
-  { key: 'annual',   label: '发展规划' },
-  { key: 'recycle',  label: '回收站' }
+  { key: 'annual',   label: '发展规划' }
 ];
 const NAV_OTHER = [
+  { key: 'recycle',  label: '回收站' },
   { key: 'settings', label: '设置' }
 ];
 
@@ -251,8 +251,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
             <div
               key={item.key}
               className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', cursor: item.key === 'settings' ? 'pointer' : 'default' }}
-              onClick={() => { if (item.key === 'settings') onSettingsClick?.(); }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', cursor: 'pointer' }}
+              onClick={() => { if (item.key === 'settings') onSettingsClick?.(); else onMenuChange?.(item.key); }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>

@@ -5296,7 +5296,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           const remain = dl ? formatRemainDuration(dl, today) : null;
           return (
             <div
-              className="text-[11px] text-ink-400 tabular-nums leading-none pl-[7px] tracking-tight"
+              className="text-[11px] text-ink-400 tabular-nums leading-none pl-[13px] tracking-tight"
               style={{ fontFamily: IOS_SANS }}>
               <span>{startStr} → {dlStr}</span>
               {remain && (

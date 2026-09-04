@@ -348,8 +348,11 @@ export default function Login() {
             <h1 className="text-[30px] font-bold leading-tight tracking-tight text-ink-900">
               个人工作台
             </h1>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-ink-600">
-              日程 · 任务 · 习惯 · 复盘，一站式管理你的每一天
+            <p className="mt-1.5 h-[22px] text-[15px] leading-relaxed text-transparent select-none" aria-hidden="true">
+              {/* 用户要求删除副标题「日程 · 任务 · 习惯 · 复盘，一站式管理你的每一天」。
+                 保留占位高度 h-[22px]，防止标题下方的视觉节奏崩塌（让标题和卡片之间仍有呼吸空间）。
+                 将来有新 slogan 再填。 */}
+              占位
             </p>
           </div>
 

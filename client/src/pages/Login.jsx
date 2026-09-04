@@ -11,18 +11,6 @@ import { IS_D1_BACKEND } from '../api/client.js';
    ===================================================================== */
 
 /* ---------- 小 SVG 图标（inline，避免引图标库；统一 20×20 stroke=2） ---------- */
-const IconEmail = ({ className = 'w-5 h-5' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="5" width="18" height="14" rx="3" />
-    <path d="m3 7 9 6 9-6" />
-  </svg>
-);
-const IconLock = ({ className = 'w-5 h-5' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="4" y="10" width="16" height="11" rx="3" />
-    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-  </svg>
-);
 const IconEye = ({ className = 'w-5 h-5' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
@@ -35,25 +23,6 @@ const IconEyeOff = ({ className = 'w-5 h-5' }) => (
     <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
     <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
     <line x1="2" y1="2" x2="22" y2="22" />
-  </svg>
-);
-const IconUser = ({ className = 'w-5 h-5' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-const IconTicket = ({ className = 'w-5 h-5' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
-    <path d="M13 5v2M13 17v2M13 11v2" />
-  </svg>
-);
-const IconKey = ({ className = 'w-5 h-5' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="7.5" cy="15.5" r="4.5" />
-    <path d="m21 2-9.6 9.6" />
-    <path d="m15.5 7.5 3 3L22 7l-3-3" />
   </svg>
 );
 const IconAlert = ({ className = 'w-4 h-4' }) => (
@@ -87,7 +56,6 @@ function Field({
   id,
   label,
   optional,
-  icon,
   error,
   hint,
   inputProps,   // 交给实际 <input /> 的所有属性（type/value/onChange/placeholder/autoComplete/.../style/className）
@@ -101,9 +69,10 @@ function Field({
   //   - 输入文字起点：pl-14 = 56px  → 至少留 16px 安全留白
   //   - 右 suffix 容器：right: 8px (right-2)，眼睛按钮 h-8 w-8(32px) → 末端约 40px
   //   - 输入文字右端：pr-12 = 48px  → 留 8px 安全间距
+  // ✅ 用户要求：删除输入框左侧图标，彻底解决图标与 placeholder / 输入文字重叠问题
   const inputClassName = [
     'input',
-    icon ? 'pl-14' : 'pl-4',
+    'pl-4',
     hasSuffix ? 'pr-12' : 'pr-4',
     inputProps?.className || '',
     error ? 'has-error' : '',
@@ -122,14 +91,6 @@ function Field({
         )}
       </div>
       <div className="relative">
-        {icon && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 transition-colors duration-150"
-          >
-            {icon}
-          </div>
-        )}
         <input
           {...inputProps}
           id={id}
@@ -391,7 +352,7 @@ export default function Login() {
           </div>
 
           {/* Card */}
-          <div className="card p-7 sm:p-8">
+          <div className="card px-10 py-8 sm:px-11 sm:py-9">
             {tabs.length > 1 && (
               <div
                 role="tablist"
@@ -426,12 +387,14 @@ export default function Login() {
               </div>
             )}
 
-            {/* 高度平滑过渡包装 */}
+            {/* 高度平滑过渡包装。
+                 ⚠️  注意：此处不用 overflow:hidden，避免 input:focus 时的外发光
+                 蓝色阴影在卡片左右两侧被"切平"（就是用户截图里看到的左右两边被切割） */}
             <div
               style={{
                 height: formHeight ? `${formHeight}px` : 'auto',
                 transition: 'height 300ms cubic-bezier(.2,.8,.2,1)',
-                overflow: 'hidden',
+                overflow: 'visible',
               }}
             >
               <form
@@ -444,7 +407,6 @@ export default function Login() {
                 <Field
                   id="login-email"
                   label="邮箱"
-                  icon={<IconEmail />}
                   error={fieldErr.email}
                   inputProps={{
                     type: 'email',
@@ -459,7 +421,6 @@ export default function Login() {
                 <Field
                   id="login-password"
                   label="密码"
-                  icon={<IconLock />}
                   error={fieldErr.password && fieldErr.password.trim() ? fieldErr.password : ''}
                   inputProps={{
                     type: showPwd ? 'text' : 'password',
@@ -487,7 +448,6 @@ export default function Login() {
                       id="reg-username"
                       label="昵称"
                       optional
-                      icon={<IconUser />}
                       inputProps={{
                         type: 'text',
                         maxLength: 20,
@@ -499,7 +459,6 @@ export default function Login() {
                     <Field
                       id="reg-invite"
                       label="邀请码"
-                      icon={<IconTicket />}
                       error={fieldErr.inviteCode}
                       hint="向管理员索取。区分大小写，但系统会自动转换为大写。"
                       inputProps={{
@@ -523,7 +482,6 @@ export default function Login() {
                       id="boot-username"
                       label="昵称"
                       optional
-                      icon={<IconUser />}
                       inputProps={{
                         type: 'text',
                         maxLength: 20,
@@ -535,7 +493,6 @@ export default function Login() {
                     <Field
                       id="boot-code"
                       label="管理员初始化口令（一次性）"
-                      icon={<IconKey />}
                       error={fieldErr.bootstrapCode}
                       hint="仅在用户表为空时可用。从 Cloudflare Pages → Secrets 粘贴初始化口令。"
                       inputProps={{

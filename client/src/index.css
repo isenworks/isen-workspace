@@ -721,16 +721,18 @@ body {
 .input:focus,
 .input:focus-visible {
   border-color: var(--s-main) !important;
-  /* 🔧 用户要求：删掉选中时的"蓝色背景"感，只保留蓝色描边 + 增加蓝色阴影。
-     之前 box-shadow 用 spread=4px（4px 环形淡蓝），在浅色页面上会让整只输入框看起来像"蓝底"。
-     现在改成两种效果叠加：
-       1) 1.5px 细光环（`0 0 0 1.5px rgba(...,0.6)`）→ 保留"蓝色线框"作为外描边
-       2) 8~10px 真实外发光（`0 0 10px rgba(...,0.25)` + `0 4px 14px rgba(...,0.25)` 下沉阴影）→ "增加蓝色阴影"
-     并且强制 background: #fff 再干掉任何浏览器 focus 伪元素默认蓝底。 */
+  /* 🔧 用户最新要求：
+       - 删掉"选中时整只框发蓝"的蓝色背景感 → 保持白底；
+       - 保留"选中时的蓝色线框" → 1.5px 外层蓝色实线描边；
+       - 增加"蓝色阴影"但不要像之前 `0 0 10px` 全向发光那样在卡片左右两侧被切平；
+         所以改为"向下投影为主 + 非常淡的 4px 四向环境光"：
+         1) 1.5px 外层蓝色描边（线框）
+         2) 0 6px 20px 下沉式蓝色投影（只向下方/右下方辐射，左右两侧几乎没光，不会被 card 边缘切）
+         3) 0 0 4px 非常薄的环境光（保证离开输入框 2~3px 内都有"发光感"，且因为 4px 太小，远达不到 card 内部留白边缘） */
   box-shadow:
-    0 0 0 1.5px rgba(var(--s-rgb), 0.85),
-    0 0 10px rgba(var(--s-rgb), 0.28),
-    0 4px 16px rgba(var(--s-rgb), 0.22)
+    0 0 0 1.5px rgba(var(--s-rgb), 0.92),
+    0 6px 22px rgba(var(--s-rgb), 0.30),
+    0 0 4px  rgba(var(--s-rgb), 0.18)
     !important;
   background: #ffffff !important;
   outline: none !important;
@@ -747,15 +749,15 @@ body {
 .input:-webkit-autofill:focus-visible {
   -webkit-text-fill-color: #1c1c1e;
   -webkit-box-shadow:
-    0 0 0 1.5px rgba(var(--s-rgb), 0.85),
-    0 0 10px rgba(var(--s-rgb), 0.28),
-    0 4px 16px rgba(var(--s-rgb), 0.22),
+    0 0 0 1.5px rgba(var(--s-rgb), 0.92),
+    0 6px 22px rgba(var(--s-rgb), 0.30),
+    0 0 4px  rgba(var(--s-rgb), 0.18),
     0 0 0 1000px #ffffff inset
     !important;
   box-shadow:
-    0 0 0 1.5px rgba(var(--s-rgb), 0.85),
-    0 0 10px rgba(var(--s-rgb), 0.28),
-    0 4px 16px rgba(var(--s-rgb), 0.22),
+    0 0 0 1.5px rgba(var(--s-rgb), 0.92),
+    0 6px 22px rgba(var(--s-rgb), 0.30),
+    0 0 4px  rgba(var(--s-rgb), 0.18),
     0 0 0 1000px #ffffff inset
     !important;
   background-color: #ffffff !important;

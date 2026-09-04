@@ -643,16 +643,21 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
                 outline: 'none', color: '#1c1c1e', background: '#fafafa',
               }}
             />
-            <input
-              type="color"
-              value={valid ? hex : '#007AFF'}
-              onChange={(e) => setHex(e.target.value)}
-              style={{
-                width: '34px', height: '34px', borderRadius: '8px',
-                border: '1px solid #e5e5ea', cursor: 'pointer', padding: 0,
-                background: 'none',
-              }}
-            />
+            <div style={{
+              width: '34px', height: '34px', borderRadius: '8px',
+              border: '1px solid #e5e5ea', overflow: 'hidden', flexShrink: 0,
+            }}>
+              <input
+                type="color"
+                value={valid ? hex : '#007AFF'}
+                onChange={(e) => setHex(e.target.value)}
+                style={{
+                  width: '200%', height: '200%', border: 'none',
+                  cursor: 'pointer', padding: 0, margin: '-50%',
+                  background: 'none', display: 'block',
+                }}
+              />
+            </div>
           </div>
           {!valid && <div style={{ fontSize: '11px', color: '#FF3B30', marginTop: '4px' }}>格式无效，需 # + 6位十六进制</div>}
         </div>

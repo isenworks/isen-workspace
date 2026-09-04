@@ -3,19 +3,153 @@
 // 文件位置：/functions/api/[[route]].js
 // 处理：GET|POST /api/*
 // 环境绑定：env.DB = D1 (Variable=DB 在 Pages Settings→Functions 绑定)
-// 可选 env：UNLOCK_PASSWORD_HASH（bcrypt/plain 都支持，不设则免解锁直进）
-//           USER_ID（单人用户 UUID，默认 50f12e1e-d561-423e-a424-d07a21d00cf2）
+// 多用户体系（2026-09 升级）新增 Secrets（推荐在 Cloudflare Worker Secrets 设置）：
+//   HMAC_SECRET             → token 签名密钥（不设会用 REGISTER_INVITE_CODE + 默认串降级）
+//   REGISTER_INVITE_CODE    → 新注册必须匹配的邀请码（不设则关闭注册，只有 owner 能用）
+//   BOOTSTRAP_OWNER_CODE    → 一次性初始化 owner 账号的口令（部署后首次使用）
 // ============================================================
 
 // 农历库（lunar-javascript，vendored UMD）：农历/节气/节日换算
 import lunarLib from '../lib/lunar.js';
 
 const DEFAULT_USER_ID = '50f12e1e-d561-423e-a424-d07a21d00cf2';
+const PBKDF2_ITER = 100000;
+const PBKDF2_PREFIX = '$pbkdf2-sha256$';
 
 // ------------------------------------------------------------
-// 工具函数
+// Base64 URL-safe（无填充）
+// ------------------------------------------------------------
+function ab2b64url(ab) {
+  // 先转普通 base64，再替换为 url-safe + 去填充
+  let s = '';
+  const bytes = new Uint8Array(ab);
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  // @ts-ignore: btoa 全局浏览器/Workers 均存在
+  return (typeof btoa !== 'undefined' ? btoa(s) : Buffer.from(bytes).toString('base64'))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+function b64urlDecodeToArray(s) {
+  let b = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (b.length % 4) b += '=';
+  if (typeof atob !== 'undefined') {
+    const t = atob(b);
+    const arr = new Uint8Array(t.length);
+    for (let i = 0; i < t.length; i++) arr[i] = t.charCodeAt(i);
+    return arr;
+  }
+  return new Uint8Array(Buffer.from(b, 'base64'));
+}
+function str2ab(s) {
+  const arr = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) arr[i] = s.charCodeAt(i) & 0xff;
+  return arr;
+}
+function ab2hex(ab) {
+  const a = new Uint8Array(ab);
+  let s = '';
+  for (let i = 0; i < a.length; i++) s += a[i].toString(16).padStart(2, '0');
+  return s;
+}
+function hex2ab(h) {
+  const arr = new Uint8Array(Math.floor(h.length / 2));
+  for (let i = 0; i < arr.length; i++) arr[i] = parseInt(h.slice(i * 2, i * 2 + 2), 16);
+  return arr;
+}
+
+// ------------------------------------------------------------
+// HMAC-SHA256 token：<b64url(uid)>.<b64url(hmac(secret, uid))>
+// ------------------------------------------------------------
+async function hmacSha256(secretStr, dataStr) {
+  const enc = (s) => new TextEncoder().encode(s);
+  const key = await crypto.subtle.importKey(
+    'raw', enc(secretStr), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  return crypto.subtle.sign('HMAC', key, enc(dataStr));
+}
+function getTokenSecret(env) {
+  const s = env.HMAC_SECRET || env.WORKER_SECRET || null;
+  if (s) return String(s).trim();
+  // 降级（仅首次部署过渡用，风险可接受）
+  const fallback = (env.REGISTER_INVITE_CODE || 'workspace-local') + '|' + (env.USER_ID || DEFAULT_USER_ID);
+  return fallback;
+}
+async function signToken(uid, env) {
+  const secret = getTokenSecret(env);
+  const uidPart = ab2b64url(str2ab(String(uid)));
+  const sig = await hmacSha256(secret, String(uid));
+  return uidPart + '.' + ab2b64url(sig);
+}
+async function verifyToken(token, env) {
+  if (!token || typeof token !== 'string') return null;
+  const idx = token.lastIndexOf('.');
+  if (idx <= 0) return null;
+  const uidB64 = token.slice(0, idx);
+  const sigB64 = token.slice(idx + 1);
+  let uid;
+  try { uid = new TextDecoder().decode(b64urlDecodeToArray(uidB64).buffer); }
+  catch { return null; }
+  const expectedSig = await hmacSha256(getTokenSecret(env), uid);
+  const expected = ab2b64url(expectedSig);
+  // 常量时间比较
+  if (sigB64.length !== expected.length) return null;
+  let diff = 0;
+  for (let i = 0; i < sigB64.length; i++) diff |= sigB64.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0 ? String(uid) : null;
+}
+
+// ------------------------------------------------------------
+// 密码哈希：PBKDF2-SHA256 格式 $pbkdf2-sha256$100000$<salt_hex>$<hash_hex>
+// ------------------------------------------------------------
+async function hashPassword(password) {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const pwBytes = new TextEncoder().encode(String(password || ''));
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', pwBytes, 'PBKDF2', false, ['deriveBits']
+  );
+  const hashBits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: saltBytes, iterations: PBKDF2_ITER, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  const saltHex = ab2hex(saltBytes.buffer);
+  const hashHex = ab2hex(hashBits);
+  return `${PBKDF2_PREFIX}${PBKDF2_ITER}$${saltHex}$${hashHex}`;
+}
+async function verifyPassword(password, stored) {
+  if (!stored || typeof stored !== 'string') return false;
+  // PBKDF2 格式
+  if (stored.startsWith(PBKDF2_PREFIX)) {
+    const rest = stored.slice(PBKDF2_PREFIX.length);
+    const parts = rest.split('$');
+    if (parts.length !== 3) return false;
+    const iter = parseInt(parts[0], 10);
+    const saltHex = parts[1];
+    const hashHex = parts[2];
+    if (!iter || !saltHex || !hashHex) return false;
+    const pwBytes = new TextEncoder().encode(String(password || ''));
+    const saltArr = hex2ab(saltHex);
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw', pwBytes, 'PBKDF2', false, ['deriveBits']
+    );
+    const gotBits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt: saltArr.buffer, iterations: iter, hash: 'SHA-256' },
+      keyMaterial, 256
+    );
+    const gotHex = ab2hex(gotBits);
+    if (gotHex.length !== hashHex.length) return false;
+    let diff = 0;
+    for (let i = 0; i < gotHex.length; i++) diff |= gotHex.charCodeAt(i) ^ hashHex.charCodeAt(i);
+    return diff === 0;
+  }
+  // 兼容：UNLOCK_PASSWORD 明文（单人模式遗留，如果部署者填明文就当明文对比）
+  return stored === String(password || '');
+}
+
+// ------------------------------------------------------------
+// 当前登录用户 ID 解析（从 X-Unlock-Token = HMAC token）
+//   uid() 优先从挂载在 env 上的解析缓存取；onRequest 首次调用时写缓存
 // ------------------------------------------------------------
 function uid(env) {
+  if (env && env.__CURRENT_USER_ID__) return env.__CURRENT_USER_ID__;
   return env.USER_ID || DEFAULT_USER_ID;
 }
 
@@ -65,11 +199,10 @@ function calcStreak(logs) {
   return streak;
 }
 
-// 简单密码比对（纯文本足够，单用户场景 bcrypt 需要额外依赖不便）
+// 旧 checkUnlock 仅兼容（现在走 HMAC token 校验）
 function checkUnlock(env, token) {
-  const expected = env.UNLOCK_PASSWORD;
-  if (!expected) return true;
-  return token === expected;
+  void env; void token;
+  return true;
 }
 
 // D1 批量执行辅助：把数组 bind，只返回结果
@@ -91,6 +224,44 @@ function toInt(v, dflt = 0) {
 }
 function toBoolInt(v) {
   return v ? 1 : 0;
+}
+
+// 简单邮箱格式校验
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// ------------------------------------------------------------
+// ethan_users：账号表（多用户体系 2026-09 新建）
+//   注意：用户表是独立 TEXT id（UUID），与 ethan_* 业务表的 user_id 类型完全对齐
+// ------------------------------------------------------------
+async function ensureUsersTable(env) {
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      username TEXT,
+      avatar TEXT,
+      is_owner INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT
+    ) WITHOUT ROWID`).run();
+  } catch (_) {
+    // 某些 SQLite 版本不支持 WITHOUT ROWID 再退化重试：纯 TEXT PK 也行
+    try {
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_users (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        username TEXT,
+        avatar TEXT,
+        is_owner INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT
+      )`).run();
+    } catch (_) {}
+  }
+  // 字段扩展迁移（兼容从 UNLOCK_PASSWORD 单人 → 多用户升级）
+  // 如果 ethan_users 空、但 eth_habits 已有归属 DEFAULT_USER_ID，则 owner 信息稍后通过 bootstrapOwner 插入
 }
 
 // ------------------------------------------------------------
@@ -149,6 +320,17 @@ function validateDate(input) {
   return { valid: true, value: normalized };
 }
 
+// 白名单：无需登录即可访问的接口
+const PUBLIC_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/bootstrapOwner',
+  '/api/auth/unlock',    // 旧接口兼容
+  '/api/auth/me',        // 未登录返回 null 给前端判断
+  '/api/auth/logout',
+  '/api/health',
+]);
+
 // ------------------------------------------------------------
 // 请求分发器
 // ------------------------------------------------------------
@@ -160,11 +342,24 @@ export async function onRequest(context) {
 
   if (method === 'OPTIONS') return json({ ok: true });
 
-  // CORS 预检通过后，检查解锁密码（如启用）
-  const unlockToken = request.headers.get('X-Unlock-Token') || url.searchParams.get('unlock') || '';
-  if (!checkUnlock(env, unlockToken)) {
-    return json({ error: '需要解锁密码' }, 401);
+  // 1) 确保 ethan_users 表存在（懒迁移，任何请求都能触发）
+  try { await ensureUsersTable(env); } catch (_) {}
+
+  // 2) 从 X-Unlock-Token 取 HMAC token 并解析（现在不再是"解锁密码"，是真实登录凭证）
+  const rawToken = request.headers.get('X-Unlock-Token') || url.searchParams.get('unlock') || '';
+  let curUserId = null;
+  let currentUser = null;
+  if (rawToken) {
+    curUserId = await verifyToken(rawToken, env);
+    if (curUserId) {
+      try {
+        currentUser = await dbFirst(env.DB, `SELECT id, email, username, avatar, is_owner FROM ethan_users WHERE id = ?`, [curUserId]);
+      } catch (_) { currentUser = null; }
+      if (!currentUser) curUserId = null; // token 合法但用户被删了 → 失效
+    }
   }
+  // 解析结果挂 env，后续所有 handleXxx 里调用 uid(env) 能直接拿到
+  if (curUserId) env.__CURRENT_USER_ID__ = curUserId;
 
   const q = Object.fromEntries(url.searchParams.entries());
   let body = null;
@@ -174,16 +369,45 @@ export async function onRequest(context) {
   // list 类接口兼容 GET/POST：POST 时把 body 参数合并到 q
   const qOrBody = method === 'GET' ? q : (body || {});
 
+  // 3) 登录保护：非白名单接口必须有 curUserId
+  const isPublic = PUBLIC_PATHS.has(path)
+    || path.startsWith('/api/weread/')
+    || path.startsWith('/api/cover/')
+    || path === '/api/birthday-migrate'
+    || path === '/api/migrate';
+  if (!isPublic && !curUserId) {
+    return json({ error: '需要登录' }, 401);
+  }
+
   try {
     // ------------------------------------------------------------
-    // /api/auth/*
+    // /api/auth/*  — 多用户账号体系
     // ------------------------------------------------------------
+    if (path === '/api/auth/bootstrapOwner' && method === 'POST') {
+      return handleAuthBootstrapOwner(env, body);
+    }
+    if (path === '/api/auth/register' && method === 'POST') {
+      return handleAuthRegister(env, body);
+    }
+    if (path === '/api/auth/login' && (method === 'POST' || method === 'GET')) {
+      return handleAuthLogin(env, body, method, currentUser);
+    }
     if (path === '/api/auth/me' && method === 'GET') {
-      return json({ user: { id: uid(env), email: env.USER_EMAIL || '1429000825@qq.com', username: env.USER_NAME || 'Ethan', avatar: env.USER_AVATAR || '', is_banned: false } });
+      if (!currentUser) return json({ user: null });
+      return json({
+        user: {
+          id: currentUser.id,
+          email: currentUser.email,
+          username: currentUser.username || currentUser.email.split('@')[0],
+          avatar: currentUser.avatar || '',
+          is_owner: !!currentUser.is_owner,
+          is_banned: false,
+        },
+      });
     }
     if (path === '/api/auth/unlock' && method === 'POST') {
-      if (!checkUnlock(env, body?.password || '')) return json({ error: '密码错误' }, 401);
-      return json({ ok: true, user: { id: uid(env), username: env.USER_NAME || 'Ethan', avatar: '', email: '' } });
+      // 旧接口兼容：尝试 password 作为账号密码登录
+      return handleAuthLogin(env, { email: '', password: body?.password || '' }, 'POST', currentUser);
     }
     if (path === '/api/auth/logout' && method === 'POST') return json({ ok: true });
 
@@ -252,12 +476,6 @@ export async function onRequest(context) {
     if (path === '/api/recycleBin/restore' && method === 'POST') return handleRecycleBinRestore(env, body);
     if (path === '/api/recycleBin/remove' && method === 'POST') return handleRecycleBinRemove(env, body);
     if (path === '/api/recycleBin/clear' && method === 'POST') return handleRecycleBinClear(env);
-
-    // ------------------------------------------------------------
-    // /api/auth/*  — 工作台解锁（部署者可选：设置 Pages Var UNLOCK_PASSWORD_HASH 开启）
-    //              — 未设置 Var 时：直接放行（个人私用工作台默认免密码）
-    // ------------------------------------------------------------
-    if (path === '/api/auth/login') return handleAuthLogin(env, body, method);
 
     // ------------------------------------------------------------
     // /api/userSettings/*  — 用户级配置（weread key 等）D1 ethan_user_settings
@@ -1091,41 +1309,141 @@ async function handleRecycleBinClear(env) {
   return json({ ok: true });
 }
 
-// ---------------- auth.login：工作台解锁（D1单人模式）
-// 规则（双保险·小白友好）：
-//   ① Pages Variables 里没设 UNLOCK_PASSWORD_HASH → 永远 ok=true 免密码
-//   ② 设了但值"不是 bcrypt $2a$ 前缀" → 当明文密码对比（部署者直接写"123456"也能用）
-//   ③ 设了且是 $2a$/$2b$ 前缀 → 优先 bcryptjs.compareSync，模块不存在时降级明文
-async function handleAuthLogin(env, body, method) {
-  const DEFAULT_USER_ID = '50f12e1e-d561-423e-a424-d07a21d00cf2';
-  if (method !== 'POST' && method !== 'GET') return json({ ok: false, error: 'Method Not Allowed' }, 405);
+// ---------------- 安全用户返回
+function safeUser(u) {
+  if (!u) return null;
+  return {
+    id: u.id,
+    email: u.email,
+    username: u.username || (u.email || '').split('@')[0],
+    avatar: u.avatar || '',
+    is_owner: !!u.is_owner,
+  };
+}
+// 通用"邮箱或密码错误"（防用户枚举）
+const AUTH_FAIL = { error: '邮箱或密码错误', code: 'AUTH_FAIL' };
+
+// ---------------- auth.bootstrapOwner：一次性创建 owner 账号（id=DEFAULT_USER_ID）
+// 只有当 ethan_users 完全为空、且传入的 bootstrap_code === env.BOOTSTRAP_OWNER_CODE 时执行
+// 执行成功后自动把 BOOTSTRAP_OWNER_CODE 标记为已使用（写 ethan_user_settings），之后无法重复调用
+async function handleAuthBootstrapOwner(env, body) {
+  const data = body || {};
+  const code = String(data.bootstrap_code || '').trim();
+  const email = String(data.email || '').trim().toLowerCase();
+  const username = String(data.username || '').trim();
+  const password = String(data.password || '');
+  const expected = env.BOOTSTRAP_OWNER_CODE ? String(env.BOOTSTRAP_OWNER_CODE).trim() : '';
+  if (!expected) return json({ error: '未配置 BOOTSTRAP_OWNER_CODE，请在 Cloudflare Pages → Settings → Secrets 中设置后重试。' }, 400);
+  if (code !== expected) return json({ error: 'bootstrap_code 不匹配' }, 403);
+  if (!EMAIL_RE.test(email)) return json({ error: '邮箱格式不正确' }, 400);
+  if (password.length < 6) return json({ error: '密码至少 6 位' }, 400);
+
+  await ensureUsersTable(env);
+  // 一次性锁：ethan_users 已经有 owner 行 / 已消耗过 bootstrap_code
+  const marker = await dbFirst(env.DB, `SELECT v FROM ethan_user_settings WHERE user_id='0' AND k='owner_bootstrapped'`).catch(() => null);
+  if (marker) return json({ error: 'owner 账号已初始化，无需再次执行（如需要重置，请先 DELETE FROM ethan_users WHERE is_owner=1 并删除 ethan_user_settings owner_bootstrapped 标记）' }, 409);
+  const existingOwner = await dbFirst(env.DB, `SELECT id FROM ethan_users WHERE is_owner = 1`);
+  if (existingOwner) return json({ error: 'owner 账号已存在' }, 409);
+
+  let owner = await dbFirst(env.DB, `SELECT * FROM ethan_users WHERE email = ?`, [email]);
+  const passwordHash = await hashPassword(password);
+  const now = nowIso();
+  if (!owner) {
+    await env.DB.prepare(`INSERT INTO ethan_users (id, email, password_hash, username, avatar, is_owner, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?)`).bind(
+        DEFAULT_USER_ID, email, passwordHash,
+        (username || email.split('@')[0]),
+        ((username || email || 'E').slice(0, 1).toUpperCase()),
+        now, now
+      ).run();
+    owner = await dbFirst(env.DB, `SELECT * FROM ethan_users WHERE id = ?`, [DEFAULT_USER_ID]);
+  } else {
+    await env.DB.prepare(`UPDATE ethan_users SET password_hash=?, username=?, is_owner=1, updated_at=? WHERE id=?`)
+      .bind(passwordHash, (username || owner.username || email.split('@')[0]), now, owner.id).run();
+    owner = await dbFirst(env.DB, `SELECT * FROM ethan_users WHERE id = ?`, [owner.id]);
+  }
+  // 写入已消耗标记（虚拟 user_id='0' 全局配置）
   try {
-    const configured = (env && env.UNLOCK_PASSWORD_HASH) ? String(env.UNLOCK_PASSWORD_HASH).trim() : '';
-    // ① 未配置解锁密码 → 直接放行
-    if (!configured) {
-      return json({ ok: true, skip: true, token: '', user: { id: DEFAULT_USER_ID } }, 200);
-    }
-    // 特殊值：部署者填 "EMPTY_DISABLE_LOGIN_2026" → 也关闭解锁
-    if (configured === 'EMPTY_DISABLE_LOGIN_2026' || configured === 'DISABLE' || configured === 'OFF') {
-      return json({ ok: true, skip: true, token: '', user: { id: DEFAULT_USER_ID } }, 200);
-    }
-    const pass = String(body?.password || '').trim();
-    let ok = false;
-    const isHash = /^\$2[ayb]\$/.test(configured);
-    if (isHash) {
-      try {
-        const bcrypt = require('bcryptjs');
-        ok = bcrypt.compareSync(pass || '', configured);
-      } catch (_) {
-        ok = (pass === configured); // 模块缺失降级明文
-      }
-    } else {
-      ok = (pass === configured);
-    }
-    if (ok) return json({ ok: true, token: '', user: { id: DEFAULT_USER_ID } }, 200);
-    return json({ ok: false, error: '密码错误' }, 401);
+    await env.DB.prepare(`INSERT INTO ethan_user_settings(user_id,k,v,updated_at) VALUES('0','owner_bootstrapped',?,?)
+      ON CONFLICT(user_id,k) DO UPDATE SET v=excluded.v, updated_at=excluded.updated_at`)
+      .bind('1', nowIso()).run();
+  } catch (_) {}
+
+  const token = await signToken(owner.id, env);
+  return json({ ok: true, user: safeUser(owner), token });
+}
+
+// ---------------- auth.register：普通用户注册（需要 REGISTER_INVITE_CODE）
+async function handleAuthRegister(env, body) {
+  const data = body || {};
+  const invite = String(data.invite_code || data.inviteCode || '').trim().toUpperCase();
+  const expected = env.REGISTER_INVITE_CODE ? String(env.REGISTER_INVITE_CODE).trim().toUpperCase() : '';
+  if (!expected) return json({ error: '管理员未开放注册（请在 Cloudflare Pages Secrets 设置 REGISTER_INVITE_CODE）' }, 403);
+  if (!invite || invite !== expected) return json({ error: '邀请码无效或已过期' }, 403);
+  const email = String(data.email || '').trim().toLowerCase();
+  const username = String(data.username || '').trim();
+  const password = String(data.password || '');
+  if (!EMAIL_RE.test(email)) return json({ error: '邮箱格式不正确' }, 400);
+  if (password.length < 6) return json({ error: '密码至少 6 位' }, 400);
+
+  await ensureUsersTable(env);
+  const exists = await dbFirst(env.DB, `SELECT id FROM ethan_users WHERE email = ?`, [email]);
+  if (exists) return json({ error: AUTH_FAIL.error }, 400);
+
+  // 新用户 UUID
+  let newId = crypto.randomUUID ? crypto.randomUUID() : null;
+  if (!newId) {
+    const rnd = crypto.getRandomValues(new Uint8Array(16));
+    rnd[6] = (rnd[6] & 0x0f) | 0x40; rnd[8] = (rnd[8] & 0x3f) | 0x80;
+    newId = Array.from(rnd).map((b, i) =>
+      ([4, 6, 8, 10].includes(i) ? '-' : '') + b.toString(16).padStart(2, '0')).join('');
+  }
+  const passwordHash = await hashPassword(password);
+  const now = nowIso();
+  await env.DB.prepare(`INSERT INTO ethan_users (id, email, password_hash, username, avatar, is_owner, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 0, ?, ?)`).bind(
+      newId, email, passwordHash,
+      (username || email.split('@')[0]),
+      ((username || email || 'U').slice(0, 1).toUpperCase()),
+      now, now
+    ).run();
+  const user = await dbFirst(env.DB, `SELECT * FROM ethan_users WHERE id = ?`, [newId]);
+  const token = await signToken(user.id, env);
+  return json({ ok: true, user: safeUser(user), token });
+}
+
+// ---------------- auth.login：邮箱 + 密码登录，返回 HMAC token
+async function handleAuthLogin(env, body, method, currentUser) {
+  if (method === 'GET') {
+    // 健康检查 / 前端探测接口
+    const invite = env.REGISTER_INVITE_CODE ? String(env.REGISTER_INVITE_CODE).trim() : '';
+    const bootstrap = env.BOOTSTRAP_OWNER_CODE ? String(env.BOOTSTRAP_OWNER_CODE).trim() : '';
+    return json({
+      ok: true,
+      modes: {
+        ownerBootstrap: !!bootstrap,
+        openRegister: !!invite,
+      },
+      user: currentUser ? safeUser(currentUser) : null,
+    });
+  }
+  if (method !== 'POST') return json({ error: 'Method Not Allowed' }, 405);
+  try {
+    const data = body || {};
+    const email = String(data.email || '').trim().toLowerCase();
+    const password = String(data.password || '');
+    if (!EMAIL_RE.test(email) || !password) return json({ ...AUTH_FAIL }, 401);
+
+    await ensureUsersTable(env);
+    const row = await dbFirst(env.DB, `SELECT * FROM ethan_users WHERE email = ?`, [email]);
+    if (!row) return json({ ...AUTH_FAIL }, 401);
+    const pwOk = await verifyPassword(password, row.password_hash);
+    if (!pwOk) return json({ ...AUTH_FAIL }, 401);
+
+    const token = await signToken(row.id, env);
+    return json({ ok: true, token, user: safeUser(row) }, 200);
   } catch (e) {
-    return json({ ok: false, error: String(e.message || e) }, 500);
+    return json({ error: String(e.message || e) }, 500);
   }
 }
 

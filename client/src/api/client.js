@@ -18,14 +18,17 @@ function unlockToken() {
 
 // D1 模式：通用 fetch 包装
 async function fetchPages(path, body = {}, method = 'POST') {
-  const res = await fetch('/api' + path, {
+  const isGET = String(method).toUpperCase() === 'GET';
+  const hdrs = {
+    'X-Unlock-Token': unlockToken(),
+  };
+  if (!isGET) hdrs['Content-Type'] = 'application/json';
+  const init = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Unlock-Token': unlockToken(),
-    },
-    body: JSON.stringify(body),
-  });
+    headers: hdrs,
+  };
+  if (!isGET) init.body = JSON.stringify(body || {});
+  const res = await fetch('/api' + path, init);
   let data;
   try { data = await res.json(); } catch { data = null; }
   if (!res.ok || data?.error) {
@@ -102,20 +105,36 @@ export const API = IS_D1_BACKEND
 function buildD1API() {
   return {
     auth: {
-      // 单人模式：没有「注册」，但保持接口兼容（直接登录）
-      async register() {
-        return { user: { id: DEFAULT_USER_ID }, session: null };
+      // D1 多用户：POST /auth/register（需要 invite_code）
+      async register(email, password, { username, avatar, inviteCode } = {}) {
+        const res = await fetchPages('/auth/register', {
+          email: (email || '').trim(),
+          password: String(password || ''),
+          username: (username || '').trim(),
+          avatar: avatar || '',
+          invite_code: (inviteCode || '').trim(),
+        });
+        // 登录凭证写入 localStorage
+        if (res?.token) localStorage.setItem('pw_unlock_token', String(res.token));
+        const u = res?.user || null;
+        if (u) localStorage.setItem('pw_user', JSON.stringify(u));
+        return { user: u, session: null };
       },
-      // 单人模式：密码匹配 Pages Functions 侧校验（若设置），否则免登录直进
+      // D1 多用户：POST /auth/login（邮箱 + 密码）
       async login(email, password) {
-        const res = await fetchPages('/auth/login', { email, password });
-        localStorage.setItem('pw_unlock_token', res.token || '');
-        localStorage.setItem('pw_user', JSON.stringify(res.user || { id: DEFAULT_USER_ID }));
-        return { user: res.user || { id: DEFAULT_USER_ID }, session: null };
+        const res = await fetchPages('/auth/login', {
+          email: (email || '').trim(),
+          password: String(password || ''),
+        });
+        if (res?.token) localStorage.setItem('pw_unlock_token', String(res.token));
+        const u = res?.user || null;
+        if (u) localStorage.setItem('pw_user', JSON.stringify(u));
+        return { user: u, session: null };
       },
       async me() {
-        const res = await fetchPages('/auth/me');
-        localStorage.setItem('pw_user', JSON.stringify(res.user));
+        const res = await fetchPages('/auth/me', {}, 'GET');
+        if (res?.user) localStorage.setItem('pw_user', JSON.stringify(res.user));
+        else { localStorage.removeItem('pw_user'); localStorage.removeItem('pw_unlock_token'); }
         return res;
       },
       async updateMe({ avatar }) {
@@ -133,7 +152,8 @@ function buildD1API() {
         });
         await fetchPages('/auth/updateMe', { avatar: dataUrl });
         const prev = JSON.parse(localStorage.getItem('pw_user') || '{}');
-        localStorage.setItem('pw_user', JSON.stringify({ ...prev, avatar: dataUrl }));
+        const next = { ...prev, avatar: dataUrl };
+        localStorage.setItem('pw_user', JSON.stringify(next));
         return { avatar: dataUrl };
       },
       async logout() {

@@ -21,10 +21,13 @@ db.pragma('foreign_keys = ON');
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
+    username TEXT,
+    password TEXT NOT NULL,            -- pbkdf2-sha256 或 bcrypt hash（兼容旧 bcrypt）
+    email TEXT UNIQUE,                 -- 邮箱作为主登录凭证（2026-09 多用户升级）
     avatar TEXT DEFAULT 'E',
-    created_at TEXT DEFAULT (datetime('now'))
+    is_owner INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT
   );
 
   CREATE TABLE IF NOT EXISTS schedules (
@@ -171,6 +174,49 @@ try {
   });
 } catch (e) {
   console.warn('migrate habit_logs extension warn:', e.message);
+}
+
+// users 表迁移：对齐 D1 ethan_users 多用户模式（email/is_owner/updated_at）
+try {
+  let cols = db.prepare("PRAGMA table_info(users)").all();
+  const has = (n) => cols.some(c => c.name === n);
+  const addCols = [
+    ['email',      'TEXT UNIQUE', null],  // SQLite 不支持 ALTER COLUMN，因此 UNIQUE 通过 CREATE UNIQUE INDEX 事后补
+    ['password',   'TEXT NOT NULL DEFAULT \'\'', null],   // 理论上已经有，但防旧表结构差异
+    ['is_owner',   'INTEGER NOT NULL DEFAULT 0', 0],
+    ['updated_at', 'TEXT', null],
+  ];
+  addCols.forEach(([name, def]) => {
+    if (!has(name)) {
+      try { db.exec(`ALTER TABLE users ADD COLUMN ${name} ${def}`); }
+      catch (e2) { console.warn(`  alter users add ${name} skip:`, e2.message); }
+    }
+  });
+  // username 从 UNIQUE NOT NULL → 可能为空兼容（保留 UNIQUE 即可，SQLite 不支持 DROP UNIQUE）
+  // email 唯一性：若没 UNIQUE 约束，加一个 UNIQUE INDEX 弥补
+  cols = db.prepare("PRAGMA table_info(users)").all();
+  const emailCol = cols.find(c => c.name === 'email');
+  if (emailCol) {
+    try {
+      db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+    } catch (e2) { console.warn('  create idx_users_email skip:', e2.message); }
+  }
+  // 兼容：旧系统 username 就是邮箱的话，同步迁移 email=username
+  try {
+    const rows = db.prepare(`SELECT id, username FROM users WHERE email IS NULL OR email = ''`).all();
+    if (rows && rows.length) {
+      const upd = db.prepare(`UPDATE users SET email = ? WHERE id = ? AND (email IS NULL OR email = '')`);
+      const tx = db.transaction((arr) => arr.forEach(r => {
+        const e = String(r.username || '').includes('@') ? String(r.username) : `${String(r.username || 'user' + r.id)}@local.dev`;
+        upd.run(e, r.id);
+      }));
+      tx(rows);
+    }
+    // 把 id=1（本地 demo 用户）标记成 owner，对齐线上 DEFAULT_USER_ID 的 owner 权限
+    db.prepare(`UPDATE users SET is_owner = 1 WHERE id = 1 AND is_owner = 0`).run();
+  } catch (e2) { console.warn('  users email migration skip:', e2.message); }
+} catch (e) {
+  console.warn('migrate users extension warn:', e.message);
 }
 
 export default db;

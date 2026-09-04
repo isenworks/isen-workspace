@@ -5,12 +5,14 @@ import { API, IS_D1_BACKEND } from '../api/client.js';
 const AuthContext = createContext(null);
 
 const USER_KEY = 'pw_user';
-const UNLOCKED_KEY = 'pw_unlocked_v1'; // D1 模式：本地解锁标记
+const UNLOCKED_KEY = 'pw_unlocked_v1'; // 已弃用（保留用于清理老版本缓存）
+const TOKEN_KEY = 'pw_unlock_token';   // HMAC token（前端不改键名，兼容老用户 localStorage）
 const DEFAULT_D1_USER = Object.freeze({
   id: '50f12e1e-d561-423e-a424-d07a21d00cf2',
-  email: '1429000825@qq.com',
-  username: 'Ethan',
+  email: '',
+  username: '',
   avatar: '',
+  is_owner: false,
   is_banned: false,
 });
 
@@ -21,7 +23,15 @@ function readCachedUser() {
   } catch { return null; }
 }
 function writeCachedUser(u) {
-  localStorage.setItem(USER_KEY, JSON.stringify(u));
+  if (!u) localStorage.removeItem(USER_KEY);
+  else localStorage.setItem(USER_KEY, JSON.stringify(u));
+}
+function readToken() {
+  try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
+}
+function writeToken(t) {
+  if (!t) localStorage.removeItem(TOKEN_KEY);
+  else localStorage.setItem(TOKEN_KEY, String(t));
 }
 
 export function AuthProvider({ children }) {
@@ -29,40 +39,59 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // ------------------------------------------------------------
-  // D1 模式：本地单人解锁（无 Supabase Auth）
+  // D1 模式：根据 token /me 校验启动态
+  //   - 有缓存 user 且有 token → 调 /auth/me 核对后端用户是否仍存在
+  //   - 没有 token 或 me 返回 null → 清空，user=null 进入登录页
   // ------------------------------------------------------------
   useEffect(() => {
     if (!IS_D1_BACKEND) return;
     let mounted = true;
+    // 清理旧版本遗留的解锁标记（新体系不再使用）
+    try { localStorage.removeItem(UNLOCKED_KEY); } catch (_) {}
 
     (async () => {
+      const token = readToken();
       const cached = readCachedUser();
-      const unlocked = localStorage.getItem(UNLOCKED_KEY) === '1';
-      // 若有缓存用户，或者未设置解锁密码（默认免登录），直接进入
-      if (cached || unlocked) {
-        const u = cached || { ...DEFAULT_D1_USER };
-        writeCachedUser(u);
-        if (mounted) {
-          setUser(u);
-          setLoading(false);
-        }
+      if (!token) {
+        // 没有有效 token：不允许"默认进入"（新多用户体系强制登录）
+        writeCachedUser(null);
+        if (mounted) { setUser(null); setLoading(false); }
         return;
       }
-      // 询问后端是否设置了解锁密码（没有则直接放行）
       try {
-        const res = await API.auth.login('', '');
-        if (res?.user) {
-          writeCachedUser(res.user);
-          localStorage.setItem(UNLOCKED_KEY, '1');
-          if (mounted) setUser(res.user);
+        const me = await API.auth.me();
+        const u = me?.user;
+        if (u) {
+          writeCachedUser(u);
+          if (mounted) { setUser(u); setLoading(false); }
+        } else {
+          writeCachedUser(null);
+          writeToken('');
+          if (mounted) { setUser(null); setLoading(false); }
         }
-      } catch {
-        // 后端提示需要解锁密码：保持 user=null，loading=false
+      } catch (err) {
+        // 401 / 网络错误：清空登录态（避免死循环，下次进入登录）
+        writeCachedUser(null);
+        writeToken('');
+        if (mounted) { setUser(null); setLoading(false); }
       }
-      if (mounted) setLoading(false);
     })();
 
-    return () => { mounted = false; };
+    // 响应 API 层主动发起的"登出"（如 401 时的 pw:auth-expired）
+    const onAuthExpired = () => {
+      writeCachedUser(null);
+      writeToken('');
+      if (mounted) setUser(null);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pw:auth-expired', onAuthExpired);
+    }
+    return () => {
+      mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('pw:auth-expired', onAuthExpired);
+      }
+    };
   }, []);
 
   // ------------------------------------------------------------
@@ -128,10 +157,12 @@ export function AuthProvider({ children }) {
   // 登录
   const login = useCallback(async (email, password) => {
     const r = await API.auth.login(email, password);
+    const u = r?.user;
+    if (!u) throw new Error('登录失败：未返回用户信息');
     if (IS_D1_BACKEND) {
-      const u = r?.user || { ...DEFAULT_D1_USER };
+      // token 已经由 client.js 的 login 接口写入 pw_unlock_token（这里再次兜底）
+      if (r?.token) writeToken(r.token);
       writeCachedUser(u);
-      localStorage.setItem(UNLOCKED_KEY, '1');
       setUser(u);
       return u;
     }
@@ -147,12 +178,14 @@ export function AuthProvider({ children }) {
     return me.user;
   }, []);
 
-  // 注册（D1 模式：接口兼容，直接 setUser）
-  const register = useCallback(async (email, password, { username, avatar } = {}) => {
+  // 注册
+  const register = useCallback(async (email, password, { username, avatar, inviteCode } = {}) => {
     if (IS_D1_BACKEND) {
-      const u = { ...DEFAULT_D1_USER, username: username || DEFAULT_D1_USER.username, avatar: avatar || DEFAULT_D1_USER.avatar };
+      const r = await API.auth.register(email, password, { username, avatar, inviteCode });
+      const u = r?.user;
+      if (!u) throw new Error('注册失败：未返回用户信息');
+      if (r?.token) writeToken(r.token);
       writeCachedUser(u);
-      localStorage.setItem(UNLOCKED_KEY, '1');
       setUser(u);
       return u;
     }
@@ -169,8 +202,8 @@ export function AuthProvider({ children }) {
   // 登出
   const logout = useCallback(async () => {
     if (IS_D1_BACKEND) {
-      localStorage.removeItem(USER_KEY);
-      localStorage.removeItem(UNLOCKED_KEY);
+      writeCachedUser(null);
+      writeToken('');
       setUser(null);
       return;
     }

@@ -1,123 +1,196 @@
 import { Router } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { db } from '../db.js';
-import { JWT_SECRET, auth } from '../index.js';
+import {
+  signTokenExpress,
+  hashPasswordExpress,
+  verifyPasswordExpress,
+  verifyTokenExpress,
+  EMAIL_RE,
+} from '../index.js';
 
 const router = Router();
+const INVITE_CODE = (process.env.REGISTER_INVITE_CODE || '').trim();
+const BOOTSTRAP_CODE = (process.env.BOOTSTRAP_OWNER_CODE || '').trim();
 
-function sign(user) {
-  return jwt.sign({ uid: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+const AUTH_FAIL = { error: '邮箱或密码错误', code: 'AUTH_FAIL' };
+function safeUser(u) {
+  if (!u) return null;
+  return {
+    id: String(u.id),          // 转字符串对齐 Functions/D1 前端习惯：id 全是字符串比较
+    email: u.email || '',
+    username: u.username || (u.email || '').split('@')[0] || ('User' + u.id),
+    avatar: u.avatar || 'U',
+    is_owner: !!u.is_owner,
+  };
 }
 
-// 默认习惯模板（来自 demo）
+// 默认习惯模板（D1/线上 ethan_habits 对齐：作息 streak_goal=30 growth_type 分类等）
 const DEFAULT_HABITS = [
-  { name: '睡眠', emoji: '😴', accent_color: '#34c759', target_time: '23:00', duration_min: 420 },
-  { name: '每日运动', emoji: '🏃', accent_color: '#34c759', target_time: '06:00', duration_min: 60 },
-  { name: '喝够2L水', emoji: '💧', accent_color: '#34c759', target_time: null, duration_min: null },
-  { name: '看书半小时', emoji: '📖', accent_color: '#007aff', target_time: '07:30', duration_min: 30 },
-  { name: '即兴表达练习', emoji: '🎤', accent_color: '#ffcc00', target_time: '07:00', duration_min: 15 },
-  { name: '英语口语练习', emoji: '🗣️', accent_color: '#ffcc00', target_time: '07:15', duration_min: 15 },
+  {
+    name: '作息', emoji: '😴', accent_color: '#34C759',
+    growth_type: 'energy', start_time: '23:30', end_time: '06:44', duration_min: 434,
+    target_mode: 'check', target_value: null, target_unit: '天', streak_goal: 30, auto_log: 1,
+  },
+  {
+    name: '运动', emoji: '🏃', accent_color: '#34C759',
+    growth_type: 'energy', start_time: '07:00', end_time: '07:30', duration_min: 30,
+    target_mode: 'check', target_value: null, target_unit: '天', streak_goal: 30, auto_log: 1,
+  },
+  {
+    name: '喝水', emoji: '🥤', accent_color: '#34C759',
+    growth_type: 'energy', target_mode: 'count', target_value: 2, target_unit: 'L/天', streak_goal: 30, auto_log: 1,
+  },
+  {
+    name: '今日总结+明日计划', emoji: '📝', accent_color: '#007AFF',
+    growth_type: 'mind', start_time: '21:30', end_time: '22:00', duration_min: 30,
+    target_mode: 'check', streak_goal: 30, auto_log: 1,
+  },
+  {
+    name: '看书', emoji: '📖', accent_color: '#007AFF',
+    growth_type: 'mind', start_time: '08:00', end_time: '08:30', duration_min: 30,
+    target_mode: 'check', streak_goal: 30, auto_log: 1,
+  },
+  {
+    name: '即兴表达练习', emoji: '🎙️', accent_color: '#FFCC00',
+    growth_type: 'skill', duration_min: 15, target_mode: 'check', streak_goal: 30, auto_log: 1,
+  },
+  {
+    name: '英语口语练习', emoji: '🔤', accent_color: '#FFCC00',
+    growth_type: 'skill', duration_min: 15, target_mode: 'check', streak_goal: 30, auto_log: 1,
+  },
 ];
 
-// 注册
-router.post('/register', (req, res) => {
-  const { username, password, avatar } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: '用户名和密码必填' });
-  if (username.length < 2 || username.length > 20) return res.status(400).json({ error: '用户名长度 2-20' });
-  if (password.length < 6) return res.status(400).json({ error: '密码至少 6 位' });
-
-  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
-  if (exists) return res.status(400).json({ error: '用户名已被占用' });
-
-  const hash = bcrypt.hashSync(password, 10);
-  const info = db.prepare('INSERT INTO users (username, password, avatar) VALUES (?, ?, ?)').run(
-    username, hash, (avatar || username.charAt(0).toUpperCase())
-  );
-  const user = db.prepare('SELECT id, username, avatar FROM users WHERE id = ?').get(info.lastInsertRowid);
-
-  // 插入默认习惯
-  const insertHabit = db.prepare(`
-    INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+function seedDefaultHabits(userId) {
+  const insert = db.prepare(`
+    INSERT INTO habits
+      (user_id, name, emoji, accent_color, growth_type,
+       start_time, end_time, duration_min, sort_order,
+       target_mode, target_value, target_unit, streak_goal, auto_log, archived)
+    VALUES (@user_id, @name, @emoji, @accent_color, @growth_type,
+            @start_time, @end_time, @duration_min, @sort_order,
+            @target_mode, @target_value, @target_unit, @streak_goal, @auto_log, 0)
   `);
   const tx = db.transaction((habits) => {
-    habits.forEach((h, i) => {
-      insertHabit.run(user.id, h.name, h.emoji, h.accent_color, h.target_time, h.duration_min, i);
-    });
+    habits.forEach((h, i) => insert.run({ ...h, user_id: userId, sort_order: i }));
   });
   tx(DEFAULT_HABITS);
+}
 
-  return res.json({ user, token: sign(user) });
+// GET /api/auth/login：模式探测
+router.get('/login', (req, res) => {
+  res.json({
+    ok: true,
+    modes: {
+      ownerBootstrap: !!BOOTSTRAP_CODE,
+      openRegister: !!INVITE_CODE,
+    },
+  });
 });
 
-// 登录（D1 单人模式 + 常规登录双兼容）
-router.post('/login', (req, res) => {
-  const { username, password, email } = req.body || {};
-  const uname = username || email || '';
-  const pwd = password || '';
-
-  // D1 单人免登录模式：Pages Functions 同款，空邮箱空密码 = 解锁进入
-  if (!uname && !pwd) {
-    const user = db.prepare('SELECT id, username, avatar FROM users ORDER BY id LIMIT 1').get();
-    if (!user) return res.status(400).json({ error: '请先注册用户' });
-    // D1 版默认习惯初始化
-    const count = db.prepare('SELECT COUNT(*) as c FROM habits WHERE user_id = ? AND archived = 0').get(user.id).c;
-    if (count === 0) {
-      const insertHabit = db.prepare(`
-        INSERT INTO habits (user_id, name, emoji, accent_color, target_time, duration_min, sort_order,
-                            start_time, end_time, growth_type, target_mode, streak_goal, auto_log)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      const tx = db.transaction((habits) => {
-        habits.forEach((h, i) => {
-          const sleep = /睡|作息/.test(h.name);
-          const exercise = /运动/.test(h.name);
-          const water = /水/.test(h.name);
-          const reading = /看书/.test(h.name);
-          const growthType = sleep || exercise || water ? 'energy' : (reading ? 'mind' : 'skill');
-          insertHabit.run(
-            user.id, h.name, h.emoji, h.accent_color,
-            h.target_time, h.duration_min, i,
-            sleep ? '23:30' : (h.target_time || null),
-            sleep ? '06:44' : null,
-            growthType,
-            water ? 'count' : 'check',
-            water ? 2 : null, '天',
-            30, 1
-          );
-        });
-      });
-      tx(DEFAULT_HABITS);
+// ---------------- bootstrapOwner：一次性插入本地第一个 owner（id=1，对齐 D1 DEFAULT_USER_ID 的"owner角色"）
+router.post('/bootstrapOwner', (req, res) => {
+  const { bootstrap_code, email, username, password } = req.body || {};
+  if (!BOOTSTRAP_CODE) return res.status(400).json({ error: '未配置 BOOTSTRAP_OWNER_CODE（env）' });
+  if (String(bootstrap_code || '').trim() !== BOOTSTRAP_CODE) return res.status(403).json({ error: 'bootstrap_code 不匹配' });
+  if (!EMAIL_RE.test(String(email || ''))) return res.status(400).json({ error: '邮箱格式不正确' });
+  if (String(password || '').length < 6) return res.status(400).json({ error: '密码至少 6 位' });
+  try {
+    const existingOwner = db.prepare('SELECT id FROM users WHERE is_owner = 1').get();
+    if (existingOwner) return res.status(409).json({ error: 'owner 账号已存在' });
+    const ph = hashPasswordExpress(password);
+    const now = new Date().toISOString();
+    const info = db.prepare(`INSERT INTO users (email, username, password, avatar, is_owner, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 1, ?, ?)`).run(
+        String(email).toLowerCase(),
+        username || String(email).split('@')[0],
+        ph,
+        ((username || email || 'E').slice(0, 1).toUpperCase()),
+        now, now,
+      );
+    const userId = Number(info.lastInsertRowid);
+    // 首个本地 owner：如果没有任何习惯，给一份默认习惯
+    const cnt = db.prepare('SELECT COUNT(*) AS c FROM habits WHERE user_id = ?').get(userId).c;
+    if (cnt === 0) seedDefaultHabits(userId);
+    const user = db.prepare('SELECT id, email, username, avatar, is_owner FROM users WHERE id = ?').get(userId);
+    const token = signTokenExpress(user.id);
+    res.json({ ok: true, user: safeUser(user), token });
+  } catch (e) {
+    // email UNIQUE 冲突等
+    if (String(e.message || '').includes('UNIQUE constraint') || String(e.message || '').includes('idx_users_email')) {
+      return res.status(400).json({ error: AUTH_FAIL.error });
     }
-    const token = sign(user);
-    return res.json({
-      user: { id: String(user.id), username: user.username, avatar: user.avatar },
-      token,
-    });
+    res.status(500).json({ error: e.message || String(e) });
   }
-
-  if (!uname || !pwd) return res.status(400).json({ error: '用户名和密码必填' });
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
-  if (!user) return res.status(400).json({ error: '用户不存在' });
-  if (!bcrypt.compareSync(pwd, user.password)) return res.status(400).json({ error: '密码错误' });
-  const safe = { id: user.id, username: user.username, avatar: user.avatar };
-  return res.json({ user: safe, token: sign(user) });
 });
 
-// 当前用户信息
-router.get('/me', auth, (req, res) => {
-  res.json({ user: req.user });
-});
-
-// 更新资料
-router.put('/me', auth, (req, res) => {
-  const { avatar } = req.body || {};
-  if (avatar) {
-    db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(avatar.slice(0, 4), req.user.id);
+// ---------------- register：邀请码注册新用户（非 owner）
+router.post('/register', (req, res) => {
+  const { invite_code, inviteCode, email, username, password } = req.body || {};
+  const invite = String(invite_code || inviteCode || '').trim().toUpperCase();
+  if (!INVITE_CODE) return res.status(403).json({ error: '管理员未开放注册（缺少 env REGISTER_INVITE_CODE）' });
+  if (!invite || invite !== INVITE_CODE.toUpperCase()) return res.status(403).json({ error: '邀请码无效或已过期' });
+  if (!EMAIL_RE.test(String(email || ''))) return res.status(400).json({ error: '邮箱格式不正确' });
+  if (String(password || '').length < 6) return res.status(400).json({ error: '密码至少 6 位' });
+  try {
+    const ph = hashPasswordExpress(password);
+    const now = new Date().toISOString();
+    const info = db.prepare(`INSERT INTO users (email, username, password, avatar, is_owner, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 0, ?, ?)`).run(
+        String(email).toLowerCase(),
+        username || String(email).split('@')[0],
+        ph,
+        ((username || email || 'U').slice(0, 1).toUpperCase()),
+        now, now,
+      );
+    const userId = Number(info.lastInsertRowid);
+    // 新用户默认给一套习惯模板，空框架更像"工作台"而不是"空表单"
+    seedDefaultHabits(userId);
+    const user = db.prepare('SELECT id, email, username, avatar, is_owner FROM users WHERE id = ?').get(userId);
+    const token = signTokenExpress(user.id);
+    res.json({ ok: true, user: safeUser(user), token });
+  } catch (e) {
+    if (String(e.message || '').includes('UNIQUE') || String(e.message || '').includes('idx_users_email')) {
+      return res.status(400).json({ error: AUTH_FAIL.error });
+    }
+    res.status(500).json({ error: e.message || String(e) });
   }
-  const user = db.prepare('SELECT id, username, avatar FROM users WHERE id = ?').get(req.user.id);
-  res.json({ user });
 });
+
+// ---------------- login：邮箱 + 密码
+router.post('/login', (req, res) => {
+  const { email, username, password } = req.body || {};
+  const loginEmail = String(email || username || '').trim().toLowerCase();
+  const pwd = String(password || '');
+  if (!EMAIL_RE.test(loginEmail) || !pwd) return res.status(401).json({ ...AUTH_FAIL });
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(loginEmail);
+    if (!user) return res.status(401).json({ ...AUTH_FAIL });
+    if (!verifyPasswordExpress(pwd, user.password)) return res.status(401).json({ ...AUTH_FAIL });
+    // 本地老用户（demo ethan）没有习惯，补齐
+    const cnt = db.prepare('SELECT COUNT(*) AS c FROM habits WHERE user_id = ? AND archived = 0').get(user.id).c;
+    if (cnt === 0) seedDefaultHabits(user.id);
+    const token = signTokenExpress(user.id);
+    res.json({ ok: true, token, user: safeUser(user) });
+  } catch (e) {
+    res.status(500).json({ error: e.message || String(e) });
+  }
+});
+
+// ---------------- me：当前用户
+router.get('/me', (req, res) => {
+  const token = (req.headers.authorization || '').startsWith('Bearer ')
+    ? req.headers.authorization.slice(7)
+    : (req.headers['x-unlock-token'] || null);
+  if (!token) return res.json({ user: null });
+  const uidStr = verifyTokenExpress(token);
+  if (!uidStr) return res.json({ user: null });
+  const uid = Number(uidStr);
+  if (Number.isNaN(uid)) return res.json({ user: null });
+  const user = db.prepare('SELECT id, email, username, avatar, is_owner FROM users WHERE id = ?').get(uid);
+  if (!user) return res.json({ user: null });
+  return res.json({ user: safeUser(user) });
+});
+
+router.post('/logout', (req, res) => res.json({ ok: true }));
 
 export default router;

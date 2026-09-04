@@ -67,7 +67,13 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
     try {
       setBusy(true);
       const r = await API.inviteCodes.create();
-      setNewCode(r.code);
+      const fresh = String(r.code || '');
+      setNewCode(fresh);
+      // 🔧 方案 A 收尾：生成后立刻自动复制到剪贴板 + toast，省用户再点一次"复制"
+      if (fresh) {
+        copyCode(fresh);
+        toast.success(`邀请码已生成并复制：${fresh}`);
+      }
       loadInvites();
     } catch (e) { setErr(friendlyError(e.message)); }
     finally { setBusy(false); }
@@ -222,12 +228,11 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
 
         {isAdmin && (
           <>
-            {/* Tabs */}
+            {/* Tabs（4 Tab → 3 Tab：邀请码管理 + 用户管理 合并为「邀请与用户」） */}
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
               {[
                 { key: 'appearance', label: '外观' },
-                { key: 'invites', label: '邀请码管理' },
-                { key: 'users', label: '用户管理' },
+                { key: 'admin', label: '邀请与用户' },
                 IS_D1_BACKEND && { key: 'migrate', label: 'D1 数据迁移' },
               ].filter(Boolean).map(t => (
                 <button key={t.key} onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }} style={{
@@ -264,22 +269,19 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
             <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
               {tab === 'appearance' ? (
                 <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />
-              ) : tab === 'invites' ? (
-                <InviteCodesTab
+              ) : tab === 'admin' ? (
+                <AdminTab
                   invites={invites}
+                  users={users}
                   newCode={newCode}
                   busy={busy}
                   copied={copied}
                   onCreate={handleCreateCode}
                   onDisable={handleDisableCode}
                   onCopy={copyCode}
-                />
-              ) : tab === 'users' ? (
-                <UsersTab
-                  users={users}
-                  busy={busy}
                   onBan={(uid) => setConfirmBan({ userId: uid })}
                   onUnban={handleUnbanUser}
+                  ownerId={user?.id}
                 />
               ) : (
                 <MigrateTab
@@ -719,106 +721,263 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
   );
 }
 
-function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, onCopy }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Generate button */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px', borderRadius: '12px', background: '#f5f5f7'
-      }}>
-        <div style={{ fontSize: '13px', color: '#1c1c1e' }}>
-          生成新的一次性邀请码，分享给朋友注册
-        </div>
-        <button onClick={onCreate} disabled={busy} style={{
-          padding: '9px 18px', borderRadius: '8px', background: busy ? '#ccc' : 'var(--s-main)',
-          color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px',
-          cursor: busy ? 'not-allowed' : 'pointer',
-          boxShadow: busy ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.3)',
-          transition: 'all 0.15s'
-        }}>{busy ? '生成中...' : '+ 生成邀请码'}</button>
-      </div>
+function AdminTab({
+  invites, users, newCode, busy, copied,
+  onCreate, onDisable, onCopy, onBan, onUnban, ownerId,
+}) {
+  // ====== 共用：卡片外壳（每张"邀请码管理/注册用户"外框） ======
+  const card = {
+    border: '1px solid #e5e5ea',
+    borderRadius: '12px',
+    background: '#ffffff',
+    overflow: 'hidden',
+  };
+  const header = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '12px 16px', borderBottom: '1px solid #e5e5ea',
+    background: '#fafafa',
+  };
+  const title = { fontSize: '14px', fontWeight: '600', color: '#1c1c1e' };
+  const primaryBtn = {
+    padding: '8px 14px', borderRadius: '8px',
+    background: busy ? '#ccc' : 'var(--s-main)',
+    color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px',
+    cursor: busy ? 'not-allowed' : 'pointer',
+    boxShadow: busy ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.28)',
+    transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: '6px',
+  };
+  const thRow = {
+    display: 'grid', alignItems: 'center',
+    padding: '8px 16px',
+    fontSize: '12px', color: '#8e8e93', fontWeight: '500',
+    background: '#fafafa', borderBottom: '1px solid #f0f0f2',
+  };
+  const tr = {
+    display: 'grid', alignItems: 'center',
+    padding: '10px 16px',
+    borderBottom: '1px solid #f4f4f6',
+    fontSize: '13px', color: '#1c1c1e',
+    transition: 'background .12s',
+  };
+  const codeMono = { fontFamily: 'SF Mono, Menlo, Consolas, monospace', fontWeight: 600, letterSpacing: '0.04em' };
+  const pill = (color) => ({
+    display: 'inline-flex', alignItems: 'center',
+    fontSize: '11px', fontWeight: 600, color: '#fff',
+    padding: '3px 10px', borderRadius: '999px', background: color,
+  });
+  const dangerBtn = {
+    padding: '5px 12px', borderRadius: '7px', border: 'none',
+    background: 'rgba(255,59,48,0.09)', color: '#FF3B30',
+    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+    transition: 'all 0.15s',
+  };
+  const successBtn = {
+    padding: '5px 12px', borderRadius: '7px', border: 'none',
+    background: 'rgba(52,199,89,0.10)', color: '#34C759',
+    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+    transition: 'all 0.15s',
+  };
+  const disabledBtn = {
+    ...dangerBtn,
+    opacity: 0.4, cursor: 'not-allowed', background: '#f5f5f7', color: '#8e8e93',
+  };
+  const empty = (emoji, line1, line2) => ({
+    padding: '32px 24px', textAlign: 'center', color: '#8e8e93', fontSize: '13px',
+  });
 
-      {/* New code display */}
-      {newCode && (
-        <div style={{
-          padding: '18px', borderRadius: '12px', background: '#EDFAF1',
-          border: '1.5px solid #34C759'
-        }}>
-          <div style={{ fontSize: '12px', color: '#34C759', fontWeight: '600', marginBottom: '10px' }}>
-            ✨ 新邀请码（仅一次有效）
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* ===========================================================
+            上半卡片：邀请码管理（标题 + 生成按钮同栏）
+           =========================================================== */}
+      <div style={card}>
+        {/* Header：标题 + 「+ 生成邀请码」同栏，不再单独一行灰块（方案 A 要求） */}
+        <div style={header}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={title}>邀请码管理</span>
+            <span style={{ fontSize: '12px', color: '#8e8e93' }}>共 {invites.length} 条</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <code style={{
-              fontSize: '24px', fontWeight: '700', color: '#1c1c1e',
-              letterSpacing: '4px', fontFamily: 'SF Mono, Menlo, monospace'
-            }}>{newCode}</code>
+          <button onClick={onCreate} disabled={busy} style={primaryBtn}>
+            {busy ? '生成中...' : '+ 生成邀请码'}
+          </button>
+        </div>
+
+        {/* 新邀请码成功条（压缩高度：padding 12px，字号 20px，紧跟 Header 下方） */}
+        {newCode && (
+          <div style={{
+            padding: '12px 16px', background: '#EDFAF1',
+            borderBottom: '1px solid #DCF5E4',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+              <span style={{
+                fontSize: '12px', color: '#34C759', fontWeight: 700, flexShrink: 0,
+              }}>✨ 新邀请码 · 一次有效</span>
+              <code style={{
+                fontSize: '20px', fontWeight: 700, color: '#1c1c1e',
+                letterSpacing: '3px',
+                fontFamily: 'SF Mono, Menlo, monospace',
+                whiteSpace: 'nowrap',
+              }}>{newCode}</code>
+            </div>
             <button onClick={() => onCopy(newCode)} style={{
-              padding: '6px 14px', borderRadius: '8px', background: '#fff',
+              padding: '5px 12px', borderRadius: '7px', background: '#fff',
               border: '1px solid #34C759', color: '#34C759',
-              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-              transition: 'all 0.15s'
+              fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
             }}>{copied === newCode ? '✓ 已复制' : '复制'}</button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* History list */}
-      <div>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '12px' }}>
-          邀请码历史（{invites.length}）
-        </div>
+        {/* 表格头 + 行（5 列：邀请码 / 状态 / 使用人 / 创建时间 / 操作） */}
         {invites.length === 0 ? (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px 20px', 
-            color: '#8e8e93', 
-            fontSize: '13px',
-            background: '#f5f5f7',
-            borderRadius: '10px'
-          }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📋</div>
-            暂无邀请码记录
+          <div style={empty()}>
+            <div style={{ fontSize: '28px', marginBottom: '6px' }}>🎟️</div>
+            <div style={{ fontWeight: 500, color: '#3c3c43' }}>还没有邀请码</div>
+            <div style={{ marginTop: '4px', fontSize: '12px', color: '#8e8e93' }}>
+              点击右上角「+ 生成邀请码」开始邀请朋友注册
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div>
+            <div style={{ ...thRow, gridTemplateColumns: '1.1fr 0.7fr 1.4fr 1fr 0.6fr' }}>
+              <div>邀请码</div>
+              <div>状态</div>
+              <div>使用人</div>
+              <div>创建时间</div>
+              <div style={{ textAlign: 'right' }}>操作</div>
+            </div>
             {invites.map(c => {
-              const isUsed = c.is_used;
-              const isDisabled = c.is_disabled;
+              const isUsed = !!c.is_used;
+              const isDisabled = !!c.is_disabled;
               const statusLabel = isDisabled ? '已禁用' : isUsed ? '已使用' : '未使用';
               const statusColor = isDisabled ? '#8e8e93' : isUsed ? '#007AFF' : '#34C759';
               return (
-                <div key={c.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '12px 14px', borderRadius: '10px', background: '#f5f5f7',
-                  fontSize: '13px',
-                  transition: 'background 0.15s'
-                }}>
-                  <code style={{
-                    fontFamily: 'SF Mono, Menlo, monospace', fontWeight: '600', color: '#1c1c1e',
-                    minWidth: '100px', fontSize: '13px'
-                  }}>{c.code}</code>
-                  <span style={{
-                    fontSize: '11px', color: '#fff', padding: '3px 10px',
-                    borderRadius: '10px', background: statusColor,
-                    fontWeight: '500'
-                  }}>{statusLabel}</span>
-                  {c.used_by_email && (
-                    <span style={{ fontSize: '12px', color: '#8e8e93', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      → {c.used_by_email}
-                    </span>
-                  )}
-                  <span style={{ fontSize: '12px', color: '#8e8e93' }}>
-                    {new Date(c.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  {!isUsed && !isDisabled && (
-                    <button onClick={() => onDisable(c.id)} style={{
-                      padding: '5px 12px', borderRadius: '7px', border: 'none',
-                      background: 'rgba(255,59,48,0.1)', color: '#FF3B30',
-                      fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}>禁用</button>
-                  )}
+                <div
+                  key={c.id}
+                  style={{ ...tr, gridTemplateColumns: '1.1fr 0.7fr 1.4fr 1fr 0.6fr' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#fafafa')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+                >
+                  <code style={codeMono}>{c.code}</code>
+                  <div><span style={pill(statusColor)}>{statusLabel}</span></div>
+                  <div style={{
+                    fontSize: '12px', color: c.used_by_email ? '#1c1c1e' : '#c7c7cc',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {c.used_by_email || '—'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#8e8e93' }}>
+                    {c.created_at
+                      ? new Date(c.created_at).toLocaleString('zh-CN', {
+                          month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                        })
+                      : '—'}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    {!isUsed && !isDisabled
+                      ? <button onClick={() => onDisable(c.id)} style={dangerBtn}>禁用</button>
+                      : isDisabled
+                        ? <span style={{ fontSize: '12px', color: '#8e8e93' }}>—</span>
+                        : <span style={{ fontSize: '12px', color: '#8e8e93' }}>—</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ===========================================================
+            下半卡片：注册用户（表格化 + owner 高亮不可禁用）
+           =========================================================== */}
+      <div style={card}>
+        <div style={header}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={title}>注册用户</span>
+            <span style={{ fontSize: '12px', color: '#8e8e93' }}>共 {users.length} 人</span>
+          </div>
+        </div>
+
+        {users.length === 0 ? (
+          <div style={empty()}>
+            <div style={{ fontSize: '28px', marginBottom: '6px' }}>👥</div>
+            <div style={{ fontWeight: 500, color: '#3c3c43' }}>还没有注册用户</div>
+            <div style={{ marginTop: '4px', fontSize: '12px', color: '#8e8e93' }}>
+              先在上方生成邀请码，朋友注册后会自动出现在这里
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ ...thRow, gridTemplateColumns: '36px 1.6fr 1.6fr 0.7fr 0.7fr' }}>
+              <div />
+              <div>账号</div>
+              <div>昵称 / 注册时间</div>
+              <div>状态</div>
+              <div style={{ textAlign: 'right' }}>操作</div>
+            </div>
+            {users.map(u => {
+              const isOwner = ownerId && String(u.user_id || u.id) === String(ownerId);
+              const banned = !!u.is_banned;
+              const initial = ((u.username || u.email || '?')[0] || '?').toUpperCase();
+              return (
+                <div
+                  key={u.user_id || u.id}
+                  style={{
+                    ...tr,
+                    gridTemplateColumns: '36px 1.6fr 1.6fr 0.7fr 0.7fr',
+                    background: banned ? 'rgba(255,59,48,0.04)' : '#fff',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = banned ? 'rgba(255,59,48,0.06)' : '#fafafa')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = banned ? 'rgba(255,59,48,0.04)' : '#fff')}
+                >
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '999px',
+                    background: isOwner
+                      ? 'linear-gradient(135deg,#FF9500,#FF3B30)'
+                      : banned ? '#8e8e93' : 'var(--s-main)',
+                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', fontWeight: 700,
+                  }}>{initial}</div>
+                  <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      fontWeight: 500, color: '#1c1c1e',
+                    }}>{u.email}</span>
+                    {isOwner && (
+                      <span style={{
+                        fontSize: '10.5px', fontWeight: 700, color: '#FF9500',
+                        padding: '2px 8px', borderRadius: '999px',
+                        background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.2)',
+                      }}>👑 所有者</span>
+                    )}
+                  </div>
+                  <div style={{ minWidth: 0, overflow: 'hidden', fontSize: '12px', color: '#8e8e93' }}>
+                    <div style={{ color: '#3c3c43', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {u.username || '—'}
+                    </div>
+                    <div>
+                      注册于 {u.created_at
+                        ? new Date(u.created_at).toLocaleDateString('zh-CN', {
+                            year: 'numeric', month: '2-digit', day: '2-digit',
+                          })
+                        : '—'}
+                    </div>
+                  </div>
+                  <div>
+                    {isOwner
+                      ? <span style={pill('#FF9500')}>所有者</span>
+                      : banned
+                        ? <span style={pill('#FF3B30')}>已禁用</span>
+                        : <span style={pill('#34C759')}>正常</span>}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    {isOwner
+                      ? <button disabled style={disabledBtn} title="所有者账号不可被禁用">禁用</button>
+                      : banned
+                        ? <button onClick={() => onUnban(u.user_id || u.id)} disabled={busy} style={successBtn}>解禁</button>
+                        : <button onClick={() => onBan(u.user_id || u.id)} disabled={busy} style={dangerBtn}>禁用</button>}
+                  </div>
                 </div>
               );
             })}
@@ -829,80 +988,6 @@ function InviteCodesTab({ invites, newCode, busy, copied, onCreate, onDisable, o
   );
 }
 
-function UsersTab({ users, busy, onBan, onUnban }) {
-  return (
-    <div>
-      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '12px' }}>
-        注册用户列表（{users.length}）
-      </div>
-      {users.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px 20px', 
-          color: '#8e8e93', 
-          fontSize: '13px',
-          background: '#f5f5f7',
-          borderRadius: '10px'
-        }}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>👥</div>
-          暂无注册用户
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {users.map(u => (
-            <div key={u.user_id} style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '12px 14px', borderRadius: '10px',
-              background: u.is_banned ? '#FFEEED' : '#f5f5f7',
-              fontSize: '13px',
-              transition: 'background 0.15s'
-            }}>
-              <div style={{
-                width: '32px', height: '32px', borderRadius: '50%',
-                background: u.is_banned ? '#8e8e93' : '#007AFF', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '13px', fontWeight: '600', flexShrink: 0
-              }}>{(u.username || u.email || '?')[0].toUpperCase()}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: '500', color: '#1c1c1e' }}>{u.email}</div>
-                <div style={{ fontSize: '12px', color: '#8e8e93' }}>
-                  {u.username || '无昵称'} · 注册于 {new Date(u.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
-                </div>
-              </div>
-              {u.is_banned ? (
-                <>
-                  <span style={{
-                    fontSize: '11px', color: '#fff', padding: '3px 10px',
-                    borderRadius: '10px', background: '#FF3B30', fontWeight: '500'
-                  }}>已禁用</span>
-                  <button onClick={() => onUnban(u.user_id)} disabled={busy} style={{
-                    padding: '5px 12px', borderRadius: '7px', border: 'none',
-                    background: 'rgba(52,199,89,0.1)', color: '#34C759',
-                    fontSize: '12px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s'
-                  }}>解禁</button>
-                </>
-              ) : (
-                <>
-                  <span style={{
-                    fontSize: '11px', color: '#fff', padding: '3px 10px',
-                    borderRadius: '10px', background: '#34C759', fontWeight: '500'
-                  }}>正常</span>
-                  <button onClick={() => onBan(u.user_id)} disabled={busy} style={{
-                    padding: '5px 12px', borderRadius: '7px', border: 'none',
-                    background: 'rgba(255,59,48,0.1)', color: '#FF3B30',
-                    fontSize: '12px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s'
-                  }}>禁用</button>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function MigrateTab({ value, onChange, busy, result, onRun }) {
   const TABLES = [

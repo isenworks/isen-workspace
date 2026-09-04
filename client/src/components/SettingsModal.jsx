@@ -399,53 +399,53 @@ function AppearanceTab({ themeKey, onSelect }) {
         </button>
       </div>
 
-      {/* 紧凑主题列表 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* 4列网格主题列表 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
         {allThemes.map(t => {
           const active = t.key === themeKey;
           return (
             <div key={t.key} onClick={() => handleSelect(t.key)} style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '8px 10px', borderRadius: '9px',
+              display: 'flex', flexDirection: 'column', gap: '4px',
+              padding: '6px 6px', borderRadius: '8px',
               background: active ? 'rgba(var(--s-rgb),0.06)' : '#f5f5f7',
               border: active ? '1.5px solid var(--s-main)' : '1.5px solid transparent',
-              cursor: 'pointer', transition: 'all 0.15s',
+              cursor: 'pointer', transition: 'all 0.15s', position: 'relative',
             }}>
-              {/* 色块 */}
-              <div style={{
-                width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
-                background: `linear-gradient(135deg, ${t.gradFrom} 0%, ${t.gradTo} 100%)`,
-                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.3)',
-              }} />
-              {/* 名称 + hex */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>{t.label}</span>
-                <span style={{ fontSize: '11px', color: '#8e8e93', marginLeft: '8px', fontFamily: 'SF Mono, Menlo, monospace' }}>
-                  {t.gradFrom === t.gradTo ? t.main : `${t.gradFrom}→${t.gradTo}`}
-                </span>
+              {/* 色块 + 名称 + hex 横排 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{
+                  width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
+                  background: `linear-gradient(135deg, ${t.gradFrom} 0%, ${t.gradTo} 100%)`,
+                  boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.3)',
+                }} />
+                <span style={{ fontSize: '11.5px', fontWeight: '600', color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span>
               </div>
-              {/* 操作按钮 */}
+              {/* hex 码 */}
+              <span style={{ fontSize: '9.5px', color: '#8e8e93', fontFamily: 'SF Mono, Menlo, monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t.gradFrom === t.gradTo ? t.main.toUpperCase() : `${t.gradFrom.toUpperCase()}→${t.gradTo.toUpperCase()}`}
+              </span>
+              {/* 自定义操作按钮：右上角 */}
               {t.custom && (
-                <>
+                <div style={{ position: 'absolute', top: '3px', right: '3px', display: 'flex', gap: '2px' }}>
                   <button onClick={(e) => { e.stopPropagation(); setEditing({ mode: 'edit', key: t.key, hex: t.main, label: t.label }); }} style={{
-                    width: '26px', height: '26px', borderRadius: '6px', border: 'none',
-                    background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
+                    width: '18px', height: '18px', borderRadius: '4px', border: 'none',
+                    background: 'rgba(120,120,128,0.15)', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
                   }} title="编辑">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); setConfirmDel(t.key); }} style={{
-                    width: '26px', height: '26px', borderRadius: '6px', border: 'none',
-                    background: 'rgba(255,59,48,0.10)', cursor: 'pointer',
+                    width: '18px', height: '18px', borderRadius: '4px', border: 'none',
+                    background: 'rgba(255,59,48,0.12)', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF3B30',
                   }} title="删除">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   </button>
-                </>
+                </div>
               )}
-              {/* 选中标记 */}
+              {/* 选中标记：右上角对勾 */}
               {active && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--s-main)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--s-main)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', top: '3px', right: t.custom ? '43px' : '3px' }}><polyline points="20 6 9 17 4 12"/></svg>
               )}
             </div>
           );
@@ -542,10 +542,7 @@ function ModuleColorSection({ onEdit }) {
       display: 'flex', flexDirection: 'column', gap: '8px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>模块颜色</div>
-          <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>精力 / 知力 / 能力 / 工作 / 生活 五大模块分类色</div>
-        </div>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>模块颜色</div>
         <button onClick={handleResetAll} style={{
           padding: '4px 10px', borderRadius: '7px', border: 'none',
           background: 'rgba(120,120,128,0.12)', color: '#8e8e93',
@@ -553,37 +550,34 @@ function ModuleColorSection({ onEdit }) {
         }}>全部重置</button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      {/* 单行横排 5 个模块 chip */}
+      <div style={{ display: 'flex', gap: '5px' }}>
         {Object.values(colors).map(m => {
           const isDefault = m.hex === m.default;
           return (
-            <div key={m.key} style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '7px 10px', borderRadius: '8px', background: '#f5f5f7',
+            <div key={m.key} onClick={() => onEdit(m.hex, m.label, m.key)} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+              padding: '6px 4px', borderRadius: '8px', background: '#f5f5f7',
+              cursor: 'pointer', transition: 'all 0.15s', position: 'relative',
             }}>
               <div style={{
-                width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+                width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0,
                 background: m.hex, boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.25)',
               }} />
-              <span style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>{m.label}</span>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: '#1c1c1e' }}>{m.label}</span>
               <span style={{
-                fontSize: '11px', color: '#8e8e93', fontFamily: 'SF Mono, Menlo, monospace',
-                flex: 1,
+                fontSize: '9px', color: '#8e8e93', fontFamily: 'SF Mono, Menlo, monospace',
+                whiteSpace: 'nowrap',
               }}>{m.hex.toUpperCase()}</span>
-              <button onClick={() => onEdit(m.hex, m.label, m.key)} style={{
-                width: '24px', height: '24px', borderRadius: '6px', border: 'none',
-                background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
-              }} title="编辑">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
+              {/* 非默认色：右上角重置点 */}
               {!isDefault && (
-                <button onClick={() => handleReset(m.key)} style={{
-                  width: '24px', height: '24px', borderRadius: '6px', border: 'none',
-                  background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
+                <button onClick={(e) => { e.stopPropagation(); handleReset(m.key); }} style={{
+                  position: 'absolute', top: '2px', right: '2px',
+                  width: '14px', height: '14px', borderRadius: '50%', border: 'none',
+                  background: 'rgba(120,120,128,0.2)', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
                 }} title="重置">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                 </button>
               )}
             </div>

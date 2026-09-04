@@ -94,10 +94,17 @@ function Field({
   suffix,       // 放在输入框右侧的附加元素（如眼睛按钮）
 }) {
   const hasSuffix = !!suffix;
+  // ====== 修复：之前 icon left: 14px + pl-11(44px) 对「🎫 票 / 📧 邮件」这类宽 SVG 来说安全间距不足，
+  //        会出现用户截图里的"图标尾巴和 placeholder/输入文字重叠"。
+  // 统一规范（固定图标位置、只把输入文字起点向右挪，符合之前 experience 的 best practice）：
+  //   - 图标：绝对 left: 16px (left-4)，svg 20×20 → 最大视觉末端约 40px
+  //   - 输入文字起点：pl-14 = 56px  → 至少留 16px 安全留白
+  //   - 右 suffix 容器：right: 8px (right-2)，眼睛按钮 h-8 w-8(32px) → 末端约 40px
+  //   - 输入文字右端：pr-12 = 48px  → 留 8px 安全间距
   const inputClassName = [
     'input',
-    icon ? 'pl-11' : '',
-    hasSuffix ? 'pr-11' : 'pr-4',
+    icon ? 'pl-14' : 'pl-4',
+    hasSuffix ? 'pr-12' : 'pr-4',
     inputProps?.className || '',
     error ? 'has-error' : '',
   ].filter(Boolean).join(' ');
@@ -116,7 +123,10 @@ function Field({
       </div>
       <div className="relative">
         {icon && (
-          <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 transition-colors duration-150">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 transition-colors duration-150"
+          >
             {icon}
           </div>
         )}

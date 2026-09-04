@@ -346,13 +346,11 @@ export default function Login() {
               </span>
             </div>
             <h1 className="text-[30px] font-bold leading-tight tracking-tight text-ink-900">
-              个人工作台
+              人生管理系统
             </h1>
-            <p className="mt-1.5 h-[22px] text-[15px] leading-relaxed text-transparent select-none" aria-hidden="true">
-              {/* 用户要求删除副标题「日程 · 任务 · 习惯 · 复盘，一站式管理你的每一天」。
-                 保留占位高度 h-[22px]，防止标题下方的视觉节奏崩塌（让标题和卡片之间仍有呼吸空间）。
-                 将来有新 slogan 再填。 */}
-              占位
+            <p className="mt-1.5 text-[15px] leading-relaxed text-ink-500 tracking-wide">
+              {/* 用户要求：slogan 占位替换成「人生管理系统」的英文 */}
+              Life Management System
             </p>
           </div>
 
@@ -565,7 +563,7 @@ export default function Login() {
 
           {/* Footer（产品化文案 + 颜色升级到 ink-500 过 WCAG AA） */}
           <p className="mt-7 text-center text-[13px] leading-relaxed text-ink-500">
-            © {new Date().getFullYear()} 个人工作台 · 多设备同步 · 你的数据安全存储于云端
+            © {new Date().getFullYear()} 人生管理系统 · 多设备同步 · 数据存储于云端
           </p>
         </div>
       </div>

@@ -721,9 +721,46 @@ body {
 .input:focus,
 .input:focus-visible {
   border-color: var(--s-main) !important;
-  box-shadow: 0 0 0 4px rgba(var(--s-rgb), 0.14) !important;  /* 4px 比 3px 更接近 iOS focus ring */
-  background: #ffffff;
-  outline: none !important;                                        /* ✅ 干掉浏览器默认黑框 */
+  /* 🔧 用户要求：删掉选中时的"蓝色背景"感，只保留蓝色描边 + 增加蓝色阴影。
+     之前 box-shadow 用 spread=4px（4px 环形淡蓝），在浅色页面上会让整只输入框看起来像"蓝底"。
+     现在改成两种效果叠加：
+       1) 1.5px 细光环（`0 0 0 1.5px rgba(...,0.6)`）→ 保留"蓝色线框"作为外描边
+       2) 8~10px 真实外发光（`0 0 10px rgba(...,0.25)` + `0 4px 14px rgba(...,0.25)` 下沉阴影）→ "增加蓝色阴影"
+     并且强制 background: #fff 再干掉任何浏览器 focus 伪元素默认蓝底。 */
+  box-shadow:
+    0 0 0 1.5px rgba(var(--s-rgb), 0.85),
+    0 0 10px rgba(var(--s-rgb), 0.28),
+    0 4px 16px rgba(var(--s-rgb), 0.22)
+    !important;
+  background: #ffffff !important;
+  outline: none !important;
+}
+/* 处理浏览器自动填充（autofill）自带的"淡蓝色背景"——这是用户截图里"选中时整只框发蓝"最常见的另一个根因，
+   用 -webkit-autofill + transition 延迟把它盖回白底 + 保留蓝线框 + 蓝阴影 */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus,
+.form-input:-webkit-autofill:focus-visible,
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:focus-visible {
+  -webkit-text-fill-color: #1c1c1e;
+  -webkit-box-shadow:
+    0 0 0 1.5px rgba(var(--s-rgb), 0.85),
+    0 0 10px rgba(var(--s-rgb), 0.28),
+    0 4px 16px rgba(var(--s-rgb), 0.22),
+    0 0 0 1000px #ffffff inset
+    !important;
+  box-shadow:
+    0 0 0 1.5px rgba(var(--s-rgb), 0.85),
+    0 0 10px rgba(var(--s-rgb), 0.28),
+    0 4px 16px rgba(var(--s-rgb), 0.22),
+    0 0 0 1000px #ffffff inset
+    !important;
+  background-color: #ffffff !important;
+  caret-color: var(--s-main);
+  transition: background-color 9999s ease-in-out;
 }
 /* 错误态：输入框外围一圈红色（data-error="1" 或 .has-error 两种写法都兼容） */
 .form-input[data-error="1"],

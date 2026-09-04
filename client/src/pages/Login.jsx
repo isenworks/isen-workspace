@@ -131,7 +131,7 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [showBootstrap, setShowBootstrap] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [modes, setModes] = useState({ ownerBootstrap: false, openRegister: false });
+  const [modes, setModes] = useState(null); // null = 首次加载中，避免接口返回前误命中"无邀请码/无初始化 Tab"的假状态
   // 字段级错误（对应邮箱/密码/邀请码/口令…，有字段错就在输入框下方直接标红+图标+红边红环）
   const [fieldErr, setFieldErr] = useState({});
   // 全局错误 / 全局消息（跨字段的错误，如"邮箱或密码错误"）
@@ -154,14 +154,16 @@ export default function Login() {
 
   const tabs = useMemo(() => {
     const base = [{ key: 'login', label: '登录' }];
-    if (IS_D1_BACKEND) {
-      if (modes.openRegister) base.push({ key: 'register', label: '注册' });
-      if (modes.ownerBootstrap) base.push({ key: 'bootstrap', label: '初始化管理员' });
-    } else {
+    if (!IS_D1_BACKEND) {
       base.push({ key: 'register', label: '注册' });
+      return base;
     }
+    // D1 模式：接口还没返回 (modes == null) → 先只显示「登录」Tab，不显示"没邀请码"提示，避免初次加载一闪出现大 info 图标
+    if (modes == null) return base;
+    if (modes.openRegister) base.push({ key: 'register', label: '注册' });
+    if (modes.ownerBootstrap) base.push({ key: 'bootstrap', label: '初始化管理员' });
     return base;
-  }, [modes.openRegister, modes.ownerBootstrap]);
+  }, [modes]);
 
   /* ---------- Tab 选中滑动条：根据当前 mode 在 tabs 中的索引计算位置 ---------- */
   const tabIdx = Math.max(0, tabs.findIndex(t => t.key === mode));
@@ -187,7 +189,7 @@ export default function Login() {
       if (formRef.current) setFormHeight(formRef.current.scrollHeight);
     });
     return () => cancelAnimationFrame(t);
-  }, [mode, modes.openRegister, modes.ownerBootstrap]);
+  }, [mode, modes]);
 
   function setErrors(obj) {
     setFieldErr(prev => ({ ...prev, ...obj }));
@@ -226,7 +228,7 @@ export default function Login() {
           return;
         }
         if (mode === 'register') {
-          if (!modes.openRegister) {
+          if (!modes?.openRegister) {
             setGlobalErr('管理员暂未开放注册');
             setBusy(false);
             return;
@@ -531,9 +533,9 @@ export default function Login() {
                   </div>
                 )}
 
-                {mode === 'login' && IS_D1_BACKEND && !modes.openRegister && !modes.ownerBootstrap && (
+                {mode === 'login' && IS_D1_BACKEND && modes && !modes.openRegister && !modes.ownerBootstrap && (
                   <div className="flex items-start gap-2 rounded-xl border border-brand-100 bg-brand-50/60 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-600">
-                    <IconInfo className="mt-[2px] shrink-0 text-brand-500" />
+                    <IconInfo className="mt-[3px] h-4 w-4 shrink-0 text-brand-500" />
                     <span>
                       <b className="text-ink-800">还没有可用邀请码。</b>
                       {' '}管理员请先用邮箱登录，进入工作台 → 右上角 ⚙️ 设置 →{' '}

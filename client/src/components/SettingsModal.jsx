@@ -37,7 +37,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
   const [migrateResult, setMigrateResult] = useState(null);
   const [migrateBusy, setMigrateBusy] = useState(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL || IS_D1_BACKEND; // D1 模式下默认单人可操作
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.is_owner || IS_D1_BACKEND; // D1 模式下 owner 可操作
 
   useEffect(() => {
     if (open && isAdmin) {
@@ -224,8 +224,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
               {[
                 { key: 'appearance', label: '外观' },
-                !IS_D1_BACKEND && { key: 'invites', label: '邀请码管理' },
-                !IS_D1_BACKEND && { key: 'users', label: '用户管理' },
+                { key: 'invites', label: '邀请码管理' },
+                { key: 'users', label: '用户管理' },
                 IS_D1_BACKEND && { key: 'migrate', label: 'D1 数据迁移' },
               ].filter(Boolean).map(t => (
                 <button key={t.key} onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }} style={{

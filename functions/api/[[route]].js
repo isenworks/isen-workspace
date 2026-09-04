@@ -260,8 +260,29 @@ async function ensureUsersTable(env) {
       )`).run();
     } catch (_) {}
   }
-  // 字段扩展迁移（兼容从 UNLOCK_PASSWORD 单人 → 多用户升级）
-  // 如果 ethan_users 空、但 eth_habits 已有归属 DEFAULT_USER_ID，则 owner 信息稍后通过 bootstrapOwner 插入
+  // is_banned 列迁移（多用户邀请码体系需要）
+  try {
+    const cols = await env.DB.prepare(`PRAGMA table_info(ethan_users)`).all();
+    if (cols.results && !cols.results.some(c => c.name === 'is_banned')) {
+      await env.DB.prepare(`ALTER TABLE ethan_users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0`).run();
+    }
+  } catch (_) {}
+
+  // ethan_invite_codes 表（邀请码管理）
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_invite_codes (
+      id TEXT PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      created_by TEXT NOT NULL,
+      used_by TEXT,
+      used_at TEXT,
+      is_disabled INTEGER NOT NULL DEFAULT 0,
+      disabled_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`).run();
+  } catch (_) {}
+
+  // owner 权限标记：is_owner=1 的用户才能管理邀请码和用户
 }
 
 // ------------------------------------------------------------
@@ -353,9 +374,10 @@ export async function onRequest(context) {
     curUserId = await verifyToken(rawToken, env);
     if (curUserId) {
       try {
-        currentUser = await dbFirst(env.DB, `SELECT id, email, username, avatar, is_owner FROM ethan_users WHERE id = ?`, [curUserId]);
+        currentUser = await dbFirst(env.DB, `SELECT id, email, username, avatar, is_owner, is_banned FROM ethan_users WHERE id = ?`, [curUserId]);
       } catch (_) { currentUser = null; }
       if (!currentUser) curUserId = null; // token 合法但用户被删了 → 失效
+      else if (currentUser.is_banned) curUserId = null; // 被禁用的用户 → token 失效
     }
   }
   // 解析结果挂 env，后续所有 handleXxx 里调用 uid(env) 能直接拿到
@@ -476,6 +498,20 @@ export async function onRequest(context) {
     if (path === '/api/recycleBin/restore' && method === 'POST') return handleRecycleBinRestore(env, body);
     if (path === '/api/recycleBin/remove' && method === 'POST') return handleRecycleBinRemove(env, body);
     if (path === '/api/recycleBin/clear' && method === 'POST') return handleRecycleBinClear(env);
+
+    // ------------------------------------------------------------
+    // /api/inviteCodes/*  — 邀请码管理（仅 owner）
+    // ------------------------------------------------------------
+    if (path === '/api/inviteCodes/create' && method === 'POST') return handleInviteCodeCreate(env);
+    if ((path === '/api/inviteCodes/list') && (method === 'GET' || method === 'POST')) return handleInviteCodeList(env);
+    if (path === '/api/inviteCodes/disable' && method === 'POST') return handleInviteCodeDisable(env, body);
+
+    // ------------------------------------------------------------
+    // /api/users/*  — 用户管理（仅 owner）
+    // ------------------------------------------------------------
+    if ((path === '/api/users/list') && (method === 'GET' || method === 'POST')) return handleUsersList(env);
+    if (path === '/api/users/ban' && method === 'POST') return handleUsersBan(env, body, 1);
+    if (path === '/api/users/unban' && method === 'POST') return handleUsersBan(env, body, 0);
 
     // ------------------------------------------------------------
     // /api/userSettings/*  — 用户级配置（weread key 等）D1 ethan_user_settings
@@ -1318,6 +1354,7 @@ function safeUser(u) {
     username: u.username || (u.email || '').split('@')[0],
     avatar: u.avatar || '',
     is_owner: !!u.is_owner,
+    is_banned: !!u.is_banned,
   };
 }
 // 通用"邮箱或密码错误"（防用户枚举）
@@ -1373,13 +1410,12 @@ async function handleAuthBootstrapOwner(env, body) {
   return json({ ok: true, user: safeUser(owner), token });
 }
 
-// ---------------- auth.register：普通用户注册（需要 REGISTER_INVITE_CODE）
+// ---------------- auth.register：用户注册（校验 ethan_invite_codes 表中的一次性邀请码）
 async function handleAuthRegister(env, body) {
   const data = body || {};
-  const invite = String(data.invite_code || data.inviteCode || '').trim().toUpperCase();
-  const expected = env.REGISTER_INVITE_CODE ? String(env.REGISTER_INVITE_CODE).trim().toUpperCase() : '';
-  if (!expected) return json({ error: '管理员未开放注册（请在 Cloudflare Pages Secrets 设置 REGISTER_INVITE_CODE）' }, 403);
-  if (!invite || invite !== expected) return json({ error: '邀请码无效或已过期' }, 403);
+  const inviteCode = String(data.invite_code || data.inviteCode || '').trim().toUpperCase();
+  if (!inviteCode) return json({ error: '请输入邀请码' }, 400);
+
   const email = String(data.email || '').trim().toLowerCase();
   const username = String(data.username || '').trim();
   const password = String(data.password || '');
@@ -1387,6 +1423,14 @@ async function handleAuthRegister(env, body) {
   if (password.length < 6) return json({ error: '密码至少 6 位' }, 400);
 
   await ensureUsersTable(env);
+
+  // 校验邀请码：必须存在、未禁用、未使用
+  const codeRow = await dbFirst(env.DB, `SELECT * FROM ethan_invite_codes WHERE code = ?`, [inviteCode]);
+  if (!codeRow) return json({ error: '邀请码无效或已过期' }, 403);
+  if (codeRow.is_disabled) return json({ error: '邀请码已被禁用' }, 403);
+  if (codeRow.used_by) return json({ error: '邀请码已被使用' }, 403);
+
+  // 邮箱唯一性
   const exists = await dbFirst(env.DB, `SELECT id FROM ethan_users WHERE email = ?`, [email]);
   if (exists) return json({ error: AUTH_FAIL.error }, 400);
 
@@ -1400,13 +1444,18 @@ async function handleAuthRegister(env, body) {
   }
   const passwordHash = await hashPassword(password);
   const now = nowIso();
-  await env.DB.prepare(`INSERT INTO ethan_users (id, email, password_hash, username, avatar, is_owner, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, 0, ?, ?)`).bind(
+  await env.DB.prepare(`INSERT INTO ethan_users (id, email, password_hash, username, avatar, is_owner, is_banned, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?)`).bind(
       newId, email, passwordHash,
       (username || email.split('@')[0]),
       ((username || email || 'U').slice(0, 1).toUpperCase()),
       now, now
     ).run();
+
+  // 标记邀请码已使用
+  await env.DB.prepare(`UPDATE ethan_invite_codes SET used_by = ?, used_at = ? WHERE code = ?`)
+    .bind(newId, now, inviteCode).run();
+
   const user = await dbFirst(env.DB, `SELECT * FROM ethan_users WHERE id = ?`, [newId]);
   const token = await signToken(user.id, env);
   return json({ ok: true, user: safeUser(user), token });
@@ -1416,13 +1465,18 @@ async function handleAuthRegister(env, body) {
 async function handleAuthLogin(env, body, method, currentUser) {
   if (method === 'GET') {
     // 健康检查 / 前端探测接口
-    const invite = env.REGISTER_INVITE_CODE ? String(env.REGISTER_INVITE_CODE).trim() : '';
     const bootstrap = env.BOOTSTRAP_OWNER_CODE ? String(env.BOOTSTRAP_OWNER_CODE).trim() : '';
+    // 检测是否有邀请码记录（有 → 显示注册 Tab）
+    let hasInviteCodes = false;
+    try {
+      const cnt = await dbFirst(env.DB, `SELECT COUNT(*) AS c FROM ethan_invite_codes WHERE is_disabled = 0 AND used_by IS NULL`);
+      hasInviteCodes = (cnt && Number(cnt.c) > 0);
+    } catch (_) {}
     return json({
       ok: true,
       modes: {
         ownerBootstrap: !!bootstrap,
-        openRegister: !!invite,
+        openRegister: hasInviteCodes,
       },
       user: currentUser ? safeUser(currentUser) : null,
     });
@@ -1439,6 +1493,7 @@ async function handleAuthLogin(env, body, method, currentUser) {
     if (!row) return json({ ...AUTH_FAIL }, 401);
     const pwOk = await verifyPassword(password, row.password_hash);
     if (!pwOk) return json({ ...AUTH_FAIL }, 401);
+    if (row.is_banned) return json({ error: '账号已被禁用，请联系管理员' }, 403);
 
     const token = await signToken(row.id, env);
     return json({ ok: true, token, user: safeUser(row) }, 200);
@@ -2025,4 +2080,100 @@ function insertFixedScheduleRow(db, userId, r) {
       r.updated_at || nowIso()
     )
     .run();
+}
+
+// ============================================================
+// 邀请码管理 + 用户管理（仅 owner 可操作）
+// ============================================================
+
+// ---------------- inviteCodes.create：生成一次性邀请码（8 位大写字母+数字）
+async function handleInviteCodeCreate(env) {
+  const userId = uid(env);
+  const owner = await dbFirst(env.DB, `SELECT is_owner FROM ethan_users WHERE id = ?`, [userId]);
+  if (!owner || !owner.is_owner) return json({ error: '无权限' }, 403);
+
+  // 生成唯一 8 位码（排除易混淆字符 I O 0 1）
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  let tries = 0;
+  while (tries < 10) {
+    code = '';
+    const rnd = crypto.getRandomValues(new Uint8Array(8));
+    for (let i = 0; i < 8; i++) code += chars[rnd[i] % chars.length];
+    const exists = await dbFirst(env.DB, `SELECT id FROM ethan_invite_codes WHERE code = ?`, [code]);
+    if (!exists) break;
+    tries++;
+  }
+
+  const id = crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+  await env.DB.prepare(`INSERT INTO ethan_invite_codes (id, code, created_by, is_disabled) VALUES (?, ?, ?, 0)`)
+    .bind(id, code, userId).run();
+  return json({ ok: true, code });
+}
+
+// ---------------- inviteCodes.list：列出所有邀请码 + 使用状态
+async function handleInviteCodeList(env) {
+  const userId = uid(env);
+  const owner = await dbFirst(env.DB, `SELECT is_owner FROM ethan_users WHERE id = ?`, [userId]);
+  if (!owner || !owner.is_owner) return json({ error: '无权限' }, 403);
+
+  const rows = await dbAll(env.DB, `
+    SELECT ic.id, ic.code, ic.created_at, ic.used_by, ic.used_at, ic.is_disabled, ic.disabled_at,
+           u.email AS used_by_email
+    FROM ethan_invite_codes ic
+    LEFT JOIN ethan_users u ON ic.used_by = u.id
+    ORDER BY ic.created_at DESC
+  `);
+  return json({ codes: rows || [] });
+}
+
+// ---------------- inviteCodes.disable：禁用邀请码
+async function handleInviteCodeDisable(env, body) {
+  const userId = uid(env);
+  const owner = await dbFirst(env.DB, `SELECT is_owner FROM ethan_users WHERE id = ?`, [userId]);
+  if (!owner || !owner.is_owner) return json({ error: '无权限' }, 403);
+
+  const id = String(body?.id || '');
+  if (!id) return json({ error: '缺少 id' }, 400);
+  await env.DB.prepare(`UPDATE ethan_invite_codes SET is_disabled = 1, disabled_at = ? WHERE id = ?`)
+    .bind(nowIso(), id).run();
+  return json({ ok: true });
+}
+
+// ---------------- users.list：列出所有注册用户（owner 才能看）
+async function handleUsersList(env) {
+  const userId = uid(env);
+  const owner = await dbFirst(env.DB, `SELECT is_owner FROM ethan_users WHERE id = ?`, [userId]);
+  if (!owner || !owner.is_owner) return json({ error: '无权限' }, 403);
+
+  const rows = await dbAll(env.DB, `
+    SELECT id, email, username, avatar, is_owner, is_banned, created_at
+    FROM ethan_users
+    ORDER BY created_at DESC
+  `);
+  const users = (rows || []).map(u => ({
+    user_id: u.id,
+    email: u.email,
+    username: u.username || (u.email || '').split('@')[0],
+    avatar: u.avatar || '',
+    is_owner: !!u.is_owner,
+    is_banned: !!u.is_banned,
+    created_at: u.created_at,
+  }));
+  return json({ users });
+}
+
+// ---------------- users.ban/unban：禁用/恢复用户
+async function handleUsersBan(env, body, ban) {
+  const userId = uid(env);
+  const owner = await dbFirst(env.DB, `SELECT is_owner FROM ethan_users WHERE id = ?`, [userId]);
+  if (!owner || !owner.is_owner) return json({ error: '无权限' }, 403);
+
+  const targetId = String(body?.user_id || body?.userId || '');
+  if (!targetId) return json({ error: '缺少 user_id' }, 400);
+  if (targetId === userId) return json({ error: '不能禁用自己' }, 400);
+
+  await env.DB.prepare(`UPDATE ethan_users SET is_banned = ?, updated_at = ? WHERE id = ?`)
+    .bind(ban ? 1 : 0, nowIso(), targetId).run();
+  return json({ ok: true });
 }

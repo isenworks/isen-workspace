@@ -218,18 +218,20 @@ function buildD1API() {
       async run(payload) { return fetchPages('/migrate', payload); },
     },
 
-    // 单人模式：管理员功能接口返回空数组兼容
+    // 多用户模式：邀请码管理（仅 owner 可调用，后端校验权限）
     inviteCodes: {
-      async create() { return { code: 'DISABLED' }; },
-      async list() { return { codes: [] }; },
-      async disable() { return { ok: false }; },
+      async create() { return fetchPages('/inviteCodes/create', {}); },
+      async list() { return fetchPages('/inviteCodes/list', {}, 'GET'); },
+      async disable(id) { return fetchPages('/inviteCodes/disable', { id }); },
+      // reserve/link 在 D1 模式不需要（注册时直接校验邀请码表）
       async reserve() { return { codeId: null }; },
       async link() { return { ok: false }; },
     },
+    // 多用户模式：用户管理（仅 owner 可调用）
     users: {
-      async list() { return { users: [] }; },
-      async ban() { return { ok: false }; },
-      async unban() { return { ok: false }; },
+      async list() { return fetchPages('/users/list', {}, 'GET'); },
+      async ban(userId) { return fetchPages('/users/ban', { user_id: userId }); },
+      async unban(userId) { return fetchPages('/users/unban', { user_id: userId }); },
     },
   };
 }

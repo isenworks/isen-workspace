@@ -542,14 +542,18 @@ export default function Login() {
                   </div>
                 )}
 
-                {/* 唯一 CTA：.btn-primary 已经在 CSS 用 flex+justify+align center 保证文字绝对居中 */}
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="btn-primary w-full !px-5 mt-1"
-                >
-                  {btnLabel}
-                </button>
+                {/* 唯一 CTA：按钮在卡片最下方水平居中（用户明确要求）。
+                     去掉 w-full 撑满；用 mx-auto + 最小宽度 200px + 横向大 padding，
+                     形成 iCloud 登录页那种"中等宽、居中"的主按钮比例。 */}
+                <div className="mt-1 flex justify-center">
+                  <button
+                    type="submit"
+                    disabled={busy}
+                    className="btn-primary min-w-[200px] px-10"
+                  >
+                    {btnLabel}
+                  </button>
+                </div>
               </form>
             </div>
           </div>

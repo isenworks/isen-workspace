@@ -460,7 +460,6 @@ export default function Login() {
                       id="reg-invite"
                       label="邀请码"
                       error={fieldErr.inviteCode}
-                      hint="向管理员索取。区分大小写，但系统会自动转换为大写。"
                       inputProps={{
                         type: 'text',
                         maxLength: 32,
@@ -468,9 +467,7 @@ export default function Login() {
                         autoCapitalize: 'characters',
                         value: inviteCode,
                         onChange: e => setInviteCode(e.target.value.toUpperCase()),
-                        placeholder: '如：E4J8-2KQ7',
-                        className: '!tracking-[0.18em]',
-                        style: { fontFamily: 'ui-monospace, SF Mono, Menlo, Consolas, monospace' },
+                        placeholder: '向管理员申请',
                       }}
                     />
                   </>

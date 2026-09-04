@@ -1,7 +1,153 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { API } from '../api/client.js';
 import { IS_D1_BACKEND } from '../api/client.js';
+
+/* =====================================================================
+   登录页（方案 1：Apple HIG iCloud 风格）
+   - 设计令牌完全复用 tailwind.config.js 的 brand / ink / accent
+   - 输入框样式已在 index.css 统一 (.input = .form-input)，focus 蓝边+淡蓝光环
+   - 按钮 .btn-primary 已在 index.css 重写：min-height 44px + flex 水平/垂直双居中
+   ===================================================================== */
+
+/* ---------- 小 SVG 图标（inline，避免引图标库；统一 20×20 stroke=2） ---------- */
+const IconEmail = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="3" />
+    <path d="m3 7 9 6 9-6" />
+  </svg>
+);
+const IconLock = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="10" width="16" height="11" rx="3" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+const IconEye = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const IconEyeOff = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+    <line x1="2" y1="2" x2="22" y2="22" />
+  </svg>
+);
+const IconUser = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const IconTicket = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+    <path d="M13 5v2M13 17v2M13 11v2" />
+  </svg>
+);
+const IconKey = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="m21 2-9.6 9.6" />
+    <path d="m15.5 7.5 3 3L22 7l-3-3" />
+  </svg>
+);
+const IconAlert = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+const IconInfo = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+const IconCheck = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+const IconSpinner = ({ className = 'w-5 h-5' }) => (
+  <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" opacity="0.25" />
+    <path d="M21 12a9 9 0 0 0-9-9" />
+  </svg>
+);
+
+/* ---------- 字段级输入组件：标签 + 图标前缀 + 后缀按钮（如密码眼睛）+ 错误态 ---------- */
+function Field({
+  id,
+  label,
+  optional,
+  icon,
+  error,
+  hint,
+  inputProps,   // 交给实际 <input /> 的所有属性（type/value/onChange/placeholder/autoComplete/.../style/className）
+  suffix,       // 放在输入框右侧的附加元素（如眼睛按钮）
+}) {
+  const hasSuffix = !!suffix;
+  const inputClassName = [
+    'input',
+    icon ? 'pl-11' : '',
+    hasSuffix ? 'pr-11' : 'pr-4',
+    inputProps?.className || '',
+    error ? 'has-error' : '',
+  ].filter(Boolean).join(' ');
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={id} className="block text-[13px] font-medium text-ink-700">
+          {label}
+        </label>
+        {optional && (
+          <span className="inline-flex items-center rounded-full border border-ink-100 bg-ink-50 px-2 py-[2px] text-[10.5px] font-semibold text-ink-400">
+            可选
+          </span>
+        )}
+      </div>
+      <div className="relative">
+        {icon && (
+          <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 transition-colors duration-150">
+            {icon}
+          </div>
+        )}
+        <input
+          {...inputProps}
+          id={id}
+          className={inputClassName}
+          data-error={error ? '1' : undefined}
+          aria-invalid={!!error || undefined}
+          aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}
+        />
+        {hasSuffix && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+            {suffix}
+          </div>
+        )}
+      </div>
+      {error && (
+        <div id={`${id}-err`} className="flex items-start gap-1.5 text-[12px] text-accent-red">
+          <IconAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      {!error && hint && (
+        <p id={`${id}-hint`} className="text-[12px] leading-relaxed text-ink-400">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function Login() {
   const { login, register } = useAuth();
@@ -11,18 +157,21 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [bootstrapCode, setBootstrapCode] = useState('');
-  const [err, setErr] = useState('');
-  const [msg, setMsg] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [showBootstrap, setShowBootstrap] = useState(false);
   const [busy, setBusy] = useState(false);
   const [modes, setModes] = useState({ ownerBootstrap: false, openRegister: false });
+  // 字段级错误（对应邮箱/密码/邀请码/口令…，有字段错就在输入框下方直接标红+图标+红边红环）
+  const [fieldErr, setFieldErr] = useState({});
+  // 全局错误 / 全局消息（跨字段的错误，如"邮箱或密码错误"）
+  const [globalErr, setGlobalErr] = useState('');
+  const [globalMsg, setGlobalMsg] = useState('');
 
   // D1 模式：首次进入探测 modes（是否开放注册、是否有 bootstrap code）
   useEffect(() => {
     if (!IS_D1_BACKEND) return;
     (async () => {
       try {
-        const res = await API.auth.login && typeof API.auth.login === 'function' ? null : null;
-        // 直接 fetch /auth/login GET：API 封装里 auth.login 默认是 POST，这里走 fetchPages
         const r = await fetch('/api/auth/login', {
           method: 'GET',
           headers: { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' },
@@ -32,35 +181,92 @@ export default function Login() {
     })();
   }, []);
 
+  const tabs = useMemo(() => {
+    const base = [{ key: 'login', label: '登录' }];
+    if (IS_D1_BACKEND) {
+      if (modes.openRegister) base.push({ key: 'register', label: '注册' });
+      if (modes.ownerBootstrap) base.push({ key: 'bootstrap', label: '初始化管理员' });
+    } else {
+      base.push({ key: 'register', label: '注册' });
+    }
+    return base;
+  }, [modes.openRegister, modes.ownerBootstrap]);
+
+  /* ---------- Tab 选中滑动条：根据当前 mode 在 tabs 中的索引计算位置 ---------- */
+  const tabIdx = Math.max(0, tabs.findIndex(t => t.key === mode));
+  const tabStyle = useMemo(() => {
+    const count = Math.max(1, tabs.length);
+    const idx = Math.min(tabIdx, count - 1);
+    return {
+      width: `${100 / count}%`,
+      transform: `translateX(${idx * 100}%)`,
+      transitionDuration: '260ms',
+    };
+  }, [tabs.length, tabIdx]);
+
+  /* ---------- 表单高度平滑过渡（注册/初始化切换更高） ---------- */
+  const formRef = useRef(null);
+  const [formHeight, setFormHeight] = useState(null);
+  useEffect(() => {
+    if (!formRef.current) return;
+    const h = formRef.current.scrollHeight;
+    setFormHeight(h);
+    // 下一帧再按真实高度稳定一下（避免首次渲染时内容未完全挂载）
+    const t = requestAnimationFrame(() => {
+      if (formRef.current) setFormHeight(formRef.current.scrollHeight);
+    });
+    return () => cancelAnimationFrame(t);
+  }, [mode, modes.openRegister, modes.ownerBootstrap]);
+
+  function setErrors(obj) {
+    setFieldErr(prev => ({ ...prev, ...obj }));
+  }
+  function clearAll() {
+    setFieldErr({});
+    setGlobalErr('');
+    setGlobalMsg('');
+  }
+
+  function validateBeforeSubmit() {
+    clearAll();
+    const errors = {};
+    if (!email.trim()) errors.email = '请输入邮箱';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = '邮箱格式不正确';
+    if (!password) errors.password = '请输入密码';
+    else if (password.length < 6) errors.password = '密码至少 6 位';
+    if (mode === 'register') {
+      if (!inviteCode.trim()) errors.inviteCode = '请输入邀请码';
+    }
+    if (mode === 'bootstrap') {
+      if (!bootstrapCode.trim()) errors.bootstrapCode = '请粘贴初始化口令';
+    }
+    setErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
   async function submit(e) {
     e.preventDefault();
-    setErr('');
-    setMsg('');
+    if (!validateBeforeSubmit()) return;
     setBusy(true);
     try {
-      // D1 模式：新多用户体系（邮箱+密码 登录/注册/bootstrapOwner）
       if (IS_D1_BACKEND) {
         if (mode === 'login') {
-          if (!email.trim()) { setErr('请输入邮箱'); setBusy(false); return; }
-          if (!password || password.length < 6) { setErr('密码至少 6 位'); setBusy(false); return; }
-          await login(email.trim(), password);
+          await login(email.trim().toLowerCase(), password);
           return;
         }
         if (mode === 'register') {
-          if (!email.trim()) { setErr('请输入邮箱'); setBusy(false); return; }
-          if (!password || password.length < 6) { setErr('密码至少 6 位'); setBusy(false); return; }
-          if (!inviteCode.trim()) { setErr('请输入邀请码'); setBusy(false); return; }
-          if (!modes.openRegister) { setErr('管理员暂未开放注册'); setBusy(false); return; }
-          await register(email.trim(), password, {
+          if (!modes.openRegister) {
+            setGlobalErr('管理员暂未开放注册');
+            setBusy(false);
+            return;
+          }
+          await register(email.trim().toLowerCase(), password, {
             username: username.trim() || email.trim().split('@')[0],
             inviteCode: inviteCode.trim().toUpperCase(),
           });
           return;
         }
         if (mode === 'bootstrap') {
-          if (!email.trim()) { setErr('请输入邮箱（作为 owner 账号邮箱，以后登录用）'); setBusy(false); return; }
-          if (!password || password.length < 6) { setErr('密码至少 6 位'); setBusy(false); return; }
-          if (!bootstrapCode.trim()) { setErr('请输入一次性初始化口令 BOOTSTRAP_OWNER_CODE'); setBusy(false); return; }
           const res = await fetch('/api/auth/bootstrapOwner', {
             method: 'POST',
             headers: {
@@ -78,148 +284,317 @@ export default function Login() {
           if (!res.ok || data?.error) throw new Error((data?.error) || `请求失败 (${res.status})`);
           if (data?.token) localStorage.setItem('pw_unlock_token', String(data.token));
           if (data?.user) localStorage.setItem('pw_user', JSON.stringify(data.user));
-          // 完成后写入 React state（等同于 login 后的状态），下一轮 AuthProvider 自动识别 token 登录
           window.location.reload();
           return;
         }
         return;
       }
 
-      // ====== Supabase 模式 ======
-      if (!email.trim()) return setErr('请输入邮箱');
-      if (!password || password.length < 6) return setErr('密码至少 6 位');
+      // ====== Supabase 模式（保留） ======
       if (mode === 'login') {
-        await login(email.trim(), password);
-      } else {
-        if (!inviteCode.trim()) {
-          setErr('请输入邀请码');
-          setBusy(false);
-          return;
-        }
-        const reserveResult = await API.inviteCodes.reserve(inviteCode.trim().toUpperCase());
-        if (!reserveResult.codeId) {
-          setErr('邀请码无效或已被使用');
-          setBusy(false);
-          return;
-        }
-        const codeId = reserveResult.codeId;
-        const u = await register(email.trim(), password, {
-          username: username.trim() || email.trim().split('@')[0],
-        });
-        await API.inviteCodes.link(codeId);
-        if (!u) {
-          setMsg('注册成功！请登录。');
-          setMode('login');
-        }
+        await login(email.trim().toLowerCase(), password);
+        return;
+      }
+      if (!inviteCode.trim()) {
+        setErrors({ inviteCode: '请输入邀请码' });
+        setBusy(false);
+        return;
+      }
+      const reserveResult = await API.inviteCodes.reserve(inviteCode.trim().toUpperCase());
+      if (!reserveResult.codeId) {
+        setErrors({ inviteCode: '邀请码无效或已被使用' });
+        setBusy(false);
+        return;
+      }
+      const codeId = reserveResult.codeId;
+      const u = await register(email.trim().toLowerCase(), password, {
+        username: username.trim() || email.trim().split('@')[0],
+      });
+      await API.inviteCodes.link(codeId);
+      if (!u) {
+        setGlobalMsg('注册成功！请登录。');
+        setMode('login');
       }
     } catch (e) {
-      setErr(e.message || '操作失败');
+      // 常见登录错误映射到字段级，避免"全屏幕一条红"
+      const msg = e.message || '操作失败';
+      if (mode === 'login' && (msg.includes('邮箱或密码') || msg.includes('AUTH_FAIL') || msg.includes('401') || msg.includes('邮箱') && msg.includes('密码'))) {
+        setErrors({ email: '邮箱或密码不正确', password: ' ' });
+      } else if (msg.includes('账号已被禁用')) {
+        setGlobalErr('该账号已被禁用，请联系管理员。');
+      } else if (mode === 'register' && msg.includes('邀请码')) {
+        setErrors({ inviteCode: msg });
+      } else if (mode === 'bootstrap' && msg.includes('owner 账号已存在')) {
+        setGlobalErr('管理员账号已初始化，无需再执行。');
+      } else if (mode === 'bootstrap' && msg.includes('bootstrap_code') && msg.includes('不匹配')) {
+        setErrors({ bootstrapCode: '初始化口令不匹配' });
+      } else {
+        setGlobalErr(msg);
+      }
     } finally {
       setBusy(false);
     }
   }
 
-  const tabs = (() => {
-    const base = [{ key: 'login', label: '登录' }];
-    if (IS_D1_BACKEND) {
-      if (modes.openRegister) base.push({ key: 'register', label: '注册' });
-      if (modes.ownerBootstrap) base.push({ key: 'bootstrap', label: '初始化管理员' });
-    } else {
-      base.push({ key: 'register', label: '注册' });
-    }
-    return base;
-  })();
+  /* ---------- 动态按钮文案 ---------- */
+  const btnLabel = busy ? (
+    <>
+      <IconSpinner className="w-[18px] h-[18px]" />
+      <span>处理中...</span>
+    </>
+  ) : (
+    <span>{mode === 'login' ? '登 录' : mode === 'register' ? '注 册' : '创建管理员账号'}</span>
+  );
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-brand-50 via-white to-brand-100">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500 text-white text-2xl font-bold mb-3 shadow-card">
-            ⌘
+    <div className="relative min-h-screen w-full overflow-hidden bg-brand-50/50 font-sans">
+      {/* ====== 背景：两个超大柔光渐变光斑（方案 1 · iCloud 风格） ====== */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-brand-400/40 blur-[120px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-52 -right-48 h-[620px] w-[620px] rounded-full bg-accent-purple-500/20 blur-[140px]"
+      />
+
+      {/* ====== 主体 ====== */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="w-full max-w-[448px]">
+          {/* Brand */}
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 inline-flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700 text-white shadow-[0_14px_34px_rgba(0,122,255,0.35),0_2px_6px_rgba(0,122,255,0.15)]">
+              <span
+                aria-hidden="true"
+                className="text-[30px] leading-none"
+                style={{ fontFamily: '-apple-system, SF Pro Display, system-ui', fontWeight: 700 }}
+              >
+                ⌘
+              </span>
+            </div>
+            <h1 className="text-[30px] font-bold leading-tight tracking-tight text-ink-900">
+              个人工作台
+            </h1>
+            <p className="mt-1.5 text-[15px] leading-relaxed text-ink-600">
+              日程 · 任务 · 习惯 · 复盘，一站式管理你的每一天
+            </p>
           </div>
-          <h1 className="text-2xl font-semibold text-ink-900">个人工作台</h1>
-          <p className="text-sm text-ink-500 mt-1">日程 · 任务 · 习惯 · 复盘，一站式管理</p>
-        </div>
 
-        <div className="card p-6">
-          {tabs.length > 1 && (
-            <div className="flex bg-brand-50 rounded-lg p-1 mb-5 text-sm">
-              {tabs.map(t => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => { setMode(t.key); setErr(''); setMsg(''); }}
-                  className={`flex-1 py-1.5 transition ${mode === t.key ? 'bg-white shadow-sm text-brand-700 font-medium rounded-full' : 'text-ink-500 rounded-md'}`}
-                >{t.label}</button>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="block text-xs text-ink-500 mb-1">邮箱</label>
-              <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoFocus />
-            </div>
-            <div>
-              <label className="block text-xs text-ink-500 mb-1">密码</label>
-              <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 6 位" />
-            </div>
-            {mode === 'register' && (
-              <>
-                <div>
-                  <label className="block text-xs text-ink-500 mb-1">昵称（可选）</label>
-                  <input className="input" value={username} onChange={e => setUsername(e.target.value)} placeholder="留空则用邮箱前缀" maxLength={20} />
-                </div>
-                <div>
-                  <label className="block text-xs text-ink-500 mb-1">邀请码</label>
-                  <input className="input" value={inviteCode} onChange={e => setInviteCode(e.target.value)} placeholder="请向管理员索取邀请码" maxLength={32} />
-                </div>
-              </>
-            )}
-            {mode === 'bootstrap' && (
-              <>
-                <div>
-                  <label className="block text-xs text-ink-500 mb-1">昵称（可选）</label>
-                  <input className="input" value={username} onChange={e => setUsername(e.target.value)} placeholder="留空则用邮箱前缀" maxLength={20} />
-                </div>
-                <div>
-                  <label className="block text-xs text-ink-500 mb-1">一次性初始化口令 BOOTSTRAP_OWNER_CODE</label>
-                  <input className="input" type="password" value={bootstrapCode} onChange={e => setBootstrapCode(e.target.value)} placeholder="在 Cloudflare Pages Secrets 中配置" maxLength={64} />
-                  <p className="text-xs text-ink-400 mt-1 leading-relaxed">
-                    仅当 ethan_users 为空时可用。成功后账号自动标记为 owner，并继承现有数据（习惯/日程…）。
-                  </p>
-                </div>
-              </>
-            )}
-
-            {err && (
-              <div className="text-sm text-accent-red bg-accent-red/5 px-3 py-2 rounded-lg">{err}</div>
-            )}
-            {msg && (
-              <div className="text-sm text-accent-green bg-accent-green/5 px-3 py-2 rounded-lg">{msg}</div>
-            )}
-            {/* 非首次部署：已有 owner 但没有可用邀请码时，给登录 Tab 加一条友好说明，
-                避免"为什么只有登录 Tab"的困惑。
-                openRegister=false 会让注册 Tab 不显示，这里说明原因 + 让 owner 知道下一步该做什么。*/}
-            {mode === 'login' && IS_D1_BACKEND && !modes.openRegister && !modes.ownerBootstrap && (
-              <div className="text-xs text-ink-400 bg-ink-50 px-3 py-2 rounded-lg leading-relaxed">
-                <b className="text-ink-600">💡 还没有可用邀请码</b>。
-                管理员请先用邮箱登录，进入工作台 → 右上角 ⚙️ 设置 →
-                <b className="text-ink-700">邀请码管理</b>生成邀请码后，注册入口会自动出现。
+          {/* Card */}
+          <div className="card p-7 sm:p-8">
+            {tabs.length > 1 && (
+              <div
+                role="tablist"
+                aria-label="身份操作"
+                className="relative mb-7 grid rounded-full bg-ink-50 p-1 text-[14px]"
+                style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+              >
+                {/* 选中滑块：绝对定位白胶囊，transform 滑过去 */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-1 rounded-full bg-white shadow-[0_1px_2px_rgba(15,31,28,0.06),0_2px_8px_rgba(15,31,28,0.08)]"
+                  style={{
+                    ...tabStyle,
+                    transitionTimingFunction: 'cubic-bezier(.2,.8,.2,1)',
+                    transitionProperty: 'transform, width',
+                  }}
+                />
+                {tabs.map(t => (
+                  <button
+                    key={t.key}
+                    role="tab"
+                    type="button"
+                    aria-selected={mode === t.key}
+                    onClick={() => { setMode(t.key); clearAll(); }}
+                    className={`relative z-[1] flex items-center justify-center rounded-full py-2 font-medium transition-colors duration-150 select-none ${
+                      mode === t.key ? 'text-brand-700' : 'text-ink-500 hover:text-ink-700'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
             )}
 
-            <button type="submit" disabled={busy} className="btn-primary w-full py-2.5 disabled:opacity-50">
-              {busy ? '处理中...' : (mode === 'login' ? '登 录' : (mode === 'register' ? '注 册' : '创建管理员账号'))}
-            </button>
-          </form>
-        </div>
+            {/* 高度平滑过渡包装 */}
+            <div
+              style={{
+                height: formHeight ? `${formHeight}px` : 'auto',
+                transition: 'height 300ms cubic-bezier(.2,.8,.2,1)',
+                overflow: 'hidden',
+              }}
+            >
+              <form
+                ref={formRef}
+                onSubmit={submit}
+                className="space-y-5"
+                noValidate
+                aria-live="polite"
+              >
+                <Field
+                  id="login-email"
+                  label="邮箱"
+                  icon={<IconEmail />}
+                  error={fieldErr.email}
+                  inputProps={{
+                    type: 'email',
+                    autoComplete: 'email',
+                    autoFocus: true,
+                    value: email,
+                    onChange: e => setEmail(e.target.value),
+                    placeholder: 'you@example.com',
+                  }}
+                />
 
-        <p className="text-center text-xs text-ink-300 mt-6">
-          {IS_D1_BACKEND
-            ? '数据存储于 Cloudflare D1 · 多用户数据隔离 · Powered by Cloudflare Pages'
-            : '数据云端存储，多设备同步 · Powered by Supabase'}
-        </p>
+                <Field
+                  id="login-password"
+                  label="密码"
+                  icon={<IconLock />}
+                  error={fieldErr.password && fieldErr.password.trim() ? fieldErr.password : ''}
+                  inputProps={{
+                    type: showPwd ? 'text' : 'password',
+                    autoComplete: mode === 'login' ? 'current-password' : 'new-password',
+                    value: password,
+                    onChange: e => setPassword(e.target.value),
+                    placeholder: '至少 6 位',
+                  }}
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(v => !v)}
+                      aria-label={showPwd ? '隐藏密码' : '显示密码'}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-400 transition hover:bg-ink-50 hover:text-ink-600 active:text-brand-600"
+                      tabIndex={-1}
+                    >
+                      {showPwd ? <IconEyeOff className="h-[18px] w-[18px]" /> : <IconEye className="h-[18px] w-[18px]" />}
+                    </button>
+                  }
+                />
+
+                {mode === 'register' && (
+                  <>
+                    <Field
+                      id="reg-username"
+                      label="昵称"
+                      optional
+                      icon={<IconUser />}
+                      inputProps={{
+                        type: 'text',
+                        maxLength: 20,
+                        value: username,
+                        onChange: e => setUsername(e.target.value),
+                        placeholder: '留空则使用邮箱前缀',
+                      }}
+                    />
+                    <Field
+                      id="reg-invite"
+                      label="邀请码"
+                      icon={<IconTicket />}
+                      error={fieldErr.inviteCode}
+                      hint="向管理员索取。区分大小写，但系统会自动转换为大写。"
+                      inputProps={{
+                        type: 'text',
+                        maxLength: 32,
+                        spellCheck: false,
+                        autoCapitalize: 'characters',
+                        value: inviteCode,
+                        onChange: e => setInviteCode(e.target.value.toUpperCase()),
+                        placeholder: '如：E4J8-2KQ7',
+                        className: '!tracking-[0.18em]',
+                        style: { fontFamily: 'ui-monospace, SF Mono, Menlo, Consolas, monospace' },
+                      }}
+                    />
+                  </>
+                )}
+
+                {mode === 'bootstrap' && (
+                  <>
+                    <Field
+                      id="boot-username"
+                      label="昵称"
+                      optional
+                      icon={<IconUser />}
+                      inputProps={{
+                        type: 'text',
+                        maxLength: 20,
+                        value: username,
+                        onChange: e => setUsername(e.target.value),
+                        placeholder: '留空则使用邮箱前缀',
+                      }}
+                    />
+                    <Field
+                      id="boot-code"
+                      label="管理员初始化口令（一次性）"
+                      icon={<IconKey />}
+                      error={fieldErr.bootstrapCode}
+                      hint="仅在用户表为空时可用。从 Cloudflare Pages → Secrets 粘贴初始化口令。"
+                      inputProps={{
+                        type: showBootstrap ? 'text' : 'password',
+                        maxLength: 64,
+                        autoComplete: 'one-time-code',
+                        spellCheck: false,
+                        value: bootstrapCode,
+                        onChange: e => setBootstrapCode(e.target.value),
+                        placeholder: '粘贴初始化口令',
+                        style: { fontFamily: 'ui-monospace, SF Mono, Menlo, Consolas, monospace' },
+                      }}
+                      suffix={
+                        <button
+                          type="button"
+                          onClick={() => setShowBootstrap(v => !v)}
+                          aria-label={showBootstrap ? '隐藏口令' : '显示口令'}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-400 transition hover:bg-ink-50 hover:text-ink-600"
+                          tabIndex={-1}
+                        >
+                          {showBootstrap ? <IconEyeOff className="h-[18px] w-[18px]" /> : <IconEye className="h-[18px] w-[18px]" />}
+                        </button>
+                      }
+                    />
+                  </>
+                )}
+
+                {/* 全局错误 / 成功 / 引导 */}
+                {globalErr && (
+                  <div className="flex items-start gap-2 rounded-xl border border-accent-red/20 bg-accent-red/5 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-accent-red">
+                    <IconAlert className="mt-[2px] shrink-0 text-accent-red" />
+                    <span>{globalErr}</span>
+                  </div>
+                )}
+                {globalMsg && (
+                  <div className="flex items-start gap-2 rounded-xl border border-accent-green/25 bg-accent-green/5 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-accent-green-700">
+                    <IconCheck className="mt-[2px] shrink-0 text-accent-green" />
+                    <span>{globalMsg}</span>
+                  </div>
+                )}
+
+                {mode === 'login' && IS_D1_BACKEND && !modes.openRegister && !modes.ownerBootstrap && (
+                  <div className="flex items-start gap-2 rounded-xl border border-brand-100 bg-brand-50/60 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-600">
+                    <IconInfo className="mt-[2px] shrink-0 text-brand-500" />
+                    <span>
+                      <b className="text-ink-800">还没有可用邀请码。</b>
+                      {' '}管理员请先用邮箱登录，进入工作台 → 右上角 ⚙️ 设置 →{' '}
+                      <b className="text-brand-700">邀请码管理</b> 生成邀请码后，注册入口会自动出现。
+                    </span>
+                  </div>
+                )}
+
+                {/* 唯一 CTA：.btn-primary 已经在 CSS 用 flex+justify+align center 保证文字绝对居中 */}
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="btn-primary w-full !px-5 mt-1"
+                >
+                  {btnLabel}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Footer（产品化文案 + 颜色升级到 ink-500 过 WCAG AA） */}
+          <p className="mt-7 text-center text-[13px] leading-relaxed text-ink-500">
+            © {new Date().getFullYear()} 个人工作台 · 多设备同步 · 你的数据安全存储于云端
+          </p>
+        </div>
       </div>
     </div>
   );

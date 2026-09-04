@@ -428,13 +428,38 @@ body {
 
 /* ====== Buttons ====== */
 .btn-primary {
-  background: var(--s-main); color: #fff;
-  padding: 6px 14px; border-radius: 9px;
-  font-size: 13px; font-weight: 600;
-  display: inline-flex; align-items: center; gap: 6px;
-  transition: all .15s; border: none; cursor: pointer;
+  background: var(--s-grad-bg, var(--s-main));
+  color: #fff;
+  /* 🔧 统一：文字水平+垂直绝对居中（修复登录/注册按钮文字不居中的问题） */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* 最小触达区 44px（HIG），实际高度由 padding 决定，保证垂直居中稳定 */
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  transition: transform .15s cubic-bezier(.2,.8,.2,1), box-shadow .2s, filter .15s, opacity .15s;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(var(--s-rgb), 0.25), 0 1px 2px rgba(var(--s-rgb), 0.12);
+  font-family: inherit;
+  box-sizing: border-box;
+  width: auto;
 }
-.btn-primary:hover { filter: brightness(1.05); }
+.btn-primary:hover { filter: brightness(1.05); box-shadow: 0 4px 14px rgba(var(--s-rgb), 0.30); }
+.btn-primary:active { transform: scale(0.985); filter: brightness(0.96); }
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
 .btn-secondary {
   background: rgba(120,120,128,0.12); color: #1c1c1e;
   padding: 6px 14px; border-radius: 9px;
@@ -653,26 +678,63 @@ body {
 .toast-warn { background: rgba(255, 149, 0, 0.92); }
 .toast-info { background: rgba(var(--s-rgb), 0.92); }
 
+/* ====== Card（登录 / 设置等通用容器，对齐 tailwind 的 shadow-cardL + 设计令牌） ====== */
+.card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow:
+    0 1px 2px rgba(15, 31, 28, 0.04),
+    0 10px 32px rgba(15, 31, 28, 0.08),
+    0 0 0 1px rgba(15, 31, 28, 0.04);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-sizing: border-box;
+}
+
 /* ====== Form inputs (统一 focus 高亮) ====== */
-.form-input {
+/* .input 与 .form-input 等价（前者给 Login 这种表单用，和现有 className="input" 兼容；后者给全站工作台复用） */
+.form-input,
+.input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d1d1d6;
-  border-radius: 9px;
-  font-size: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e5e5ea;          /* iOS 标准浅边，不是 #d1d1d6 更深的那种 */
+  border-radius: 12px;                 /* 与新按钮圆角 12px 同源 */
+  font-size: 15px;
+  line-height: 1.4;
   color: #1c1c1e;
   background: #ffffff;
   outline: none;
-  transition: all .15s;
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease,
+    background-color .15s ease;
   box-sizing: border-box;
   font-family: inherit;
+  caret-color: var(--s-main);
 }
+.form-input::placeholder,
+.input::placeholder { color: #8e8e93; }
+.form-input:hover,
+.input:hover { border-color: #d4d4d8; }
 .form-input:focus,
-.form-input:focus-visible {
+.form-input:focus-visible,
+.input:focus,
+.input:focus-visible {
   border-color: var(--s-main) !important;
-  box-shadow: 0 0 0 3px rgba(var(--s-rgb), 0.15) !important;
+  box-shadow: 0 0 0 4px rgba(var(--s-rgb), 0.14) !important;  /* 4px 比 3px 更接近 iOS focus ring */
+  background: #ffffff;
+  outline: none !important;                                        /* ✅ 干掉浏览器默认黑框 */
 }
-textarea.form-input { resize: vertical; line-height: 1.5; min-height: 60px; }
+/* 错误态：输入框外围一圈红色（data-error="1" 或 .has-error 两种写法都兼容） */
+.form-input[data-error="1"],
+.form-input.has-error,
+.input[data-error="1"],
+.input.has-error {
+  border-color: #FF3B30 !important;
+  box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.12) !important;
+}
+textarea.form-input,
+textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 
 /* ====== Skeleton ====== */
 @keyframes sk-pulse {

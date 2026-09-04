@@ -51,7 +51,23 @@ export function AuthProvider({ children }) {
 
     (async () => {
       const token = readToken();
-      const cached = readCachedUser();
+      let cached = readCachedUser();
+      // 防御：老版本 pw_user 可能没有 is_owner 字段（迁移遗留），强制去后端拉一次 /auth/me 补齐
+      //       避免出现"明明是 owner，但本地缓存缺字段 → 设置弹窗看不到 invites/users"的情况
+      if (cached && cached.id) {
+        const normalized = {
+          ...DEFAULT_D1_USER,
+          ...cached,
+          is_owner: cached.is_owner === true || cached.is_owner === 1 || cached.is_owner === '1',
+          is_banned: cached.is_banned === true || cached.is_banned === 1 || cached.is_banned === '1',
+        };
+        if (!cached.is_owner && cached.is_owner !== false && cached.is_owner !== 0) {
+          cached = null; // 字段缺失 → 强制走后端 /me
+        } else {
+          cached = normalized;
+          writeCachedUser(normalized);
+        }
+      }
       if (!token) {
         // 没有有效 token：不允许"默认进入"（新多用户体系强制登录）
         writeCachedUser(null);
@@ -62,8 +78,14 @@ export function AuthProvider({ children }) {
         const me = await API.auth.me();
         const u = me?.user;
         if (u) {
-          writeCachedUser(u);
-          if (mounted) { setUser(u); setLoading(false); }
+          const normalized = {
+            ...DEFAULT_D1_USER,
+            ...u,
+            is_owner: u.is_owner === true || u.is_owner === 1 || u.is_owner === '1',
+            is_banned: u.is_banned === true || u.is_banned === 1 || u.is_banned === '1',
+          };
+          writeCachedUser(normalized);
+          if (mounted) { setUser(normalized); setLoading(false); }
         } else {
           writeCachedUser(null);
           writeToken('');

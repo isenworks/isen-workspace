@@ -37,7 +37,9 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
   const [migrateResult, setMigrateResult] = useState(null);
   const [migrateBusy, setMigrateBusy] = useState(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL || user?.is_owner || IS_D1_BACKEND; // D1 模式下 owner 可操作
+  // 严格判定：只有 is_owner=true（或硬编码 ADMIN_EMAIL 兜底）才允许看到 invites/users Tab
+  //  ❌ 不再用 IS_D1_BACKEND 做兜底（之前所有用户都会被错误判为管理员/或被意外漏掉）
+  const isAdmin = user?.is_owner === true || user?.is_owner === 1 || user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     if (open && isAdmin) {

@@ -1464,19 +1464,30 @@ async function handleAuthRegister(env, body) {
 // ---------------- auth.login：邮箱 + 密码登录，返回 HMAC token
 async function handleAuthLogin(env, body, method, currentUser) {
   if (method === 'GET') {
-    // 健康检查 / 前端探测接口
-    const bootstrap = env.BOOTSTRAP_OWNER_CODE ? String(env.BOOTSTRAP_OWNER_CODE).trim() : '';
-    // 检测是否有邀请码记录（有 → 显示注册 Tab）
-    let hasInviteCodes = false;
+    // 健康检查 / 前端探测接口（登录页根据返回的 modes 动态显示 Tab）
+    const bootstrapCode = env.BOOTSTRAP_OWNER_CODE ? String(env.BOOTSTRAP_OWNER_CODE).trim() : '';
+    // 1) 是否允许 ownerBootstrap：仅当 ethan_users 没有任何 owner 记录、且 bootstrap_code 还未被消耗时才为 true
+    //    （即使 secret 存在，只要已经创建过 owner 就不再显示「初始化管理员」Tab，避免误导）
+    let ownerBootstrapAllowed = false;
+    try {
+      if (bootstrapCode) {
+        const marker = await dbFirst(env.DB, `SELECT v FROM ethan_user_settings WHERE user_id='0' AND k='owner_bootstrapped'`).catch(() => null);
+        const existingOwner = await dbFirst(env.DB, `SELECT id FROM ethan_users WHERE is_owner = 1 LIMIT 1`).catch(() => null);
+        ownerBootstrapAllowed = !marker && !existingOwner;
+      }
+    } catch (_) {}
+    // 2) 是否开放注册：只要 ethan_invite_codes 里有"未使用 + 未禁用"的邀请码，就显示注册 Tab
+    //    （closed-beta 模式：注册必须靠邀请码，没有可用邀请码就不渲染注册 Tab）
+    let openRegister = false;
     try {
       const cnt = await dbFirst(env.DB, `SELECT COUNT(*) AS c FROM ethan_invite_codes WHERE is_disabled = 0 AND used_by IS NULL`);
-      hasInviteCodes = (cnt && Number(cnt.c) > 0);
+      openRegister = (cnt && Number(cnt.c) > 0);
     } catch (_) {}
     return json({
       ok: true,
       modes: {
-        ownerBootstrap: !!bootstrap,
-        openRegister: hasInviteCodes,
+        ownerBootstrap: ownerBootstrapAllowed,
+        openRegister,
       },
       user: currentUser ? safeUser(currentUser) : null,
     });

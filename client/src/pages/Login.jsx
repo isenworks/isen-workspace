@@ -198,6 +198,16 @@ export default function Login() {
             {msg && (
               <div className="text-sm text-accent-green bg-accent-green/5 px-3 py-2 rounded-lg">{msg}</div>
             )}
+            {/* 非首次部署：已有 owner 但没有可用邀请码时，给登录 Tab 加一条友好说明，
+                避免"为什么只有登录 Tab"的困惑。
+                openRegister=false 会让注册 Tab 不显示，这里说明原因 + 让 owner 知道下一步该做什么。*/}
+            {mode === 'login' && IS_D1_BACKEND && !modes.openRegister && !modes.ownerBootstrap && (
+              <div className="text-xs text-ink-400 bg-ink-50 px-3 py-2 rounded-lg leading-relaxed">
+                <b className="text-ink-600">💡 还没有可用邀请码</b>。
+                管理员请先用邮箱登录，进入工作台 → 右上角 ⚙️ 设置 →
+                <b className="text-ink-700">邀请码管理</b>生成邀请码后，注册入口会自动出现。
+              </div>
+            )}
 
             <button type="submit" disabled={busy} className="btn-primary w-full py-2.5 disabled:opacity-50">
               {busy ? '处理中...' : (mode === 'login' ? '登 录' : (mode === 'register' ? '注 册' : '创建管理员账号'))}

@@ -266,6 +266,9 @@ async function ensureUsersTable(env) {
     if (cols.results && !cols.results.some(c => c.name === 'is_banned')) {
       await env.DB.prepare(`ALTER TABLE ethan_users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0`).run();
     }
+    if (cols.results && !cols.results.some(c => c.name === 'last_login')) {
+      await env.DB.prepare(`ALTER TABLE ethan_users ADD COLUMN last_login TEXT`).run();
+    }
   } catch (_) {}
 
   // ethan_invite_codes 表（邀请码管理）
@@ -1506,6 +1509,12 @@ async function handleAuthLogin(env, body, method, currentUser) {
     if (!pwOk) return json({ ...AUTH_FAIL }, 401);
     if (row.is_banned) return json({ error: '账号已被禁用，请联系管理员' }, 403);
 
+    // 更新最近登录时间
+    try {
+      await env.DB.prepare(`UPDATE ethan_users SET last_login = datetime('now') WHERE id = ?`).bind(row.id).run();
+      row.last_login = new Date().toISOString();
+    } catch (_) {}
+
     const token = await signToken(row.id, env);
     return json({ ok: true, token, user: safeUser(row) }, 200);
   } catch (e) {
@@ -2158,7 +2167,7 @@ async function handleUsersList(env) {
   if (!owner || !owner.is_owner) return json({ error: '无权限' }, 403);
 
   const rows = await dbAll(env.DB, `
-    SELECT id, email, username, avatar, is_owner, is_banned, created_at
+    SELECT id, email, username, avatar, is_owner, is_banned, created_at, last_login
     FROM ethan_users
     ORDER BY created_at DESC
   `);
@@ -2170,6 +2179,7 @@ async function handleUsersList(env) {
     is_owner: !!u.is_owner,
     is_banned: !!u.is_banned,
     created_at: u.created_at,
+    last_login: u.last_login || null,
   }));
   return json({ users });
 }

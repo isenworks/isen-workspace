@@ -747,17 +747,19 @@ function AdminTab({
     transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: '6px',
   };
   const thRow = {
-    display: 'grid', alignItems: 'center',
+    display: 'grid', alignItems: 'center', justifyItems: 'center',
     padding: '8px 16px',
     fontSize: '12px', color: '#8e8e93', fontWeight: '500',
     background: '#fafafa', borderBottom: '1px solid #f0f0f2',
+    textAlign: 'center',
   };
   const tr = {
-    display: 'grid', alignItems: 'center',
+    display: 'grid', alignItems: 'center', justifyItems: 'center',
     padding: '10px 16px',
     borderBottom: '1px solid #f4f4f6',
     fontSize: '13px', color: '#1c1c1e',
     transition: 'background .12s',
+    textAlign: 'center',
   };
   const codeMono = { fontFamily: 'SF Mono, Menlo, Consolas, monospace', fontWeight: 600, letterSpacing: '0.04em' };
   const pill = (color) => ({
@@ -845,7 +847,7 @@ function AdminTab({
               <div>状态</div>
               <div>使用人</div>
               <div>创建时间</div>
-              <div style={{ textAlign: 'right' }}>操作</div>
+              <div>操作</div>
             </div>
             {invites.map(c => {
               const isUsed = !!c.is_used;
@@ -874,7 +876,7 @@ function AdminTab({
                         })
                       : '—'}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
+                  <div style={{ textAlign: 'center' }}>
                     {!isUsed && !isDisabled
                       ? <button onClick={() => onDisable(c.id)} style={dangerBtn}>禁用</button>
                       : isDisabled
@@ -909,12 +911,13 @@ function AdminTab({
           </div>
         ) : (
           <div>
-            <div style={{ ...thRow, gridTemplateColumns: '36px 1.6fr 1.6fr 0.7fr 0.7fr' }}>
+            <div style={{ ...thRow, gridTemplateColumns: '36px 1.3fr 1fr 1fr 0.6fr 0.7fr' }}>
               <div />
               <div>账号</div>
               <div>昵称 / 注册时间</div>
+              <div>最近登录</div>
               <div>状态</div>
-              <div style={{ textAlign: 'right' }}>操作</div>
+              <div>操作</div>
             </div>
             {users.map(u => {
               const isOwner = ownerId && String(u.user_id || u.id) === String(ownerId);
@@ -925,7 +928,7 @@ function AdminTab({
                   key={u.user_id || u.id}
                   style={{
                     ...tr,
-                    gridTemplateColumns: '36px 1.6fr 1.6fr 0.7fr 0.7fr',
+                    gridTemplateColumns: '36px 1.3fr 1fr 1fr 0.6fr 0.7fr',
                     background: banned ? 'rgba(255,59,48,0.04)' : '#fff',
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = banned ? 'rgba(255,59,48,0.06)' : '#fafafa')}
@@ -933,36 +936,34 @@ function AdminTab({
                 >
                   <div style={{
                     width: '28px', height: '28px', borderRadius: '999px',
-                    background: isOwner
-                      ? 'linear-gradient(135deg,#FF9500,#FF3B30)'
-                      : banned ? '#8e8e93' : 'var(--s-main)',
+                    background: banned ? '#8e8e93' : 'var(--s-main)',
                     color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '12px', fontWeight: 700,
                   }}>{initial}</div>
-                  <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ minWidth: 0, width: '100%' }}>
                     <span style={{
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
                       fontWeight: 500, color: '#1c1c1e',
                     }}>{u.email}</span>
-                    {isOwner && (
-                      <span style={{
-                        fontSize: '10.5px', fontWeight: 700, color: '#FF9500',
-                        padding: '2px 8px', borderRadius: '999px',
-                        background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.2)',
-                      }}>👑 所有者</span>
-                    )}
                   </div>
-                  <div style={{ minWidth: 0, overflow: 'hidden', fontSize: '12px', color: '#8e8e93' }}>
+                  <div style={{ minWidth: 0, width: '100%', overflow: 'hidden', fontSize: '12px', color: '#8e8e93' }}>
                     <div style={{ color: '#3c3c43', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {u.username || '—'}
                     </div>
                     <div>
-                      注册于 {u.created_at
+                      {u.created_at
                         ? new Date(u.created_at).toLocaleDateString('zh-CN', {
                             year: 'numeric', month: '2-digit', day: '2-digit',
                           })
                         : '—'}
                     </div>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#8e8e93', width: '100%' }}>
+                    {u.last_login
+                      ? new Date(u.last_login).toLocaleString('zh-CN', {
+                          month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                        })
+                      : '—'}
                   </div>
                   <div>
                     {isOwner
@@ -971,7 +972,7 @@ function AdminTab({
                         ? <span style={pill('#FF3B30')}>已禁用</span>
                         : <span style={pill('#34C759')}>正常</span>}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
+                  <div style={{ textAlign: 'center', width: '100%' }}>
                     {isOwner
                       ? <button disabled style={disabledBtn} title="所有者账号不可被禁用">禁用</button>
                       : banned

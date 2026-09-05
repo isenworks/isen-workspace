@@ -104,10 +104,14 @@ export default function MonthCalendarGrid({
         onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
         className="w-[16px] h-[16px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
         style={{
-          // mod.color 可能是 var(--m-xxx)（CSS 变量不支持 hex 透明度拼接），未勾选用 rgba 淡色描边
-          borderColor: done ? mod.color : (mod.color.startsWith('var(') ? `rgba(${mod.color.slice(4, -1)}-rgb, 0.33)` : `${mod.color}55`),
+          // 线框直接用模块色实色（跟随事项类型）；此前 rgba 缺 var() 包裹在 CSS 变量下非法被丢弃
+          borderColor: mod.color,
           background: done ? mod.color : '#ffffff',
-          boxShadow: done ? (mod.color.startsWith('var(') ? `0 2px 5px rgba(${mod.color.slice(4, -1)}-rgb, 0.29)` : `0 2px 5px ${mod.color}4A`) : 'none',
+          boxShadow: done
+            ? (mod.color.startsWith('var(')
+              ? `0 2px 5px rgba(var(${mod.color.slice(4, -1)}-rgb), 0.29)`
+              : `0 2px 5px ${mod.color}4A`)
+            : 'none',
         }}
       >
         {done && (
@@ -230,8 +234,9 @@ export default function MonthCalendarGrid({
                   const mod = scheduleModule(ev);
                   const done = Boolean(ev.is_done || ev.done);
                   // 模块色 16% 透明度背景：8% 时红/紫/橙低饱和趋同难辨，加深一档提升色相可分性
+                  // 注意 CSS 变量必须 var() 包裹：rgba(var(--m-xxx-rgb), 0.16)，缺 var() 是非法值会被丢弃
                   const bg = mod.color.startsWith?.('var(')
-                    ? `rgba(${mod.color.slice(4, -1)}-rgb, 0.16)`
+                    ? `rgba(var(${mod.color.slice(4, -1)}-rgb), 0.16)`
                     : `${mod.color}29`;
                   return (
                     <div

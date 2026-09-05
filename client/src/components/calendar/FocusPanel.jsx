@@ -5,7 +5,7 @@ import { MODULES, keyToModule, paceStatus } from '../../utils/categoryMapping.js
    非法值被浏览器丢弃），统一转成 rgba(var(--m-xxx-rgb), α) 形式 */
 function modRgba(color, alpha) {
   if (typeof color === 'string' && color.startsWith('var(')) {
-    return `rgba(${color.slice(4, -1)}-rgb, ${alpha})`;
+    return `rgba(var(${color.slice(4, -1)}-rgb), ${alpha})`;
   }
   if (/^#[0-9a-fA-F]{6}$/.test(color)) {
     return `${color}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;

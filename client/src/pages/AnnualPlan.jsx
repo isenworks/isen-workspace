@@ -6201,18 +6201,19 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
   const lifePct = Math.round((dynLife.filter(c => c.entries.length > 0).length / dynLife.length) * 100);
   const hlCount = Array.isArray(highlightedIds) ? highlightedIds.length : 0;
 
-  /* ===== 类目/时间 双视图（时间视图：按月分组倒序时间轴） ===== */
-  const [lifeViewMode, setLifeViewMode] = useState('cat'); // cat=按类目 | time=按时间
+  /* ===== 双面板布局：左类目导航（筛选器）+ 右时间流（唯一主视图） ===== */
+  const [lifeFilter, setLifeFilter] = useState(null); // null=全部 | 类目 key
+  const selFilterCat = lifeFilter ? dynLife.find(c => c.key === lifeFilter) : null;
   // 模块色/类目色转 rgba：var(--m-life) → rgba(var(--m-life-rgb), a)；hex → 拼接透明度
   const lifeRgba = (color, a) => {
     if (typeof color === 'string' && color.startsWith('var(')) return `rgba(var(${color.slice(4, -1)}-rgb), ${a})`;
     if (/^#[0-9a-fA-F]{6}$/.test(color)) return `${color}${Math.round(a * 255).toString(16).padStart(2, '0')}`;
     return color;
   };
-  // 扁平化全部条目 → 解析 d(如 8.24 / 8.17-8.18 取起始日) → 按月分组倒序
+  // 扁平化（可被筛选）→ 解析 d(如 8.24 / 8.17-8.18 取起始日) → 按月分组倒序
   const timeGroups = useMemo(() => {
     const rows = [];
-    (dynLife || []).forEach(c => (c.entries || []).forEach((e, i) => {
+    (lifeFilter ? dynLife.filter(c => c.key === lifeFilter) : dynLife || []).forEach(c => (c.entries || []).forEach((e, i) => {
       const m = String(e.d || '').match(/(\d{1,2})\s*[./]\s*(\d{1,2})/);
       rows.push({ cat: c, e, idx: i, mo: m ? +m[1] : 0, day: m ? +m[2] : 0 });
     }));
@@ -6224,7 +6225,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
       else groups.push({ mo: r.mo, label: r.mo ? `${r.mo}月` : '无日期', items: [r] });
     });
     return groups;
-  }, [dynLife]);
+  }, [dynLife, lifeFilter]);
 
   /* ===== 需求 2：链接按钮 · 右键菜单增删改 · 点击跳转 ===== */
   const [linkMenu, setLinkMenu] = useState(null); // { x, y, editingId } | null
@@ -6285,15 +6286,17 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
-          {/* 类目/时间 视图切换 */}
-          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-surface-soft border border-ink-100">
-            {[['cat', '类目'], ['time', '时间']].map(([v, lb]) => (
-              <button key={v} onClick={() => setLifeViewMode(v)}
-                className={`px-2.5 py-[3px] rounded-md text-[11px] font-bold transition cursor-pointer ${lifeViewMode === v ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'}`}>
-                {lb}
-              </button>
-            ))}
-          </div>
+          {/* 筛选态提示：筛选中显示 类目 · N条 ×（一键清除）；替代原切换钮位置 */}
+          {lifeFilter && selFilterCat && (
+            <div className="inline-flex items-center gap-1.5">
+              <span className="text-[12px] font-semibold" style={{ color: 'var(--m-life)' }}>
+                {selFilterCat.lb} · {selFilterCat.entries.length} 条
+              </span>
+              <button onClick={() => setLifeFilter(null)} title="清除筛选，显示全部"
+                className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md text-[11px] transition cursor-pointer"
+                style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>×</button>
+            </div>
+          )}
           {/* 链接按钮（需求 2：圆角正方形；左键跳转 / 右键增删改）—— 在年度精选左边 */}
           <div className="relative ml-auto">
             <button
@@ -6473,77 +6476,47 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             年度精选{hlCount > 0 && <span className="opacity-95">· {hlCount}</span>}
           </button>
         </div>
-        {/* P2-2: 生活统计条 - 已按要求删除 */}
-        {lifeViewMode === 'cat' && (<div className="grid grid-cols-5 gap-3 annual-life-grid">
-          {dynLife.map((c, ci) => (
-            <div key={c.key} className="bg-white border border-ink-100 rounded-2xl p-4 flex flex-col hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
-              {/* 卡片头部：紫色图标 + 标题 + 数量 + 右上角添加按钮 */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0"
-                  style={{ background: 'rgba(var(--m-life-rgb),0.12)', color: 'var(--m-life)' }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    {c.key === 'relation' && (<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>)}
-                    {c.key === 'food' && (<><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></>)}
-                    {c.key === 'travel' && (<><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></>)}
-                    {c.key === 'movie' && (<><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></>)}
-                    {c.key === 'shop' && (<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>)}
-                  </svg>
+        {/* ===== 双面板：左类目导航（筛选器） + 右时间流（唯一主视图） ===== */}
+        <div className="flex gap-4 mt-1 items-start">
+          {/* 左：类目导航 */}
+          <div className="w-[150px] flex-shrink-0 flex flex-col gap-1">
+            {/* 全部（默认） */}
+            <button onClick={() => setLifeFilter(null)}
+              className={`flex items-center gap-2 px-2.5 h-8 rounded-lg text-[13px] transition cursor-pointer text-left ${!lifeFilter ? 'font-bold text-[#1c1c1e] bg-[rgba(120,120,128,0.08)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}>
+              <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              <span className="flex-1 truncate">全部记录</span>
+              <span className="text-[11px] tabular-nums text-ink-400">{totalEntries}</span>
+            </button>
+            {/* 各类目：图标 + 名称 + 条数；hover 出 + 直接带类目添加 */}
+            {dynLife.map(c => {
+              const active = lifeFilter === c.key;
+              return (
+                <div key={c.key}
+                  className={`group flex items-center gap-2 px-2.5 h-8 rounded-lg text-[13px] transition text-left ${active ? 'font-bold text-[#1c1c1e] bg-[rgba(120,120,128,0.08)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}>
+                  <button onClick={() => setLifeFilter(active ? null : c.key)}
+                    className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
+                    title={active ? '点击取消筛选' : `筛选${c.lb}记录`}>
+                    <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }} />
+                    <span className="flex-1 truncate">{c.lb}</span>
+                    <span className="text-[11px] tabular-nums text-ink-400">{c.entries.length}</span>
+                  </button>
+                  <button onClick={() => onEntryAdd?.(c.key, c.lb)} title={`添加${c.lb}记录`}
+                    className="opacity-0 group-hover:opacity-100 transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer"
+                    style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  </button>
                 </div>
-                <span className="text-[15px] font-semibold text-[#48484A] leading-none">{c.lb}</span>
-                <span className="text-[12px] font-semibold tabular-nums text-ink-500">· {c.entries.length}</span>
-                {/* 右上角添加按钮（圆角正方形 w=h 26px，需求 1） */}
-                <button onClick={() => onEntryAdd?.(c.key, c.lb)}
-                  className="ml-auto inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-95 flex-shrink-0 cursor-pointer"
-                  style={{ background: 'rgba(var(--m-life-rgb),0.10)', border: '1px solid rgba(var(--m-life-rgb),0.25)' }}
-                  title={`添加${c.lb}记录`}>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="var(--m-life)" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
-              </div>
-            {/* 条目列表 - 取消overflow-y-auto，日期移至右侧 */}
-            <div className="flex flex-col gap-2 flex-1">
-              {c.entries.length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center py-5 px-2 rounded-xl border border-dashed border-ink-100 text-center gap-1.5 cursor-pointer hover:bg-surface-soft transition"
-                  onClick={() => onEntryAdd?.(c.key, c.lb)}>
-                  <div className="w-9 h-9 rounded-xl grid place-items-center" style={{background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)'}}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                    </svg>
-                  </div>
-                  <div className="text-[11px] text-ink-500">点击进行记录</div>
-                </div>
-              )}
-              {c.entries.map((e, i) => {
-                const hl = Array.isArray(highlightedIds) && highlightedIds.includes(e.id);
-                return (
-                  <div key={i} onClick={() => onEntryEdit?.(c.key, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer relative">
-                    {hl && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full grid place-items-center"
-                        style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.35)' }}
-                        title="年度精选">
-                        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                      </div>
-                    )}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-1.5 flex-1 min-w-0">
-                        {/* 紫色小圆点：条目级模块色锚点，与卡片头部图标呼应（6px 装饰层级低于正文） */}
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[4px]" style={{ background: 'var(--m-life)' }} />
-                        <div className="text-xs font-semibold text-[#48484A] leading-snug">{e.t}</div>
-                      </div>
-                      <div className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
-                    </div>
-                    {e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-1">{e.n}</div>}
-                  </div>
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
-        ))}
-      </div>)}
-        {lifeViewMode === 'time' && (
-          <div className="flex flex-col mt-3">
+
+          {/* 右：时间流主视图（宽度收窄到合理栏宽，消除右侧大片空白） */}
+          <div className="flex-1 min-w-0 max-w-[560px]">
             {timeGroups.length === 0 && (
               <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
-                还没有生活记录，切换到「类目」视图点击卡片添加
+                {selFilterCat ? `「${selFilterCat.lb}」还没有记录，点左侧类目行的 + 添加` : '还没有生活记录，点左侧类目行的 + 添加'}
               </div>
             )}
             {timeGroups.map((g, gi) => g.items.map((r, ri) => {
@@ -6590,7 +6563,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               );
             }))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

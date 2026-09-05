@@ -81,6 +81,25 @@ function CategoryIcon({ catKey, className }) {
   );
 }
 
+/* 进度条型事项组内排序（统领结构）：
+   独立目标/书籍（根项）在前 → 其子项（读后思考/思后行动等）紧随所属根项 → 同层进度慢的在前 */
+function compareProgressTasks(a, b, parentOrder) {
+  const subA = (a.isSubItem || a.parentId) ? 1 : 0;
+  const subB = (b.isSubItem || b.parentId) ? 1 : 0;
+  if (subA !== subB) return subA - subB;
+  if (subA === 1) {
+    // 子项按所属根项归组（同书的思考/行动挨在一起），组内进度慢的在前
+    const pa = parentOrder.get(String(a.parentId)) ?? 999;
+    const pb = parentOrder.get(String(b.parentId)) ?? 999;
+    if (pa !== pb) return pa - pb;
+  }
+  const va = a.progress || 0, vb = b.progress || 0;
+  if (va !== vb) return va - vb;
+  const ka = taskTimeKey(a), kb = taskTimeKey(b);
+  if (ka !== kb) return ka.localeCompare(kb);
+  return String(a.id ?? '').localeCompare(String(b.id ?? ''));
+}
+
 /* 模块 key → 英文标签（与年度规划同源，便于全站识别） */
 const MOD_EN = {
   energy:    'ENERGY',
@@ -142,6 +161,10 @@ export default function FocusPanel({
   const grouped = useMemo(() => {
     // 时间顺序视图：全部事项平铺为单一卡片（无分组头），行色注入 __rowColor 回退各自模块色
     if (sortBy === 'time') {
+      // 根项顺序表：子项（读后思考/思后行动）按所属根项归组用
+      const parentOrder = new Map(
+        tasks.filter(t => !t.isSubItem && !t.parentId).map((t, i) => [String(t.id), i])
+      );
       const items = [...tasks]
         .sort((a, b) => {
           // ① 单次事项在前，进度条型事项在后
@@ -156,15 +179,11 @@ export default function FocusPanel({
             if (da !== db) return da - db;
             return String(a.id ?? '').localeCompare(String(b.id ?? ''));
           }
-          // ② 进度条型事项：同类（同模块）放一起，进度慢的排前面
+          // ② 进度条型事项：同类（同模块）放一起，模块内统领结构排序
           const ma = MOD_ORDER[a.moduleKey] ?? 99;
           const mb = MOD_ORDER[b.moduleKey] ?? 99;
           if (ma !== mb) return ma - mb;
-          const pa = a.progress || 0, pb = b.progress || 0;
-          if (pa !== pb) return pa - pb;
-          const ka = taskTimeKey(a), kb = taskTimeKey(b);
-          if (ka !== kb) return ka.localeCompare(kb);
-          return String(a.id ?? '').localeCompare(String(b.id ?? ''));
+          return compareProgressTasks(a, b, parentOrder);
         })
         .map(t => ({ ...t, __rowColor: keyToModule(t.moduleKey).color }));
       return items.length ? [{ key: '__time', label: '', color: 'rgba(142,142,147,0.35)', items }] : [];
@@ -520,7 +539,13 @@ export default function FocusPanel({
                                 {task.srcTag}
                               </span>
                             )}
-                            {task.dueDate && <span style={urgency ? { color: '#FF3B30', fontWeight: 700 } : undefined}>{task.dueDate}</span>}
+                            {task.dueDate && (
+                              <span style={urgency === 'urgent'
+                                ? { color: '#FF3B30', fontWeight: 700 }
+                                : urgency === 'overdue' ? { color: '#E67700', fontWeight: 700 } : undefined}>
+                                {task.dueDate}
+                              </span>
+                            )}
                             {task.note && (
                               <span style={{ color: '#8E8E93' }}>{task.note}</span>
                             )}
@@ -528,20 +553,22 @@ export default function FocusPanel({
                         </div>
 
                         {/* 右侧（点击也进入编辑面板，避免空点无反馈）
-                            · 单次事项：无进度条，标注日期（MM-DD）；逾期→「逾期」、当天/明天→「紧急」红色突出
+                            · 单次事项：无进度条，标注日期（MM-DD）；逾期→「逾期」警告黄、当天/明天→「紧急」红
                             · 其余：保留百分比 + 进度条 */}
                         {isSingle ? (
                           <div className="flex-shrink-0 flex items-center gap-1.5" onClick={handleEdit}>
                             {urgency && (
                               <span
                                 className="px-1.5 py-[2px] rounded-md text-[10px] font-extrabold leading-none"
-                                style={{ background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }}
+                                style={urgency === 'overdue'
+                                  ? { background: 'rgba(255,171,0,0.16)', color: '#E67700' }   // 逾期：警告黄
+                                  : { background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }} // 紧急：红
                               >{urgency === 'overdue' ? '逾期' : '紧急'}</span>
                             )}
                             {dateLabel && (
                               <span
                                 className="text-[12px] font-bold tabular-nums leading-none"
-                                style={{ color: urgency ? '#FF3B30' : '#8E8E93' }}
+                                style={{ color: urgency === 'urgent' ? '#FF3B30' : urgency === 'overdue' ? '#E67700' : '#8E8E93' }}
                               >{dateLabel}</span>
                             )}
                           </div>

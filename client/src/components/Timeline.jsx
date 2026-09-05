@@ -1353,13 +1353,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             fontSize: '12px',
             fontWeight: '500',
             color: '#8e8e93',
-            background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
+            background: 'rgba(142,142,147,0.10)',
             border: 'none',
             cursor: 'pointer',
             transition: 'all .15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#6c6c70'; e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.15) 0%, transparent 65%)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#8e8e93'; e.currentTarget.style.background = 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)'; }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#6c6c70'; e.currentTarget.style.background = 'rgba(142,142,147,0.18)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#8e8e93'; e.currentTarget.style.background = 'rgba(142,142,147,0.10)'; }}
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{flexShrink:0}}>
             <path d="M12 17v5"></path>

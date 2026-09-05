@@ -605,11 +605,14 @@ body {
 .sb-annual-sub-add {
   display: inline-flex; align-items: center; justify-content: center;
   width: 18px; height: 18px; border-radius: 5px;
-  background: rgba(120,120,128,0.14); color: #6c6c70;
+  background: transparent; color: #6c6c70;
   border: none; padding: 0; cursor: pointer; flex-shrink: 0;
   transition: all .15s ease;
 }
-.sb-annual-sub-add:hover { background: rgba(120,120,128,0.26); color: #1c1c1e; }
+/* 默认：无背景，hover 才出现灰色底 */
+.sb-annual-sub-add:hover { background: rgba(120,120,128,0.2); color: #1c1c1e; }
+/* 激活：跟随模块主题色（inline style），hover 才出现同色浅底 */
+.sb-annual-sub-add.on:hover { background: color-mix(in srgb, currentColor 15%, transparent); }
 .sb-annual-sub-add svg { width: 11px; height: 11px; }
 
 .sb-status-bar {

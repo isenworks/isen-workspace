@@ -340,10 +340,10 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                         {sub.add && (
                           <button
                             type="button"
-                            className="sb-annual-sub-add"
+                            className={`sb-annual-sub-add ${on ? 'on' : ''}`}
                             aria-label={`添加${sub.add}`}
                             title={`添加${sub.add}`}
-                            style={on ? { background: sub.color, color: '#fff' } : undefined}
+                            style={on ? { color: sub.color } : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               onAnnualAdd?.(sub.key);

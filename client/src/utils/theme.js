@@ -44,7 +44,7 @@ function makeThemeFromHex(hex, label, key) {
 export const THEMES = {
   blue: {
     key: 'blue',
-    label: '经典蓝',
+    label: 'iOS蓝',
     desc: 'iOS 标准蓝',
     main: '#007AFF',
     deep: '#0040DD',

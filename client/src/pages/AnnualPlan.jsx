@@ -6569,8 +6569,8 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                     <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: r.cat.color }} /></span>
                     {!isLast && <span className="flex-1 w-px bg-ink-100" />}
                   </div>
-                  {/* 内容列：标题 + 右侧类目标签 */}
-                  <div className={`flex-1 min-w-0 relative rounded-lg -mx-1.5 px-1.5 hover:bg-surface-soft transition ${isLast ? '' : 'pb-5'}`}>
+                  {/* 内容列：标题 + 右侧类目标签（iOS 风浅灰圆角胶囊背景） */}
+                  <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-[10px] bg-[#F2F2F7] transition hover:bg-[#EBEBF0] ${isLast ? '' : 'mb-4'}`}>
                     {hl && (
                       <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
                         style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.35)' }}
@@ -6578,16 +6578,14 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                         <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                       </div>
                     )}
-                    <div className="flex items-center gap-2.5 pr-1 h-5">
-                      <span className="text-sm font-semibold text-[#1c1c1e] leading-5 truncate">{r.e.t}</span>
-                      {/* 类目标签：弱化样式，与月周重点 srcTag 一致 */}
-                      <span className="ml-auto flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
-                        style={{ background: lifeRgba(r.cat.color, 0.08), color: lifeRgba(r.cat.color, 0.85) }}>
-                        {r.cat.lb}
-                      </span>
-                    </div>
-                    {r.e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1">{r.e.n}</div>}
+                    <span className="text-sm font-normal text-[#1c1c1e] truncate">{r.e.t}</span>
+                    {/* 类目标签：弱化样式，与月周重点 srcTag 一致 */}
+                    <span className="ml-auto flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
+                      style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba(r.cat.color, 0.85) }}>
+                      {r.cat.lb}
+                    </span>
                   </div>
+                  {r.e.n && <div className="text-xs text-ink-500 leading-relaxed -mt-1 mb-3">{r.e.n}</div>}
                 </div>
               );
             }))}

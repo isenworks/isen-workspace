@@ -104,9 +104,10 @@ export default function MonthCalendarGrid({
         onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
         className="w-[16px] h-[16px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
         style={{
-          borderColor: done ? mod.color : `${mod.color}55`,
+          // mod.color 可能是 var(--m-xxx)（CSS 变量不支持 hex 透明度拼接），未勾选用 rgba 淡色描边
+          borderColor: done ? mod.color : (mod.color.startsWith('var(') ? `rgba(${mod.color.slice(4, -1)}-rgb, 0.33)` : `${mod.color}55`),
           background: done ? mod.color : '#ffffff',
-          boxShadow: done ? `0 2px 5px ${mod.color}4A` : 'none',
+          boxShadow: done ? (mod.color.startsWith('var(') ? `0 2px 5px rgba(${mod.color.slice(4, -1)}-rgb, 0.29)` : `0 2px 5px ${mod.color}4A`) : 'none',
         }}
       >
         {done && (

@@ -327,8 +327,8 @@ export default function FocusPanel({
                           <div
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 flex items-center justify-center transition select-none"
                             style={{
-                              background: task.done ? mod.color : `${mod.color}28`,
-                              boxShadow: task.done ? `0 2px 5px ${mod.color}48` : 'none',
+                              background: task.done ? mod.color : (mod.color.startsWith('var(') ? `rgba(${mod.color.slice(4, -1)}-rgb, 0.16)` : `${mod.color}28`),
+                              boxShadow: task.done ? (mod.color.startsWith('var(') ? `0 2px 5px rgba(${mod.color.slice(4, -1)}-rgb, 0.28)` : `0 2px 5px ${mod.color}48`) : 'none',
                             }}
                             aria-hidden="true"
                           />
@@ -338,9 +338,10 @@ export default function FocusPanel({
                             onClick={handleToggle}
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
                             style={{
-                              borderColor: task.done ? mod.color : `${mod.color}55`,
+                              // mod.color 可能是 var(--m-xxx)（不支持 hex 透明度拼接），未勾选用 rgba 淡色描边
+                              borderColor: task.done ? mod.color : (mod.color.startsWith('var(') ? `rgba(${mod.color.slice(4, -1)}-rgb, 0.33)` : `${mod.color}55`),
                               background: task.done ? mod.color : '#fff',
-                              boxShadow: task.done ? `0 2px 6px ${mod.color}40` : 'none',
+                              boxShadow: task.done ? (mod.color.startsWith('var(') ? `0 2px 6px rgba(${mod.color.slice(4, -1)}-rgb, 0.25)` : `0 2px 6px ${mod.color}40`) : 'none',
                             }}
                             role="checkbox"
                             aria-checked={task.done}

@@ -17,6 +17,18 @@ function modRgba(color, alpha) {
 export const HABIT_ORDER_WEIGHT = { sleep: 1, sport: 2, water: 3 };
 const HABIT_KEYS = Object.keys(HABIT_ORDER_WEIGHT);
 
+/* 时间顺序视图的排序键：归一化为 MM-DD（面板事项均与当前月相关，年可省）
+   · 优先取 ISO 日期（schedule 代理任务 start_date / 能力里程碑 dueBy）
+   · 兜底解析展示字符串：如「截止 09/30」「9.5」「8.17-8.18」（取起始日）
+   · 无日期（习惯等长期项）排最后 */
+function taskTimeKey(t) {
+  const iso = t?.start_date || t?.date || t?.schedule_date || t?.milestoneData?.dueBy;
+  if (iso) return String(iso).slice(5, 10);
+  const m = String(t?.dueDate || '').match(/(\d{1,2})[./](\d{1,2})/);
+  if (m) return `${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`;
+  return '99-99';
+}
+
 /* —— 年度规划同源 CategoryIcon（不用 emoji，直接复用 Lucide 线形白图标印章）—— */
 function CategoryIcon({ catKey, className }) {
   const cls = className || 'w-4 h-4';
@@ -82,11 +94,27 @@ export default function FocusPanel({
   // HTML5 DnD 排序：记录当前拖拽的 { taskId, groupKey } 以及 drop 目标 taskId（用于插入位置视觉提示）
   const [dragState, setDragState] = useState(null); // { taskId, groupKey } | null
   const [dragOverId, setDragOverId] = useState(null);
+  // 列表视图：module=按模块分组（默认·田字图标）| time=按时间顺序平铺
+  const [sortBy, setSortBy] = useState('module');
   // 按模块分组
   //   · 精力模块：自定义排序 —— ① 新建非习惯事项（如体检）排最前；② 习惯按 HABIT_ORDER_WEIGHT（作息→运动→喝水）
   //   · 其他模块：保持传入顺序
-  const grouped = useMemo(
-    () => MODULES.filter(m => m.key !== 'others').map(mod => {
+  const grouped = useMemo(() => {
+    // 时间顺序视图：全部事项平铺为单一卡片（无分组头），行色注入 __rowColor 回退各自模块色
+    if (sortBy === 'time') {
+      const items = [...tasks]
+        .sort((a, b) => {
+          const ka = taskTimeKey(a), kb = taskTimeKey(b);
+          if (ka !== kb) return ka.localeCompare(kb);
+          const da = a.done ? 1 : 0, db = b.done ? 1 : 0;
+          if (da !== db) return da - db;
+          return String(a.id ?? '').localeCompare(String(b.id ?? ''));
+        })
+        .map(t => ({ ...t, __rowColor: keyToModule(t.moduleKey).color }));
+      return items.length ? [{ key: '__time', label: '', color: 'rgba(142,142,147,0.35)', items }] : [];
+    }
+    // 模块分组视图（默认）
+    return MODULES.filter(m => m.key !== 'others').map(mod => {
       const raw = tasks.filter(t => t.moduleKey === mod.key);
       if (mod.key === 'energy') {
         const habits = raw.filter(t => t.isHabit).sort((a, b) =>
@@ -96,9 +124,8 @@ export default function FocusPanel({
         return { ...mod, items: [...nonHabits, ...habits] };
       }
       return { ...mod, items: raw };
-    }).filter(g => g.items.length > 0),
-    [tasks]
-  );
+    }).filter(g => g.items.length > 0);
+  }, [tasks, sortBy]);
 
   const totalDone = useMemo(() => tasks.filter(t => t.done).length, [tasks]);
   const pace = paceStatus(progressPct, timePct);
@@ -137,6 +164,30 @@ export default function FocusPanel({
           {title}
         </div>
         <div className="flex items-center gap-2">
+          {/* 视图切换：模块分组（田字·默认）/ 时间顺序（递减线），逻辑同重点事项卡片的排序按钮 */}
+          <button
+            onClick={() => setSortBy(s => (s === 'module' ? 'time' : 'module'))}
+            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
+            title={sortBy === 'module' ? '按模块分组（点击切换为按时间顺序）' : '按时间顺序（点击切换为按模块分组）'}
+            aria-label={sortBy === 'module' ? '按模块分组' : '按时间顺序'}
+          >
+            {sortBy === 'module' ? (
+              <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            ) : (
+              <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
+                <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
+                  <line x1="1.5" y1="3" x2="12.5" y2="3" />
+                  <line x1="1.5" y1="7" x2="9.5" y2="7" />
+                  <line x1="1.5" y1="11" x2="6.5" y2="11" />
+                </g>
+              </svg>
+            )}
+          </button>
           {/* 卡片右上：持平/超前/落后标签 → 统一改为完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
           <span
             className="inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
@@ -201,10 +252,11 @@ export default function FocusPanel({
               />
               {/* 内容主体 padding */}
               <div style={{ padding: '8px 10px 10px' }}>
-              {/* 分组头（整行点击切换折叠）
+              {/* 分组头（整行点击切换折叠）—— 时间顺序视图（__time 平铺卡）不渲染分组头
                   · 整个「ICON印章 + 中英文标签」统一装进 1 个模块色胶囊里
                   · 计数：done/total 独立模块色胶囊（无 ✓）
                   · 折叠箭头使用模块色 */}
+              {grp.key !== '__time' && (
               <div
                 className="flex items-center gap-2 select-none cursor-pointer"
                 onClick={() => toggleGroup(grp.key)}
@@ -249,16 +301,19 @@ export default function FocusPanel({
                   <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
+              )}
 
               {/* 折叠内容体 */}
               {!off && (
                 <div className="flex flex-col gap-[2px] mt-[6px]">
                   {grp.items.map(task => {
                     const mod = keyToModule(task.moduleKey);
+                    // 时间顺序视图（__rowColor 注入各自模块色）；模块分组视图沿用分组色
+                    const rowColor = task.__rowColor || grp.color;
                     const pct = Math.round((task.progress || 0) * 100);
                     /* Completed Band：已完成任务永久铺一层模块色淡填充，
                        做到一眼扫出每个模块哪些是"已经打勾的"，减少大脑扫描成本 */
-                    const completedBg = task.done ? modRgba(grp.color, 0.055) : 'transparent';
+                    const completedBg = task.done ? modRgba(rowColor, 0.055) : 'transparent';
                     const handleEdit = () => onEditTask?.(task);
                     const handleToggle = (e) => {
                       // 仅复选框勾选：阻止冒泡避免进入编辑面板
@@ -274,8 +329,8 @@ export default function FocusPanel({
                       if (!onDeleteTask) return;
                       openDeleteConfirm(task, '任务行');
                     };
-                    // DnD：只有同组内、非习惯（习惯固定顺序按打卡权重，不可打乱）项可拖拽排序
-                    const canDrag = !!onReorder && !task.isHabit && !task.isSubItem;
+                    // DnD：仅模块分组视图、同组内、非习惯（习惯固定顺序按打卡权重，不可打乱）项可拖拽排序
+                    const canDrag = !!onReorder && !task.__rowColor && !task.isHabit && !task.isSubItem;
                     const isBeingDragged = dragState?.taskId === task.id;
                     const isDropTarget = dragOverId === task.id && dragState?.groupKey === grp.key;
                     return (
@@ -284,9 +339,9 @@ export default function FocusPanel({
                         draggable={canDrag}
                         className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
                         style={{
-                          background: isDropTarget ? modRgba(grp.color, 0.13) : (isBeingDragged ? modRgba(grp.color, 0.03) : completedBg),
+                          background: isDropTarget ? modRgba(rowColor, 0.13) : (isBeingDragged ? modRgba(rowColor, 0.03) : completedBg),
                           paddingLeft: task.indent ? `${12 + task.indent * 20}px` : undefined,
-                          borderTop: isDropTarget ? `1.5px solid ${grp.color}` : '1.5px solid transparent',
+                          borderTop: isDropTarget ? `1.5px solid ${rowColor}` : '1.5px solid transparent',
                           opacity: isBeingDragged ? 0.45 : 1,
                           transform: isBeingDragged ? 'scale(0.98)' : 'scale(1)',
                         }}
@@ -298,8 +353,8 @@ export default function FocusPanel({
                           task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
                           '点击编辑 · 右键删除'
                         }
-                        onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? modRgba(grp.color, 0.09) : modRgba(grp.color, 0.07); }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = isDropTarget ? modRgba(grp.color, 0.13) : completedBg; }}
+                        onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? modRgba(rowColor, 0.09) : modRgba(rowColor, 0.07); }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = isDropTarget ? modRgba(rowColor, 0.13) : completedBg; }}
                         /* ==== HTML5 DnD：组内拖拽排序 ==== */
                         onDragStart={(e) => {
                           if (!canDrag) { e.preventDefault(); return; }

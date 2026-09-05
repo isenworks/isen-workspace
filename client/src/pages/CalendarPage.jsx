@@ -1036,13 +1036,16 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (t.id !== taskId) return t;
       const nextDone = !t.done;
       // 联动：月历事件（标题匹配）的 is_done 立即同步
-      const normT = normTitle(t.title);
       MOCK_EVENTS_RAW.forEach(raw => {
         if (titleMatches(raw.title, t.title)) raw.is_done = nextDone;
       });
-      // 避免未使用变量告警
-      void normT;
-      return { ...t, done: nextDone, progress: nextDone ? 1 : t.progress };
+      // 勾选 → 100%；取消勾选 → 恢复勾选前进度（_prevProgress 暂存），修复取消后仍显示 100%
+      return {
+        ...t,
+        done: nextDone,
+        progress: nextDone ? 1 : (t._prevProgress ?? 0),
+        _prevProgress: nextDone ? (t.progress ?? 0) : undefined,
+      };
     }));
     setTick(v => v + 1);
   }, []);
@@ -1367,11 +1370,6 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             <button className={tabView === 'week'  ? 'active' : ''} onClick={() => setTabView('week')}>周</button>
             <button className={tabView === 'day'   ? 'active' : ''} onClick={() => setTabView('day')}>日</button>
           </div>
-
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] font-bold bg-[rgba(var(--s-rgb),0.08)] text-[color:var(--s-deep)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--s-deep)]" />
-            本月主线 · 已完成 {monthProgress}%
-          </span>
 
           <div className="flex-1" />
 

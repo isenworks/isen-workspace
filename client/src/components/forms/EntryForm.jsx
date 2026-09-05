@@ -11,19 +11,27 @@ const PALETTE = ['#AF52DE', '#B77FE3', '#8B5CF6', '#C084FC', '#7D3AA0'];
 export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, onDelete, lifeCategories, onAddCategory }) {
   const isEdit = !!(initial && initial.id);
   const today = new Date().toISOString().slice(0, 10);
-  // initial.d 可能是 M.D / M.D-M.D 等混合格式 → 统一回填为 YYYY-MM-DD，让 date input 正常显示
-  const initialD = (() => {
-    if (!initial?.d) return today;
-    const s = String(initial.d);
-    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return s;
-    const md = s.match(/^(\d{1,2})\.(\d{1,2})/);
-    if (md) return `${new Date().getFullYear()}-${String(md[1]).padStart(2,'0')}-${String(md[2]).padStart(2,'0')}`;
-    return today;
+  // initial.d 可能是 M.D / M.D-M.D / YYYY-MM-DD 等混合格式 → 拆为开始/结束日期回填（结束日期可选）
+  const initialRange = (() => {
+    const toISO = (s) => {
+      if (!s) return '';
+      if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return s;
+      const md = String(s).match(/^(\d{1,2})\.(\d{1,2})/);
+      if (md) return `${new Date().getFullYear()}-${String(md[1]).padStart(2,'0')}-${String(md[2]).padStart(2,'0')}`;
+      return '';
+    };
+    const raw = String(initial?.d || '');
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(raw)) return { s: raw, e: '' };
+    const m = raw.match(/^(\d{1,2}\.\d{1,2})-(\d{1,2}\.\d{1,2})$/);
+    if (m) return { s: toISO(m[1]), e: toISO(m[2]) };
+    const one = toISO(raw);
+    return { s: one || today, e: '' };
   })();
   const [form, setForm] = useState({
     t: initial?.t || '',
     n: initial?.n || '',
-    d: initialD,
+    d: initialRange.s || today,
+    dEnd: initialRange.e || '',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -43,29 +51,23 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
   const selCat = cats.find(c => c.key === selectedKey) || null;
   const selColor = selCat?.color || '#AF52DE';
 
-  // type="date" 返回 YYYY-MM-DD → 转为 LIFE 约定的 M.D 格式；为空时原样保留
+  // type="date" 返回 YYYY-MM-DD → 转为 LIFE 约定的 M.D 格式；结束日期存在时拼为 M.D-M.D
   function normalizeDate(d = '') {
     if (!d) return '';
     const m = String(d).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     if (m) return `${Number(m[2])}.${Number(m[3])}`;
     return d;
   }
-  // LIFE 已有记录可能是 M.D / M.D-M.D / YYYY-MM-DD 等混合格式 → 回填时尽量识别为 YYYY-MM-DD 供 input date 显示
-  function denormalizeDate(d = '') {
-    if (!d) return new Date().toISOString().slice(0, 10);
-    // 如果已是 YYYY-MM-DD，直接返回
-    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(d)) return d;
-    // M.D → 当前年-补零
-    const md = String(d).match(/^(\d{1,2})\.(\d{1,2})/);
-    if (md) return `${new Date().getFullYear()}-${String(md[1]).padStart(2,'0')}-${String(md[2]).padStart(2,'0')}`;
-    return new Date().toISOString().slice(0, 10);
-  }
 
   function submit() {
     if (!form.t.trim()) { alert('请输入标题'); return; }
     if (!isEdit && !selectedKey) { alert('请先选择一个模块，或点「+ 新建模块」创建新模块后再记录'); return; }
+    if (form.dEnd && form.dEnd < form.d) { alert('结束日期不能早于开始日期'); return; }
+    const dStr = form.dEnd && form.dEnd !== form.d
+      ? `${normalizeDate(form.d)}-${normalizeDate(form.dEnd)}`
+      : normalizeDate(form.d);
     const payload = {
-      t: form.t.trim(), n: form.n, d: normalizeDate(form.d),
+      t: form.t.trim(), n: form.n, d: dStr,
       id: initial?.id,
       lifeKey: isEdit ? initial.lifeKey : selectedKey,
       entryIdx: initial?.entryIdx,
@@ -232,10 +234,38 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
           value={form.n} onChange={e => set('n', e.target.value)}
           placeholder="记下让你印象深刻的细节..." />
       </div>
-      <div>
-        <label style={LABEL_STYLE}>日期</label>
-        <input className="form-input" style={INPUT_STYLE} type="date"
-          value={form.d} onChange={e => set('d', e.target.value)} />
+      {/* 日期 · 开始日期 + 结束日期（旅游等多天记录用；复用工作台 ScheduleForm 双列设计） */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div>
+          <label style={LABEL_STYLE}>开始日期</label>
+          <input className="form-input" style={INPUT_STYLE} type="date"
+            value={form.d} onChange={e => set('d', e.target.value)} />
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>
+            结束日期
+            <span style={{ fontSize: '10px', fontWeight: '500', color: '#aeaeb2', marginLeft: '4px' }}>可选</span>
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input className="form-input" style={{ ...INPUT_STYLE, paddingRight: form.dEnd ? '30px' : undefined }} type="date"
+              value={form.dEnd} onChange={e => set('dEnd', e.target.value)} />
+            {form.dEnd && (
+              <button
+                type="button"
+                onClick={() => set('dEnd', '')}
+                title="清除结束日期"
+                aria-label="清除结束日期"
+                style={{
+                  position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                  width: '20px', height: '20px', borderRadius: '999px', border: 'none',
+                  background: 'rgba(120,120,128,0.16)', color: '#8e8e93',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: '12px', lineHeight: '1'
+                }}
+              >×</button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', paddingTop: '4px' }}>

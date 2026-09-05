@@ -912,6 +912,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   >
                     <div className="tl-event-line" style={{ background: 'rgba(142,142,147,0.35)' }} />
                     <div className="tl-event-content" style={{ gap: '8px' }}>
+                      {/* 实心灰圆标记：与复选框同规格(18×18)对齐，颜色同灰色色条层级（0.35 透明度） */}
+                      <span
+                        aria-hidden="true"
+                        style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(142,142,147,0.35)', flexShrink: 0 }}
+                      />
                       <div className="tl-event-text">
                         <div className="tl-event-title" style={{ color: '#8e8e93', fontWeight: '400' }}>
                           {item.emoji ? item.emoji + ' ' : ''}{item.title}

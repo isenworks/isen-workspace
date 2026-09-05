@@ -6201,6 +6201,31 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
   const lifePct = Math.round((dynLife.filter(c => c.entries.length > 0).length / dynLife.length) * 100);
   const hlCount = Array.isArray(highlightedIds) ? highlightedIds.length : 0;
 
+  /* ===== 类目/时间 双视图（时间视图：按月分组倒序时间轴） ===== */
+  const [lifeViewMode, setLifeViewMode] = useState('cat'); // cat=按类目 | time=按时间
+  // 模块色/类目色转 rgba：var(--m-life) → rgba(var(--m-life-rgb), a)；hex → 拼接透明度
+  const lifeRgba = (color, a) => {
+    if (typeof color === 'string' && color.startsWith('var(')) return `rgba(var(${color.slice(4, -1)}-rgb), ${a})`;
+    if (/^#[0-9a-fA-F]{6}$/.test(color)) return `${color}${Math.round(a * 255).toString(16).padStart(2, '0')}`;
+    return color;
+  };
+  // 扁平化全部条目 → 解析 d(如 8.24 / 8.17-8.18 取起始日) → 按月分组倒序
+  const timeGroups = useMemo(() => {
+    const rows = [];
+    (dynLife || []).forEach(c => (c.entries || []).forEach((e, i) => {
+      const m = String(e.d || '').match(/(\d{1,2})\s*[./]\s*(\d{1,2})/);
+      rows.push({ cat: c, e, idx: i, mo: m ? +m[1] : 0, day: m ? +m[2] : 0 });
+    }));
+    rows.sort((a, b) => (b.mo - a.mo) || (b.day - a.day));
+    const groups = [];
+    rows.forEach(r => {
+      const last = groups[groups.length - 1];
+      if (last && last.mo === r.mo) last.items.push(r);
+      else groups.push({ mo: r.mo, label: r.mo ? `${r.mo}月` : '无日期', items: [r] });
+    });
+    return groups;
+  }, [dynLife]);
+
   /* ===== 需求 2：链接按钮 · 右键菜单增删改 · 点击跳转 ===== */
   const [linkMenu, setLinkMenu] = useState(null); // { x, y, editingId } | null
   const [linkListPopup, setLinkListPopup] = useState(null); // { x, y } | null — 多链接时点击弹出选择面板
@@ -6260,6 +6285,15 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
+          {/* 类目/时间 视图切换 */}
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-surface-soft border border-ink-100">
+            {[['cat', '类目'], ['time', '时间']].map(([v, lb]) => (
+              <button key={v} onClick={() => setLifeViewMode(v)}
+                className={`px-2.5 py-[3px] rounded-md text-[11px] font-bold transition cursor-pointer ${lifeViewMode === v ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'}`}>
+                {lb}
+              </button>
+            ))}
+          </div>
           {/* 链接按钮（需求 2：圆角正方形；左键跳转 / 右键增删改）—— 在年度精选左边 */}
           <div className="relative ml-auto">
             <button
@@ -6440,7 +6474,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
           </button>
         </div>
         {/* P2-2: 生活统计条 - 已按要求删除 */}
-        <div className="grid grid-cols-5 gap-3 annual-life-grid">
+        {lifeViewMode === 'cat' && (<div className="grid grid-cols-5 gap-3 annual-life-grid">
           {dynLife.map((c, ci) => (
             <div key={c.key} className="bg-white border border-ink-100 rounded-2xl p-4 flex flex-col hover:border-ink-200 hover:shadow-[0_2px_8px_rgba(17,24,39,0.04)] transition-all">
               {/* 卡片头部：紫色图标 + 标题 + 数量 + 右上角添加按钮 */}
@@ -6504,7 +6538,54 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             </div>
           </div>
         ))}
-      </div>
+      </div>)}
+        {lifeViewMode === 'time' && (
+          <div className="flex flex-col">
+            {timeGroups.length === 0 && (
+              <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
+                还没有生活记录，切换到「类目」视图点击卡片添加
+              </div>
+            )}
+            {timeGroups.map((g, gi) => g.items.map((r, ri) => {
+              const isLast = gi === timeGroups.length - 1 && ri === g.items.length - 1;
+              const hl = Array.isArray(highlightedIds) && highlightedIds.includes(r.e.id);
+              return (
+                <div key={`${r.cat.key}-${r.idx}`} className="flex gap-3">
+                  {/* 月份标签列（每组首行显示） */}
+                  <div className="w-9 flex-shrink-0 text-right pt-px">
+                    {ri === 0 && <span className="text-[12px] font-bold text-ink-700 tabular-nums">{g.label}</span>}
+                  </div>
+                  {/* 时间轴：类目色节点 + 贯穿竖线（末行止） */}
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full mt-[6px]" style={{ background: r.cat.color }} />
+                    {!isLast && <span className="flex-1 w-px bg-ink-100" />}
+                  </div>
+                  {/* 事项行：日期 + 标题 + 右侧类目标签 */}
+                  <div className={`flex-1 min-w-0 relative rounded-xl -mx-1 px-1 hover:bg-surface-soft transition cursor-pointer ${isLast ? '' : 'pb-4'}`}
+                    onClick={() => onEntryEdit?.(r.cat.key, r.idx, r.e)}>
+                    {hl && (
+                      <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
+                        style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.35)' }}
+                        title="年度精选">
+                        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 pr-1">
+                      <span className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{r.e.d}</span>
+                      <span className="text-xs font-semibold text-[#48484A] leading-snug truncate">{r.e.t}</span>
+                      {/* 类目标签：弱化样式，与月周重点 srcTag 一致 */}
+                      <span className="ml-auto flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
+                        style={{ background: lifeRgba(r.cat.color, 0.08), color: lifeRgba(r.cat.color, 0.85) }}>
+                        {r.cat.lb}
+                      </span>
+                    </div>
+                    {r.e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-0.5">{r.e.n}</div>}
+                  </div>
+                </div>
+              );
+            }))}
+          </div>
+        )}
       </div>
     </div>
   );

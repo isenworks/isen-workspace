@@ -261,7 +261,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       isHabit: true,
       isLongTerm: true,
       isFromFetch: true,
-      title: `${cleanLabel}  ${pct}%  ${monthCur}/${monthTarget}${h.unit || '天'}`,
+      title: `${cleanLabel} · ${monthCur}/${monthTarget}${h.unit || '天'}`,
       progress: pct / 100,
       done: pct >= 100,
       srcTag: `≡ 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || cleanLabel}`,

@@ -229,12 +229,17 @@ export default function MonthCalendarGrid({
                 {dayEvents.slice(0, 3).map((ev, j) => {
                   const mod = scheduleModule(ev);
                   const done = Boolean(ev.is_done || ev.done);
+                  // 左侧 2.5px 模块色实色竖条：浅色背景低饱和趋同时的第二识别通道（Google Calendar 同款）
+                  const bar = mod.color.startsWith?.('var(')
+                    ? `rgba(${mod.color.slice(4, -1)}-rgb, 1)`
+                    : mod.color;
                   return (
                     <div
                       key={ev.id || `${date}-${j}`}
-                      className="flex items-center gap-1.5 text-[12px] leading-tight px-1.5 py-0.5 rounded-md cursor-pointer"
+                      className="flex items-center gap-1.5 text-[12px] leading-tight pl-[5px] pr-1.5 py-0.5 rounded-md cursor-pointer"
                       style={{
                         background: mod.soft,
+                        borderLeft: `2.5px solid ${done ? 'rgba(142,142,147,0.45)' : bar}`,
                         color: done ? '#8E8E93' : '#48484A',
                         fontWeight: 500,
                         textDecoration: done ? 'line-through' : 'none',

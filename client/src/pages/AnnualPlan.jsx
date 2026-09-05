@@ -26,11 +26,11 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 
 /* ---------- 1. 静态 Demo 数据（后续替换为工作台真实 API）---------- */
 const CATEGORIES = [
-  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: 'var(--m-energy)' },
-  { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: 'var(--m-cognition)' },
-  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: 'var(--m-ability)' },
-  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: 'var(--m-work)' },
-  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: 'var(--m-life)' },
+  { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: 'var(--m-energy)',    rgb: 'var(--m-energy-rgb)' },
+  { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: 'var(--m-cognition)', rgb: 'var(--m-cognition-rgb)' },
+  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: 'var(--m-ability)',   rgb: 'var(--m-ability-rgb)' },
+  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: 'var(--m-work)',      rgb: 'var(--m-work-rgb)' },
+  { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: 'var(--m-life)',      rgb: 'var(--m-life-rgb)' },
 ];
 
 /* 习惯打卡 (精力) */
@@ -292,7 +292,7 @@ export const WORK = [
 
 /* 生活 */
 export const LIFE = [
-  { key:'relation', lb:'关系', color:'#AF52DE', entries:[ /* violet */
+  { key:'relation', lb:'关系', color:'var(--m-life)', entries:[ /* violet */
     { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'8.24' },
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },
     { t:'和老婆周末野餐', n:'准备了她爱吃的草莓和可颂', d:'7.09' },
@@ -301,7 +301,7 @@ export const LIFE = [
     { t:'学会番茄牛腩', n:'第一次做，老妈说味道可以', d:'8.10' },
     { t:'尝试手冲咖啡', n:'买了一套 Hario V60', d:'7.10' },
   ]},
-  { key:'travel', lb:'旅游', color:'#AF52DE', entries:[ /* violet - 符合WCAG AA对比度 */
+  { key:'travel', lb:'旅游', color:'var(--m-life)', entries:[ /* violet - 符合WCAG AA对比度 */
     { t:'密云水库两日游', n:'避开人潮，划了小船看夕阳', d:'8.17-8.18' },
     { t:'苏州两日游', n:'去了拙政园和留园', d:'6.22-6.23' },
     { t:'崇明岛露营', n:'和朋友们搭帐篷烧烤', d:'5.18' },
@@ -1052,7 +1052,7 @@ const SIDEBAR_ITEMS = [
   ...CATEGORIES.map(c => ({
     key: c.key, label: c.label, cat: c.key,
     icon: <CategoryIcon catKey={c.key} className="w-4 h-4" />,
-    catColor: c.color,
+    catColor: c.color, catRgb: c.rgb,
   })),
 ];
 
@@ -1116,7 +1116,7 @@ function Sidebar({ active, onChange, stats }) {
                 <span className={['w-6 h-6 rounded-md grid place-items-center flex-shrink-0',
                   on ? 'bg-white/15 text-white' : item.cat ? '' : 'bg-ink-100 text-ink-500'
                 ].join(' ')}
-                  style={item.cat && !on ? { background: `${item.catColor}10`, color: item.catColor } : undefined}>
+                  style={item.cat && !on ? { background: `rgba(${item.catRgb},0.06)`, color: item.catColor } : undefined}>
                   {item.icon}
                 </span>
                 <span className="hidden lg:block flex-1 text-left truncate">{item.label}</span>
@@ -1615,7 +1615,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           const name = k.t.replace(/\s*\(.*?\)/g, '') + (due ? ` ${due}止` : '');
           return (
             <SubRow key={k.id} name={name}
-              pct={pct(k.v, k.tgt)} val={`${k.v}/${k.tgt}`} color="#FF3B30" />
+              pct={pct(k.v, k.tgt)} val={`${k.v}/${k.tgt}`} color={color} />
           );
         })}
         {doneRow.length > 0 && (
@@ -1657,7 +1657,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
               {habits.map(h => (
                 <SubRow key={h.key}
                   name={h.label}
-                  pct={pct(h.val, h.target)} val={`${h.val}/${h.target}`} color="#34C759" />
+                  pct={pct(h.val, h.target)} val={`${h.val}/${h.target}`} color="var(--m-energy)" />
               ))}
             </CardBody>
           </div>
@@ -1697,7 +1697,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                 const ap = a.mstones.length > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / a.mstones.length) : 0;
                 return (
                   <SubRow key={a.id} name={a.title}
-                    pct={ap} val={`${doneMs}/${a.mstones.length}`} color="#FF9500" />
+                    pct={ap} val={`${doneMs}/${a.mstones.length}`} color="var(--m-ability)" />
                 );
               })}
             </CardBody>
@@ -1707,8 +1707,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           <div className={CARD_PAD}>
             <CardHead c={CATEGORIES[3]} pctVal={perCat[3]} />
             <CardBody show={!collapsed.work}>
-              <WorkSection title="主业" color="#FF3B30" obj={mainWork} />
-              {sideWork && <WorkSection title="副业" color="#FF3B30" obj={sideWork} />}
+              <WorkSection title="主业" color="var(--m-work)" obj={mainWork} />
+              {sideWork && <WorkSection title="副业" color="var(--m-work)" obj={sideWork} />}
             </CardBody>
           </div>
 
@@ -1722,7 +1722,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                 return (
                   <SubRow key={cat.key} name={cat.lb}
                     pct={0} val={n > 0 ? '' : '待开启'}
-                    color={cat.color} done={n > 0 ? true : false}
+                    color="var(--m-life)" done={n > 0 ? true : false}
                     tail={n > 0 ? (
                       <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: 'var(--m-life)' }}>{n}条</span>
                     ) : undefined} />
@@ -1938,7 +1938,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           </div>
           <button onClick={() => onAction?.('addHabit')}
             className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-            style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.25)', color: '#34C759' }}
+            style={{ background: 'rgba(var(--m-energy-rgb),0.10)', border: '1px solid rgba(var(--m-energy-rgb),0.25)', color: 'var(--m-energy)' }}
             title="添加精力习惯">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
@@ -1946,7 +1946,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {habits.map((h, hIdx) => {
             const yearlyPct = pct(h.val, h.target);
-            const GREEN = '#34C759';
+            const GREEN = 'var(--m-energy)';
             const padNum = String(hIdx + 1).padStart(2, '0');
             const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
             const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
@@ -1977,7 +1977,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     {/* ★ ③ 56/230天 改为能力页同款胶囊（L4894-4901 规格：px-2 h-[26px] rounded-lg 主题色10底/40框） */}
                     <span
                       className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
-                      style={{ background: `${GREEN}14`, color: GREEN }}
+                      style={{ background: 'rgba(var(--m-energy-rgb),0.08)', color: GREEN }}
                     >
                       <span className="font-extrabold">{h.val}</span>
                       <span className="mx-0.5 opacity-50">/</span>
@@ -2070,7 +2070,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="space-y-0.5">
         {habits.map((h, hIdx) => {
           const p = pct(h.val, h.target);
-          const GREEN = '#34C759';
+          const GREEN = 'var(--m-energy)';
           const hkey = h.id || h.key;
           const isEditing = editingTargetKey === hkey;
           const padNum = String(hIdx + 1).padStart(2, '0');
@@ -2193,7 +2193,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                 <button key={m} type="button" onClick={() => setSelectedMonth(m)}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150 whitespace-nowrap flex-shrink-0 cursor-pointer active:scale-[.96]"
                   style={{
-                    background: selected ? '#34C759' : 'transparent',
+                    background: selected ? 'var(--m-energy)' : 'transparent',
                     color: selected ? '#ffffff' : '#64748b',
                     fontWeight: selected ? 700 : 500,
                     fontSize: '11.5px',
@@ -2201,13 +2201,13 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   }}
                   title={`${m}月 · 累计打卡 ${monthTotal}`}>
                   {isCurrent && !selected && (
-                    <span className="w-[5px] h-[5px] rounded-full flex-shrink-0" style={{ background: '#34C759' }} />
+                    <span className="w-[5px] h-[5px] rounded-full flex-shrink-0" style={{ background: 'var(--m-energy)' }} />
                   )}
                   <span>{m}月</span>
                   <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
                     style={{
                       background: selected ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.05)',
-                      color: selected ? '#ffffff' : (isPast ? '#34C759' : '#64748b'),
+                      color: selected ? '#ffffff' : (isPast ? 'var(--m-energy)' : '#64748b'),
                     }}>
                     {isCurrent || isPast ? monthTotal : 0}
                   </span>
@@ -2241,7 +2241,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             const completedDays = realDates
               ? realDates
               : new Set(Array.from({ length: h.month?.[selectedMonth] || 0 }, (_, i) => i + 1));
-            const GREEN = '#34C759';
+            const GREEN = 'var(--m-energy)';
             const padNum = String(hidx + 1).padStart(2, '0');
             const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
             const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
@@ -3007,24 +3007,24 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
     onSave?.(Array.from(set));
   };
 
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#AF52DE,#FF2D55)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(175,82,222,0.25)' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 顶部说明 */}
-      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(175,82,222,0.08) 0%, rgba(255,45,85,0.08) 100%)', border: '1px solid rgba(175,82,222,0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(var(--m-life-rgb),0.08) 0%, rgba(255,45,85,0.08) 100%)', border: '1px solid rgba(var(--m-life-rgb),0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg,#AF52DE,#FF2D55)', color: '#fff',
-          display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(175,82,222,0.3)',
+          background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff',
+          display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(var(--m-life-rgb),0.3)',
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>{year} 年度精选 · 记忆卡生成</div>
           <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
-            选择 <b style={{ color: '#AF52DE' }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
+            选择 <b style={{ color: 'var(--m-life)' }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
             已选 <b>{currentHl.length}</b> / 共 <b>{allEntries.length}</b> 条可挑选。
           </div>
         </div>
@@ -3036,22 +3036,22 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
         <div style={{
           borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #FFEEED 100%)',
-          border: '1px solid rgba(175,82,222,0.15)',
-          boxShadow: '0 4px 16px rgba(175,82,222,0.1)',
+          border: '1px solid rgba(var(--m-life-rgb),0.15)',
+          boxShadow: '0 4px 16px rgba(var(--m-life-rgb),0.1)',
         }}>
           {/* 装饰光斑 */}
           <div style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(255,45,85,0.22), transparent 60%)' }} />
-          <div style={{ position: 'absolute', bottom: -50, left: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(175,82,222,0.22), transparent 60%)' }} />
+          <div style={{ position: 'absolute', bottom: -50, left: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(var(--m-life-rgb),0.22), transparent 60%)' }} />
 
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#AF52DE"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1.5, color: '#AF52DE' }}>{year} · 我的珍藏年卡</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--m-life)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1.5, color: 'var(--m-life)' }}>{year} · 我的珍藏年卡</span>
             </div>
             {currentHl.length === 0 ? (
               <div style={{
                 padding: '22px 14px', textAlign: 'center', borderRadius: 12,
-                border: '1px dashed rgba(175,82,222,0.35)', color: '#9C48C7', fontSize: 12, fontWeight: 600,
+                border: '1px dashed rgba(var(--m-life-rgb),0.35)', color: '#9C48C7', fontSize: 12, fontWeight: 600,
               }}>
                 还没有选中条目 · 点击下方卡片右下角的星号，或一键推荐。
               </div>
@@ -3064,7 +3064,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
                     display: 'flex', alignItems: 'flex-start', gap: 9,
                   }}>
                     <div style={{
-                      width: 22, height: 22, borderRadius: 7, background: `${e.catColor}18`, color: e.catColor,
+                      width: 22, height: 22, borderRadius: 7, background: 'rgba(var(--m-life-rgb),0.09)', color: 'var(--m-life)',
                       display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 10.5, fontWeight: 800,
                     }}>
                       {e.catLb.slice(0, 1)}
@@ -3073,13 +3073,13 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e', lineHeight: 1.45 }}>{e.t}</div>
                       {e.n && <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>{e.n}</div>}
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#AF52DE', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--m-life)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
                   </div>
                 ))}
               </div>
             )}
             {/* 底部签名 */}
-            <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed rgba(175,82,222,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed rgba(var(--m-life-rgb),0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 10.5, fontWeight: 600, color: '#9C48C7', letterSpacing: .8 }}>PERSONAL · ANNUAL · CARD</span>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: '#FF2D55' }}>{currentHl.length} memories</span>
             </div>
@@ -3092,7 +3092,7 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
         <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1c1c1e' }}>📋 挑选条目（{currentHl.length}）</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" onClick={autoSelectRecommended}
-            style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(175,82,222,0.25)', background: 'rgba(175,82,222,0.06)', color: '#9C48C7', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(var(--m-life-rgb),0.25)', background: 'rgba(var(--m-life-rgb),0.06)', color: '#9C48C7', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
             ★ 一键挑选前{topAuto.length}条
           </button>
           {currentHl.length > 0 && (
@@ -3114,12 +3114,12 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
           return (
             <div key={e.id} style={{
               padding: '9px 10px', borderRadius: 10,
-              border: sel ? `1px solid ${e.catColor}55` : '1px solid rgba(15,23,42,0.08)',
-              background: sel ? `${e.catColor}0a` : '#fff',
+              border: sel ? '1px solid rgba(var(--m-life-rgb),0.33)' : '1px solid rgba(15,23,42,0.08)',
+              background: sel ? 'rgba(var(--m-life-rgb),0.04)' : '#fff',
               display: 'flex', alignItems: 'flex-start', gap: 10,
             }}>
               <div style={{
-                width: 22, height: 22, borderRadius: 7, background: `${e.catColor}16`, color: e.catColor,
+                width: 22, height: 22, borderRadius: 7, background: 'rgba(var(--m-life-rgb),0.09)', color: 'var(--m-life)',
                 display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 10.5, fontWeight: 800,
               }}>{e.catLb.slice(0, 1)}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -3135,9 +3135,9 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
                   style={{
                     width: 24, height: 24, borderRadius: 8, border: 'none', cursor: 'pointer',
                     display: 'grid', placeItems: 'center', transition: 'transform 0.12s',
-                    background: sel ? 'linear-gradient(135deg,#AF52DE,#FF2D55)' : 'rgba(15,23,42,0.05)',
+                    background: sel ? 'linear-gradient(135deg,var(--m-life),#FF2D55)' : 'rgba(15,23,42,0.05)',
                     color: sel ? '#fff' : '#cbd5e1',
-                    boxShadow: sel ? '0 1px 3px rgba(175,82,222,0.3)' : 'none',
+                    boxShadow: sel ? '0 1px 3px rgba(var(--m-life-rgb),0.3)' : 'none',
                   }}>
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 </button>
@@ -4830,8 +4830,8 @@ function CognitionView({
 function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAdd, onAbilityEdit, onAbilityRemove, scoreHistory, onStartAssessment }) {
   const dynAb = abilities || ABILITY;
   const year = new Date().getFullYear();
-  const AB_COLOR = '#FF9500';
-  const AB_DARK = '#E67E22';
+  const AB_COLOR = 'var(--m-ability)';
+  const AB_DARK = 'var(--m-ability)';
 
   /* ===== 能力级派生统计 ===== */
   const abilityStats = useMemo(() => {
@@ -4882,7 +4882,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             {/* 删除：整卡悬停时可见 */}
             <span
               className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: `${AB}14`, color: AB_DARK }}
+              style={{ background: 'rgba(var(--m-ability-rgb),0.08)', color: AB_DARK }}
             >
               <span className="font-extrabold">{as.mDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
@@ -4892,7 +4892,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
               onClick={(e) => { e.stopPropagation(); onMsAdd?.(as.idx); }}
               title="添加里程碑"
               className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-              style={{ background: `${AB}1a` }}
+              style={{ background: 'rgba(var(--m-ability-rgb),0.10)' }}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke={AB} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
@@ -5009,7 +5009,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             <button
               onClick={() => onAbilityAdd?.()}
               className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-              style={{ background: 'rgba(255,149,0,0.15)', color: AB_DARK }}>
+              style={{ background: 'rgba(var(--m-ability-rgb),0.15)', color: AB_DARK }}>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               添加第一个能力
             </button>
@@ -5024,9 +5024,9 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
 function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
-  const RED = '#FF4035';           // 档A 结构+警示：Tab/按钮/序号/色条/落后胶囊/lowConv/KPIRisk（小面积强语义）
-  const RED_DATA = '#FA503E';      // 档B 数据进度：DualMarkerBar/进度条/气泡/完成率%/瓶颈高亮名（大面积展示）
-  const RED_RISK = '#FF4035';      // 警示并入档A（与结构同色靠形态跳脱）
+  const RED = 'var(--m-work)';
+  const RED_DATA = 'var(--m-work)';
+  const RED_RISK = 'var(--m-work)';
 
   /* —— 对每个目标进行字段兜底 + 派生统计 —— */
   const goalStats = useMemo(() => {
@@ -5261,9 +5261,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
       : null;
     let pace = null;
     if (paceDiff !== null) {
-      if (paceDiff === 0) pace = { t: '节奏匹配', bg: `${color}1a`, fg: color };
+      if (paceDiff === 0) pace = { t: '节奏匹配', bg: 'rgba(var(--m-work-rgb),0.10)', fg: color };
       else if (paceAhead) pace = { t: `超前 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(52,199,89,0.10)', fg: '#34C759' };
-      else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(237,84,77,0.10)', fg: RED_RISK };
+      else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(var(--m-work-rgb),0.10)', fg: RED_RISK };
     }
     /* 工作页 renderObjective：容器级 px-1 pt-2 已移除，顶部/左右二次压缩消除，与能力页卡壳 p-3.5 像素级一致：
        卡顶→标题中心从 35px→27px；左右留白从 18px→14px；只留 pb-2.5 border-b 承担与下方子渲染区的分段语义 */
@@ -5283,7 +5283,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
             <span
               className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: `${color}14`, color }}>
+              style={{ background: 'rgba(var(--m-work-rgb),0.08)', color }}>
               <span className="font-extrabold">{krDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
               <span className="opacity-70">{krTotal}</span>
@@ -5291,7 +5291,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <button
               onClick={() => onKrAdd?.(goalIdx)}
               className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-              style={{ background: `${color}1a` }}
+              style={{ background: 'rgba(var(--m-work-rgb),0.10)' }}
               title="添加 KR">
               <svg className="w-3.5 h-3.5" fill="none" stroke={color} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
@@ -5775,7 +5775,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               className="absolute inset-y-0 left-0 rounded-full"
               style={{
                 width: `${timePct}%`,
-                background: `repeating-linear-gradient(135deg, ${color}33, ${color}33 4px, ${color}55 4px, ${color}55 8px)`,
+                background: `repeating-linear-gradient(135deg, rgba(var(--m-work-rgb),0.20), rgba(var(--m-work-rgb),0.20) 4px, rgba(var(--m-work-rgb),0.33) 4px, rgba(var(--m-work-rgb),0.33) 8px)`,
               }}
             />
           </div>
@@ -5820,7 +5820,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           {gs.krTotal > 0 && (
             <span
               className="inline-flex items-center px-3 h-[24px] rounded-full text-[11px] font-semibold tabular-nums leading-none flex-shrink-0"
-              style={{ background: `${gs.color}14`, color: gs.color }}>
+              style={{ background: 'rgba(var(--m-work-rgb),0.08)', color: gs.color }}>
               <span className="font-extrabold">{gs.krDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
               <span className="opacity-70">{gs.krTotal}</span>
@@ -5830,7 +5830,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <button
             onClick={() => onKrAdd?.(goalIdx)}
             className="w-7 h-7 rounded-lg grid place-items-center transition hover:brightness-110 active:scale-95 flex-shrink-0"
-            style={{ backgroundColor: `${gs.color}12` }}
+            style={{ backgroundColor: 'rgba(var(--m-work-rgb),0.07)' }}
             title="添加 KR">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={gs.color} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
@@ -5942,7 +5942,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <button
               onClick={() => onGoalAdd?.()}
               className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-              style={{ color: RED, background: `${RED}1A` }}
+              style={{ color: RED, background: 'rgba(var(--m-work-rgb),0.10)' }}
               title="新建目标">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
             </button>
@@ -6166,7 +6166,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
       {/* Step1-4 L1区块：紫条 + 16px标题 + 紫胶囊%，与其他4模块一致 */}
       <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: '#AF52DE' }}></span>
+          <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
           {/* 链接按钮（需求 2：圆角正方形；左键跳转 / 右键增删改）—— 在年度精选左边 */}
           <div className="relative ml-auto">
@@ -6175,9 +6175,9 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               onContextMenu={handleLinkButtonContext}
               title={links.length ? `文档链接（${links.length} 条，右键增删改）` : '右键添加飞书文档链接'}
               className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-lg transition hover:brightness-105 active:scale-[0.98] mr-2 cursor-pointer"
-              style={{ background: 'rgba(175,82,222,0.10)', border: '1px solid rgba(175,82,222,0.25)' }}>
+              style={{ background: 'rgba(var(--m-life-rgb),0.10)', border: '1px solid rgba(var(--m-life-rgb),0.25)' }}>
               {/* 外链图标：当前 UI 风格线形 · 紫 */}
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="#AF52DE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="var(--m-life)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
               </svg>
@@ -6202,7 +6202,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 8px', borderRadius: '8px', marginBottom: '2px',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.08)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.08)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                     <span style={{
                       flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
@@ -6220,7 +6220,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                         background: 'transparent', color: '#8e8e93', cursor: 'pointer',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.14)'; e.currentTarget.style.color = '#AF52DE'; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.14)'; e.currentTarget.style.color = 'var(--m-life)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
@@ -6249,7 +6249,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 {/* 编辑表单（在 editingId 非空或 0 条时显示） */}
                 {(linkMenu.editingId || links.length === 0) && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '6px 4px' }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#AF52DE', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--m-life)', letterSpacing: '0.04em' }}>
                       {linkMenu.editingId ? '编辑链接' : '新增链接'}
                     </div>
                     <input placeholder="标题（如：飞书·全年计划表）" value={linkForm.title}
@@ -6277,8 +6277,8 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                         style={{
                           padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
                           border: 'none', cursor: 'pointer',
-                          background: '#AF52DE', color: '#fff',
-                          boxShadow: '0 1px 4px rgba(175,82,222,0.28)',
+                          background: 'var(--m-life)', color: '#fff',
+                          boxShadow: '0 1px 4px rgba(var(--m-life-rgb),0.28)',
                         }}>{linkMenu.editingId ? '保存' : '添加'}</button>
                     </div>
                   </div>
@@ -6289,10 +6289,10 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: '6px',
                       padding: '6px 8px', borderRadius: '8px', border: 'none',
-                      background: 'transparent', color: '#AF52DE',
+                      background: 'transparent', color: 'var(--m-life)',
                       fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.08)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.08)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
                       <path d="M12 5v14M5 12h14"/>
@@ -6323,7 +6323,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                       fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(175,82,222,0.08)'; e.currentTarget.style.color = '#AF52DE'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.08)'; e.currentTarget.style.color = 'var(--m-life)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1c1c1e'; }}
                     title={l.url}>
                     {l.title}
@@ -6337,7 +6337,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             onClick={() => onStartHighlights?.()}
             disabled={totalEntries === 0}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg, #AF52DE 0%, #FF2D55 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.25)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--m-life) 0%, #FF2D55 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' }}>
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
             </svg>
@@ -6351,7 +6351,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               {/* 卡片头部：紫色图标 + 标题 + 数量 + 右上角添加按钮 */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0"
-                  style={{ background: 'rgba(175,82,222,0.12)', color: '#AF52DE' }}>
+                  style={{ background: 'rgba(var(--m-life-rgb),0.12)', color: 'var(--m-life)' }}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     {c.key === 'relation' && (<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>)}
                     {c.key === 'food' && (<><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></>)}
@@ -6365,16 +6365,16 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 {/* 右上角添加按钮（圆角正方形 w=h 26px，需求 1） */}
                 <button onClick={() => onEntryAdd?.(c.key, c.lb)}
                   className="ml-auto inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-95 flex-shrink-0 cursor-pointer"
-                  style={{ background: 'rgba(175,82,222,0.10)', border: '1px solid rgba(175,82,222,0.25)' }}
+                  style={{ background: 'rgba(var(--m-life-rgb),0.10)', border: '1px solid rgba(var(--m-life-rgb),0.25)' }}
                   title={`添加${c.lb}记录`}>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="#AF52DE" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="var(--m-life)" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 </button>
               </div>
             {/* 条目列表 - 取消overflow-y-auto，日期移至右侧 */}
             <div className="flex flex-col gap-2 flex-1">
               {c.entries.length === 0 && (
                 <div className="flex-1 flex flex-col items-center justify-center py-5 px-2 rounded-xl border border-dashed border-ink-100 text-center gap-1.5">
-                  <div className="w-8 h-8 rounded-xl grid place-items-center" style={{background: `${c.color}10`}}>
+                  <div className="w-8 h-8 rounded-xl grid place-items-center" style={{background: 'rgba(var(--m-life-rgb),0.06)'}}>
                     <span className="text-base">
                       {c.key === 'food' && '🍜'}
                       {c.key === 'travel' && '✈️'}
@@ -6399,7 +6399,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <div key={i} onClick={() => onEntryEdit?.(c.key, i, e)} className="p-2.5 rounded-xl border border-ink-100 hover:border-surface hover:bg-surface-soft transition cursor-pointer relative">
                     {hl && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full grid place-items-center"
-                        style={{ background: 'linear-gradient(135deg,#AF52DE,#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(175,82,222,0.35)' }}
+                        style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.35)' }}
                         title="年度精选">
                         <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                       </div>
@@ -6428,7 +6428,7 @@ function SectionHeader({ cat, title, progress, right }) {
     <div className="flex items-center gap-3 pb-3 border-b border-ink-100">
       {/* P1-1: 竖条→32×32图标块 */}
       <div className="w-8 h-8 rounded-xl grid place-items-center flex-shrink-0"
-        style={{ background: `${c.color}12`, color: c.color }}>
+        style={{ background: `rgba(${c.rgb},0.07)`, color: c.color }}>
         <CategoryIcon catKey={c.key} className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
@@ -6995,7 +6995,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   const lifeCatOps = {
     add: ({ lb, color }) => {
       const key = uid();
-      setLifeData(prev => [...prev, { key, lb: lb.trim(), color: color || '#AF52DE', entries: [] }]);
+      setLifeData(prev => [...prev, { key, lb: lb.trim(), color: color || 'var(--m-life)', entries: [] }]);
       showToast(`已新增模块「${lb.trim()}」`);
       return { key };
     },

@@ -106,7 +106,8 @@ export function formatGreeting(d = new Date()) {
 
 export function formatChineseDate(d = new Date()) {
   const date = d instanceof Date ? d : fromISODate(d);
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 · ${weekdayCN(date)}`;
+  const p = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}.${p(date.getMonth() + 1)}.${p(date.getDate())}｜周${CN_WEEKDAYS[date.getDay()]}`;
 }
 
 // 时间转分钟数便于排序

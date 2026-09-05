@@ -6,7 +6,7 @@ import AvatarCropModal from './AvatarCropModal.jsx';
 import { CategoryIcon } from '../pages/AnnualPlan.jsx';
 
 const ICONS = {
-  plan:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 5H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><path d="M8 13l3 3 5-5"></path></svg>),
+  plan:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>),
   calendar:(<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>),
   annual:  (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" /><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>),
   recycle: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>),
@@ -31,7 +31,7 @@ const NAV_OTHER = [
 /* 发展规划 · 二级导航（原页面顶部 Tab 整合进侧边栏：图标+文字+加号）
    color/rgb 跟随五大模块主题色 CSS 变量；overview 为中性灰 */
 const ANNUAL_SUB = [
-  { key: 'overview',  label: '年度概览', color: null },
+  { key: 'overview',  label: '概览', color: null },
   { key: 'energy',    label: '精力', color: 'var(--m-energy)',    rgb: 'var(--m-energy-rgb)',    add: '习惯' },
   { key: 'cognition', label: '知力', color: 'var(--m-cognition)', rgb: 'var(--m-cognition-rgb)', add: '书籍' },
   { key: 'ability',   label: '能力', color: 'var(--m-ability)',   rgb: 'var(--m-ability-rgb)',   add: '能力' },
@@ -333,7 +333,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                           onAnnualView?.(sub.key);
                         }}
                       >
-                        <span className="sb-annual-sub-ic" style={{ color: on ? undefined : (sub.color || '#8e8e93') }}>
+                        <span className="sb-annual-sub-ic" style={{ color: on ? 'var(--s-main)' : undefined }}>
                           <CategoryIcon catKey={sub.key} />
                         </span>
                         <span className="flex-1 min-w-0 truncate">{sub.label}</span>

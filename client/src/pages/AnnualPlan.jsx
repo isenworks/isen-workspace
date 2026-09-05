@@ -3197,7 +3197,9 @@ function CognitionView({
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch('/api/userSettings/get');
+        const r = await fetch('/api/userSettings/get', {
+          headers: { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' },
+        });
         const j = await r.json().catch(() => ({}));
         const cfg = j?.data?.weread_api_key || {};
         setWereadCfgOk(!!cfg.configured);
@@ -3238,7 +3240,10 @@ function CognitionView({
     try {
       const r = await fetch('/api/userSettings/set', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '',
+        },
         body: JSON.stringify({ k: 'weread_api_key', v: k }),
       });
       const j = await r.json().catch(() => ({}));
@@ -4026,7 +4031,9 @@ function CognitionView({
               <button onClick={async () => {
                   setShowWereadSettings(true);
                   try {
-                    const r = await fetch('/api/userSettings/get');
+                    const r = await fetch('/api/userSettings/get', {
+                      headers: { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' },
+                    });
                     const j = await r.json().catch(() => ({}));
                     const cfg = j?.data?.weread_api_key || {};
                     if (cfg.value) setWereadKey(cfg.value);
@@ -5089,11 +5096,13 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   const [detailGoal, setDetailGoal] = useState(null); // { o, gs, goalIdx } | null
   const [openDropIdx, setOpenDropIdx] = useState(null); // key → goal.id|title+idx+'@'+location (location: 'active'|'modal')
   const [localTitle, setLocalTitle] = useState(`${year}年 · 工作目标`); // Header 标题：右击可编辑（持久化到 D1 userSettings）
-  // 挂载时读回持久化标题
+  // 挂载时读回持久化标题（须带 X-Unlock-Token，否则 D1 模式下 401 静默失败）
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch('/api/userSettings/get?k=annual_work_title');
+        const r = await fetch('/api/userSettings/get?k=annual_work_title', {
+          headers: { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' },
+        });
         const j = await r.json().catch(() => ({}));
         const v = j?.data?.annual_work_title;
         if (v) setLocalTitle(String(v));
@@ -5873,10 +5882,13 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                   const v = e.target.value.trim() || `${year}年 · 工作目标`;
                   setLocalTitle(v);
                   setTitleEditing(false);
-                  // 持久化到 D1，刷新/重开后保持
+                  // 持久化到 D1，刷新/重开后保持（须带 X-Unlock-Token，否则 401 静默失败）
                   fetch('/api/userSettings/set', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '',
+                    },
                     body: JSON.stringify({ k: 'annual_work_title', v }),
                   }).catch(() => {});
                 }}

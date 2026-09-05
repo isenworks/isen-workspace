@@ -295,7 +295,6 @@ export default function FocusPanel({
                         title={
                           canDrag ? '拖拽排序 · 点击编辑 · 右键删除' :
                           task.isHabit ? '长期习惯 · 实心圆标记' :
-                          task.isLongTerm ? '跨月事项 · 实心圆标记' :
                           task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
                           '点击编辑 · 右键删除'
                         }
@@ -332,9 +331,9 @@ export default function FocusPanel({
                           setDragOverId(null);
                         }}
                       >
-                        {/* 需求 7：isHabit || isLongTerm → 实心圆不可点击（长期习惯/跨月事项）
-                             普通事项 → 圆复选框，独立 onClick + stopPropagation */}
-                        {(task.isHabit || task.isLongTerm) ? (
+                        {/* 实心圆仅保留给精力长期习惯（isHabit）；
+                             知力/能力/工作/生活不区分来源与跨度，本月事项一律复选框可勾选 */}
+                        {task.isHabit ? (
                           /* 实心圆：模块色满填充的纯视觉标记，不可点击（长期习惯/跨月事项不是单次任务）；
                              已完成时叠加模块色辉光作区分 */
                           <div

@@ -315,9 +315,9 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
                 )}
               </div>
-              {/* 发展规划 · 二级导航：年度概览/精力/知力/能力/工作/生活（图标+文字+加号） */}
+              {/* 发展规划 · 二级导航：默认折叠，点击「发展规划」菜单项展开（年度概览/精力/知力/能力/工作/生活） */}
               {item.key === 'annual' && (
-                <div className="sb-annual-subwrap">
+                <div className="sb-annual-subwrap" style={{ display: activeMenu === 'annual' ? 'block' : 'none' }}>
                   {ANNUAL_SUB.map(sub => {
                     const on = activeMenu === 'annual' && (annualView || 'overview') === sub.key;
                     return (

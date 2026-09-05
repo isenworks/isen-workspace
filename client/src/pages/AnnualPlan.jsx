@@ -6556,7 +6556,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <div className="w-9 flex-shrink-0">
                     {ri === 0 && (
                       <div className="h-5 flex items-center justify-end">
-                        <span className="text-[13px] font-bold text-ink-700 leading-none">{g.label}</span>
+                        <span className="text-sm font-bold text-ink-700 leading-none">{g.label}</span>
                       </div>
                     )}
                   </div>
@@ -6569,8 +6569,8 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                     <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: r.cat.color }} /></span>
                     {!isLast && <span className="flex-1 w-px bg-ink-100" />}
                   </div>
-                  {/* 内容列：标题 + 右侧类目标签（iOS 风浅灰圆角胶囊背景） */}
-                  <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-[10px] bg-[#F2F2F7] transition hover:bg-[#EBEBF0] ${isLast ? '' : 'mb-4'}`}>
+                  {/* 内容列：标题 + 右侧类目标签（工作台搜索框同款灰底小圆角长方形） */}
+                  <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
                     {hl && (
                       <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
                         style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.35)' }}

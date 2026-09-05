@@ -4,15 +4,10 @@ import { API } from '../api/client.js';
 import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
+// 成长类型配色与推断逻辑：与 HabitsPanel/KeyTasks 统一来源（CSS 变量版，跟随模块主题色）
+import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
-
-// 成长类型配置
-const GROWTH_TYPES = {
-  energy: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759' },
-  mind:   { color: '#007AFF', bg: '#e0ecff', borderColor: '#007AFF', doneColor: '#007AFF', lineColor: '#007AFF' },
-  skill:  { color: '#FF9500', bg: '#FFF4D8', borderColor: '#FF9500', doneColor: '#FF9500', lineColor: '#FF9500' },
-};
 
 // 事项分类颜色（1=工作,2=能力,3=常规,4=习惯,5=生活,6=精力,7=知力）
 const CAT_COLORS = {
@@ -24,32 +19,6 @@ const CAT_COLORS = {
   6: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
   7: { color: '#007AFF', bg: '#e0ecff', borderColor: '#007AFF', doneColor: '#007AFF', lineColor: '#007AFF', timeColor: '#007AFF' },
 };
-
-// 获取习惯的成长类型（优先级：用户显式选择 > 颜色分析 > 关键词推断 > 默认）
-function inferGrowthType(habit) {
-  // 1. 用户在表单中显式选择的 growth_type（非默认 energy 即为显式设置）
-  if (habit.growth_type && habit.growth_type !== 'energy') return habit.growth_type;
-
-  // 2. 用户显式选择的 accent_color（非默认绿色 #34C759 即为显式设置）
-  const c = (habit.accent_color || '').toLowerCase().replace('#', '');
-  if (c.length === 6 && c !== '34c759') {
-    const r = parseInt(c.slice(0, 2), 16);
-    const g = parseInt(c.slice(2, 4), 16);
-    const b = parseInt(c.slice(4, 6), 16);
-    if (r > 180 && g > 140 && b < 120 && r > b && g > b) return 'skill';
-    if (b > r && b > g && b > 150) return 'mind';
-    if (g > r && g > b && g > 120) return 'energy';
-  }
-
-  // 3. 关键词推断（仅对无显式类型/颜色的老数据兜底）
-  const text = (habit.name + ' ' + (habit.emoji || '')).toLowerCase();
-  if (/睡眠|运动|喝水|饮食|健身|跑步|游泳|瑜伽|冥想|休息|😴|🏃|💧|🍎/.test(text)) return 'energy';
-  if (/看书|阅读|思考|学习|📖|🧠|📚/.test(text)) return 'mind';
-  if (/英语|口语|表达|演讲|沟通|写作|🗣️|🎤|✍️/.test(text)) return 'skill';
-
-  // 4. 默认
-  return 'energy';
-}
 
 // 将 hex 颜色与白色混合，生成浅色背景
 function lighten(hex, whiteRatio = 0.82) {

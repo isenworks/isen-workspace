@@ -326,7 +326,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                         className={`sb-annual-sub ${on ? 'on' : ''}`}
                         style={on ? (sub.rgb
                           ? { background: `rgba(${sub.rgb},0.1)`, color: sub.color }
-                          : { background: 'rgba(120,120,128,0.1)', color: '#1c1c1e' })
+                          : { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' })
                           : undefined}
                         onClick={() => {
                           onMenuChange?.('annual');

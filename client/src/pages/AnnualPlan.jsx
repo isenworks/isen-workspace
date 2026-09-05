@@ -900,8 +900,41 @@ function LifeStatsBar({ categories }) {
 /* ---------- 2.5 真实习惯数据获取 · Energy ---------- */
 // 从工作台习惯打卡 API 读取精力类习惯的年度数据
 // 未登录/API 失败时回退到 mock HABITS，保证沙盒模式可用
+//
+// 首屏闪 mock 数据的根因：realHabits 初始为 null，要等异步 API 返回（数秒）才换成真实习惯名/进度。
+// 修复：localStorage 写穿缓存 —— 初始化同步读缓存（打开即真实数据），API 成功后回写校准（换设备/清缓存场景）。
+const ENERGY_HABITS_CACHE = () => {
+  try {
+    const raw = localStorage.getItem('pw_user');
+    const uid = raw ? (JSON.parse(raw)?.id ?? 'anon') : 'anon';
+    return `energy_habits_cache_${uid}`;
+  } catch { return 'energy_habits_cache_anon'; }
+};
+function readEnergyHabitsCache() {
+  try {
+    const raw = localStorage.getItem(ENERGY_HABITS_CACHE());
+    if (!raw) return null;
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return null;
+    // monthDates 的 Set 不可序列化 → 从 allDates 重建
+    return arr.map(h => {
+      const monthDateSet = {};
+      (h.allDates || []).forEach(d => {
+        const m = parseInt(d.split('-')[1], 10);
+        const day = parseInt(d.split('-')[2], 10);
+        if (!monthDateSet[m]) monthDateSet[m] = new Set();
+        monthDateSet[m].add(day);
+      });
+      return { ...h, monthDates: monthDateSet };
+    });
+  } catch { return null; }
+}
+function writeEnergyHabitsCache(mapped) {
+  try { localStorage.setItem(ENERGY_HABITS_CACHE(), JSON.stringify(mapped)); } catch { /* ignore */ }
+}
+
 export function useEnergyHabits() {
-  const [realHabits, setRealHabits] = useState(null); // null = 未获取/失败；[] = 获取到空列表
+  const [realHabits, setRealHabits] = useState(() => readEnergyHabitsCache()); // null = 未获取/失败；[] = 获取到空列表
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // 手动刷新触发
 
@@ -973,7 +1006,11 @@ export function useEnergyHabits() {
             };
           });
 
-        if (!cancelled) { setRealHabits(mapped); setLoading(false); }
+        if (!cancelled) {
+          setRealHabits(mapped);
+          writeEnergyHabitsCache(mapped); // 写穿缓存：下次首屏直接显示真实数据
+          setLoading(false);
+        }
       } catch (e) {
         // 未登录或 API 异常 → 回退 mock 数据
         if (!cancelled) { setRealHabits(null); setLoading(false); }

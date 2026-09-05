@@ -1314,8 +1314,8 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
       >
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
+            <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.3 }} />
+            <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
           </linearGradient>
         </defs>
         {/* ★ 区域填充：有分层时只画过去段；没分层（默认）画全填充 */}
@@ -5409,7 +5409,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                           width: `${pctWidth}%`,
                           minWidth: `${minPxWidth}px`,
                           background: isDone ? '#34C759' : COLOR,
-                          boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${COLOR}25`,
+                          boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : '0 1px 3px rgba(var(--m-work-rgb),0.15)',
                         }}>
                         {p >= 15 && (
                           <span className="text-[10px] font-bold text-white/90 tabular-nums">
@@ -5657,7 +5657,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 <div
                   className="w-6 h-6 rounded-full grid place-items-center font-extrabold text-[10px] flex-shrink-0"
                   style={{
-                    background: isDone ? '#34C75920' : rmColor + '15',
+                    background: isDone ? 'rgba(52,199,89,0.13)' : 'rgba(var(--m-work-rgb),0.08)',
                     color: isDone ? '#34C759' : rmColor,
                     border: `1.5px solid ${isDone ? '#34C759' : rmColor}`,
                   }}

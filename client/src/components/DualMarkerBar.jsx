@@ -16,7 +16,13 @@ const fmt = (x) => {
 };
 
 function hexToRgba(hex, a) {
-  let h = String(hex || '#007AFF').replace('#', '');
+  const s = String(hex || '');
+  // CSS 变量：var(--m-xxx) → rgba(var(--m-xxx-rgb), a)
+  if (s.startsWith('var(--')) {
+    const inner = s.slice(4, -1); // 取出 --m-xxx
+    return `rgba(${inner}-rgb, ${a})`;
+  }
+  let h = s.replace('#', '');
   if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   const n = parseInt(h, 16);
   if (Number.isNaN(n)) return `rgba(0,122,255,${a})`;

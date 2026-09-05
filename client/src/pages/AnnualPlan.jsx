@@ -6479,7 +6479,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
         {/* ===== 双面板：左类目导航（筛选器） + 右时间流（唯一主视图） ===== */}
         <div className="flex gap-4 mt-1 items-start">
           {/* 左：类目导航 */}
-          <div className="w-[150px] flex-shrink-0 flex flex-col gap-1">
+          <div className="w-[180px] flex-shrink-0 flex flex-col gap-1">
             {/* 全部（默认） */}
             <button onClick={() => setLifeFilter(null)}
               className={`flex items-center gap-2 px-2.5 h-8 rounded-lg text-[13px] transition cursor-pointer text-left ${!lifeFilter ? 'font-bold text-[#1c1c1e] bg-[rgba(120,120,128,0.08)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}>
@@ -6494,7 +6494,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               const active = lifeFilter === c.key;
               return (
                 <div key={c.key}
-                  className={`group flex items-center gap-2 px-2.5 h-8 rounded-lg text-[13px] transition text-left ${active ? 'font-bold text-[#1c1c1e] bg-[rgba(120,120,128,0.08)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}>
+                  className={`group flex items-center gap-2 pl-6 pr-2.5 h-8 rounded-lg text-[13px] transition text-left ${active ? 'font-bold text-[#1c1c1e] bg-[rgba(120,120,128,0.08)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}>
                   <button onClick={() => setLifeFilter(active ? null : c.key)}
                     className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
                     title={active ? '点击取消筛选' : `筛选${c.lb}记录`}>
@@ -6512,8 +6512,8 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             })}
           </div>
 
-          {/* 右：时间流主视图（宽度收窄到合理栏宽，消除右侧大片空白） */}
-          <div className="flex-1 min-w-0 max-w-[560px]">
+          {/* 右：时间流主视图（放开宽度填满剩余空间，1000px 上限保证单行可读性） */}
+          <div className="flex-1 min-w-0 max-w-[1000px]">
             {timeGroups.length === 0 && (
               <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
                 {selFilterCat ? `「${selFilterCat.lb}」还没有记录，点左侧类目行的 + 添加` : '还没有生活记录，点左侧类目行的 + 添加'}
@@ -6558,7 +6558,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                       {r.cat.lb}
                     </span>
                   </div>
-                  {r.e.n && <div className="text-xs text-ink-500 leading-relaxed -mt-1 mb-3">{r.e.n}</div>}
+                  {r.e.n && <div className="text-xs text-ink-500 leading-relaxed -mt-1 mb-3 max-w-[620px]">{r.e.n}</div>}
                 </div>
               );
             }))}

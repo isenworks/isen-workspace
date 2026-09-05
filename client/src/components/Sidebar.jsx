@@ -66,6 +66,9 @@ function saveNavLabel(user, key, label) {
 export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd }) {
   const toast = useToast();
   const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
+  // 发展规划二级导航手动折叠态：覆盖默认规则（activeMenu==='annual' 时展开）
+  // —— activeMenu 已是 annual 时再次点击主菜单 → 折叠（记 manualCollapse=true）；点其他菜单再点回来 → 重新展开
+  const [annualSubManuallyClosed, setAnnualSubManuallyClosed] = useState(false);
   const labelOf = (item) => navLabels[item.key] || item.label;
   // 右键导航项 → 行内编辑标题（Enter 保存 / Esc 取消 / 失焦保存；空值回退默认）
   const [editingNav, setEditingNav] = useState(null); // { key }
@@ -294,7 +297,15 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               <div
                 className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
                 style={{ cursor: 'pointer' }}
-                onClick={() => onMenuChange?.(item.key)}
+                onClick={() => {
+                  // 发展规划：已激活时再次点击 → 手动折叠二级导航（再点其他菜单回来会重新展开）
+                  if (item.key === 'annual' && activeMenu === 'annual') {
+                    setAnnualSubManuallyClosed(v => !v);
+                  } else if (item.key === 'annual') {
+                    setAnnualSubManuallyClosed(false);
+                  }
+                  onMenuChange?.(item.key);
+                }}
                 onContextMenu={(e) => handleNavContextMenu(e, item)}
                 title="右键可修改标题文字"
               >
@@ -317,7 +328,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               </div>
               {/* 发展规划 · 二级导航：默认折叠，点击「发展规划」菜单项展开（年度概览/精力/知力/能力/工作/生活） */}
               {item.key === 'annual' && (
-                <div className="sb-annual-subwrap" style={{ display: activeMenu === 'annual' ? 'block' : 'none' }}>
+                <div className="sb-annual-subwrap" style={{ display: activeMenu === 'annual' && !annualSubManuallyClosed ? 'block' : 'none' }}>
                   {ANNUAL_SUB.map(sub => {
                     const on = activeMenu === 'annual' && (annualView || 'overview') === sub.key;
                     return (

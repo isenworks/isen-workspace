@@ -27,8 +27,52 @@ const NAV_OTHER = [
   { key: 'settings', label: '设置' }
 ];
 
+/* 侧边栏导航标题（右键编辑改文字）· localStorage 持久化，按用户隔离 */
+const NAV_LABELS_LS = 'sidebar_nav_labels_v1';
+function navLabelsUid(user) {
+  return user?.id != null ? String(user.id) : 'anon';
+}
+function loadNavLabels(user) {
+  try {
+    const raw = localStorage.getItem(NAV_LABELS_LS);
+    const obj = raw ? JSON.parse(raw) : null;
+    if (!obj) return {};
+    return obj[navLabelsUid(user)] || {};
+  } catch { return {}; }
+}
+function saveNavLabel(user, key, label) {
+  try {
+    const raw = localStorage.getItem(NAV_LABELS_LS);
+    const obj = raw ? JSON.parse(raw) : {};
+    const uid = navLabelsUid(user);
+    if (!obj[uid]) obj[uid] = {};
+    if (label) obj[uid][key] = label; else delete obj[uid][key];
+    localStorage.setItem(NAV_LABELS_LS, JSON.stringify(obj));
+  } catch { /* ignore */ }
+}
+
 export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate }) {
   const toast = useToast();
+  const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
+  const labelOf = (item) => navLabels[item.key] || item.label;
+  // 右键导航项 → 行内编辑标题（Enter 保存 / Esc 取消 / 失焦保存；空值回退默认）
+  const [editingNav, setEditingNav] = useState(null); // { key }
+  const handleNavContextMenu = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingNav({ key: item.key });
+  };
+  const commitNavLabel = (item, value) => {
+    const v = String(value || '').trim();
+    const custom = v && v !== item.label ? v : '';
+    setNavLabels(prev => {
+      const next = { ...prev };
+      if (custom) next[item.key] = custom; else delete next[item.key];
+      return next;
+    });
+    saveNavLabel(user, item.key, custom);
+    setEditingNav(null);
+  };
   const isImageAvatar = user?.avatar && /^https?:/.test(user.avatar);
   const avatar = isImageAvatar
     ? user.avatar
@@ -239,9 +283,25 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
               style={{ cursor: 'pointer' }}
               onClick={() => onMenuChange?.(item.key)}
+              onContextMenu={(e) => handleNavContextMenu(e, item)}
+              title="右键可修改标题文字"
             >
               <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
-              <span className="flex-1 min-w-0 truncate">{item.label}</span>
+              {editingNav?.key === item.key ? (
+                <input
+                  autoFocus
+                  defaultValue={labelOf(item)}
+                  className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-[13px] py-0"
+                  onClick={(e) => e.stopPropagation()}
+                  onBlur={(e) => commitNavLabel(item, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitNavLabel(item, e.currentTarget.value);
+                    if (e.key === 'Escape') setEditingNav(null);
+                  }}
+                />
+              ) : (
+                <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
+              )}
             </div>
           ))}
 
@@ -253,10 +313,26 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', cursor: 'pointer' }}
               onClick={() => { if (item.key === 'settings') onSettingsClick?.(); else onMenuChange?.(item.key); }}
+              onContextMenu={(e) => handleNavContextMenu(e, item)}
+              title="右键可修改标题文字"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                {editingNav?.key === item.key ? (
+                  <input
+                    autoFocus
+                    defaultValue={labelOf(item)}
+                    className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-[13px] py-0"
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={(e) => commitNavLabel(item, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitNavLabel(item, e.currentTarget.value);
+                      if (e.key === 'Escape') setEditingNav(null);
+                    }}
+                  />
+                ) : (
+                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{labelOf(item)}</span>
+                )}
               </div>
             </div>
           ))}

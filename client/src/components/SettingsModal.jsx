@@ -351,9 +351,10 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
 }
 
 function AppearanceTab({ themeKey, onSelect }) {
-  const [editing, setEditing] = useState(null); // { mode: 'add'|'edit', key?, hex, label }
+  const [editing, setEditing] = useState(null); // { mode: 'add'|'edit', key?, hex, label, moduleKey? }
   const [allThemes, setAllThemes] = useState(() => Object.values(getAllThemes()));
   const [confirmDel, setConfirmDel] = useState(null);
+  const [moduleColorVersion, setModuleColorVersion] = useState(0);
 
   const refresh = () => setAllThemes(Object.values(getAllThemes()));
 
@@ -379,6 +380,7 @@ function AppearanceTab({ themeKey, onSelect }) {
     saveModuleColor(moduleKey, hex);
     applyModuleColors();
     setEditing(null);
+    setModuleColorVersion(v => v + 1);
   };
 
   return (
@@ -471,7 +473,7 @@ function AppearanceTab({ themeKey, onSelect }) {
       </div>
 
       {/* ===== 模块颜色分区 ===== */}
-      <ModuleColorSection onEdit={(hex, label, key) => setEditing({ mode: 'edit', hex, label, moduleKey: key })} />
+      <ModuleColorSection key={moduleColorVersion} onEdit={(hex, label, key) => setEditing({ mode: 'edit', hex, label, moduleKey: key })} />
 
       {/* 新增/编辑弹窗 */}
       {editing && (

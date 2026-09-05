@@ -301,7 +301,7 @@ export const WORK = [
 
 /* 生活 */
 export const LIFE = [
-  { key:'relation', lb:'关系', color:'var(--m-life)', entries:[ /* violet */
+  { key:'relation', lb:'情感', color:'var(--m-life)', entries:[ /* violet */
     { t:'给妈妈打电话 30min', n:'聊天很开心，她分享了广场舞比赛', d:'8.24' },
     { t:'朋友老王生日送礼物', n:'送了喜欢的露营装备', d:'7.15' },
     { t:'和老婆周末野餐', n:'准备了她爱吃的草莓和可颂', d:'7.09' },
@@ -6408,24 +6408,14 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             {/* 条目列表 - 取消overflow-y-auto，日期移至右侧 */}
             <div className="flex flex-col gap-2 flex-1">
               {c.entries.length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center py-5 px-2 rounded-xl border border-dashed border-ink-100 text-center gap-1.5">
-                  <div className="w-8 h-8 rounded-xl grid place-items-center" style={{background: 'rgba(var(--m-life-rgb),0.06)'}}>
-                    <span className="text-base">
-                      {c.key === 'food' && '🍜'}
-                      {c.key === 'travel' && '✈️'}
-                      {c.key === 'movie' && '🎬'}
-                      {c.key === 'gift' && '🎁'}
-                      {c.key === 'moment' && '📸'}
-                    </span>
+                <div className="flex-1 flex flex-col items-center justify-center py-5 px-2 rounded-xl border border-dashed border-ink-100 text-center gap-1.5 cursor-pointer hover:bg-surface-soft transition"
+                  onClick={() => onEntryAdd?.(c.key, c.lb)}>
+                  <div className="w-9 h-9 rounded-xl grid place-items-center" style={{background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)'}}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
                   </div>
-                  <div className="text-[11px] font-semibold text-ink-500">还没有{c.lb}记录</div>
-                  <div className="text-[10px] text-ink-400 leading-snug">
-                    {c.key === 'food' && '记录探店美食，分享舌尖记忆'}
-                    {c.key === 'travel' && '把每次出行都变成珍贵回忆'}
-                    {c.key === 'movie' && '好片烂片都值得留下观后感'}
-                    {c.key === 'gift' && '收礼送礼的心意都值得记下来'}
-                    {c.key === 'moment' && '记录平凡日子里的小闪光'}
-                  </div>
+                  <div className="text-[11px] text-ink-500">点击进行记录</div>
                 </div>
               )}
               {c.entries.map((e, i) => {

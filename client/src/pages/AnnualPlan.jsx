@@ -1635,24 +1635,23 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   );
 
   /* 知力漏斗行:标题与色块同一行对齐;色块宽度上限 60%(整体缩短),数值嵌色块内,转化率随行右对齐 */
-  const FunnelRow = ({ label, count, idx, conv, total }) => {
+  const FunnelRow = ({ label, count, idx, conv, total, unit }) => {
     const pctW = Math.max(12, (count / (total || 1)) * 60);
     return (
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
         <span className="text-[12.5px] font-semibold text-[#48484A] leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded-full flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: 'var(--m-cognition)' }}>
-          <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}</span>
+          <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}{unit}</span>
         </div>
         <span className="text-[11.5px] font-bold tabular-nums leading-none flex-shrink-0 ml-auto" style={{ color: 'var(--m-cognition)' }}>{conv}</span>
       </div>
     );
   };
 
-  /* 工作小节 */
+  /* 工作小节：全量 KR 逐行显示（对齐工作tab漏斗层级，含已完成行），数值带单位 */
   const WorkSection = ({ title, color, obj }) => {
-    const active = (obj?.krs || []).filter(k => k.st !== 'done');
-    const doneRow = (obj?.krs || []).filter(k => k.st === 'done');
+    const krs = obj?.krs || [];
     return (
       <>
         <div className="flex items-center gap-1.5 pt-1.5 pb-1">
@@ -1660,19 +1659,16 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
           <span className="text-[11px] font-bold text-[#3C3C43] leading-none">{title}</span>
           <span className="text-[10.5px] text-[#8E8E93] leading-none truncate ml-0.5">{obj?.title}</span>
         </div>
-        {active.map(k => {
+        {krs.map(k => {
           const due = k.dueBy ? (k.dueBy).slice(5).replace('-', '.') : '';
           const name = k.t.replace(/\s*\(.*?\)/g, '') + (due ? ` ${due}止` : '');
+          const unit = k.u || k.t.match(/\((.*?)\)/)?.[1] || '';
           return (
             <SubRow key={k.id} name={name}
-              pct={pct(k.v, k.tgt)} val={`${k.v}/${k.tgt}`} color={color} />
+              pct={pct(k.v, k.tgt)} val={`${k.v}/${k.tgt}${unit}`} color={color}
+              done={k.st === 'done' ? true : undefined} />
           );
         })}
-        {doneRow.length > 0 && (
-          <div className="text-[10.5px] text-[#8E8E93] leading-none py-1 truncate">
-            已完成 {doneRow.length} · {doneRow.map(k => k.t.replace(/\s*\(.*?\)/g, '')).join('/')}
-          </div>
-        )}
       </>
     );
   };
@@ -1707,7 +1703,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
               {habits.map(h => (
                 <SubRow key={h.key}
                   name={h.label}
-                  pct={pct(h.val, h.target)} val={`${h.val}/${h.target}`} color="var(--m-energy)" />
+                  pct={pct(h.val, h.target)} val={`${h.val}/${h.target}天`} color="var(--m-energy)" />
               ))}
             </CardBody>
           </div>
@@ -1728,7 +1724,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                 const counts = [funnel.total, funnel.done, funnel.notes, funnel.changes, funnel.reviews];
                 return (<>
                   {labels5.map((lb, i) => (
-                    <FunnelRow key={lb} label={lb} count={counts[i]} idx={i} conv={rates[i] || '—'} total={funnel.total} />
+                    <FunnelRow key={lb} label={lb} count={counts[i]} idx={i} conv={rates[i] || '—'} total={funnel.total}
+                      unit={i === 0 ? (COG_KRS[0]?.u || '本') : ''} />
                   ))}
                   <div className="text-[10.5px] text-[#8E8E93] leading-none py-1 truncate">
                     已读 {funnel.done}/{funnel.total} · 待读 {dynBooks.filter(b => b.st === 'pending').length}
@@ -1747,7 +1744,7 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
                 const ap = a.mstones.length > 0 ? Math.round(a.mstones.reduce((s, m) => s + m.pct, 0) / a.mstones.length) : 0;
                 return (
                   <SubRow key={a.id} name={a.title}
-                    pct={ap} val={`${doneMs}/${a.mstones.length}`} color="var(--m-ability)" />
+                    pct={ap} val={`${doneMs}/${a.mstones.length}项`} color="var(--m-ability)" />
                 );
               })}
             </CardBody>

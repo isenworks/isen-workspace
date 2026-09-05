@@ -165,10 +165,22 @@ export default function MonthCalendarGrid({
             onCellOpenDay?.(date, { source });
           };
 
+          /* 四角格子：与容器 rounded-2xl(16px) 同弧度，避免选中描边(inset ring)在圆角处被
+             overflow-hidden 裁掉一角（如"日"列首个选中格右上角缺失） */
+          const corner = i === 0
+            ? 'rounded-tl-2xl'
+            : i === 6
+            ? 'rounded-tr-2xl'
+            : i === grid.length - 7
+            ? 'rounded-bl-2xl'
+            : i === grid.length - 1
+            ? 'rounded-br-2xl'
+            : '';
+
           return (
             <div
               key={i}
-              className={`min-h-[88px] p-2 flex flex-col gap-1 transition-colors relative ${
+              className={`min-h-[88px] p-2 flex flex-col gap-1 transition-colors relative ${corner} ${
                 !cell.inMonth ? 'opacity-40' : ''
               }`}
               style={{

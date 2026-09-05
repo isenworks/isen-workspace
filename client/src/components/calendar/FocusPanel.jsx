@@ -410,22 +410,25 @@ export default function FocusPanel({
                           </div>
                         </div>
 
-                        {/* 右侧进度（点击也进入编辑面板，避免进度条空点无反馈） */}
-                        <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]" onClick={handleEdit}>
-                          <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
-                            {pct}%
-                          </span>
-                          <div className="w-[72px] h-[6px] rounded-full overflow-hidden" style={{ background: modRgba(mod.color, 0.09) }}>
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{
-                                width: `${pct}%`,
-                                background: mod.color,
-                                boxShadow: pct > 0 ? `0 1px 4px ${modRgba(mod.color, 0.33)}` : 'none',
-                              }}
-                            />
+                        {/* 右侧进度（点击也进入编辑面板，避免进度条空点无反馈）
+                            单次事件型（isEvent）无进度概念：已完成只显示 100%，未完成不渲染进度区 */}
+                        {task.isEvent && !task.done ? null : (
+                          <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]" onClick={handleEdit}>
+                            <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
+                              {task.isEvent ? '100%' : `${pct}%`}
+                            </span>
+                            <div className="w-[72px] h-[6px] rounded-full overflow-hidden" style={{ background: modRgba(mod.color, 0.09) }}>
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${task.isEvent ? 100 : pct}%`,
+                                  background: mod.color,
+                                  boxShadow: (task.isEvent || pct > 0) ? `0 1px 4px ${modRgba(mod.color, 0.33)}` : 'none',
+                                }}
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}

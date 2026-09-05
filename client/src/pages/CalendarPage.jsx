@@ -379,6 +379,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
     // 完成状态以发展规划工作 tab 为准（markDone 写入 status='done' + completedAt）；
     // 进度兜底：status 无值时按 KR 完成率算
     const wkDone = wk.status === 'done' || !!wk.completedAt;
+    // 单次事件型（mode='event' 或无 KR 的目标）：无进度概念，标记后 FocusPanel 不渲染进度条
+    const isEvent = wk.mode === 'event' || !(wk.krs || []).length;
     const krDone = (wk.krs || []).filter(k => k.st === 'done').length;
     const krTotal = (wk.krs || []).length;
     const wkPct = wkDone ? 100 : (krTotal > 0 ? Math.round((krDone / krTotal) * 100) : 0);
@@ -387,6 +389,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       moduleKey: 'work',
       isFromFetch: true,
       isLongTerm: !isWithinMonth,
+      isEvent,
       title: wk.title || '',
       progress: wkPct / 100,
       done: wkDone,

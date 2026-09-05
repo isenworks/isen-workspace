@@ -520,10 +520,10 @@ export default function FocusPanel({
                           <div className="flex items-center gap-2 text-[11px] font-medium text-[#8E8E93]">
                             {task.srcTag && (
                               <span
-                                className="px-1.5 py-0.5 rounded text-[10px] font-bold select-none"
+                                className="px-1.5 py-0.5 rounded text-[10px] font-normal select-none"
                                 style={{
-                                  background: modRgba(mod.color, 0.08),
-                                  color: mod.color,
+                                  background: modRgba(mod.color, 0.06),
+                                  color: modRgba(mod.color, 0.72),
                                   cursor: onTagClick ? 'pointer' : 'default',
                                   transition: 'opacity 0.15s ease, transform 0.15s ease',
                                 }}

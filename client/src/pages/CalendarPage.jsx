@@ -534,7 +534,12 @@ function overlapsMonth(task, year, month) {
 /* ========= 工具：主线任务 → ScheduleForm 初始值 ========= */
 function taskToScheduleInitial(task, defaultDate) {
   const mod = keyToModule(task.moduleKey);
+  // 关键修复：真实 API 日程必须带回 id，否则 ScheduleForm 走 create 分支 → 编辑保存变成新增（产生重复事项的根因）
+  // 仅纯数字 id 视为真实记录；聚合生成的字符串 id（life_/book_/ms_ 等）不带，避免 update 报"缺少id"
+  const rawId = task?.schedulePayload?.id ?? task?.id;
+  const realId = (rawId != null && (typeof rawId === 'number' || /^\d+$/.test(String(rawId)))) ? rawId : undefined;
   return {
+    ...(realId != null ? { id: realId } : {}),
     title: task.title,
     category: mod.cat,
     is_key: true,

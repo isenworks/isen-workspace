@@ -29,18 +29,26 @@ function taskTimeKey(t) {
   return '99-99';
 }
 
-/* 单次事项右侧日期标注（M.D）：优先 ISO start_date，兜底解析 dueDate 展示串（截止 09/30 / 9.5） */
+/* 单次事项右侧日期标注（MM-DD 补零）：优先 ISO start_date，兜底解析 dueDate 展示串（截止 09/30 / 9.5） */
 function taskDateLabel(t) {
   const iso = t?.start_date || t?.date || t?.schedule_date;
-  if (iso) { const s = String(iso); return `${Number(s.slice(5, 7))}.${Number(s.slice(8, 10))}`; }
+  if (iso) { const s = String(iso); return `${s.slice(5, 7)}-${s.slice(8, 10)}`; }
   const m = String(t?.dueDate || '').match(/(\d{1,2})[./](\d{1,2})/);
-  if (m) return `${Number(m[1])}.${Number(m[2])}`;
+  if (m) return `${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`;
   return null;
 }
 
-/* 紧急判定：未完成且日期距今 ≤2 天（含已过期）→ 红色紧急态 */
-function taskUrgent(t) {
-  if (t?.done) return false;
+/* 单次事项判定：日程代理/生活记录/事件型目标 —— 二态完成、无真实进度 → 右侧标注日期而非进度条 */
+function isSingleTask(t) {
+  return !t?.isHabit && !t?.isLongTerm && (
+    t?.isEvent || t?.__fromSchedule || t?.__origin === 'api'
+    || String(t?.id).startsWith('life_')
+  );
+}
+
+/* 紧急状态：'overdue'=已逾期（日期早于今天）| 'urgent'=紧急（当天或明天）| null=普通 */
+function taskUrgency(t) {
+  if (t?.done) return null;
   const iso = t?.start_date || t?.date || t?.schedule_date || t?.milestoneData?.dueBy;
   let ymd = null;
   if (iso) ymd = String(iso).slice(0, 10);
@@ -48,11 +56,14 @@ function taskUrgent(t) {
     const m = String(t?.dueDate || '').match(/(\d{1,2})[./](\d{1,2})/);
     if (m) ymd = `${new Date().getFullYear()}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`;
   }
-  if (!ymd) return false;
+  if (!ymd) return null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const d = new Date(`${ymd}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return false;
-  return Math.round((d - today) / 86400000) <= 2;
+  if (Number.isNaN(d.getTime())) return null;
+  const diff = Math.round((d - today) / 86400000);
+  if (diff < 0) return 'overdue';
+  if (diff <= 1) return 'urgent';
+  return null;
 }
 
 /* —— 年度规划同源 CategoryIcon（不用 emoji，直接复用 Lucide 线形白图标印章）—— */
@@ -78,6 +89,9 @@ const MOD_EN = {
   work:      'WORK',
   life:      'LIFE',
 };
+
+/* 模块排序权重：进度条型事项"同类放一起"用（精力→知力→能力→工作→生活，与 MODULES 一致） */
+const MOD_ORDER = Object.fromEntries(MODULES.map((m, i) => [m.key, i]));
 
 /* 纯白背景 + 恰到好处的描边阴影 + 顶 3px 模块色条（需求 1：阴影再增强一点点）
    · 描边：0.060 → 0.072（维持"隐形描边"气质，但存在感再 +20%）
@@ -130,14 +144,26 @@ export default function FocusPanel({
     if (sortBy === 'time') {
       const items = [...tasks]
         .sort((a, b) => {
-          // 单次/短期事项在前，长时间跨度（跨月目标 · 长期习惯）在后
-          const la = (a.isLongTerm || a.isHabit) ? 1 : 0;
-          const lb = (b.isLongTerm || b.isHabit) ? 1 : 0;
-          if (la !== lb) return la - lb;
+          // ① 单次事项在前，进度条型事项在后
+          const sa = isSingleTask(a) ? 0 : 1;
+          const sb = isSingleTask(b) ? 0 : 1;
+          if (sa !== sb) return sa - sb;
+          if (sa === 0) {
+            // 单次事项：按日期升序，未完成在前
+            const ka = taskTimeKey(a), kb = taskTimeKey(b);
+            if (ka !== kb) return ka.localeCompare(kb);
+            const da = a.done ? 1 : 0, db = b.done ? 1 : 0;
+            if (da !== db) return da - db;
+            return String(a.id ?? '').localeCompare(String(b.id ?? ''));
+          }
+          // ② 进度条型事项：同类（同模块）放一起，进度慢的排前面
+          const ma = MOD_ORDER[a.moduleKey] ?? 99;
+          const mb = MOD_ORDER[b.moduleKey] ?? 99;
+          if (ma !== mb) return ma - mb;
+          const pa = a.progress || 0, pb = b.progress || 0;
+          if (pa !== pb) return pa - pb;
           const ka = taskTimeKey(a), kb = taskTimeKey(b);
           if (ka !== kb) return ka.localeCompare(kb);
-          const da = a.done ? 1 : 0, db = b.done ? 1 : 0;
-          if (da !== db) return da - db;
           return String(a.id ?? '').localeCompare(String(b.id ?? ''));
         })
         .map(t => ({ ...t, __rowColor: keyToModule(t.moduleKey).color }));
@@ -343,11 +369,8 @@ export default function FocusPanel({
                     const rowColor = task.__rowColor || grp.color;
                     const pct = Math.round((task.progress || 0) * 100);
                     /* 单次事项（日程代理/生活记录/事件型目标）：二态完成、无真实进度 → 不渲染进度条，右侧标注日期 */
-                    const isSingle = !task.isHabit && !task.isLongTerm && (
-                      task.isEvent || task.__fromSchedule || task.__origin === 'api'
-                      || String(task.id).startsWith('life_')
-                    );
-                    const urgent = taskUrgent(task);
+                    const isSingle = isSingleTask(task);
+                    const urgency = taskUrgency(task);
                     const dateLabel = taskDateLabel(task);
                     /* Completed Band：已完成任务永久铺一层模块色淡填充，
                        做到一眼扫出每个模块哪些是"已经打勾的"，减少大脑扫描成本 */
@@ -497,7 +520,7 @@ export default function FocusPanel({
                                 {task.srcTag}
                               </span>
                             )}
-                            {task.dueDate && <span style={urgent ? { color: '#FF3B30', fontWeight: 700 } : undefined}>{task.dueDate}</span>}
+                            {task.dueDate && <span style={urgency ? { color: '#FF3B30', fontWeight: 700 } : undefined}>{task.dueDate}</span>}
                             {task.note && (
                               <span style={{ color: '#8E8E93' }}>{task.note}</span>
                             )}
@@ -505,20 +528,20 @@ export default function FocusPanel({
                         </div>
 
                         {/* 右侧（点击也进入编辑面板，避免空点无反馈）
-                            · 单次事项：无进度条，标注日期；临近截止（≤2天/已过期）红色紧急态突出
+                            · 单次事项：无进度条，标注日期（MM-DD）；逾期→「逾期」、当天/明天→「紧急」红色突出
                             · 其余：保留百分比 + 进度条 */}
                         {isSingle ? (
                           <div className="flex-shrink-0 flex items-center gap-1.5" onClick={handleEdit}>
-                            {urgent && (
+                            {urgency && (
                               <span
                                 className="px-1.5 py-[2px] rounded-md text-[10px] font-extrabold leading-none"
                                 style={{ background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }}
-                              >紧急</span>
+                              >{urgency === 'overdue' ? '逾期' : '紧急'}</span>
                             )}
                             {dateLabel && (
                               <span
                                 className="text-[12px] font-bold tabular-nums leading-none"
-                                style={{ color: urgent ? '#FF3B30' : '#8E8E93' }}
+                                style={{ color: urgency ? '#FF3B30' : '#8E8E93' }}
                               >{dateLabel}</span>
                             )}
                           </div>

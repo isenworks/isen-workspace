@@ -103,7 +103,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
       else if (hasNormal) dotColor = '#8e8e93';
     }
     const dotsHtml = dotColor
-      ? <div className="cal-dot" style={{ width: '6px', height: '6px', background: dotColor, borderRadius: '50%', marginTop: '2px' }}></div>
+      ? <div className="cal-dot" style={{ width: '4px', height: '4px', background: dotColor, borderRadius: '50%' }}></div>
       : <div className="cal-dots"></div>;
 
     days.push(

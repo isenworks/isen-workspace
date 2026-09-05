@@ -1995,6 +1995,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             const yearlyPct = pct(h.val, h.target);
             const GREEN = 'var(--m-energy)';
             const padNum = String(hIdx + 1).padStart(2, '0');
+            const isEditingYear = editingTargetKey === (h.id || h.key);
             const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
             const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
 
@@ -2028,7 +2029,29 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     >
                       <span className="font-extrabold">{h.val}</span>
                       <span className="mx-0.5 opacity-50">/</span>
-                      <span className="opacity-70">{h.target}{h.unit}</span>
+                      {isEditingYear ? (
+                        <input
+                          autoFocus
+                          type="number"
+                          min="1"
+                          value={targetDraft}
+                          onChange={(e) => setTargetDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitTarget(h);
+                            if (e.key === 'Escape') { setEditingTargetKey(null); setTargetDraft(''); }
+                          }}
+                          onBlur={() => commitTarget(h)}
+                          className="w-10 px-1 py-0 text-[11px] font-bold text-center border border-accent-green rounded outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
+                        />
+                      ) : (
+                        <span
+                          className="opacity-70 cursor-pointer hover:opacity-100"
+                          onClick={() => startEditTarget(h)}
+                          title="点击修改年度目标"
+                        >
+                          {h.target}{h.unit}
+                        </span>
+                      )}
                     </span>
                   </div>
                 </div>

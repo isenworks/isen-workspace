@@ -5,7 +5,7 @@ import lunarLib from '../../vendor/lunar.js';
 
 /* 每格农历标注：优先级 节日 > 节气 > 农历日（初一显示农历月名）
    · 节日：红（春节/端午/中秋/国庆…，农历+公历都取）
-   · 节气：青（白露/立春…）
+   · 节气：深灰（白露/立春…）
    · 农历日：灰（初一那格显示"八月"月名，略深一档做月份锚点） */
 function lunarBadge(iso) {
   const [y, m, d] = iso.split('-').map(Number);
@@ -19,7 +19,7 @@ function lunarBadge(iso) {
     return { text, full, color: '#FF3B30', weight: 600 };
   }
   const jq = lunar.getJieQi();
-  if (jq) return { text: jq, full, color: '#30B0C7', weight: 600 };
+  if (jq) return { text: jq, full, color: '#48484A', weight: 500 };
   if (lunar.getDay() === 1) {
     return { text: (lunar.getMonth() < 0 ? '闰' : '') + lunar.getMonthInChinese() + '月', full, color: '#6D6D72', weight: 600 };
   }
@@ -233,11 +233,11 @@ export default function MonthCalendarGrid({
                 {dayEvents.slice(0, 3).map((ev, j) => {
                   const mod = scheduleModule(ev);
                   const done = Boolean(ev.is_done || ev.done);
-                  // 模块色 16% 透明度背景：8% 时红/紫/橙低饱和趋同难辨，加深一档提升色相可分性
-                  // 注意 CSS 变量必须 var() 包裹：rgba(var(--m-xxx-rgb), 0.16)，缺 var() 是非法值会被丢弃
+                  // 模块色 12% 透明度背景：在 8%（色相趋同难辨）与 16%（偏深）之间取平衡
+                  // 注意 CSS 变量必须 var() 包裹：rgba(var(--m-xxx-rgb), 0.12)，缺 var() 是非法值会被丢弃
                   const bg = mod.color.startsWith?.('var(')
-                    ? `rgba(var(${mod.color.slice(4, -1)}-rgb), 0.16)`
-                    : `${mod.color}29`;
+                    ? `rgba(var(${mod.color.slice(4, -1)}-rgb), 0.12)`
+                    : `${mod.color}1F`;
                   return (
                     <div
                       key={ev.id || `${date}-${j}`}

@@ -485,7 +485,7 @@ export default function FocusPanel({
                             onClick={handleToggle}
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
                             style={{
-                              borderColor: task.done ? mod.color : modRgba(mod.color, 0.33),
+                              borderColor: mod.color,
                               background: task.done ? mod.color : '#fff',
                               boxShadow: task.done ? `0 2px 6px ${modRgba(mod.color, 0.25)}` : 'none',
                             }}
@@ -542,7 +542,7 @@ export default function FocusPanel({
                             {task.dueDate && (
                               <span style={urgency === 'urgent'
                                 ? { color: '#FF3B30', fontWeight: 700 }
-                                : urgency === 'overdue' ? { color: '#E67700', fontWeight: 700 } : undefined}>
+                                : urgency === 'overdue' ? { color: '#FFB627', fontWeight: 700 } : undefined}>
                                 {task.dueDate}
                               </span>
                             )}
@@ -561,14 +561,14 @@ export default function FocusPanel({
                               <span
                                 className="px-1.5 py-[2px] rounded-md text-[10px] font-extrabold leading-none"
                                 style={urgency === 'overdue'
-                                  ? { background: 'rgba(255,171,0,0.16)', color: '#E67700' }   // 逾期：警告黄
+                                  ? { background: 'rgba(255,182,39,0.14)', color: '#FFB627' }   // 逾期：琥珀黄
                                   : { background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }} // 紧急：红
                               >{urgency === 'overdue' ? '逾期' : '紧急'}</span>
                             )}
                             {dateLabel && (
                               <span
                                 className="text-[12px] font-bold tabular-nums leading-none"
-                                style={{ color: urgency === 'urgent' ? '#FF3B30' : urgency === 'overdue' ? '#E67700' : '#8E8E93' }}
+                                style={{ color: urgency === 'urgent' ? '#FF3B30' : urgency === 'overdue' ? '#FFB627' : '#8E8E93' }}
                               >{dateLabel}</span>
                             )}
                           </div>

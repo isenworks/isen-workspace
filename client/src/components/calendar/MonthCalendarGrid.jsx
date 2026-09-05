@@ -154,7 +154,7 @@ export default function MonthCalendarGrid({
                平日白底 ← 周末白 ← 当周 Mon-Fri 浅蓝 ← 选中浅蓝（选中态最高优） */
           let cellBg = '#ffffff';
           if (isWeekend) cellBg = WEEKEND_BG;
-          if (!isWeekend && weekInRange) cellBg = CURRENT_WEEK_BG_MONFRI;
+          if (weekInRange) cellBg = CURRENT_WEEK_BG_MONFRI;
           if (isSelected && !isToday) cellBg = 'rgba(var(--s-rgb),0.08)';
 
           const date = cell.date;

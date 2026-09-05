@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { API, IS_D1_BACKEND } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
-import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, isValidHex } from '../utils/theme.js';
+import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, saveThemeOrder, isValidHex } from '../utils/theme.js';
 import { MODULE_COLORS, getModuleColors, saveModuleColor, resetModuleColor, resetAllModuleColors, applyModuleColors, isValidHex as isValidModuleHex } from '../utils/moduleTheme.js';
 
 const ADMIN_EMAIL = '1429000825@qq.com';
@@ -355,8 +355,28 @@ function AppearanceTab({ themeKey, onSelect }) {
   const [allThemes, setAllThemes] = useState(() => Object.values(getAllThemes()));
   const [confirmDel, setConfirmDel] = useState(null);
   const [moduleColorVersion, setModuleColorVersion] = useState(0);
+  // 拖拽排序状态：拖起的 key / 悬停目标的 key
+  const [dragKey, setDragKey] = useState(null);
+  const [overKey, setOverKey] = useState(null);
 
   const refresh = () => setAllThemes(Object.values(getAllThemes()));
+
+  // 拖拽落点：把 dragKey 移动到 overKey 的位置，保存顺序并刷新
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (!dragKey || !overKey || dragKey === overKey) { setDragKey(null); setOverKey(null); return; }
+    const list = allThemes.map(t => t.key);
+    const from = list.indexOf(dragKey);
+    const to = list.indexOf(overKey);
+    if (from < 0 || to < 0) { setDragKey(null); setOverKey(null); return; }
+    const next = [...list];
+    next.splice(from, 1);
+    next.splice(to, 0, dragKey);
+    saveThemeOrder(next);
+    setAllThemes(Object.values(getAllThemes()));
+    setDragKey(null);
+    setOverKey(null);
+  };
 
   const handleSelect = (k) => { applyTheme(k); onSelect(k); };
 
@@ -388,7 +408,7 @@ function AppearanceTab({ themeKey, onSelect }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>主题颜色</div>
-          <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>点击切换结构模块配色，自动保存</div>
+          <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>点击切换配色，拖拽卡片可自定义排序，自动保存</div>
         </div>
         <button onClick={() => setEditing({ mode: 'add', hex: '#007AFF', label: '' })} style={{
           padding: '6px 14px', borderRadius: '8px', border: 'none',
@@ -405,13 +425,23 @@ function AppearanceTab({ themeKey, onSelect }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
         {allThemes.map(t => {
           const active = t.key === themeKey;
+          const dragging = dragKey === t.key;
+          const dropping = overKey === t.key && dragKey && dragKey !== t.key;
           return (
-            <div key={t.key} onClick={() => handleSelect(t.key)} style={{
+            <div key={t.key}
+              draggable
+              onDragStart={(e) => { setDragKey(t.key); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', t.key); } catch { /* IE */ } }}
+              onDragEnd={() => { setDragKey(null); setOverKey(null); }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (overKey !== t.key) setOverKey(t.key); }}
+              onDragLeave={() => { if (overKey === t.key) setOverKey(null); }}
+              onDrop={handleDrop}
+              onClick={() => handleSelect(t.key)} style={{
               display: 'flex', flexDirection: 'column', gap: '4px',
               padding: '6px 6px', borderRadius: '8px',
               background: active ? 'rgba(var(--s-rgb),0.06)' : '#f5f5f7',
-              border: active ? '1.5px solid var(--s-main)' : '1.5px solid transparent',
-              cursor: 'pointer', transition: 'all 0.15s', position: 'relative',
+              border: dropping ? '1.5px dashed var(--s-main)' : active ? '1.5px solid var(--s-main)' : '1.5px solid transparent',
+              cursor: 'grab', transition: 'all 0.15s', position: 'relative',
+              opacity: dragging ? 0.4 : 1,
             }}>
               {/* 色块 + 名称 + hex 横排 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

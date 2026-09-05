@@ -71,6 +71,19 @@ export function saveCustomThemes(arr) {
   try { localStorage.setItem(LS_CUSTOM, JSON.stringify(arr)); } catch { /* ignore */ }
 }
 
+/* ---- 主题排序（设置面板拖拽自定义顺序） ---- */
+export function getThemeOrder() {
+  try {
+    const raw = localStorage.getItem('ws_theme_order');
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+
+export function saveThemeOrder(keys) {
+  try { localStorage.setItem('ws_theme_order', JSON.stringify(keys)); } catch { /* ignore */ }
+}
+
 export function addCustomTheme(hex, label) {
   const t = makeThemeFromHex(hex, label);
   const arr = getCustomThemes();
@@ -94,12 +107,16 @@ export function deleteCustomTheme(key) {
   saveCustomThemes(arr);
 }
 
-/* ---- 合并集合 ---- */
+/* ---- 合并集合（应用拖拽保存的顺序；未记录的新主题按默认顺序补在尾部） ---- */
 export function getAllThemes() {
   const custom = getCustomThemes();
   const merged = { ...THEMES };
   custom.forEach(t => { merged[t.key] = t; });
-  return merged;
+  const order = getThemeOrder().filter(k => merged[k]);
+  const rest = Object.keys(merged).filter(k => !order.includes(k));
+  const ordered = {};
+  [...order, ...rest].forEach(k => { ordered[k] = merged[k]; });
+  return ordered;
 }
 
 export function getThemeKey() {

@@ -12,13 +12,6 @@ function dateLabel(dateStr) {
   return `${d.getMonth() + 1}月${d.getDate()}日 周${weekLabels[d.getDay()]}`;
 }
 
-// 预设模板：3 个空白模板，点击直接打开新建弹窗
-const PRESET_TEMPLATES = [
-  { key: 't1', category: 1, label: '工作', bold: '增收入', dotColor: '#FF3B30', bg: '#FFEEED' },
-  { key: 't2', category: 1, label: '工作', bold: '建资产',   dotColor: '#FF3B30', bg: '#FFEEED' },
-  { key: 't3', category: 2, label: '能力', bold: '提能力',   dotColor: '#FF9500', bg: '#fff4d8' },
-];
-
 // category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫), 6=精力(绿), 7=知力(蓝)
 // cat=4 的习惯类日程不展示在重点事项，独立习惯统一由 HabitsPanel 管理，避免重复
 function isDisplayInKeyTasks(s) {
@@ -392,57 +385,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
     return (
       <div className="space-y-1.5">
-        {/* 预设模板行：仅在无任何真实事项时显示，弱化浅灰文字不加粗，仅占位提示，点击进入弹窗不预填真实标题 */}
-        {!hasAnyRealItem && PRESET_TEMPLATES.map(tpl => (
-          <div
-            key={tpl.key}
-            className="task-row rounded-xl px-3 py-1.5 flex items-center gap-3 cursor-grab group transition-opacity"
-            style={{
-              background: `linear-gradient(90deg, ${tpl.bg}66 0%, transparent 70%)`,
-              opacity: 0.75,
-            }}
-            draggable
-            onDragStart={(e) => {
-              const data = {
-                title: `今天做什么来${tpl.bold}？`,
-                category: tpl.category,
-                emoji: '',
-                duration_min: 30,
-                isPreset: true
-              };
-              e.dataTransfer.setData('application/json', JSON.stringify(data));
-              e.dataTransfer.effectAllowed = 'move';
-            }}
-            onClick={() => {
-              onNew?.({
-                category: tpl.category,
-                title: `今天做什么来${tpl.bold}？`,
-                isPreset: true, // 关键标识：弹窗里仅做 placeholder 提示，不预填真实值
-              });
-            }}
-          >
-            <div
-              className="cb-square flex-shrink-0"
-              style={{
-                '--cb-border': tpl.dotColor + '99',
-                '--cb-color': tpl.dotColor + '99',
-                opacity: 0.6,
-                pointerEvents: 'none',
-              }}
-            ></div>
-            <div className="flex-1 min-w-0">
-              {/* 弱化：整段浅灰 #8e8e93，不加粗（跟"可留空"placeholder同色系） */}
-              <p className="text-[14px] font-normal leading-none truncate" style={{ color: '#8e8e93' }}>
-                今天做什么来{tpl.bold}？
-              </p>
-            </div>
-            {/* 圆点降透明度 */}
-            <span className="w-2 h-2 flex-shrink-0 self-center rounded-[2px]" style={{ background: tpl.dotColor, opacity: 0.55 }}></span>
-            {/* 占位：与真实事项删除按钮完全同结构，仅不可见不交互 */}
-            <button className="opacity-0 text-[#8e8e93] text-xs px-1 pointer-events-none" tabIndex={-1}>×</button>
-          </div>
-        ))}
-        {/* 真实事项 */}
+        {/* 真实事项（预设占位模板已按要求删除） */}
         {sorted.map(renderItem)}
       </div>
     );

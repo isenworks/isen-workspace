@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { today as getToday, fromISODate, startOfWeek, endOfWeek, toISODate, startOfMonth, endOfMonth } from '../utils/date.js';
 import { MODULES, keyToModule, catToModule } from '../utils/categoryMapping.js';
 import MonthCalendarGrid from '../components/calendar/MonthCalendarGrid.jsx';
@@ -592,6 +592,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     return [...seedTasks, ...planTasks];
   }, [realHabits]);
   const [monthTasks, setMonthTasks] = useState(() => computeInitialMonthTasks(todayObj.getFullYear(), todayObj.getMonth() + 1));
+  // monthTasks 的实时镜像：供异步回调（apiSchedules 拉取后的白名单过滤）读取最新值，
+  // 避免 useEffect 闭包捕获旧 state（初始聚合值）导致放行列表过期
+  const monthTasksRef = useRef(monthTasks);
+  useEffect(() => { monthTasksRef.current = monthTasks; }, [monthTasks]);
   // 本周主线：首次挂载先按 WEEK_SEED（过滤本地已删）占位；后续 API.schedules.list 拉完后
   // 再把 ethan_schedules 里"本周内的五大模块事项"追加进来（避免刷新后用户新建的本周任务丢失）
   const [weekTasks, setWeekTasks] = useState(() => {
@@ -744,10 +748,15 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           };
         });
         // 从 apiSchedules 里也剔除本地 tombstone 记录（防止日历右栏/月历再显示"已删"事项）
+        // 白名单过滤：用户明确创建的事项（写死标题 + id 白名单）；
+        // 另外本月主线面板已注入的 __fromSchedule 事项也放行 —— 它们能进主线说明是用户建的，
+        // 日历右栏应与主线同口径显示（修复"主线有但日历格子里没有"的不一致）
+        const monthTaskTitles = new Set(monthTasksRef.current
+          .filter(t => t.__fromSchedule)
+          .map(t => normTitle(t.title || '')));
         const cleaned = mapped
           .filter(s => s.id == null || !isScheduleDeletedLocally(s.id))
-          // 白名单过滤：只显示用户明确创建的 3 个事项
-          .filter(isUserSchedule);
+          .filter(s => isUserSchedule(s) || monthTaskTitles.has(normTitle(s.title || '')));
         if (!cancelled) { setApiSchedules(cleaned); setSeedDone(true); }
 
         // 只注入「用户通过 ScheduleForm 新建」的事项到 monthTasks（切页回来恢复）

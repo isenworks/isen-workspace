@@ -423,7 +423,7 @@ function AppearanceTab({ themeKey, onSelect }) {
                 <span style={{ fontSize: '11.5px', fontWeight: '600', color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span>
               </div>
               {/* hex 码 */}
-              <span style={{ fontSize: '9.5px', color: '#8e8e93', fontFamily: 'SF Mono, Menlo, monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: '11px', color: '#8e8e93', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t.gradFrom === t.gradTo ? t.main.toUpperCase() : `${t.gradFrom.toUpperCase()}→${t.gradTo.toUpperCase()}`}
               </span>
               {/* 自定义操作按钮：右上角 */}
@@ -568,7 +568,7 @@ function ModuleColorSection({ onEdit }) {
               }} />
               <span style={{ fontSize: '11px', fontWeight: '600', color: '#1c1c1e' }}>{m.label}</span>
               <span style={{
-                fontSize: '9px', color: '#8e8e93', fontFamily: 'SF Mono, Menlo, monospace',
+                fontSize: '10.5px', color: '#8e8e93',
                 whiteSpace: 'nowrap',
               }}>{m.hex.toUpperCase()}</span>
               {/* 非默认色：右上角重置点 */}
@@ -641,7 +641,7 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
               style={{
                 flex: 1, padding: '8px 10px', borderRadius: '8px',
                 border: valid ? '1px solid #e5e5ea' : '1.5px solid #FF3B30',
-                fontSize: '13px', fontFamily: 'SF Mono, Menlo, monospace',
+                fontSize: '14px',
                 outline: 'none', color: '#1c1c1e', background: '#fafafa',
               }}
             />

@@ -388,8 +388,8 @@ export default function FocusPanel({
                               <span
                                 className="px-1.5 py-0.5 rounded text-[10px] font-bold select-none"
                                 style={{
-                                  background: task.srcTagColor || mod.soft,
-                                  color: task.srcTagTextColor || mod.color,
+                                  background: modRgba(mod.color, 0.08),
+                                  color: mod.color,
                                   cursor: onTagClick ? 'pointer' : 'default',
                                   transition: 'opacity 0.15s ease, transform 0.15s ease',
                                 }}

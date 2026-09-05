@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { INPUT_STYLE } from '../../utils/uiConstants.js';
 
-const BLUE = 'var(--s-main)';
-const BLUE_DARK = 'var(--s-deep)';
-const BLUE_LIGHT = 'rgba(var(--s-rgb),0.06)';
-const BLUE_BORDER = 'rgba(var(--s-rgb),0.22)';
-const BLUE_SOFT = 'rgba(var(--s-rgb),0.08)';
+/* 面板归属知力模块：文字/标签/强调色统一跟随知力主题色（var(--m-cognition)）；
+   结构性按钮（保存/添加）保持全局主题蓝不变，见 SAVE_BG */
+const BLUE = 'var(--m-cognition)';
+const BLUE_DARK = 'var(--m-cognition)';
+const BLUE_LIGHT = 'rgba(var(--m-cognition-rgb),0.06)';
+const BLUE_BORDER = 'rgba(var(--m-cognition-rgb),0.22)';
+const BLUE_SOFT = 'rgba(var(--m-cognition-rgb),0.08)';
+const SAVE_BG = 'var(--s-main)';
 const INK = '#1c1c1e';
 const INK_MUTE = '#64748b';
 const INK_LIGHT = '#94a3b8';
@@ -358,7 +361,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
           }}>取消</button>
           <button onClick={submit} style={{
             padding: '6px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
-            background: BLUE, color: '#fff', border: 'none', cursor: 'pointer',
+            background: SAVE_BG, color: '#fff', border: 'none', cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)',
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>

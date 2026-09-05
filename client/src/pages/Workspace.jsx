@@ -539,6 +539,7 @@ export default function Workspace({ user: propUser }) {
       <Modal
         open={!!modal}
         onClose={() => setModal(null)}
+        maxWidth={modal?.type === 'book' ? 640 : undefined}
         title={
           !modal ? '新建'
           : modal.type === 'summary' ? '每日总结'

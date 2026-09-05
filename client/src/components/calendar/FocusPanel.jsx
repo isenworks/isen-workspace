@@ -29,6 +29,32 @@ function taskTimeKey(t) {
   return '99-99';
 }
 
+/* 单次事项右侧日期标注（M.D）：优先 ISO start_date，兜底解析 dueDate 展示串（截止 09/30 / 9.5） */
+function taskDateLabel(t) {
+  const iso = t?.start_date || t?.date || t?.schedule_date;
+  if (iso) { const s = String(iso); return `${Number(s.slice(5, 7))}.${Number(s.slice(8, 10))}`; }
+  const m = String(t?.dueDate || '').match(/(\d{1,2})[./](\d{1,2})/);
+  if (m) return `${Number(m[1])}.${Number(m[2])}`;
+  return null;
+}
+
+/* 紧急判定：未完成且日期距今 ≤2 天（含已过期）→ 红色紧急态 */
+function taskUrgent(t) {
+  if (t?.done) return false;
+  const iso = t?.start_date || t?.date || t?.schedule_date || t?.milestoneData?.dueBy;
+  let ymd = null;
+  if (iso) ymd = String(iso).slice(0, 10);
+  else {
+    const m = String(t?.dueDate || '').match(/(\d{1,2})[./](\d{1,2})/);
+    if (m) ymd = `${new Date().getFullYear()}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`;
+  }
+  if (!ymd) return false;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(`${ymd}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return false;
+  return Math.round((d - today) / 86400000) <= 2;
+}
+
 /* —— 年度规划同源 CategoryIcon（不用 emoji，直接复用 Lucide 线形白图标印章）—— */
 function CategoryIcon({ catKey, className }) {
   const cls = className || 'w-4 h-4';
@@ -94,8 +120,8 @@ export default function FocusPanel({
   // HTML5 DnD 排序：记录当前拖拽的 { taskId, groupKey } 以及 drop 目标 taskId（用于插入位置视觉提示）
   const [dragState, setDragState] = useState(null); // { taskId, groupKey } | null
   const [dragOverId, setDragOverId] = useState(null);
-  // 列表视图：module=按模块分组（默认·田字图标）| time=按时间顺序平铺
-  const [sortBy, setSortBy] = useState('module');
+  // 列表视图：time=按时间顺序平铺（默认·单次在前长跨度在后）| module=按模块分组
+  const [sortBy, setSortBy] = useState('time');
   // 按模块分组
   //   · 精力模块：自定义排序 —— ① 新建非习惯事项（如体检）排最前；② 习惯按 HABIT_ORDER_WEIGHT（作息→运动→喝水）
   //   · 其他模块：保持传入顺序
@@ -104,6 +130,10 @@ export default function FocusPanel({
     if (sortBy === 'time') {
       const items = [...tasks]
         .sort((a, b) => {
+          // 单次/短期事项在前，长时间跨度（跨月目标 · 长期习惯）在后
+          const la = (a.isLongTerm || a.isHabit) ? 1 : 0;
+          const lb = (b.isLongTerm || b.isHabit) ? 1 : 0;
+          if (la !== lb) return la - lb;
           const ka = taskTimeKey(a), kb = taskTimeKey(b);
           if (ka !== kb) return ka.localeCompare(kb);
           const da = a.done ? 1 : 0, db = b.done ? 1 : 0;
@@ -160,35 +190,36 @@ export default function FocusPanel({
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-[5px] h-[18px] rounded-[3px] flex-shrink-0" style={{ background: accentColor }} />
-        <div className="flex-1 min-w-0 text-[15px] font-extrabold text-[#1C1C1E] tracking-tight">
+        <div className="min-w-0 truncate text-[15px] font-extrabold text-[#1C1C1E] tracking-tight">
           {title}
         </div>
+        {/* 视图切换（紧随标题）：时间顺序（递减线·默认）/ 模块分组（田字），逻辑同重点事项卡片的排序按钮 */}
+        <button
+          onClick={() => setSortBy(s => (s === 'module' ? 'time' : 'module'))}
+          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
+          title={sortBy === 'time' ? '按时间顺序（点击切换为按模块分组）' : '按模块分组（点击切换为按时间顺序）'}
+          aria-label={sortBy === 'time' ? '按时间顺序' : '按模块分组'}
+        >
+          {sortBy === 'time' ? (
+            <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
+              <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
+                <line x1="1.5" y1="3" x2="12.5" y2="3" />
+                <line x1="1.5" y1="7" x2="9.5" y2="7" />
+                <line x1="1.5" y1="11" x2="6.5" y2="11" />
+              </g>
+            </svg>
+          ) : (
+            <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            </svg>
+          )}
+        </button>
+        <div className="flex-1" />
         <div className="flex items-center gap-2">
-          {/* 视图切换：模块分组（田字·默认）/ 时间顺序（递减线），逻辑同重点事项卡片的排序按钮 */}
-          <button
-            onClick={() => setSortBy(s => (s === 'module' ? 'time' : 'module'))}
-            className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
-            title={sortBy === 'module' ? '按模块分组（点击切换为按时间顺序）' : '按时间顺序（点击切换为按模块分组）'}
-            aria-label={sortBy === 'module' ? '按模块分组' : '按时间顺序'}
-          >
-            {sortBy === 'module' ? (
-              <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                <rect x="14" y="14" width="7" height="7" rx="1.5" />
-              </svg>
-            ) : (
-              <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
-                <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
-                  <line x1="1.5" y1="3" x2="12.5" y2="3" />
-                  <line x1="1.5" y1="7" x2="9.5" y2="7" />
-                  <line x1="1.5" y1="11" x2="6.5" y2="11" />
-                </g>
-              </svg>
-            )}
-          </button>
-          {/* 卡片右上：持平/超前/落后标签 → 统一改为完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
+          {/* 卡片右上：完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
           <span
             className="inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
             style={{ background: 'rgba(var(--s-rgb),0.09)', color: accentColor }}
@@ -311,6 +342,13 @@ export default function FocusPanel({
                     // 时间顺序视图（__rowColor 注入各自模块色）；模块分组视图沿用分组色
                     const rowColor = task.__rowColor || grp.color;
                     const pct = Math.round((task.progress || 0) * 100);
+                    /* 单次事项（日程代理/生活记录/事件型目标）：二态完成、无真实进度 → 不渲染进度条，右侧标注日期 */
+                    const isSingle = !task.isHabit && !task.isLongTerm && (
+                      task.isEvent || task.__fromSchedule || task.__origin === 'api'
+                      || String(task.id).startsWith('life_')
+                    );
+                    const urgent = taskUrgent(task);
+                    const dateLabel = taskDateLabel(task);
                     /* Completed Band：已完成任务永久铺一层模块色淡填充，
                        做到一眼扫出每个模块哪些是"已经打勾的"，减少大脑扫描成本 */
                     const completedBg = task.done ? modRgba(rowColor, 0.055) : 'transparent';
@@ -459,16 +497,32 @@ export default function FocusPanel({
                                 {task.srcTag}
                               </span>
                             )}
-                            {task.dueDate && <span>{task.dueDate}</span>}
+                            {task.dueDate && <span style={urgent ? { color: '#FF3B30', fontWeight: 700 } : undefined}>{task.dueDate}</span>}
                             {task.note && (
                               <span style={{ color: '#8E8E93' }}>{task.note}</span>
                             )}
                           </div>
                         </div>
 
-                        {/* 右侧进度（点击也进入编辑面板，避免进度条空点无反馈）
-                            单次事件型（isEvent）无进度概念：已完成只显示 100%，未完成不渲染进度区 */}
-                        {task.isEvent && !task.done ? null : (
+                        {/* 右侧（点击也进入编辑面板，避免空点无反馈）
+                            · 单次事项：无进度条，标注日期；临近截止（≤2天/已过期）红色紧急态突出
+                            · 其余：保留百分比 + 进度条 */}
+                        {isSingle ? (
+                          <div className="flex-shrink-0 flex items-center gap-1.5" onClick={handleEdit}>
+                            {urgent && (
+                              <span
+                                className="px-1.5 py-[2px] rounded-md text-[10px] font-extrabold leading-none"
+                                style={{ background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }}
+                              >紧急</span>
+                            )}
+                            {dateLabel && (
+                              <span
+                                className="text-[12px] font-bold tabular-nums leading-none"
+                                style={{ color: urgent ? '#FF3B30' : '#8E8E93' }}
+                              >{dateLabel}</span>
+                            )}
+                          </div>
+                        ) : (
                           <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]" onClick={handleEdit}>
                             <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
                               {task.isEvent ? '100%' : `${pct}%`}

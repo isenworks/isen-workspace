@@ -7150,7 +7150,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
       case 'book': {
         const isBookEdit = !!(modal.initial && modal.initial.id);
         return (
-          <Modal open onClose={closeModal} title={isBookEdit ? '编辑书籍' : '添加书籍'} maxWidth={560}>
+          <Modal open onClose={closeModal} title={isBookEdit ? '编辑书籍' : '添加书籍'} maxWidth={640}>
             <BookForm
               initial={modal.initial}
               initialTab={modal.tab}

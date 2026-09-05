@@ -1616,19 +1616,19 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   /* 子行 4 列 Grid:名称(含规格) / 迷你条 / val / pct(或 tail 自定义尾元素)
      名称12.5px/val 11px/pct 11.5px;迷你条放大 6px、列宽 44px;时间锚竖线 白+柔光 3×14 */
   const SubRow = ({ name, pct: p, val, color, done, tail }) => (
-    <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 44px 38px', minHeight: 28 }}>
+    <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 56px 42px', minHeight: 28 }}>
       <span className={`text-[12.5px] font-semibold leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#48484A]'}`}>{name}</span>
       <div className="relative h-2 w-full">
-        {done === undefined && (<>
+        {done === false ? null : (<>
           <span className="absolute left-0 right-0 top-[1px] h-[6px] rounded-full bg-ink-100/80" />
-          <span className="absolute left-0 top-[1px] h-[6px] rounded-full" style={{ width: `${Math.min(100, p)}%`, background: color }} />
+          <span className="absolute left-0 top-[1px] h-[6px] rounded-full" style={{ width: `${done === true ? 100 : Math.min(100, p)}%`, background: color }} />
           <span className="absolute -top-[3px] w-[3px] h-[14px] rounded-sm bg-white" style={{ left: `${anchor}%`, boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />
         </>)}
       </div>
-      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none ${done === false ? 'text-[#8E8E93]' : 'text-[#6C6C70]'}`}>{val}</span>
+      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none whitespace-nowrap ${done === false ? 'text-[#8E8E93]' : 'text-[#6C6C70]'}`}>{val}</span>
       {tail ?? (
         <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: done === false ? '#C7C7CC' : color }}>
-          {done === true ? '✓' : done === false ? '–' : `${Math.round(p)}%`}
+          {done === false ? '–' : `${Math.round(done === true ? 100 : p)}%`}
         </span>
       )}
     </div>

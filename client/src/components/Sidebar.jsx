@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { formatChineseDate, formatGreeting } from '../utils/date.js';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
+import { CategoryIcon } from '../pages/AnnualPlan.jsx';
 
 const ICONS = {
   plan:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 5H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><path d="M8 13l3 3 5-5"></path></svg>),
@@ -25,6 +26,17 @@ const NAV_MAIN = [
 const NAV_OTHER = [
   { key: 'recycle',  label: '回收站' },
   { key: 'settings', label: '设置' }
+];
+
+/* 发展规划 · 二级导航（原页面顶部 Tab 整合进侧边栏：图标+文字+加号）
+   color/rgb 跟随五大模块主题色 CSS 变量；overview 为中性灰 */
+const ANNUAL_SUB = [
+  { key: 'overview',  label: '年度概览', color: null },
+  { key: 'energy',    label: '精力', color: 'var(--m-energy)',    rgb: 'var(--m-energy-rgb)',    add: '习惯' },
+  { key: 'cognition', label: '知力', color: 'var(--m-cognition)', rgb: 'var(--m-cognition-rgb)', add: '书籍' },
+  { key: 'ability',   label: '能力', color: 'var(--m-ability)',   rgb: 'var(--m-ability-rgb)',   add: '能力' },
+  { key: 'work',      label: '工作', color: 'var(--m-work)',      rgb: 'var(--m-work-rgb)',      add: '目标' },
+  { key: 'life',      label: '生活', color: 'var(--m-life)',      rgb: 'var(--m-life-rgb)',      add: '记录' },
 ];
 
 /* 侧边栏导航标题（右键编辑改文字）· localStorage 持久化，按用户隔离 */
@@ -51,7 +63,7 @@ function saveNavLabel(user, key, label) {
   } catch { /* ignore */ }
 }
 
-export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate }) {
+export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd }) {
   const toast = useToast();
   const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
   const labelOf = (item) => navLabels[item.key] || item.label;
@@ -278,31 +290,73 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
       <div className="sb-nav-card">
         <div className="sb-nav-scroll">
           {NAV_MAIN.map(item => (
-            <div
-              key={item.key}
-              className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => onMenuChange?.(item.key)}
-              onContextMenu={(e) => handleNavContextMenu(e, item)}
-              title="右键可修改标题文字"
-            >
-              <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
-              {editingNav?.key === item.key ? (
-                <input
-                  autoFocus
-                  defaultValue={labelOf(item)}
-                  className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-[13px] py-0"
-                  onClick={(e) => e.stopPropagation()}
-                  onBlur={(e) => commitNavLabel(item, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitNavLabel(item, e.currentTarget.value);
-                    if (e.key === 'Escape') setEditingNav(null);
-                  }}
-                />
-              ) : (
-                <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
+            <Fragment key={item.key}>
+              <div
+                className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => onMenuChange?.(item.key)}
+                onContextMenu={(e) => handleNavContextMenu(e, item)}
+                title="右键可修改标题文字"
+              >
+                <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
+                {editingNav?.key === item.key ? (
+                  <input
+                    autoFocus
+                    defaultValue={labelOf(item)}
+                    className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-[13px] py-0"
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={(e) => commitNavLabel(item, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitNavLabel(item, e.currentTarget.value);
+                      if (e.key === 'Escape') setEditingNav(null);
+                    }}
+                  />
+                ) : (
+                  <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
+                )}
+              </div>
+              {/* 发展规划 · 二级导航：年度概览/精力/知力/能力/工作/生活（图标+文字+加号） */}
+              {item.key === 'annual' && (
+                <div className="sb-annual-subwrap">
+                  {ANNUAL_SUB.map(sub => {
+                    const on = activeMenu === 'annual' && (annualView || 'overview') === sub.key;
+                    return (
+                      <div
+                        key={sub.key}
+                        className={`sb-annual-sub ${on ? 'on' : ''}`}
+                        style={on ? (sub.rgb
+                          ? { background: `rgba(${sub.rgb},0.1)`, color: sub.color }
+                          : { background: 'rgba(120,120,128,0.1)', color: '#1c1c1e' })
+                          : undefined}
+                        onClick={() => {
+                          onMenuChange?.('annual');
+                          onAnnualView?.(sub.key);
+                        }}
+                      >
+                        <span className="sb-annual-sub-ic" style={{ color: on ? undefined : (sub.color || '#8e8e93') }}>
+                          <CategoryIcon catKey={sub.key} />
+                        </span>
+                        <span className="flex-1 min-w-0 truncate">{sub.label}</span>
+                        {sub.add && (
+                          <button
+                            type="button"
+                            className="sb-annual-sub-add"
+                            aria-label={`添加${sub.add}`}
+                            title={`添加${sub.add}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAnnualAdd?.(sub.key);
+                            }}
+                          >
+                            <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-            </div>
+            </Fragment>
           ))}
 
           <div className="sb-divider"></div>

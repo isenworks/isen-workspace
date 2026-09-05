@@ -38,6 +38,8 @@ export default function Workspace({ user: propUser }) {
   const logout = authLogout || (() => {});
   const [activeMenu, setActiveMenu] = useState('plan');
   const [annualView, setAnnualView] = useState('overview');
+  // 侧边栏「发展规划」二级导航加号请求：{ view, ts } → AnnualPlan 打开对应添加弹窗
+  const [annualAdd, setAnnualAdd] = useState(null);
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [view, setView] = useState('today');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -386,12 +388,20 @@ export default function Workspace({ user: propUser }) {
         }}
         activeMenu={activeMenu}
         onMenuChange={setActiveMenu}
+        annualView={annualView}
+        onAnnualView={setAnnualView}
+        onAnnualAdd={(k) => {
+          // 侧边栏二级导航加号：切到发展规划对应模块并弹出添加表单
+          setAnnualView(k);
+          setActiveMenu('annual');
+          setAnnualAdd({ view: k, ts: Date.now() });
+        }}
       />
 
       {/* 主内容区 */}
       {activeMenu === 'annual' ? (
         <div className="flex-1 min-w-0">
-          <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} />
+          <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} addRequest={annualAdd} />
         </div>
       ) : activeMenu === 'recycle' ? (
         <RecycleBinPage />

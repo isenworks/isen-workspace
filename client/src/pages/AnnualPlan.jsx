@@ -33,6 +33,15 @@ const CATEGORIES = [
   { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: 'var(--m-life)',      rgb: 'var(--m-life-rgb)' },
 ];
 
+/* 各模块「添加」动作映射（侧边栏二级导航加号 → 打开对应添加弹窗） */
+export const ANNUAL_ADD_ACTIONS = {
+  energy:    { type: 'habit',      initial: { growth_type: 'energy', accent_color: '#34C759' } },
+  cognition: { type: 'book' },
+  ability:   { type: 'ability' },
+  work:      { type: 'work_goal' },
+  life:      { type: 'entry' },
+};
+
 /* 习惯打卡 (精力) */
 // monthDates: 按月份归类的真实打卡日期 Set（用于热力图 + 本月每日节奏折线）
 const __mockMonthDates = (pattern /* 字符串，'1'=打卡 '.'=未打卡，长度<=当月天数 */, m /* 8月等 */) => {
@@ -476,10 +485,11 @@ const inferMode = (obj, type) => {
 /* 图标体系：Lucide 风格（24 网格 / 2px 描边 / 圆头笔触），与侧边栏 ICONS 同族
  * overview=chart-column 柱状图 | energy=heart-pulse 心率 | cognition=eye 眼界
  * ability=star 技能星级 | work=laptop 笔电 | life=sun 太阳 */
-function CategoryIcon({ catKey, className }) {
+/* 供侧边栏二级导航复用（图标+加号入口） */
+export function CategoryIcon({ catKey, className, style }) {
   const cls = className || 'w-4 h-4';
   return (
-    <svg className={cls} fill="none" stroke="currentColor" strokeWidth="2"
+    <svg className={cls} style={style} fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
       {catKey === 'overview' && (<><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></>)}
       {catKey === 'energy' && (<><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/><path d="M3.2 12H9l1.5-3 2.5 5.5L15 12h5.2"/></>)}
@@ -6487,13 +6497,25 @@ function usePersistentState(key, initial) {
 }
 
 /* ---------- 14. 入口组件 ---------- */
-export default function AnnualPlan({ standalone = true, initialView, onViewChange }) {
+export default function AnnualPlan({ standalone = true, initialView, onViewChange, addRequest }) {
   const [view, setViewState] = useState(initialView || 'overview');
   // 受控切换：Workspace 可以从外部跳转（如日历点击标签），内部 tab 切换也同步回调
   const setView = (next) => {
     setViewState(next);
     if (typeof onViewChange === 'function') onViewChange(next);
   };
+  // 侧边栏二级导航「加号」：Workspace 透传 addRequest={view,ts} → 切到对应模块并弹添加框
+  const addReqTsRef = useRef(0);
+  useEffect(() => {
+    if (!addRequest || !addRequest.ts || addRequest.ts === addReqTsRef.current) return;
+    addReqTsRef.current = addRequest.ts;
+    const act = ANNUAL_ADD_ACTIONS[addRequest.view];
+    if (!act) return;
+    setViewState(addRequest.view);
+    if (typeof onViewChange === 'function') onViewChange(addRequest.view);
+    setModal({ ...act });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addRequest]);
   // initialView 变化（外部跳模块）时，内部 view 同步刷新
   useEffect(() => {
     if (initialView !== undefined && initialView !== null) setViewState(initialView);
@@ -7462,98 +7484,11 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     `}</style>
   );
 
-  // 嵌入式顶部 Tab 导航（在工作台内使用，不需要内部大 Sidebar）
-  const EMBED_NAV = [
-    { key: 'overview',  label: '年度概览' },
-    ...CATEGORIES.map(c => ({ key: c.key, label: c.label, color: c.color })),
-  ];
-  const embedTabs = (
-    <div className="glass-card p-2 mb-4 flex items-center gap-1 overflow-x-auto">
-      {EMBED_NAV.map(item => {
-        const on = view === item.key;
-        const pctVal = item.key !== 'overview'
-          ? Math.round(stats.perCat[CATEGORIES.findIndex(c => c.key === item.key)])
-          : null;
-        const addLabel = (() => {
-          switch (item.label) {
-            case '精力': return '习惯';
-            case '知力': return '书籍';
-            case '工作': return '目标';
-            case '生活': return '记录';
-            default: return item.label;
-          }
-        })();
-        return (
-          <button
-            key={item.key}
-            onClick={() => setView(item.key)}
-            style={on ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)' } : undefined}
-            className={[
-              'flex-shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm transition-all',
-              on
-                ? 'text-white font-semibold shadow-sm'
-                : 'text-ink-600 font-medium hover:bg-ink-100'
-            ].join(' ')}
-          >
-            {/* 图标:升 16px + 删外层幽灵盒 → 真实间距与 gap-2 一致 */}
-            <CategoryIcon
-              catKey={item.key}
-              className="w-4 h-4 flex-shrink-0"
-              style={!on && item.color ? { color: item.color } : !on ? { color: '#8e8e93' } : undefined}
-            />
-            <span>{item.label}</span>
-            {/* 所有非 overview tab:末尾加号(切 tab 并弹出对应添加 Modal)。
-                overview tab 不加后缀(不是资源池)。
-                加号:真实 button(替代 span role=button),::before 热区扩至 44×44 达 iOS HIG
-                激活态=纯白字形(去底色,消除 chip-in-chip);默认态=灰色小色块 */}
-            {item.key === 'overview' ? null : (() => {
-              const ADD_ACTIONS = {
-                energy:    { type: 'habit',      initial: { growth_type: 'energy', accent_color: '#34C759' } },
-                cognition: { type: 'book' },
-                ability:   { type: 'ability' },
-                work:      { type: 'work_goal' },
-                life:      { type: 'entry' },
-              };
-              const act = ADD_ACTIONS[item.key];
-              if (!act) return null;
-              return (
-                <button
-                  type="button"
-                  aria-label={`添加${addLabel}`}
-                  title={`添加${addLabel}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setView(item.key);
-                    setModal({ ...act });
-                  }}
-                  className={[
-                    'relative inline-flex items-center justify-center transition hover:brightness-105 active:scale-90 flex-shrink-0',
-                    on ? 'text-white' : 'rounded-md bg-ink-100 text-ink-500 hover:bg-ink-200',
-                  ].join(' ')}
-                  style={on ? {} : { width: 20, height: 20 }}
-                >
-                  {/* iOS HIG 最小 44×44 触控热区:扩命中区不影响视觉 */}
-                  <span className="absolute inset-0 -m-[12px]" aria-hidden="true"></span>
-                  {/* 激活态:透明背景纯字形;默认态:14px 字形居中于 20×20 色块 */}
-                  <svg
-                    className={on ? 'w-[13px] h-[13px]' : 'w-[13px] h-[13px]'}
-                    fill="none" stroke="currentColor" strokeWidth="2.4"
-                    viewBox="0 0 24 24" strokeLinecap="round"
-                  ><path d="M12 5v14M5 12h14"/></svg>
-                </button>
-              );
-            })()}
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  // 嵌入式：工作台内使用，顶部简易 Tab 导航 + 主内容，没有外层背景/NavBar/内部大Sidebar
+  // 嵌入式：工作台内使用。顶部 Tab 已整合到应用左侧边栏「发展规划」二级导航
+  //（图标+文字+加号，由 Workspace 透传 annualView/onAnnualView/onAnnualAdd/addRequest 驱动）
   if (!standalone) {
     return (
       <div className="w-full">
-        {embedTabs}
         {mainContent}
         {styles}
         {toastEl}

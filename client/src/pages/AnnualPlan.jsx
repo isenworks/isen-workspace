@@ -6550,18 +6550,18 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               const isLast = gi === timeGroups.length - 1 && ri === g.items.length - 1;
               const hl = Array.isArray(highlightedIds) && highlightedIds.includes(r.e.id);
               return (
-                <div key={`${r.cat.key}-${r.idx}`} className="flex gap-3">
-                  {/* 月份标签列（每组首行显示） */}
-                  <div className="w-9 flex-shrink-0 text-right pt-px">
-                    {ri === 0 && <span className="text-[12px] font-bold text-ink-700 tabular-nums">{g.label}</span>}
+                <div key={`${r.cat.key}-${r.idx}`} className="flex gap-2.5">
+                  {/* 月份标签列（组首行）：行高与日期文字同行对齐 */}
+                  <div className="w-9 flex-shrink-0 flex items-center">
+                    {ri === 0 && <span className="text-[13px] font-bold text-ink-700 leading-none w-full text-right">{g.label}</span>}
                   </div>
-                  {/* 时间轴：类目色节点 + 贯穿竖线（末行止） */}
+                  {/* 时间轴列：节点与标题首行垂直居中（高度 20 + 行距 ≈ 22） */}
                   <div className="flex flex-col items-center flex-shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full mt-[6px]" style={{ background: r.cat.color }} />
+                    <span className="h-[22px] flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: r.cat.color }} /></span>
                     {!isLast && <span className="flex-1 w-px bg-ink-100" />}
                   </div>
-                  {/* 事项行：日期 + 标题 + 右侧类目标签 */}
-                  <div className={`flex-1 min-w-0 relative rounded-xl -mx-1 px-1 hover:bg-surface-soft transition cursor-pointer ${isLast ? '' : 'pb-4'}`}
+                  {/* 事项行：日期 + 标题 + 右侧类目标签（排版升级：13/14px 主字级） */}
+                  <div className={`flex-1 min-w-0 relative rounded-lg -mx-1.5 px-1.5 hover:bg-surface-soft transition cursor-pointer ${isLast ? '' : 'pb-5'}`}
                     onClick={() => onEntryEdit?.(r.cat.key, r.idx, r.e)}>
                     {hl && (
                       <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
@@ -6570,16 +6570,16 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                         <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                       </div>
                     )}
-                    <div className="flex items-center gap-2 pr-1">
-                      <span className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{r.e.d}</span>
-                      <span className="text-xs font-semibold text-[#48484A] leading-snug truncate">{r.e.t}</span>
+                    <div className="flex items-center gap-2.5 pr-1">
+                      <span className="text-[12px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{r.e.d}</span>
+                      <span className="text-sm font-semibold text-[#1c1c1e] leading-5 truncate">{r.e.t}</span>
                       {/* 类目标签：弱化样式，与月周重点 srcTag 一致 */}
                       <span className="ml-auto flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
                         style={{ background: lifeRgba(r.cat.color, 0.08), color: lifeRgba(r.cat.color, 0.85) }}>
                         {r.cat.lb}
                       </span>
                     </div>
-                    {r.e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-0.5">{r.e.n}</div>}
+                    {r.e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1">{r.e.n}</div>}
                   </div>
                 </div>
               );

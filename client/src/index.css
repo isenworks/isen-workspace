@@ -159,7 +159,7 @@ body {
 
 /* ====== Calendar ====== */
 .cal-day {
-  width: 40px; height: 48px; border-radius: 10px;
+  width: 40px; height: 56px; border-radius: 10px;
   flex-shrink: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; cursor: pointer; transition: all .2s;

@@ -17,10 +17,10 @@ const fmt = (x) => {
 
 function hexToRgba(hex, a) {
   const s = String(hex || '');
-  // CSS 变量：var(--m-xxx) → rgba(var(--m-xxx-rgb), a)
-  if (s.startsWith('var(--')) {
-    const inner = s.slice(4, -1); // 取出 --m-xxx
-    return `rgba(${inner}-rgb, ${a})`;
+  // CSS 变量：var(--m-xxx) → rgba(var(--m-xxx-rgb), a)（注意必须带 var() 包裹才能被子值解析）
+  if (s.startsWith('var(')) {
+    const inner = s.slice(4, -1); // --m-xxx
+    return `rgba(var(${inner}-rgb), ${a})`;
   }
   let h = s.replace('#', '');
   if (h.length === 3) h = h.split('').map((c) => c + c).join('');

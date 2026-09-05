@@ -1169,7 +1169,9 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
   // 设计惯例：Apple Health / Google Fit 折线图都会给顶部留 20~25% 空高，避免峰值撞头
   const SAFE_CEIL_PCT = 0.22;
   const safeCeilY = PAD_T + Math.max(4, plotH * SAFE_CEIL_PCT);
-  const gid = 'sg-' + color.replace('#','') + '-' + Math.abs(data.reduce((s,v)=>s+v,0)).toString(36);
+  // ★ CSS 变量色（如 var(--m-energy)）含括号，直接拼进 ID 会让 url(#...) 引用非法（面积变黑）。
+  //   清洗为纯字母数字，hex 色不受影响（#34C759 → 34C759）。
+  const gid = 'sg-' + color.replace(/[^a-zA-Z0-9]/g, '') + '-' + Math.abs(data.reduce((s,v)=>s+v,0)).toString(36);
 
   const pts = data.map((v, i) => {
     const x = PAD_X + i * stepX;   // ★ 从 PAD_X 起，两端缩回，圆点不出界
@@ -1323,20 +1325,21 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
           ? <path d={pastAreaPath} fill={'url(#' + gid + ')'} />
           : <path d={areaPath} fill={'url(#' + gid + ')'} />}
         {/* ★ ④ 删除灰色目标虚线（用户确认移除，月度目标信息已由 DualMarkerBar 承担） */}
-        {/* ★ 过去段 · 实线折线（splitIdx===N 时无未来段，走过去全实线 = 原 linePath，兼容默认） */}
+        {/* ★ 过去段 · 实线折线（splitIdx===N 时无未来段，走过去全实线 = 原 linePath，兼容默认）
+            动态色必须走 style：SVG 展示属性 stroke="var(--x)" 不被解析 */}
         {linePastPath && (
-          <path d={linePastPath} fill="none" stroke={color} strokeWidth="2"
+          <path d={linePastPath} fill="none" strokeWidth="2" style={{ stroke: color }}
             strokeLinecap="round" strokeLinejoin="round" />
         )}
         {/* ★ 未来段 · 虚线折线（4/3 段 + 透明度 0.55） */}
         {lineFuturePath && (
-          <path d={lineFuturePath} fill="none" stroke={color} strokeWidth="2"
+          <path d={lineFuturePath} fill="none" strokeWidth="2" style={{ stroke: color }}
             strokeDasharray="4 3" strokeOpacity="0.55" strokeLinecap="round" strokeLinejoin="round" />
         )}
         {/* 🔹 辅助垂直追踪线（仅 hover 时显示，强化「已吸附到最近点」的视觉反馈）*/}
         {hp && (
           <line x1={hp.x} y1={PAD_T - 2} x2={hp.x} y2={PAD_T + plotH}
-            stroke={color} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.35" />
+            strokeWidth="1" style={{ stroke: color }} strokeDasharray="3 3" strokeOpacity="0.35" />
         )}
         {/* ★ 数据点圆点（过去/当前/未来 分层绘制 + activeIdx 选月虚线圈） */}
         {pts.map((p, i) => {
@@ -1359,15 +1362,15 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
             r = 1.5; fill = 'transparent'; stroke = color; strokeW = 0; fillOp = 0;
           }
           return (
-            <circle key={i} cx={p.x} cy={p.y} r={r} fill={fill} stroke={stroke}
-              strokeWidth={strokeW} fillOpacity={fillOp} />
+            <circle key={i} cx={p.x} cy={p.y} r={r} strokeWidth={strokeW}
+              fillOpacity={fillOp} style={{ fill, stroke }} />
           );
         })}
         {/* ★ P2：当前月数值气泡（3 条防重叠规则算好的矩形 + 文本 + 指向线） */}
         {bubble && (
           <g>
             <rect x={bubble.x} y={bubble.y} width={bubble.w} height={bubble.h} rx="6"
-              fill={color} />
+              style={{ fill: color }} />
             <text x={bubble.x + bubble.w / 2} y={bubble.y + 11.5} textAnchor="middle"
               fontSize="10" fontWeight="700" fill="#fff"
               style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
@@ -1377,7 +1380,7 @@ const Sparkline = ({ data, labels, color = '#34C759', width = 260, height = 60,
             <path d={bubble.above
               ? `M${bubble.anchor.x},${bubble.anchor.y - 6} L${bubble.anchor.x},${bubble.y + bubble.h + 1}`
               : `M${bubble.anchor.x},${bubble.anchor.y + 6} L${bubble.anchor.x},${bubble.y - 1}`}
-              stroke={color} strokeWidth="1.2" strokeOpacity="0.6" fill="none" />
+              strokeWidth="1.2" strokeOpacity="0.6" fill="none" style={{ stroke: color }} />
           </g>
         )}
         {/* ★ activeIdx 保留：仅在底部标签上 underline 锚定（已在 label 里实现）；★ ④ 删外层虚线绿环 */}

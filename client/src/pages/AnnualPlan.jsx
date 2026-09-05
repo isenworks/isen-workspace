@@ -5095,8 +5095,13 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
   const [workTab, setWorkTab] = useState('active'); // 'active' | 'done' | 'shelf' — 书架风 Tab 3 项（标题右）
   const [detailGoal, setDetailGoal] = useState(null); // { o, gs, goalIdx } | null
   const [openDropIdx, setOpenDropIdx] = useState(null); // key → goal.id|title+idx+'@'+location (location: 'active'|'modal')
-  const [localTitle, setLocalTitle] = useState(`${year}年 · 工作目标`); // Header 标题：右击可编辑（持久化到 D1 userSettings）
-  // 挂载时读回持久化标题（须带 X-Unlock-Token，否则 D1 模式下 401 静默失败）
+  // Header 标题：右击可编辑（持久化到 D1 userSettings）
+  // 首屏闪默认标题的根因：自定义值靠异步 fetch D1 读回。修复：localStorage 写穿缓存，
+  // 初始渲染同步读缓存 → 打开即显示自定义标题；D1 读回后再校准（处理换设备/清缓存场景）
+  const WORK_TITLE_CACHE = 'annual_work_title_cache';
+  const [localTitle, setLocalTitle] = useState(() => {
+    try { return localStorage.getItem(WORK_TITLE_CACHE) || `${year}年 · 工作目标`; } catch { return `${year}年 · 工作目标`; }
+  });
   useEffect(() => {
     (async () => {
       try {
@@ -5105,8 +5110,11 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         });
         const j = await r.json().catch(() => ({}));
         const v = j?.data?.annual_work_title;
-        if (v) setLocalTitle(String(v));
-      } catch { /* 读取失败用默认值 */ }
+        if (v) {
+          setLocalTitle(String(v));
+          try { localStorage.setItem(WORK_TITLE_CACHE, String(v)); } catch { /* ignore */ }
+        }
+      } catch { /* 读取失败用缓存/默认值 */ }
     })();
   }, []);
   const [titleEditing, setTitleEditing] = useState(false);
@@ -5882,6 +5890,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                   const v = e.target.value.trim() || `${year}年 · 工作目标`;
                   setLocalTitle(v);
                   setTitleEditing(false);
+                  // 写穿 localStorage 缓存：下次打开首屏直接显示自定义标题（不闪默认值）
+                  try { localStorage.setItem(WORK_TITLE_CACHE, v); } catch { /* ignore */ }
                   // 持久化到 D1，刷新/重开后保持（须带 X-Unlock-Token，否则 401 静默失败）
                   fetch('/api/userSettings/set', {
                     method: 'POST',

@@ -6490,7 +6490,11 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                       </div>
                     )}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="text-xs font-semibold text-[#48484A] leading-snug flex-1 min-w-0">{e.t}</div>
+                      <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                        {/* 紫色小圆点：条目级模块色锚点，与卡片头部图标呼应（6px 装饰层级低于正文） */}
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[4px]" style={{ background: 'var(--m-life)' }} />
+                        <div className="text-xs font-semibold text-[#48484A] leading-snug">{e.t}</div>
+                      </div>
                       <div className="text-[11px] font-semibold text-ink-400 tabular-nums flex-shrink-0">{e.d}</div>
                     </div>
                     {e.n && <div className="text-[11px] text-ink-500 leading-relaxed mt-1">{e.n}</div>}

@@ -19,7 +19,7 @@ function lunarBadge(iso) {
     return { text, full, color: '#FF3B30', weight: 600 };
   }
   const jq = lunar.getJieQi();
-  if (jq) return { text: jq, full, color: '#48484A', weight: 600 };
+  if (jq) return { text: jq, full, color: '#6D6D72', weight: 600 };
   if (lunar.getDay() === 1) {
     return { text: (lunar.getMonth() < 0 ? '闰' : '') + lunar.getMonthInChinese() + '月', full, color: '#6D6D72', weight: 600 };
   }

@@ -64,7 +64,7 @@ export default function MonthCalendarGrid({
   const weekStartISO = useMemo(() => toISODate(startOfWeek(todayISO)), [todayISO]);
   const weekEndISO   = useMemo(() => toISODate(endOfWeek(todayISO)),   [todayISO]);
   const inCurrentWeek = (iso) => iso >= weekStartISO && iso <= weekEndISO;
-  const CURRENT_WEEK_BG_MONFRI = 'rgba(var(--s-rgb),0.08)'; // 当周 周一-周五 浅蓝
+  const CURRENT_WEEK_BG_MONFRI = 'rgba(var(--s-rgb),0.03)'; // 当周整周浅色（与上月格 opacity-40 后的视觉深度一致）
   // 周六/周日列：需求 3 明确「周六日两列灰色→白色」
   const WEEKEND_BG = '#ffffff';
 

@@ -376,14 +376,20 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
     const isWithinMonth = !!(startYm && endYm
       && startYm.year === year && startYm.month === month
       && endYm.year === year && endYm.month === month);
+    // 完成状态以发展规划工作 tab 为准（markDone 写入 status='done' + completedAt）；
+    // 进度兜底：status 无值时按 KR 完成率算
+    const wkDone = wk.status === 'done' || !!wk.completedAt;
+    const krDone = (wk.krs || []).filter(k => k.st === 'done').length;
+    const krTotal = (wk.krs || []).length;
+    const wkPct = wkDone ? 100 : (krTotal > 0 ? Math.round((krDone / krTotal) * 100) : 0);
     tasks.push({
       id: `wk_goal_${wk.id}`,
       moduleKey: 'work',
       isFromFetch: true,
       isLongTerm: !isWithinMonth,
       title: wk.title || '',
-      progress: 0,
-      done: false,
+      progress: wkPct / 100,
+      done: wkDone,
       dueDate: wk.deadline ? `截止 ${wk.deadline.slice(5).replace('-', '/')}` : undefined,
       srcTag: `≡ ${wk.label || '工作'}目标`,
       srcTagColor: 'rgba(255,59,48,0.08)',

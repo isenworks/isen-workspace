@@ -333,7 +333,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                           onAnnualView?.(sub.key);
                         }}
                       >
-                        <span className="sb-annual-sub-ic" style={{ color: on ? 'var(--s-main)' : undefined }}>
+                        <span className="sb-annual-sub-ic" style={{ color: on ? (sub.color || 'var(--s-main)') : undefined }}>
                           <CategoryIcon catKey={sub.key} />
                         </span>
                         <span className="flex-1 min-w-0 truncate">{sub.label}</span>
@@ -343,6 +343,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                             className="sb-annual-sub-add"
                             aria-label={`添加${sub.add}`}
                             title={`添加${sub.add}`}
+                            style={on ? { background: sub.color, color: '#fff' } : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               onAnnualAdd?.(sub.key);

@@ -406,7 +406,9 @@ export default function FocusPanel({
                               </span>
                             )}
                             {task.dueDate && <span>{task.dueDate}</span>}
-                            {task.note && <span>{task.note}</span>}
+                            {task.note && (
+                              <span style={{ color: '#8E8E93' }}>{task.note}</span>
+                            )}
                           </div>
                         </div>
 

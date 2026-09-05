@@ -261,9 +261,11 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       isHabit: true,
       isLongTerm: true,
       isFromFetch: true,
-      title: `${cleanLabel} · ${monthCur}/${monthTarget}${h.unit || '天'}`,
+      title: cleanLabel,
       progress: pct / 100,
       done: pct >= 100,
+      // 「4/20天」挂在标签右侧（FocusPanel 渲染 note，浅灰色小字，知力卡片"阅读中·认知成长"同款式）
+      note: `${monthCur}/${monthTarget}${h.unit || '天'}`,
       srcTag: `≡ 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || cleanLabel}`,
       srcTagColor: 'rgba(52,199,89,0.08)',
       srcTagTextColor: '#34C759',

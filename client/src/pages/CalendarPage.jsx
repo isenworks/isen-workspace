@@ -243,9 +243,14 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
     (HABIT_WEIGHT[a._inferredKey] || 99) - (HABIT_WEIGHT[b._inferredKey] || 99)
   );
 
+  /* 习惯名去 emoji 前缀（与 AnnualPlan 精力页 cleanLabel 同规则）*/
+  const HABIT_EMOJI_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅]\s*`, 'gu');
+
   for (const h of habitList) {
     const habitKey = h._inferredKey;
-    const shortLabel = HABIT_SHORT_LABEL[habitKey] || (h.label || h.name || '');
+    // 真实习惯名（API 拉取的用户自定义名，如「作息·23:06/天」「运动·2次/周」「喝水·2L/天」）；
+    // 仅离线 mock 回退时才用硬编码短标题 —— 与发展规划精力 tab 数据卡片口径一致
+    const cleanLabel = String(h.label || h.name || '').replace(HABIT_EMOJI_RE, '').trim() || HABIT_SHORT_LABEL[habitKey] || '';
     const monthCur = Number(h.month?.[month] ?? 0);
     const monthTarget = Math.max(1, Math.ceil(Number(h.target) / 12));
     const pct = Math.min(100, Math.round((monthCur / monthTarget) * 100));
@@ -256,13 +261,13 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       isHabit: true,
       isLongTerm: true,
       isFromFetch: true,
-      title: `${shortLabel}  ${pct}%  ${monthCur}/${monthTarget}${h.unit}`,
+      title: `${cleanLabel}  ${pct}%  ${monthCur}/${monthTarget}${h.unit || '天'}`,
       progress: pct / 100,
       done: pct >= 100,
-      srcTag: `≡ 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || shortLabel}`,
+      srcTag: `≡ 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || cleanLabel}`,
       srcTagColor: 'rgba(52,199,89,0.08)',
       srcTagTextColor: '#34C759',
-      habitData: { ...h, monthCur, monthTarget, shortLabel },
+      habitData: { ...h, monthCur, monthTarget, cleanLabel },
     });
   }
 
@@ -330,14 +335,17 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
   /* ========== [3] 能力 ABILITY（需求 3：只显示进行中 st='doing' 的里程碑）
      · 从 localStorage 读取用户真实数据
      · 标题：能力标题 · 里程碑标题
-     · isLongTerm：dueBy 螚出本月 → true（实心圆）；否则 false（复选框可勾选）*/
+     · isLongTerm：时间跨度（创建→截止）完全在本月内 → false（复选框可勾选）；
+       跨月（如 1 月创建 9 月截止的长期能力目标）→ true（实心圆不可勾选）*/
   const abilities = LS_ABILITY();
   for (const ab of abilities) {
     const ms = ab.mstones || [];
+    const createdYm = dueByToYm(ab.createdAt || '');
     for (const m of ms) {
       if (m.st !== 'doing') continue;
       const ym = dueByToYm(m.dueBy);
-      const isWithinMonth = ym && ym.year === year && ym.month === month;
+      const isWithinMonth = !!(ym && ym.year === year && ym.month === month
+        && createdYm && createdYm.year === year && createdYm.month === month);
       tasks.push({
         id: `ms_${ab.id}_${m.id}`,
         moduleKey: 'ability',
@@ -359,14 +367,20 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
   /* ========== [4] 工作 WORK（需求 4：只显示目标级事项，不展开 KR）
      · 从 localStorage 读取用户真实数据
      · 只显示目标标题，不显示单个 KR
-     · isLongTerm=true → 实心圆不可点击（年度目标）*/
+     · isLongTerm：时间跨度（创建→截止）完全在本月内 → false（复选框）；
+       跨月（如「找工作 offer」类长周期目标）→ true（实心圆不可勾选）*/
   const workGoals = LS_WORK();
   for (const wk of workGoals) {
+    const startYm = dueByToYm(wk.createdAt || '');
+    const endYm = dueByToYm(wk.deadline || '');
+    const isWithinMonth = !!(startYm && endYm
+      && startYm.year === year && startYm.month === month
+      && endYm.year === year && endYm.month === month);
     tasks.push({
       id: `wk_goal_${wk.id}`,
       moduleKey: 'work',
       isFromFetch: true,
-      isLongTerm: true,
+      isLongTerm: !isWithinMonth,
       title: wk.title || '',
       progress: 0,
       done: false,
@@ -593,6 +607,9 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           const base = planBase.map(m => {
             const st = stateMap.get(m.id);
             if (!st) return m;
+            // 实心圆事项（习惯/跨月）的 done/progress 完全由源数据驱动（习惯打卡率/阅读进度等），
+            // 不能被旧状态覆盖 —— 否则 realHabits 异步到达后右侧仍显示初始渲染的 0%
+            if (m.isHabit || m.isLongTerm) return m;
             return { ...m, done: st.done, progress: st.done ? 1 : st.progress };
           });
           // 关键：保留用户通过 ScheduleForm 保存后注入的真实 API 事项（__fromSchedule），
@@ -737,6 +754,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               .filter(s => s.id == null || !isScheduleDeletedLocally(s.id))
               .map(s => {
                 const mod = catToModule(Number(s.category));
+                const sdISO = s.start_date || s.date;
+                const edISO = s.end_date || sdISO;
+                // 单日/本月内事项 → 复选框；跨月跨度事项（如找工作类）→ 实心圆
+                const spansMonths = !!(sdISO && edISO && String(sdISO).slice(0, 7) !== String(edISO).slice(0, 7));
                 return {
                   id: s.id,
                   __origin: 'api',
@@ -750,7 +771,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
                   schedule_date: s.start_date,
                   date: s.start_date,
                   note: s.note || '',
-                  isLongTerm: false,
+                  isLongTerm: spansMonths,
                   start_time: s.start_time || null,
                   end_time: s.end_time || null,
                   category: Number(s.category),
@@ -815,7 +836,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         schedule_date: start_date,
         date: start_date,
         note: s.note || '',
-        isLongTerm: false,
+        // 单日/本月内事项 → 复选框；跨月跨度事项（如找工作类）→ 实心圆
+        isLongTerm: !!(start_date && end_date && String(start_date).slice(0, 7) !== String(end_date).slice(0, 7)),
         start_time: s.start_time || null,
         end_time: s.end_time || null,
         category: mod.cat,

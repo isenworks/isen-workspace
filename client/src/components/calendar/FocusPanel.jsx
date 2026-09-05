@@ -1,6 +1,18 @@
 import { useState, useMemo } from 'react';
 import { MODULES, keyToModule, paceStatus } from '../../utils/categoryMapping.js';
 
+/* 模块色 + 透明度工具：模块色是 var(--m-xxx) CSS 变量，不支持 hex 拼接（如 `${color}14` 会产出
+   非法值被浏览器丢弃），统一转成 rgba(var(--m-xxx-rgb), α) 形式 */
+function modRgba(color, alpha) {
+  if (typeof color === 'string' && color.startsWith('var(')) {
+    return `rgba(${color.slice(4, -1)}-rgb, ${alpha})`;
+  }
+  if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+    return `${color}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;
+  }
+  return color;
+}
+
 /* 习惯顺序权重：作息 > 运动 > 喝水（需求 3：精力卡习惯排序约定）*/
 export const HABIT_ORDER_WEIGHT = { sleep: 1, sport: 2, water: 3 };
 const HABIT_KEYS = Object.keys(HABIT_ORDER_WEIGHT);
@@ -203,25 +215,25 @@ export default function FocusPanel({
                      印章内部继续保持深填充白线形 = 模块色印章在软填充胶囊内自带层次 */}
                 <span
                   className="inline-flex items-center gap-1.5 rounded-full"
-                  style={{ background: `${grp.color}14`, padding: '3px 10px 3px 3px' }}
+                  style={{ background: modRgba(grp.color, 0.08), padding: '3px 10px 3px 3px' }}
                 >
                   <span
                     className="flex-shrink-0 rounded-full grid place-items-center"
                     style={{
                       width: 22, height: 22, color: '#fff', background: grp.color,
-                      boxShadow: `0 2px 5px ${grp.color}3A`,
+                      boxShadow: `0 2px 5px ${modRgba(grp.color, 0.23)}`,
                     }}
                   >
                     <CategoryIcon catKey={grp.key} className="w-[13px] h-[13px]" />
                   </span>
                   <span className="text-[12px] font-extrabold leading-none" style={{ color: grp.color }}>{grp.label}</span>
-                  <span className="text-[9.5px] font-extrabold tracking-widest leading-none" style={{ color: `${grp.color}B0` }}>{MOD_EN[grp.key]}</span>
+                  <span className="text-[9.5px] font-extrabold tracking-widest leading-none" style={{ color: modRgba(grp.color, 0.69) }}>{MOD_EN[grp.key]}</span>
                 </span>
 
                 {/* 2. 计数 1/3 胶囊（无 ✓） */}
                 <span
                   className="ml-auto inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
-                  style={{ background: `${grp.color}18`, color: grp.color }}
+                  style={{ background: modRgba(grp.color, 0.09), color: grp.color }}
                 >
                   <span>{doneN}</span>
                   <span style={{ opacity: 0.35 }}>/</span>
@@ -231,7 +243,7 @@ export default function FocusPanel({
                 {/* 3. 折叠箭头 */}
                 <svg
                   className={`w-[15px] h-[15px] flex-shrink-0 transition-transform duration-200 ${off ? '' : 'rotate-180'}`}
-                  style={{ color: `${grp.color}C0` }}
+                  style={{ color: modRgba(grp.color, 0.75) }}
                   fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"
                 >
                   <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -246,7 +258,7 @@ export default function FocusPanel({
                     const pct = Math.round((task.progress || 0) * 100);
                     /* Completed Band：已完成任务永久铺一层模块色淡填充，
                        做到一眼扫出每个模块哪些是"已经打勾的"，减少大脑扫描成本 */
-                    const completedBg = task.done ? `${grp.color}0E` : 'transparent';
+                    const completedBg = task.done ? modRgba(grp.color, 0.055) : 'transparent';
                     const handleEdit = () => onEditTask?.(task);
                     const handleToggle = (e) => {
                       // 仅复选框勾选：阻止冒泡避免进入编辑面板
@@ -272,7 +284,7 @@ export default function FocusPanel({
                         draggable={canDrag}
                         className="flex items-center gap-3 px-2 py-1.5 rounded-[12px] transition cursor-pointer"
                         style={{
-                          background: isDropTarget ? `${grp.color}22` : (isBeingDragged ? `${grp.color}08` : completedBg),
+                          background: isDropTarget ? modRgba(grp.color, 0.13) : (isBeingDragged ? modRgba(grp.color, 0.03) : completedBg),
                           paddingLeft: task.indent ? `${12 + task.indent * 20}px` : undefined,
                           borderTop: isDropTarget ? `1.5px solid ${grp.color}` : '1.5px solid transparent',
                           opacity: isBeingDragged ? 0.45 : 1,
@@ -287,8 +299,8 @@ export default function FocusPanel({
                           task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
                           '点击编辑 · 右键删除'
                         }
-                        onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? `${grp.color}18` : `${grp.color}12`; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = isDropTarget ? `${grp.color}22` : completedBg; }}
+                        onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? modRgba(grp.color, 0.09) : modRgba(grp.color, 0.07); }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = isDropTarget ? modRgba(grp.color, 0.13) : completedBg; }}
                         /* ==== HTML5 DnD：组内拖拽排序 ==== */
                         onDragStart={(e) => {
                           if (!canDrag) { e.preventDefault(); return; }
@@ -323,12 +335,13 @@ export default function FocusPanel({
                         {/* 需求 7：isHabit || isLongTerm → 实心圆不可点击（长期习惯/跨月事项）
                              普通事项 → 圆复选框，独立 onClick + stopPropagation */}
                         {(task.isHabit || task.isLongTerm) ? (
-                          /* 实心圆：纯视觉标记，不可点击（长期习惯不是单次任务）*/
+                          /* 实心圆：模块色满填充的纯视觉标记，不可点击（长期习惯/跨月事项不是单次任务）；
+                             已完成时叠加模块色辉光作区分 */
                           <div
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 flex items-center justify-center transition select-none"
                             style={{
-                              background: task.done ? mod.color : (mod.color.startsWith('var(') ? `rgba(${mod.color.slice(4, -1)}-rgb, 0.16)` : `${mod.color}28`),
-                              boxShadow: task.done ? (mod.color.startsWith('var(') ? `0 2px 5px rgba(${mod.color.slice(4, -1)}-rgb, 0.28)` : `0 2px 5px ${mod.color}48`) : 'none',
+                              background: mod.color,
+                              boxShadow: task.done ? `0 2px 5px ${modRgba(mod.color, 0.32)}` : 'none',
                             }}
                             aria-hidden="true"
                           />
@@ -338,10 +351,9 @@ export default function FocusPanel({
                             onClick={handleToggle}
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
                             style={{
-                              // mod.color 可能是 var(--m-xxx)（不支持 hex 透明度拼接），未勾选用 rgba 淡色描边
-                              borderColor: task.done ? mod.color : (mod.color.startsWith('var(') ? `rgba(${mod.color.slice(4, -1)}-rgb, 0.33)` : `${mod.color}55`),
+                              borderColor: task.done ? mod.color : modRgba(mod.color, 0.33),
                               background: task.done ? mod.color : '#fff',
-                              boxShadow: task.done ? (mod.color.startsWith('var(') ? `0 2px 6px rgba(${mod.color.slice(4, -1)}-rgb, 0.25)` : `0 2px 6px ${mod.color}40`) : 'none',
+                              boxShadow: task.done ? `0 2px 6px ${modRgba(mod.color, 0.25)}` : 'none',
                             }}
                             role="checkbox"
                             aria-checked={task.done}
@@ -403,13 +415,13 @@ export default function FocusPanel({
                           <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
                             {pct}%
                           </span>
-                          <div className="w-[72px] h-[6px] rounded-full overflow-hidden" style={{ background: `${mod.color}18` }}>
+                          <div className="w-[72px] h-[6px] rounded-full overflow-hidden" style={{ background: modRgba(mod.color, 0.09) }}>
                             <div
                               className="h-full rounded-full transition-all"
                               style={{
                                 width: `${pct}%`,
                                 background: mod.color,
-                                boxShadow: pct > 0 ? `0 1px 4px ${mod.color}55` : 'none',
+                                boxShadow: pct > 0 ? `0 1px 4px ${modRgba(mod.color, 0.33)}` : 'none',
                               }}
                             />
                           </div>

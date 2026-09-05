@@ -346,6 +346,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
     for (const m of ms) {
       if (m.st !== 'doing') continue;
       const ym = dueByToYm(m.dueBy);
+      // 只显示当月里程碑：截止落在其他月份的（如已过期的 08/31）不进本月主线
+      if (ym && !(ym.year === year && ym.month === month)) continue;
       const isWithinMonth = !!(ym && ym.year === year && ym.month === month
         && createdYm && createdYm.year === year && createdYm.month === month);
       tasks.push({
@@ -375,6 +377,14 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
   for (const wk of workGoals) {
     const startYm = dueByToYm(wk.createdAt || '');
     const endYm = dueByToYm(wk.deadline || '');
+    // 只显示与本月有交集的目标：[创建月, 截止月] 必须覆盖当前月；
+    // 已结束（截止早于本月，如 06/12）或未来才启动的目标不进本月主线
+    if (startYm && endYm) {
+      const cy = year * 12 + month;
+      const sy = startYm.year * 12 + startYm.month;
+      const ey = endYm.year * 12 + endYm.month;
+      if (!(sy <= cy && ey >= cy)) continue;
+    }
     const isWithinMonth = !!(startYm && endYm
       && startYm.year === year && startYm.month === month
       && endYm.year === year && endYm.month === month);

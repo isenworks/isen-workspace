@@ -1255,7 +1255,8 @@ async function settingSet(env, k, v) {
 }
 // ---------------- userSettings.get / set
 async function handleUserSettingsGet(env, k) {
-  const keys = k ? [k] : ['weread_api_key'];
+  // 支持逗号分隔批量拉取（年度规划云端同步一次请求拉全部 key）
+  const keys = k ? String(k).split(',').filter(Boolean) : ['weread_api_key'];
   const out = {};
   for (const key of keys) {
     let v = await settingGet(env, key);

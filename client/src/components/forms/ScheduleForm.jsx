@@ -3,6 +3,7 @@ import { API } from '../../api/client.js';
 import { formatDuration, calcDurationMin } from '../../utils/date.js';
 import FriendlyTimeInput from '../FriendlyTimeInput.jsx';
 import { store } from '../../utils/store.js';
+import { cloudPush } from '../../utils/cloudKV.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { reloadCategoryMapping } from '../../utils/categoryMapping.js';
 
@@ -83,7 +84,9 @@ function writeCats(list) {
     const raw = localStorage.getItem(LS_KEY);
     const obj = raw ? JSON.parse(raw) || {} : {};
     obj[curUserId()] = list.map(c => ({ v: c.v, label: c.label, dot: c.dot, builtin: !!c.builtin }));
-    localStorage.setItem(LS_KEY, JSON.stringify(obj));
+    const s = JSON.stringify(obj);
+    localStorage.setItem(LS_KEY, s);
+    cloudPush(LS_KEY, s); // 云端同步：多设备分类配置一致
     reloadCategoryMapping();
     store.broadcast({ type: 'categories_changed' });
   } catch {}

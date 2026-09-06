@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
 import { inferGrowthType } from '../utils/uiConstants.js';
+import { syncKey, cloudPush } from '../utils/cloudKV.js';
 import Modal from '../components/Modal.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
 import BookForm from '../components/forms/BookForm.jsx';
@@ -6791,7 +6792,10 @@ function SectionHeader({ cat, title, progress, right }) {
   );
 }
 
-/* ---------- 13. localStorage 持久化 hook ---------- */
+/* ---------- 13. localStorage 持久化 hook（云端同步版） ----------
+ * 本地照写（离线可用+秒开），挂载时拉 D1 镜像：
+ *   云端有且不同 → 云端胜（多设备拉新）；云端无 → 本地数据自动上云（首次迁移）
+ * 后续每次变更防抖推送 D1，实现多设备持续同步 */
 function usePersistentState(key, initial) {
   const [state, setState] = useState(() => {
     try {
@@ -6800,8 +6804,22 @@ function usePersistentState(key, initial) {
     } catch {}
     return typeof initial === 'function' ? initial() : initial;
   });
+  const cloudSyncedRef = useRef(false);
+  useEffect(() => {
+    let alive = true;
+    syncKey(key, localStorage.getItem(key), (cloudStr) => {
+      if (!alive) return;
+      try {
+        localStorage.setItem(key, cloudStr);
+        setState(JSON.parse(cloudStr));
+      } catch {}
+    }).then(() => { if (alive) cloudSyncedRef.current = true; });
+    return () => { alive = false; };
+  }, [key]);
   useEffect(() => {
     try { localStorage.setItem(key, JSON.stringify(state)); } catch {}
+    // 云端拉取未完成期间的本地写入不推（避免用旧值覆盖云端；拉取完成后如有差异会在下次加载纠正）
+    if (cloudSyncedRef.current) cloudPush(key, JSON.stringify(state));
   }, [key, state]);
   return [state, setState];
 }

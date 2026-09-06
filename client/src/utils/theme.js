@@ -2,7 +2,9 @@
  * 工作台结构色主题（按钮 / tab 选中态 / 链接 / 复选框等交互元素）
  * 通过 CSS 变量注入 <html>，与内容语义色（五模块 categoryMapping）完全解耦
  * 持久化：localStorage `ws_theme`（当前选择）、`ws_custom_themes`（自定义列表）
+ * 云端同步：D1 ethan_user_settings 镜像（多设备一致）
  * ============================================================ */
+import { syncKey, cloudPush } from './cloudKV.js';
 
 /* ---- hex → rgb 三元组 ---- */
 function hexToRgb(hex) {
@@ -68,7 +70,11 @@ export function getCustomThemes() {
 }
 
 export function saveCustomThemes(arr) {
-  try { localStorage.setItem(LS_CUSTOM, JSON.stringify(arr)); } catch { /* ignore */ }
+  try {
+    const s = JSON.stringify(arr);
+    localStorage.setItem(LS_CUSTOM, s);
+    cloudPush(LS_CUSTOM, s);
+  } catch { /* ignore */ }
 }
 
 /* ---- 主题排序（设置面板拖拽自定义顺序） ---- */
@@ -81,7 +87,11 @@ export function getThemeOrder() {
 }
 
 export function saveThemeOrder(keys) {
-  try { localStorage.setItem('ws_theme_order', JSON.stringify(keys)); } catch { /* ignore */ }
+  try {
+    const s = JSON.stringify(keys);
+    localStorage.setItem('ws_theme_order', s);
+    cloudPush('ws_theme_order', s);
+  } catch { /* ignore */ }
 }
 
 export function addCustomTheme(hex, label) {
@@ -129,7 +139,10 @@ export function getThemeKey() {
 export function applyTheme(key) {
   const all = getAllThemes();
   const t = all[key] ? all[key] : THEMES.blue;
-  try { localStorage.setItem(LS_KEY, t.key); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(LS_KEY, t.key);
+    cloudPush(LS_KEY, t.key);
+  } catch { /* ignore */ }
   const root = document.documentElement;
   root.setAttribute('data-theme', t.key);
   root.style.setProperty('--s-main', t.main);
@@ -146,4 +159,11 @@ export function isValidHex(hex) {
 // 初始化（main.jsx 渲染前调用，避免主题闪烁）
 export function initTheme() {
   applyTheme(getThemeKey());
+  // 云端拉取：多设备主题同步（本地先应用防闪烁，云端有更新再覆盖应用）
+  const applyCloud = (k, v, apply) => {
+    try { localStorage.setItem(k, v); apply(); } catch {}
+  };
+  syncKey(LS_KEY, localStorage.getItem(LS_KEY), v => applyCloud(LS_KEY, v, () => applyTheme(getThemeKey())));
+  syncKey(LS_CUSTOM, localStorage.getItem(LS_CUSTOM), v => applyCloud(LS_CUSTOM, v, () => applyTheme(getThemeKey())));
+  syncKey('ws_theme_order', localStorage.getItem('ws_theme_order'), v => applyCloud('ws_theme_order', v, () => applyTheme(getThemeKey())));
 }

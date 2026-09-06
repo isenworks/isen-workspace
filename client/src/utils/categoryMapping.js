@@ -75,6 +75,15 @@ function buildModules() {
 
 export const MODULES = buildModules();
 
+/* 云端同步：拉取 D1 镜像，云端较新则写回 localStorage 并重建映射（多设备分类配置一致） */
+import { syncKey } from './cloudKV.js';
+try {
+  syncKey(LS_KEY, localStorage.getItem(LS_KEY), (cloudStr) => {
+    localStorage.setItem(LS_KEY, cloudStr);
+    reloadCategoryMapping();
+  });
+} catch {}
+
 let catMap = MODULES.reduce((m, mod) => { m[mod.cat] = mod; return m; }, {});
 let CAT_MAP = catMap; // backward compatible alias
 

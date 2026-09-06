@@ -6194,7 +6194,26 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
 }
 
 /* ---------- 11. 视图 · 生活 ---------- */
-function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange }) {
+/* 生活子类目图标：恢复改版前的类目专属图标（关系/美食/旅游/电影/购物），宠物=爪印，
+   用户新建类目兜底=标签图标；统一 stroke=currentColor 跟随文字色 */
+function LifeCatIcon({ catKey, className, style }) {
+  const cls = className || 'w-4 h-4';
+  const known = ['relation', 'food', 'travel', 'movie', 'shop', 'pet'];
+  return (
+    <svg className={cls} style={style} fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      {catKey === 'relation' && (<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>)}
+      {catKey === 'food' && (<><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></>)}
+      {catKey === 'travel' && (<><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></>)}
+      {catKey === 'movie' && (<><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></>)}
+      {catKey === 'shop' && (<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>)}
+      {catKey === 'pet' && (<><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></>)}
+      {!known.includes(catKey) && (<><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none"/></>)}
+    </svg>
+  );
+}
+
+function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd }) {
   const dynLife = lifeData || LIFE;
   const totalEntries = dynLife.reduce((s, c) => s + c.entries.length, 0);
   // 生活模块完成率：有记录的类目数 / 总类目数 * 100（体验型鼓励每个类目都有内容）
@@ -6203,6 +6222,15 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
 
   /* ===== 双面板布局：左类目导航（筛选器）+ 右时间流（唯一主视图） ===== */
   const [lifeFilter, setLifeFilter] = useState(null); // null=全部 | 类目 key
+  /* 「全部类目」行 + 号：新建模块 mini 输入行（交互设计复用 EntryForm 的新建模块面板） */
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatLb, setNewCatLb] = useState('');
+  function createCategory() {
+    const lb = newCatLb.trim();
+    if (lb) onCatAdd?.({ lb });
+    setNewCatLb('');
+    setShowNewCat(false);
+  }
   const selFilterCat = lifeFilter ? dynLife.find(c => c.key === lifeFilter) : null;
   // 模块色/类目色转 rgba：var(--m-life) → rgba(var(--m-life-rgb), a)；hex → 拼接透明度
   const lifeRgba = (color, a) => {
@@ -6480,30 +6508,56 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
         <div className="flex gap-4 mt-1 items-start">
           {/* 左：类目导航 */}
           <div className="w-[220px] flex-shrink-0 flex flex-col gap-1">
-            {/* 全部（默认） */}
-            <button onClick={() => setLifeFilter(null)}
-              className={`flex items-center gap-2 px-2.5 h-8 rounded-lg text-[13px] transition cursor-pointer text-left ${!lifeFilter ? 'font-bold text-[#1c1c1e] bg-[rgba(120,120,128,0.08)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}>
-              <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-              </svg>
-              <span className="flex-1 truncate">全部记录</span>
-              <span className="text-[11px] tabular-nums text-ink-400">{totalEntries}</span>
-            </button>
-            {/* 各类目：图标 + 名称 + 条数；hover 出 + 直接带类目添加 */}
+            {/* 全部类目（默认）：与子类目同构（数字+18px加号占位 → 计数列严格对齐）；行尾 + 新建模块 */}
+            <div
+              className={`group flex items-center gap-2 px-2.5 h-8 rounded-lg text-[13px] transition text-left ${!lifeFilter ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
+              style={!lifeFilter ? { color: 'var(--m-life)' } : undefined}>
+              <button onClick={() => setLifeFilter(null)}
+                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
+                title="显示全部记录">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                <span className="flex-1 truncate">全部类目</span>
+              </button>
+              <span className={`text-[11px] tabular-nums ${!lifeFilter ? '' : 'text-ink-400'}`}>{totalEntries}</span>
+              <button onClick={() => { setShowNewCat(v => !v); setNewCatLb(''); }} title="新建模块"
+                className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer transition"
+                style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+            {/* 新建模块 mini 输入行（复用 EntryForm 新建模块面板的交互） */}
+            {showNewCat && (
+              <div className="flex items-center gap-1.5 pl-8 pr-2.5 h-8">
+                <input autoFocus value={newCatLb} onChange={(e) => setNewCatLb(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') createCategory(); if (e.key === 'Escape') setShowNewCat(false); }}
+                  placeholder="模块名，如「健康」"
+                  className="flex-1 min-w-0 text-[12px] px-2 py-1 rounded-md border outline-none"
+                  style={{ borderColor: 'rgba(var(--m-life-rgb),0.35)', background: '#fff' }} />
+                <button onClick={createCategory} title="确认新建"
+                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md flex-shrink-0 cursor-pointer"
+                  style={{ background: 'var(--m-life)', color: '#fff' }}>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+              </div>
+            )}
+            {/* 各类目：图标 + 名称 + 条数；hover 出 + 直接带类目添加；激活态图标/标题/数字/加号全紫 */}
             {dynLife.map(c => {
               const active = lifeFilter === c.key;
               return (
                 <div key={c.key}
-                  className={`group flex items-center gap-2 pl-8 pr-2.5 h-8 rounded-lg text-[13px] transition text-left ${active ? 'font-bold text-[#1c1c1e] bg-[rgba(120,120,128,0.08)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}>
+                  className={`group flex items-center gap-2 pl-8 pr-2.5 h-8 rounded-lg text-[13px] transition text-left ${active ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
+                  style={active ? { color: 'var(--m-life)' } : undefined}>
                   <button onClick={() => setLifeFilter(active ? null : c.key)}
                     className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
                     title={active ? '点击取消筛选' : `筛选${c.lb}记录`}>
-                    <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }} />
+                    <LifeCatIcon catKey={c.key} className="w-[15px] h-[15px] flex-shrink-0" />
                     <span className="flex-1 truncate">{c.lb}</span>
-                    <span className="text-[11px] tabular-nums text-ink-400">{c.entries.length}</span>
                   </button>
+                  <span className={`text-[11px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{c.entries.length}</span>
                   <button onClick={() => onEntryAdd?.(c.key, c.lb)} title={`添加${c.lb}记录`}
-                    className="opacity-0 group-hover:opacity-100 transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer"
+                    className={`${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer`}
                     style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                   </button>
@@ -6537,9 +6591,9 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <div className="w-6 flex-shrink-0 h-5 flex items-center justify-end">
                     <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{r.day ? String(r.day).padStart(2, '0') : '--'}</span>
                   </div>
-                  {/* 时间轴列：圆点容器与标题行严格等高(h-5)居中 */}
+                  {/* 时间轴列：圆点容器与标题行严格等高(h-5)居中；颜色统一生活主题紫 */}
                   <div className="flex flex-col items-center flex-shrink-0">
-                    <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: r.cat.color }} /></span>
+                    <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
                     {!isLast && <span className="flex-1 w-px bg-ink-100" />}
                   </div>
                   {/* 内容列：标题 + 右侧类目标签（工作台搜索框同款灰底小圆角长方形） */}
@@ -6677,6 +6731,13 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   })();
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
+  // 一次性迁移：类目「关系」改名「情感」（默认常量已改，历史 localStorage 数据未跟上）
+  useEffect(() => {
+    if (Array.isArray(lifeData) && lifeData.some(c => c?.lb === '关系')) {
+      setLifeData(prev => prev.map(c => (c?.lb === '关系' ? { ...c, lb: '情感' } : c)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // 精力习惯 - 用户自定义年度目标（覆盖默认推断值 120/230）
   const [habitTargets, setHabitTargets] = usePersistentState('annual_habit_targets', () => ({}));
   // 能力自评历史 - 每月记录一次分数，key: ability.id, value: {[YYYY-MM]: score}
@@ -7509,7 +7570,8 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         highlightedIds={lifeHighlightedIds}
         onStartHighlights={() => setModal({ type: 'life_highlights' })}
         docLinks={lifeDocLinks}
-        onDocLinksChange={(next) => setLifeDocLinks(next)} />}
+        onDocLinksChange={(next) => setLifeDocLinks(next)}
+        onCatAdd={(d) => lifeCatOps.add(d)} />}
     </main>
   );
 

@@ -166,6 +166,33 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
     return () => clearTimeout(t);
   }, [syncSignal]);
 
+  // 云端 KV 同步状态（年度规划/主题/日程分类）：cloudKV 推送与拉取事件驱动同一指示器
+  useEffect(() => {
+    const onCloud = (e) => {
+      const { status } = e.detail || {};
+      if (status === 'syncing') {
+        setSyncState('syncing');
+        setSyncMsg('云端同步中...');
+      } else if (status === 'synced') {
+        setSyncState('synced');
+        setSyncMsg('已保存到云端');
+        setLastSyncTime(Date.now());
+        setTimeout(() => setSyncMsg(''), 1600);
+      } else if (status === 'pulled') {
+        setSyncState('synced');
+        setSyncMsg('已从云端更新');
+        setLastSyncTime(Date.now());
+        setTimeout(() => setSyncMsg(''), 1600);
+      } else if (status === 'error') {
+        setSyncState('error');
+        setSyncMsg('云端同步失败，稍后自动重试');
+        setTimeout(() => setSyncMsg(''), 2600);
+      }
+    };
+    window.addEventListener('cloudkv', onCloud);
+    return () => window.removeEventListener('cloudkv', onCloud);
+  }, []);
+
   function handleLogoutClick() {
     if (onBeforeLogout) {
       onBeforeLogout();

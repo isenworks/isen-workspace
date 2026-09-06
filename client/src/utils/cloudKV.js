@@ -47,23 +47,38 @@ async function flushPulls() {
   }
 }
 
-/* ---- 推送：按 key 防抖，静默失败 ---- */
+/* ---- 状态事件：侧边栏同步指示器监听（syncing / synced / error / pulled） ---- */
+function emit(status, key) {
+  try { window.dispatchEvent(new CustomEvent('cloudkv', { detail: { status, key } })); } catch {}
+}
+
+/* ---- 推送：按 key 防抖；失败 30s 自动重试（最多 5 次），重试期间新变更会打断并合并 ---- */
 export function cloudPush(key, valueStr) {
   if (!isAuthed()) return;
   clearTimeout(pushTimers.get(key));
-  pushTimers.set(key, setTimeout(async () => {
-    pushTimers.delete(key);
-    try {
-      await fetch('/api/userSettings/set', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '',
-        },
-        body: JSON.stringify({ k: key, v: String(valueStr == null ? '' : valueStr) }),
-      });
-    } catch { /* 离线/未登录：本地已写，下次变更再推 */ }
-  }, PUSH_DEBOUNCE_MS));
+  pushTimers.set(key, setTimeout(() => doPush(key, valueStr, 0), PUSH_DEBOUNCE_MS));
+}
+async function doPush(key, valueStr, attempt) {
+  pushTimers.delete(key);
+  emit('syncing', key);
+  try {
+    const res = await fetch('/api/userSettings/set', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '',
+      },
+      body: JSON.stringify({ k: key, v: String(valueStr == null ? '' : valueStr) }),
+    });
+    if (!res.ok) throw new Error(`http ${res.status}`);
+    emit('synced', key);
+  } catch {
+    emit('error', key);
+    if (attempt < 5) {
+      pushTimers.set(key, setTimeout(() => doPush(key, valueStr, attempt + 1), 30000));
+    }
+    // 重试耗尽：数据仍在本地，下次变更时再整体重推
+  }
 }
 
 /* ---- 同步原语：拉云端 → 云端有且不同则云端胜；否则本地为准并确保上云 ----
@@ -73,6 +88,7 @@ export async function syncKey(key, localValueStr, onCloud) {
   const cloud = await cloudPull(key);
   if (cloud != null && cloud !== localValueStr) {
     onCloud?.(cloud);
+    emit('pulled', key); // 云端较新已覆盖本地（多设备拉新）
     return 'cloud';
   }
   if (cloud == null && localValueStr != null) {

@@ -12,7 +12,7 @@ const PULL_BATCH_DELAY = 0;      // 同一 tick 内的拉取合并成一次请�
 const PUSH_DEBOUNCE_MS = 1500;   // 本地写入后防抖推送
 
 const pendingPulls = new Map();  // key → resolve
-const pushTimers = new Map();    // key → timer
+const pushTimers = new Map();    // key → { timer, value } 待推送/待重试队列
 let pullFlushScheduled = false;
 
 function isAuthed() {
@@ -55,8 +55,9 @@ function emit(status, key) {
 /* ---- 推送：按 key 防抖；失败 30s 自动重试（最多 5 次），重试期间新变更会打断并合并 ---- */
 export function cloudPush(key, valueStr) {
   if (!isAuthed()) return;
-  clearTimeout(pushTimers.get(key));
-  pushTimers.set(key, setTimeout(() => doPush(key, valueStr, 0), PUSH_DEBOUNCE_MS));
+  const prev = pushTimers.get(key);
+  if (prev) clearTimeout(prev.timer);
+  pushTimers.set(key, { timer: setTimeout(() => doPush(key, valueStr, 0), PUSH_DEBOUNCE_MS), value: valueStr });
 }
 async function doPush(key, valueStr, attempt) {
   pushTimers.delete(key);
@@ -75,16 +76,37 @@ async function doPush(key, valueStr, attempt) {
   } catch {
     emit('error', key);
     if (attempt < 5) {
-      pushTimers.set(key, setTimeout(() => doPush(key, valueStr, attempt + 1), 30000));
+      pushTimers.set(key, { timer: setTimeout(() => doPush(key, valueStr, attempt + 1), 30000), value: valueStr });
     }
     // 重试耗尽：数据仍在本地，下次变更时再整体重推
   }
+}
+
+/* ---- 手动全量同步（同步按钮 / Ctrl+S）：先冲刷待推送（跳过防抖），再拉云端覆盖 ----
+ * 拉取注册表：syncKey 挂载时登记各 key 的 onCloud（各自负责写 localStorage 并应用），
+ * 手动同步时重放拉取比较，云端较新则覆盖本地 → 不刷新页面也能拿到其他设备的更新 */
+const pullRegistry = new Map();
+export async function syncCloudNow() {
+  // 1. 立即冲刷所有待推送（必须先于拉取，避免把云端旧值拉回来覆盖本地新值）
+  const entries = [...pushTimers.entries()];
+  entries.forEach(([, p]) => clearTimeout(p.timer));
+  await Promise.all(entries.map(([key, p]) => doPush(key, p.value, 0)));
+  // 2. 拉云端：与本地一致则无动作；云端较新 → onCloud 覆盖应用
+  const targets = [...pullRegistry.entries()];
+  await Promise.all(targets.map(async ([key, onCloud]) => {
+    const cloud = await cloudPull(key);
+    const local = (() => { try { return localStorage.getItem(key); } catch { return null; } })();
+    if (cloud != null && cloud !== local) {
+      try { onCloud?.(cloud); emit('pulled', key); } catch {}
+    }
+  }));
 }
 
 /* ---- 同步原语：拉云端 → 云端有且不同则云端胜；否则本地为准并确保上云 ----
  * onCloud(value) 云端较新时回调（调用方负责写 localStorage 并应用）
  * 返回 'cloud' | 'local' | 'none' */
 export async function syncKey(key, localValueStr, onCloud) {
+  if (onCloud) pullRegistry.set(key, onCloud); // 登记以便手动同步时重放拉取
   const cloud = await cloudPull(key);
   if (cloud != null && cloud !== localValueStr) {
     onCloud?.(cloud);

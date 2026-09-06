@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { formatChineseDate, formatGreeting } from '../utils/date.js';
 import { API } from '../api/client.js';
+import { syncCloudNow } from '../utils/cloudKV.js';
 import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
 import { CategoryIcon } from '../pages/AnnualPlan.jsx';
@@ -204,10 +205,10 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
   async function handleSync() {
     if (syncState === 'syncing') return;
     setSyncState('syncing');
-    setSyncMsg('正在刷新数据...');
+    setSyncMsg('正在同步...');
     try {
-      if (onSync) await onSync();
-      await new Promise(r => setTimeout(r, 400));
+      if (onSync) await onSync();           // API 数据刷新（日程/习惯/总结等）
+      await syncCloudNow();                 // 云端KV：冲刷待推送 + 拉云端更新（年度规划/主题/分类）
       setSyncState('synced');
       setSyncMsg('已同步');
       setLastSyncTime(Date.now());
@@ -218,6 +219,18 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
       setTimeout(() => setSyncMsg(''), 2600);
     }
   }
+
+  // Ctrl+S / Cmd+S：立即保存并同步云端（跳过防抖，与点击同步按钮等价）
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's') {
+        e.preventDefault(); // 阻止浏览器“保存网页”对话框
+        handleSync();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   return (
     <>

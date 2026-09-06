@@ -2009,7 +2009,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             return (
               <div key={h.key}
                 className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[210px]"
-                style={{ gridTemplateRows: 'auto auto 1fr' }}>
+                style={{ gridTemplateRows: 'auto auto 1fr' }}
+                title="右击卡片修改年度目标"
+                onContextMenu={(e) => { e.preventDefault(); startEditTarget(h); }}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <span
@@ -2047,7 +2049,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         <span
                           className="opacity-70 cursor-pointer hover:opacity-100"
                           onClick={() => startEditTarget(h)}
-                          title="点击修改年度目标"
+                          title="点击或右击修改年度目标"
                         >
                           {h.target}{h.unit}
                         </span>
@@ -2147,7 +2149,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           const EMOJI_STRIP_RE = new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{1F000}-\u{1F02F}✅\u{2700}-\u{27BF}✅]\s*`, 'gu');
           const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
           return (
-            <div key={hkey} className="grid habit-table px-0 py-1.5 items-center transition-colors group rounded-xl hover:bg-ink-50/60">
+            <div key={hkey} className="grid habit-table px-0 py-1.5 items-center transition-colors group rounded-xl hover:bg-ink-50/60"
+              title="右击修改年度目标"
+              onContextMenu={(e) => { e.preventDefault(); startEditTarget(h); }}>
               <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
                 <span
                   className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"
@@ -2192,7 +2196,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     className="w-16 mx-auto px-2 py-1 text-[14px] font-bold text-center border border-accent-green rounded-md outline-none focus:ring-2 focus:ring-accent-green/30 tabular-nums text-ink-900 bg-white"
                   />
                 ) : (
-                  <div onClick={() => startEditTarget(h)} className="inline-flex items-center justify-center gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer px-2">
+                  <div onClick={() => startEditTarget(h)} title="点击或右击修改年度目标" className="inline-flex items-center justify-center gap-0 hover:bg-accent-green/8 rounded-md transition cursor-pointer px-2">
                     <span className="text-[14px] font-medium text-ink-500 tabular-nums text-center">{h.target}</span>
                     <span className="text-[12px] text-ink-500 ml-1">{h.unit}</span>
                   </div>

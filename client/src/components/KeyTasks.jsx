@@ -13,10 +13,10 @@ function dateLabel(dateStr) {
 }
 
 // category: 1=工作(红), 2=能力(橙), 3=常规(灰), 4=习惯(绿), 5=生活(紫), 6=精力(绿), 7=知力(蓝)
-// cat=4 习惯类日程由 HabitsPanel 独立管理；cat=5 生活体验属于记录不是计划，均不进重点事项
+// cat=4 习惯类日程由 HabitsPanel 独立管理不进重点事项；
+// cat=5 生活类日程是用户手动创建的计划，正常显示（生活体验记录走 localStorage，不经此数据源）
 function isDisplayInKeyTasks(s) {
-  const cat = catOf(s);
-  return cat !== 4 && cat !== 5;
+  return catOf(s) !== 4;
 }
 function catOf(s) {
   const cat = Number(s.category);

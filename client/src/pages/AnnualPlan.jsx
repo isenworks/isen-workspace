@@ -6195,10 +6195,12 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
 
 /* ---------- 11. 视图 · 生活 ---------- */
 /* 生活子类目图标：恢复改版前的类目专属图标（关系/美食/旅游/电影/购物），宠物=爪印，
-   用户新建类目兜底=标签图标；统一 stroke=currentColor 跟随文字色 */
-function LifeCatIcon({ catKey, className, style }) {
+   用户新建类目兜底=标签图标；统一 stroke=currentColor 跟随文字色。
+   宠物按名称匹配（用户自建类目的 key 是随机 uid，不固定为 'pet'） */
+function LifeCatIcon({ catKey, lb, className, style }) {
   const cls = className || 'w-4 h-4';
-  const known = ['relation', 'food', 'travel', 'movie', 'shop', 'pet'];
+  const isPet = catKey === 'pet' || lb === '宠物';
+  const known = ['relation', 'food', 'travel', 'movie', 'shop'];
   return (
     <svg className={cls} style={style} fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -6207,8 +6209,8 @@ function LifeCatIcon({ catKey, className, style }) {
       {catKey === 'travel' && (<><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></>)}
       {catKey === 'movie' && (<><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></>)}
       {catKey === 'shop' && (<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>)}
-      {catKey === 'pet' && (<><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></>)}
-      {!known.includes(catKey) && (<><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none"/></>)}
+      {isPet && (<><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></>)}
+      {!isPet && !known.includes(catKey) && (<><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none"/></>)}
     </svg>
   );
 }
@@ -6314,17 +6316,6 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
-          {/* 筛选态提示：筛选中显示 类目 · N条 ×（一键清除）；替代原切换钮位置 */}
-          {lifeFilter && selFilterCat && (
-            <div className="inline-flex items-center gap-1.5">
-              <span className="text-[12px] font-semibold" style={{ color: 'var(--m-life)' }}>
-                {selFilterCat.lb} · {selFilterCat.entries.length} 条
-              </span>
-              <button onClick={() => setLifeFilter(null)} title="清除筛选，显示全部"
-                className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md text-[11px] transition cursor-pointer"
-                style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>×</button>
-            </div>
-          )}
           {/* 链接按钮（需求 2：圆角正方形；左键跳转 / 右键增删改）—— 在年度精选左边 */}
           <div className="relative ml-auto">
             <button
@@ -6552,7 +6543,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <button onClick={() => setLifeFilter(active ? null : c.key)}
                     className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
                     title={active ? '点击取消筛选' : `筛选${c.lb}记录`}>
-                    <LifeCatIcon catKey={c.key} className="w-[15px] h-[15px] flex-shrink-0" />
+                    <LifeCatIcon catKey={c.key} lb={c.lb} className="w-[15px] h-[15px] flex-shrink-0" />
                     <span className="flex-1 truncate">{c.lb}</span>
                   </button>
                   <span className={`text-[11px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{c.entries.length}</span>

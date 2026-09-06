@@ -11,9 +11,9 @@ import { store } from '../utils/store.js';
    · 知力：localStorage 读取书架，只显示在读书 + 自动生成读后思考/思后行动子项
    · 能力：localStorage 读取能力里程碑，只显示 st='doing' 进行中
    · 工作：localStorage 读取工作目标，只显示目标级事项（不展开 KR）
-   · 生活：localStorage 读取生活记录，只显示本月事项
+   · 生活：属于记录而非计划，不聚合进主线（仅年度规划·生活页展示）
    · 计划总结 ethan_schedules：只进日历右栏，不进主线面板（需求 6）*/
-import { HABITS, BOOKS, ABILITY, WORK, LIFE, useEnergyHabits } from './AnnualPlan.jsx';
+import { HABITS, BOOKS, ABILITY, WORK, useEnergyHabits } from './AnnualPlan.jsx';
 
 /* ===== localStorage 读取年度规划用户真实数据（覆盖静态常量）===== */
 function readAnnualState(key, fallback) {
@@ -122,7 +122,7 @@ function computeInitialWeekTasks(weekStartISO, weekEndISO, remoteSchedules = [])
   const fromSchedules = remoteSchedules
     .filter(s => {
       const cat = Number(s.category);
-      if (![1, 2, 5, 6, 7].includes(cat)) return false;
+      if (![1, 2, 6, 7].includes(cat)) return false;
       const sd = s.start_date || s.schedule_date || s.date;
       const ed = s.end_date || sd;
       if (!sd) return false;
@@ -166,7 +166,7 @@ function computeInitialWeekTasks(weekStartISO, weekEndISO, remoteSchedules = [])
 const LS_BOOKS    = () => readAnnualState('annual_books_v12', BOOKS);
 const LS_ABILITY  = () => readAnnualState('annual_abilities_v2', ABILITY);
 const LS_WORK     = () => readAnnualState('annual_work', WORK);
-const LS_LIFE     = () => readAnnualState('annual_life', LIFE);
+/* 生活记录（annual_life）不再读取进主线 —— 属于记录而非计划，仅年度规划·生活页展示 */
 
 /* ============================================================
  * 日历页面 · 月视图容器（v2 交互升级）
@@ -182,7 +182,7 @@ const LS_LIFE     = () => readAnnualState('annual_life', LIFE);
  *   · 2) 复选框独立 stopPropagation，只点它才勾选
  *   · 3) 月历事件小圆点 → 复选框，done 状态与主线同步；周末列灰→白
  *   · 4) 日格空白/日期/今日/热力点/+更多 点击 → 当日事项详情弹层
- *   · 5) 数据源：年度规划 HABITS/BOOKS/ABILITY/WORK/LIFE + 计划总结 ethan_schedules API 聚合同源（需求 3/5/6）
+ *   · 5) 数据源：年度规划 HABITS/BOOKS/ABILITY/WORK + 计划总结 ethan_schedules API 聚合同源（需求 3/5/6；LIFE 属记录不进主线）
  * ============================================================ */
 
 const HABIT_SHORT_LABEL = {
@@ -219,11 +219,6 @@ function dueByToYm(dueBy = '') {
     return { year: Number(y), month: Number(m) };
   }
   return null;
-}
-function entryDateToMonth(entryD = '') {
-  if (!entryD) return null;
-  const m = entryD.match(/^(\d{1,2})[.\-月]/);
-  return m ? Number(m[1]) : null;
 }
 
 function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
@@ -412,31 +407,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
     });
   }
 
-  /* ========== [5] 生活 LIFE（需求 5：自动同步本月事项）
-     · 从 localStorage 读取用户真实数据
-     · 只显示 entries 日期含本月的条目
-     · isLongTerm=false → 复选框可勾选（单日事项）*/
-  const lifeData = LS_LIFE();
-  for (const lg of lifeData) {
-    for (const e of lg.entries || []) {
-      const em = entryDateToMonth(e.d);
-      if (em !== null && em !== month) continue;
-      tasks.push({
-        id: `life_${lg.key || lg.lb}_${e.t || Math.random().toString(36).slice(2,7)}`,
-        moduleKey: 'life',
-        isFromFetch: true,
-        isLongTerm: false,
-        title: e.t,
-        note: e.n || (em ? undefined : lg.lb),
-        dueDate: e.d ? e.d : undefined,
-        progress: 1,
-        done: true,
-        srcTag: `≡ ${lg.lb}`,
-        srcTagColor: 'rgba(175,82,222,0.08)',
-        srcTagTextColor: '#AF52DE',
-      });
-    }
-  }
+  /* ========== [5] 生活 LIFE —— 不聚合进主线：生活体验属于记录而非计划，
+     只保留在年度规划·生活页（AnnualPlan）查看，月周重点/今日计划均不展示 */
 
   return tasks;
 }
@@ -774,7 +746,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             const toInject = mapped
               .filter(s => {
                 const cat = Number(s.category);
-                return [1, 2, 5, 6, 7].includes(cat);
+                return [1, 2, 6, 7].includes(cat);
               })
               .filter(s => {
                 const sd = s.start_date || s.date;
@@ -888,7 +860,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (s.id != null && isScheduleDeletedLocally(s.id)) return;
       const mod = catToModule(Number(s.category));
       // 只保留五大主线模块；cat=3(其他)不进本月主线
-      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
+      if (![1, 2, 6, 7].includes(mod.cat)) return;
       const proxyTask = buildProxyTask(s);
       if (!overlapsMonth(proxyTask, year, month)) return;
       setMonthTasks(prev => {
@@ -906,7 +878,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (!s) return;
       if (s.id != null && isScheduleDeletedLocally(s.id)) return;
       const mod = catToModule(Number(s.category));
-      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
+      if (![1, 2, 6, 7].includes(mod.cat)) return;
       const proxyTask = buildProxyTask(s);
       const ws = toISODate(startOfWeek(todayISO));
       const we = toISODate(endOfWeek(todayISO));

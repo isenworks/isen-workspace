@@ -14,6 +14,7 @@ const TYPE_META = {
   habit:         { label: '习惯',     color: '#FF9F0A' },
   fixedSchedule: { label: '固定日程', color: '#5856D6' },
   summary:       { label: '总结',     color: '#FF2D55' },
+  inbox:         { label: '收集',     color: '#5AC8FA' },
 };
 
 // 从快照 payload 提取展示信息：{ title, sub }
@@ -35,6 +36,8 @@ function describeItem(type, payload) {
         return { title: `${row.emoji || '📌'} ${row.name || '未命名固定日程'}`, sub: `${row.start_time || ''}–${row.end_time || ''}` };
       case 'summary':
         return { title: `${row.date || ''} 的每日总结`, sub: (row.content || '').slice(0, 60) || '' };
+      case 'inbox':
+        return { title: row.content || '未命名想法', sub: row.processed_type ? `已分派为${row.processed_type === 'schedule' ? '日程' : '待办'}` : '' };
       default:
         return { title: '未知条目', sub: '' };
     }

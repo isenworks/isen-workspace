@@ -28,6 +28,9 @@ import {
   handleTasksList, handleTasksCreate, handleTasksUpdate, handleTasksRemove,
 } from '../_lib/handlers/tasks.js';
 import {
+  handleInboxList, handleInboxCreate, handleInboxUpdate, handleInboxProcess, handleInboxRemove,
+} from '../_lib/handlers/inbox.js';
+import {
   handleSchedulesList, handleSchedulesCreate, handleSchedulesUpdate,
   handleSchedulesRemove, handleSchedulesSync,
 } from '../_lib/handlers/schedules.js';
@@ -109,6 +112,15 @@ export async function onRequest(context) {
     if (path === '/api/tasks/create' && method === 'POST') return handleTasksCreate(env, body);
     if (path === '/api/tasks/update' && method === 'POST') return handleTasksUpdate(env, body);
     if (path === '/api/tasks/remove' && method === 'POST') return handleTasksRemove(env, body);
+
+    // ------------------------------------------------------------
+    // /api/inbox/*  — 收集箱（想法/备忘快速捕获，空了再分派）
+    // ------------------------------------------------------------
+    if (path === '/api/inbox/list' && (method === 'GET' || method === 'POST')) return handleInboxList(env, qOrBody);
+    if (path === '/api/inbox/create' && method === 'POST') return handleInboxCreate(env, body);
+    if (path === '/api/inbox/update' && method === 'POST') return handleInboxUpdate(env, body);
+    if (path === '/api/inbox/process' && method === 'POST') return handleInboxProcess(env, body);
+    if (path === '/api/inbox/remove' && method === 'POST') return handleInboxRemove(env, body);
 
     // ------------------------------------------------------------
     // /api/schedules/*

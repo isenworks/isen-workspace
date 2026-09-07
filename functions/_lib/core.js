@@ -33,6 +33,7 @@ export const RECYCLE_TABLES = {
   habit: 'ethan_habits',
   fixedSchedule: 'ethan_fixed_schedules',
   summary: 'ethan_summaries',
+  inbox: 'ethan_inbox',
 };
 
 // ------------------------------------------------------------
@@ -488,6 +489,25 @@ export async function ensureRecycleBinTable(env) {
     )`).run();
   } catch (_) {}
 }
+
+// ethan_inbox 收集箱：想法/备忘的快速捕获（无日期），空了再分派为日程/待办
+//   done=1 即离开待分派列表（就地完成或已分派）；processed_type 记录去向便于追溯
+export async function ensureInboxTable(env) {
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_inbox (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      category INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      done INTEGER NOT NULL DEFAULT 0,
+      done_at TEXT,
+      processed_type TEXT,
+      processed_id INTEGER
+    )`).run();
+  } catch (_) {}
+}
+
 // 删除前快照入站（extra 可挂附加数据，如习惯的打卡日志）。失败不阻断原删除流程。
 export async function recycleSnapshot(env, sourceType, sourceId, table, extra) {
   try {

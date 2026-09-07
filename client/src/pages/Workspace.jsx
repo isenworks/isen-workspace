@@ -18,12 +18,14 @@ import AbilityForm from '../components/forms/AbilityForm.jsx';
 import FixedScheduleForm from '../components/forms/FixedScheduleForm.jsx';
 import FixedSchedulesPanel from '../components/FixedSchedulesPanel.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
+import QuickCapture from '../components/QuickCapture.jsx';
 import { API } from '../api/client.js';
 import SettingsModal from '../components/SettingsModal.jsx';
 import { store } from '../utils/store.js';
 import AnnualPlan from './AnnualPlan.jsx';
 import CalendarPage from './CalendarPage.jsx';
 import RecycleBinPage from './RecycleBinPage.jsx';
+import InboxPage from './InboxPage.jsx';
 
 const VIEW_RANGES = {
   today: (d) => ({ from: d, to: d }),
@@ -47,6 +49,10 @@ export default function Workspace({ user: propUser }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // 右栏显示总结面板状态：默认显示时间线
   const [showSummary, setShowSummary] = useState(false);
+
+  // ===== 收集箱：待分派计数（侧边栏徽标 + 计划页提醒条）+ 快速捕获弹窗 =====
+  const [inboxCount, setInboxCount] = useState(0);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
   // ===== 右键上下文菜单 =====
   const [ctxMenu, setCtxMenu] = useState(null); // {x, y, type, id}
@@ -95,6 +101,29 @@ export default function Workspace({ user: propUser }) {
     }, 120000);
     return () => clearInterval(timer);
   }, [doAutoSync]);
+
+  // ===== 收集箱待分派计数：挂载 + 全局刷新（refreshKey）时同步 =====
+  const loadInboxCount = useCallback(() => {
+    API.inbox.list().then(r => setInboxCount((r.items || []).length)).catch(() => {});
+  }, []);
+  useEffect(() => { loadInboxCount(); }, [loadInboxCount, refreshKey]);
+
+  // ===== 快捷键 N：任意页面快速捕获（无输入框聚焦、无弹窗打开时） =====
+  useEffect(() => {
+    function onKey(e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (modal || settingsOpen || quickCaptureOpen || archiveOpen) return;
+      const t = e.target;
+      const tag = t?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        setQuickCaptureOpen(true);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modal, settingsOpen, quickCaptureOpen, archiveOpen]);
 
   // ===== 问题3a-3：历史脏数据一次性修复 =====
   // 遍历 schedules，按 start_time + end_time 重算 duration_min，与存储值不一致则写回
@@ -396,6 +425,8 @@ export default function Workspace({ user: propUser }) {
           setActiveMenu('annual');
           setAnnualAdd({ view: k, ts: Date.now() });
         }}
+        inboxCount={inboxCount}
+        onQuickCapture={() => setQuickCaptureOpen(true)}
       />
 
       {/* 主内容区 */}
@@ -403,6 +434,8 @@ export default function Workspace({ user: propUser }) {
         <div className="flex-1 min-w-0">
           <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} addRequest={annualAdd} />
         </div>
+      ) : activeMenu === 'inbox' ? (
+        <InboxPage onCountChange={setInboxCount} />
       ) : activeMenu === 'recycle' ? (
         <RecycleBinPage />
       ) : activeMenu === 'calendar' ? (
@@ -488,6 +521,25 @@ export default function Workspace({ user: propUser }) {
           <div className="grid grid-cols-12 gap-4">
             {/* 左栏：重点事项 + 习惯 */}
             <div className="col-span-5 flex flex-col gap-4">
+              {/* 收集箱提醒条：有待分派想法时显示，引导每日清空 */}
+              {inboxCount > 0 && (
+                <button
+                  onClick={() => setActiveMenu('inbox')}
+                  className="glass-card rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 w-full text-left group"
+                  style={{ border: '1px solid rgba(var(--s-rgb),0.18)' }}
+                >
+                  <span className="flex-shrink-0" style={{ color: 'var(--s-main)' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+                      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+                    </svg>
+                  </span>
+                  <span className="flex-1 min-w-0 text-[12.5px] font-medium text-ink-600 group-hover:text-ink-900 transition-colors">
+                    收集箱 · <span className="font-semibold" style={{ color: 'var(--s-main)' }}>{inboxCount} 条待分派</span>
+                  </span>
+                  <svg className="flex-shrink-0 text-ink-300 group-hover:text-[color:var(--s-main)] transition-colors" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              )}
               <KeyTasks
                 date={selectedDate}
                 view={view}
@@ -832,6 +884,11 @@ export default function Workspace({ user: propUser }) {
 
       {/* ===== 设置面板 ===== */}
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} user={user} />
+
+      {/* ===== 快速捕获弹窗（快捷键 N / 侧边栏收集箱「＋」）===== */}
+      <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="快速记录到收集箱">
+        <QuickCapture onSaved={loadInboxCount} />
+      </Modal>
     </div>
   );
 }

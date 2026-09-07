@@ -57,7 +57,8 @@ function curUserId() {
     return (obj && obj.id) ? String(obj.id) : 'anon';
   } catch { return 'anon'; }
 }
-function readCats() {
+// 读取分类列表（内置 6 项 + 用户自定义）；收集箱等模块复用，保证分类体系单一来源
+export function readCats() {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return BUILTIN_CATS.map(c => ({ ...c }));

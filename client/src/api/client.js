@@ -138,6 +138,16 @@ export const API = {
     async remove(id) { return fetchPages('/tasks/remove', { id }); },
   },
 
+  // 收集箱：想法/备忘快速捕获（无日期），空了再分派为日程/待办
+  inbox: {
+    async list() { return fetchPages('/inbox/list', {}, 'GET'); },
+    async create(data) { return fetchPages('/inbox/create', data); },
+    async update(id, data) { return fetchPages('/inbox/update', { id, ...data }); },
+    // 行内快速分派（原子）：单请求完成建日程/待办 + 标记已处理
+    async process(data) { return fetchPages('/inbox/process', data); },
+    async remove(id) { return fetchPages('/inbox/remove', { id }); },
+  },
+
   habits: {
     async list(params) { return fetchPages('/habits/list', params || {}); },
     async create(data) { return fetchPages('/habits/create', data); },

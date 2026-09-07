@@ -408,6 +408,14 @@ export default function SummaryPanel({
   const dataLoadedRef = useRef(false);
   const lastSaveTsRef = useRef(0);
   const activeDateRef = useRef(date); // 当前正在编辑/加载的日期，防止 flushSave/autoSave 写错日期
+  // ==== 输入保护：用户编辑时间 vs state 数据基准时间 ====
+  // userEditTsRef：最后一次用户输入（打字/切模板/清空）的时间
+  // stateBasisTsRef：当前 state 内容的数据来源时刻（loadData 应用内容 / flushSave 保存快照）
+  // 任何时点若 userEdit > basis，说明存在未同步输入，loadData 不得覆盖 state
+  const userEditTsRef = useRef(0);
+  const stateBasisTsRef = useRef(0);
+  const selfSavedAtRef = useRef(0); // 自己刚保存成功的时间（用于跳过自身触发的刷新重载）
+  const markUserEdit = () => { userEditTsRef.current = Date.now(); };
 
   useEffect(() => { activeDateRef.current = date; }, [date]);
 
@@ -459,8 +467,13 @@ export default function SummaryPanel({
   // 关键修复：调用时立即 capture date，防止异步过程中 date prop 变化导致写错日期
   const flushSave = async (silent = false) => {
     if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
-    if (savingNowRef.current) return;
+    if (savingNowRef.current) {
+      // 已有保存请求在途：稍后重试本次内容，避免直接 return 丢掉这期间输入的最新内容
+      autoSaveTimer.current = setTimeout(() => flushSave(silent), 400);
+      return;
+    }
     const saveDate = activeDateRef.current; // 捕获当前正在编辑的日期
+    const snapshotTakenAt = Date.now();
     const snapshot = {
       templateId: latestRef.current.templateId,
       sectionsText: { ...latestRef.current.sectionsText },
@@ -480,7 +493,10 @@ export default function SummaryPanel({
       const nowTs = now.getTime();
       lastSaveTsRef.current = nowTs;
       setSavedTime(now);
-      dirtyRef.current = false;
+      // 基准时间取快照时刻（而非保存完成时刻）：请求期间的新输入仍视为"未同步"，不会被 loadData 覆盖
+      stateBasisTsRef.current = snapshotTakenAt;
+      dirtyRef.current = userEditTsRef.current > snapshotTakenAt;
+      selfSavedAtRef.current = nowTs;
       // 关键修复：用捕获的 saveDate 写草稿，防止写到其他日期
       writeDraftToLS(nowTs, saveDate);
       try { localStorage.setItem(getDraftKey(saveDate).replace('_draft_', '_savedAt_'), String(nowTs)); } catch (_) {}
@@ -565,21 +581,25 @@ export default function SummaryPanel({
     const targetDate = activeDateRef.current;
     dataLoadedRef.current = false;
     try {
+      // 有未同步的用户输入（如上一次加载/保存期间键入的）：跳过草稿即时显示，保留当前内容
+      const hasUnsyncedInput = userEditTsRef.current > stateBasisTsRef.current;
       // 先读取本地草稿作为即时显示（如果有）
       const draft = readDraftFromLS(targetDate);
-      if (draft && (!draft.date || draft.date === targetDate)) {
-        setTemplateId(draft.templateId || 'daily');
-        setSectionsText({
-          highlights: draft.sectionsText?.highlights || '',
-          improvements: draft.sectionsText?.improvements || '',
-          learnings: draft.sectionsText?.learnings || '',
-          tomorrow: draft.sectionsText?.tomorrow || '',
-        });
-      } else {
-        setTemplateId('daily');
-        setSectionsText({ highlights: '', improvements: '', learnings: '', tomorrow: '' });
+      if (!hasUnsyncedInput) {
+        if (draft && (!draft.date || draft.date === targetDate)) {
+          setTemplateId(draft.templateId || 'daily');
+          setSectionsText({
+            highlights: draft.sectionsText?.highlights || '',
+            improvements: draft.sectionsText?.improvements || '',
+            learnings: draft.sectionsText?.learnings || '',
+            tomorrow: draft.sectionsText?.tomorrow || '',
+          });
+        } else {
+          setTemplateId('daily');
+          setSectionsText({ highlights: '', improvements: '', learnings: '', tomorrow: '' });
+        }
+        setSavedTime(null);
       }
-      setSavedTime(null);
 
       if (!propSchedules) {
         const r = await API.schedules.list({ date: targetDate });
@@ -620,7 +640,17 @@ export default function SummaryPanel({
           finalTemplate = draft.templateId || apiTemplate;
         }
       }
-      // 只有当内容变化时才更新 UI（避免不必要的重新渲染覆盖用户输入）
+      // 核心 bug 修复：加载期间（await 过程中）用户有新输入时，绝不能用加载前的快照覆盖当前输入
+      // 否则会出现"输入文字后过几秒消失"，且覆盖后还会把空内容自动保存回 API 造成数据丢失
+      if (userEditTsRef.current > stateBasisTsRef.current) {
+        writeDraftToLS(null, targetDate); // 立即写草稿兜底
+        dirtyRef.current = true;
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = setTimeout(() => flushSave(true), 600); // 重新安排自动保存
+        dataLoadedRef.current = true;
+        return;
+      }
+
       setTemplateId(finalTemplate);
       setSectionsText(finalSections);
 
@@ -641,6 +671,7 @@ export default function SummaryPanel({
       }
 
       latestRef.current = { templateId: finalTemplate, sectionsText: finalSections };
+      stateBasisTsRef.current = Date.now(); // 更新数据基准：此刻 state 内容与服务器/草稿一致
       dataLoadedRef.current = true;
       dirtyRef.current = false;
     } catch (e) {
@@ -649,7 +680,21 @@ export default function SummaryPanel({
     }
   };
 
-  useEffect(() => { loadData(); /* eslint-disable-next-line */ }, [date, userId, refreshSignal]);
+  // date/userId 变化必须重载；refreshSignal 变化时：
+  // 若是面板自己刚保存成功触发的刷新（onChange→父组件 refresh→refreshKey++）则跳过这次重载——
+  // 内容已是最新的，重载没有任何收益，反而制造"加载中输入被覆盖"的竞态窗口和持续的保存-重载循环
+  const loadKeyRef = useRef(null);
+  useEffect(() => {
+    const key = `${date}|${userId}`;
+    const keyChanged = loadKeyRef.current !== key;
+    loadKeyRef.current = key;
+    if (!keyChanged && selfSavedAtRef.current && Date.now() - selfSavedAtRef.current < 2500) {
+      selfSavedAtRef.current = 0; // 只跳过紧随自身保存的那一次刷新
+      return;
+    }
+    loadData();
+    /* eslint-disable-next-line */
+  }, [date, userId, refreshSignal]);
 
   // ===== 操作：模板、编辑、Markdown =====
   const openTplEditorForNew = () => {
@@ -745,6 +790,8 @@ export default function SummaryPanel({
     const key = keys[idx - 1];
     if (!key) return;
     setSectionsText(prev => ({ ...prev, [key]: value }));
+    markUserEdit(); // 标记用户输入（含 loadData 进行期间，防止被加载结果覆盖）
+    dirtyRef.current = true;
   };
 
   const handleManualSave = async () => {
@@ -758,6 +805,7 @@ export default function SummaryPanel({
     const emptySections = { highlights: '', improvements: '', learnings: '', tomorrow: '' };
     setSectionsText(emptySections);
     latestRef.current = { templateId: templateId, sectionsText: emptySections };
+    markUserEdit(); // 清空视为用户编辑，防止清空瞬间被 loadData 用旧数据覆盖回来
     dirtyRef.current = true;
     // 立即 flush 一次空内容到 API
     await flushSave(false);
@@ -843,7 +891,7 @@ export default function SummaryPanel({
             transition: 'background .1s',
             fontSize: '13px',
           }}
-          onClick={() => { setTemplateId(t.id); setTplMenuOpen(false); }}
+          onClick={() => { markUserEdit(); setTemplateId(t.id); setTplMenuOpen(false); }}
           onMouseEnter={(e) => { if (templateId !== t.id) e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
           onMouseLeave={(e) => { if (templateId !== t.id) e.currentTarget.style.background = 'transparent'; }}
         >

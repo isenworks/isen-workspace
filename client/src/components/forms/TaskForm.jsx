@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { API } from '../../api/client.js';
 import FriendlyTimeInput from '../FriendlyTimeInput.jsx';
 import { store } from '../../utils/store.js';
@@ -69,6 +70,9 @@ export default function TaskForm({ initial, defaultDate, onSaved, onCancel }) {
   const [busy, setBusy] = useState(false);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   async function submit() {
     if (!form.title.trim()) return toast.warn('请输入任务标题');

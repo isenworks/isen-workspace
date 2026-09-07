@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { API } from '../../api/client.js';
 import { formatDuration, calcDurationMin } from '../../utils/date.js';
 import FriendlyTimeInput from '../FriendlyTimeInput.jsx';
@@ -281,6 +282,9 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
   function autoDuration() {
     // 保留旧接口，空实现（useEffect 已经处理）
   }
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   async function submit() {
     // isPreset 用户没改的话，用预设提示当 fallback 标题

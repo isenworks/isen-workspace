@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 
 /* 能力新增/编辑弹窗 —— 视觉规格对齐 BookForm（SectionCard 分组 + 圆角输入 + 橙色主题） */
 const AB = '#FF9500';          // 主题橙
@@ -49,6 +50,9 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
     score: initial?.score || '5',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   function submit() {
     if (!form.title.trim()) return alert('请输入能力名称');

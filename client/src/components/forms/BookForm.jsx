@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { INPUT_STYLE } from '../../utils/uiConstants.js';
 
 /* 面板归属知力模块：文字/标签/强调色统一跟随知力主题色（var(--m-cognition)）；
@@ -149,6 +150,9 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
     else if (pNum === 0 && form.st !== 'abandoned' && form.st !== 'reading') patch.st = 'pending';
     setForm(f => ({ ...f, ...patch }));
   };
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   function submit() {
     if (!form.t.trim()) return alert('请输入书名');

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { API } from '../../api/client.js';
 import FriendlyTimeInput from '../FriendlyTimeInput.jsx';
 import { GROWTH_TYPE_COLORS, inferGrowthType, LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
@@ -84,6 +85,9 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
       return next;
     });
   };
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   async function submit() {
     if (!form.name.trim()) return toast.warn('请输入习惯名称');

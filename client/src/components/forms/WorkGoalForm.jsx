@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 
 /* 工作 Objective 新增/编辑弹窗 —— 视觉对齐 AbilityForm/BookForm（iOS Red 主题 SectionCard） */
 const RED = '#FF3B30';
@@ -56,6 +57,9 @@ export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
     deadline: initial?.deadline || '',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   function submit() {
     if (!form.title.trim()) return alert('请输入目标标题');

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
 
 const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
@@ -57,6 +58,9 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
     if (m) return `${Number(m[2])}.${Number(m[3])}`;
     return d;
   }
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   function submit() {
     if (!form.t.trim()) { alert('请输入标题'); return; }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 
 /* KR 新增/编辑弹窗 —— 复选框语义（勾/未勾二态）+ dueBy 字段，视觉对齐 AbilityForm/BookForm */
 const AB = '#FF9500';
@@ -48,6 +49,9 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
       pct: initial?.pct != null ? Number(initial.pct) : 0,
     });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   function submit() {
     if (!form.lb.trim()) return alert('请输入里程碑标题');

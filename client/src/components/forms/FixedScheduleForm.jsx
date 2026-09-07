@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { API } from '../../api/client.js';
 import { store } from '../../utils/store.js';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -68,6 +69,9 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   const durMin = calcDurationMin(form.start_time, form.end_time);
+
+  // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
+  useFormSubmit(submit);
 
   async function submit() {
     if (!form.name.trim()) return toast.warn('请输入日程名称');

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Fragment } from 'react';
 import { formatChineseDate, formatGreeting } from '../utils/date.js';
 import { API } from '../api/client.js';
 import { syncCloudNow } from '../utils/cloudKV.js';
+import { trySubmitTopForm } from '../utils/formSubmitBus.js';
 import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
 import { CategoryIcon } from '../pages/AnnualPlan.jsx';
@@ -220,12 +221,14 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
     }
   }
 
-  // Ctrl+S / Cmd+S：立即保存并同步云端（跳过防抖，与点击同步按钮等价）
+  // Ctrl+S / Cmd+S：有表单打开时优先提交表单（等同点击表单“保存”按钮，
+  // 校验通过即保存并走各自同步管线）；无表单时才执行全局同步（跳过防抖）
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's') {
         e.preventDefault(); // 阻止浏览器“保存网页”对话框
-        handleSync();
+        const formSubmitted = trySubmitTopForm();
+        if (!formSubmitted) handleSync();
       }
     };
     window.addEventListener('keydown', onKey);

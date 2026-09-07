@@ -556,7 +556,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   const [year, setYear] = useState(todayObj.getFullYear());
   const [month, setMonth] = useState(todayObj.getMonth() + 1);
   const [selectedDate, setSelectedDate] = useState(todayISO);
-  const [tabView, setTabView] = useState('month'); // month | week | day
+  const [tabView, setTabView] = useState('week'); // week | month（日视图已移除）
 
   /* ===== 需求 1：从 API 拉取真实精力习惯数据（含 8 月打卡数据）===== */
   const { realHabits } = useEnergyHabits();
@@ -1344,9 +1344,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           </div>
 
           <div className="tab-group">
-            <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>月</button>
             <button className={tabView === 'week'  ? 'active' : ''} onClick={() => setTabView('week')}>周</button>
-            <button className={tabView === 'day'   ? 'active' : ''} onClick={() => setTabView('day')}>日</button>
+            <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>月</button>
           </div>
 
           <div className="flex-1" />
@@ -1364,11 +1363,11 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       {/* ===== Body: 12 列网格 ===== */}
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
-          {(tabView === 'month' || tabView === 'day') && (
+          {tabView === 'month' && (
             <FocusPanel
               type="month"
               accentColor="var(--s-main)"
-              title={tabView === 'month' ? '本月主线' : '本月 · 上下文'}
+              title="本月主线"
               tasks={visibleMonthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
@@ -1380,7 +1379,6 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               onTagClick={handleTagClick}
               onReorder={(gk, fid, tid) => reorderTask(gk, fid, tid, { isMonth: true })}
               deletedTasks={deletedMonthTasks}
-              compact={tabView !== 'month'}
             />
           )}
 

@@ -17,6 +17,7 @@ import {
   handleAuthBootstrapOwner,
   handleAuthRegister,
   handleAuthLogin,
+  handleAuthUpdateMe,
 } from '../_lib/handlers/auth.js';
 import {
   handleHabitsList, handleHabitsArchivedList, handleHabitsCreate, handleHabitsUpdate,
@@ -76,6 +77,8 @@ export async function onRequest(context) {
       return handleAuthLogin(env, { email: '', password: body?.password || '' }, 'POST', currentUser);
     }
     if (path === '/api/auth/logout' && method === 'POST') return json({ ok: true });
+    // 更新当前用户资料（头像上传 / 恢复默认头像 / 改用户名）
+    if (path === '/api/auth/updateMe' && method === 'POST') return handleAuthUpdateMe(env, body, currentUser);
 
     // ------------------------------------------------------------
     // /api/migrate  — 批量写入 6 表（Supabase→D1 一次性）

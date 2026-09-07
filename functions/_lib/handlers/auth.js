@@ -5,7 +5,7 @@
 //   login：邮箱 + 密码登录（GET 用于 modes 探测，POST 用于实际登录）
 // ============================================================
 import {
-  uid, json, dbFirst, nowIso, EMAIL_RE, AUTH_FAIL,
+  uid, json, dbFirst, dbRun, nowIso, EMAIL_RE, AUTH_FAIL,
   DEFAULT_USER_ID, ensureUsersTable,
   hashPassword, verifyPassword, signToken, safeUser,
 } from '../core.js';
@@ -167,4 +167,38 @@ export async function handleAuthLogin(env, body, method, currentUser) {
   } catch (e) {
     return json({ error: String(e.message || e) }, 500);
   }
+}
+
+// auth.updateMe：更新当前登录用户资料（头像：Base64 data URL 或单字母占位；用户名）
+// 头像走 D1 ethan_users.avatar TEXT 列（单人规模够用，无需对象存储）
+export async function handleAuthUpdateMe(env, body, currentUser) {
+  if (!currentUser) return json({ error: '需要登录' }, 401);
+  const data = body || {};
+  const patch = {};
+
+  if (typeof data.avatar === 'string') {
+    const avatar = data.avatar.trim();
+    if (!avatar) return json({ error: '头像不能为空' }, 400);
+    // Base64 头像上限 2MB（约 270 万字符），防止超大请求打爆 D1 行
+    if (avatar.length > 2 * 1024 * 1024) return json({ error: '头像图片过大，请压缩后重试' }, 400);
+    const isDataUrl = /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(avatar);
+    const isLetter = /^[A-Z0-9]$/.test(avatar); // 单字母占位头像
+    if (!isDataUrl && !isLetter) return json({ error: '头像格式不正确' }, 400);
+    patch.avatar = avatar;
+  }
+
+  if (typeof data.username === 'string') {
+    const username = data.username.trim().slice(0, 50);
+    if (!username) return json({ error: '用户名不能为空' }, 400);
+    patch.username = username;
+  }
+
+  const keys = Object.keys(patch);
+  if (!keys.length) return json({ error: '没有可更新的字段' }, 400);
+
+  const setSql = keys.map(k => `${k}=?`).join(', ');
+  await dbRun(env.DB, `UPDATE ethan_users SET ${setSql}, updated_at=? WHERE id=?`,
+    [...keys.map(k => patch[k]), nowIso(), currentUser.id]);
+  const u = await dbFirst(env.DB, `SELECT id, email, username, avatar, is_owner, is_banned FROM ethan_users WHERE id=?`, [currentUser.id]);
+  return json({ ok: true, user: safeUser(u) });
 }

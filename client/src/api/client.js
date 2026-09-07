@@ -99,15 +99,17 @@ export const API = {
       return fetchPages('/auth/updateMe', { avatar });
     },
     async uploadAvatar(file) {
-      // 头像用 Base64 localStorage 存（单人够用，避免 Storage 依赖）
+      // 头像用 Base64 存 D1（单人够用，避免 Storage 依赖）
       if (!file.type.startsWith('image/')) throw new Error('请选择图片文件');
-      if (file.size > 2 * 1024 * 1024) throw new Error('图片不能超过 2MB');
+      // Base64 会膨胀约 1/3，需与后端 2M 字符上限对齐（二进制约 1.5MB）
+      if (file.size > 1.5 * 1024 * 1024) throw new Error('图片不能超过 1.5MB');
       const reader = new FileReader();
       const dataUrl = await new Promise((resolve, reject) => {
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
+      if (!dataUrl || dataUrl.length > 2 * 1024 * 1024) throw new Error('图片过大，请换一张或压缩后重试');
       await fetchPages('/auth/updateMe', { avatar: dataUrl });
       const prev = JSON.parse(localStorage.getItem('pw_user') || '{}');
       const next = { ...prev, avatar: dataUrl };

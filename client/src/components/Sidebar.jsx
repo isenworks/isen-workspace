@@ -90,7 +90,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
     saveNavLabel(user, item.key, custom);
     setEditingNav(null);
   };
-  const isImageAvatar = user?.avatar && /^https?:/.test(user.avatar);
+  // 头像可能是图片 URL 或裁剪上传的 Base64 data URL，两者都按图片渲染
+  const isImageAvatar = user?.avatar && /^(https?:|data:image\/)/i.test(user.avatar);
   const avatar = isImageAvatar
     ? user.avatar
     : (user?.avatar || user?.username?.[0] || 'U').toUpperCase();

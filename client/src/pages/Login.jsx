@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { API } from '../api/client.js';
-import { IS_D1_BACKEND } from '../api/client.js';
 
 /* =====================================================================
    登录页（方案 1：Apple HIG iCloud 风格）
@@ -138,9 +137,8 @@ export default function Login() {
   const [globalErr, setGlobalErr] = useState('');
   const [globalMsg, setGlobalMsg] = useState('');
 
-  // D1 模式：首次进入探测 modes（是否开放注册、是否有 bootstrap code）
+  // 首次进入探测 modes（是否开放注册、是否有 bootstrap code）
   useEffect(() => {
-    if (!IS_D1_BACKEND) return;
     (async () => {
       try {
         const r = await fetch('/api/auth/login', {
@@ -154,11 +152,7 @@ export default function Login() {
 
   const tabs = useMemo(() => {
     const base = [{ key: 'login', label: '登录' }];
-    if (!IS_D1_BACKEND) {
-      base.push({ key: 'register', label: '注册' });
-      return base;
-    }
-    // D1 模式：接口还没返回 (modes == null) → 先只显示「登录」Tab，不显示"没邀请码"提示，避免初次加载一闪出现大 info 图标
+    // 接口还没返回 (modes == null) → 先只显示「登录」Tab，不显示"没邀请码"提示，避免初次加载一闪出现大 info 图标
     if (modes == null) return base;
     if (modes.openRegister) base.push({ key: 'register', label: '注册' });
     if (modes.ownerBootstrap) base.push({ key: 'bootstrap', label: '初始化管理员' });
@@ -222,71 +216,42 @@ export default function Login() {
     if (!validateBeforeSubmit()) return;
     setBusy(true);
     try {
-      if (IS_D1_BACKEND) {
-        if (mode === 'login') {
-          await login(email.trim().toLowerCase(), password);
-          return;
-        }
-        if (mode === 'register') {
-          if (!modes?.openRegister) {
-            setGlobalErr('管理员暂未开放注册');
-            setBusy(false);
-            return;
-          }
-          await register(email.trim().toLowerCase(), password, {
-            username: username.trim() || email.trim().split('@')[0],
-            inviteCode: inviteCode.trim().toUpperCase(),
-          });
-          return;
-        }
-        if (mode === 'bootstrap') {
-          const res = await fetch('/api/auth/bootstrapOwner', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '',
-            },
-            body: JSON.stringify({
-              bootstrap_code: bootstrapCode.trim(),
-              email: email.trim().toLowerCase(),
-              username: username.trim() || email.trim().split('@')[0],
-              password: String(password),
-            }),
-          });
-          const data = await res.json().catch(() => null);
-          if (!res.ok || data?.error) throw new Error((data?.error) || `请求失败 (${res.status})`);
-          if (data?.token) localStorage.setItem('pw_unlock_token', String(data.token));
-          if (data?.user) localStorage.setItem('pw_user', JSON.stringify(data.user));
-          window.location.reload();
-          return;
-        }
-        return;
-      }
-
-      // ====== Supabase 模式（保留） ======
       if (mode === 'login') {
         await login(email.trim().toLowerCase(), password);
         return;
       }
-      if (!inviteCode.trim()) {
-        setErrors({ inviteCode: '请输入邀请码' });
-        setBusy(false);
+      if (mode === 'register') {
+        if (!modes?.openRegister) {
+          setGlobalErr('管理员暂未开放注册');
+          setBusy(false);
+          return;
+        }
+        await register(email.trim().toLowerCase(), password, {
+          username: username.trim() || email.trim().split('@')[0],
+          inviteCode: inviteCode.trim().toUpperCase(),
+        });
         return;
       }
-      const reserveResult = await API.inviteCodes.reserve(inviteCode.trim().toUpperCase());
-      if (!reserveResult.codeId) {
-        setErrors({ inviteCode: '邀请码无效或已被使用' });
-        setBusy(false);
+      if (mode === 'bootstrap') {
+        const res = await fetch('/api/auth/bootstrapOwner', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '',
+          },
+          body: JSON.stringify({
+            bootstrap_code: bootstrapCode.trim(),
+            email: email.trim().toLowerCase(),
+            username: username.trim() || email.trim().split('@')[0],
+            password: String(password),
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || data?.error) throw new Error((data?.error) || `请求失败 (${res.status})`);
+        if (data?.token) localStorage.setItem('pw_unlock_token', String(data.token));
+        if (data?.user) localStorage.setItem('pw_user', JSON.stringify(data.user));
+        window.location.reload();
         return;
-      }
-      const codeId = reserveResult.codeId;
-      const u = await register(email.trim().toLowerCase(), password, {
-        username: username.trim() || email.trim().split('@')[0],
-      });
-      await API.inviteCodes.link(codeId);
-      if (!u) {
-        setGlobalMsg('注册成功！请登录。');
-        setMode('login');
       }
     } catch (e) {
       // 常见登录错误映射到字段级，避免"全屏幕一条红"
@@ -534,7 +499,7 @@ export default function Login() {
                   </div>
                 )}
 
-                {mode === 'login' && IS_D1_BACKEND && modes && !modes.openRegister && !modes.ownerBootstrap && (
+                {mode === 'login' && modes && !modes.openRegister && !modes.ownerBootstrap && (
                   <div className="flex items-start gap-2 rounded-xl border border-brand-100 bg-brand-50/60 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-600">
                     <IconInfo className="mt-[3px] h-4 w-4 shrink-0 text-brand-500" />
                     <span>

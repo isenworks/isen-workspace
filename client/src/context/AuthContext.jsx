@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase } from '../lib/supabase.js';
-import { API, IS_D1_BACKEND } from '../api/client.js';
+import { API } from '../api/client.js';
 
 const AuthContext = createContext(null);
 
@@ -34,17 +33,25 @@ function writeToken(t) {
   else localStorage.setItem(TOKEN_KEY, String(t));
 }
 
+// 把后端返回的 user 字段统一规范化（兼容 0/1/'1' 等历史存储）
+function normalizeUser(u) {
+  if (!u) return null;
+  return {
+    ...DEFAULT_D1_USER,
+    ...u,
+    is_owner: u.is_owner === true || u.is_owner === 1 || u.is_owner === '1',
+    is_banned: u.is_banned === true || u.is_banned === 1 || u.is_banned === '1',
+  };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readCachedUser);
   const [loading, setLoading] = useState(true);
 
-  // ------------------------------------------------------------
-  // D1 模式：根据 token /me 校验启动态
+  // 启动态：根据 token 调 /auth/me 校验后端用户是否仍存在
   //   - 有缓存 user 且有 token → 调 /auth/me 核对后端用户是否仍存在
   //   - 没有 token 或 me 返回 null → 清空，user=null 进入登录页
-  // ------------------------------------------------------------
   useEffect(() => {
-    if (!IS_D1_BACKEND) return;
     let mounted = true;
     // 清理旧版本遗留的解锁标记（新体系不再使用）
     try { localStorage.removeItem(UNLOCKED_KEY); } catch (_) {}
@@ -55,13 +62,8 @@ export function AuthProvider({ children }) {
       // 防御：老版本 pw_user 可能没有 is_owner 字段（迁移遗留），强制去后端拉一次 /auth/me 补齐
       //       避免出现"明明是 owner，但本地缓存缺字段 → 设置弹窗看不到 invites/users"的情况
       if (cached && cached.id) {
-        const normalized = {
-          ...DEFAULT_D1_USER,
-          ...cached,
-          is_owner: cached.is_owner === true || cached.is_owner === 1 || cached.is_owner === '1',
-          is_banned: cached.is_banned === true || cached.is_banned === 1 || cached.is_banned === '1',
-        };
-        if (!cached.is_owner && cached.is_owner !== false && cached.is_owner !== 0) {
+        const normalized = normalizeUser(cached);
+        if (cached.is_owner !== false && cached.is_owner !== 0 && cached.is_owner !== true) {
           cached = null; // 字段缺失 → 强制走后端 /me
         } else {
           cached = normalized;
@@ -69,7 +71,7 @@ export function AuthProvider({ children }) {
         }
       }
       if (!token) {
-        // 没有有效 token：不允许"默认进入"（新多用户体系强制登录）
+        // 没有有效 token：不允许"默认进入"（多用户体系强制登录）
         writeCachedUser(null);
         if (mounted) { setUser(null); setLoading(false); }
         return;
@@ -78,12 +80,7 @@ export function AuthProvider({ children }) {
         const me = await API.auth.me();
         const u = me?.user;
         if (u) {
-          const normalized = {
-            ...DEFAULT_D1_USER,
-            ...u,
-            is_owner: u.is_owner === true || u.is_owner === 1 || u.is_owner === '1',
-            is_banned: u.is_banned === true || u.is_banned === 1 || u.is_banned === '1',
-          };
+          const normalized = normalizeUser(u);
           writeCachedUser(normalized);
           if (mounted) { setUser(normalized); setLoading(false); }
         } else {
@@ -116,121 +113,35 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  // ------------------------------------------------------------
-  // Supabase 模式：保持原有会话监听逻辑
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (IS_D1_BACKEND) return;
-
-    let subscription;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        API.auth.me()
-          .then(r => {
-            if (r.user.is_banned) {
-              API.auth.logout();
-              localStorage.removeItem(USER_KEY);
-              setUser(null);
-            } else {
-              setUser(r.user);
-              writeCachedUser(r.user);
-            }
-          })
-          .catch(() => {
-            localStorage.removeItem(USER_KEY);
-            setUser(null);
-          })
-          .finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const setup = async () => {
-      const d = await supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          localStorage.removeItem(USER_KEY);
-          setUser(null);
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          API.auth.me()
-            .then(r => {
-              if (r.user.is_banned) {
-                API.auth.logout();
-                localStorage.removeItem(USER_KEY);
-                setUser(null);
-              } else {
-                setUser(r.user);
-                writeCachedUser(r.user);
-              }
-            })
-            .catch(() => {
-              localStorage.removeItem(USER_KEY);
-              setUser(null);
-            });
-        }
-      });
-      subscription = d.data.subscription;
-    };
-    setup();
-
-    return () => subscription?.unsubscribe?.();
-  }, []);
-
   // 登录
   const login = useCallback(async (email, password) => {
     const r = await API.auth.login(email, password);
     const u = r?.user;
     if (!u) throw new Error('登录失败：未返回用户信息');
-    if (IS_D1_BACKEND) {
-      // token 已经由 client.js 的 login 接口写入 pw_unlock_token（这里再次兜底）
-      if (r?.token) writeToken(r.token);
-      writeCachedUser(u);
-      setUser(u);
-      return u;
-    }
-    const me = await API.auth.me();
-    if (me.user.is_banned) {
-      await API.auth.logout();
-      localStorage.removeItem(USER_KEY);
-      setUser(null);
-      throw new Error('账号已被禁用，请联系管理员');
-    }
-    writeCachedUser(me.user);
-    setUser(me.user);
-    return me.user;
+    // token 已经由 client.js 的 login 接口写入 pw_unlock_token（这里再次兜底）
+    if (r?.token) writeToken(r.token);
+    const normalized = normalizeUser(u);
+    writeCachedUser(normalized);
+    setUser(normalized);
+    return normalized;
   }, []);
 
   // 注册
   const register = useCallback(async (email, password, { username, avatar, inviteCode } = {}) => {
-    if (IS_D1_BACKEND) {
-      const r = await API.auth.register(email, password, { username, avatar, inviteCode });
-      const u = r?.user;
-      if (!u) throw new Error('注册失败：未返回用户信息');
-      if (r?.token) writeToken(r.token);
-      writeCachedUser(u);
-      setUser(u);
-      return u;
-    }
-    await API.auth.register(email, password, { username, avatar });
-    const me = await API.auth.me().catch(() => null);
-    if (me) {
-      writeCachedUser(me.user);
-      setUser(me.user);
-      return me.user;
-    }
-    return null;
+    const r = await API.auth.register(email, password, { username, avatar, inviteCode });
+    const u = r?.user;
+    if (!u) throw new Error('注册失败：未返回用户信息');
+    if (r?.token) writeToken(r.token);
+    const normalized = normalizeUser(u);
+    writeCachedUser(normalized);
+    setUser(normalized);
+    return normalized;
   }, []);
 
   // 登出
   const logout = useCallback(async () => {
-    if (IS_D1_BACKEND) {
-      writeCachedUser(null);
-      writeToken('');
-      setUser(null);
-      return;
-    }
-    await API.auth.logout();
-    localStorage.removeItem(USER_KEY);
+    writeCachedUser(null);
+    writeToken('');
     setUser(null);
   }, []);
 

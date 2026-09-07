@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
 import { inferGrowthType } from '../utils/uiConstants.js';
-import { syncKey, cloudPush } from '../utils/cloudKV.js';
+import { syncKey, cloudPush, cloudMergePush } from '../utils/cloudKV.js';
 import Modal from '../components/Modal.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
 import BookForm from '../components/forms/BookForm.jsx';
@@ -5329,7 +5329,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           headers: { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' },
         });
         const j = await r.json().catch(() => ({}));
-        const v = j?.data?.annual_work_title;
+        // 新协议 GET 返回 { v, version }；兼容老协议纯字符串
+        const entry = j?.data?.annual_work_title;
+        const v = entry && typeof entry === 'object' && 'v' in entry ? entry.v : entry;
         if (v) {
           setLocalTitle(String(v));
           try { localStorage.setItem(WORK_TITLE_CACHE, String(v)); } catch { /* ignore */ }
@@ -6794,8 +6796,12 @@ function SectionHeader({ cat, title, progress, right }) {
 
 /* ---------- 13. localStorage 持久化 hook（云端同步版） ----------
  * 本地照写（离线可用+秒开），挂载时拉 D1 镜像：
- *   云端有且不同 → 云端胜（多设备拉新）；云端无 → 本地数据自动上云（首次迁移）
- * 后续每次变更防抖推送 D1，实现多设备持续同步 */
+ *   · 云端有且不同 → 云端胜（多设备拉新）；云端无 → 本地数据自动上云（首次迁移）
+ *   · 后续每次变更防抖推送 D1，实现多设备持续同步
+ * 结构化对象（按 id 索引的记录如 habit_targets / ability_score_history / work_kr_microactions）
+ *   走字段级合并：只推送本次变化的顶层字段，后端按服务器时间戳逐字段合并，
+ *   多设备并发编辑不同字段不会互覆盖；拉取时云端 envelope 字段级合并回本地，不丢本地未同步字段。
+ * 数组 / 原始值仍走 LWW 全量推送（数组元素级合并成本高，低频编辑场景 LWW 足够）。*/
 function usePersistentState(key, initial) {
   const [state, setState] = useState(() => {
     try {
@@ -6805,21 +6811,60 @@ function usePersistentState(key, initial) {
     return typeof initial === 'function' ? initial() : initial;
   });
   const cloudSyncedRef = useRef(false);
+  const prevRef = useRef(state);          // 上一次推送时的状态快照（用于 diff 出变化的顶层字段）
+  const suppressPushRef = useRef(false);  // 云端拉取覆盖本地后跳过一次推送，避免反馈循环
   useEffect(() => {
     let alive = true;
     syncKey(key, localStorage.getItem(key), (cloudStr) => {
       if (!alive) return;
       try {
-        localStorage.setItem(key, cloudStr);
-        setState(JSON.parse(cloudStr));
+        const parsed = JSON.parse(cloudStr);
+        // envelope 形态：云端是字段级合并的 envelope，逐字段合并回本地（不丢本地未同步字段）
+        if (parsed && parsed.__mv !== undefined && parsed.fields && typeof parsed.fields === 'object') {
+          setState((prev) => {
+            const base = (prev && typeof prev === 'object' && !Array.isArray(prev)) ? { ...prev } : {};
+            for (const [f, info] of Object.entries(parsed.fields)) {
+              if (info && info.v !== undefined) base[f] = info.v;
+            }
+            try { localStorage.setItem(key, JSON.stringify(base)); } catch {}
+            return base;
+          });
+        } else {
+          // 非 envelope（老数据 / 简单 LWW 值）：原样覆盖
+          localStorage.setItem(key, cloudStr);
+          setState(parsed);
+        }
+        suppressPushRef.current = true; // 跳过本次 state 变更触发的推送
       } catch {}
-    }).then(() => { if (alive) cloudSyncedRef.current = true; });
+    }).then(() => { if (alive) { cloudSyncedRef.current = true; prevRef.current = state; } });
     return () => { alive = false; };
   }, [key]);
   useEffect(() => {
     try { localStorage.setItem(key, JSON.stringify(state)); } catch {}
     // 云端拉取未完成期间的本地写入不推（避免用旧值覆盖云端；拉取完成后如有差异会在下次加载纠正）
-    if (cloudSyncedRef.current) cloudPush(key, JSON.stringify(state));
+    if (!cloudSyncedRef.current || suppressPushRef.current) {
+      suppressPushRef.current = false;
+      prevRef.current = state;
+      return;
+    }
+    // 结构化对象 → 字段级合并（只推变化的顶层字段）；数组 / 原始值 → LWW 全量推送
+    const isPlainObj = state && typeof state === 'object' && !Array.isArray(state);
+    const prev = prevRef.current;
+    const prevPlain = prev && typeof prev === 'object' && !Array.isArray(prev);
+    if (isPlainObj && prevPlain) {
+      const partial = {};
+      let hasChange = false;
+      for (const k of Object.keys(state)) {
+        if (JSON.stringify(prev[k]) !== JSON.stringify(state[k])) {
+          partial[k] = state[k];
+          hasChange = true;
+        }
+      }
+      if (hasChange) cloudMergePush(key, partial);
+    } else {
+      cloudPush(key, JSON.stringify(state));
+    }
+    prevRef.current = state;
   }, [key, state]);
   return [state, setState];
 }

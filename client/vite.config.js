@@ -2,9 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Cloudflare Pages 自动构建默认走 D1 后端（无需手动配 VITE_BACKEND 环境变量）
-// 本地 dev 如需临时测试 D1：VITE_BACKEND=pages-d1 npm run dev
-const DEFAULT_BACKEND = process.env.NODE_ENV === 'production' ? 'pages-d1' : 'supabase';
-process.env.VITE_BACKEND = process.env.VITE_BACKEND || DEFAULT_BACKEND;
+// 本地 dev 默认也走 D1：用 `npx wrangler pages dev functions -- npm run dev` 启动
+// 如需覆盖：VITE_BACKEND=<任意值> npm run dev
+process.env.VITE_BACKEND = process.env.VITE_BACKEND || 'pages-d1';
 
 export default defineConfig({
   base: './',

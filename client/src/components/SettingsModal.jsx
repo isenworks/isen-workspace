@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API, IS_D1_BACKEND } from '../api/client.js';
+import { API } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, saveThemeOrder, isValidHex } from '../utils/theme.js';
@@ -233,7 +233,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               {[
                 { key: 'appearance', label: '外观' },
                 { key: 'admin', label: '邀请与用户' },
-                IS_D1_BACKEND && { key: 'migrate', label: 'D1 数据迁移' },
+                { key: 'migrate', label: 'D1 数据迁移' },
               ].filter(Boolean).map(t => (
                 <button key={t.key} onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }} style={{
                   flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',

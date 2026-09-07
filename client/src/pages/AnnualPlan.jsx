@@ -6656,17 +6656,17 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
           <div className="w-[220px] flex-shrink-0 flex flex-col gap-1">
             {/* 全部类目（默认）：与子类目同构（数字+18px加号占位 → 计数列严格对齐）；行尾 + 新建模块 */}
             <div
-              className={`group flex items-center gap-2 px-2.5 h-8 rounded-lg text-[13px] transition text-left ${!lifeFilter ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
+              className={`group flex items-center gap-2 px-2.5 h-9 rounded-lg text-sm transition text-left ${!lifeFilter ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
               style={!lifeFilter ? { color: 'var(--m-life)' } : undefined}>
               <button onClick={() => setLifeFilter(null)}
                 className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
                 title="显示全部记录">
-                <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.4" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="3.4" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="3.4" cy="18" r="1.3" fill="currentColor" stroke="none"/>
                 </svg>
                 <span className="flex-1 truncate">全部类目</span>
               </button>
-              <span className={`text-[11px] tabular-nums ${!lifeFilter ? '' : 'text-ink-400'}`}>{totalEntries}</span>
+              <span className={`text-[12px] tabular-nums ${!lifeFilter ? '' : 'text-ink-400'}`}>{totalEntries}</span>
               <button onClick={() => { setShowNewCat(v => !v); setNewCatLb(''); }} title="新建模块"
                 className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer transition"
                 style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>
@@ -6675,7 +6675,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             </div>
             {/* 新建模块 mini 输入行（复用 EntryForm 新建模块面板的交互） */}
             {showNewCat && (
-              <div className="flex items-center gap-1.5 pl-8 pr-2.5 h-8">
+              <div className="flex items-center gap-1.5 pl-8 pr-2.5 h-9">
                 <input autoFocus value={newCatLb} onChange={(e) => setNewCatLb(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') createCategory(); if (e.key === 'Escape') setShowNewCat(false); }}
                   placeholder="模块名，如「健康」"
@@ -6693,15 +6693,15 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               const active = lifeFilter === c.key;
               return (
                 <div key={c.key}
-                  className={`group flex items-center gap-2 pl-8 pr-2.5 h-8 rounded-lg text-[13px] transition text-left ${active ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
+                  className={`group flex items-center gap-2 pl-8 pr-2.5 h-9 rounded-lg text-sm transition text-left ${active ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
                   style={active ? { color: 'var(--m-life)' } : undefined}>
                   <button onClick={() => setLifeFilter(active ? null : c.key)}
                     className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
                     title={active ? '点击取消筛选' : `筛选${c.lb}记录`}>
-                    <LifeCatIcon catKey={c.key} lb={c.lb} className="w-[15px] h-[15px] flex-shrink-0" />
+                    <LifeCatIcon catKey={c.key} lb={c.lb} className="w-4 h-4 flex-shrink-0" />
                     <span className="flex-1 truncate">{c.lb}</span>
                   </button>
-                  <span className={`text-[11px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{c.entries.length}</span>
+                  <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{c.entries.length}</span>
                   <button onClick={() => onEntryAdd?.(c.key, c.lb)} title={`添加${c.lb}记录`}
                     className={`${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer`}
                     style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>

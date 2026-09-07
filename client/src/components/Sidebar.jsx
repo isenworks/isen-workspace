@@ -357,7 +357,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   <input
                     autoFocus
                     defaultValue={labelOf(item)}
-                    className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-[13px] py-0"
+                    className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-sm py-0"
                     onClick={(e) => e.stopPropagation()}
                     onBlur={(e) => commitNavLabel(item, e.target.value)}
                     onKeyDown={(e) => {
@@ -431,7 +431,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   <input
                     autoFocus
                     defaultValue={labelOf(item)}
-                    className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-[13px] py-0"
+                    className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-sm py-0"
                     onClick={(e) => e.stopPropagation()}
                     onBlur={(e) => commitNavLabel(item, e.target.value)}
                     onKeyDown={(e) => {

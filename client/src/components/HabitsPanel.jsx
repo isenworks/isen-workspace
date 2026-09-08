@@ -114,6 +114,10 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     store.broadcast({ type: 'habit', id: h.id, done_today: nextDone });
     try {
       await API.habits.toggle(h.id, date, nextDone);
+      // 写库成功：清掉本面板缓存快照，防止自动同步触发的 load() 在 TTL 内用旧快照把 UI 打回未勾选
+      cacheClear(cacheRef, 'hp:');
+      // 再断言一次，覆盖 await 期间并发 load() 可能带回的旧数据
+      setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: nextDone } : x));
     } catch (e) {
       setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: h.done_today } : x));
       store.broadcast({ type: 'habit', id: h.id, done_today: h.done_today });
@@ -159,6 +163,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         sleep_note: sleepNote || null,
         data_source: 'manual',
       } : x));
+      cacheClear(cacheRef, 'hp:'); // 写库成功：清缓存快照，防 TTL 内 load() 用旧数据回退 UI
       store.broadcast({ type: 'habit', id: habitId, done_today: r.done ? 1 : 0 });
       setSleepPopover(null);
       toast.success(r.done ? '睡眠达标，已自动打勾' : '已记录睡眠');
@@ -210,6 +215,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         store.broadcast({ type: 'habit', id: h.id, done_today: nextDone });
         try {
           await API.habits.toggle(h.id, date, nextDone);
+          cacheClear(cacheRef, 'hp:'); // 写库成功：清缓存快照，防 TTL 内 load() 用旧数据回退 UI
+          setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: nextDone, actual_value: 0 } : x));
         } catch (e) {
           setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: h.done_today, actual_value: h.actual_value } : x));
           store.broadcast({ type: 'habit', id: h.id, done_today: h.done_today });
@@ -223,6 +230,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         try {
           const r = await API.habits.logCount(h.id, date, { add_value: 1, note: '' });
           setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: r.done ? 1 : 0, actual_value: r.actual_value } : x));
+          cacheClear(cacheRef, 'hp:'); // 写库成功：清缓存快照，防 TTL 内 load() 用旧数据回退 UI
           store.broadcast({ type: 'habit', id: h.id, done_today: r.done ? 1 : 0 });
           if (r.done) toast.success('目标达成');
         } catch (e) { toast.error(e.message); }
@@ -251,6 +259,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     try {
       const r = await API.habits.logCount(habitId, date, { add_value: addValue, note });
       setHabits(hs => hs.map(x => x.id === habitId ? { ...x, done_today: r.done ? 1 : 0, actual_value: r.actual_value, log_note: note || null } : x));
+      cacheClear(cacheRef, 'hp:'); // 写库成功：清缓存快照，防 TTL 内 load() 用旧数据回退 UI
       store.broadcast({ type: 'habit', id: habitId, done_today: r.done ? 1 : 0 });
       setCountLog(null);
       if (r.done) toast.success('目标达成');

@@ -355,24 +355,13 @@ export default function InboxPage({ onCountChange }) {
     </>
   );
 
-  // ===== 页头（色条 + 标题 + 布局切换 [+ 二分布局的笔图标] + N 快捷键） =====
+  // ===== 页头（色条 + 标题 + 切换器 + [二分布局的笔按钮] + 快捷键 N） =====
   const renderHeader = () => (
     <div className="flex items-center gap-3">
       <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
-      <span className="text-[15.5px] font-bold text-ink-900 leading-none">收集箱</span>
-      {isDuo && (
-        <button
-          onClick={() => setSelectedId(null)}
-          title="新增记录"
-          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-colors"
-          style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        </button>
-      )}
-      <div className="flex-1" />
-      {/* 布局切换：三分 / 二分 */}
-      <div className="flex items-center p-[2px] rounded-lg" style={{ background: 'rgba(120,120,128,0.08)' }}>
+      <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">收集箱</span>
+      {/* 布局切换：紧跟标题 */}
+      <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
         <button
           onClick={() => switchLayout('tri')}
           title="三分布局"
@@ -401,36 +390,46 @@ export default function InboxPage({ onCountChange }) {
           </svg>
         </button>
       </div>
+      <div className="flex-1" />
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="text-[11px] text-ink-400">随时快速记录</span>
+        <span className="text-[11px] text-ink-400">快捷键</span>
         <kbd className="px-1.5 py-0.5 rounded-md text-[11px] font-medium tabular-nums border border-ink-100 bg-white/70 text-ink-500">N</kbd>
       </div>
+      {/* 笔按钮（仅二分布局）：回到新增面板，主题色实心 */}
+      {isDuo && (
+        <button
+          onClick={() => setSelectedId(null)}
+          title="新增记录"
+          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all"
+          style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        </button>
+      )}
     </div>
   );
 
   return (
     <div className="flex-1 min-w-0 w-full flex items-stretch gap-4">
       {isDuo ? (
-        /* ===== 二分布局：左侧事项列表铺满，右侧新增/详情面板 ===== */
+        /* ===== 二分布局：左侧事项列表，右侧编辑面板（新增/选中条目），比例与三分布局一致 ===== */
         <>
-          <div className="flex flex-col gap-3 min-w-0 flex-1">
+          <div className="flex flex-col gap-3 min-w-0" style={{ flex: '1 1 42%', maxWidth: 520 }}>
             <div className="glass-card rounded-2xl p-3">
               {renderHeader()}
             </div>
             {renderList(true)}
           </div>
 
-          {/* 右侧面板：无选中 = 新增记录（QuickCapture）；有选中 = 事项详情工作台 */}
-          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0 flex-1">
+          {/* 右侧编辑面板：无选中 = 新增（QuickCapture + 标签/保存底栏）；有选中 = 编辑该条目 */}
+          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={{ flex: '1 1 58%' }}>
             {!selected ? (
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
                   <span className="text-[15.5px] font-bold text-ink-900 leading-none">新增记录</span>
                 </div>
-                <div className="flex-1 flex flex-col min-h-0">
-                  <QuickCapture onSaved={load} fill />
-                </div>
+                <QuickCapture onSaved={load} bare />
               </div>
             ) : (
               <>

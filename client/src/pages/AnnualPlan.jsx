@@ -3663,7 +3663,6 @@ function CognitionView({
 
   const BLUE = 'var(--m-cognition)'; // 知力页卡片跟随知力模块色
   const BLUE_DARK = '#0062cc';  // 深蓝
-  const BLUE_LIGHT = 'rgba(var(--m-cognition-rgb),0.08)';
   const BLUE_BG = 'rgba(var(--m-cognition-rgb),0.12)';
   const S_RGB = 'var(--m-cognition-rgb)'; // 知力模块 RGB（用于 rgba(${S_RGB}, α) 透明合成）
   // 分类色标：4 大类固定颜色（身份识别）
@@ -3680,6 +3679,13 @@ function CognitionView({
     '人际沟通': 'rgba(var(--m-life-rgb),0.72)',
     '商业职场': 'rgba(var(--m-ability-rgb),0.72)',
     '人文叙事': 'rgba(var(--m-energy-rgb),0.72)',
+  };
+  // 分类 Pill 底色：同主题色 8% 极浅底（远浅于文字色，只留一丝色相提示）
+  const CAT_PILL_BG = {
+    '认知成长': 'rgba(var(--m-cognition-rgb),0.08)',
+    '人际沟通': 'rgba(var(--m-life-rgb),0.08)',
+    '商业职场': 'rgba(var(--m-ability-rgb),0.08)',
+    '人文叙事': 'rgba(var(--m-energy-rgb),0.08)',
   };
   const catTextColorOf = (c) => CAT_TEXT_COLORS[c] || 'rgba(var(--m-cognition-rgb),0.72)';
   const year = new Date().getFullYear();
@@ -4423,15 +4429,7 @@ function CognitionView({
                                 </div>
                                 <span className="inline-flex flex-shrink-0 items-center px-[7px] h-[17px] rounded-full text-[10px] font-bold leading-none"
                                   style={{
-                                    background: (() => {
-                                      switch (b.cat) {
-                                        case '认知成长': return BLUE_LIGHT;
-                                        case '人际沟通': return '#ede9fe';
-                                        case '商业职场': return '#FFE4CC';
-                                        case '人文叙事': return '#D5F2DF';
-                                        default: return '#f1f5f9';
-                                      }
-                                    })(),
+                                    background: CAT_PILL_BG[b.cat] || '#f1f5f9',
                                     color: catTextColorOf(b.cat),
                                   }}>
                                   {b.cat || '未分类'}

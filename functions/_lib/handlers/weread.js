@@ -127,6 +127,8 @@ export async function handleWereadSearch(env, q) {
 
     // Parse: results[].books[].bookInfo -> extract hashId from deepLink
     const isHashId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
+    // 阅读人数：不同版本字段名不一致，按优先级取第一个正数（取不到为 0，客户端退化为取首个结果）
+    const firstPosNum = (...vals) => { for (const v of vals) { const n = Number(v); if (n > 0) return n; } return 0; };
     const results = [];
     const resultGroups = data?.results || [];
     for (const group of resultGroups) {
@@ -143,6 +145,8 @@ export async function handleWereadSearch(env, q) {
           bookId: hashId,
           cover: info.cover || '',
           rating: info.newRating ? String(info.newRating) : '',
+          readers: firstPosNum(info.readingCount, info.readCount, info.readingNum, info.reading_count,
+            info.readerCount, info.readersCount, info.popularity, info.readNum, item.readingCount, item.readCount),
         });
       }
     }

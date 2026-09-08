@@ -3525,11 +3525,16 @@ function CognitionView({
       //   ① 书名+作者都匹配 → 覆盖封面 + bookId
       //   ② 书名精确匹配（作者缺失或无法比对）→ 同上
       //   ③ 书名包含 + 作者匹配 → 同上；都不中 → 保持原样不动（宁缺勿错）
+      // 多版本同书（如「影响力」vs「影响力·行动篇」，主书名归一化后相同）：
+      //   同一层级内取微信读书阅读人数最多的版本（服务端返回 readers，取不到时退化为首个结果）
       // 用户手动粘贴的封面（coverSource==='manual' 或 data:URL）不动
       const coverKeep = (b) => {
         const u = String(b.coverUrl || '');
         return /^data:image\//i.test(u) || b.coverSource === 'manual';
       };
+      const pickBest = (list) => (list && list.length > 0)
+        ? list.reduce((best, x) => (Number(x?.readers) > Number(best?.readers) ? x : best))
+        : null;
       const needCalib = curr
         .map((b, idx) => ({ b, idx }))
         .filter(({ b }) => b && b.t);
@@ -3544,12 +3549,12 @@ function CognitionView({
               const j = await r.json().catch(() => ({}));
               if (!j?.ok || !Array.isArray(j.results) || j.results.length === 0) return null;
               const lt = normTitleOnly(b.t);
-              let match = j.results.find(x => normTitleOnly(x.title) === lt && authorMatches(b.author, x.author));
-              if (!match) match = j.results.find(x => normTitleOnly(x.title) === lt);
-              if (!match) match = j.results.find(x => {
+              let match = pickBest(j.results.filter(x => normTitleOnly(x.title) === lt && authorMatches(b.author, x.author)));
+              if (!match) match = pickBest(j.results.filter(x => normTitleOnly(x.title) === lt));
+              if (!match) match = pickBest(j.results.filter(x => {
                 const xt = normTitleOnly(x.title);
                 return (lt.includes(xt) || xt.includes(lt)) && authorMatches(b.author, x.author);
-              });
+              }));
               if (!match) return null;
               const patch = {};
               if (match.cover && !coverKeep(b)) {

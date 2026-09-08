@@ -90,7 +90,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={placeholder || '记录一个想法或备忘，回车收进收集箱…'}
+          placeholder={placeholder || '记录想法/待办'}
           className="flex-1 min-w-0 bg-transparent outline-none text-[14px] text-[#1c1c1e] placeholder:text-ink-400"
         />
         <span className="flex-shrink-0 text-[12px] tabular-nums text-ink-400">{savedFlash ? '✓ 已收进' : nowLabel}</span>
@@ -99,7 +99,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
           disabled={busy || !text.trim()}
           className="flex-shrink-0 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
           style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-        >收进收集箱</button>
+        >保存</button>
       </div>
 
       {/* 分类 chips：默认收起，点「顺手选个分类」展开 */}

@@ -1471,7 +1471,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               }}
             >+ 新增当日事项</button>
           }
-          maxWidth={720}
+          maxWidth={520}
         >
           <div className="flex flex-col gap-4">
             {detailEvents.length === 0 ? (

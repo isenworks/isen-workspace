@@ -379,7 +379,7 @@ export default function InboxPage({ onCountChange }) {
       {isDuo ? (
         /* ===== 二分布局：左侧事项列表，右侧编辑面板（新增/编辑），比例与三分布局一致 ===== */
         <>
-          <div className="flex flex-col gap-3 min-w-0" style={{ flex: '1 1 42%', maxWidth: 520 }}>
+          <div className="flex flex-col gap-3 min-w-0" style={{ flex: '1 1 38%', maxWidth: 480 }}>
             <div className="glass-card rounded-2xl p-3">
               {renderHeader()}
             </div>
@@ -387,7 +387,7 @@ export default function InboxPage({ onCountChange }) {
           </div>
 
           {/* 右侧编辑面板：无选中 = 新增；有选中 = 编辑该条目（同一套面板） */}
-          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={{ flex: '1 1 58%' }}>
+          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={{ flex: '1 1 62%' }}>
             {renderEditPanel(false)}
           </div>
         </>

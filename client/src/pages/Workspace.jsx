@@ -54,6 +54,8 @@ export default function Workspace({ user: propUser }) {
   // ===== 收集箱：待分派计数（侧边栏徽标 + 计划页提醒条）+ 快速捕获弹窗 =====
   const [inboxCount, setInboxCount] = useState(0);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  // 快速捕获「分派」：详细分派弹窗 { item, initial }（ScheduleForm 预填）
+  const [dispatchDetail, setDispatchDetail] = useState(null);
 
   // ===== 今日计划左右分栏拖拽比例（与收集箱同款交互，独立记忆） =====
   const { leftStyle, rightStyle, bindRoot, bindDivider } = useSplitRatio('plan_split_ratio');
@@ -111,6 +113,42 @@ export default function Workspace({ user: propUser }) {
     API.inbox.list().then(r => setInboxCount((r.items || []).length)).catch(() => {});
   }, []);
   useEffect(() => { loadInboxCount(); }, [loadInboxCount, refreshKey]);
+
+  // ===== 快速捕获「分派」：条目已先收进收集箱，这里打开详细分派（与收集箱页同款流程） =====
+  function openDispatchFor(item) {
+    if (!item) return;
+    setQuickCaptureOpen(false); // 关闭快速捕获弹窗，避免弹窗叠加
+    // 首行作标题、其余行作正文（与收集箱页 splitContent 同规则）
+    const s = String(item.content || '');
+    const idx = s.indexOf('\n');
+    setDispatchDetail({
+      item,
+      initial: {
+        title: idx === -1 ? s : s.slice(0, idx),
+        content: idx === -1 ? '' : s.slice(idx + 1).trim(),
+        category: item.category != null ? Number(item.category) : 3,
+        date: getToday(),
+        start_time: '',
+      },
+    });
+  }
+
+  // 日程创建成功 → 回写收集箱条目分派去向
+  async function onDispatchSaved() {
+    const item = dispatchDetail?.item;
+    setDispatchDetail(null);
+    refresh();
+    if (!item) return;
+    try {
+      await API.inbox.update(item.id, { processed_type: 'schedule' });
+      loadInboxCount();
+      store.broadcast({ type: 'reload' });
+      toast.success('已转为日程');
+    } catch (e) {
+      // 日程已建好，仅回写失败：条目留在收集箱，用户可手动完成，避免产生重复日程
+      toast.error('日程已创建，但收集箱状态回写失败');
+    }
+  }
 
   // ===== 快捷键 N：任意页面快速捕获（无输入框聚焦、无弹窗打开时） =====
   useEffect(() => {
@@ -915,7 +953,19 @@ export default function Workspace({ user: propUser }) {
 
       {/* ===== 快速捕获弹窗（快捷键 N / 侧边栏收集箱「＋」）===== */}
       <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="快速记录到收集箱">
-        <QuickCapture onSaved={loadInboxCount} />
+        <QuickCapture onSaved={loadInboxCount} onDispatch={openDispatchFor} />
+      </Modal>
+
+      {/* ===== 快速捕获「分派」：复用 ScheduleForm（支持时长/重要性/重复） ===== */}
+      <Modal open={!!dispatchDetail} onClose={() => setDispatchDetail(null)} title="详细分派 · 新建日程">
+        {dispatchDetail && (
+          <ScheduleForm
+            initial={dispatchDetail.initial}
+            defaultDate={dispatchDetail.initial.date}
+            onSaved={onDispatchSaved}
+            onCancel={() => setDispatchDetail(null)}
+          />
+        )}
       </Modal>
     </div>
   );

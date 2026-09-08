@@ -14,24 +14,24 @@ function hexToRgba(hex, a = 0.08) {
 }
 
 /* ============================================================
- * QuickCapture · 快速捕获框（收集箱入口之一）
- *  - 默认模式（页内/弹窗输入区）：大输入区（无边框悬浮卡）约占左栏一半
- *    高度，内容超出自动向下拉伸（无滚动条），保存后恢复默认高度；
- *    Enter 换行、Ctrl/Cmd+S 保存；静息中性阴影定义边缘，聚焦主题色光环
- *  - bare 模式（二分布局右侧新增面板）：输入区撑满整个面板，超出滚动；
- *    底部按钮行（＋ 标签 分派 … 保存）与详情面板同构（保存与「提交」同位同样式）
- *  - 「分派」按钮（传 onDispatch 时显示）：先收进收集箱，再交给宿主打开
- *    详细分派弹窗（InboxPage · ScheduleForm 预填）
- *  - 三处复用：全局快捷键 N 弹窗（Workspace）+ 收集箱三分布局页内输入区
- *    + 收集箱二分布局右侧新增面板（bare）
+ * QuickCapture · 收集箱输入框（新建与编辑统一同构）
+ *  - 新建（不传 edit）：大输入区（无边框悬浮卡）默认约占左栏一半高度，
+ *    内容超出自动向下拉伸（无滚动条），保存后清空；Enter 换行、Ctrl/Cmd+S 保存；
+ *    静息中性阴影定义边缘，聚焦主题色光环反馈输入状态
+ *  - 编辑（传 edit={item}，配合 key={item.id} 重挂载）：输入区预填条目内容，
+ *    保存走更新（内容+标签），成功显示「✓ 已保存」且不清空
+ *  - bare 模式（面板内）：输入区撑满整个面板，超出滚动；底部按钮行
+ *    「＋ 标签 [分派] … 保存」固定在面板底部
+ *  - 「分派」按钮（传 onDispatch 时显示）：新建先收进、编辑先更新，
+ *    再交给宿主打开详细分派弹窗（InboxPage · ScheduleForm 预填）
  * ============================================================ */
-export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, placeholder, bare }) {
+export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus = true, placeholder, bare, edit }) {
   const toast = useToast();
-  const [text, setText] = useState('');
-  const [cat, setCat] = useState(null);          // 选中的分类 v；null=未选
+  const [text, setText] = useState(edit ? String(edit.content || '') : '');
+  const [cat, setCat] = useState(edit && edit.category != null ? Number(edit.category) : null);
   const [showCats, setShowCats] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [savedFlash, setSavedFlash] = useState(false);
+  const [flashMsg, setFlashMsg] = useState('');
   const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
   const flashTimer = useRef(null);
@@ -42,6 +42,12 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
 
   useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
+  function flash(msg) {
+    setFlashMsg(msg);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlashMsg(''), 1500);
+  }
+
   // 自动增高（默认模式）：内容行数超过默认高度时撑开（不用滚动条）；bare 模式由 flex 撑满，无需 JS 计算
   function autoGrow(el) {
     if (!el || bare) return;
@@ -49,23 +55,51 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
     el.style.height = Math.max(200, el.scrollHeight) + 'px';
   }
 
+  // 保存：新建 → 收进收集箱后清空；编辑 → 更新内容与标签（不清空）
   async function save() {
     const content = text.trim();
     if (!content || busy) return;
     setBusy(true);
     try {
-      await API.inbox.create({ content, category: cat });
-      setText('');
-      setSavedFlash(true);
-      if (flashTimer.current) clearTimeout(flashTimer.current);
-      flashTimer.current = setTimeout(() => setSavedFlash(false), 1500);
-      onSaved?.();
+      if (edit) {
+        await API.inbox.update(edit.id, { content, category: cat });
+        flash('✓ 已保存');
+        onUpdated?.();
+      } else {
+        await API.inbox.create({ content, category: cat });
+        setText('');
+        flash('✓ 已收进');
+        onSaved?.();
+      }
     } catch (e) {
       toast.error(e.message || '保存失败');
     } finally {
       setBusy(false);
-      // 保存后焦点回到输入框，支持连续录入
+      // 保存后焦点回到输入框，支持连续录入/继续编辑
       requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }
+
+  // 分派：新建先收进、编辑先更新（含标签），再交给宿主打开详细分派弹窗
+  async function dispatch() {
+    const content = text.trim();
+    if (!content || busy) return;
+    setBusy(true);
+    try {
+      if (edit) {
+        await API.inbox.update(edit.id, { content, category: cat });
+        onUpdated?.();
+        onDispatch?.({ ...edit, content, category: cat });
+      } else {
+        const r = await API.inbox.create({ content, category: cat });
+        setText('');
+        onSaved?.();
+        onDispatch?.(r.item);
+      }
+    } catch (e) {
+      toast.error(e.message || '分派失败');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -77,24 +111,16 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
     }
   }
 
-  // 分派：先收进收集箱（带已选标签），再交给宿主打开详细分派弹窗
-  async function dispatch() {
-    const content = text.trim();
-    if (!content || busy) return;
-    setBusy(true);
-    try {
-      const r = await API.inbox.create({ content, category: cat });
-      setText('');
-      onSaved?.();
-      onDispatch?.(r.item);
-    } catch (e) {
-      toast.error(e.message || '分派失败');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const cats = readCats();
+  const dispatchBtn = onDispatch && (
+    <button
+      onClick={dispatch}
+      disabled={busy || !text.trim()}
+      title="转为日程"
+      className="text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors disabled:opacity-40"
+      style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+    >分派</button>
+  );
 
   return (
     <div className={bare ? 'flex-1 flex flex-col min-h-0 gap-3' : undefined}>
@@ -122,7 +148,7 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
 
       {bare ? (
         <>
-          {/* 标签面板（与详情面板同构）：展开时出现在按钮行上方 */}
+          {/* 标签面板：展开时出现在按钮行上方（按钮行位置不动） */}
           {showCats && (
             <div>
               <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">标签</div>
@@ -150,7 +176,7 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
             </div>
           )}
 
-          {/* 底部按钮行（与详情面板同构）：＋ 标签（展开时变「收起」）… 保存（与「提交」同位置同样式） */}
+          {/* 底部按钮行：＋ 标签（展开时变「收起」）[分派] … 保存 */}
           <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => setShowCats(s => !s)}
@@ -164,17 +190,9 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
                 </>
               )}
             </button>
-            {onDispatch && (
-              <button
-                onClick={dispatch}
-                disabled={busy || !text.trim()}
-                title="转为日程"
-                className="text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors disabled:opacity-40"
-                style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-              >分派</button>
-            )}
+            {dispatchBtn}
             <div className="flex-1" />
-            {savedFlash && <span className="text-[12px] text-[color:var(--s-main)] font-medium">✓ 已收进</span>}
+            {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
             <button
               onClick={save}
               disabled={busy || !text.trim()}
@@ -185,7 +203,7 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
           </div>
         </>
       ) : (
-        /* 操作行：时间 + 保存 + 标签（与输入区解耦） */
+        /* 操作行：标签 + [分派] + 保存（与输入区解耦） */
         <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setShowCats(s => !s)}
@@ -195,15 +213,7 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             标签
           </button>
-          {onDispatch && (
-            <button
-              onClick={dispatch}
-              disabled={busy || !text.trim()}
-              title="转为日程"
-              className="text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors disabled:opacity-40"
-              style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-            >分派</button>
-          )}
+          {dispatchBtn}
           {showCats && (
             <>
               {cats.map(c => {
@@ -233,7 +243,7 @@ export default function QuickCapture({ onSaved, onDispatch, autoFocus = true, pl
             </>
           )}
           <div className="flex-1" />
-          {savedFlash && <span className="text-[12px] text-[color:var(--s-main)] font-medium">✓ 已收进</span>}
+          {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
           <button
             onClick={save}
             disabled={busy || !text.trim()}

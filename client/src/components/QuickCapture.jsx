@@ -15,10 +15,10 @@ function hexToRgba(hex, a = 0.08) {
 
 /* ============================================================
  * QuickCapture · 快速捕获框（收集箱入口之一）
- *  - 大输入区：默认约占左栏一半高度，内容超出自动向下拉伸（无滚动条），
- *    保存后恢复默认高度；Enter 保存、Shift+Enter 换行
- *  - 时间与保存按钮不在输入区内，与「＋ 标签」同一行，输入区更纯粹
- *  - 标签 chips 默认收起（「＋ 标签」浅蓝底），展开可选
+ *  - 大输入区（无边框悬浮卡）：默认约占左栏一半高度，内容超出自动向下拉伸
+ *    （无滚动条），保存后恢复默认高度；Enter 换行、Ctrl/Cmd+S 保存
+ *  - 静息态中性阴影定义边缘，聚焦态主题色光环反馈输入状态
+ *  - 保存按钮与「＋ 标签」同一行；保存成功后短暂显示「✓ 已收进」
  *  - 两处复用：全局快捷键 N 弹窗（Workspace）+ 收集箱页内输入区（InboxPage）
  * ============================================================ */
 export default function QuickCapture({ onSaved, autoFocus = true, placeholder }) {
@@ -27,22 +27,10 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
   const [cat, setCat] = useState(null);          // 选中的分类 v；null=未选
   const [showCats, setShowCats] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [nowLabel, setNowLabel] = useState('');
   const [savedFlash, setSavedFlash] = useState(false);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
   const flashTimer = useRef(null);
-
-  // 记录时间：挂载时确定（条目的 created_at 由后端记，这里只是给用户看当前时刻）
-  useEffect(() => {
-    const tick = () => {
-      const d = new Date();
-      setNowLabel(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
-    };
-    tick();
-    const t = setInterval(tick, 30000);
-    return () => clearInterval(t);
-  }, []);
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
@@ -94,18 +82,22 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
 
   return (
     <div>
-      {/* 输入区：白色圆角容器，默认约左栏一半高，超出自动撑开（无滚动条） */}
+      {/* 输入区：无边框悬浮卡片——静息中性阴影定义边缘，聚焦主题色光环；默认约左栏一半高，超出自动撑开 */}
       <textarea
         ref={inputRef}
         value={text}
         onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
         onKeyDown={onKeyDown}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         placeholder={placeholder || '记录想法/待办'}
         className="w-full bg-transparent outline-none resize-none text-[14px] leading-[22px] text-[#1c1c1e] placeholder:text-ink-400 rounded-[9px] transition-all"
         style={{
           background: '#ffffff',
-          border: '1px solid #d1d1d6',
-          boxShadow: focused ? '0 2px 8px rgba(var(--s-rgb),0.12)' : 'none',
+          border: '1px solid transparent',
+          boxShadow: focused
+            ? '0 1px 4px rgba(0,0,0,0.06), 0 0 0 3px rgba(var(--s-rgb),0.12)'
+            : '0 1px 4px rgba(0,0,0,0.08)',
           height: 200,
           padding: '12px 14px',
           overflow: 'hidden',
@@ -152,7 +144,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
           </>
         )}
         <div className="flex-1" />
-        <span className="text-[12px] tabular-nums text-ink-400">{savedFlash ? '✓ 已收进' : nowLabel}</span>
+        {savedFlash && <span className="text-[12px] text-[color:var(--s-main)] font-medium">✓ 已收进</span>}
         <button
           onClick={save}
           disabled={busy || !text.trim()}

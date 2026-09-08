@@ -96,7 +96,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
           background: '#ffffff',
           border: '1px solid transparent',
           boxShadow: focused
-            ? '0 1px 4px rgba(0,0,0,0.06), 0 0 0 3px rgba(var(--s-rgb),0.12)'
+            ? '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1.5px rgba(var(--s-rgb),0.25)'
             : '0 1px 4px rgba(0,0,0,0.08)',
           height: 200,
           padding: '12px 14px',

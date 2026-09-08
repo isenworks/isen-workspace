@@ -26,6 +26,7 @@ import AnnualPlan from './AnnualPlan.jsx';
 import CalendarPage from './CalendarPage.jsx';
 import RecycleBinPage from './RecycleBinPage.jsx';
 import InboxPage from './InboxPage.jsx';
+import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
 const VIEW_RANGES = {
   today: (d) => ({ from: d, to: d }),
@@ -53,6 +54,9 @@ export default function Workspace({ user: propUser }) {
   // ===== 收集箱：待分派计数（侧边栏徽标 + 计划页提醒条）+ 快速捕获弹窗 =====
   const [inboxCount, setInboxCount] = useState(0);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+
+  // ===== 今日计划左右分栏拖拽比例（与收集箱同款交互，独立记忆） =====
+  const { leftStyle, rightStyle, bindRoot, bindDivider } = useSplitRatio('plan_split_ratio');
 
   // ===== 右键上下文菜单 =====
   const [ctxMenu, setCtxMenu] = useState(null); // {x, y, type, id}
@@ -539,11 +543,20 @@ export default function Workspace({ user: propUser }) {
             onViewChange={handleViewChange}
           />
 
-          {/* 主体：左右分栏（左 38% + 右 62%，与收集箱一致） */}
-          <div className="flex items-stretch gap-4">
-            {/* 左栏：重点事项 + 习惯 */}
-            <div className="flex flex-col gap-4 min-w-0" style={{ flex: '0 0 38%' }}>
-              {/* 收集箱提醒条：有待分派想法时显示，引导每日清空 */}
+          {/* 主体：左右分栏（默认 38% + 62%，可拖拽调整并记忆） */}
+          <div {...bindRoot} className="flex items-stretch">
+            {/* 左栏：重点事项 + 收集箱提醒条 + 习惯 */}
+            <div className="flex flex-col gap-4 min-w-0" style={leftStyle}>
+              <KeyTasks
+                date={selectedDate}
+                view={view}
+                range={range}
+                refreshSignal={refreshKey}
+                onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
+                onNew={(info) => setModal({ type: 'schedule', data: info ? (typeof info === 'object' ? info : { category: info }) : undefined })}
+                onChange={refresh}
+              />
+              {/* 收集箱提醒条：重点事项下方、习惯上方；有待分派想法时显示，引导每日清空 */}
               {inboxCount > 0 && (
                 <button
                   onClick={() => setActiveMenu('inbox')}
@@ -562,15 +575,6 @@ export default function Workspace({ user: propUser }) {
                   <svg className="flex-shrink-0 text-ink-300 group-hover:text-[color:var(--s-main)] transition-colors" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </button>
               )}
-              <KeyTasks
-                date={selectedDate}
-                view={view}
-                range={range}
-                refreshSignal={refreshKey}
-                onEdit={(sch) => setModal({ type: 'schedule', data: sch })}
-                onNew={(info) => setModal({ type: 'schedule', data: info ? (typeof info === 'object' ? info : { category: info }) : undefined })}
-                onChange={refresh}
-              />
               <HabitsPanel
                 date={selectedDate}
                 refreshSignal={refreshKey}
@@ -578,8 +582,10 @@ export default function Workspace({ user: propUser }) {
               />
             </div>
 
+            <SplitDivider bindDivider={bindDivider} />
+
             {/* 右栏：时间轴 / 总结面板 */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0" style={rightStyle}>
               {showSummary ? (
                 <div className="glass-card p-5 h-full flex flex-col">
                   <SummaryPanel

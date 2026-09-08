@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
@@ -6,22 +6,9 @@ import { today as getToday } from '../utils/date.js';
 import QuickCapture from '../components/QuickCapture.jsx';
 import Modal from '../components/Modal.jsx';
 import ScheduleForm, { readCats } from '../components/forms/ScheduleForm.jsx';
+import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
 const LS_LAYOUT_KEY = 'inbox_layout'; // 'tri' 三分布局 | 'duo' 二分布局（默认）
-const LS_RATIO_KEY = 'inbox_split_ratio'; // 左栏占比（小数，如 0.38）；两个布局共用
-
-const RATIO_DEFAULT = 0.38;      // 默认左栏 38%（右栏 62%）
-const RATIO_MIN = 0.24, RATIO_MAX = 0.55; // 拖拽范围
-const LEFT_MAX_WIDTH = 480;      // 超宽屏下左栏封顶
-
-// 读取持久化的左栏占比（越界/非法回退默认）
-function readRatio() {
-  try {
-    const v = parseFloat(localStorage.getItem(LS_RATIO_KEY));
-    if (!isNaN(v) && v >= RATIO_MIN && v <= RATIO_MAX) return v;
-  } catch {}
-  return RATIO_DEFAULT;
-}
 
 // D1 datetime('now') 是 UTC（'YYYY-MM-DD HH:MM:SS'），转本地 Date
 function parseDbTime(s) {
@@ -99,39 +86,8 @@ export default function InboxPage({ onCountChange }) {
   const [layout, setLayout] = useState(() => {
     try { return localStorage.getItem(LS_LAYOUT_KEY) === 'tri' ? 'tri' : 'duo'; } catch { return 'duo'; }
   });
-  // 左右分栏占比（两布局共用）：拖拽即时更新，松手持久化
-  const [ratio, setRatio] = useState(readRatio);
-  const rootRef = useRef(null);
-  const draggingRef = useRef(false);
-  const ratioRef = useRef(ratio);                    // 供 mouseup 闭包读取最新值
-  useEffect(() => { ratioRef.current = ratio; }, [ratio]);
-
-  // ===== 拖拽分隔条：mouse 按住拖动调比例，松手存 localStorage =====
-  useEffect(() => {
-    function onMove(e) {
-      if (!draggingRef.current || !rootRef.current) return;
-      const w = rootRef.current.getBoundingClientRect();
-      const r = (e.clientX - w.left) / w.width;
-      setRatio(Math.min(RATIO_MAX, Math.max(RATIO_MIN, r)));
-    }
-    function onUp() {
-      if (!draggingRef.current) return;
-      draggingRef.current = false;
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-      try { localStorage.setItem(LS_RATIO_KEY, String(ratioRef.current)); } catch {}
-    }
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, []);
-
-  function startDrag(e) {
-    e.preventDefault();
-    draggingRef.current = true;
-    document.body.style.userSelect = 'none';  // 拖拽期间禁选中
-    document.body.style.cursor = 'col-resize';
-  }
+  // 左右分栏拖拽比例（共享 hook，两个布局共用一份记忆）
+  const split = useSplitRatio('inbox_split_ratio');
 
   const cats = readCats();
   const catOf = (v) => cats.find(c => c.v === Number(v)) || null;
@@ -421,25 +377,11 @@ export default function InboxPage({ onCountChange }) {
     );
   };
 
-  // 左右分栏样式：左栏占 ratio（封顶 480px），右栏吃剩余；分隔条居中于两栏 16px 间隙
-  const leftStyle = { flex: `0 0 ${Math.round(ratio * 100)}%`, maxWidth: LEFT_MAX_WIDTH };
-  const rightStyle = { flex: 1 };
-
-  // 拖拽分隔条（两布局共用）：松手存 localStorage，下次进入恢复
-  const renderDivider = () => (
-    <div
-      onMouseDown={startDrag}
-      onDoubleClick={() => { setRatio(RATIO_DEFAULT); try { localStorage.setItem(LS_RATIO_KEY, String(RATIO_DEFAULT)); } catch {} }}
-      title="拖动调整分栏宽度（双击恢复默认）"
-      className="relative flex-shrink-0 w-[16px] -my-1 flex items-center justify-center cursor-col-resize group"
-    >
-      <span className="w-[3px] h-[30px] rounded-full transition-colors" style={{ background: 'rgba(120,120,128,0.16)' }}></span>
-      <span className="absolute inset-y-0 left-[6px] w-[4px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(var(--s-rgb),0.25)' }}></span>
-    </div>
-  );
+  // 左右分栏样式 + 拖拽绑定（共享 hook）
+  const { leftStyle, rightStyle, bindRoot, bindDivider } = split;
 
   return (
-    <div ref={rootRef} className="flex-1 min-w-0 w-full flex items-stretch">
+    <div {...bindRoot} className="flex-1 min-w-0 w-full flex items-stretch">
       {isDuo ? (
         /* ===== 二分布局：左侧事项列表，右侧编辑面板（新增/编辑） ===== */
         <>
@@ -450,7 +392,7 @@ export default function InboxPage({ onCountChange }) {
             {renderList(true)}
           </div>
 
-          {renderDivider()}
+          <SplitDivider bindDivider={bindDivider} />
 
           {/* 右侧编辑面板：无选中 = 新增；有选中 = 编辑该条目（同一套面板） */}
           <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={rightStyle}>
@@ -471,7 +413,7 @@ export default function InboxPage({ onCountChange }) {
             {renderList(true)}
           </div>
 
-          {renderDivider()}
+          <SplitDivider bindDivider={bindDivider} />
 
           {/* 右栏：编辑面板 */}
           <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={rightStyle}>

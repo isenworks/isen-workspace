@@ -12,6 +12,7 @@ import KrForm from '../components/forms/KrForm.jsx';
 import WorkGoalForm from '../components/forms/WorkGoalForm.jsx';
 import EntryForm from '../components/forms/EntryForm.jsx';
 import DualMarkerBar from '../components/DualMarkerBar.jsx';
+import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
@@ -6466,6 +6467,9 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
   const links = Array.isArray(docLinks) ? docLinks : [];
   const closeAllMenus = () => { setLinkMenu(null); setLinkListPopup(null); setLinkForm({ title: '', url: '' }); };
 
+  // ===== 左右分栏拖拽（38:62，与收集箱二分布局同款交互，独立记忆） =====
+  const { leftStyle, rightStyle, bindRoot, bindDivider } = useSplitRatio('life_split_ratio');
+
   // 点击链接按钮：1条直接跳转；多条弹出选择
   function handleLinkButtonClick(e) {
     e.stopPropagation();
@@ -6512,10 +6516,12 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
   }
 
   return (
-    <div className="flex flex-col gap-4" onClick={closeAllMenus}>
-      {/* Step1-4 L1区块：紫条 + 16px标题 + 紫胶囊%，与其他4模块一致 */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap">
+    <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch min-h-[560px]">
+      {/* ===== 左列（38%）：卡①页头 + 卡②类目导航 ===== */}
+      <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
+        {/* 卡① 页头卡：色条 + 16px标题 + 链接按钮 + 年度精选（与其他5模块页头同构） */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-4">
+          <div className="flex items-center gap-2.5 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }}></span>
           <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
           {/* 链接按钮（需求 2：圆角正方形；左键跳转 / 右键增删改）—— 在年度精选左边 */}
@@ -6697,10 +6703,9 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
             年度精选{hlCount > 0 && <span className="opacity-95">· {hlCount}</span>}
           </button>
         </div>
-        {/* ===== 双面板：左类目导航（筛选器） + 右时间流（唯一主视图） ===== */}
-        <div className="flex gap-4 mt-1 items-start">
-          {/* 左：类目导航 */}
-          <div className="w-[220px] flex-shrink-0 flex flex-col gap-1">
+        </div>
+        {/* 卡② 类目导航卡：拉伸铺满左列剩余高度（全部分类 / 各类目 / 新建模块） */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-3 flex-1 flex flex-col gap-1">
             {/* 全部分类（默认）：与子类目同构（数字+18px加号占位 → 计数列严格对齐）；行尾 + 新建模块 */}
             <div
               className={`group flex items-center gap-2 px-2.5 h-9 rounded-lg text-sm transition text-left ${!lifeFilter ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
@@ -6760,10 +6765,13 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 </div>
               );
             })}
-          </div>
+        </div>
+      </div>
 
-          {/* 右：时间流主视图（填满剩余宽度） */}
-          <div className="flex-1 min-w-0">
+      <SplitDivider bindDivider={bindDivider} />
+
+      {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
+      <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0" style={rightStyle}>
             {timeGroups.length === 0 && (
               <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
                 {selFilterCat ? `「${selFilterCat.lb}」还没有记录，点左侧类目行的 + 添加` : '还没有生活记录，点左侧类目行的 + 添加'}
@@ -6812,8 +6820,6 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 </div>
               );
             }))}
-          </div>
-        </div>
       </div>
     </div>
   );

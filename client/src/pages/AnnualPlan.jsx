@@ -3462,31 +3462,58 @@ function CognitionView({
         return false;
       };
       const isValidBookId = (v) => typeof v === 'string' && /^[a-z0-9]{20,}$/i.test(v.replace(/-/g, ''));
-      // ---- 同步合并 weread 数据到本地 ----
+      // 同书判定（用于搜索校准，比 normTitleOnly 严格）：
+      //   忽略括号版本说明（「影响力（全新升级版）」≡「影响力」）和冒号副标题（「超级沟通者：如何…」≡「超级沟通者」）
+      //   但「·」分隔的是同系列不同分册，不算同一本书（「影响力·行动篇」≠「影响力」）
+      const stripParen = (s) => String(s || '').replace(/[（(][^）)]*[）)]/g, '').trim();
+      const sameBook = (a, b) => {
+        const sa = stripParen(a).replace(/\s+/g, '');
+        const sb = stripParen(b).replace(/\s+/g, '');
+        if (!sa || !sb) return false;
+        if (sa === sb) return true;                                  // 全名相等（含分册名一致）
+        const ma = sa.split(/[:：]/)[0], mb = sb.split(/[:：]/)[0];  // 冒号副标题取主名
+        if (ma !== mb) return false;
+        // 主名相等：仅当两边都无「·」分册才算同书（一边有一边没有 → 行动篇这类错配，排除）
+        return !sa.includes('·') && !sb.includes('·');
+      };
+      // 「·」分册兼容（书架匹配用）：一边带分册一边不带 → 不是同一本；两边都带则分册名须一致
+      const dashCompatible = (a, b) => {
+        const sa = stripParen(a).replace(/\s+/g, '');
+        const sb = stripParen(b).replace(/\s+/g, '');
+        if (sa.includes('·') !== sb.includes('·')) return false;
+        if (sa.includes('·') && sa !== sb) return false;
+        return true;
+      };
+      // ---- 同步合并 weread 数据到本地（第一步：优先匹配「我的书架」）----
       const mergedResult = (() => {
         const curr = Array.isArray(books) ? [...books] : [];
         const updatedIdxs = new Set();
+        const shelfMatchedIdxs = new Set(); // 书架直接命中的本地书（封面来自书架本身，准确，无需再搜索校准）
         const needsCoverFallback = [];
         for (const wb of wereadMapped) {
           const wMainTitle = normTitleOnly(wb.title);
           let idx = -1;
           idx = curr.findIndex(b =>
-            titleMatches(b.t, wb.title) &&
+            titleMatches(b.t, wb.title) && dashCompatible(b.t, wb.title) &&
             authorMatches(b.author, wb.author)
           );
-          if (idx < 0) idx = curr.findIndex(b => titleMatches(b.t, wb.title));
+          if (idx < 0) idx = curr.findIndex(b => titleMatches(b.t, wb.title) && dashCompatible(b.t, wb.title));
           if (idx < 0) {
+            // 兜底模糊匹配：双向字符重合度 ≥ 0.7（单向易把「超级符合」配给「超级沟通者」这类前缀相同书错配）
             idx = curr.findIndex(b => {
+              if (!dashCompatible(b.t, wb.title)) return false;
               const localMain = normTitleOnly(b.t);
               if (!localMain || localMain.length < 2 || !wMainTitle || wMainTitle.length < 2) return false;
-              const aSet = new Set(localMain);
-              let same = 0;
-              for (const ch of wMainTitle) if (aSet.has(ch)) same++;
-              return same / Math.min(localMain.length, wMainTitle.length) >= 0.6;
+              const aSet = new Set(localMain), bSet = new Set(wMainTitle);
+              let ab = 0, ba = 0;
+              for (const ch of localMain) if (bSet.has(ch)) ab++;
+              for (const ch of wMainTitle) if (aSet.has(ch)) ba++;
+              return Math.min(ab / localMain.length, ba / wMainTitle.length) >= 0.7;
             });
           }
           if (idx < 0 || updatedIdxs.has(idx)) continue;
           updatedIdxs.add(idx);
+          shelfMatchedIdxs.add(idx);
           const old = curr[idx];
           const newBookId = wb.bookId && isValidBookId(wb.bookId) ? wb.bookId : '';
           const merged = { ...old };
@@ -3515,19 +3542,18 @@ function CognitionView({
           if (wb.endDate && !old.endDate) merged.endDate = wb.endDate;
           curr[idx] = merged;
         }
-        return { curr, updatedIdxs, needsCoverFallback };
+        return { curr, updatedIdxs, needsCoverFallback, shelfMatchedIdxs };
       })();
-      let { curr, updatedIdxs, needsCoverFallback } = mergedResult;
+      let { curr, updatedIdxs, needsCoverFallback, shelfMatchedIdxs } = mergedResult;
 
-      // ---- 同步·按每本书自己填写的书名+作者在微信读书搜索，校准封面（顺带补 bookId）----
-      // 背景：书架合并的模糊匹配/豆瓣封面搜索都可能配错书（如「超级沟通者」配到别书封面），
-      // 这里以用户填写的书名+作者为准重新搜索，严格匹配命中才覆盖：
+      // ---- 第二步：书架未命中的书，按填写的书名+作者到微信读书搜索校准（顺带补 bookId）----
+      // 匹配顺序（需求）：先「我的书架」（上一步，封面来自书架本身最准确）；
+      //   书架没有的才搜索。搜索用 sameBook 严格同书判定：
       //   ① 书名+作者都匹配 → 覆盖封面 + bookId
-      //   ② 书名精确匹配（作者缺失或无法比对）→ 同上
-      //   ③ 书名包含 + 作者匹配 → 同上；都不中 → 保持原样不动（宁缺勿错）
-      // 多版本同书（如「影响力」vs「影响力·行动篇」，主书名归一化后相同）：
-      //   同一层级内取微信读书阅读人数最多的版本（服务端返回 readers，取不到时退化为首个结果）
-      // 用户手动粘贴的封面（coverSource==='manual' 或 data:URL）不动
+      //   ② 书名匹配（作者缺失或无法比对）→ 同上
+      //   「影响力」只命中「影响力」「影响力（全新升级版）」，不命中「影响力·行动篇」（· 分册 ≠ 同书）
+      // 多版本同书：同一层级命中多个版本时取微信读书阅读人数（readers）最多的
+      // 用户手动粘贴的封面（coverSource==='manual' 或 data:URL）不动；都不中保持原样（宁缺勿错）
       const coverKeep = (b) => {
         const u = String(b.coverUrl || '');
         return /^data:image\//i.test(u) || b.coverSource === 'manual';
@@ -3537,9 +3563,9 @@ function CognitionView({
         : null;
       const needCalib = curr
         .map((b, idx) => ({ b, idx }))
-        .filter(({ b }) => b && b.t);
+        .filter(({ b, idx }) => b && b.t && !shelfMatchedIdxs.has(idx));
       if (needCalib.length > 0) {
-        showToast?.(`正在按书名+作者校准 ${needCalib.length} 本书的微信读书封面…`);
+        showToast?.(`书架已匹配 ${shelfMatchedIdxs.size} 本，正在为其余 ${needCalib.length} 本搜索微信读书封面…`);
         const BATCH = 3;
         for (let i = 0; i < needCalib.length; i += BATCH) {
           const slice = needCalib.slice(i, i + BATCH);
@@ -3548,13 +3574,8 @@ function CognitionView({
               const r = await fetch(`/api/weread/search?q=${encodeURIComponent(b.t)}`);
               const j = await r.json().catch(() => ({}));
               if (!j?.ok || !Array.isArray(j.results) || j.results.length === 0) return null;
-              const lt = normTitleOnly(b.t);
-              let match = pickBest(j.results.filter(x => normTitleOnly(x.title) === lt && authorMatches(b.author, x.author)));
-              if (!match) match = pickBest(j.results.filter(x => normTitleOnly(x.title) === lt));
-              if (!match) match = pickBest(j.results.filter(x => {
-                const xt = normTitleOnly(x.title);
-                return (lt.includes(xt) || xt.includes(lt)) && authorMatches(b.author, x.author);
-              }));
+              let match = pickBest(j.results.filter(x => sameBook(b.t, x.title) && authorMatches(b.author, x.author)));
+              if (!match) match = pickBest(j.results.filter(x => sameBook(b.t, x.title)));
               if (!match) return null;
               const patch = {};
               if (match.cover && !coverKeep(b)) {

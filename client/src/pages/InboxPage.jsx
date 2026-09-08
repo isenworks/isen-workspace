@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
-import { today as getToday, addDaysISO } from '../utils/date.js';
+import { today as getToday } from '../utils/date.js';
 import QuickCapture from '../components/QuickCapture.jsx';
 import Modal from '../components/Modal.jsx';
 import ScheduleForm, { readCats } from '../components/forms/ScheduleForm.jsx';
-import FriendlyTimeInput from '../components/FriendlyTimeInput.jsx';
 
 // D1 datetime('now') 是 UTC（'YYYY-MM-DD HH:MM:SS'），转本地 Date
 function parseDbTime(s) {
@@ -62,8 +61,6 @@ function splitContent(content) {
   return { title: s.slice(0, idx), body: s.slice(idx + 1).trim() || '' };
 }
 
-const WEEK_CN = ['日', '一', '二', '三', '四', '五', '六'];
-
 // 左栏分组：今天 / 昨天 / 更早
 function groupLabel(s) {
   const d = parseDbTime(s);
@@ -88,14 +85,16 @@ export default function InboxPage({ onCountChange }) {
   const toast = useToast();
   const [items, setItems] = useState(null);          // null=加载中
   const [busyIds, setBusyIds] = useState(new Set());
-  const [editingId, setEditingId] = useState(null);  // 行内编辑内容的条目
-  const [editDraft, setEditDraft] = useState('');
   const [selectedId, setSelectedId] = useState(null); // 右栏工作台对应的条目
-  const [triage, setTriage] = useState(null);        // { cat, date, time } 右栏分派状态（随选中条目切换）
-  const [panelOpen, setPanelOpen] = useState(null); // 'cat' | 'dispatch' | null 底部面板展开态
+  const [triage, setTriage] = useState(null);        // { cat, date } 右栏分派状态（随选中条目切换）
+  const [panelOpen, setPanelOpen] = useState(null); // 'cat' | null 标签面板展开态
   const [menuOpenId, setMenuOpenId] = useState(null); // 左栏三个点菜单打开的条目 id
-  const [detail, setDetail] = useState(null);        // 详细模式：ScheduleForm 预填
-  const editInputRef = useRef(null);
+  const [detail, setDetail] = useState(null);        // 详细分派：ScheduleForm 预填
+  // 右栏内容就地编辑（点击标题/正文直接编辑，Esc 取消、失焦保存）
+  const [rEditing, setREditing] = useState(false);
+  const [rDraft, setRDraft] = useState('');
+  const rEditRef = useRef(null);
+  const rEscapeRef = useRef(false);
 
   const cats = readCats();
   const catOf = (v) => cats.find(c => c.v === Number(v)) || null;
@@ -115,14 +114,14 @@ export default function InboxPage({ onCountChange }) {
 
   const selected = (items || []).find(it => it.id === selectedId) || null;
 
-  // 选中变化 → 右栏分派状态重置（默认：条目原标签/其他，今天，无时间），面板收起
+  // 选中变化 → 右栏重置（编辑态退出、面板收起、分派状态归位）
   useEffect(() => {
     setPanelOpen(null);
+    setREditing(false);
     if (selected) {
       setTriage({
         cat: selected.category != null ? Number(selected.category) : 3,
         date: getToday(),
-        time: '',
       });
     } else {
       setTriage(null);
@@ -137,34 +136,20 @@ export default function InboxPage({ onCountChange }) {
     });
   }
 
-  // ===== 就地完成（想法已处理，无需转为日程） =====
-  async function complete(id) {
-    markBusy(id, true);
-    try {
-      await API.inbox.update(id, { is_done: 1 });
-      setItems(prev => prev.filter(it => it.id !== id));
-      onCountChange?.((items || []).filter(it => it.id !== id).length);
-      if (selectedId === id) setSelectedId(null);
-      toast.success('已完成');
-    } catch (e) {
-      toast.error(e.message || '操作失败');
-    } finally { markBusy(id, false); }
+  // ===== 右栏就地编辑内容（点击标题/正文进入，失焦保存、Esc 取消） =====
+  function startREdit() {
+    if (!selected) return;
+    setREditing(true);
+    setRDraft(selected.content);
+    requestAnimationFrame(() => rEditRef.current?.focus());
   }
-
-  // ===== 行内编辑内容 =====
-  function startEdit(item) {
-    setSelectedId(item.id);
-    setEditingId(item.id);
-    setEditDraft(item.content);
-    requestAnimationFrame(() => editInputRef.current?.focus());
-  }
-  async function commitEdit(item) {
-    const v = editDraft.trim();
-    setEditingId(null);
-    if (!v || v === item.content) return;
+  async function commitREdit() {
+    const v = rDraft.trim();
+    setREditing(false);
+    if (!selected || !v || v === selected.content) return;
     try {
-      await API.inbox.update(item.id, { content: v });
-      setItems(prev => prev.map(it => it.id === item.id ? { ...it, content: v } : it));
+      await API.inbox.update(selected.id, { content: v });
+      setItems(prev => prev.map(it => it.id === selected.id ? { ...it, content: v } : it));
     } catch (e) { toast.error(e.message || '保存失败'); }
   }
 
@@ -188,7 +173,6 @@ export default function InboxPage({ onCountChange }) {
     markBusy(selected.id, true);
     try {
       const fields = { title: selected.content, date: triage.date, category: triage.cat };
-      if (triage.time) fields.start_time = triage.time;
       await API.inbox.process({ id: selected.id, type: 'schedule', fields });
       setItems(prev => prev.filter(it => it.id !== selected.id));
       onCountChange?.(Math.max(0, (items || []).length - 1));
@@ -199,13 +183,13 @@ export default function InboxPage({ onCountChange }) {
       const d = new Date(triage.date + 'T00:00:00');
       const dayLabel = triage.date === getToday() ? '今天' : `${d.getMonth() + 1}月${d.getDate()}日`;
       const catInfo = catOf(triage.cat);
-      toast.success(`已分派到 ${catInfo ? catInfo.label + ' · ' : ''}${dayLabel}${triage.time ? ' ' + triage.time : ''}的日程`);
+      toast.success(`已分派到 ${catInfo ? catInfo.label + ' · ' : ''}${dayLabel}的日程`);
     } catch (e) {
       toast.error(e.message || '分派失败');
     } finally { markBusy(selected.id, false); }
   }
 
-  // 详细模式：ScheduleForm 预填（支持时长/重要性/重复等完整字段）；item 不传时用当前选中条目
+  // 详细分派：ScheduleForm 预填（支持时长/重要性/重复等完整字段）；item 不传时用当前选中条目
   function openDetailFor(item) {
     const it = item || selected;
     if (!it) return;
@@ -217,7 +201,7 @@ export default function InboxPage({ onCountChange }) {
         content: splitContent(it.content).body,
         category: it.id === selectedId ? (triage?.cat ?? (it.category != null ? Number(it.category) : 3)) : (it.category != null ? Number(it.category) : 3),
         date: it.id === selectedId ? (triage?.date || getToday()) : getToday(),
-        start_time: it.id === selectedId ? (triage?.time || '') : '',
+        start_time: '',
       },
     });
   }
@@ -243,13 +227,6 @@ export default function InboxPage({ onCountChange }) {
     }
   }
 
-  // ===== 日期快捷 chips：今天/明天/后天 + 自定义 =====
-  const dateChips = [
-    { label: '今天', value: getToday() },
-    { label: '明天', value: addDaysISO(getToday(), 1) },
-    { label: '后天', value: addDaysISO(getToday(), 2) },
-  ];
-
   // 左栏按时间分组
   const groups = [];
   if (items && items.length > 0) {
@@ -264,13 +241,10 @@ export default function InboxPage({ onCountChange }) {
 
   // 默认选中第一条
   useEffect(() => {
-    if (selectedId == null && items && items.length > 0 && !editingId) {
+    if (selectedId == null && items && items.length > 0) {
       setSelectedId(items[0].id);
     }
-  }, [items, selectedId, editingId]);
-
-  const triageDate = triage ? new Date(triage.date + 'T00:00:00') : null;
-  const customDate = triage && !dateChips.some(c => c.value === triage.date);
+  }, [items, selectedId]);
 
   return (
     <div className="flex-1 min-w-0 w-full flex items-stretch gap-4">
@@ -317,14 +291,13 @@ export default function InboxPage({ onCountChange }) {
                 </div>
                 {g.list.map(item => {
                   const busy = busyIds.has(item.id);
-                  const isEditing = editingId === item.id;
                   const isSelected = selectedId === item.id;
                   const catInfo = catOf(item.category);
                   const menuFor = menuOpenId === item.id;
                   return (
                     <div
                       key={item.id}
-                      onClick={() => !isEditing && !menuFor && setSelectedId(item.id)}
+                      onClick={() => !menuFor && setSelectedId(item.id)}
                       className={`relative flex items-start gap-2.5 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
                       style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
                     >
@@ -338,24 +311,9 @@ export default function InboxPage({ onCountChange }) {
 
                       {/* 内容 */}
                       <div className="flex-1 min-w-0">
-                        {isEditing ? (
-                          <input
-                            ref={editInputRef}
-                            value={editDraft}
-                            onChange={(e) => setEditDraft(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') commitEdit(item);
-                              if (e.key === 'Escape') setEditingId(null);
-                            }}
-                            onBlur={() => commitEdit(item)}
-                            className="w-full bg-transparent outline-none text-[13.5px] font-medium text-ink-900 border-b border-[rgba(var(--s-rgb),0.4)] pb-0.5"
-                          />
-                        ) : (
-                          <div className="text-[13.5px] leading-snug break-words font-medium text-ink-900">
-                            {item.content.length > 80 ? item.content.slice(0, 80) + '…' : item.content}
-                          </div>
-                        )}
+                        <div className="text-[13.5px] leading-snug break-words font-medium text-ink-900">
+                          {item.content.length > 80 ? item.content.slice(0, 80) + '…' : item.content}
+                        </div>
                         {catInfo && (
                           <div className="flex items-center gap-1 mt-1 text-[11px]" style={{ color: catInfo.dot }}>
                             <span className="w-[6px] h-[6px] rounded-full" style={{ background: catInfo.dot }} />
@@ -365,42 +323,38 @@ export default function InboxPage({ onCountChange }) {
                       </div>
 
                       {/* 日期（最右，hover 显示完整时间） */}
-                      {!isEditing && (
-                        <span
-                          className="flex-shrink-0 text-[12px] text-ink-400 tabular-nums self-center"
-                          title={fmtTooltip(item.created_at)}
-                        >{fmtDate(item.created_at)}</span>
-                      )}
+                      <span
+                        className="flex-shrink-0 text-[12px] text-ink-400 tabular-nums self-center"
+                        title={fmtTooltip(item.created_at)}
+                      >{fmtDate(item.created_at)}</span>
 
                       {/* 纵向三个点：hover 显示完整时间 + 点击弹出删除/分派菜单 */}
-                      {!isEditing && (
-                        <div className="relative flex-shrink-0 self-center">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuFor ? null : item.id); }}
-                            title={fmtTooltip(item.created_at)}
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-ink-300 hover:text-ink-600 hover:bg-black/[0.04] transition-colors"
-                          >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                              <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
-                            </svg>
-                          </button>
-                          {menuFor && (
-                            <>
-                              <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); }} />
-                              <div className="absolute right-0 top-7 z-[20] w-[120px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); openDetailFor(item); }}
-                                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
-                                >分派…</button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); removeItem(item); }}
-                                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
-                                >删除</button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
+                      <div className="relative flex-shrink-0 self-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuFor ? null : item.id); }}
+                          title={fmtTooltip(item.created_at)}
+                          className="w-6 h-6 rounded-lg flex items-center justify-center text-ink-300 hover:text-ink-600 hover:bg-black/[0.04] transition-colors"
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
+                          </svg>
+                        </button>
+                        {menuFor && (
+                          <>
+                            <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); }} />
+                            <div className="absolute right-0 top-7 z-[20] w-[120px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); openDetailFor(item); }}
+                                className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
+                              >分派…</button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); removeItem(item); }}
+                                className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                              >删除</button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -423,177 +377,107 @@ export default function InboxPage({ onCountChange }) {
           </div>
         ) : (
           <>
-            {/* 条目内容（标题 + 正文，色条与左栏收集箱标题对齐） */}
+            {/* 条目内容：点击直接编辑（标题 + 正文整体），Esc 取消、失焦保存 */}
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-[5px] h-[20px] rounded-full self-start mt-[1px]" style={{ background: 'var(--s-grad-bg)' }}></span>
               <div className="flex-1 min-w-0">
-                <div className="text-[14.5px] font-semibold text-ink-900 leading-snug break-words whitespace-pre-wrap">{splitContent(selected.content).title}</div>
-                {catOf(selected.category) && (
-                  <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: catOf(selected.category).dot }}>
-                    <span className="w-[6px] h-[6px] rounded-full" style={{ background: catOf(selected.category).dot }} />
-                    {catOf(selected.category).label}
+                {rEditing ? (
+                  <textarea
+                    ref={rEditRef}
+                    value={rDraft}
+                    onChange={(e) => setRDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') { rEscapeRef.current = true; setREditing(false); }
+                    }}
+                    onBlur={() => {
+                      if (rEscapeRef.current) { rEscapeRef.current = false; return; }
+                      commitREdit();
+                    }}
+                    className="w-full bg-transparent outline-none resize-none text-[14px] leading-[22px] text-ink-900 break-words rounded-lg transition-all"
+                    style={{ minHeight: 140 }}
+                  />
+                ) : (
+                  <div className="cursor-text group" onClick={startREdit} title="点击编辑">
+                    <div className="text-[14.5px] font-semibold text-ink-900 leading-snug break-words whitespace-pre-wrap">{splitContent(selected.content).title}</div>
+                    {splitContent(selected.content).body && (
+                      <div className="mt-3 text-[13.5px] text-ink-600 leading-[21px] break-words whitespace-pre-wrap">{splitContent(selected.content).body}</div>
+                    )}
+                    {catOf(selected.category) && (
+                      <div className="flex items-center gap-1 mt-2 text-[11px]" style={{ color: catOf(selected.category).dot }}>
+                        <span className="w-[6px] h-[6px] rounded-full" style={{ background: catOf(selected.category).dot }} />
+                        {catOf(selected.category).label}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              <button
-                onClick={() => startEdit(selected)}
-                title="编辑内容"
-                className="flex-shrink-0 text-ink-400 hover:text-ink-600 w-8 h-8 rounded-lg hover:bg-ink-50 transition-colors flex items-center justify-center"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-              </button>
             </div>
 
-            {/* 正文（首行外的内容，支持完整展示） */}
-            {splitContent(selected.content).body && (
-              <div className="mt-3 text-[13.5px] text-ink-600 leading-[21px] break-words whitespace-pre-wrap pl-8">{splitContent(selected.content).body}</div>
-            )}
-
             {triage && (
-              <div className="mt-auto pt-3 border-t border-ink-100/80">
-                {/* 收起态：两个入口按钮（+标签 / 分派） */}
-                {!panelOpen ? (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button
-                      onClick={() => setPanelOpen('cat')}
-                      className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
-                      style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                      标签
-                    </button>
-                    <button
-                      onClick={() => setPanelOpen('dispatch')}
-                      className="text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
-                      style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--s-main)' }}
-                    >分派</button>
-                    <div className="flex-1" />
-                    <span className="text-[12px] text-ink-400 tabular-nums" title={fmtTooltip(selected.created_at)}>{fmtDate(selected.created_at)}</span>
-                    <button
-                      onClick={() => complete(selected.id)}
-                      className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
-                    >标记完成</button>
-                    <button
-                      onClick={() => openDetailFor()}
-                      className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
-                    >详细模式…</button>
-                    <button
-                      onClick={process}
-                      disabled={busyIds.has(selected.id)}
-                      className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-                      style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-                    >{busyIds.has(selected.id) ? '分派中…' : '提交'}</button>
-                  </div>
-                ) : (
-                  /* 展开态：标签 / 分派选择区 + 底部按钮行 */
-                  <div className="flex flex-col gap-3.5">
-                    {/* 标签（点击「+标签」展开） */}
-                    {panelOpen === 'cat' && (
-                      <div>
-                        <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">标签</div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {cats.map(c => {
-                            const on = Number(triage.cat) === c.v;
-                            return (
-                              <button
-                                key={c.v}
-                                onClick={() => setTriage(t => ({ ...t, cat: c.v }))}
-                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
-                                style={{
-                                  background: on ? hexToRgba(c.dot, 0.14) : 'rgba(120,120,128,0.06)',
-                                  color: on ? c.dot : '#8e8e93',
-                                  border: `1px solid ${on ? hexToRgba(c.dot, 0.55) : 'transparent'}`,
-                                  fontWeight: on ? 600 : 400,
-                                }}
-                              >
-                                <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: c.dot }} />
-                                {c.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 分派（点击「分派」展开）：日期 + 时间，框尺寸统一 */}
-                    {panelOpen === 'dispatch' && (
-                      <div>
-                        <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">分派到</div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {dateChips.map(c => {
-                            const on = triage.date === c.value;
-                            return (
-                              <button
-                                key={c.label}
-                                onClick={() => setTriage(t => ({ ...t, date: c.value }))}
-                                className={`px-2.5 py-1 rounded-full text-[12px] transition-all ${on ? 'font-semibold' : ''}`}
-                                style={on
-                                  ? { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)', border: '1px solid rgba(var(--s-rgb),0.45)' }
-                                  : { background: 'rgba(120,120,128,0.06)', color: '#8e8e93', border: '1px solid transparent' }}
-                              >{c.label}</button>
-                            );
-                          })}
-                          {customDate && (
-                            <span className="px-2.5 py-1 rounded-full text-[12px] font-semibold"
-                              style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)', border: '1px solid rgba(var(--s-rgb),0.45)' }}>
-                              {triageDate.getMonth() + 1}月{triageDate.getDate()}日 周{WEEK_CN[triageDate.getDay()]}
-                            </span>
-                          )}
-                          {/* 日期框（与时间框同高：h-[30px]） */}
-                          <input
-                            type="date"
-                            value={triage.date}
-                            onChange={(e) => e.target.value && setTriage(t => ({ ...t, date: e.target.value }))}
-                            className="text-[12px] text-ink-500 px-2 h-[30px] rounded-[9px] border border-ink-100 bg-white/70 outline-none"
-                            title="选择其他日期"
-                          />
-                          <span className="w-px h-4 bg-ink-100 mx-0.5" />
-                          {/* 时间框（紧凑版：与日期框同规格） */}
-                          <div className="h-[30px]">
-                            <FriendlyTimeInput
-                              value={triage.time}
-                              onChange={(v) => setTriage(t => ({ ...t, time: v }))}
-                              placeholder="可选"
-                              compact
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 底部：收集日期（左下角）+ 按钮 */}
-                    <div className="pt-3 border-t border-ink-100/80 flex items-center justify-between gap-3 flex-wrap">
-                      <span className="text-[12px] text-ink-400 tabular-nums" title={fmtTooltip(selected.created_at)}>{fmtDate(selected.created_at)}</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setPanelOpen(null)}
-                          className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
-                        >收起</button>
-                        <button
-                          onClick={() => complete(selected.id)}
-                          className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
-                        >标记完成</button>
-                        <button
-                          onClick={() => openDetailFor()}
-                          className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
-                        >详细模式…</button>
-                        <button
-                          onClick={process}
-                          disabled={busyIds.has(selected.id)}
-                          className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-                          style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-                        >{busyIds.has(selected.id) ? '分派中…' : '提交'}</button>
-                      </div>
+              <div className="mt-auto">
+                {/* 标签面板：展开时出现在按钮行上方（按钮行/日期位置不动） */}
+                {panelOpen === 'cat' && (
+                  <div className="mb-3">
+                    <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">标签</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {cats.map(c => {
+                        const on = Number(triage.cat) === c.v;
+                        return (
+                          <button
+                            key={c.v}
+                            onClick={() => setTriage(t => ({ ...t, cat: c.v }))}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
+                            style={{
+                              background: on ? hexToRgba(c.dot, 0.14) : 'rgba(120,120,128,0.06)',
+                              color: on ? c.dot : '#8e8e93',
+                              border: `1px solid ${on ? hexToRgba(c.dot, 0.55) : 'transparent'}`,
+                              fontWeight: on ? 600 : 400,
+                            }}
+                          >
+                            <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: c.dot }} />
+                            {c.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
+
+                {/* 固定按钮行：＋标签（展开时变「收起」）/ 分派（打开详细分派弹窗）+ 日期 + 提交 */}
+                <div className="pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setPanelOpen(panelOpen === 'cat' ? null : 'cat')}
+                    className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
+                    style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                  >
+                    {panelOpen === 'cat' ? '收起' : (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                        标签
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => openDetailFor()}
+                    className="text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
+                    style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                  >分派</button>
+                  <div className="flex-1" />
+                  <span className="text-[12px] text-ink-400 tabular-nums" title={fmtTooltip(selected.created_at)}>{fmtDate(selected.created_at)}</span>
+                  <button
+                    onClick={process}
+                    disabled={busyIds.has(selected.id)}
+                    className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
+                    style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+                  >{busyIds.has(selected.id) ? '分派中…' : '提交'}</button>
+                </div>
               </div>
             )}
           </>
         )}
       </div>
 
-      {/* ===== 详细模式：复用 ScheduleForm（支持时长/重要性/重复） ===== */}
+      {/* ===== 详细分派：复用 ScheduleForm（支持时长/重要性/重复） ===== */}
       <Modal
         open={!!detail}
         onClose={() => setDetail(null)}

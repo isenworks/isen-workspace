@@ -93,6 +93,7 @@ export default function InboxPage({ onCountChange }) {
   const [selectedId, setSelectedId] = useState(null); // 右栏工作台对应的条目
   const [triage, setTriage] = useState(null);        // { cat, date, time } 右栏分派状态（随选中条目切换）
   const [panelOpen, setPanelOpen] = useState(null); // 'cat' | 'dispatch' | null 底部面板展开态
+  const [menuOpenId, setMenuOpenId] = useState(null); // 左栏三个点菜单打开的条目 id
   const [detail, setDetail] = useState(null);        // 详细模式：ScheduleForm 预填
   const editInputRef = useRef(null);
 
@@ -204,16 +205,19 @@ export default function InboxPage({ onCountChange }) {
     } finally { markBusy(selected.id, false); }
   }
 
-  // 详细模式：ScheduleForm 预填（支持时长/重要性/重复等完整字段）
-  function openDetail() {
-    if (!selected) return;
+  // 详细模式：ScheduleForm 预填（支持时长/重要性/重复等完整字段）；item 不传时用当前选中条目
+  function openDetailFor(item) {
+    const it = item || selected;
+    if (!it) return;
+    setSelectedId(it.id);
     setDetail({
-      item: selected,
+      item: it,
       initial: {
-        title: selected.content,
-        category: triage?.cat ?? (selected.category != null ? Number(selected.category) : 3),
-        date: triage?.date || getToday(),
-        start_time: triage?.time || '',
+        title: splitContent(it.content).title,
+        content: splitContent(it.content).body,
+        category: it.id === selectedId ? (triage?.cat ?? (it.category != null ? Number(it.category) : 3)) : (it.category != null ? Number(it.category) : 3),
+        date: it.id === selectedId ? (triage?.date || getToday()) : getToday(),
+        start_time: it.id === selectedId ? (triage?.time || '') : '',
       },
     });
   }
@@ -279,12 +283,6 @@ export default function InboxPage({ onCountChange }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-[15.5px] font-bold text-ink-900 leading-none">收集箱</span>
-                {items && items.length > 0 && (
-                  <span className="text-[11px] font-semibold px-2 py-[3px] rounded-full"
-                    style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}>
-                    {items.length} 条待分派
-                  </span>
-                )}
               </div>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -322,25 +320,21 @@ export default function InboxPage({ onCountChange }) {
                   const isEditing = editingId === item.id;
                   const isSelected = selectedId === item.id;
                   const catInfo = catOf(item.category);
+                  const menuFor = menuOpenId === item.id;
                   return (
                     <div
                       key={item.id}
-                      onClick={() => !isEditing && setSelectedId(item.id)}
-                      className={`flex items-start gap-2.5 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
-                      style={isSelected
-                        ? { background: 'rgba(var(--s-rgb),0.08)', boxShadow: 'inset 0 0 0 1px rgba(var(--s-rgb),0.35)' }
-                        : undefined}
+                      onClick={() => !isEditing && !menuFor && setSelectedId(item.id)}
+                      className={`relative flex items-start gap-2.5 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+                      style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
                     >
-                      {/* 就地完成 */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); complete(item.id); }}
-                        title="标记完成（想法已处理，无需转为日程）"
-                        className="flex-shrink-0 mt-[1px] w-[16px] h-[16px] rounded-full border-[1.5px] border-ink-300 hover:border-[color:var(--s-main)] flex items-center justify-center transition-colors group"
-                      >
-                        <svg className="opacity-0 group-hover:opacity-60 transition-opacity" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--s-main)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </button>
+                      {/* 主题色圆点（选中态实心，未选中空心） */}
+                      <span
+                        className="flex-shrink-0 mt-[5px] w-[8px] h-[8px] rounded-full transition-colors"
+                        style={isSelected
+                          ? { background: 'var(--s-main)' }
+                          : { background: 'transparent', border: '1.5px solid rgba(var(--s-rgb),0.55)' }}
+                      ></span>
 
                       {/* 内容 */}
                       <div className="flex-1 min-w-0">
@@ -358,7 +352,7 @@ export default function InboxPage({ onCountChange }) {
                             className="w-full bg-transparent outline-none text-[13.5px] font-medium text-ink-900 border-b border-[rgba(var(--s-rgb),0.4)] pb-0.5"
                           />
                         ) : (
-                          <div className={`text-[13.5px] leading-snug break-words ${isSelected ? 'font-semibold text-ink-900' : 'font-medium text-ink-900'}`}>
+                          <div className="text-[13.5px] leading-snug break-words font-medium text-ink-900">
                             {item.content.length > 80 ? item.content.slice(0, 80) + '…' : item.content}
                           </div>
                         )}
@@ -373,24 +367,39 @@ export default function InboxPage({ onCountChange }) {
                       {/* 日期（最右，hover 显示完整时间） */}
                       {!isEditing && (
                         <span
-                          className="flex-shrink-0 text-[11px] text-ink-400 tabular-nums self-center"
+                          className="flex-shrink-0 text-[12px] text-ink-400 tabular-nums self-center"
                           title={fmtTooltip(item.created_at)}
                         >{fmtDate(item.created_at)}</span>
                       )}
 
-                      {/* 删除（进回收站）；编辑/分派在右栏 */}
+                      {/* 纵向三个点：hover 显示完整时间 + 点击弹出删除/分派菜单 */}
                       {!isEditing && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); removeItem(item); }}
-                          title="删除（进回收站）"
-                          className="flex-shrink-0 text-ink-300 hover:text-[#FF3B30] w-7 h-7 rounded-lg hover:bg-[#FF3B3014] transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
-                          style={{ opacity: isSelected ? 1 : undefined }}
-                          onFocus={(e) => e.currentTarget.style.opacity = 1}
-                          onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                          onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = ''; }}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
+                        <div className="relative flex-shrink-0 self-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuFor ? null : item.id); }}
+                            title={fmtTooltip(item.created_at)}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-ink-300 hover:text-ink-600 hover:bg-black/[0.04] transition-colors"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                              <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
+                            </svg>
+                          </button>
+                          {menuFor && (
+                            <>
+                              <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); }} />
+                              <div className="absolute right-0 top-7 z-[20] w-[120px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); openDetailFor(item); }}
+                                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
+                                >分派…</button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); removeItem(item); }}
+                                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                                >删除</button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
@@ -465,7 +474,7 @@ export default function InboxPage({ onCountChange }) {
                       className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
                     >标记完成</button>
                     <button
-                      onClick={openDetail}
+                      onClick={() => openDetailFor()}
                       className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
                     >详细模式…</button>
                     <button
@@ -565,7 +574,7 @@ export default function InboxPage({ onCountChange }) {
                           className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
                         >标记完成</button>
                         <button
-                          onClick={openDetail}
+                          onClick={() => openDetailFor()}
                           className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
                         >详细模式…</button>
                         <button

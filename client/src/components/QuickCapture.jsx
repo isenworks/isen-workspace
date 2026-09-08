@@ -83,10 +83,10 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
   }
 
   function onKeyDown(e) {
-    // Enter 保存；Shift+Enter 换行（textarea 原生行为，需放行）
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+    // Enter 换行（textarea 原生行为）；Ctrl/Cmd+S 保存
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
-      save();
+      if (text.trim()) save();
     }
   }
 
@@ -100,14 +100,12 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
         value={text}
         onChange={(e) => { setText(e.target.value); autoGrow(e.target); }}
         onKeyDown={onKeyDown}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         placeholder={placeholder || '记录想法/待办'}
         className="w-full bg-transparent outline-none resize-none text-[14px] leading-[22px] text-[#1c1c1e] placeholder:text-ink-400 rounded-[9px] transition-all"
         style={{
           background: '#ffffff',
-          border: `1px solid ${focused ? 'var(--s-main)' : '#d1d1d6'}`,
-          boxShadow: focused ? '0 0 0 3px rgba(var(--s-rgb),0.12)' : 'none',
+          border: '1px solid #d1d1d6',
+          boxShadow: focused ? '0 2px 8px rgba(var(--s-rgb),0.12)' : 'none',
           height: 200,
           padding: '12px 14px',
           overflow: 'hidden',
@@ -158,6 +156,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
         <button
           onClick={save}
           disabled={busy || !text.trim()}
+          title="保存（Ctrl+S）"
           className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
           style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
         >保存</button>

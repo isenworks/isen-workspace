@@ -21,7 +21,7 @@ function hexToRgba(hex, a = 0.08) {
  *  - 保存按钮与「＋ 标签」同一行；保存成功后短暂显示「✓ 已收进」
  *  - 两处复用：全局快捷键 N 弹窗（Workspace）+ 收集箱页内输入区（InboxPage）
  * ============================================================ */
-export default function QuickCapture({ onSaved, autoFocus = true, placeholder }) {
+export default function QuickCapture({ onSaved, autoFocus = true, placeholder, fill }) {
   const toast = useToast();
   const [text, setText] = useState('');
   const [cat, setCat] = useState(null);          // 选中的分类 v；null=未选
@@ -32,18 +32,38 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
   const inputRef = useRef(null);
   const flashTimer = useRef(null);
 
+  // fill 模式（二分布局右侧面板）：输入区撑满剩余高度，内容超出再向下拉伸
+  useEffect(() => {
+    if (!fill || !inputRef.current) return;
+    const el = inputRef.current;
+    const apply = () => {
+      const parent = el.parentElement;
+      if (!parent) return;
+      el.style.height = 'auto';
+      el.style.height = Math.max(200, parent.clientHeight - el.offsetTop - 8) + 'px';
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    if (el.parentElement) ro.observe(el.parentElement);
+    return () => ro.disconnect();
+  }, [fill]);
+
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
   useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
-  // 自动增高：内容行数超过 minRows 时撑开（不用滚动条）
+  // 自动增高：内容行数超过默认高度时撑开（不用滚动条）；fill 模式以面板剩余高度为基准
   function autoGrow(el) {
     if (!el) return;
     el.style.height = 'auto';
-    // min 高度约左栏一半（340px 输入体验），超出按内容撑开
-    el.style.height = Math.max(200, el.scrollHeight) + 'px';
+    let base = 200;
+    if (fill) {
+      const parent = el.parentElement;
+      if (parent) base = Math.max(200, parent.clientHeight - el.offsetTop - 8);
+    }
+    el.style.height = Math.max(base, el.scrollHeight) + 'px';
   }
 
   async function save() {
@@ -53,9 +73,9 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
     try {
       await API.inbox.create({ content, category: cat });
       setText('');
-      // 恢复默认高度
+      // 恢复默认高度（fill 模式回到面板撑满高度）
       if (inputRef.current) {
-        inputRef.current.style.height = '200px';
+        autoGrow(inputRef.current);
       }
       setSavedFlash(true);
       if (flashTimer.current) clearTimeout(flashTimer.current);
@@ -82,7 +102,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
 
   return (
     <div>
-      {/* 输入区：无边框悬浮卡片——静息中性阴影定义边缘，聚焦主题色光环；默认约左栏一半高，超出自动撑开 */}
+      {/* 输入区：无边框悬浮卡片——静息中性阴影定义边缘，聚焦主题色光环；默认约左栏一半高，超出自动撑开（fill 模式撑满面板） */}
       <textarea
         ref={inputRef}
         value={text}

@@ -72,7 +72,15 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
   const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
   // 发展规划二级导航手动折叠态：覆盖默认规则（activeMenu==='annual' 时展开）
   // —— activeMenu 已是 annual 时再次点击主菜单 → 折叠（记 manualCollapse=true）；点其他菜单再点回来 → 重新展开
-  const [annualSubManuallyClosed, setAnnualSubManuallyClosed] = useState(false);
+  // —— 持久化到 localStorage（与收集箱 inbox_layout 同模式）：本次展开/收起，重新登录、切换页面都保持
+  const ANNUAL_SUB_LS = 'annual_sub_collapsed';
+  const [annualSubManuallyClosed, setAnnualSubManuallyClosed] = useState(() => {
+    try { return localStorage.getItem(ANNUAL_SUB_LS) === '1'; } catch { return false; }
+  });
+  const toggleAnnualSub = (closed) => {
+    setAnnualSubManuallyClosed(closed);
+    try { localStorage.setItem(ANNUAL_SUB_LS, closed ? '1' : '0'); } catch { /* ignore */ }
+  };
   const labelOf = (item) => navLabels[item.key] || item.label;
   // 右键导航项 → 行内编辑标题（Enter 保存 / Esc 取消 / 失焦保存；空值回退默认）
   const [editingNav, setEditingNav] = useState(null); // { key }
@@ -346,9 +354,9 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 onClick={() => {
                   // 发展规划：已激活时再次点击 → 手动折叠二级导航（再点其他菜单回来会重新展开）
                   if (item.key === 'annual' && activeMenu === 'annual') {
-                    setAnnualSubManuallyClosed(v => !v);
+                    toggleAnnualSub(!annualSubManuallyClosed);
                   } else if (item.key === 'annual') {
-                    setAnnualSubManuallyClosed(false);
+                    toggleAnnualSub(false);
                   }
                   onMenuChange?.(item.key);
                 }}

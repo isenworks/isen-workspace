@@ -269,11 +269,11 @@ export default function InboxPage({ onCountChange }) {
           </div>
         </div>
 
-        {/* 想法流 */}
+        {/* 想法流（加载/空态/末组卡均撑满剩余高度，与右栏底边对齐） */}
         {items === null ? (
-          <div className="glass-card rounded-2xl p-10 flex items-center justify-center text-[13px] text-ink-400">加载中…</div>
+          <div className="glass-card rounded-2xl p-10 flex-1 flex items-center justify-center text-[13px] text-ink-400">加载中…</div>
         ) : items.length === 0 ? (
-          <div className="glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2">
+          <div className="glass-card rounded-2xl p-14 flex-1 flex flex-col items-center justify-center text-center gap-2">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
               <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
@@ -282,9 +282,9 @@ export default function InboxPage({ onCountChange }) {
             <div className="text-[12px] text-ink-400">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 可随时记录</div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {groups.map(g => (
-              <div key={g.label} className="glass-card rounded-2xl p-2">
+          <div className="flex flex-col gap-3 flex-1 min-h-0">
+            {groups.map((g, gi) => (
+              <div key={g.label} className={`glass-card rounded-2xl p-2 ${gi === groups.length - 1 ? 'flex-1' : ''}`}>
                 <div className="flex items-center gap-2 px-2 pt-1.5 pb-1">
                   <span className="text-[11px] font-semibold text-ink-400 tracking-wide">{g.label}</span>
                   <span className="text-[11px] text-ink-300 tabular-nums">{g.list.length}</span>

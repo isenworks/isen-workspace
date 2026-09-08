@@ -218,9 +218,6 @@ export default function InboxPage({ onCountChange }) {
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-ink-400 leading-none mt-1.5">
-              想法和备忘先快速收进来，空了再分派到具体日期的日程
-            </div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <span className="text-[11px] text-ink-400">随时快速记录</span>
@@ -417,10 +414,6 @@ export default function InboxPage({ onCountChange }) {
               </div>
             );
           })}
-
-          <div className="text-[11.5px] text-ink-400 text-center pt-1">
-            分派后自动进入对应日期的日程；完成 / 删除的记录可在回收站恢复
-          </div>
         </div>
       )}
 

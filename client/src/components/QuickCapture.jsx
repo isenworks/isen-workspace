@@ -140,10 +140,6 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
           </>
         )}
       </div>
-
-      <div className="mt-1.5 text-[11px] text-ink-400 leading-none">
-        Enter 快速保存，保存后可继续记录下一条
-      </div>
     </div>
   );
 }

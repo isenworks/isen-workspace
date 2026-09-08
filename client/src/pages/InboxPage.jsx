@@ -92,6 +92,7 @@ export default function InboxPage({ onCountChange }) {
   const [editDraft, setEditDraft] = useState('');
   const [selectedId, setSelectedId] = useState(null); // 右栏工作台对应的条目
   const [triage, setTriage] = useState(null);        // { cat, date, time } 右栏分派状态（随选中条目切换）
+  const [panelOpen, setPanelOpen] = useState(null); // 'cat' | 'dispatch' | null 底部面板展开态
   const [detail, setDetail] = useState(null);        // 详细模式：ScheduleForm 预填
   const editInputRef = useRef(null);
 
@@ -113,8 +114,9 @@ export default function InboxPage({ onCountChange }) {
 
   const selected = (items || []).find(it => it.id === selectedId) || null;
 
-  // 选中变化 → 右栏分派状态重置（默认：条目原标签/其他，今天，无时间）
+  // 选中变化 → 右栏分派状态重置（默认：条目原标签/其他，今天，无时间），面板收起
   useEffect(() => {
+    setPanelOpen(null);
     if (selected) {
       setTriage({
         cat: selected.category != null ? Number(selected.category) : 3,
@@ -439,85 +441,29 @@ export default function InboxPage({ onCountChange }) {
             )}
 
             {triage && (
-              <div className="mt-4 pt-4 border-t border-ink-100/80 flex flex-col gap-4 flex-1">
-                {/* 分类 */}
-                <div>
-                  <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">分类</div>
+              <div className="mt-auto pt-3 border-t border-ink-100/80">
+                {/* 收起态：两个入口按钮（+标签 / 分派） */}
+                {!panelOpen ? (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {cats.map(c => {
-                      const on = Number(triage.cat) === c.v;
-                      return (
-                        <button
-                          key={c.v}
-                          onClick={() => setTriage(t => ({ ...t, cat: c.v }))}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
-                          style={{
-                            background: on ? hexToRgba(c.dot, 0.14) : 'rgba(120,120,128,0.06)',
-                            color: on ? c.dot : '#8e8e93',
-                            border: `1px solid ${on ? hexToRgba(c.dot, 0.55) : 'transparent'}`,
-                            fontWeight: on ? 600 : 400,
-                          }}
-                        >
-                          <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: c.dot }} />
-                          {c.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 日期 + 时间 */}
-                <div>
-                  <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">分派到</div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {dateChips.map(c => {
-                      const on = triage.date === c.value;
-                      return (
-                        <button
-                          key={c.label}
-                          onClick={() => setTriage(t => ({ ...t, date: c.value }))}
-                          className={`px-2.5 py-1 rounded-full text-[12px] transition-all ${on ? 'font-semibold' : ''}`}
-                          style={on
-                            ? { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)', border: '1px solid rgba(var(--s-rgb),0.45)' }
-                            : { background: 'rgba(120,120,128,0.06)', color: '#8e8e93', border: '1px solid transparent' }}
-                        >{c.label}</button>
-                      );
-                    })}
-                    {customDate && (
-                      <span className="px-2.5 py-1 rounded-full text-[12px] font-semibold"
-                        style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)', border: '1px solid rgba(var(--s-rgb),0.45)' }}>
-                        {triageDate.getMonth() + 1}月{triageDate.getDate()}日 周{WEEK_CN[triageDate.getDay()]}
-                      </span>
-                    )}
-                    <input
-                      type="date"
-                      value={triage.date}
-                      onChange={(e) => e.target.value && setTriage(t => ({ ...t, date: e.target.value }))}
-                      className="text-[12px] text-ink-500 px-2 py-1 rounded-lg border border-ink-100 bg-white/70 outline-none"
-                      title="选择其他日期"
-                    />
-                    <span className="w-px h-4 bg-ink-100 mx-0.5" />
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] text-ink-400">时间</span>
-                      <div className="w-[120px]">
-                        <FriendlyTimeInput
-                          value={triage.time}
-                          onChange={(v) => setTriage(t => ({ ...t, time: v }))}
-                          placeholder="可选"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 底部：收集日期（左下角）+ 按钮（沉底） */}
-                <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center justify-between gap-3 flex-wrap">
-                  <span className="text-[12px] text-ink-400 tabular-nums" title={fmtTooltip(selected.created_at)}>{fmtDate(selected.created_at)}</span>
-                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPanelOpen('cat')}
+                      className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
+                      style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                      标签
+                    </button>
+                    <button
+                      onClick={() => setPanelOpen('dispatch')}
+                      className="text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
+                      style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--s-main)' }}
+                    >分派</button>
+                    <div className="flex-1" />
+                    <span className="text-[12px] text-ink-400 tabular-nums" title={fmtTooltip(selected.created_at)}>{fmtDate(selected.created_at)}</span>
                     <button
                       onClick={() => complete(selected.id)}
                       className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
-                    >无需分派，标记完成</button>
+                    >标记完成</button>
                     <button
                       onClick={openDetail}
                       className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
@@ -529,7 +475,109 @@ export default function InboxPage({ onCountChange }) {
                       style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
                     >{busyIds.has(selected.id) ? '分派中…' : '提交'}</button>
                   </div>
-                </div>
+                ) : (
+                  /* 展开态：标签 / 分派选择区 + 底部按钮行 */
+                  <div className="flex flex-col gap-3.5">
+                    {/* 标签（点击「+标签」展开） */}
+                    {panelOpen === 'cat' && (
+                      <div>
+                        <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">标签</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {cats.map(c => {
+                            const on = Number(triage.cat) === c.v;
+                            return (
+                              <button
+                                key={c.v}
+                                onClick={() => setTriage(t => ({ ...t, cat: c.v }))}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
+                                style={{
+                                  background: on ? hexToRgba(c.dot, 0.14) : 'rgba(120,120,128,0.06)',
+                                  color: on ? c.dot : '#8e8e93',
+                                  border: `1px solid ${on ? hexToRgba(c.dot, 0.55) : 'transparent'}`,
+                                  fontWeight: on ? 600 : 400,
+                                }}
+                              >
+                                <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: c.dot }} />
+                                {c.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 分派（点击「分派」展开）：日期 + 时间，框尺寸统一 */}
+                    {panelOpen === 'dispatch' && (
+                      <div>
+                        <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">分派到</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {dateChips.map(c => {
+                            const on = triage.date === c.value;
+                            return (
+                              <button
+                                key={c.label}
+                                onClick={() => setTriage(t => ({ ...t, date: c.value }))}
+                                className={`px-2.5 py-1 rounded-full text-[12px] transition-all ${on ? 'font-semibold' : ''}`}
+                                style={on
+                                  ? { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)', border: '1px solid rgba(var(--s-rgb),0.45)' }
+                                  : { background: 'rgba(120,120,128,0.06)', color: '#8e8e93', border: '1px solid transparent' }}
+                              >{c.label}</button>
+                            );
+                          })}
+                          {customDate && (
+                            <span className="px-2.5 py-1 rounded-full text-[12px] font-semibold"
+                              style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)', border: '1px solid rgba(var(--s-rgb),0.45)' }}>
+                              {triageDate.getMonth() + 1}月{triageDate.getDate()}日 周{WEEK_CN[triageDate.getDay()]}
+                            </span>
+                          )}
+                          {/* 日期框（与时间框同高：h-[30px]） */}
+                          <input
+                            type="date"
+                            value={triage.date}
+                            onChange={(e) => e.target.value && setTriage(t => ({ ...t, date: e.target.value }))}
+                            className="text-[12px] text-ink-500 px-2 h-[30px] rounded-[9px] border border-ink-100 bg-white/70 outline-none"
+                            title="选择其他日期"
+                          />
+                          <span className="w-px h-4 bg-ink-100 mx-0.5" />
+                          {/* 时间框（紧凑版：与日期框同规格） */}
+                          <div className="h-[30px]">
+                            <FriendlyTimeInput
+                              value={triage.time}
+                              onChange={(v) => setTriage(t => ({ ...t, time: v }))}
+                              placeholder="可选"
+                              compact
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 底部：收集日期（左下角）+ 按钮 */}
+                    <div className="pt-3 border-t border-ink-100/80 flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-[12px] text-ink-400 tabular-nums" title={fmtTooltip(selected.created_at)}>{fmtDate(selected.created_at)}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setPanelOpen(null)}
+                          className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
+                        >收起</button>
+                        <button
+                          onClick={() => complete(selected.id)}
+                          className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
+                        >标记完成</button>
+                        <button
+                          onClick={openDetail}
+                          className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
+                        >详细模式…</button>
+                        <button
+                          onClick={process}
+                          disabled={busyIds.has(selected.id)}
+                          className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
+                          style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+                        >{busyIds.has(selected.id) ? '分派中…' : '提交'}</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>

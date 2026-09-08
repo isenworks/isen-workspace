@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 //  - 分钟默认 00，用户可不填
 //  - 点击时钟图标可弹出原生完整 time picker
 // ============================================================
-export default function FriendlyTimeInput({ value, onChange, placeholder }) {
+export default function FriendlyTimeInput({ value, onChange, placeholder, compact }) {
   const nativeRef = useRef(null);
   const mmRef = useRef(null);
   const [hh, setHh] = useState((value || '').split(':')[0] || '');
@@ -70,10 +70,10 @@ export default function FriendlyTimeInput({ value, onChange, placeholder }) {
 
   const CELL = {
     width: '100%',
-    padding: '8px 10px',
+    padding: compact ? '4px 6px' : '8px 10px',
     border: 'none',
     outline: 'none',
-    fontSize: '14px',
+    fontSize: compact ? '12px' : '14px',
     fontWeight: '600',
     color: '#1c1c1e',
     background: 'transparent',
@@ -86,12 +86,13 @@ export default function FriendlyTimeInput({ value, onChange, placeholder }) {
     <div style={{
       display: 'flex',
       alignItems: 'stretch',
+      height: compact ? '30px' : undefined,
       border: '1px solid #d1d1d6',
-      borderRadius: '9px',
+      borderRadius: compact ? '9px' : '9px',
       background: '#ffffff',
       overflow: 'hidden',
       transition: 'all .15s',
-      minWidth: '128px'
+      minWidth: compact ? '96px' : '128px'
     }}
       onMouseEnter={(e) => e.currentTarget.style.borderColor = '#b5b5bd'}
       onMouseLeave={(e) => e.currentTarget.style.borderColor = '#d1d1d6'}
@@ -133,7 +134,7 @@ export default function FriendlyTimeInput({ value, onChange, placeholder }) {
         onClick={openNative}
         title="打开时间选择器"
         style={{
-          width: '36px',
+          width: compact ? '26px' : '36px',
           border: 'none',
           background: '#f5f5f7',
           cursor: 'pointer',

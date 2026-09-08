@@ -15,8 +15,8 @@ function hexToRgba(hex, a = 0.08) {
 
 /* ============================================================
  * QuickCapture · 快速捕获框（收集箱入口之一）
- *  - 只有一个文本域 + 自动记录时间，Enter 保存并保持焦点，可连续倾倒
- *  - 分类 chips 默认收起（「顺手选个分类」），展开可选，不增加默认负担
+ *  - 两行文本域 + 自动记录时间，Enter 保存并保持焦点，可连续倾倒
+ *  - 标签 chips 默认收起（「＋ 标签」浅蓝底），展开可选
  *  - 两处复用：全局快捷键 N 弹窗（Workspace）+ 收集箱页内输入行（InboxPage）
  * ============================================================ */
 export default function QuickCapture({ onSaved, autoFocus = true, placeholder }) {
@@ -69,6 +69,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
   }
 
   function onKeyDown(e) {
+    // Enter 保存；Shift+Enter 换行（textarea 原生行为，需放行）
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       save();
@@ -79,46 +80,52 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
 
   return (
     <div>
-      {/* 输入卡片：白色圆角容器（与新建事项标题输入同规格），✎ 图标 + 文本域 + 当前时间 + 保存按钮 内嵌 */}
+      {/* 输入卡片：白色圆角容器（与新建事项标题输入同规格），✎ 图标 + 两行文本域 + 当前时间 + 保存按钮 */}
       <div
-        className="flex items-center gap-2.5 rounded-[9px] transition-all"
+        className="flex items-start gap-2.5 rounded-[9px] transition-all"
         style={{
           background: '#ffffff',
           border: `1px solid ${focused ? 'var(--s-main)' : '#d1d1d6'}`,
           boxShadow: focused ? '0 0 0 3px rgba(var(--s-rgb),0.12)' : 'none',
-          padding: '7px 8px 7px 10px',
+          padding: '8px 8px 8px 10px',
         }}
       >
-        <span className="flex-shrink-0 w-[26px] h-[26px] rounded-lg flex items-center justify-center" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
+        <span className="flex-shrink-0 w-[26px] h-[26px] mt-[3px] rounded-lg flex items-center justify-center" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
           </svg>
         </span>
-        <input
+        <textarea
           ref={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder={placeholder || '记录想法/待办'}
-          className="flex-1 min-w-0 bg-transparent outline-none text-[14px] text-[#1c1c1e] placeholder:text-ink-400"
+          rows={2}
+          className="flex-1 min-w-0 bg-transparent outline-none resize-none text-[14px] leading-[22px] text-[#1c1c1e] placeholder:text-ink-400"
+          style={{ marginTop: '2px' }}
         />
-        <span className="flex-shrink-0 text-[12px] tabular-nums text-ink-400">{savedFlash ? '✓ 已收进' : nowLabel}</span>
-        <button
-          onClick={save}
-          disabled={busy || !text.trim()}
-          className="flex-shrink-0 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
-          style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-        >保存</button>
+        <div className="flex flex-col items-end gap-2 flex-shrink-0 self-stretch justify-between pt-[1px] pb-[1px]">
+          <span className="text-[12px] tabular-nums text-ink-400 leading-none">{savedFlash ? '✓ 已收进' : nowLabel}</span>
+          <button
+            onClick={save}
+            disabled={busy || !text.trim()}
+            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
+            style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+          >保存</button>
+        </div>
       </div>
 
-      {/* 分类 chips：默认收起，点「顺手选个分类」展开 */}
+      {/* 标签 chips：默认收起，点「＋ 标签」展开 */}
       <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
         {!showCats ? (
           <button
             onClick={() => setShowCats(true)}
-            className="text-[12px] text-ink-400 hover:text-ink-600 px-2 py-1 rounded-md hover:bg-ink-50 transition-colors"
+            className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
+            style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
           >
-            ＋ 分类
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            标签
           </button>
         ) : (
           <>
@@ -144,7 +151,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
             <button
               onClick={() => { setShowCats(false); setCat(null); }}
               className="text-[12px] text-ink-400 hover:text-ink-600 px-1.5 py-1 transition-colors"
-              title="收起分类"
+              title="收起标签"
             >收起</button>
           </>
         )}

@@ -3674,6 +3674,14 @@ function CognitionView({
     '人文叙事': 'var(--m-energy)',
   };
   const catColorOf = (c) => CAT_COLORS[c] || BLUE;
+  // 分类 Pill 文字色：主题色降不透明度（完整主题色在浅底 pill 上偏深、抢视觉）
+  const CAT_TEXT_COLORS = {
+    '认知成长': 'rgba(var(--m-cognition-rgb),0.72)',
+    '人际沟通': 'rgba(var(--m-life-rgb),0.72)',
+    '商业职场': 'rgba(var(--m-ability-rgb),0.72)',
+    '人文叙事': 'rgba(var(--m-energy-rgb),0.72)',
+  };
+  const catTextColorOf = (c) => CAT_TEXT_COLORS[c] || 'rgba(var(--m-cognition-rgb),0.72)';
   const year = new Date().getFullYear();
 
   const groups = useMemo(() => {
@@ -4424,7 +4432,7 @@ function CognitionView({
                                         default: return '#f1f5f9';
                                       }
                                     })(),
-                                    color: catCol,
+                                    color: catTextColorOf(b.cat),
                                   }}>
                                   {b.cat || '未分类'}
                                 </span>

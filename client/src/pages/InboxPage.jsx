@@ -7,7 +7,7 @@ import QuickCapture from '../components/QuickCapture.jsx';
 import Modal from '../components/Modal.jsx';
 import ScheduleForm, { readCats } from '../components/forms/ScheduleForm.jsx';
 
-const LS_LAYOUT_KEY = 'inbox_layout'; // 'tri' 三分布局 | 'duo' 二分布局
+const LS_LAYOUT_KEY = 'inbox_layout'; // 'tri' 三分布局 | 'duo' 二分布局（默认）
 
 // D1 datetime('now') 是 UTC（'YYYY-MM-DD HH:MM:SS'），转本地 Date
 function parseDbTime(s) {
@@ -77,9 +77,9 @@ function groupLabel(s) {
 const GROUP_ORDER = ['今天', '昨天', '更早'];
 
 /* ============================================================
- * InboxPage · 收集箱（两种布局，可切换、localStorage 记忆）
+ * InboxPage · 收集箱（两种布局，可切换、localStorage 记忆、二分布局默认）
  *   三分布局 tri：左栏（页头+快速捕获 / 时间分组想法流）+ 右栏分派工作台
- *   二分布局 duo：左侧纯事项列表铺满，右侧默认为新增记录面板；
+ *   二分布局 duo（默认）：左侧纯事项列表铺满，右侧默认为新增记录面板；
  *                点击左侧事项 → 右侧切换为该事项的详情面板；
  *                收集箱标题旁的笔图标（仅二分布局）回到新增面板
  *   捕获：N 键或输入面板快速收进；分派：空了再派到具体日期的日程
@@ -98,9 +98,9 @@ export default function InboxPage({ onCountChange }) {
   const [rDraft, setRDraft] = useState('');
   const rEditRef = useRef(null);
   const rEscapeRef = useRef(false);
-  // 布局：tri（三分布局，默认）| duo（二分布局）
+  // 布局：duo（二分布局，默认）| tri（三分布局）；选择存 localStorage，跨登录/刷新记忆
   const [layout, setLayout] = useState(() => {
-    try { return localStorage.getItem(LS_LAYOUT_KEY) === 'duo' ? 'duo' : 'tri'; } catch { return 'tri'; }
+    try { return localStorage.getItem(LS_LAYOUT_KEY) === 'tri' ? 'tri' : 'duo'; } catch { return 'duo'; }
   });
 
   const cats = readCats();
@@ -429,7 +429,7 @@ export default function InboxPage({ onCountChange }) {
                   <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
                   <span className="text-[15.5px] font-bold text-ink-900 leading-none">新增记录</span>
                 </div>
-                <QuickCapture onSaved={load} bare />
+                <QuickCapture onSaved={load} onDispatch={openDetailFor} bare />
               </div>
             ) : (
               <>
@@ -540,7 +540,7 @@ export default function InboxPage({ onCountChange }) {
             <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
               <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">
-                <QuickCapture onSaved={load} />
+                <QuickCapture onSaved={load} onDispatch={openDetailFor} />
               </div>
             </div>
             {renderList(true)}

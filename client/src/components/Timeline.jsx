@@ -1071,7 +1071,16 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   ? 'linear-gradient(90deg,#FFEEED 0%,transparent 70%)'
                   : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)';
                 return (
-                  <div key={t.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row" style={{background: rowBg}}>
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row"
+                    style={{background: rowBg}}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.__showContextMenu?.(e.clientX, e.clientY, 'task', t.id);
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className="cb-square"

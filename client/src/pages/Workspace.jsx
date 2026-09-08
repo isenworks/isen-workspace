@@ -303,6 +303,12 @@ export default function Workspace({ user: propUser }) {
           const h = r.habits.find(x => x.id === id);
           if (h) window.__openHabitModal && window.__openHabitModal(h);
         } catch (e) { toast.error(e.message); }
+      } else if (type === 'task') {
+        try {
+          const r = await API.tasks.list({ from: '2000-01-01', to: '2100-01-01' });
+          const t = (r.tasks || []).find(x => x.id === id);
+          if (t) setModal({ type: 'task', data: t });
+        } catch (e) { toast.error(e.message); }
       }
     }
 
@@ -316,6 +322,22 @@ export default function Workspace({ user: propUser }) {
           onOk: async () => {
             try {
               await API.schedules.remove(id);
+              store.broadcast({ type: 'reload' });
+              refresh();
+              setConfirm(null);
+            } catch (e) { toast.error(e.message); }
+          },
+          onCancel: () => setConfirm(null)
+        });
+      } else if (type === 'task') {
+        setConfirm({
+          title: '删除该待办？',
+          msg: '删除后可在回收站恢复，确定要删除该待办吗？',
+          okText: '确定删除',
+          okColor: '#FF3B30',
+          onOk: async () => {
+            try {
+              await API.tasks.remove(id);
               store.broadcast({ type: 'reload' });
               refresh();
               setConfirm(null);

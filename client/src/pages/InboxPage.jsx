@@ -55,7 +55,7 @@ const WEEK_CN = ['日', '一', '二', '三', '四', '五', '六'];
 /* ============================================================
  * InboxPage · 收集箱
  *   捕获：想法/备忘 + 自动记录时间（无日期），N 键或页内输入快速收进
- *   分派：空了再分配到具体类型（日程/待办）+ 日期时间，形成每日清空循环
+ *   分派：空了再分配到具体日期时间的日程，形成每日清空循环
  * ============================================================ */
 export default function InboxPage({ onCountChange }) {
   const toast = useToast();
@@ -91,7 +91,7 @@ export default function InboxPage({ onCountChange }) {
     });
   }
 
-  // ===== 就地完成（想法已处理，无需转为日程/待办） =====
+  // ===== 就地完成（想法已处理，无需转为日程） =====
   async function complete(id) {
     markBusy(id, true);
     try {
@@ -145,24 +145,21 @@ export default function InboxPage({ onCountChange }) {
     });
   }
 
-  async function process(item, type) {
+  async function process(item) {
     if (!triage || triage.id !== item.id) return;
     markBusy(item.id, true);
     try {
-      const fields = { title: item.content, date: triage.date };
-      if (type === 'schedule') {
-        fields.category = triage.cat;
-        if (triage.time) fields.start_time = triage.time;
-      }
-      await API.inbox.process({ id: item.id, type, fields });
+      const fields = { title: item.content, date: triage.date, category: triage.cat };
+      if (triage.time) fields.start_time = triage.time;
+      await API.inbox.process({ id: item.id, type: 'schedule', fields });
       setTriage(null);
       setItems(prev => prev.filter(it => it.id !== item.id));
       onCountChange?.(Math.max(0, (items || []).length - 1));
       store.broadcast({ type: 'reload' }); // 让今日计划的时间轴/重点事项同步刷新
       const d = new Date(triage.date + 'T00:00:00');
       const dayLabel = triage.date === getToday() ? '今天' : `${d.getMonth() + 1}月${d.getDate()}日`;
-      const catInfo = type === 'schedule' ? catOf(triage.cat) : null;
-      toast.success(`已分派到 ${catInfo ? catInfo.label + ' · ' : ''}${dayLabel}${triage.time && type === 'schedule' ? ' ' + triage.time : ''}的${type === 'schedule' ? '日程' : '待办'}`);
+      const catInfo = catOf(triage.cat);
+      toast.success(`已分派到 ${catInfo ? catInfo.label + ' · ' : ''}${dayLabel}${triage.time ? ' ' + triage.time : ''}的日程`);
     } catch (e) {
       toast.error(e.message || '分派失败');
     } finally { markBusy(item.id, false); }
@@ -222,7 +219,7 @@ export default function InboxPage({ onCountChange }) {
               )}
             </div>
             <div className="text-[11px] text-ink-400 leading-none mt-1.5">
-              想法和备忘先快速收进来，空了再分派到具体类型和日期
+              想法和备忘先快速收进来，空了再分派到具体日期的日程
             </div>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -409,15 +406,10 @@ export default function InboxPage({ onCountChange }) {
                           className="text-[12.5px] font-medium text-ink-500 hover:text-ink-900 px-2 py-1.5 rounded-lg hover:bg-ink-50 transition-colors"
                         >详细模式…</button>
                         <button
-                          onClick={() => process(item, 'task')}
-                          className="text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                          style={{ background: 'rgba(120,120,128,0.12)', color: '#1c1c1e' }}
-                        >转为待办</button>
-                        <button
-                          onClick={() => process(item, 'schedule')}
+                          onClick={() => process(item)}
                           className="text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-all"
                           style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-                        >转为日程</button>
+                        >提交</button>
                       </div>
                     </div>
                   </div>
@@ -427,7 +419,7 @@ export default function InboxPage({ onCountChange }) {
           })}
 
           <div className="text-[11.5px] text-ink-400 text-center pt-1">
-            分派后自动进入对应日期的日程/待办；完成 / 删除的记录可在回收站恢复
+            分派后自动进入对应日期的日程；完成 / 删除的记录可在回收站恢复
           </div>
         </div>
       )}

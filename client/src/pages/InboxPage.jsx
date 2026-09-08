@@ -242,7 +242,7 @@ export default function InboxPage({ onCountChange }) {
             <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
           </svg>
           <div className="text-[14px] font-semibold text-ink-900">收集箱是空的</div>
-          <div className="text-[12px] text-ink-400">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 随时收进第一个想法</div>
+          <div className="text-[12px] text-ink-400">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 可随时记录</div>
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">

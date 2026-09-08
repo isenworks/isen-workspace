@@ -109,7 +109,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
             onClick={() => setShowCats(true)}
             className="text-[12px] text-ink-400 hover:text-ink-600 px-2 py-1 rounded-md hover:bg-ink-50 transition-colors"
           >
-            ＋ 顺手选个分类（可选）
+            ＋ 分类
           </button>
         ) : (
           <>

@@ -1365,6 +1365,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
           {tabView === 'month' && (
             <FocusPanel
+              fill
               type="month"
               accentColor="var(--s-main)"
               title="本月主线"
@@ -1384,6 +1385,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
           {tabView === 'week' && (
             <FocusPanel
+              fill
               type="week"
               accentColor="var(--s-main)"
               title={`本周主线 · ${weekStartStr}-${weekEndStr}`}

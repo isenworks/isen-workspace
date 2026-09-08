@@ -149,6 +149,7 @@ export default function FocusPanel({
   deletedTasks,       // 回收站任务数组（若传则底部出现回收站卡）
   showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
   headerExtra,
+  fill,              // 页面布局场景：卡片纵向撑满所在列（列表区吃剩余高度，超出滚动）；弹层不传则保持自然高度
 }) {
   // HTML5 DnD 排序：记录当前拖拽的 { taskId, groupKey } 以及 drop 目标 taskId（用于插入位置视觉提示）
   const [dragState, setDragState] = useState(null); // { taskId, groupKey } | null
@@ -227,7 +228,7 @@ export default function FocusPanel({
 
   return (
     <>
-    <div className="card p-4" style={{
+    <div className={`card p-4 flex flex-col${fill ? ' flex-1 min-h-0' : ''}`} style={{
       background: '#fff',
       borderRadius: '18px',
       boxShadow: '0 0 0 1px rgba(0,0,0,0.025), 0 4px 20px rgba(0,0,0,0.035)',
@@ -293,8 +294,8 @@ export default function FocusPanel({
       {/* 分隔线 */}
       <div className="h-px my-3" style={{ background: 'linear-gradient(90deg, transparent, rgba(var(--s-rgb),0.08), transparent)' }} />
 
-      {/* 分组列表：方案 A · 无左色条 */}
-      <div className="flex flex-col gap-[8px]">
+      {/* 分组列表：方案 A · 无左色条（fill 时撑满卡片剩余高度，不足贴底留白、超出滚动） */}
+      <div className={`flex flex-col gap-[8px]${fill ? ' flex-1 min-h-0 overflow-y-auto' : ''}`}>
         {grouped.map(grp => {
           const doneN = grp.items.filter(i => i.done).length;
           const totalN = grp.items.length;

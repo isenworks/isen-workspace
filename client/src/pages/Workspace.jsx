@@ -539,10 +539,10 @@ export default function Workspace({ user: propUser }) {
             onViewChange={handleViewChange}
           />
 
-          {/* 主体：12 列网格（左 5 + 右 7） */}
-          <div className="grid grid-cols-12 gap-4">
+          {/* 主体：左右分栏（左 38% + 右 62%，与收集箱一致） */}
+          <div className="flex items-stretch gap-4">
             {/* 左栏：重点事项 + 习惯 */}
-            <div className="col-span-5 flex flex-col gap-4">
+            <div className="flex flex-col gap-4 min-w-0" style={{ flex: '0 0 38%' }}>
               {/* 收集箱提醒条：有待分派想法时显示，引导每日清空 */}
               {inboxCount > 0 && (
                 <button
@@ -579,7 +579,7 @@ export default function Workspace({ user: propUser }) {
             </div>
 
             {/* 右栏：时间轴 / 总结面板 */}
-            <div className="col-span-7">
+            <div className="flex-1 min-w-0">
               {showSummary ? (
                 <div className="glass-card p-5 h-full flex flex-col">
                   <SummaryPanel

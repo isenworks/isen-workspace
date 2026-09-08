@@ -27,6 +27,7 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
   const [busy, setBusy] = useState(false);
   const [nowLabel, setNowLabel] = useState('');
   const [savedFlash, setSavedFlash] = useState(false);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
   const flashTimer = useRef(null);
 
@@ -78,10 +79,18 @@ export default function QuickCapture({ onSaved, autoFocus = true, placeholder })
 
   return (
     <div>
-      {/* 输入行：✎ 图标 + 文本域 + 当前时间 + 保存按钮 */}
-      <div className="flex items-center gap-2.5">
-        <span className="flex-shrink-0 w-[30px] h-[30px] rounded-lg flex items-center justify-center" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* 输入卡片：白色圆角容器（与新建事项标题输入同规格），✎ 图标 + 文本域 + 当前时间 + 保存按钮 内嵌 */}
+      <div
+        className="flex items-center gap-2.5 rounded-[9px] transition-all"
+        style={{
+          background: '#ffffff',
+          border: `1px solid ${focused ? 'var(--s-main)' : '#d1d1d6'}`,
+          boxShadow: focused ? '0 0 0 3px rgba(var(--s-rgb),0.12)' : 'none',
+          padding: '7px 8px 7px 10px',
+        }}
+      >
+        <span className="flex-shrink-0 w-[26px] h-[26px] rounded-lg flex items-center justify-center" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
           </svg>
         </span>

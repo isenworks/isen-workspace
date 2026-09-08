@@ -16,28 +16,32 @@ function parseDbTime(s) {
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
-// 「今天 21:36 · 2 小时前」
-function fmtCreated(s) {
+// 「2026-09-08」（左栏紧凑日期，hover 时 title 显示完整时间）
+function fmtDate(s) {
+  const d = parseDbTime(s);
+  if (!d) return '';
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// 「2026-09-08 10:01」（右栏完整时间）
+function fmtFull(s) {
+  const d = parseDbTime(s);
+  if (!d) return '';
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+// hover 完整时间（含相对时间提示）
+function fmtTooltip(s) {
   const d = parseDbTime(s);
   if (!d) return '';
   const now = new Date();
-  const p = n => String(n).padStart(2, '0');
-  const hm = `${p(d.getHours())}:${p(d.getMinutes())}`;
-  const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  let day;
-  if (sameDay(d, now)) day = '今天';
-  else {
-    const y = new Date(now); y.setDate(y.getDate() - 1);
-    if (sameDay(d, y)) day = '昨天';
-    else day = `${d.getMonth() + 1}月${d.getDate()}日`;
-  }
   const diff = Math.floor((now - d) / 1000);
   let rel;
   if (diff < 60) rel = '刚刚';
   else if (diff < 3600) rel = `${Math.floor(diff / 60)} 分钟前`;
   else if (diff < 86400) rel = `${Math.floor(diff / 3600)} 小时前`;
   else rel = `${Math.floor(diff / 86400)} 天前`;
-  return `${day} ${hm} · ${rel}`;
+  return `${fmtFull(s)}（${rel}）`;
 }
 
 // hex → rgba（分类 chip 底色/描边，与 ScheduleForm catToStyle 同规则）
@@ -48,6 +52,14 @@ function hexToRgba(hex, a = 0.08) {
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a})`;
+}
+
+// 内容拆分：首行为标题，其余为正文（右栏展示完整记录，标题非必填——单行时仅标题）
+function splitContent(content) {
+  const s = String(content || '');
+  const idx = s.indexOf('\n');
+  if (idx === -1) return { title: s, body: '' };
+  return { title: s.slice(0, idx), body: s.slice(idx + 1).trim() || '' };
 }
 
 const WEEK_CN = ['日', '一', '二', '三', '四', '五', '六'];
@@ -348,16 +360,21 @@ export default function InboxPage({ onCountChange }) {
                             {item.content.length > 80 ? item.content.slice(0, 80) + '…' : item.content}
                           </div>
                         )}
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[11px] text-ink-400 tabular-nums">{fmtCreated(item.created_at)}</span>
-                          {catInfo && (
-                            <span className="flex items-center gap-1 text-[11px]" style={{ color: catInfo.dot }}>
-                              <span className="w-[6px] h-[6px] rounded-full" style={{ background: catInfo.dot }} />
-                              {catInfo.label}
-                            </span>
-                          )}
-                        </div>
+                        {catInfo && (
+                          <div className="flex items-center gap-1 mt-1 text-[11px]" style={{ color: catInfo.dot }}>
+                            <span className="w-[6px] h-[6px] rounded-full" style={{ background: catInfo.dot }} />
+                            {catInfo.label}
+                          </div>
+                        )}
                       </div>
+
+                      {/* 日期（最右，hover 显示完整时间） */}
+                      {!isEditing && (
+                        <span
+                          className="flex-shrink-0 text-[11px] text-ink-400 tabular-nums self-center"
+                          title={fmtTooltip(item.created_at)}
+                        >{fmtDate(item.created_at)}</span>
+                      )}
 
                       {/* 删除（进回收站）；编辑/分派在右栏 */}
                       {!isEditing && (
@@ -395,20 +412,17 @@ export default function InboxPage({ onCountChange }) {
           </div>
         ) : (
           <>
-            {/* 条目内容 */}
+            {/* 条目内容（标题 + 正文，色条与左栏收集箱标题对齐） */}
             <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-[5px] h-[20px] rounded-full self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
+              <span className="flex-shrink-0 w-[5px] h-[20px] rounded-full self-start mt-[1px]" style={{ background: 'var(--s-grad-bg)' }}></span>
               <div className="flex-1 min-w-0">
-                <div className="text-[14.5px] font-semibold text-ink-900 leading-snug break-words whitespace-pre-wrap">{selected.content}</div>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className="text-[11px] text-ink-400 tabular-nums">收集于 {fmtCreated(selected.created_at)}</span>
-                  {catOf(selected.category) && (
-                    <span className="flex items-center gap-1 text-[11px]" style={{ color: catOf(selected.category).dot }}>
-                      <span className="w-[6px] h-[6px] rounded-full" style={{ background: catOf(selected.category).dot }} />
-                      {catOf(selected.category).label}
-                    </span>
-                  )}
-                </div>
+                <div className="text-[14.5px] font-semibold text-ink-900 leading-snug break-words whitespace-pre-wrap">{splitContent(selected.content).title}</div>
+                {catOf(selected.category) && (
+                  <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: catOf(selected.category).dot }}>
+                    <span className="w-[6px] h-[6px] rounded-full" style={{ background: catOf(selected.category).dot }} />
+                    {catOf(selected.category).label}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => startEdit(selected)}
@@ -418,6 +432,11 @@ export default function InboxPage({ onCountChange }) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
               </button>
             </div>
+
+            {/* 正文（首行外的内容，支持完整展示） */}
+            {splitContent(selected.content).body && (
+              <div className="mt-3 text-[13.5px] text-ink-600 leading-[21px] break-words whitespace-pre-wrap pl-8">{splitContent(selected.content).body}</div>
+            )}
 
             {triage && (
               <div className="mt-4 pt-4 border-t border-ink-100/80 flex flex-col gap-4 flex-1">
@@ -491,11 +510,9 @@ export default function InboxPage({ onCountChange }) {
                   </div>
                 </div>
 
-                {/* 底部：预览 + 按钮（沉底） */}
+                {/* 底部：收集日期（左下角）+ 按钮（沉底） */}
                 <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center justify-between gap-3 flex-wrap">
-                  <span className="text-[12px] text-[color:var(--s-main)] font-medium">
-                    将转为「{catOf(triage.cat)?.label || '其他'}」· {triage.date === getToday() ? '今天' : `${triageDate.getMonth() + 1}月${triageDate.getDate()}日`}{triage.time ? ` ${triage.time}` : ''}的日程
-                  </span>
+                  <span className="text-[12px] text-ink-400 tabular-nums" title={fmtTooltip(selected.created_at)}>{fmtDate(selected.created_at)}</span>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => complete(selected.id)}

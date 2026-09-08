@@ -386,7 +386,7 @@ export default function InboxPage({ onCountChange }) {
         /* ===== 二分布局：左侧事项列表，右侧编辑面板（新增/编辑） ===== */
         <>
           <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
-            <div className="glass-card rounded-2xl p-3">
+            <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
             </div>
             {renderList(true)}

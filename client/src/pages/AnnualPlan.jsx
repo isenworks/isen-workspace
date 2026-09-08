@@ -3519,41 +3519,56 @@ function CognitionView({
       })();
       let { curr, updatedIdxs, needsCoverFallback } = mergedResult;
 
-      // ---- 同步·立刻搜索 bookId（同步，不等setTimeout）----
-      const needBookId = curr
+      // ---- 同步·按每本书自己填写的书名+作者在微信读书搜索，校准封面（顺带补 bookId）----
+      // 背景：书架合并的模糊匹配/豆瓣封面搜索都可能配错书（如「超级沟通者」配到别书封面），
+      // 这里以用户填写的书名+作者为准重新搜索，严格匹配命中才覆盖：
+      //   ① 书名+作者都匹配 → 覆盖封面 + bookId
+      //   ② 书名精确匹配（作者缺失或无法比对）→ 同上
+      //   ③ 书名包含 + 作者匹配 → 同上；都不中 → 保持原样不动（宁缺勿错）
+      // 用户手动粘贴的封面（coverSource==='manual' 或 data:URL）不动
+      const coverKeep = (b) => {
+        const u = String(b.coverUrl || '');
+        return /^data:image\//i.test(u) || b.coverSource === 'manual';
+      };
+      const needCalib = curr
         .map((b, idx) => ({ b, idx }))
-        .filter(({ b }) => !b.bookId && b.t)
-        .map(({ b, idx }) => ({ idx, title: b.t, author: b.author }));
-      if (needBookId.length > 0) {
-        showToast?.(`正在为 ${needBookId.length} 本书搜索微信读书链接…`);
+        .filter(({ b }) => b && b.t);
+      if (needCalib.length > 0) {
+        showToast?.(`正在按书名+作者校准 ${needCalib.length} 本书的微信读书封面…`);
         const BATCH = 3;
-        for (let i = 0; i < needBookId.length; i += BATCH) {
-          const slice = needBookId.slice(i, i + BATCH);
-          const results = await Promise.all(slice.map(async ({ idx, title, author }) => {
+        for (let i = 0; i < needCalib.length; i += BATCH) {
+          const slice = needCalib.slice(i, i + BATCH);
+          const results = await Promise.all(slice.map(async ({ idx, b }) => {
             try {
-              const r = await fetch(`/api/weread/search?q=${encodeURIComponent(title)}`);
+              const r = await fetch(`/api/weread/search?q=${encodeURIComponent(b.t)}`);
               const j = await r.json().catch(() => ({}));
-              if (j?.ok && Array.isArray(j.results) && j.results.length > 0) {
-                let match = null;
-                if (author) {
-                  match = j.results.find(x =>
-                    String(x.title || '').includes(title.slice(0, 2)) &&
-                    String(x.author || '').includes(String(author).slice(0, 2))
-                  );
-                }
-                if (!match) match = j.results.find(x => String(x.title || '').includes(title.slice(0, 2)));
-                if (!match) match = j.results[0];
-                const bid = match?.bookId;
-                if (bid && isValidBookId(bid)) {
-                  return { idx, bookId: bid, ebookUrl: `https://weread.qq.com/web/reader/${bid}` };
-                }
+              if (!j?.ok || !Array.isArray(j.results) || j.results.length === 0) return null;
+              const lt = normTitleOnly(b.t);
+              let match = j.results.find(x => normTitleOnly(x.title) === lt && authorMatches(b.author, x.author));
+              if (!match) match = j.results.find(x => normTitleOnly(x.title) === lt);
+              if (!match) match = j.results.find(x => {
+                const xt = normTitleOnly(x.title);
+                return (lt.includes(xt) || xt.includes(lt)) && authorMatches(b.author, x.author);
+              });
+              if (!match) return null;
+              const patch = {};
+              if (match.cover && !coverKeep(b)) {
+                patch.coverUrl = '/api/cover/proxy?url=' + encodeURIComponent(String(match.cover));
+                patch.coverSource = 'weread';
               }
+              const bid = match.bookId;
+              if (bid && isValidBookId(bid) && b.bookId !== bid) {
+                patch.bookId = bid;
+                patch.ebookUrl = `https://weread.qq.com/web/reader/${bid}`;
+                patch.src = b.src || '电子书';
+              }
+              return Object.keys(patch).length > 0 ? { idx, patch } : null;
             } catch (_) {}
             return null;
           }));
           for (const r of results) {
             if (r && curr[r.idx]) {
-              curr[r.idx] = { ...curr[r.idx], bookId: r.bookId, ebookUrl: r.ebookUrl, src: '电子书' };
+              curr[r.idx] = { ...curr[r.idx], ...r.patch };
               updatedIdxs.add(r.idx);
             }
           }

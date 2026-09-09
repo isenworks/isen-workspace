@@ -124,7 +124,8 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
 
   return (
     <div className={bare ? 'flex-1 flex flex-col min-h-0 gap-3' : undefined}>
-      {/* 输入区：无边框悬浮卡片——静息中性阴影定义边缘，聚焦主题色光环；默认约左栏一半高、超出自动撑开，bare 模式撑满面板、超出滚动 */}
+      {/* 输入区：无边框悬浮卡片——静息中性阴影定义边缘，聚焦主题色光环；默认约左栏一半高、超出自动撑开，bare 模式撑满面板、超出滚动。
+          左右各内收 1.5px：聚焦光环（box-shadow 向外扩 1.5px）外缘与卡片 16px 内边距线（页头色条左缘）精确对齐 */}
       <textarea
         ref={inputRef}
         value={text}
@@ -133,7 +134,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder={placeholder || '记录想法/待办'}
-        className={`w-full bg-transparent outline-none resize-none text-[14px] leading-[22px] text-[#1c1c1e] placeholder:text-ink-400 rounded-[9px] transition-all ${bare ? 'flex-1 min-h-0' : ''}`}
+        className={`mx-[1.5px] bg-transparent outline-none resize-none text-[14px] leading-[22px] text-[#1c1c1e] placeholder:text-ink-400 rounded-[9px] transition-all ${bare ? 'flex-1 min-h-0 w-auto' : 'w-[calc(100%_-_3px)]'}`}
         style={{
           background: '#ffffff',
           border: '1px solid transparent',

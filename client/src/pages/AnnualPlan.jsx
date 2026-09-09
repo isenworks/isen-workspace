@@ -3298,6 +3298,60 @@ function CognitionView({
   const [wereadCfgOk, setWereadCfgOk] = useState(null); // null=未查,true/false=已配置
   const [wereadSyncing, setWereadSyncing] = useState(false);
   const [coverSearchingIds, setCoverSearchingIds] = useState(new Set());
+  // 书架·微信读书直达链接（复用生活页链接按钮设计：左键跳转 / 右键增删改，usePersistentState 持久化）
+  const [wereadLinks, setWereadLinks] = usePersistentState('annual_cog_weread_links', () => []);
+  const [wereadLinkMenu, setWereadLinkMenu] = useState(null); // { x, y, editingId } | null — 右键增删改菜单
+  const [wereadLinkPopup, setWereadLinkPopup] = useState(null); // { x, y } | null — 多链接时左键弹出选择面板
+  const [wereadLinkForm, setWereadLinkForm] = useState({ title: '', url: '' });
+  const closeWereadMenus = () => { setWereadLinkMenu(null); setWereadLinkPopup(null); setWereadLinkForm({ title: '', url: '' }); };
+  // 点击页面其他区域关闭菜单（按钮/菜单内部已 stopPropagation，不会误触发）
+  useEffect(() => {
+    if (!wereadLinkMenu && !wereadLinkPopup) return;
+    const onDoc = () => closeWereadMenus();
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
+  }, [wereadLinkMenu, wereadLinkPopup]);
+  // 左键：0 条→弹新建表单；1 条→直接跳转；多条→弹出选择面板
+  function handleWereadLinkClick(e) {
+    e.stopPropagation();
+    if (!wereadLinks || wereadLinks.length === 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setWereadLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+      return;
+    }
+    if (wereadLinks.length === 1) {
+      window.open(wereadLinks[0].url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setWereadLinkPopup({ x: rect.left, y: rect.bottom + 6 });
+  }
+  // 右键：弹出增删改菜单
+  function handleWereadLinkContext(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setWereadLinkPopup(null);
+    setWereadLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+  }
+  function addWereadLink() {
+    if (!wereadLinkForm.url.trim()) { alert('请输入链接地址'); return; }
+    setWereadLinks([...wereadLinks, { id: uid(), title: wereadLinkForm.title.trim() || wereadLinkForm.url.trim(), url: wereadLinkForm.url.trim() }]);
+    setWereadLinkForm({ title: '', url: '' });
+    closeWereadMenus();
+  }
+  function updateWereadLink(id) {
+    if (!wereadLinkForm.url.trim()) { alert('请输入链接地址'); return; }
+    setWereadLinks(wereadLinks.map(l => l.id === id ? { ...l, title: wereadLinkForm.title.trim() || wereadLinkForm.url.trim(), url: wereadLinkForm.url.trim() } : l));
+    setWereadLinkForm({ title: '', url: '' });
+    closeWereadMenus();
+  }
+  function deleteWereadLink(id) {
+    if (!confirm('确认删除此链接？')) return;
+    setWereadLinks(wereadLinks.filter(l => l.id !== id));
+    setWereadLinkForm({ title: '', url: '' });
+    closeWereadMenus();
+  }
   // 一次性查 weread key 是否已配置
   useEffect(() => {
     (async () => {
@@ -4180,6 +4234,172 @@ function CognitionView({
 
             {/* 右：操作按钮组（右对齐，统一蓝色，只保留图标）*/}
             <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+              {/* 微信读书直达（复用生活页链接按钮设计：左键跳转 / 右键增删改链接） */}
+              <div className="relative flex-shrink-0">
+                <button
+                  onClick={handleWereadLinkClick}
+                  onContextMenu={handleWereadLinkContext}
+                  title={wereadLinks.length ? `微信读书链接（${wereadLinks.length} 条，右键增删改）` : '右键添加微信读书链接'}
+                  className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
+                  style={{ color: BLUE, background: `rgba(${S_RGB},0.10)`, border: `1px solid rgba(${S_RGB},0.25)` }}>
+                  {/* 外链图标（与生活页链接按钮同款线形） */}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                  </svg>
+                </button>
+
+                {/* ===== 右键菜单：增删改 ===== */}
+                {wereadLinkMenu && (
+                  <div onClick={(e) => e.stopPropagation()} style={{
+                    position: 'fixed', top: wereadLinkMenu.y,
+                    // 右边界钳制：书架在右列，菜单 230px 需防止溢出视口
+                    left: Math.max(8, Math.min(wereadLinkMenu.x, window.innerWidth - 246)), zIndex: 200,
+                    minWidth: '230px', padding: '6px', borderRadius: '12px',
+                    background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                    boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
+                  }}>
+                    {wereadLinks.length === 0 && (
+                      <div style={{ padding: '6px 10px', fontSize: '11px', color: '#8e8e93', fontWeight: 600 }}>
+                        暂无微信读书链接，下面添加一条
+                      </div>
+                    )}
+                    {wereadLinks.map(l => (
+                      <div key={l.id} style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '6px 8px', borderRadius: '8px', marginBottom: '2px',
+                      }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${S_RGB},0.08)`; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                        <span style={{
+                          flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          cursor: 'pointer',
+                        }}
+                          title={l.url}
+                          onClick={() => { window.open(l.url, '_blank', 'noopener,noreferrer'); closeWereadMenus(); }}>
+                          {l.title}
+                        </span>
+                        {/* 编辑按钮 */}
+                        <button title="编辑" onClick={() => { setWereadLinkMenu({ ...wereadLinkMenu, editingId: l.id }); setWereadLinkForm({ title: l.title, url: l.url }); }}
+                          style={{
+                            width: '22px', height: '22px', borderRadius: '6px', border: 'none',
+                            background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${S_RGB},0.14)`; e.currentTarget.style.color = BLUE; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                          </svg>
+                        </button>
+                        {/* 删除按钮 */}
+                        <button title="删除" onClick={() => deleteWereadLink(l.id)}
+                          style={{
+                            width: '22px', height: '22px', borderRadius: '6px', border: 'none',
+                            background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.14)'; e.currentTarget.style.color = '#FF3B30'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    {/* 分隔线 */}
+                    {(wereadLinkMenu.editingId || wereadLinks.length > 0) && (
+                      <div style={{ height: 1, background: 'rgba(15,23,42,0.08)', margin: '4px 2px' }} />
+                    )}
+                    {/* 编辑表单（编辑态或 0 条时显示） */}
+                    {(wereadLinkMenu.editingId || wereadLinks.length === 0) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '6px 4px' }}>
+                        <div style={{ fontSize: '10.5px', fontWeight: 700, color: BLUE, letterSpacing: '0.04em' }}>
+                          {wereadLinkMenu.editingId ? '编辑链接' : '新增链接'}
+                        </div>
+                        <input placeholder="标题（如：微信读书 · 我的书架）" value={wereadLinkForm.title}
+                          onChange={(e) => setWereadLinkForm(f => ({ ...f, title: e.target.value }))}
+                          style={{
+                            fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
+                            border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                            fontWeight: 500,
+                          }} />
+                        <input placeholder="链接地址（如：https://weread.qq.com）" value={wereadLinkForm.url}
+                          onChange={(e) => setWereadLinkForm(f => ({ ...f, url: e.target.value }))}
+                          style={{
+                            fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
+                            border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                            fontWeight: 500,
+                          }} />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                          <button onClick={closeWereadMenus}
+                            style={{
+                              padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
+                              border: 'none', cursor: 'pointer',
+                              background: 'rgba(120,120,128,0.12)', color: '#1c1c1e',
+                            }}>取消</button>
+                          <button onClick={() => wereadLinkMenu.editingId ? updateWereadLink(wereadLinkMenu.editingId) : addWereadLink()}
+                            style={{
+                              padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
+                              border: 'none', cursor: 'pointer',
+                              background: BLUE, color: '#fff',
+                              boxShadow: `0 1px 4px rgba(${S_RGB},0.28)`,
+                            }}>{wereadLinkMenu.editingId ? '保存' : '添加'}</button>
+                        </div>
+                      </div>
+                    )}
+                    {/* 添加一条新的入口（已有条目且未编辑态） */}
+                    {wereadLinks.length > 0 && !wereadLinkMenu.editingId && (
+                      <button onClick={() => { setWereadLinkMenu({ ...wereadLinkMenu, editingId: null }); setWereadLinkForm({ title: '', url: '' }); }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '6px 8px', borderRadius: '8px', border: 'none',
+                          background: 'transparent', color: BLUE,
+                          fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${S_RGB},0.08)`; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+                          <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        新增一条链接
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== 左键多链接选择面板 ===== */}
+                {wereadLinkPopup && (
+                  <div onClick={(e) => e.stopPropagation()} style={{
+                    position: 'fixed', top: wereadLinkPopup.y,
+                    left: Math.max(8, Math.min(wereadLinkPopup.x, window.innerWidth - 236)), zIndex: 200,
+                    minWidth: '220px', padding: '6px', borderRadius: '12px',
+                    background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                    boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
+                  }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#8e8e93', letterSpacing: '0.04em', padding: '4px 8px' }}>
+                      选择要打开的链接
+                    </div>
+                    {wereadLinks.map(l => (
+                      <button key={l.id} onClick={() => { window.open(l.url, '_blank', 'noopener,noreferrer'); closeWereadMenus(); }}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          padding: '7px 10px', borderRadius: '8px', border: 'none',
+                          background: 'transparent', cursor: 'pointer',
+                          fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${S_RGB},0.08)`; e.currentTarget.style.color = BLUE; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1c1c1e'; }}
+                        title={l.url}>
+                        {l.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button onClick={doWereadSync} disabled={wereadSyncing}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0 disabled:opacity-50"
                 style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}

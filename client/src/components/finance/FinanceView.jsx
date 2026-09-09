@@ -108,7 +108,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   const plan = planLabel(goal.deadline);
   const isDone = goal.status === 'done' || (goal.target_amount > 0 && goal.current_amount >= goal.target_amount);
   return (
-    <div className="bg-[#f2f2f7] rounded-xl p-3.5 flex flex-col gap-3">
+    <div className="bg-[rgba(120,120,128,0.08)] rounded-xl p-3.5 flex flex-col gap-3">
       {/* 标题行：目标名 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 pt-[2px]">
@@ -280,7 +280,7 @@ export default function FinanceView({
                   const neg = (Number(a.balance) || 0) < 0;
                   return (
                     <button key={a.id} onClick={() => onAccountEdit(a)} title="编辑账户"
-                      className="bg-[#f2f2f7] rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 text-left hover:brightness-[0.98] active:scale-[0.99] transition">
+                      className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 text-left hover:brightness-[0.98] active:scale-[0.99] transition">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[16px] flex-shrink-0">{a.icon || meta.icon}</span>
                         <div className="min-w-0">
@@ -329,17 +329,17 @@ export default function FinanceView({
           } />
         {/* 三指标：收入（绿）/ 支出（红）/ 结余（模块橙）——红绿语义不变 */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#f2f2f7] rounded-xl px-3.5 py-3 flex flex-col gap-1">
+          <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3.5 py-3 flex flex-col gap-1">
             <span className="text-[11px] font-semibold text-ink-400">收入</span>
             <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: GREEN }}>{finFmt(ms.income)}</span>
             <DeltaChip cur={ms.income} prev={ps.income} goodWhenUp />
           </div>
-          <div className="bg-[#f2f2f7] rounded-xl px-3.5 py-3 flex flex-col gap-1">
+          <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3.5 py-3 flex flex-col gap-1">
             <span className="text-[11px] font-semibold text-ink-400">支出</span>
             <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: RED }}>{finFmt(ms.expense)}</span>
             <DeltaChip cur={ms.expense} prev={ps.expense} goodWhenUp={false} />
           </div>
-          <div className="bg-[#f2f2f7] rounded-xl px-3.5 py-3 flex flex-col gap-1">
+          <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3.5 py-3 flex flex-col gap-1">
             <span className="text-[11px] font-semibold text-ink-400">结余</span>
             <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: FIN }}>{finFmt(balance)}</span>
             <span className="text-[10.5px] text-ink-400 tabular-nums">{ms.income || ms.expense ? `结余率 ${Math.round(balance / Math.max(ms.income, 1) * 100)}%` : '本月暂无收支'}</span>

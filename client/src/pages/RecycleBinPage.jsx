@@ -168,9 +168,9 @@ export default function RecycleBinPage() {
     }
   }
 
-  /* 导航行（全部 + 各类型）：与生活页类目导航同构 */
-  const navRowCls = (active) =>
-    `group flex items-center gap-2 px-2.5 h-9 rounded-lg text-sm transition text-left ${active
+  /* 导航行（全部 + 各类型）：与生活页类目导航同构——「全部」顶格 px-2.5，类型行缩进 pl-8 形成层级 */
+  const navRowCls = (active, child) =>
+    `group flex items-center gap-2 ${child ? 'pl-8' : 'px-2.5'} h-9 rounded-lg text-sm transition text-left ${active
       ? 'font-bold bg-[rgba(var(--s-rgb),0.10)]'
       : 'font-medium text-ink-700 hover:bg-surface-soft'}`;
 
@@ -212,7 +212,7 @@ export default function RecycleBinPage() {
           {Object.entries(TYPE_META).map(([k, m]) => {
             const active = filter === k;
             return (
-              <div key={k} className={navRowCls(active)} style={active ? { color: 'var(--s-main)' } : undefined}>
+              <div key={k} className={navRowCls(active, true)} style={active ? { color: 'var(--s-main)' } : undefined}>
                 <button
                   onClick={() => setFilter(active ? 'all' : k)}
                   className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"

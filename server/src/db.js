@@ -100,6 +100,17 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_summaries_user_date ON summaries(user_id, date);
 
+  -- ===== 用户级配置 KV（与线上 ethan_user_settings 对齐；本地表名不带前缀）=====
+  -- cloudKV 同步层镜像：主题/排序/年度规划等前端键值，浏览器 localStorage 为主、此表为云端备份
+  CREATE TABLE IF NOT EXISTS user_settings (
+    user_id TEXT NOT NULL,
+    k TEXT NOT NULL,
+    v TEXT,
+    updated_at TEXT,
+    version INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, k)
+  );
+
   -- ===== 财务模块（发展规划 · 第 6 模块）=====
   -- 金额统一以「分」为 INTEGER 存储，避免浮点误差；展示层 /100
   CREATE TABLE IF NOT EXISTS finance_accounts (

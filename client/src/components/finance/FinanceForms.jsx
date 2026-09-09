@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { API } from '../../api/client.js';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
@@ -34,6 +34,26 @@ const planText = (d) => {
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+/* 月份安全加法：day 超出目标月天数时收敛到该月最后一天 */
+function addMonthsISO(dateStr, n) {
+  const m = String(dateStr || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return '';
+  const [, y, mo, d] = m.map(Number);
+  const t = new Date(y, mo - 1 + n, 1);
+  const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+  t.setDate(Math.min(d, last));
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
+/* 自动推算达成日期：目标金额 ÷ 每月计划 = 存入笔数，首笔在基准日
+ * 例：1月1日建目标，12 万 ÷ 每月 1 万 = 12 笔，落在 1/1…12/1 → 计划 12-1 达成 */
+function autoDeadline(targetAmt, monthlyAmt, baseDateStr) {
+  const t = Number(targetAmt), m = Number(monthlyAmt);
+  if (!Number.isFinite(t) || !Number.isFinite(m) || t <= 0 || m <= 0) return '';
+  const months = Math.max(1, Math.ceil(t / m));
+  return addMonthsISO(baseDateStr, months - 1);
+}
 
 /* ============================================================
    ① 记一笔 / 编辑流水（支出 · 收入 · 转账）
@@ -196,6 +216,9 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
 
 /* ============================================================
    ② 新建 / 编辑攒钱目标
+   · 达成日期：按 目标金额 ÷ 每月计划 自动推算（基准=创建日），可手动调整，
+     手动后显示「恢复自动推算」；改金额/月计划时未锁定则重新推算
+   · 资金存放账户：下拉 + 内联增删改（新增/编辑/删除当前选中账户）
    ============================================================ */
 export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete }) {
   const isEdit = !!(initial && initial.id);
@@ -203,11 +226,66 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
   const [targetAmount, setTargetAmount] = useState(initial?.target_amount != null ? String(initial.target_amount) : '');
   const [monthlyPlan, setMonthlyPlan] = useState(initial?.monthly_plan != null && initial.monthly_plan !== '' ? String(initial.monthly_plan) : '');
   const [deadline, setDeadline] = useState(initial?.deadline || '');
+  const [deadlineManual, setDeadlineManual] = useState(false); // 手动调整后锁定，不再自动推算
   const [accountId, setAccountId] = useState(initial?.account_id != null ? initial.account_id : (accounts[0]?.id ?? null));
   const [busy, setBusy] = useState(false);
 
+  // 自动推算基准日：新建=今天；编辑=目标创建日（created_at "YYYY-MM-DD HH:MM:SS"）
+  const baseDate = (isEdit && /^\d{4}-\d{2}-\d{2}/.test(initial?.created_at || '')) ? initial.created_at.slice(0, 10) : todayISO();
+  const autoDate = autoDeadline(targetAmount, monthlyPlan, baseDate);
+
+  /* 金额/月计划变化 → 未手动锁定时自动重算达成日期 */
+  const applyAuto = (t, m) => {
+    if (deadlineManual) return;
+    const d = autoDeadline(t, m, baseDate);
+    if (d) setDeadline(d);
+  };
+
+  /* ---- 账户内联管理（增删改） ---- */
+  const [accList, setAccList] = useState(accounts || []);
+  useEffect(() => { setAccList(accounts || []); }, [accounts]);
+  const [accEdit, setAccEdit] = useState(null); // null | { mode: 'add' } | { mode: 'edit', id }
+  const [accName, setAccName] = useState('');
+  const [accType, setAccType] = useState('debit');
+  const [accBusy, setAccBusy] = useState(false);
+  const selectedAcc = accList.find(a => a.id === accountId) || null;
+
+  async function saveAccount() {
+    const n = accName.trim();
+    if (!n) { alert('请输入账户名称'); return; }
+    setAccBusy(true);
+    try {
+      if (accEdit?.mode === 'add') {
+        const res = await API.finance.accountCreate({ name: n, type: accType, includeInNetWorth: true });
+        const raw = res?.account;
+        if (raw) {
+          const acc = { ...raw, balance: raw.balance != null ? raw.balance : (Number(raw.initial_balance) || 0) / 100 };
+          setAccList(prev => [...prev, acc]);
+          setAccountId(acc.id); // 新建后自动选中
+        }
+      } else if (accEdit?.mode === 'edit') {
+        await API.finance.accountUpdate(accEdit.id, { name: n, type: accType });
+        setAccList(prev => prev.map(a => a.id === accEdit.id ? { ...a, name: n, type: accType } : a));
+      }
+      setAccEdit(null);
+    } catch (e) { alert(e.message || '保存失败'); } finally { setAccBusy(false); }
+  }
+
+  async function removeAccount() {
+    if (!selectedAcc) return;
+    if (!confirm(`确认删除账户「${selectedAcc.name}」？\n关联流水将变为未指定账户。`)) return;
+    setAccBusy(true);
+    try {
+      await API.finance.accountRemove(selectedAcc.id);
+      const next = accList.filter(a => a.id !== selectedAcc.id);
+      setAccList(next);
+      setAccountId(next[0]?.id ?? null);
+      setAccEdit(null);
+    } catch (e) { alert(e.message || '删除失败'); } finally { setAccBusy(false); }
+  }
+
   async function submit() {
-    if (!name.trim()) { alert('请输入目标名称，如「旅行基金」'); return; }
+    if (!name.trim()) { alert('请输入目标名称'); return; }
     const tgt = Number(targetAmount);
     if (!Number.isFinite(tgt) || tgt <= 0) { alert('请输入正确的目标金额（大于 0）'); return; }
     const payload = { name: name.trim(), targetAmount: tgt, deadline, accountId };
@@ -228,34 +306,97 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
     onDelete?.(initial);
   }
 
+  const miniBtn = (disabled) => ({
+    padding: '3px 9px', borderRadius: '7px', fontSize: '11.5px', fontWeight: 600,
+    border: '1px solid rgba(15,23,42,0.10)', background: '#fff', color: disabled ? '#c7c7cc' : '#3a3a3c',
+    cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all .15s',
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <div>
         <label style={{ ...LABEL_STYLE, marginBottom: '6px' }}>目标名称</label>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="如：旅行基金 / 应急备用金" autoFocus style={INPUT_STYLE} />
+        <input value={name} onChange={e => setName(e.target.value)} autoFocus style={INPUT_STYLE} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div>
           <label style={{ ...LABEL_STYLE, marginBottom: '6px' }}>目标金额（¥）</label>
           <input type="number" inputMode="decimal" min="0" step="0.01" value={targetAmount}
-            onChange={e => setTargetAmount(e.target.value)} placeholder="30000" style={INPUT_STYLE} />
+            onChange={e => { setTargetAmount(e.target.value); applyAuto(e.target.value, monthlyPlan); }} style={INPUT_STYLE} />
         </div>
         <div>
           <label style={{ ...LABEL_STYLE, marginBottom: '6px' }}>每月计划存入（可选）</label>
           <input type="number" inputMode="decimal" min="0" step="0.01" value={monthlyPlan}
-            onChange={e => setMonthlyPlan(e.target.value)} placeholder="2000" style={INPUT_STYLE} />
+            onChange={e => { setMonthlyPlan(e.target.value); applyAuto(targetAmount, e.target.value); }} style={INPUT_STYLE} />
         </div>
       </div>
       <div>
         <label style={{ ...LABEL_STYLE, marginBottom: '6px' }}>计划达成日期（卡片将显示「计划2026-9-30达成」）</label>
-        <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} style={INPUT_STYLE} />
+        <input type="date" value={deadline}
+          onChange={e => { setDeadline(e.target.value); setDeadlineManual(true); }} style={INPUT_STYLE} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', minHeight: '16px' }}>
+          {autoDate && !deadlineManual && (
+            <span style={{ fontSize: '11px', color: '#8e8e93' }}>已按目标金额与每月计划自动推算，可手动调整</span>
+          )}
+          {autoDate && deadlineManual && (
+            <>
+              <span style={{ fontSize: '11px', color: '#8e8e93' }}>已手动指定</span>
+              <button type="button"
+                onClick={() => { setDeadlineManual(false); setDeadline(autoDate); }}
+                style={{ fontSize: '11px', fontWeight: 600, color: FIN, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                恢复自动推算（{planText(autoDate)}）
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <div>
         <label style={{ ...LABEL_STYLE, marginBottom: '6px' }}>资金存放账户（详情中可查看）</label>
         <select value={accountId ?? ''} onChange={e => setAccountId(Number(e.target.value))} style={INPUT_STYLE}>
           <option value="">暂不指定</option>
-          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.balance != null ? `（余额 ${finFmt(a.balance)}）` : ''}</option>)}
+          {accList.map(a => <option key={a.id} value={a.id}>{a.name}{a.balance != null ? `（余额 ${finFmt(a.balance)}）` : ''}</option>)}
         </select>
+        {/* 账户增删改（作用于下拉当前选中项；新增后自动选中） */}
+        <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+          <button type="button" disabled={accBusy}
+            onClick={() => { setAccEdit({ mode: 'add' }); setAccName(''); setAccType('debit'); }}
+            style={miniBtn(accBusy)}>＋ 新增账户</button>
+          <button type="button" disabled={!selectedAcc || accBusy}
+            onClick={() => { setAccEdit({ mode: 'edit', id: selectedAcc.id }); setAccName(selectedAcc.name); setAccType(selectedAcc.type || 'debit'); }}
+            style={miniBtn(!selectedAcc || accBusy)}>编辑</button>
+          <button type="button" disabled={!selectedAcc || accBusy} onClick={removeAccount}
+            style={{ ...miniBtn(!selectedAcc || accBusy), color: !selectedAcc || accBusy ? '#c7c7cc' : '#FA503E', borderColor: 'rgba(250,80,62,0.25)' }}>删除</button>
+        </div>
+        {accEdit && (
+          <div style={{ marginTop: '8px', border: '1px solid rgba(15,23,42,0.08)', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <input value={accName} onChange={e => setAccName(e.target.value)} autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') saveAccount(); }}
+              style={INPUT_STYLE} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {ACCOUNT_TYPES.map(t => {
+                const active = accType === t.k;
+                return (
+                  <button key={t.k} type="button" onClick={() => setAccType(t.k)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '4px 9px', borderRadius: '9px',
+                      border: `1px solid ${active ? FIN : 'rgba(15,23,42,0.10)'}`,
+                      background: active ? 'rgba(var(--m-finance-rgb),0.08)' : '#fff',
+                      color: active ? FIN : '#3a3a3c',
+                      fontWeight: 600, fontSize: '11.5px', cursor: 'pointer', transition: 'all .15s',
+                    }}>
+                    <span>{t.icon}</span><span>{t.lb}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button type="button" onClick={() => setAccEdit(null)} style={{ ...BTN_GHOST, padding: '5px 12px', fontSize: '12px' }}>取消</button>
+              <button type="button" onClick={saveAccount} disabled={accBusy}
+                style={{ ...BTN_PRIMARY, padding: '5px 12px', fontSize: '12px' }}>{accEdit.mode === 'add' ? '创建账户' : '保存账户'}</button>
+            </div>
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
         {isEdit ? <button type="button" onClick={del} style={BTN_DANGER}>删除</button> : <span />}
@@ -518,7 +659,7 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#1c1c1e', cursor: 'pointer' }}>
         <input type="checkbox" checked={includeInNetWorth} onChange={e => setIncludeInNetWorth(e.target.checked)}
-          style={{ width: '16px', height: '16px', accentColor: '#FFB627' }} />
+          style={{ width: '16px', height: '16px', accentColor: 'var(--m-finance)' }} />
         计入净资产
       </label>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>

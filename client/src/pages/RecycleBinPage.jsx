@@ -19,10 +19,10 @@ const TYPE_META = {
   fixedSchedule: { label: '固定日程', color: '#5856D6' },
   summary:       { label: '总结',     color: '#FF2D55' },
   inbox:         { label: '收集',     color: '#5AC8FA' },
-  financeAccount:  { label: '财务账户', color: '#FFB627' },
-  financeCategory: { label: '收支分类', color: '#FFB627' },
-  financeTx:       { label: '财务流水', color: '#FFB627' },
-  financeGoal:      { label: '攒钱目标', color: '#FFB627' },
+  financeAccount:  { label: '财务账户', color: '#FF2D55' },
+  financeCategory: { label: '收支分类', color: '#FF2D55' },
+  financeTx:       { label: '财务流水', color: '#FF2D55' },
+  financeGoal:      { label: '攒钱目标', color: '#FF2D55' },
 };
 
 // 从快照 payload 提取展示信息：{ title, sub }

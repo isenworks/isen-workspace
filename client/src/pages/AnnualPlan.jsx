@@ -43,8 +43,8 @@ export const ANNUAL_ADD_ACTIONS = {
   cognition: { type: 'book' },
   ability:   { type: 'ability' },
   work:      { type: 'work_goal' },
-  life:      { type: 'entry' },
   finance:   { type: 'finance_tx' },
+  life:      { type: 'entry' },
 };
 
 /* 习惯打卡 (精力) */
@@ -502,7 +502,7 @@ export function CategoryIcon({ catKey, className, style }) {
       {catKey === 'ability' && (<><path d="M12 2 15.1 8.3 22 9.3l-5 4.9 1.2 6.9L12 17.8l-6.2 3.3L7 14.2 2 9.3l6.9-1z"/></>)}
       {catKey === 'work' && (<><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></>)}
       {catKey === 'life' && (<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></>)}
-      {catKey === 'finance' && (<><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="M16.71 13.88l.7.71-2.82 2.82"/></>)}
+      {catKey === 'finance' && (<><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></>)}
     </svg>
   );
 }

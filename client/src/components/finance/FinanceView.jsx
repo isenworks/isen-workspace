@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 /* ============================================================
    FinanceView · 财务模块四行驾驶舱（攒钱目标 / 资产负债 / 本月收支 / 交易流水）
    设计约定（对齐工作台已有设计）：
-   - 模块色统一 var(--m-finance)=#FFB627（与能力橙 #FF9500 区分）
+   - 模块色统一 var(--m-finance)=#FF2D55（与能力橙 #FF9500、工作红 #FF3B30 区分）
    - 收入绿 #34C759 / 支出红 #FF3B30 语义色保持不变
    - 标题行：5×18 色条 + 16px 加粗标题，卡片内边距 p-4=16px，
      色条与标题间距 gap-3=12px（与精力/能力/工作/生活各页页头一致）
@@ -108,7 +108,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   const plan = planLabel(goal.deadline);
   const isDone = goal.status === 'done' || (goal.target_amount > 0 && goal.current_amount >= goal.target_amount);
   return (
-    <div className="bg-surface-soft rounded-xl p-3.5 flex flex-col gap-3">
+    <div className="bg-[#f2f2f7] rounded-xl p-3.5 flex flex-col gap-3">
       {/* 标题行：目标名 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 pt-[2px]">
@@ -225,7 +225,6 @@ export default function FinanceView({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
             </span>
             <span className="text-[12.5px] font-semibold">还没有攒钱目标，点这里创建</span>
-            <span className="text-[11px]">为旅行、应急金、大件消费各建一个目标</span>
           </button>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
@@ -281,7 +280,7 @@ export default function FinanceView({
                   const neg = (Number(a.balance) || 0) < 0;
                   return (
                     <button key={a.id} onClick={() => onAccountEdit(a)} title="编辑账户"
-                      className="bg-surface-soft rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 text-left hover:brightness-[0.98] active:scale-[0.99] transition">
+                      className="bg-[#f2f2f7] rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 text-left hover:brightness-[0.98] active:scale-[0.99] transition">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[16px] flex-shrink-0">{a.icon || meta.icon}</span>
                         <div className="min-w-0">
@@ -330,17 +329,17 @@ export default function FinanceView({
           } />
         {/* 三指标：收入（绿）/ 支出（红）/ 结余（模块橙）——红绿语义不变 */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-surface-soft rounded-xl px-3.5 py-3 flex flex-col gap-1">
+          <div className="bg-[#f2f2f7] rounded-xl px-3.5 py-3 flex flex-col gap-1">
             <span className="text-[11px] font-semibold text-ink-400">收入</span>
             <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: GREEN }}>{finFmt(ms.income)}</span>
             <DeltaChip cur={ms.income} prev={ps.income} goodWhenUp />
           </div>
-          <div className="bg-surface-soft rounded-xl px-3.5 py-3 flex flex-col gap-1">
+          <div className="bg-[#f2f2f7] rounded-xl px-3.5 py-3 flex flex-col gap-1">
             <span className="text-[11px] font-semibold text-ink-400">支出</span>
             <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: RED }}>{finFmt(ms.expense)}</span>
             <DeltaChip cur={ms.expense} prev={ps.expense} goodWhenUp={false} />
           </div>
-          <div className="bg-surface-soft rounded-xl px-3.5 py-3 flex flex-col gap-1">
+          <div className="bg-[#f2f2f7] rounded-xl px-3.5 py-3 flex flex-col gap-1">
             <span className="text-[11px] font-semibold text-ink-400">结余</span>
             <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: FIN }}>{finFmt(balance)}</span>
             <span className="text-[10.5px] text-ink-400 tabular-nums">{ms.income || ms.expense ? `结余率 ${Math.round(balance / Math.max(ms.income, 1) * 100)}%` : '本月暂无收支'}</span>

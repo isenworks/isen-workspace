@@ -10,8 +10,8 @@ export const MODULE_COLORS = {
   cognition: { key: 'cognition', label: '知力', default: '#007AFF' },
   ability:   { key: 'ability',   label: '能力', default: '#FF9500' },
   work:      { key: 'work',      label: '工作', default: '#FF3B30' },
+  finance:   { key: 'finance',   label: '财务', default: '#FF2D55' },
   life:      { key: 'life',      label: '生活', default: '#AF52DE' },
-  finance:   { key: 'finance',   label: '财务', default: '#FFB627' },
 };
 
 const LS_KEY = 'ws_module_colors';

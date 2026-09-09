@@ -40,8 +40,8 @@ const ANNUAL_SUB = [
   { key: 'cognition', label: '知力', color: 'var(--m-cognition)', rgb: 'var(--m-cognition-rgb)', add: '书籍' },
   { key: 'ability',   label: '能力', color: 'var(--m-ability)',   rgb: 'var(--m-ability-rgb)',   add: '能力' },
   { key: 'work',      label: '工作', color: 'var(--m-work)',      rgb: 'var(--m-work-rgb)',      add: '目标' },
-  { key: 'life',      label: '生活', color: 'var(--m-life)',      rgb: 'var(--m-life-rgb)',      add: '记录' },
   { key: 'finance',   label: '财务', color: 'var(--m-finance)',   rgb: 'var(--m-finance-rgb)',   add: '账目' },
+  { key: 'life',      label: '生活', color: 'var(--m-life)',      rgb: 'var(--m-life-rgb)',      add: '记录' },
 ];
 
 /* 侧边栏导航标题（右键编辑改文字）· localStorage 持久化，按用户隔离

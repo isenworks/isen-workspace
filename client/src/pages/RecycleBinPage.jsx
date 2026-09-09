@@ -19,6 +19,10 @@ const TYPE_META = {
   fixedSchedule: { label: '固定日程', color: '#5856D6' },
   summary:       { label: '总结',     color: '#FF2D55' },
   inbox:         { label: '收集',     color: '#5AC8FA' },
+  financeAccount:  { label: '财务账户', color: '#FFB627' },
+  financeCategory: { label: '收支分类', color: '#FFB627' },
+  financeTx:       { label: '财务流水', color: '#FFB627' },
+  financeGoal:      { label: '攒钱目标', color: '#FFB627' },
 };
 
 // 从快照 payload 提取展示信息：{ title, sub }
@@ -42,6 +46,21 @@ function describeItem(type, payload) {
         return { title: `${row.date || ''} 的每日总结`, sub: (row.content || '').slice(0, 60) || '' };
       case 'inbox':
         return { title: row.content || '未命名想法', sub: row.processed_type ? `已分派为${row.processed_type === 'schedule' ? '日程' : '待办'}` : '' };
+      case 'financeAccount':
+        return { title: `${row.icon || '🏦'} ${row.name || '未命名账户'}`, sub: `期初 ¥${((Number(row.initial_balance) || 0) / 100).toLocaleString('zh-CN')}` };
+      case 'financeCategory':
+        return { title: `${row.icon || '🏷️'} ${row.name || '未命名分类'}`, sub: row.type === 'income' ? '收入分类' : '支出分类' };
+      case 'financeTx': {
+        const amt = (Number(row.amount) || 0) / 100;
+        const sign = row.type === 'income' ? '+' : row.type === 'expense' ? '-' : '';
+        const typeLb = row.type === 'income' ? '收入' : row.type === 'expense' ? '支出' : '转账';
+        return { title: `${typeLb} ${sign}¥${amt.toLocaleString('zh-CN')}`, sub: `${row.date || ''}${row.note ? ` · ${row.note}` : ''}` };
+      }
+      case 'financeGoal': {
+        const tgt = (Number(row.target_amount) || 0) / 100;
+        const cur = (Number(row.current_amount) || 0) / 100;
+        return { title: `🎯 ${row.name || '未命名目标'}`, sub: `已存 ¥${cur.toLocaleString('zh-CN')} / 目标 ¥${tgt.toLocaleString('zh-CN')}` };
+      }
       default:
         return { title: '未知条目', sub: '' };
     }

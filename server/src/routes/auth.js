@@ -71,7 +71,11 @@ function seedDefaultHabits(userId) {
             @target_mode, @target_value, @target_unit, @streak_goal, @auto_log, 0)
   `);
   const tx = db.transaction((habits) => {
-    habits.forEach((h, i) => insert.run({ ...h, user_id: userId, sort_order: i }));
+    habits.forEach((h, i) => insert.run({
+      start_time: null, end_time: null, duration_min: null,
+      target_value: null, target_unit: null,
+      ...h, user_id: userId, sort_order: i,
+    }));
   });
   tx(DEFAULT_HABITS);
 }

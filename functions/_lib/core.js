@@ -34,6 +34,10 @@ export const RECYCLE_TABLES = {
   fixedSchedule: 'ethan_fixed_schedules',
   summary: 'ethan_summaries',
   inbox: 'ethan_inbox',
+  financeAccount: 'ethan_finance_accounts',
+  financeCategory: 'ethan_finance_categories',
+  financeTx: 'ethan_finance_transactions',
+  financeGoal: 'ethan_finance_goals',
 };
 
 // ------------------------------------------------------------

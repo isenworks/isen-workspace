@@ -99,6 +99,75 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
   CREATE INDEX IF NOT EXISTS idx_summaries_user_date ON summaries(user_id, date);
+
+  -- ===== 财务模块（发展规划 · 第 6 模块）=====
+  -- 金额统一以「分」为 INTEGER 存储，避免浮点误差；展示层 /100
+  CREATE TABLE IF NOT EXISTS finance_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,               -- 招商储蓄 / 微信零钱 / 信用卡...
+    type TEXT NOT NULL DEFAULT 'debit', -- cash现金/debit储蓄/credit信用(负债)/virtual虚拟/invest投资/debt负债
+    initial_balance INTEGER DEFAULT 0, -- 期初余额（分，信用/负债为负）
+    icon TEXT DEFAULT '🏦',
+    color TEXT DEFAULT '#FFB627',
+    include_in_net_worth INTEGER DEFAULT 1, -- 是否计入净资产
+    sort_order INTEGER DEFAULT 0,
+    archived INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_fin_accounts_user ON finance_accounts(user_id, archived);
+
+  CREATE TABLE IF NOT EXISTS finance_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,               -- 餐饮 / 工资 / 副业...
+    type TEXT NOT NULL DEFAULT 'expense', -- expense支出 / income收入
+    icon TEXT DEFAULT '🏷️',
+    color TEXT DEFAULT '#8E8E93',
+    sort_order INTEGER DEFAULT 0,
+    is_system INTEGER DEFAULT 0,       -- 预置分类不可删
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_fin_categories_user ON finance_categories(user_id, type);
+
+  CREATE TABLE IF NOT EXISTS finance_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT NOT NULL DEFAULT 'expense', -- expense/income/transfer（转账不计收支）
+    amount INTEGER NOT NULL,           -- 金额（分，恒正，方向由 type 决定）
+    account_id INTEGER,                -- 支出/收入账户
+    to_account_id INTEGER,             -- 仅 transfer：转入账户
+    category_id INTEGER,               -- 转账可为空；goal_deposit 关联目标
+    goal_id INTEGER,                   -- 目标存入时关联（生成 transfer 流水）
+    date TEXT NOT NULL,                -- YYYY-MM-DD 账单日期（支持补记）
+    note TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(account_id) REFERENCES finance_accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY(to_account_id) REFERENCES finance_accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY(category_id) REFERENCES finance_categories(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_fin_tx_user_date ON finance_transactions(user_id, date);
+  CREATE INDEX IF NOT EXISTS idx_fin_tx_account ON finance_transactions(user_id, account_id);
+
+  CREATE TABLE IF NOT EXISTS finance_goals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,                -- 旅行基金 / 应急储备...
+    target_amount INTEGER NOT NULL,    -- 目标金额（分）
+    current_amount INTEGER NOT NULL DEFAULT 0, -- 已存入（分，存入动作累加）
+    deadline TEXT,                     -- 计划达成日期 YYYY-MM-DD
+    monthly_plan INTEGER,              -- 计划月存（分，可选，用于进度预测）
+    account_id INTEGER,               -- 资金存放账户
+    status TEXT DEFAULT 'active',      -- active进行中/done已完成/archived已归档
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(account_id) REFERENCES finance_accounts(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_fin_goals_user ON finance_goals(user_id, status);
 `);
 
 // 旧数据迁移：若 schedules 没有 category 列则添加，并基于 is_key + start_time 填充

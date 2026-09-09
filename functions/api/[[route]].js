@@ -45,6 +45,13 @@ import {
   handleRecycleBinList, handleRecycleBinRestore, handleRecycleBinRemove, handleRecycleBinClear,
 } from '../_lib/handlers/recycleBin.js';
 import {
+  handleFinanceBootstrap,
+  handleFinanceAccountCreate, handleFinanceAccountUpdate, handleFinanceAccountRemove,
+  handleFinanceCategoryCreate, handleFinanceCategoryUpdate, handleFinanceCategoryRemove,
+  handleFinanceTxCreate, handleFinanceTxUpdate, handleFinanceTxRemove,
+  handleFinanceGoalCreate, handleFinanceGoalUpdate, handleFinanceGoalRemove, handleFinanceGoalDeposit,
+} from '../_lib/handlers/finance.js';
+import {
   handleInviteCodeCreate, handleInviteCodeList, handleInviteCodeDisable,
 } from '../_lib/handlers/inviteCodes.js';
 import { handleUsersList, handleUsersBan } from '../_lib/handlers/users.js';
@@ -146,6 +153,25 @@ export async function onRequest(context) {
     if (path === '/api/fixedSchedules/create' && method === 'POST') return handleFixedSchedulesCreate(env, body);
     if (path === '/api/fixedSchedules/update' && method === 'POST') return handleFixedSchedulesUpdate(env, body);
     if (path === '/api/fixedSchedules/remove' && method === 'POST') return handleFixedSchedulesRemove(env, body);
+
+    // ------------------------------------------------------------
+    // /api/finance/*  — 财务模块（发展规划 · 第 6 模块：目标/资产负债/收支/流水）
+    //   bootstrap 一次拉全仪表盘；CRUD 动作式路由与各模块对齐
+    // ------------------------------------------------------------
+    if (path === '/api/finance/bootstrap' && (method === 'GET' || method === 'POST')) return handleFinanceBootstrap(env, qOrBody);
+    if (path === '/api/finance/accountCreate' && method === 'POST') return handleFinanceAccountCreate(env, body);
+    if (path === '/api/finance/accountUpdate' && method === 'POST') return handleFinanceAccountUpdate(env, body);
+    if (path === '/api/finance/accountRemove' && method === 'POST') return handleFinanceAccountRemove(env, body);
+    if (path === '/api/finance/categoryCreate' && method === 'POST') return handleFinanceCategoryCreate(env, body);
+    if (path === '/api/finance/categoryUpdate' && method === 'POST') return handleFinanceCategoryUpdate(env, body);
+    if (path === '/api/finance/categoryRemove' && method === 'POST') return handleFinanceCategoryRemove(env, body);
+    if (path === '/api/finance/txCreate' && method === 'POST') return handleFinanceTxCreate(env, body);
+    if (path === '/api/finance/txUpdate' && method === 'POST') return handleFinanceTxUpdate(env, body);
+    if (path === '/api/finance/txRemove' && method === 'POST') return handleFinanceTxRemove(env, body);
+    if (path === '/api/finance/goalCreate' && method === 'POST') return handleFinanceGoalCreate(env, body);
+    if (path === '/api/finance/goalUpdate' && method === 'POST') return handleFinanceGoalUpdate(env, body);
+    if (path === '/api/finance/goalRemove' && method === 'POST') return handleFinanceGoalRemove(env, body);
+    if (path === '/api/finance/goalDeposit' && method === 'POST') return handleFinanceGoalDeposit(env, body);
 
     // ------------------------------------------------------------
     // /api/recycleBin/*  — 回收站（软删除快照：删除前先入站，可还原/永久删除/清空）

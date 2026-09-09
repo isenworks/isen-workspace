@@ -1,5 +1,5 @@
 /* ============================================================
- * 五大模块色（精力/知力/能力/工作/生活）
+ * 六大模块色（精力/知力/能力/工作/生活/财务）
  * 通过 CSS 变量注入 <html>，与结构色主题（theme.js）完全解耦
  * 持久化：localStorage `ws_module_colors`
  * ============================================================ */
@@ -10,6 +10,7 @@ export const MODULE_COLORS = {
   ability:   { key: 'ability',   label: '能力', default: '#FF9500' },
   work:      { key: 'work',      label: '工作', default: '#FF3B30' },
   life:      { key: 'life',      label: '生活', default: '#AF52DE' },
+  finance:   { key: 'finance',   label: '财务', default: '#FFB627' },
 };
 
 const LS_KEY = 'ws_module_colors';

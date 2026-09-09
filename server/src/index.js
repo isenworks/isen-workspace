@@ -8,6 +8,7 @@ import scheduleRoutes from './routes/schedules.js';
 import taskRoutes from './routes/tasks.js';
 import habitRoutes from './routes/habits.js';
 import summaryRoutes from './routes/summaries.js';
+import financeRoutes from './routes/finance.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -131,6 +132,7 @@ app.use('/api/schedules', auth, scheduleRoutes);
 app.use('/api/tasks', auth, taskRoutes);
 app.use('/api/habits', auth, habitRoutes);
 app.use('/api/summaries', auth, summaryRoutes);
+app.use('/api/finance', auth, financeRoutes);
 
 // 兜底：SPA 路由回退到 index.html
 app.get('*', (req, res, next) => {

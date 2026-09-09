@@ -13,6 +13,8 @@ import WorkGoalForm from '../components/forms/WorkGoalForm.jsx';
 import EntryForm from '../components/forms/EntryForm.jsx';
 import DualMarkerBar from '../components/DualMarkerBar.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
+import FinanceView from '../components/finance/FinanceView.jsx';
+import { FinanceTxForm, FinanceGoalForm, FinanceDepositForm, FinanceManageForm, FinanceAccountForm, FinanceGoalDetail } from '../components/finance/FinanceForms.jsx';
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
@@ -42,6 +44,7 @@ export const ANNUAL_ADD_ACTIONS = {
   ability:   { type: 'ability' },
   work:      { type: 'work_goal' },
   life:      { type: 'entry' },
+  finance:   { type: 'finance_tx' },
 };
 
 /* 习惯打卡 (精力) */
@@ -486,7 +489,7 @@ const inferMode = (obj, type) => {
 /* ---------- 共享组件 ---------- */
 /* 图标体系：Lucide 风格（24 网格 / 2px 描边 / 圆头笔触），与侧边栏 ICONS 同族
  * overview=chart-column 柱状图 | energy=heart-pulse 心率 | cognition=eye 眼界
- * ability=star 技能星级 | work=laptop 笔电 | life=sun 太阳 */
+ * ability=star 技能星级 | work=laptop 笔电 | life=sun 太阳 | finance=coins 金币 */
 /* 供侧边栏二级导航复用（图标+加号入口） */
 export function CategoryIcon({ catKey, className, style }) {
   const cls = className || 'w-4 h-4';
@@ -499,6 +502,7 @@ export function CategoryIcon({ catKey, className, style }) {
       {catKey === 'ability' && (<><path d="M12 2 15.1 8.3 22 9.3l-5 4.9 1.2 6.9L12 17.8l-6.2 3.3L7 14.2 2 9.3l6.9-1z"/></>)}
       {catKey === 'work' && (<><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></>)}
       {catKey === 'life' && (<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></>)}
+      {catKey === 'finance' && (<><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="M16.71 13.88l.7.71-2.82 2.82"/></>)}
     </svg>
   );
 }
@@ -7140,6 +7144,71 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     setTimeout(() => setToast(null), 2500);
   }, []);
 
+  // ---- 财务模块（服务端数据：进入 finance 视图时拉取 bootstrap，变更后 finTick 触发刷新） ----
+  const [finData, setFinData] = useState(null);
+  const [finLoading, setFinLoading] = useState(false);
+  const [finMonth, setFinMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [finTick, setFinTick] = useState(0);
+  const finRefresh = useCallback(() => setFinTick(t => t + 1), []);
+  useEffect(() => {
+    if (view !== 'finance') return;
+    let alive = true;
+    setFinLoading(true);
+    API.finance.bootstrap(finMonth)
+      .then(r => { if (alive) setFinData(r); })
+      .catch(e => { if (alive) showToast('财务数据加载失败：' + e.message); })
+      .finally(() => { if (alive) setFinLoading(false); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, finMonth, finTick]);
+
+  // 财务 · 删除类操作（统一走全局确认弹窗）
+  const finGoalRemove = useCallback((g) => {
+    setConfirmDialog({
+      title: '删除攒钱目标',
+      message: `确定删除「${g.name}」吗？\n已存入记录会解除关联，此操作不可撤销。`,
+      confirmText: '删除',
+      danger: true,
+      onConfirm: async () => {
+        try { await API.finance.goalRemove(g.id); showToast('目标已删除'); finRefresh(); }
+        catch (e) { showToast('删除失败：' + e.message); }
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
+  }, [finRefresh, showToast]);
+  const finTxRemove = useCallback((tx) => {
+    setConfirmDialog({
+      title: '删除流水',
+      message: '确定删除这笔流水吗？\n账户余额与攒钱目标进度会同步回退。',
+      confirmText: '删除',
+      danger: true,
+      onConfirm: async () => {
+        try { await API.finance.txRemove(tx.id); showToast('流水已删除'); finRefresh(); }
+        catch (e) { showToast('删除失败：' + e.message); }
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
+  }, [finRefresh, showToast]);
+  const finAccountRemove = useCallback((a) => {
+    setConfirmDialog({
+      title: '删除账户',
+      message: `确定删除账户「${a.name}」吗？\n关联流水将变为未指定账户，此操作不可撤销。`,
+      confirmText: '删除',
+      danger: true,
+      onConfirm: async () => {
+        try { await API.finance.accountRemove(a.id); showToast('账户已删除'); finRefresh(); }
+        catch (e) { showToast('删除失败：' + e.message); }
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
+  }, [finRefresh, showToast]);
+
   // ---- 数据导入 / 导出 / 重置 ----
   const handleExport = useCallback(() => {
     const payload = {
@@ -7833,6 +7902,73 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
             />
           </Modal>
         );
+      case 'finance_tx':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑这笔记录' : '记一笔'} maxWidth={480}>
+            <FinanceTxForm
+              initial={modal.initial}
+              accounts={finData?.accounts || []}
+              categories={finData?.categories || []}
+              onCancel={closeModal}
+              onSaved={() => { closeModal(); showToast(modal.initial?.id ? '流水已更新' : '已记一笔'); finRefresh(); }}
+              onDelete={(tx) => finTxRemove(tx)}
+            />
+          </Modal>
+        );
+      case 'finance_goal':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑攒钱目标' : '新建攒钱目标'} maxWidth={460}>
+            <FinanceGoalForm
+              initial={modal.initial}
+              accounts={finData?.accounts || []}
+              onCancel={closeModal}
+              onSaved={() => { closeModal(); showToast(modal.initial?.id ? '目标已更新' : '目标已创建'); finRefresh(); }}
+              onDelete={(g) => finGoalRemove(g)}
+            />
+          </Modal>
+        );
+      case 'finance_deposit':
+        return (
+          <Modal open onClose={closeModal} title={`存入 · ${modal.initial?.name || ''}`} maxWidth={440}>
+            <FinanceDepositForm
+              goal={modal.initial}
+              accounts={finData?.accounts || []}
+              onCancel={closeModal}
+              onSaved={() => { closeModal(); showToast('已存入，目标进度已更新'); finRefresh(); }}
+            />
+          </Modal>
+        );
+      case 'finance_manage':
+        return (
+          <Modal open onClose={closeModal} title="管理收支分类" maxWidth={480}>
+            <FinanceManageForm
+              categories={finData?.categories || []}
+              onCancel={closeModal}
+              onSaved={(close) => { finRefresh(); if (close !== false) closeModal(); }}
+            />
+          </Modal>
+        );
+      case 'finance_account':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑账户' : '新建账户'} maxWidth={460}>
+            <FinanceAccountForm
+              initial={modal.initial}
+              onCancel={closeModal}
+              onSaved={() => { closeModal(); showToast(modal.initial?.id ? '账户已更新' : '账户已创建'); finRefresh(); }}
+              onDelete={(a) => finAccountRemove(a)}
+            />
+          </Modal>
+        );
+      case 'finance_goal_detail':
+        return (
+          <Modal open onClose={closeModal} title="目标详情" maxWidth={440}>
+            <FinanceGoalDetail
+              goal={modal.initial}
+              onClose={closeModal}
+              onEdit={() => setModal({ type: 'finance_goal', initial: modal.initial })}
+            />
+          </Modal>
+        );
       default: return null;
     }
   })();
@@ -7913,6 +8049,26 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         docLinks={lifeDocLinks}
         onDocLinksChange={(next) => setLifeDocLinks(next)}
         onCatAdd={(d) => lifeCatOps.add(d)} />}
+      {view === 'finance'   && (
+        <FinanceView
+          data={finData}
+          loading={finLoading || !finData}
+          month={finMonth}
+          onMonthChange={setFinMonth}
+          onTxAdd={() => setModal({ type: 'finance_tx' })}
+          onTxEdit={(tx) => setModal({ type: 'finance_tx', initial: tx })}
+          onTxRemove={finTxRemove}
+          onGoalAdd={() => setModal({ type: 'finance_goal' })}
+          onGoalEdit={(g) => setModal({ type: 'finance_goal', initial: g })}
+          onGoalRemove={finGoalRemove}
+          onGoalDetail={(g) => setModal({ type: 'finance_goal_detail', initial: g })}
+          onDeposit={(g) => setModal({ type: 'finance_deposit', initial: g })}
+          onManage={() => setModal({ type: 'finance_manage' })}
+          onAccountAdd={() => setModal({ type: 'finance_account' })}
+          onAccountEdit={(a) => setModal({ type: 'finance_account', initial: a })}
+          onAccountRemove={finAccountRemove}
+        />
+      )}
     </main>
   );
 

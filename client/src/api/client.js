@@ -184,6 +184,25 @@ export const API = {
     async clear() { return fetchPages('/recycleBin/clear', {}); },
   },
 
+  // 财务模块（发展规划 · 第 6 模块：攒钱目标 / 资产负债 / 当月收支 / 流水）
+  //   bootstrap 一次拉全仪表盘；金额 API 层统一「元」，服务端以「分」存储
+  finance: {
+    async bootstrap(month) { return fetchPages('/finance/bootstrap', { month }); },
+    async accountCreate(data) { return fetchPages('/finance/accountCreate', data); },
+    async accountUpdate(id, data) { return fetchPages('/finance/accountUpdate', { id, ...data }); },
+    async accountRemove(id) { return fetchPages('/finance/accountRemove', { id }); },
+    async categoryCreate(data) { return fetchPages('/finance/categoryCreate', data); },
+    async categoryUpdate(id, data) { return fetchPages('/finance/categoryUpdate', { id, ...data }); },
+    async categoryRemove(id) { return fetchPages('/finance/categoryRemove', { id }); },
+    async txCreate(data) { return fetchPages('/finance/txCreate', data); },
+    async txUpdate(id, data) { return fetchPages('/finance/txUpdate', { id, ...data }); },
+    async txRemove(id) { return fetchPages('/finance/txRemove', { id }); },
+    async goalCreate(data) { return fetchPages('/finance/goalCreate', data); },
+    async goalUpdate(id, data) { return fetchPages('/finance/goalUpdate', { id, ...data }); },
+    async goalRemove(id) { return fetchPages('/finance/goalRemove', { id }); },
+    async goalDeposit(data) { return fetchPages('/finance/goalDeposit', data); },
+  },
+
   migrate: {
     async run(payload) { return fetchPages('/migrate', payload); },
   },

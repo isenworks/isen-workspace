@@ -187,7 +187,7 @@ export default function RecycleBinPage() {
             {items && items.length > 0 && (
               <button
                 onClick={() => setConfirming({ kind: 'clear' })}
-                className="flex-shrink-0 text-[12.5px] font-semibold text-white px-3 py-1.5 rounded-lg bg-[#FF3B30] hover:brightness-105 active:scale-[0.98] transition-all"
+                className="flex-shrink-0 text-[12.5px] font-semibold text-[#FF3B30] px-3 py-1.5 rounded-lg bg-[#FF3B3014] hover:bg-[#FF3B3026] active:scale-[0.98] transition-all"
               >
                 清空
               </button>

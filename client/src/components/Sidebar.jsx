@@ -377,11 +377,11 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 ) : (
                   <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
                 )}
-                {/* 收集箱：待分派数量徽标 + 快速捕获加号 */}
+                {/* 收集箱：待分派数量徽标 + 快速捕获加号（浅灰中性色系，不与激活蓝竞争） */}
                 {item.key === 'inbox' && inboxCount > 0 && (
                   <span
                     className="flex-shrink-0 text-[10.5px] font-semibold tabular-nums px-1.5 py-px rounded-full min-w-[18px] text-center"
-                    style={{ background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' }}
+                    style={{ background: 'rgba(120,120,128,0.10)', color: 'var(--ink-600, #6b7280)' }}
                   >{inboxCount}</span>
                 )}
                 {item.key === 'inbox' && (
@@ -390,7 +390,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                     aria-label="快速记一条"
                     title="快速记一条（快捷键 N）"
                     className="flex-shrink-0 w-[22px] h-[22px] rounded-lg flex items-center justify-center transition-colors"
-                    style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
+                    style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--ink-500, #8e8e93)' }}
                     onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
                   >
                     <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="13" height="13"><path d="M12 5v14M5 12h14"/></svg>

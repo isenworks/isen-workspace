@@ -377,10 +377,10 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 ) : (
                   <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
                 )}
-                {/* 收集箱：待分派数量徽标 + 快速捕获加号（浅灰中性色系，不与激活蓝竞争） */}
+                {/* 收集箱：待分派数量徽标 + 快速捕获加号（浅灰中性色系；统一 20px 高度模数，形状区分角色） */}
                 {item.key === 'inbox' && inboxCount > 0 && (
                   <span
-                    className="flex-shrink-0 text-[10.5px] font-semibold tabular-nums px-1.5 py-px rounded-full min-w-[18px] text-center"
+                    className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10.5px] font-semibold tabular-nums"
                     style={{ background: 'rgba(120,120,128,0.10)', color: 'var(--ink-600, #6b7280)' }}
                   >{inboxCount}</span>
                 )}
@@ -389,7 +389,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                     type="button"
                     aria-label="快速记一条"
                     title="快速记一条（快捷键 N）"
-                    className="flex-shrink-0 w-[22px] h-[22px] rounded-lg flex items-center justify-center transition-colors"
+                    className="flex-shrink-0 w-5 h-5 rounded-lg flex items-center justify-center transition-colors"
                     style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--ink-500, #8e8e93)' }}
                     onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
                   >

@@ -6557,7 +6557,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
     <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch min-h-[560px]">
       {/* ===== 左列（38%）：卡①页头 + 卡②类目导航 ===== */}
       <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
-        {/* 卡① 页头卡：色条 + 16px标题 + 链接按钮 + 年度精选（与其他5模块页头同构） */}
+        {/* 卡① 页头卡：色条 + 16px标题 + 链接按钮（与其他5模块页头同构；年度精选 CTA 已移至右卡首年份行） */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4">
           <div className="flex items-center gap-3 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }}></span>
@@ -6569,7 +6569,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               onClick={handleLinkButtonClick}
               onContextMenu={handleLinkButtonContext}
               title={links.length ? `文档链接（${links.length} 条，右键增删改）` : '右键添加飞书文档链接'}
-              className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-lg transition hover:brightness-105 active:scale-[0.98] mr-2 cursor-pointer"
+              className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
               style={{ background: 'rgba(var(--m-life-rgb),0.10)', border: '1px solid rgba(var(--m-life-rgb),0.25)' }}>
               {/* 外链图标：当前 UI 风格线形 · 紫 */}
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="var(--m-life)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -6730,17 +6730,6 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               </div>
             )}
           </div>
-          {/* 年度精选 CTA（Step2-3 牵引入口） */}
-          <button
-            onClick={() => onStartHighlights?.()}
-            disabled={totalEntries === 0}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg, var(--m-life) 0%, #FF2D55 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' }}>
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
-            </svg>
-            年度精选{hlCount > 0 && <span className="opacity-95">· {hlCount}</span>}
-          </button>
         </div>
         </div>
         {/* 卡② 类目导航卡：拉伸铺满左列剩余高度（全部分类 / 各类目 / 新建模块） */}
@@ -6817,13 +6806,29 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               </div>
             )}
             {timeGroups.map((g, gi) => {
-              /* 年份大字分隔（方案 C）：每年一个，始终显示当年；出现跨年记录时自动追加（数据可带 e.y 扩展字段） */
+              /* 年份大字分隔（方案 C）：每年一个，始终显示当年；出现跨年记录时自动追加（数据可带 e.y 扩展字段）。
+                  首个年份行右侧同排挂年度精选 CTA：精选星标就在本卡条目上（作用域匹配），年份左、动作右对角平衡 */
               const showYear = gi === 0 || timeGroups[gi - 1].year !== g.year;
               return (
                 <React.Fragment key={`yg-${g.year}-${g.mo}`}>
-                  {showYear && (
-                    <div className={`pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide ${gi === 0 ? 'mb-4' : 'mt-3 mb-4'}`}>{g.year}年</div>
-                  )}
+                  {showYear && (gi === 0 ? (
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{g.year}年</div>
+                      {/* 年度精选 CTA（Step2-3 牵引入口） */}
+                      <button
+                        onClick={() => onStartHighlights?.()}
+                        disabled={totalEntries === 0}
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ background: 'linear-gradient(135deg, var(--m-life) 0%, #FF2D55 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' }}>
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
+                        </svg>
+                        年度精选{hlCount > 0 && <span className="opacity-95">· {hlCount}</span>}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide mt-3 mb-4">{g.year}年</div>
+                  ))}
                   {g.items.map((r, ri) => {
               const isLast = gi === timeGroups.length - 1 && ri === g.items.length - 1;
               const hl = Array.isArray(highlightedIds) && highlightedIds.includes(r.e.id);

@@ -363,7 +363,7 @@ export default function InboxPage({ onCountChange }) {
       );
     }
     return (
-      <div className="flex-1 flex flex-col min-h-0 px-1.5">
+      <div className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center gap-3 mb-4">
           <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
           <span className="text-[15.5px] font-bold text-ink-900 leading-none">{selected ? '编辑记录' : '新增记录'}</span>

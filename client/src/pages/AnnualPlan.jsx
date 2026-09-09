@@ -672,6 +672,24 @@ function InlineEdit({
   );
 }
 
+/* ---------- P2-2.5: 模块页头标题 · 右键编辑统一组件 ----------
+   「2026年 · XX」层级标题统一交互：右键菜单编辑 / 删除（清空回落默认文案）
+   value=''（未自定义）时显示 placeholder（fallback，动态生成保持年份/月份新鲜） */
+function EditableTitle({ value, onChange, fallback, className, inputClassName }) {
+  return (
+    <InlineEdit
+      value={value}
+      onChange={(v) => onChange(String(v || '').trim())}
+      onDelete={() => onChange('')}
+      placeholder={fallback}
+      mode="contextmenu"
+      title="右键修改标题"
+      className={className}
+      inputClassName={inputClassName}
+    />
+  );
+}
+
 /* ---------- P2-2: 知力 OKR 漏斗 (输入量 → 思考量 → 行动量 → 改变量) ---------- */
 function ReadingFunnel({
   total, done, notes, changes, reviews, color = '#007AFF', embedded,
@@ -1574,8 +1592,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
   const [collapsed, setCollapsed] = useState({ energy: false, cognition: false, ability: false, work: false, life: false });
   const toggle = (k) => setCollapsed(s => ({ ...s, [k]: !s[k] }));
 
-  /* 年度概览标题：右键可改（复用 InlineEdit contextmenu 设计） */
-  const [ovTitle, setOvTitle] = useState(null);
+  /* 年度概览标题：右键可改（InlineEdit contextmenu + usePersistentState 持久化，清空回落默认） */
+  const [ovTitle, setOvTitle] = usePersistentState('annual_overview_title', () => '');
 
   /* 卡头(横向 flex,适配窄卡) —— 文字层级对齐精力页卡片(名称14px/间距p-3) */
   const CardHead = ({ c, pctVal }) => {
@@ -1682,12 +1700,8 @@ function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, l
         {/* 标题行 */}
         <div className="flex items-center gap-3 mb-3">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--s-main)' }} />
-          <InlineEdit
-            value={ovTitle ?? `${year}年 · 模块概览`}
-            onChange={setOvTitle}
-            mode="contextmenu"
-            title="右键修改标题"
-            className="text-[16px] font-bold text-ink-900 leading-none" />
+          <EditableTitle value={ovTitle} onChange={setOvTitle} fallback={`${year}年 · 模块概览`}
+            className="text-[16px] font-bold text-ink-900 leading-none" inputClassName="text-[16px] font-bold text-ink-900" />
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[10px] font-semibold text-ink-800 bg-ink-100 border border-ink-200 rounded-full px-2 py-[2px] leading-none">
               ⌖ 时间锚 {anchor}%
@@ -1899,6 +1913,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   // ★ ② Card2「各月数据」折叠状态（默认折叠，只显示标题行）
   const [monthsCollapsed, setMonthsCollapsed] = useState(true);
+  // 三卡标题：右键可编辑（usePersistentState 持久化，清空回落默认文案）
+  const [yearTitle, setYearTitle] = usePersistentState('annual_energy_year_title', () => '');
+  const [monthsTitle, setMonthsTitle] = usePersistentState('annual_energy_months_title', () => '');
+  const [monthTitle, setMonthTitle] = usePersistentState('annual_energy_month_title', () => '');
 
   if (loading && !realHabits) {
     return (
@@ -1983,7 +2001,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-            <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
+            <EditableTitle value={yearTitle} onChange={setYearTitle} fallback={`${year}年 · 年度数据`}
+              className="text-[16px] font-bold text-ink-900" inputClassName="text-[16px] font-bold text-ink-900" />
           </div>
           <button onClick={() => onAction?.('addHabit')}
             className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
@@ -2094,7 +2113,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           aria-label={monthsCollapsed ? '展开各月数据' : '折叠各月数据'}>
           <div className="flex items-center gap-3">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-            <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
+            <EditableTitle value={monthsTitle} onChange={setMonthsTitle} fallback={`${year}年 · 各月数据`}
+              className="text-[16px] font-bold text-ink-900" inputClassName="text-[16px] font-bold text-ink-900" />
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-ink-400 font-medium tabular-nums">{habits.length}项</span>
@@ -2252,7 +2272,8 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="flex items-center justify-between gap-3 mb-2.5">
           <span className="flex items-center gap-3 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
-            <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
+            <EditableTitle value={monthTitle} onChange={setMonthTitle} fallback={`${year}年 · ${selectedMonth}月数据`}
+              className="text-[16px] font-bold text-ink-900" inputClassName="text-[16px] font-bold text-ink-900" />
           </span>
           {/* 12 月份 Tab · 书架 Tab 同款；左侧渐隐(避免溢出时生硬截断)+右侧内边距(保证最右月完整可见) */}
           <div className="flex items-center gap-1 min-w-0 flex-1 justify-end overflow-x-auto px-2 pr-1"
@@ -3249,6 +3270,10 @@ function CognitionView({
   const [addingKr, setAddingKr] = useState(false);
   const [newKr, setNewKr] = useState({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
   const [editingKrModal, setEditingKrModal] = useState(null);
+  // 读后思考/思后行动/行后改变 三卡标题：右键可编辑（usePersistentState 持久化，清空回落默认）
+  const [thoughtsTitle, setThoughtsTitle] = usePersistentState('annual_cog_thoughts_title', () => '');
+  const [actionsTitle, setActionsTitle] = usePersistentState('annual_cog_actions_title', () => '');
+  const [reviewsTitle, setReviewsTitle] = usePersistentState('annual_cog_reviews_title', () => '');
   // 书架拖拽 + Tab筛选
   const [dragBookId, setDragBookId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
@@ -4614,7 +4639,8 @@ function CognitionView({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-              <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
+              <EditableTitle value={thoughtsTitle} onChange={setThoughtsTitle} fallback={`${year}年 · 读后思考`}
+                className="text-[16px] font-bold text-ink-900 leading-tight" inputClassName="text-[16px] font-bold text-ink-900" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: `rgba(${S_RGB},0.08)`, color: BLUE }}>
@@ -4676,7 +4702,8 @@ function CognitionView({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-              <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
+              <EditableTitle value={actionsTitle} onChange={setActionsTitle} fallback={`${year}年 · 思后行动`}
+                className="text-[16px] font-bold text-ink-900 leading-tight" inputClassName="text-[16px] font-bold text-ink-900" />
             </div>
             <div className="flex items-center gap-1.5">
               {/* 胶囊：已勾选完成数 / 总条数 — 与卡片内每条 action 的圆形复选框 isCompleted 判定严格一致：c.done || status==='completed'||'reviewed' */}
@@ -4790,7 +4817,8 @@ function CognitionView({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
-              <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
+              <EditableTitle value={reviewsTitle} onChange={setReviewsTitle} fallback={`${year}年 · 行后改变`}
+                className="text-[16px] font-bold text-ink-900 leading-tight" inputClassName="text-[16px] font-bold text-ink-900" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px]" style={{ background: `rgba(${S_RGB},0.08)`, color: BLUE }}>
@@ -4974,6 +5002,8 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
   /* ===== 2 Tab（进行中/已完成）+ ⋮ 菜单开合状态 ===== */
   const [abTab, setAbTab] = useState('active');
   const [openMenuId, setOpenMenuId] = useState(null);
+  // 页头标题：右键可编辑（usePersistentState 持久化，清空回落默认文案）
+  const [abilityTitle, setAbilityTitle] = usePersistentState('annual_ability_title', () => '');
   useEffect(() => {
     if (!openMenuId) return;
     const close = () => setOpenMenuId(null);
@@ -5206,7 +5236,8 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
           {/* 左：色条 + 标题 + 计数（对齐工作页左端 33px 视觉线） */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: AB_COLOR }}></span>
-            <span className="text-[15.5px] font-bold text-ink-900 leading-none whitespace-nowrap">{year}年 · 能力目标</span>
+            <EditableTitle value={abilityTitle} onChange={setAbilityTitle} fallback={`${year}年 · 能力目标`}
+              className="text-[15.5px] font-bold text-ink-900 leading-none whitespace-nowrap" inputClassName="text-[15.5px] font-bold text-ink-900" />
             <span className="text-[11px] text-ink-400 tabular-nums leading-none whitespace-nowrap">能力 · {dynAb.length}</span>
           </div>
 
@@ -6430,6 +6461,8 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
   /* 「全部分类」行 + 号：新建模块 mini 输入行（交互设计复用 EntryForm 的新建模块面板） */
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatLb, setNewCatLb] = useState('');
+  // 页头标题：右键可编辑（usePersistentState 持久化，清空回落默认文案）
+  const [lifeTitle, setLifeTitle] = usePersistentState('annual_life_title', () => '');
   function createCategory() {
     const lb = newCatLb.trim();
     if (lb) onCatAdd?.({ lb });
@@ -6521,9 +6554,10 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
       <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
         {/* 卡① 页头卡：色条 + 16px标题 + 链接按钮 + 年度精选（与其他5模块页头同构） */}
         <div className="bg-white rounded-2xl border border-ink-100 p-4">
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
           <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }}></span>
-          <span className="text-[16px] font-bold text-ink-900 leading-none">{new Date().getFullYear()}年 · 生活体验</span>
+          <EditableTitle value={lifeTitle} onChange={setLifeTitle} fallback={`${new Date().getFullYear()}年 · 生活体验`}
+            className="text-[16px] font-bold text-ink-900 leading-none" inputClassName="text-[16px] font-bold text-ink-900" />
           {/* 链接按钮（需求 2：圆角正方形；左键跳转 / 右键增删改）—— 在年度精选左边 */}
           <div className="relative ml-auto">
             <button

@@ -1436,7 +1436,7 @@ export default function SummaryPanel({
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{ fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ fontSize: '15px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{
               width: '5px', height: '18px', borderRadius: '3px', background: 'var(--s-main)', flexShrink: 0,
             }}></span>

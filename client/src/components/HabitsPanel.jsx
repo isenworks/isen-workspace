@@ -557,9 +557,9 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   return (
     <>
-      <div className="glass-card p-5 flex-1">
+      <div className="glass-card p-4 flex-1">
       <div className="flex items-center justify-between section-header">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="section-accent" style={{background:'var(--s-main)'}}></span>
           <h3 className="section-title">习惯</h3>
         </div>

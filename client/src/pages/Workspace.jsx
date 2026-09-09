@@ -625,7 +625,7 @@ export default function Workspace({ user: propUser }) {
             {/* 右栏：时间轴 / 总结面板 */}
             <div className="flex-1 min-w-0" style={rightStyle}>
               {showSummary ? (
-                <div className="glass-card p-5 h-full flex flex-col">
+                <div className="glass-card p-4 h-full flex flex-col">
                   <SummaryPanel
                     embed
                     userId={user?.id}

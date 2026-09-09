@@ -1297,9 +1297,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   return (
     <>
-    <div className="glass-card p-5 h-full">
+    <div className="glass-card p-4 h-full">
       <div className="flex items-center justify-between section-header">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="section-accent" style={{background:'var(--s-main)'}}></span>
           <h3 className="section-title">{titleText}</h3>
 

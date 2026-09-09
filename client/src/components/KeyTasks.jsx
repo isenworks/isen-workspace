@@ -393,10 +393,10 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   }
 
   return (
-    <div className="glass-card p-5">
+    <div className="glass-card p-4">
       <div className="flex items-start justify-between gap-2 section-header">
           <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="section-accent" style={{background:'var(--s-main)'}}></span>
               <h3 className="section-title">{titleText}</h3>
               {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
@@ -423,7 +423,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
                 )}
               </button>
             </div>
-            <p className="text-[12px] font-normal tracking-tight leading-tight ml-[13px]" style={{ color: '#8e8e93', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif' }}>
+            <p className="text-[12px] font-normal tracking-tight leading-tight ml-[17px]" style={{ color: '#8e8e93', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif' }}>
               增收入 · 建资产 · 提能力
             </p>
           </div>

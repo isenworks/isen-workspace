@@ -1979,9 +1979,9 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   return (
     <div className="flex flex-col gap-4">
       {/* ========== Card 1 / 3：年度数据概览 ========== */}
-      <div className="glass-card p-5 overflow-hidden">
+      <div className="glass-card p-4 overflow-hidden">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
             <span className="text-[16px] font-bold text-ink-900">{year}年 · 年度数据</span>
           </div>
@@ -2084,7 +2084,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
       </div>
 
       {/* ========== Card 2 / 3：各月数据趋势（可折叠） ========== */}
-      <div className="glass-card p-5 overflow-hidden">
+      <div className="glass-card p-4 overflow-hidden">
         {/* ★ ② 标题行可点击折叠/展开：chevron 旋转指示状态 */}
         <div
           className="flex items-center justify-between cursor-pointer select-none group"
@@ -2092,7 +2092,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           role="button"
           aria-expanded={!monthsCollapsed}
           aria-label={monthsCollapsed ? '展开各月数据' : '折叠各月数据'}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
             <span className="text-[16px] font-bold text-ink-900">{year}年 · 各月数据</span>
           </div>
@@ -2247,10 +2247,10 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
       </div>
 
       {/* ========== Card 3 / 3：当月打卡日历 ========== */}
-      <div className="glass-card p-5 overflow-hidden">
+      <div className="glass-card p-4 overflow-hidden">
         {/* ★ ③ 标题行：标题居左，月份 Tab 移到同一行最右侧（书架 Tab 同款规格） */}
         <div className="flex items-center justify-between gap-3 mb-2.5">
-          <span className="flex items-center gap-2 flex-shrink-0">
+          <span className="flex items-center gap-3 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full bg-accent-green flex-shrink-0"></span>
             <span className="text-[16px] font-bold text-ink-900">{year}年 · {selectedMonth}月数据</span>
           </span>
@@ -3888,7 +3888,7 @@ function CognitionView({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
 
       {/* ===== 左侧·一体化 KR × 漏斗 卡片（6/12 列） ===== */}
-      <div className="xl:col-span-6 bg-white rounded-2xl border border-ink-100 p-5 flex flex-col min-h-0">
+      <div className="xl:col-span-6 bg-white rounded-2xl border border-ink-100 p-4 flex flex-col min-h-0">
         {/* ===== Header: O目标 + 时间进度 + 新增KR（mb-3 给 O 行和下面内容呼吸感）===== */}
         <div className="mb-3">
           {editingObj ? (
@@ -3910,7 +3910,7 @@ function CognitionView({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 min-h-[20px]">
+            <div className="flex items-center gap-3 min-h-[20px]">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <InlineEdit
                 value={objective?.text || COG_O.text}
@@ -4123,13 +4123,13 @@ function CognitionView({
       {/* ===== 右侧·书架看板（6/12 列，2列网格恢复原始卡片尺寸） ===== */}
       <div className="xl:col-span-6 flex flex-col min-h-0">
       {/* ===== 书架看板 ===== */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col flex-1 min-h-0">
+      <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col flex-1 min-h-0">
         {/* Header 两行式：第一行(色条+标题+共N本+操作按钮) · 第二行(Tabs左对齐) */}
         <div className="mb-2">
           {/* Row 1：色条 + 标题 + 共N本 + 操作按钮 */}
           <div className="flex items-center gap-3">
             {/* 左：色条 + 标题 + 共 N 本 */}
-            <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <InlineEdit
                 value={bookshelfTitle}
@@ -4610,9 +4610,9 @@ function CognitionView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* ========== 卡片一：读后思考 ========== */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
+        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 读后思考</span>
             </div>
@@ -4672,9 +4672,9 @@ function CognitionView({
         </div>
 
         {/* ========== 卡片二：思后行动（合并书籍中思后行动 + 旧独立changes）========== */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
+        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 思后行动</span>
             </div>
@@ -4786,9 +4786,9 @@ function CognitionView({
         </div>
 
         {/* ========== 卡片三：行后改变 ========== */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-5 flex flex-col">
+        <div className="bg-white rounded-2xl border border-ink-100 p-4 flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: BLUE }}></span>
               <span className="text-[16px] font-bold text-ink-900 leading-tight">{year}年 · 行后改变</span>
             </div>
@@ -5064,10 +5064,10 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
     const st = _statusOf(a);
 
     return (
-      <div key={a.id || a.title} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-5 flex flex-col group">
+      <div key={a.id || a.title} className="bg-white rounded-2xl border border-ink-100 hover:shadow-md transition-shadow p-4 flex flex-col group">
         {/* 标题行：色条 + 16px 可编辑标题 | 删除(悬停) + 已勾选/总数胶囊 + 26×26 加号 */}
         <div className="flex items-center justify-between mb-2.5">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: AB }}></span>
             <span
               className="text-[16px] font-bold leading-tight text-ink-900 truncate cursor-pointer hover:text-ink-700 transition-colors"
@@ -5562,7 +5562,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
         {/* R1-top：色条 + 标题 + 胶囊 + 加号 —— 严格锁定在这一行内 items-center，
              与"加副标题之前"的原版视觉关系完全一致，右侧胶囊/加号自然与标题文字中线对齐 */}
         <div className="flex items-center justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }}></span>
             <div className="text-[16px] font-bold text-ink-900 leading-tight truncate cursor-pointer hover:text-ink-700 transition-colors min-w-0 select-none"
               onClick={() => onGoalEdit?.(goalIdx)} title="编辑目标（双击卡片空白处折叠）">{o.title}</div>
@@ -5599,7 +5599,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           const remain = dl ? formatRemainDuration(dl, today) : null;
           return (
             <div
-              className="text-[11px] text-ink-400 tabular-nums leading-none pl-[13px] tracking-tight"
+              className="text-[11px] text-ink-400 tabular-nums leading-none pl-[17px] tracking-tight"
               style={{ fontFamily: IOS_SANS }}>
               <span>{startStr} → {dlStr}</span>
               {remain && (
@@ -6087,10 +6087,10 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
     const collapsed = isCollapsed(o, goalIdx);
     const bottleneck = renderWorkBottleneck(o, gs.color);
     // 右上角三控件（胶囊+加号+⋮）统一 absolute flex 容器，
-    // pr-5 = 20px 正常留白，三者 gap-2(8px) 整体靠右，避免两套坐标系失控
+    // 卡壳统一 p-4(16px) 留白，三者 gap-2(8px) 整体靠右，避免两套坐标系失控
     return (
       <div
-        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow pl-5 pr-5 pt-5 pb-5 flex flex-col overflow-visible group relative select-none"
+        className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow p-4 flex flex-col overflow-visible group relative select-none"
         style={{}}
         onDoubleClick={() => toggleCollapsed(o, goalIdx)}
       >
@@ -6104,8 +6104,8 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           </span>
         )}
         {/* 统一容器：KR 计数胶囊（event 模式隐藏） + 添加 KR 加号 + ⋮ 更多菜单
-            top-[17px] 对齐 renderObjective 标题基线（标题 top=20 中线=29，按钮中心=17+14=31） */}
-        <div className="absolute right-3 top-[17px] z-20 flex items-center gap-2">
+            top-[13px] 对齐 renderObjective 标题基线（标题 top=16 中线=25，按钮中心=13+14=27） */}
+        <div className="absolute right-3 top-[13px] z-20 flex items-center gap-2">
           {/* KR 计数胶囊：krTotal=0 时隐藏（单次事件型无需 KR 拆解） */}
           {gs.krTotal > 0 && (
             <span
@@ -6149,7 +6149,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
       <div className="w-full glass-card rounded-2xl p-4">
         <div className="flex items-center gap-3 flex-wrap">
           {/* 左：色条 + 标题(右击编辑) + 主业·N | 副业·N
-              gap-3(12px) + p-4(16px) + 色条5px = 33px，与下方卡片标题 pl-5(20)+色条(5)+gap-2(8)=33px 左端精确对齐 */}
+              gap-3(12px) + p-4(16px) + 色条5px = 33px，与下方卡片标题 p-4(16)+色条(5)+gap-3(12)=33px 完全一致 */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: RED }}></span>
             {titleEditing ? (
@@ -6380,7 +6380,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-5">
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] p-5 flex flex-col overflow-hidden">
+                <div className="bg-white rounded-2xl border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] p-4 flex flex-col overflow-hidden">
                   {renderObjective(o, gs, goalIdx)}
                   <div className="flex-1 min-h-0 pt-3 overflow-y-auto">
                     {renderByMode(o, gs, goalIdx)}

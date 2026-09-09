@@ -6479,16 +6479,18 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
   // 扁平化（可被筛选）→ 解析 d(如 8.24 / 8.17-8.18 取起始日) → 按月分组倒序
   const timeGroups = useMemo(() => {
     const rows = [];
+    // 年份：条目可带 e.y 扩展字段；缺省视为当年（当前数据 e.d 仅存"8.24"月日格式）
+    const currentYear = new Date().getFullYear();
     (lifeFilter ? dynLife.filter(c => c.key === lifeFilter) : dynLife || []).forEach(c => (c.entries || []).forEach((e, i) => {
       const m = String(e.d || '').match(/(\d{1,2})\s*[./]\s*(\d{1,2})/);
-      rows.push({ cat: c, e, idx: i, mo: m ? +m[1] : 0, day: m ? +m[2] : 0 });
+      rows.push({ cat: c, e, idx: i, mo: m ? +m[1] : 0, day: m ? +m[2] : 0, yr: e.y || currentYear });
     }));
-    rows.sort((a, b) => (b.mo - a.mo) || (b.day - a.day));
+    rows.sort((a, b) => (b.yr - a.yr) || (b.mo - a.mo) || (b.day - a.day));
     const groups = [];
     rows.forEach(r => {
       const last = groups[groups.length - 1];
-      if (last && last.mo === r.mo) last.items.push(r);
-      else groups.push({ mo: r.mo, label: r.mo ? `${r.mo}月` : '无日期', items: [r] });
+      if (last && last.mo === r.mo && last.year === r.yr) last.items.push(r);
+      else groups.push({ mo: r.mo, year: r.yr, label: r.mo ? `${r.mo}月` : '无日期', items: [r] });
     });
     return groups;
   }, [dynLife, lifeFilter]);
@@ -6811,7 +6813,15 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                 {selFilterCat ? `「${selFilterCat.lb}」还没有记录，点左侧类目行的 + 添加` : '还没有生活记录，点左侧类目行的 + 添加'}
               </div>
             )}
-            {timeGroups.map((g, gi) => g.items.map((r, ri) => {
+            {timeGroups.map((g, gi) => {
+              /* 年份大字分隔（方案 C）：每年一个，始终显示当年；出现跨年记录时自动追加（数据可带 e.y 扩展字段） */
+              const showYear = gi === 0 || timeGroups[gi - 1].year !== g.year;
+              return (
+                <React.Fragment key={`yg-${g.year}-${g.mo}`}>
+                  {showYear && (
+                    <div className={`text-[15px] font-bold text-ink-900 tabular-nums tracking-wide ${gi === 0 ? 'mb-2' : 'mt-3 mb-2'}`}>{g.year}</div>
+                  )}
+                  {g.items.map((r, ri) => {
               const isLast = gi === timeGroups.length - 1 && ri === g.items.length - 1;
               const hl = Array.isArray(highlightedIds) && highlightedIds.includes(r.e.id);
               return (
@@ -6853,7 +6863,10 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   {r.e.n && <div className="text-xs text-ink-500 leading-relaxed -mt-1 mb-3 max-w-[620px]">{r.e.n}</div>}
                 </div>
               );
-            }))}
+                  })}
+                </React.Fragment>
+              );
+            })}
       </div>
     </div>
   );

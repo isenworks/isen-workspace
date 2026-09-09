@@ -676,9 +676,12 @@ function InlineEdit({
    「2026年 · XX」层级标题统一交互：右键菜单编辑 / 删除（清空回落默认文案）
    value=''（未自定义）时显示 placeholder（fallback，动态生成保持年份/月份新鲜） */
 function EditableTitle({ value, onChange, fallback, className, inputClassName }) {
+  /* value 兜底 fallback：右键编辑时输入框预填「当前显示文字」（书架标题同款体验），
+     直接在已有文字上修改；清空/删除 → onChange('') → 显示回落 fallback */
+  const display = value || fallback;
   return (
     <InlineEdit
-      value={value}
+      value={display}
       onChange={(v) => onChange(String(v || '').trim())}
       onDelete={() => onChange('')}
       placeholder={fallback}

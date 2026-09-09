@@ -170,7 +170,7 @@ export default function RecycleBinPage() {
 
   /* 导航行（全部 + 各类型）：与生活页类目导航同构——「全部」顶格 px-2.5，类型行缩进 pl-8 形成层级 */
   const navRowCls = (active, child) =>
-    `group flex items-center gap-2 ${child ? 'pl-8' : 'px-2.5'} h-9 rounded-lg text-sm transition text-left ${active
+    `group flex items-center gap-2 ${child ? 'pl-8 pr-2.5' : 'px-2.5'} h-9 rounded-lg text-sm transition text-left ${active
       ? 'font-bold bg-[rgba(var(--s-rgb),0.10)]'
       : 'font-medium text-ink-700 hover:bg-surface-soft'}`;
 

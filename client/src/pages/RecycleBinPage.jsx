@@ -183,14 +183,13 @@ export default function RecycleBinPage() {
             <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
             <div className="flex-1 min-w-0">
               <div className="text-[15.5px] font-bold text-ink-900 leading-none">回收站</div>
-              <div className="text-[11px] text-ink-400 leading-none mt-1.5">删除的事项会暂存在这里，可随时恢复</div>
             </div>
             {items && items.length > 0 && (
               <button
                 onClick={() => setConfirming({ kind: 'clear' })}
-                className="flex-shrink-0 text-[13px] font-medium text-[#FF3B30] px-3 py-1.5 rounded-lg hover:bg-[#FF3B3014] transition-colors"
+                className="flex-shrink-0 text-[12.5px] font-semibold text-white px-3 py-1.5 rounded-lg bg-[#FF3B30] hover:brightness-105 active:scale-[0.98] transition-all"
               >
-                清空回收站
+                清空
               </button>
             )}
           </div>

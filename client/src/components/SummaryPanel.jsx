@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { API } from '../api/client.js';
 import { calcDurationMin, formatDuration } from '../utils/date.js';
+import { syncKey, cloudPush } from '../utils/cloudKV.js';
 
 function getWeekNumber(dateStr) {
   if (!dateStr) return 1;
@@ -79,6 +80,10 @@ const DEFAULT_TEMPLATES = [
 const TEMPLATES_KEY = (uid) => `summary_templates:${uid || 'anon'}`;
 const PRESET_OVERRIDES_KEY = (uid) => `summary_preset_overrides:${uid || 'anon'}`;
 const PRESET_DELETED_KEY = (uid) => `summary_preset_deleted:${uid || 'anon'}`;
+/* 云端镜像 key：user_settings 已按用户隔离，无需 uid 后缀（本地 uid 后缀是因同浏览器可存多账号） */
+const TEMPLATES_CLOUD = 'summary_templates';
+const PRESET_OVERRIDES_CLOUD = 'summary_preset_overrides';
+const PRESET_DELETED_CLOUD = 'summary_preset_deleted';
 const CUSTOM_TPL_LIMIT = 8;
 
 function loadCustomTemplates(uid) {
@@ -94,7 +99,9 @@ function loadCustomTemplates(uid) {
 
 function saveCustomTemplates(uid, list) {
   try {
-    localStorage.setItem(TEMPLATES_KEY(uid), JSON.stringify(list || []));
+    const s = JSON.stringify(list || []);
+    localStorage.setItem(TEMPLATES_KEY(uid), s);
+    cloudPush(TEMPLATES_CLOUD, s);
   } catch {}
 }
 
@@ -108,7 +115,11 @@ function loadPresetOverrides(uid) {
 }
 
 function savePresetOverrides(uid, obj) {
-  try { localStorage.setItem(PRESET_OVERRIDES_KEY(uid), JSON.stringify(obj || {})); } catch {}
+  try {
+    const s = JSON.stringify(obj || {});
+    localStorage.setItem(PRESET_OVERRIDES_KEY(uid), s);
+    cloudPush(PRESET_OVERRIDES_CLOUD, s);
+  } catch {}
 }
 
 function loadDeletedPresets(uid) {
@@ -121,7 +132,11 @@ function loadDeletedPresets(uid) {
 }
 
 function saveDeletedPresets(uid, arr) {
-  try { localStorage.setItem(PRESET_DELETED_KEY(uid), JSON.stringify(arr || [])); } catch {}
+  try {
+    const s = JSON.stringify(arr || []);
+    localStorage.setItem(PRESET_DELETED_KEY(uid), s);
+    cloudPush(PRESET_DELETED_CLOUD, s);
+  } catch {}
 }
 
 // ===== 工具函数 =====
@@ -575,6 +590,18 @@ export default function SummaryPanel({
     setCustomTpls(loadCustomTemplates(userId));
     setPresetOverrides(loadPresetOverrides(userId));
     setDeletedPresets(loadDeletedPresets(userId));
+    // 云端拉取：换浏览器/清缓存后自动恢复自定义模板与预设配置
+    const pull = (cloudKey, lsKey, apply) => {
+      syncKey(cloudKey, localStorage.getItem(lsKey), (cloudStr) => {
+        try {
+          localStorage.setItem(lsKey, cloudStr);
+          apply(JSON.parse(cloudStr));
+        } catch {}
+      });
+    };
+    pull(TEMPLATES_CLOUD, TEMPLATES_KEY(userId), v => setCustomTpls(Array.isArray(v) ? v : []));
+    pull(PRESET_OVERRIDES_CLOUD, PRESET_OVERRIDES_KEY(userId), v => setPresetOverrides((v && typeof v === 'object') ? v : {}));
+    pull(PRESET_DELETED_CLOUD, PRESET_DELETED_KEY(userId), v => setDeletedPresets(Array.isArray(v) ? v : []));
   }, [userId]);
 
   const loadData = async () => {

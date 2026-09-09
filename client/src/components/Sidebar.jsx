@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { formatChineseDate, formatGreeting } from '../utils/date.js';
 import { API } from '../api/client.js';
-import { syncCloudNow } from '../utils/cloudKV.js';
+import { syncCloudNow, syncKey, cloudPush } from '../utils/cloudKV.js';
 import { trySubmitTopForm } from '../utils/formSubmitBus.js';
 import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
@@ -44,8 +44,10 @@ const ANNUAL_SUB = [
   { key: 'finance',   label: '财务', color: 'var(--m-finance)',   rgb: 'var(--m-finance-rgb)',   add: '账目' },
 ];
 
-/* 侧边栏导航标题（右键编辑改文字）· localStorage 持久化，按用户隔离 */
+/* 侧边栏导航标题（右键编辑改文字）· localStorage 持久化，按用户隔离
+ * 云端镜像 key：sidebar_nav_labels（user_settings 已按用户隔离，只存当前用户的标题 map）*/
 const NAV_LABELS_LS = 'sidebar_nav_labels_v1';
+const NAV_LABELS_CLOUD = 'sidebar_nav_labels';
 function navLabelsUid(user) {
   return user?.id != null ? String(user.id) : 'anon';
 }
@@ -65,6 +67,7 @@ function saveNavLabel(user, key, label) {
     if (!obj[uid]) obj[uid] = {};
     if (label) obj[uid][key] = label; else delete obj[uid][key];
     localStorage.setItem(NAV_LABELS_LS, JSON.stringify(obj));
+    cloudPush(NAV_LABELS_CLOUD, JSON.stringify(obj[uid] || {}));
   } catch { /* ignore */ }
 }
 
@@ -81,6 +84,20 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
     setAnnualSubManuallyClosed(closed);
     try { localStorage.setItem(ANNUAL_SUB_LS, closed ? '1' : '0'); } catch { /* ignore */ }
   };
+  // 导航标题云端同步：云端较新则覆盖本地（换浏览器/清缓存后自动恢复自定义标题）
+  useEffect(() => {
+    const uid = navLabelsUid(user);
+    syncKey(NAV_LABELS_CLOUD, JSON.stringify(loadNavLabels(user)), (cloudStr) => {
+      try {
+        const parsed = JSON.parse(cloudStr);
+        const raw = localStorage.getItem(NAV_LABELS_LS);
+        const obj = raw ? JSON.parse(raw) : {};
+        obj[uid] = parsed || {};
+        localStorage.setItem(NAV_LABELS_LS, JSON.stringify(obj));
+        setNavLabels(parsed || {});
+      } catch {}
+    });
+  }, [user?.id]);
   const labelOf = (item) => navLabels[item.key] || item.label;
   // 右键导航项 → 行内编辑标题（Enter 保存 / Esc 取消 / 失焦保存；空值回退默认）
   const [editingNav, setEditingNav] = useState(null); // { key }

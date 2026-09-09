@@ -1,8 +1,9 @@
 /* ============================================================
  * 六大模块色（精力/知力/能力/工作/生活/财务）
  * 通过 CSS 变量注入 <html>，与结构色主题（theme.js）完全解耦
- * 持久化：localStorage `ws_module_colors`
+ * 持久化：localStorage `ws_module_colors`（主）+ D1 user_settings 镜像（cloudKV）
  * ============================================================ */
+import { syncKey, cloudPush } from './cloudKV.js';
 
 export const MODULE_COLORS = {
   energy:    { key: 'energy',    label: '精力', default: '#34C759' },
@@ -53,7 +54,11 @@ export function saveModuleColor(key, hex) {
     saved = raw ? JSON.parse(raw) : {};
   } catch { /* ignore */ }
   saved[key] = hex;
-  try { localStorage.setItem(LS_KEY, JSON.stringify(saved)); } catch { /* ignore */ }
+  try {
+    const s = JSON.stringify(saved);
+    localStorage.setItem(LS_KEY, s);
+    cloudPush(LS_KEY, s);
+  } catch { /* ignore */ }
 }
 
 export function resetModuleColor(key) {
@@ -63,11 +68,18 @@ export function resetModuleColor(key) {
     saved = raw ? JSON.parse(raw) : {};
   } catch { /* ignore */ }
   delete saved[key];
-  try { localStorage.setItem(LS_KEY, JSON.stringify(saved)); } catch { /* ignore */ }
+  try {
+    const s = JSON.stringify(saved);
+    localStorage.setItem(LS_KEY, s);
+    cloudPush(LS_KEY, s);
+  } catch { /* ignore */ }
 }
 
 export function resetAllModuleColors() {
-  try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
+  try {
+    localStorage.removeItem(LS_KEY);
+    cloudPush(LS_KEY, '{}');
+  } catch { /* ignore */ }
 }
 
 export function applyModuleColors() {
@@ -81,4 +93,11 @@ export function applyModuleColors() {
 
 export function initModuleColors() {
   applyModuleColors();
+  // 云端拉取：多设备模块色同步（本地先应用防闪烁，云端有更新再覆盖应用）
+  syncKey(LS_KEY, localStorage.getItem(LS_KEY), (cloudStr) => {
+    try {
+      localStorage.setItem(LS_KEY, cloudStr);
+      applyModuleColors();
+    } catch {}
+  });
 }

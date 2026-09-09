@@ -4,6 +4,7 @@ import { API } from '../api/client.js';
 import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { syncKey, cloudPush } from '../utils/cloudKV.js';
 // 成长类型配色与推断逻辑：与 HabitsPanel/KeyTasks 统一来源（CSS 变量版，跟随模块主题色）
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 
@@ -67,17 +68,28 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const [docLinks, setDocLinks] = useState([]);
   const [editingDoc, setEditingDoc] = useState(null); // null=未编辑, {id:'new',...}=新增, {id,...}=编辑
 
-  // 在线文档链接管理（localStorage）
+  // 在线文档链接管理（localStorage 主存储 + D1 云端镜像）
   useEffect(() => {
     try {
       const raw = localStorage.getItem('summary_doc_urls');
       if (raw) setDocLinks(JSON.parse(raw));
     } catch (_) {}
+    // 云端拉取：换浏览器/清缓存后自动恢复文档链接
+    syncKey('summary_doc_urls', localStorage.getItem('summary_doc_urls'), (cloudStr) => {
+      try {
+        localStorage.setItem('summary_doc_urls', cloudStr);
+        setDocLinks(JSON.parse(cloudStr));
+      } catch {}
+    });
   }, []);
 
   const saveDocLinks = (links) => {
     setDocLinks(links);
-    try { localStorage.setItem('summary_doc_urls', JSON.stringify(links)); } catch (_) {}
+    try {
+      const s = JSON.stringify(links);
+      localStorage.setItem('summary_doc_urls', s);
+      cloudPush('summary_doc_urls', s);
+    } catch (_) {}
   };
 
   // 总结下拉：定位（随滚动/resize 实时更新）

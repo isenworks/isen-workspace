@@ -6819,7 +6819,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               return (
                 <React.Fragment key={`yg-${g.year}-${g.mo}`}>
                   {showYear && (
-                    <div className={`text-[15px] font-bold text-ink-900 tabular-nums tracking-wide ${gi === 0 ? 'mb-2' : 'mt-3 mb-2'}`}>{g.year}</div>
+                    <div className={`text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide ${gi === 0 ? 'mb-2' : 'mt-3 mb-2'}`}>{g.year}年</div>
                   )}
                   {g.items.map((r, ri) => {
               const isLast = gi === timeGroups.length - 1 && ri === g.items.length - 1;

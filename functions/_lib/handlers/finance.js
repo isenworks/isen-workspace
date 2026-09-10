@@ -49,113 +49,119 @@ function centsToYuan(c) {
 }
 
 // ------------------------------------------------------------
-// 表懒迁移（幂等，任意请求触发）
+// 表懒迁移（幂等；模块级缓存，每 Worker 实例只跑一次，稳态 0 开销）
 // ------------------------------------------------------------
-export async function ensureFinanceTables(env) {
-  try {
-    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_finance_accounts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      type TEXT NOT NULL DEFAULT 'debit',
-      initial_balance INTEGER NOT NULL DEFAULT 0,
-      icon TEXT DEFAULT '🏦',
-      color TEXT DEFAULT '#FFB627',
-      include_in_net_worth INTEGER NOT NULL DEFAULT 1,
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      archived INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
-    )`).run();
-  } catch (_) {}
-  try {
-    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_finance_categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      type TEXT NOT NULL DEFAULT 'expense',
-      icon TEXT DEFAULT '🏷️',
-      color TEXT DEFAULT '#8E8E93',
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      is_system INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
-    )`).run();
-  } catch (_) {}
-  try {
-    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_finance_transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      type TEXT NOT NULL DEFAULT 'expense',
-      amount INTEGER NOT NULL,
-      account_id INTEGER,
-      to_account_id INTEGER,
-      category_id INTEGER,
-      goal_id INTEGER,
-      date TEXT NOT NULL,
-      note TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    )`).run();
-  } catch (_) {}
-  try {
-    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_finance_goals (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      target_amount INTEGER NOT NULL,
-      current_amount INTEGER NOT NULL DEFAULT 0,
-      deadline TEXT,
-      monthly_plan INTEGER,
-      account_id INTEGER,
-      status TEXT NOT NULL DEFAULT 'active',
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
-    )`).run();
-  } catch (_) {}
+let _tablesReady = null;
+export function ensureFinanceTables(env) {
+  if (!_tablesReady) {
+    _tablesReady = (async () => {
+      const ddl = [
+        `CREATE TABLE IF NOT EXISTS ethan_finance_accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL DEFAULT 'debit',
+          initial_balance INTEGER NOT NULL DEFAULT 0,
+          icon TEXT DEFAULT '🏦',
+          color TEXT DEFAULT '#FFB627',
+          include_in_net_worth INTEGER NOT NULL DEFAULT 1,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          archived INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`,
+        `CREATE TABLE IF NOT EXISTS ethan_finance_categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL DEFAULT 'expense',
+          icon TEXT DEFAULT '🏷️',
+          color TEXT DEFAULT '#8E8E93',
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_system INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`,
+        `CREATE TABLE IF NOT EXISTS ethan_finance_transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          type TEXT NOT NULL DEFAULT 'expense',
+          amount INTEGER NOT NULL,
+          account_id INTEGER,
+          to_account_id INTEGER,
+          category_id INTEGER,
+          goal_id INTEGER,
+          date TEXT NOT NULL,
+          note TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`,
+        `CREATE TABLE IF NOT EXISTS ethan_finance_goals (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          target_amount INTEGER NOT NULL,
+          current_amount INTEGER NOT NULL DEFAULT 0,
+          deadline TEXT,
+          monthly_plan INTEGER,
+          account_id INTEGER,
+          status TEXT NOT NULL DEFAULT 'active',
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`,
+      ];
+      // 四张表并行建（独立表，互不依赖）
+      await Promise.all(ddl.map((sql) => env.DB.prepare(sql).run().catch(() => {})));
+      // 流水查询加速索引（按用户+日期排序/过滤）
+      await Promise.all([
+        env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_ethan_fin_tx_user_date ON ethan_finance_transactions(user_id, date, id)`).run().catch(() => {}),
+      ]);
+    })().catch((e) => { _tablesReady = null; throw e; });
+  }
+  return _tablesReady;
 }
 
-// 首访种子：无分类则种预置分类；无账户则种预置账户（只各执行一次）
+// 首访种子：无分类则种预置分类；无账户则种预置账户（per-user 缓存，稳态 0 开销）
+const _seededUsers = new Set();
 async function ensureSeed(env) {
   const userId = uid(env);
+  if (_seededUsers.has(userId)) return;
   const cat = await dbFirst(env.DB, `SELECT id FROM ethan_finance_categories WHERE user_id=? LIMIT 1`, [userId]);
   if (!cat) {
-    let i = 0;
-    for (const c of DEFAULT_CATEGORIES) {
-      await env.DB.prepare(
+    await Promise.all(DEFAULT_CATEGORIES.map((c, i) =>
+      env.DB.prepare(
         `INSERT INTO ethan_finance_categories (user_id,name,type,icon,color,sort_order,is_system) VALUES (?,?,?,?,?,?,1)`
-      ).bind(userId, c.name, c.type, c.icon, c.color, i++).run();
-    }
+      ).bind(userId, c.name, c.type, c.icon, c.color, i).run()));
   }
   const acc = await dbFirst(env.DB, `SELECT id FROM ethan_finance_accounts WHERE user_id=? LIMIT 1`, [userId]);
   if (!acc) {
-    let i = 0;
-    for (const a of DEFAULT_ACCOUNTS) {
-      await env.DB.prepare(
+    await Promise.all(DEFAULT_ACCOUNTS.map((a, i) =>
+      env.DB.prepare(
         `INSERT INTO ethan_finance_accounts (user_id,name,type,icon,sort_order) VALUES (?,?,?,?,?)`
-      ).bind(userId, a.name, a.type, a.icon, i++).run();
-    }
+      ).bind(userId, a.name, a.type, a.icon, i).run()));
   }
+  _seededUsers.add(userId);
 }
 
 // ------------------------------------------------------------
-// 仪表盘计算（内存派生：账户余额 / 净资产 / 月度收支 / 目标进度）
+// 仪表盘计算（SQL 聚合输入：账户余额 / 净资产 / 月度收支 / 目标进度）
+//   outAgg：[{account_id, type, s}] 出账聚合（income +s / expense、transfer -s；
+//           transfer 且 to_account_id 为空的纯虚拟目标进度行已在 SQL 排除）
+//   inAgg：[{to_account_id, s}]   transfer 入账聚合
+//   monthAgg：[{m, type, category_id, s}] 当月+上月的收支分类聚合（transfer 不计）
 // ------------------------------------------------------------
-function computeDashboard(accounts, categories, goals, txs, month) {
-  const accMap = new Map(accounts.map(a => [a.id, a]));
+function computeDashboard(accounts, categories, goals, outAgg, inAgg, monthAgg, month, prevMonth) {
   const catMap = new Map(categories.map(c => [c.id, c]));
 
-  // 1) 账户余额（transfer 中 to_account_id 为空的行是纯虚拟目标进度，双跳过）
-  const bal = new Map();
-  accounts.forEach(a => bal.set(a.id, Number(a.initial_balance) || 0));
-  txs.forEach(t => {
-    const amt = Number(t.amount) || 0;
-    if (t.type === 'income' && bal.has(t.account_id)) {
-      bal.set(t.account_id, bal.get(t.account_id) + amt);
-    } else if (t.type === 'expense' && bal.has(t.account_id)) {
-      bal.set(t.account_id, bal.get(t.account_id) - amt);
-    } else if (t.type === 'transfer' && t.to_account_id != null) {
-      if (bal.has(t.account_id)) bal.set(t.account_id, bal.get(t.account_id) - amt);
-      if (bal.has(t.to_account_id)) bal.set(t.to_account_id, bal.get(t.to_account_id) + amt);
-    }
-  });
+  // 1) 账户余额
+  const bal = new Map(accounts.map(a => [a.id, Number(a.initial_balance) || 0]));
+  for (const r of outAgg) {
+    if (!bal.has(r.account_id)) continue;
+    const s = Number(r.s) || 0;
+    if (r.type === 'income') bal.set(r.account_id, bal.get(r.account_id) + s);
+    else bal.set(r.account_id, bal.get(r.account_id) - s); // expense / transfer 出账
+  }
+  for (const r of inAgg) {
+    if (!bal.has(r.to_account_id)) continue;
+    bal.set(r.to_account_id, bal.get(r.to_account_id) + (Number(r.s) || 0));
+  }
 
   // 2) 净资产（sign 约定：负债账户余额为负）
   let assets = 0, liabilities = 0;
@@ -168,28 +174,24 @@ function computeDashboard(accounts, categories, goals, txs, month) {
   // 资产侧出现负余额（如储蓄卡透支）计入负债；负债侧正余额（信用卡溢缴）计入资产
   const netWorth = assets - liabilities;
 
-  // 3) 月度收支（transfer 不计）
-  const monthOf = (d) => String(d || '').slice(0, 7);
+  // 3) 月度收支（monthAgg 已按月/类型/分类聚合）
   const sumMonth = (m) => {
     let income = 0, expense = 0;
     const incByCat = new Map(), expByCat = new Map();
-    txs.forEach(t => {
-      if (monthOf(t.date) !== m) return;
-      if (t.type === 'income') {
-        income += Number(t.amount) || 0;
-        incByCat.set(t.category_id, (incByCat.get(t.category_id) || 0) + (Number(t.amount) || 0));
-      } else if (t.type === 'expense') {
-        expense += Number(t.amount) || 0;
-        expByCat.set(t.category_id, (expByCat.get(t.category_id) || 0) + (Number(t.amount) || 0));
+    for (const r of monthAgg) {
+      if (r.m !== m) continue;
+      const s = Number(r.s) || 0;
+      if (r.type === 'income') {
+        income += s;
+        incByCat.set(r.category_id, (incByCat.get(r.category_id) || 0) + s);
+      } else if (r.type === 'expense') {
+        expense += s;
+        expByCat.set(r.category_id, (expByCat.get(r.category_id) || 0) + s);
       }
-    });
+    }
     return { income, expense, incByCat, expByCat };
   };
   const cur = sumMonth(month);
-  // 上月（用于「较上月」变化）
-  const [y, mo] = month.split('-').map(Number);
-  const prevDate = new Date(Date.UTC(y, mo - 2, 1));
-  const prevMonth = `${prevDate.getUTCFullYear()}-${String(prevDate.getUTCMonth() + 1).padStart(2, '0')}`;
   const prev = sumMonth(prevMonth);
 
   const catList = (m) => {
@@ -201,6 +203,7 @@ function computeDashboard(accounts, categories, goals, txs, month) {
   };
 
   // 4) 目标进度 + 资金存放
+  const accMap = new Map(accounts.map(a => [a.id, a]));
   const goalsOut = goals.map(g => ({
     ...g,
     target_amount: centsToYuan(g.target_amount),
@@ -220,6 +223,8 @@ function computeDashboard(accounts, categories, goals, txs, month) {
 // ------------------------------------------------------------
 // GET|POST /api/finance/bootstrap — 仪表盘一次拉全
 //   body: { month: 'YYYY-MM' }（默认当月）
+//   性能：7 条查询并行一次往返；流水不拉全量，改为 SQL 聚合（余额/月度）
+//   + 近期 100 条，账目增长不影响耗时
 // ------------------------------------------------------------
 export async function handleFinanceBootstrap(env, body) {
   await ensureFinanceTables(env);
@@ -230,22 +235,44 @@ export async function handleFinanceBootstrap(env, body) {
     const d = new Date();
     month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
+  // 上月（用于「较上月」变化）
+  const [y, mo] = month.split('-').map(Number);
+  const prevDate = new Date(Date.UTC(y, mo - 2, 1));
+  const prevMonth = `${prevDate.getUTCFullYear()}-${String(prevDate.getUTCMonth() + 1).padStart(2, '0')}`;
 
-  const accounts = await dbAll(env.DB,
-    `SELECT * FROM ethan_finance_accounts WHERE user_id=? AND archived=0 ORDER BY sort_order, id`, [userId]);
-  const categories = await dbAll(env.DB,
-    `SELECT * FROM ethan_finance_categories WHERE user_id=? ORDER BY type, sort_order, id`, [userId]);
-  const goals = await dbAll(env.DB,
-    `SELECT * FROM ethan_finance_goals WHERE user_id=? AND status != 'archived' ORDER BY sort_order, id DESC`, [userId]);
-  const txs = await dbAll(env.DB,
-    `SELECT * FROM ethan_finance_transactions WHERE user_id=? ORDER BY date DESC, id DESC`, [userId]);
+  const [accounts, categories, goals, outAgg, inAgg, monthAgg, recentRows] = await Promise.all([
+    dbAll(env.DB,
+      `SELECT * FROM ethan_finance_accounts WHERE user_id=? AND archived=0 ORDER BY sort_order, id`, [userId]),
+    dbAll(env.DB,
+      `SELECT * FROM ethan_finance_categories WHERE user_id=? ORDER BY type, sort_order, id`, [userId]),
+    dbAll(env.DB,
+      `SELECT * FROM ethan_finance_goals WHERE user_id=? AND status != 'archived' ORDER BY sort_order, id DESC`, [userId]),
+    // 出账聚合：income +s / expense、transfer -s（transfer 且 to_account_id 为空的纯虚拟目标进度行排除）
+    dbAll(env.DB,
+      `SELECT account_id, type, SUM(amount) AS s FROM ethan_finance_transactions
+       WHERE user_id=? AND account_id IS NOT NULL AND NOT (type='transfer' AND to_account_id IS NULL)
+       GROUP BY account_id, type`, [userId]),
+    // transfer 入账聚合
+    dbAll(env.DB,
+      `SELECT to_account_id, SUM(amount) AS s FROM ethan_finance_transactions
+       WHERE user_id=? AND type='transfer' AND to_account_id IS NOT NULL
+       GROUP BY to_account_id`, [userId]),
+    // 当月+上月收支分类聚合（transfer 不计）
+    dbAll(env.DB,
+      `SELECT substr(date,1,7) AS m, type, category_id, SUM(amount) AS s FROM ethan_finance_transactions
+       WHERE user_id=? AND type IN ('income','expense') AND substr(date,1,7) IN (?,?)
+       GROUP BY substr(date,1,7), type, category_id`, [userId, month, prevMonth]),
+    // 近期流水（最多 100 条）
+    dbAll(env.DB,
+      `SELECT * FROM ethan_finance_transactions WHERE user_id=? ORDER BY date DESC, id DESC LIMIT 100`, [userId]),
+  ]);
 
-  const dash = computeDashboard(accounts, categories, goals, txs, month);
+  const dash = computeDashboard(accounts, categories, goals, outAgg, inAgg, monthAgg, month, prevMonth);
 
-  // 近期流水（带分类/账户名，最多 100 条）
+  // 近期流水（带分类/账户名）
   const accMap = new Map(accounts.map(a => [a.id, a]));
   const catMap = new Map(categories.map(c => [c.id, c]));
-  const recent = txs.slice(0, 100).map(t => ({
+  const recent = recentRows.map(t => ({
     ...t,
     amount: centsToYuan(t.amount),
     account_name: accMap.get(t.account_id)?.name || '',

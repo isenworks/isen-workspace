@@ -111,7 +111,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   const plan = planLabel(goal.deadline);
   const isDone = goal.status === 'done' || (goal.target_amount > 0 && goal.current_amount >= goal.target_amount);
   return (
-    <div className="bg-[rgba(var(--m-finance-rgb),0.06)] rounded-xl p-3.5 flex flex-col gap-3">
+    <div className="bg-[rgba(var(--m-finance-rgb),0.06)] rounded-xl p-3 flex flex-col gap-2">
       {/* 标题行：目标名 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 pt-[2px]">
@@ -129,9 +129,9 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
 
       {/* 需求1：¥18,600 / ¥30,000 —— 同字号同色 */}
       <div className="flex items-baseline gap-1.5 flex-wrap">
-        <span className="text-[21px] font-bold text-ink-900 tabular-nums tracking-tight leading-none">{finFmt(goal.current_amount)}</span>
-        <span className="text-[21px] font-bold text-ink-300 leading-none">/</span>
-        <span className="text-[21px] font-bold text-ink-900 tabular-nums tracking-tight leading-none">{finFmt(goal.target_amount)}</span>
+        <span className="text-[18px] font-bold text-ink-900 tabular-nums tracking-tight leading-none">{finFmt(goal.current_amount)}</span>
+        <span className="text-[18px] font-bold text-ink-300 leading-none">/</span>
+        <span className="text-[18px] font-bold text-ink-900 tabular-nums tracking-tight leading-none">{finFmt(goal.target_amount)}</span>
       </div>
 
       {/* 进度条 + 百分比（模块橙） */}
@@ -224,7 +224,7 @@ export default function FinanceView({
             ))}
             {/* 新建目标占位卡 */}
             <button onClick={onGoalAdd}
-              className="rounded-xl border border-dashed border-ink-200 min-h-[148px] grid place-items-center text-ink-400 hover:text-ink-600 hover:border-ink-300 transition group">
+              className="rounded-xl border border-dashed border-ink-200 min-h-[128px] grid place-items-center text-ink-400 hover:text-ink-600 hover:border-ink-300 transition group">
               <span className="flex flex-col items-center gap-1.5">
                 <span className="w-8 h-8 rounded-full grid place-items-center bg-ink-50 group-hover:bg-ink-100 transition">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
@@ -262,13 +262,13 @@ export default function FinanceView({
             const nwDelta = (Number(ms.income) || 0) - (Number(ms.expense) || 0); // 当月净资产变化=收入-支出
             return (
               <div className="flex flex-col gap-3">
-                {/* 左右两栏：资产 / 负债 */}
-                <div className="grid grid-cols-2 gap-6">
+                {/* 左右两栏：资产 / 负债 —— pl-3 缩进与攒钱目标卡内目标名左端对齐 */}
+                <div className="grid grid-cols-2 gap-6 pl-3">
                   {/* 资产 */}
                   <div className="flex flex-col gap-2 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[12px] font-semibold text-ink-500">资产</span>
-                      <span className="text-[20px] font-bold tabular-nums text-ink-900 leading-none">{finFmt(assetTotal)}</span>
+                      <span className="text-[13px] font-semibold text-ink-500">资产</span>
+                      <span className="text-[16px] font-bold tabular-nums text-ink-900 leading-none">{finFmt(assetTotal)}</span>
                     </div>
                     <div className="flex flex-col">
                       {assetAccs.length === 0 ? (
@@ -280,9 +280,9 @@ export default function FinanceView({
                             className="flex items-center justify-between gap-2 py-1.5 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
                             <span className="flex items-center gap-2 min-w-0">
                               <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
-                              <span className="text-[13px] text-ink-700 truncate">{a.name}</span>
+                              <span className="text-[14px] text-ink-800 truncate">{a.name}</span>
                             </span>
-                            <span className="text-[13px] font-semibold tabular-nums text-ink-900 flex-shrink-0">{finFmt(a.balance)}</span>
+                            <span className="text-[14px] font-semibold tabular-nums text-ink-900 flex-shrink-0">{finFmt(a.balance)}</span>
                           </button>
                         );
                       })}
@@ -291,8 +291,8 @@ export default function FinanceView({
                   {/* 负债 */}
                   <div className="flex flex-col gap-2 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[12px] font-semibold text-ink-500">负债</span>
-                      <span className="text-[20px] font-bold tabular-nums leading-none text-ink-900">{finFmt(liabTotal)}</span>
+                      <span className="text-[13px] font-semibold text-ink-500">负债</span>
+                      <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">{finFmt(liabTotal)}</span>
                     </div>
                     <div className="flex flex-col">
                       {liabAccs.length === 0 ? (
@@ -304,9 +304,9 @@ export default function FinanceView({
                             className="flex items-center justify-between gap-2 py-1.5 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
                             <span className="flex items-center gap-2 min-w-0">
                               <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
-                              <span className="text-[13px] text-ink-700 truncate">{a.name}</span>
+                              <span className="text-[14px] text-ink-800 truncate">{a.name}</span>
                             </span>
-                            <span className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-ink-900">-{finFmt(Math.abs(Number(a.balance) || 0))}</span>
+                            <span className="text-[14px] font-semibold tabular-nums flex-shrink-0 text-ink-900">-{finFmt(Math.abs(Number(a.balance) || 0))}</span>
                           </button>
                         );
                       })}
@@ -316,7 +316,7 @@ export default function FinanceView({
                 {/* 分割线 */}
                 <div className="h-px bg-ink-100" />
                 {/* 底部：净资产通栏灰色卡 */}
-                <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-4 py-3 flex items-center justify-between gap-2">
+                <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3 py-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <span className="text-[13px] font-bold text-ink-900">净资产</span>
                     <span className="text-[12px] text-ink-400 tabular-nums">{finNum(assetTotal)} - {finNum(liabTotal)}</span>
@@ -326,7 +326,7 @@ export default function FinanceView({
                       </span>
                     )}
                   </div>
-                  <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: FIN }}>
+                  <span className="text-[18px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: FIN }}>
                     {finFmt(netWorth)}
                   </span>
                 </div>
@@ -372,12 +372,12 @@ export default function FinanceView({
           const balDelta = monthBalance - (prevIncome - prevExpense); // 较上月结余变化
           return (
             <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-6 pl-3">
                 {/* 收入 */}
                 <div className="flex flex-col gap-2 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[12px] font-semibold text-ink-500">收入</span>
-                    <span className="text-[20px] font-bold tabular-nums leading-none text-ink-900">+{finFmt(income)}</span>
+                    <span className="text-[13px] font-semibold text-ink-500">收入</span>
+                    <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">+{finFmt(income)}</span>
                   </div>
                   <div className="flex flex-col">
                     {ms.incomeByCat.length === 0 ? (
@@ -386,9 +386,9 @@ export default function FinanceView({
                       <div key={`inc-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1.5">
                         <span className="flex items-center gap-2 min-w-0">
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
-                          <span className="text-[13px] text-ink-700 truncate">{c.name}</span>
+                          <span className="text-[14px] text-ink-800 truncate">{c.name}</span>
                         </span>
-                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-ink-900">+{finFmt(c.amount)}</span>
+                        <span className="text-[14px] font-semibold tabular-nums flex-shrink-0 text-ink-900">+{finFmt(c.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -396,8 +396,8 @@ export default function FinanceView({
                 {/* 支出 */}
                 <div className="flex flex-col gap-2 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[12px] font-semibold text-ink-500">支出</span>
-                    <span className="text-[20px] font-bold tabular-nums leading-none text-ink-900">{finFmt(expense)}</span>
+                    <span className="text-[13px] font-semibold text-ink-500">支出</span>
+                    <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">{finFmt(expense)}</span>
                   </div>
                   <div className="flex flex-col">
                     {ms.expenseByCat.length === 0 ? (
@@ -406,9 +406,9 @@ export default function FinanceView({
                       <div key={`exp-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1.5">
                         <span className="flex items-center gap-2 min-w-0">
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
-                          <span className="text-[13px] text-ink-700 truncate">{c.name}</span>
+                          <span className="text-[14px] text-ink-800 truncate">{c.name}</span>
                         </span>
-                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-ink-900">{finFmt(c.amount)}</span>
+                        <span className="text-[14px] font-semibold tabular-nums flex-shrink-0 text-ink-900">{finFmt(c.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -417,7 +417,7 @@ export default function FinanceView({
               {/* 分割线 */}
               <div className="h-px bg-ink-100" />
               {/* 底部：月结余通栏灰色卡 */}
-              <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-4 py-3 flex items-center justify-between gap-2">
+              <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3 py-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <span className="text-[13px] font-bold text-ink-900">月结余</span>
                   <span className="text-[12px] text-ink-400 tabular-nums">{finNum(income)} - {finNum(expense)}</span>
@@ -427,7 +427,7 @@ export default function FinanceView({
                     </span>
                   )}
                 </div>
-                <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: FIN }}>
+                <span className="text-[18px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: FIN }}>
                   {monthBalance >= 0 ? '+' : ''}{finFmt(monthBalance)}
                 </span>
               </div>

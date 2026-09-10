@@ -281,10 +281,10 @@ export default function FinanceView({
             const nwDelta = (Number(ms.income) || 0) - (Number(ms.expense) || 0); // 当月净资产变化=收入-支出
             return (
               <div className="flex flex-col gap-3">
-                {/* 左右两栏：资产 / 负债 —— 缩进 17px 与标题文字（色条5px+间距12px）左端对齐 */}
-                <div className="grid grid-cols-2 gap-6 pl-[17px]">
+                {/* 左右两栏：资产 / 负债 —— 缩进 17px 与标题文字左端对齐，右 17px 与边缘留距，中缝灰色间隔线 */}
+                <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                   {/* 资产 */}
-                  <div className="flex flex-col gap-2 min-w-0">
+                  <div className="flex flex-col gap-2 min-w-0 pr-6">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-[13px] font-semibold text-ink-500">资产</span>
                       <span className="text-[16px] font-bold tabular-nums text-ink-900 leading-none">{finFmt(assetTotal)}</span>
@@ -307,8 +307,8 @@ export default function FinanceView({
                       })}
                     </div>
                   </div>
-                  {/* 负债 */}
-                  <div className="flex flex-col gap-2 min-w-0">
+                  {/* 负债（左缘灰色间隔线） */}
+                  <div className="flex flex-col gap-2 min-w-0 border-l border-ink-100 pl-6">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-[13px] font-semibold text-ink-500">负债</span>
                       <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">{finFmt(liabTotal)}</span>
@@ -334,8 +334,8 @@ export default function FinanceView({
                 </div>
                 {/* 分割线 */}
                 <div className="h-px bg-ink-100" />
-                {/* 底部：净资产通栏灰色卡 */}
-                <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3 py-3 flex items-center justify-between gap-2">
+                {/* 底部：净资产行（白底，左右与两栏内容对齐） */}
+                <div className="rounded-xl px-[17px] py-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <span className="text-[13px] font-bold text-ink-900">净资产</span>
                     <span className="text-[12px] text-ink-400 tabular-nums">{finNum(assetTotal)} - {finNum(liabTotal)}</span>
@@ -391,10 +391,10 @@ export default function FinanceView({
           const balDelta = monthBalance - (prevIncome - prevExpense); // 较上月结余变化
           return (
             <div className="flex flex-col gap-3">
-              {/* 左右两栏：收入 / 支出 —— 缩进 17px 与标题文字（色条5px+间距12px）左端对齐 */}
-              <div className="grid grid-cols-2 gap-6 pl-[17px]">
+              {/* 左右两栏：收入 / 支出 —— 缩进 17px 与标题文字左端对齐，右 17px 与边缘留距，中缝灰色间隔线 */}
+              <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                 {/* 收入 */}
-                <div className="flex flex-col gap-2 min-w-0">
+                <div className="flex flex-col gap-2 min-w-0 pr-6">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-[13px] font-semibold text-ink-500">收入</span>
                     <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">+{finFmt(income)}</span>
@@ -413,8 +413,8 @@ export default function FinanceView({
                     ))}
                   </div>
                 </div>
-                {/* 支出 */}
-                <div className="flex flex-col gap-2 min-w-0">
+                {/* 支出（左缘灰色间隔线） */}
+                <div className="flex flex-col gap-2 min-w-0 border-l border-ink-100 pl-6">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-[13px] font-semibold text-ink-500">支出</span>
                     <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">{finFmt(expense)}</span>
@@ -436,8 +436,8 @@ export default function FinanceView({
               </div>
               {/* 分割线 */}
               <div className="h-px bg-ink-100" />
-              {/* 底部：月结余通栏灰色卡 */}
-              <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3 py-3 flex items-center justify-between gap-2">
+              {/* 底部：月结余行（白底，左右与两栏内容对齐） */}
+              <div className="rounded-xl px-[17px] py-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <span className="text-[13px] font-bold text-ink-900">月结余</span>
                   <span className="text-[12px] text-ink-400 tabular-nums">{finNum(income)} - {finNum(expense)}</span>

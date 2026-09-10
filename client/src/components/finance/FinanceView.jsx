@@ -478,7 +478,7 @@ export default function FinanceView({
             <span className="text-[11px]">点上方「记一笔」开始记录</span>
           </div>
         ) : (
-          <div className="flex flex-col divide-y divide-ink-100/70 -mx-1">
+          <div className="flex flex-col divide-y divide-ink-100/70 -mx-1 pr-[17px]">
             {filteredTxs.map(t => {
               const isIn = t.type === 'income';
               const isOut = t.type === 'expense';

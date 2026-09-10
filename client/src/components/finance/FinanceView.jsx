@@ -7,7 +7,9 @@ import React, { useState } from 'react';
    - 收入绿 #34C759 / 支出红 #FF3B30 语义色保持不变
    - 标题行：5×18 色条 + 16px 加粗标题，卡片内边距 p-4=16px，
      色条与标题间距 gap-3=12px（与精力/能力/工作/生活各页页头一致）
-   - 攒钱目标卡：无图标，名称与金额间灰色分割线，两个金额同字号同色
+   - 攒钱目标卡 v4：白底+浅红描边，居中水位球（饱和红水+白高光液面+球心红/白百分比），
+     球下「¥完成值 / ¥目标值」斜杠金额行 + 还差行，过期目标日期行红色「已过期」，
+     网格 auto-fill minmax(240px,1fr) 窄卡自适应
    - 达成日期文案：「计划2026-9-30达成」（年-月-日 不补零）
    ============================================================ */
 
@@ -39,15 +41,7 @@ function planLabel(deadline) {
   return `计划${Number(m[1])}-${Number(m[2])}-${Number(m[3])}达成`;
 }
 
-/* 细进度条（模块橙） */
-function FinProgress({ value }) {
-  return (
-    <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden flex-1">
-      <div className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${Math.max(2, Math.min(100, value))}%`, background: FIN }} />
-    </div>
-  );
-}
+
 
 /* ===== 通用标题行：色条 + 标题 + 计数 + 右侧动作 ===== */
 function FinHeader({ title, countLabel, right }) {
@@ -106,43 +100,71 @@ function GoalMenu({ goal, onDetail, onEdit, onRemove }) {
   );
 }
 
-/* ===== 需求1/2/3：攒钱目标卡（无图标 · 分割线 · 同字号金额 · 计划x-x-x达成） ===== */
+/* ===== 需求1/2/3：攒钱目标卡 v4（水位球 · 斜杠金额 · 还差行 · 计划x-x-x达成） ===== */
 function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   const plan = planLabel(goal.deadline);
-  const isDone = goal.status === 'done' || (goal.target_amount > 0 && goal.current_amount >= goal.target_amount);
+  const target = Number(goal.target_amount) || 0;
+  const current = Number(goal.current_amount) || 0;
+  const isDone = goal.status === 'done' || (target > 0 && current >= target);
+  /* 进度前端实时计算（不依赖后端字段），超额封顶 100% */
+  const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  const remain = Math.max(0, target - current);
+  /* 未达成且截止日早于今天 → 已过期 */
+  const overdue = !isDone && (() => {
+    const m = String(goal.deadline || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!m) return false;
+    const dl = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return dl < today;
+  })();
+  /* 水位涨过球心（≥50%）后，球心百分比切白字 */
+  const onWater = pct >= 50;
   return (
-    <div className="bg-[rgba(var(--m-finance-rgb),0.06)] rounded-xl p-3 flex flex-col gap-2">
-      {/* 标题行：目标名 + ⋮（需求2：右上角纵向三点） */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 pt-[2px]">
-          <span className="text-[15px] font-bold text-ink-900 leading-snug">{goal.name}</span>
+    <div className="bg-white rounded-xl border p-3 flex flex-col gap-2"
+      style={{ borderColor: 'rgba(var(--m-finance-rgb),0.25)' }}>
+      {/* 标题行：目标名 + 已达成徽标 + ⋮（需求2：右上角纵向三点） */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center min-w-0 gap-1.5">
+          <span className="text-[15px] font-bold text-ink-900 leading-snug truncate">{goal.name}</span>
           {isDone && (
-            <span className="inline-flex items-center gap-1 ml-2 align-middle px-1.5 h-[17px] rounded-full text-[10px] font-bold"
+            <span className="inline-flex items-center align-middle px-1.5 h-[17px] rounded-full text-[10px] font-bold flex-shrink-0"
               style={{ background: 'rgba(52,199,89,0.10)', color: GREEN }}>已达成</span>
           )}
         </div>
         <GoalMenu goal={goal} onDetail={() => onDetail(goal)} onEdit={() => onEdit(goal)} onRemove={() => onRemove(goal)} />
       </div>
 
-      {/* 需求1：名称与金额之间的灰色分割线 */}
-      <div className="h-px bg-ink-200/70" />
-
-      {/* 需求1：¥18,600 / ¥30,000 —— 同字号同色 */}
-      <div className="flex items-baseline gap-1.5 flex-wrap">
-        <span className="text-[18px] font-bold text-ink-900 tabular-nums tracking-tight leading-none">{finFmt(goal.current_amount)}</span>
-        <span className="text-[18px] font-bold text-ink-300 leading-none">/</span>
-        <span className="text-[18px] font-bold text-ink-900 tabular-nums tracking-tight leading-none">{finFmt(goal.target_amount)}</span>
+      {/* 居中区：水位球 + 斜杠金额行 + 还差行 */}
+      <div className="flex flex-col items-center gap-1.5 py-1">
+        {/* 水位球：饱和红描边 + 饱和水 + 白高光液面，球心红/白动态百分比 */}
+        <div className="relative w-[60px] h-[60px] rounded-full border-2 overflow-hidden flex-shrink-0"
+          style={{ borderColor: FIN, background: '#fff' }} role="img" aria-label={`进度 ${pct}%`}>
+          <div className="absolute left-0 right-0 bottom-0 transition-[height] duration-500 ease-out"
+            style={{ height: `${pct}%`, background: FIN }} />
+          <div className="absolute left-0 right-0 h-[2px] transition-[bottom] duration-500 ease-out"
+            style={{ bottom: `${pct}%`, background: 'rgba(255,255,255,0.65)' }} />
+          <span className="absolute inset-0 grid place-items-center text-[13px] font-bold tabular-nums"
+            style={{ color: onWater ? '#fff' : FIN }}>{pct}%</span>
+        </div>
+        {/* ¥43,500 / ¥150,000 —— 完成值粗体、目标值弱化，整组居中 */}
+        <div className="flex items-baseline justify-center gap-1.5 flex-wrap leading-none">
+          <span className="text-[15px] font-bold text-ink-900 tabular-nums">{finFmt(current)}</span>
+          <span className="text-[11px] font-semibold text-ink-300">/</span>
+          <span className="text-[12px] font-semibold text-ink-400 tabular-nums">{finFmt(target)}</span>
+        </div>
+        {/* 还差行（达成后变绿色 ✓ 已达成） */}
+        {isDone ? (
+          <span className="text-[10.5px] font-bold" style={{ color: GREEN }}>✓ 已达成</span>
+        ) : (
+          <span className="text-[10.5px] text-ink-400 tabular-nums">还差 {finFmt(remain)}</span>
+        )}
       </div>
 
-      {/* 进度条 + 百分比（模块橙） */}
-      <div className="flex items-center gap-2.5">
-        <FinProgress value={goal.progress || 0} />
-        <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: FIN }}>{goal.progress || 0}%</span>
-      </div>
-
-      {/* 需求3：计划2026-9-30达成 + 存入 */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11.5px] text-ink-400 truncate">{plan || '未设定达成日期'}</span>
+      {/* 需求3：计划2026-9-30达成（过期红色提示）+ 存入 */}
+      <div className="flex items-center justify-between gap-2 mt-auto">
+        <span className="text-[11px] truncate" style={overdue ? { color: FIN, fontWeight: 700 } : undefined}>
+          <span className={overdue ? '' : 'text-ink-400'}>{overdue ? '已过期' : (plan || '未设定达成日期')}</span>
+        </span>
         <button onClick={() => onDeposit(goal)} disabled={isDone}
           className="inline-flex items-center h-[24px] px-2.5 rounded-lg text-[11.5px] font-bold transition flex-shrink-0 hover:brightness-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: 'rgba(var(--m-finance-rgb),0.12)', color: FIN }}>
@@ -217,14 +239,15 @@ export default function FinanceView({
             <span className="text-[12.5px] font-semibold">还没有攒钱目标，点这里创建</span>
           </button>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+            {/* 窄卡自适应：240px 起步，一行自动排满 */}
             {goals.map(g => (
               <GoalCard key={g.id} goal={g}
                 onDetail={onGoalDetail} onEdit={onGoalEdit} onRemove={onGoalRemove} onDeposit={onDeposit} />
             ))}
             {/* 新建目标占位卡 */}
             <button onClick={onGoalAdd}
-              className="rounded-xl border border-dashed border-ink-200 min-h-[128px] grid place-items-center text-ink-400 hover:text-ink-600 hover:border-ink-300 transition group">
+              className="rounded-xl border border-dashed border-ink-200 min-h-[184px] grid place-items-center text-ink-400 hover:text-ink-600 hover:border-ink-300 transition group">
               <span className="flex flex-col items-center gap-1.5">
                 <span className="w-8 h-8 rounded-full grid place-items-center bg-ink-50 group-hover:bg-ink-100 transition">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>

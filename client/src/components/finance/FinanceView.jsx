@@ -281,8 +281,8 @@ export default function FinanceView({
             const nwDelta = (Number(ms.income) || 0) - (Number(ms.expense) || 0); // 当月净资产变化=收入-支出
             return (
               <div className="flex flex-col gap-3">
-                {/* 左右两栏：资产 / 负债 —— pl-3 缩进与攒钱目标卡内目标名左端对齐 */}
-                <div className="grid grid-cols-2 gap-6 pl-3">
+                {/* 左右两栏：资产 / 负债 —— 缩进 17px 与标题文字（色条5px+间距12px）左端对齐 */}
+                <div className="grid grid-cols-2 gap-6 pl-[17px]">
                   {/* 资产 */}
                   <div className="flex flex-col gap-2 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
@@ -391,7 +391,8 @@ export default function FinanceView({
           const balDelta = monthBalance - (prevIncome - prevExpense); // 较上月结余变化
           return (
             <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-6 pl-3">
+              {/* 左右两栏：收入 / 支出 —— 缩进 17px 与标题文字（色条5px+间距12px）左端对齐 */}
+              <div className="grid grid-cols-2 gap-6 pl-[17px]">
                 {/* 收入 */}
                 <div className="flex flex-col gap-2 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">

@@ -255,7 +255,9 @@ export default function FinanceView({
         )}
       </section>
 
-      {/* ================= 行二 · 资产负债（左右两栏 + 底部净资产通栏卡） ================= */}
+      {/* ================= 行二三 · 资产负债 + 本月收支（≥lg 左右并排，<lg 上下堆叠） ================= */}
+      <div className="grid gap-3 lg:grid-cols-2 items-start">
+      {/* 资产负债（左右两栏 + 底部净资产通栏卡） */}
       <section className={`bg-white rounded-2xl border border-ink-100 p-4 ${transition} ${dim}`}>
         <FinHeader title="资产负债" countLabel={`${accounts.length} 个账户`}
           right={
@@ -367,7 +369,7 @@ export default function FinanceView({
         )}
       </section>
 
-      {/* ================= 行三 · 本月收支（需求6：管理按钮） ================= */}
+      {/* 本月收支（需求6：管理按钮） */}
       <section className={`bg-white rounded-2xl border border-ink-100 p-4 ${transition} ${dim}`}>
         <FinHeader title="本月收支"
           right={
@@ -479,6 +481,7 @@ export default function FinanceView({
           );
         })()}
       </section>
+      </div>
 
       {/* ================= 行四 · 交易流水 ================= */}
       <section className={`bg-white rounded-2xl border border-ink-100 p-4 ${transition} ${dim}`}>

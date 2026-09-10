@@ -284,12 +284,12 @@ export default function FinanceView({
                 {/* 左右两栏：资产 / 负债 —— 缩进 17px 与标题文字左端对齐，右 17px 与边缘留距，中缝灰色间隔线 */}
                 <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                   {/* 资产 */}
-                  <div className="flex flex-col gap-2 min-w-0 pr-6">
+                  <div className="flex flex-col gap-2.5 min-w-0 pr-6">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
-                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                      <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
+                        <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
                           style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
-                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" /><circle cx="12" cy="12" r="3.2" /></svg>
+                          <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" /><circle cx="12" cy="12" r="3.2" /></svg>
                         </span>
                         资产
                       </span>
@@ -297,12 +297,12 @@ export default function FinanceView({
                     </div>
                     <div className="flex flex-col">
                       {assetAccs.length === 0 ? (
-                        <span className="text-[12px] text-ink-300 py-1.5">暂无资产账户</span>
+                        <span className="text-[12px] text-ink-300 py-1">暂无资产账户</span>
                       ) : assetAccs.map(a => {
                         const meta = accTypeMeta(a.type);
                         return (
                           <button key={a.id} onClick={() => onAccountEdit(a)} title="编辑账户"
-                            className="flex items-center justify-between gap-2 py-1.5 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
+                            className="flex items-center justify-between gap-2 py-1 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
                             <span className="flex items-center gap-2 min-w-0">
                               <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
                               <span className="text-[14px] text-ink-800 truncate">{a.name}</span>
@@ -314,12 +314,12 @@ export default function FinanceView({
                     </div>
                   </div>
                   {/* 负债（左缘灰色间隔线） */}
-                  <div className="flex flex-col gap-2 min-w-0 border-l border-ink-100 pl-6">
+                  <div className="flex flex-col gap-2.5 min-w-0 border-l border-ink-100 pl-6">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
-                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                      <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
+                        <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
                           style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
-                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 10h19" /></svg>
+                          <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 10h19" /></svg>
                         </span>
                         负债
                       </span>
@@ -327,12 +327,12 @@ export default function FinanceView({
                     </div>
                     <div className="flex flex-col">
                       {liabAccs.length === 0 ? (
-                        <span className="text-[12px] text-ink-300 py-1.5">暂无负债</span>
+                        <span className="text-[12px] text-ink-300 py-1">暂无负债</span>
                       ) : liabAccs.map(a => {
                         const meta = accTypeMeta(a.type);
                         return (
                           <button key={a.id} onClick={() => onAccountEdit(a)} title="编辑账户"
-                            className="flex items-center justify-between gap-2 py-1.5 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
+                            className="flex items-center justify-between gap-2 py-1 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
                             <span className="flex items-center gap-2 min-w-0">
                               <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
                               <span className="text-[14px] text-ink-800 truncate">{a.name}</span>
@@ -406,12 +406,12 @@ export default function FinanceView({
               {/* 左右两栏：收入 / 支出 —— 缩进 17px 与标题文字左端对齐，右 17px 与边缘留距，中缝灰色间隔线 */}
               <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                 {/* 收入 */}
-                <div className="flex flex-col gap-2 min-w-0 pr-6">
+                <div className="flex flex-col gap-2.5 min-w-0 pr-6">
                   <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
-                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                      <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
+                        <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
                           style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
-                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 5v13" /><path d="M6.5 12.5L12 18l5.5-5.5" /></svg>
+                          <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 5v13" /><path d="M6.5 12.5L12 18l5.5-5.5" /></svg>
                         </span>
                         收入
                       </span>
@@ -419,9 +419,9 @@ export default function FinanceView({
                     </div>
                   <div className="flex flex-col">
                     {ms.incomeByCat.length === 0 ? (
-                      <span className="text-[12px] text-ink-300 py-1.5">本月暂无收入</span>
+                      <span className="text-[12px] text-ink-300 py-1">本月暂无收入</span>
                     ) : ms.incomeByCat.map(c => (
-                      <div key={`inc-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1.5">
+                      <div key={`inc-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1">
                         <span className="flex items-center gap-2 min-w-0">
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
                           <span className="text-[14px] text-ink-800 truncate">{c.name}</span>
@@ -432,12 +432,12 @@ export default function FinanceView({
                   </div>
                 </div>
                 {/* 支出（左缘灰色间隔线） */}
-                <div className="flex flex-col gap-2 min-w-0 border-l border-ink-100 pl-6">
+                <div className="flex flex-col gap-2.5 min-w-0 border-l border-ink-100 pl-6">
                   <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
-                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                      <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
+                        <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
                           style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
-                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 19V6" /><path d="M6.5 11.5L12 6l5.5 5.5" /></svg>
+                          <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 19V6" /><path d="M6.5 11.5L12 6l5.5 5.5" /></svg>
                         </span>
                         支出
                       </span>
@@ -445,9 +445,9 @@ export default function FinanceView({
                     </div>
                   <div className="flex flex-col">
                     {ms.expenseByCat.length === 0 ? (
-                      <span className="text-[12px] text-ink-300 py-1.5">本月暂无支出</span>
+                      <span className="text-[12px] text-ink-300 py-1">本月暂无支出</span>
                     ) : ms.expenseByCat.map(c => (
-                      <div key={`exp-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1.5">
+                      <div key={`exp-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1">
                         <span className="flex items-center gap-2 min-w-0">
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
                           <span className="text-[14px] text-ink-800 truncate">{c.name}</span>

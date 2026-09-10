@@ -21,3 +21,23 @@ export function hexToRgba(hex, a = 0.08) {
 
 /* 分类 chip 描边色（dot 色同源 55% 透明） */
 export const tintBorder = (dot) => hexToRgba(dot, 0.55);
+
+/* ===== 模块色统一生成（六大模块 key：energy/cognition/ability/work/life/finance） =====
+ * 全项目模块色相关 rgba(var(--m-xxx-rgb),α) 应由此生成，勿在手写——拼写错误防护 + 单一数据源
+ *  - moduleColor('work')            → 'var(--m-work)'
+ *  - moduleRgba('work', 0.08)      → 'rgba(var(--m-work-rgb),0.08)'
+ *  - moduleTone('work')             → { color/bg/borderColor/doneColor/lineColor/timeColor } 样式组
+ */
+export const moduleColor = (moduleKey) => `var(--m-${moduleKey})`;
+export const moduleRgba = (moduleKey, a = 0.08) => `rgba(var(--m-${moduleKey}-rgb),${a})`;
+export function moduleTone(moduleKey, a = 0.08) {
+  const color = moduleColor(moduleKey);
+  return {
+    color,
+    bg: moduleRgba(moduleKey, a),
+    borderColor: color,
+    doneColor: color,
+    lineColor: color,
+    timeColor: color,
+  };
+}

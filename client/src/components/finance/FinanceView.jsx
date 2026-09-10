@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { moduleRgba } from '../../utils/color.js';
 
 /* ============================================================
    FinanceView · 财务模块四行驾驶舱（攒钱目标 / 资产负债 / 本月收支 / 交易流水）
@@ -64,7 +65,7 @@ function PlusBtn({ title, onClick }) {
   return (
     <button onClick={onClick} title={title}
       className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0 hover:brightness-105 active:scale-95"
-      style={{ color: FIN, background: 'rgba(var(--m-finance-rgb),0.10)' }}>
+      style={{ color: FIN, background: moduleRgba('finance', 0.10) }}>
       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
     </button>
   );
@@ -120,7 +121,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   const onWater = pct >= 50;
   return (
     <div className="bg-white rounded-xl p-2 px-3 flex flex-col gap-1"
-      style={{ boxShadow: '0 2px 10px rgba(var(--m-finance-rgb),0.12)' }}>
+      style={{ boxShadow: `0 2px 10px ${moduleRgba('finance', 0.12)}` }}>
       {/* 标题行：目标名 + 已达成徽标 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center min-w-0 gap-1.5">
@@ -137,7 +138,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
       <div className="flex flex-col items-center gap-1.5 py-0">
         {/* 水位球：浅红细线框 + 淡红轨道底 + 饱和水，球心红/白动态百分比 */}
         <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border-2"
-          style={{ background: 'rgba(var(--m-finance-rgb),0.06)', borderColor: 'rgba(var(--m-finance-rgb),0.35)' }} role="img" aria-label={`进度 ${pct}%`}>
+          style={{ background: moduleRgba('finance', 0.06), borderColor: moduleRgba('finance', 0.35) }} role="img" aria-label={`进度 ${pct}%`}>
           <div className="absolute left-0 right-0 bottom-0 transition-[height] duration-500 ease-out"
             style={{ height: `${pct}%`, background: FIN }} />
           <span className="absolute inset-0 grid place-items-center text-[13px] font-bold tabular-nums"
@@ -263,7 +264,7 @@ export default function FinanceView({
           right={
             <button onClick={onAccountAdd}
               className="inline-flex items-center h-[26px] px-3 rounded-lg text-[11.5px] font-semibold transition hover:brightness-105 active:scale-95"
-              style={{ background: 'rgba(var(--m-finance-rgb),0.10)', color: FIN }}>
+              style={{ background: moduleRgba('finance', 0.10), color: FIN }}>
               管理账户
             </button>
           } />
@@ -290,7 +291,7 @@ export default function FinanceView({
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
                         <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
-                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          style={{ background: moduleRgba('finance', 0.09), color: FIN }}>
                           <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" /><circle cx="12" cy="12" r="3.2" /></svg>
                         </span>
                         资产
@@ -320,7 +321,7 @@ export default function FinanceView({
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
                         <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
-                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          style={{ background: moduleRgba('finance', 0.09), color: FIN }}>
                           <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 10h19" /></svg>
                         </span>
                         负债
@@ -378,7 +379,7 @@ export default function FinanceView({
               {/* 需求6：管理按钮 —— 增删收支分类（如新增副业收入项） */}
               <button onClick={onManage}
                 className="inline-flex items-center gap-1 h-[26px] px-2.5 rounded-lg text-[11.5px] font-semibold transition hover:brightness-105 active:scale-95"
-                style={{ background: 'rgba(var(--m-finance-rgb),0.10)', color: FIN }}
+                style={{ background: moduleRgba('finance', 0.10), color: FIN }}
                 title="管理收支分类（如新增副业收入）">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="3" />
@@ -389,7 +390,7 @@ export default function FinanceView({
               {/* 记一笔主操作 */}
               <button onClick={onTxAdd}
                 className="inline-flex items-center gap-1 h-[26px] px-3 rounded-lg text-[11.5px] font-bold text-white transition hover:brightness-105 active:scale-95 flex-shrink-0"
-                style={{ background: FIN, boxShadow: '0 2px 8px rgba(var(--m-finance-rgb),0.30)' }}>
+                style={{ background: FIN, boxShadow: `0 2px 8px ${moduleRgba('finance', 0.30)}` }}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
                 记一笔
               </button>
@@ -412,7 +413,7 @@ export default function FinanceView({
                   <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
                         <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
-                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          style={{ background: moduleRgba('finance', 0.09), color: FIN }}>
                           <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 5v13" /><path d="M6.5 12.5L12 18l5.5-5.5" /></svg>
                         </span>
                         收入
@@ -438,7 +439,7 @@ export default function FinanceView({
                   <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-700">
                         <span className="w-[22px] h-[22px] rounded-[6.5px] grid place-items-center flex-shrink-0"
-                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          style={{ background: moduleRgba('finance', 0.09), color: FIN }}>
                           <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 19V6" /><path d="M6.5 11.5L12 6l5.5 5.5" /></svg>
                         </span>
                         支出
@@ -525,7 +526,7 @@ export default function FinanceView({
                       </span>
                       {t.goal_id != null && (
                         <span className="text-[10px] px-1.5 h-[16px] inline-flex items-center rounded-full font-semibold flex-shrink-0"
-                          style={{ background: 'rgba(var(--m-finance-rgb),0.12)', color: FIN }}>🎯</span>
+                          style={{ background: moduleRgba('finance', 0.12), color: FIN }}>🎯</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-[2px] text-[11px] text-ink-400 min-w-0">

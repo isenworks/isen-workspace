@@ -1,24 +1,27 @@
-// 成长类型配置：精力(绿) / 知力(蓝) / 能力(金) — 跟随五大模块 CSS 变量
+import { moduleColor, moduleTone } from './color.js';
+
+// 成长类型配置：精力(绿) / 知力(蓝) / 能力(金) — 跟随五大模块 CSS 变量（moduleTone 统一生成）
 export const GROWTH_TYPES = {
-  energy: { label: '精力型', color: 'var(--m-energy)', bg: 'rgba(var(--m-energy-rgb),0.08)', borderColor: 'var(--m-energy)', doneColor: 'var(--m-energy)', lineColor: 'var(--m-energy)' },
-  mind:   { label: '知力型', color: 'var(--m-cognition)', bg: 'rgba(var(--m-cognition-rgb),0.08)', borderColor: 'var(--m-cognition)', doneColor: 'var(--m-cognition)', lineColor: 'var(--m-cognition)' },
-  skill:  { label: '能力型', color: 'var(--m-ability)', bg: 'rgba(var(--m-ability-rgb),0.08)', borderColor: 'var(--m-ability)', doneColor: 'var(--m-ability)', lineColor: 'var(--m-ability)' },
+  energy: { label: '精力型', ...moduleTone('energy') },
+  mind:   { label: '知力型', ...moduleTone('cognition') },
+  skill:  { label: '能力型', ...moduleTone('ability') },
 };
 
 // 仅用于习惯分类色选择器（圆圈色块） — 跟随五大模块 CSS 变量
 export const GROWTH_TYPE_COLORS = {
-  energy: 'var(--m-energy)',
-  mind:   'var(--m-cognition)',
-  skill:  'var(--m-ability)',
+  energy: moduleColor('energy'),
+  mind:   moduleColor('cognition'),
+  skill:  moduleColor('ability'),
 };
 
 // 事项分类颜色：紧急度 / 常规 / 习惯日程 — cat 1=工作 2=能力 4=习惯(精力) 5=生活 跟随模块色
+// （cat 3=其他 为固定中性灰，不走模块变量）
 export const CATEGORY_COLORS = {
-  1: { color: 'var(--m-work)', bg: 'rgba(var(--m-work-rgb),0.08)', borderColor: 'var(--m-work)', doneColor: 'var(--m-work)', lineColor: 'var(--m-work)', timeColor: 'var(--m-work)' },
-  2: { color: 'var(--m-ability)', bg: 'rgba(var(--m-ability-rgb),0.08)', borderColor: 'var(--m-ability)', doneColor: 'var(--m-ability)', lineColor: 'var(--m-ability)', timeColor: 'var(--m-ability)' },
+  1: { ...moduleTone('work') },
+  2: { ...moduleTone('ability') },
   3: { color: '#8e8e93', bg: '#e5e5ea', borderColor: '#8e8e93', doneColor: '#8e8e93', lineColor: '#8e8e93', timeColor: '#8e8e93' },
-  4: { color: 'var(--m-energy)', bg: 'rgba(var(--m-energy-rgb),0.08)', borderColor: 'var(--m-energy)', doneColor: 'var(--m-energy)', lineColor: 'var(--m-energy)', timeColor: 'var(--m-energy)' },
-  5: { color: 'var(--m-life)', bg: 'rgba(var(--m-life-rgb),0.08)', borderColor: 'var(--m-life)', doneColor: 'var(--m-life)', lineColor: 'var(--m-life)', timeColor: 'var(--m-life)' },
+  4: { ...moduleTone('energy') },
+  5: { ...moduleTone('life') },
 };
 
 // 通用标签、输入框样式（供所有表单组件复用）

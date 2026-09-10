@@ -3,6 +3,7 @@ import { API } from '../../api/client.js';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
 import { finFmt } from './FinanceView.jsx';
+import { moduleRgba } from '../../utils/color.js';
 
 /* ============================================================
    财务模块弹窗表单组：记一笔 / 攒钱目标 / 存入 / 管理收支分类 / 账户 / 目标详情
@@ -149,7 +150,7 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
                     display: 'inline-flex', alignItems: 'center', gap: '5px',
                     padding: '5px 10px', borderRadius: '10px',
                     border: `1px solid ${active ? FIN : 'rgba(15,23,42,0.10)'}`,
-                    background: active ? 'rgba(var(--m-finance-rgb),0.08)' : 'rgba(15,23,42,0.03)',
+                    background: active ? moduleRgba('finance', 0.08) : 'rgba(15,23,42,0.03)',
                     color: active ? FIN : '#1c1c1e',
                     fontWeight: 600, fontSize: '12px', lineHeight: 1.2, cursor: 'pointer', transition: 'all .15s',
                   }}>
@@ -381,7 +382,7 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
                       padding: '4px 9px', borderRadius: '9px',
                       border: `1px solid ${active ? FIN : 'rgba(15,23,42,0.10)'}`,
-                      background: active ? 'rgba(var(--m-finance-rgb),0.08)' : '#fff',
+                      background: active ? moduleRgba('finance', 0.08) : '#fff',
                       color: active ? FIN : '#3a3a3c',
                       fontWeight: 600, fontSize: '11.5px', cursor: 'pointer', transition: 'all .15s',
                     }}>
@@ -434,7 +435,7 @@ export function FinanceDepositForm({ goal, accounts, onSaved, onCancel }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* 目标概要 */}
-      <div style={{ background: 'rgba(var(--m-finance-rgb),0.07)', borderRadius: '12px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ background: moduleRgba('finance', 0.07), borderRadius: '12px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: '#1c1c1e' }}>{goal?.name}</span>
           <span style={{ fontSize: '12px', color: '#8e8e93', tabular: 'true' }}>还差 {finFmt(remain)}</span>
@@ -636,7 +637,7 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
                   display: 'inline-flex', alignItems: 'center', gap: '5px',
                   padding: '5px 10px', borderRadius: '10px',
                   border: `1px solid ${active ? FIN : 'rgba(15,23,42,0.10)'}`,
-                  background: active ? 'rgba(var(--m-finance-rgb),0.08)' : 'rgba(15,23,42,0.03)',
+                  background: active ? moduleRgba('finance', 0.08) : 'rgba(15,23,42,0.03)',
                   color: active ? FIN : '#1c1c1e',
                   fontWeight: 600, fontSize: '12px', cursor: 'pointer', transition: 'all .15s',
                 }}>
@@ -688,7 +689,7 @@ export function FinanceGoalDetail({ goal, onEdit, onClose }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* 头部：名称 + 进度条 */}
-      <div style={{ background: 'rgba(var(--m-finance-rgb),0.07)', borderRadius: '12px', padding: '14px' }}>
+      <div style={{ background: moduleRgba('finance', 0.07), borderRadius: '12px', padding: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
           <span style={{ fontSize: '15px', fontWeight: 700, color: '#1c1c1e' }}>{goal?.name}</span>
           <span style={{ fontSize: '12px', fontWeight: 700, color: FIN, tabular: 'true' }}>{goal?.progress || 0}%</span>

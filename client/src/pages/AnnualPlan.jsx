@@ -15,6 +15,7 @@ import DualMarkerBar from '../components/DualMarkerBar.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import FinanceView from '../components/finance/FinanceView.jsx';
 import { FinanceTxForm, FinanceGoalForm, FinanceDepositForm, FinanceManageForm, FinanceAccountForm, FinanceGoalDetail } from '../components/finance/FinanceForms.jsx';
+import { moduleColor, moduleRgba } from '../utils/color.js';
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
@@ -3748,33 +3749,33 @@ function CognitionView({
     }
   };
 
-  const BLUE = 'var(--m-cognition)'; // 知力页卡片跟随知力模块色
+  const BLUE = moduleColor('cognition'); // 知力页卡片跟随知力模块色
   const BLUE_DARK = '#0062cc';  // 深蓝
-  const BLUE_BG = 'rgba(var(--m-cognition-rgb),0.12)';
+  const BLUE_BG = moduleRgba('cognition', 0.12);
   const S_RGB = 'var(--m-cognition-rgb)'; // 知力模块 RGB（用于 rgba(${S_RGB}, α) 透明合成）
   // 分类色标：4 大类固定颜色（身份识别）
   const CAT_COLORS = {
-    '认知成长': 'var(--m-cognition)',
-    '人际沟通': 'var(--m-life)',
-    '商业职场': 'var(--m-ability)',
-    '人文叙事': 'var(--m-energy)',
+    '认知成长': moduleColor('cognition'),
+    '人际沟通': moduleColor('life'),
+    '商业职场': moduleColor('ability'),
+    '人文叙事': moduleColor('energy'),
   };
   const catColorOf = (c) => CAT_COLORS[c] || BLUE;
   // 分类 Pill 文字色：主题色降不透明度（完整主题色在浅底 pill 上偏深、抢视觉）
   const CAT_TEXT_COLORS = {
-    '认知成长': 'rgba(var(--m-cognition-rgb),0.72)',
-    '人际沟通': 'rgba(var(--m-life-rgb),0.72)',
-    '商业职场': 'rgba(var(--m-ability-rgb),0.72)',
-    '人文叙事': 'rgba(var(--m-energy-rgb),0.72)',
+    '认知成长': moduleRgba('cognition', 0.72),
+    '人际沟通': moduleRgba('life', 0.72),
+    '商业职场': moduleRgba('ability', 0.72),
+    '人文叙事': moduleRgba('energy', 0.72),
   };
   // 分类 Pill 底色：同主题色 8% 极浅底（远浅于文字色，只留一丝色相提示）
   const CAT_PILL_BG = {
-    '认知成长': 'rgba(var(--m-cognition-rgb),0.08)',
-    '人际沟通': 'rgba(var(--m-life-rgb),0.08)',
-    '商业职场': 'rgba(var(--m-ability-rgb),0.08)',
-    '人文叙事': 'rgba(var(--m-energy-rgb),0.08)',
+    '认知成长': moduleRgba('cognition', 0.08),
+    '人际沟通': moduleRgba('life', 0.08),
+    '商业职场': moduleRgba('ability', 0.08),
+    '人文叙事': moduleRgba('energy', 0.08),
   };
-  const catTextColorOf = (c) => CAT_TEXT_COLORS[c] || 'rgba(var(--m-cognition-rgb),0.72)';
+  const catTextColorOf = (c) => CAT_TEXT_COLORS[c] || moduleRgba('cognition', 0.72);
   const year = new Date().getFullYear();
 
   const groups = useMemo(() => {

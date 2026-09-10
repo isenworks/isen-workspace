@@ -142,9 +142,9 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
           style={{ boxShadow: '0 2px 10px rgba(var(--m-finance-rgb),0.12)', background: 'rgba(var(--m-finance-rgb),0.06)' }} role="img" aria-label={`进度 ${pct}%`}>
           <div className="absolute left-0 right-0 bottom-0 transition-[height] duration-500 ease-out"
             style={{ height: `${pct}%`, background: FIN }} />
-          {/* 立体光泽：左上高光斑 + 右下暗部（球体受光感） */}
+          {/* 立体光泽：左上高光斑 + 右下暗部（暗部用深酒红，避免黑灰发脏） */}
           <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(circle at 32% 28%, rgba(255,255,255,0.50), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0) 58%), radial-gradient(circle at 72% 80%, rgba(0,0,0,0.10), rgba(0,0,0,0) 55%)' }} />
+            style={{ background: 'radial-gradient(circle at 32% 28%, rgba(255,255,255,0.50), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0) 58%), radial-gradient(circle at 72% 80%, rgba(146,0,40,0.30), rgba(146,0,40,0) 55%)' }} />
           <span className="absolute inset-0 grid place-items-center text-[13px] font-bold tabular-nums"
             style={{ color: onWater ? '#fff' : FIN }}>{pct}%</span>
         </div>

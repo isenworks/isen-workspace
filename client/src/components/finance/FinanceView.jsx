@@ -137,7 +137,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
       {/* 居中区：水位球 + 斜杠金额行 + 还差行 */}
       <div className="flex flex-col items-center gap-1.5 py-0">
         {/* 水位球：浅红细线框 + 淡红轨道底 + 饱和水，球心红/白动态百分比 */}
-        <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border"
+        <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border-2"
           style={{ background: 'rgba(var(--m-finance-rgb),0.06)', borderColor: 'rgba(var(--m-finance-rgb),0.35)' }} role="img" aria-label={`进度 ${pct}%`}>
           <div className="absolute left-0 right-0 bottom-0 transition-[height] duration-500 ease-out"
             style={{ height: `${pct}%`, background: FIN }} />

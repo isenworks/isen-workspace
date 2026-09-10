@@ -7,7 +7,7 @@ import React, { useState } from 'react';
    - 收入绿 #34C759 / 支出红 #FF3B30 语义色保持不变
    - 标题行：5×18 色条 + 16px 加粗标题，卡片内边距 p-4=16px，
      色条与标题间距 gap-3=12px（与精力/能力/工作/生活各页页头一致）
-   - 攒钱目标卡 v4：白底+浅红描边，居中水位球（饱和红水+白高光液面+球心红/白百分比），
+   - 攒钱目标卡 v4：白底+浅红阴影（无边框），居中水位球（浅红粗环+饱和红水+白高光液面+球心红/白百分比），
      球下「¥完成值 / ¥目标值」斜杠金额行 + 还差行，过期目标日期行红色「已过期」，
      网格 auto-fill minmax(240px,1fr) 窄卡自适应
    - 达成日期文案：「计划2026-9-30达成」（年-月-日 不补零）
@@ -120,8 +120,8 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   /* 水位涨过球心（≥50%）后，球心百分比切白字 */
   const onWater = pct >= 50;
   return (
-    <div className="bg-white rounded-xl border p-3 flex flex-col gap-2"
-      style={{ borderColor: 'rgba(var(--m-finance-rgb),0.25)' }}>
+    <div className="bg-white rounded-xl p-2.5 px-3 flex flex-col gap-1.5"
+      style={{ boxShadow: '0 2px 10px rgba(var(--m-finance-rgb),0.12)' }}>
       {/* 标题行：目标名 + 已达成徽标 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center min-w-0 gap-1.5">
@@ -135,10 +135,10 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
       </div>
 
       {/* 居中区：水位球 + 斜杠金额行 + 还差行 */}
-      <div className="flex flex-col items-center gap-1.5 py-1">
-        {/* 水位球：饱和红描边 + 饱和水 + 白高光液面，球心红/白动态百分比 */}
-        <div className="relative w-[60px] h-[60px] rounded-full border-2 overflow-hidden flex-shrink-0"
-          style={{ borderColor: FIN, background: '#fff' }} role="img" aria-label={`进度 ${pct}%`}>
+      <div className="flex flex-col items-center gap-1.5 py-0.5">
+        {/* 水位球：浅红粗环 + 饱和水 + 白高光液面，球心红/白动态百分比 */}
+        <div className="relative w-[60px] h-[60px] rounded-full border-[5px] overflow-hidden flex-shrink-0"
+          style={{ borderColor: 'rgba(var(--m-finance-rgb),0.22)', background: '#fff' }} role="img" aria-label={`进度 ${pct}%`}>
           <div className="absolute left-0 right-0 bottom-0 transition-[height] duration-500 ease-out"
             style={{ height: `${pct}%`, background: FIN }} />
           <div className="absolute left-0 right-0 h-[2px] transition-[bottom] duration-500 ease-out"
@@ -247,7 +247,7 @@ export default function FinanceView({
             ))}
             {/* 新建目标占位卡 */}
             <button onClick={onGoalAdd}
-              className="rounded-xl border border-dashed border-ink-200 min-h-[184px] grid place-items-center text-ink-400 hover:text-ink-600 hover:border-ink-300 transition group">
+              className="rounded-xl border border-dashed border-ink-200 min-h-[170px] grid place-items-center text-ink-400 hover:text-ink-600 hover:border-ink-300 transition group">
               <span className="flex flex-col items-center gap-1.5">
                 <span className="w-8 h-8 rounded-full grid place-items-center bg-ink-50 group-hover:bg-ink-100 transition">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>

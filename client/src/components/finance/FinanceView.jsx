@@ -79,7 +79,7 @@ function GoalMenu({ goal, onDetail, onEdit, onRemove }) {
     <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-ink-100/70 active:bg-ink-200/60 transition-colors text-ink-400 hover:text-[var(--m-finance)]"
+        className="w-7 h-7 -mr-1.5 rounded-full flex items-center justify-center hover:bg-ink-100/70 active:bg-ink-200/60 transition-colors text-ink-400 hover:text-[var(--m-finance)]"
         title="更多操作">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
           <circle cx="12" cy="5" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="12" cy="19" r="1.4" />
@@ -163,7 +163,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
           <span className={overdue ? '' : 'text-ink-400'}>{overdue ? '已过期' : (plan || '未设定达成日期')}</span>
         </span>
         <button onClick={() => onDeposit(goal)} disabled={isDone}
-          className="inline-flex items-center h-[24px] px-2.5 rounded-lg text-[11.5px] font-bold transition flex-shrink-0 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-ink-100 text-ink-500 hover:bg-[rgba(var(--m-finance-rgb),0.12)] hover:text-[var(--m-finance)]">
+          className="inline-flex items-center h-[24px] px-2.5 rounded-lg text-[11.5px] font-bold transition flex-shrink-0 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-ink-50 text-ink-400 hover:bg-[rgba(var(--m-finance-rgb),0.12)] hover:text-[var(--m-finance)]">
           存入
         </button>
       </div>

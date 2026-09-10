@@ -111,7 +111,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   const plan = planLabel(goal.deadline);
   const isDone = goal.status === 'done' || (goal.target_amount > 0 && goal.current_amount >= goal.target_amount);
   return (
-    <div className="bg-[rgba(120,120,128,0.08)] rounded-xl p-3.5 flex flex-col gap-3">
+    <div className="bg-[rgba(var(--m-finance-rgb),0.06)] rounded-xl p-3.5 flex flex-col gap-3">
       {/* 标题行：目标名 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 pt-[2px]">
@@ -292,7 +292,7 @@ export default function FinanceView({
                   <div className="flex flex-col gap-2 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-[12px] font-semibold text-ink-500">负债</span>
-                      <span className="text-[20px] font-bold tabular-nums leading-none" style={{ color: RED }}>{finFmt(liabTotal)}</span>
+                      <span className="text-[20px] font-bold tabular-nums leading-none text-ink-900">{finFmt(liabTotal)}</span>
                     </div>
                     <div className="flex flex-col">
                       {liabAccs.length === 0 ? (
@@ -306,7 +306,7 @@ export default function FinanceView({
                               <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
                               <span className="text-[13px] text-ink-700 truncate">{a.name}</span>
                             </span>
-                            <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: RED }}>-{finFmt(Math.abs(Number(a.balance) || 0))}</span>
+                            <span className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-ink-900">-{finFmt(Math.abs(Number(a.balance) || 0))}</span>
                           </button>
                         );
                       })}
@@ -326,7 +326,7 @@ export default function FinanceView({
                       </span>
                     )}
                   </div>
-                  <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: GOLD }}>
+                  <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: FIN }}>
                     {finFmt(netWorth)}
                   </span>
                 </div>
@@ -377,7 +377,7 @@ export default function FinanceView({
                 <div className="flex flex-col gap-2 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-[12px] font-semibold text-ink-500">收入</span>
-                    <span className="text-[20px] font-bold tabular-nums leading-none" style={{ color: GREEN }}>+{finFmt(income)}</span>
+                    <span className="text-[20px] font-bold tabular-nums leading-none text-ink-900">+{finFmt(income)}</span>
                   </div>
                   <div className="flex flex-col">
                     {ms.incomeByCat.length === 0 ? (
@@ -388,7 +388,7 @@ export default function FinanceView({
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
                           <span className="text-[13px] text-ink-700 truncate">{c.name}</span>
                         </span>
-                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: GREEN }}>+{finFmt(c.amount)}</span>
+                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-ink-900">+{finFmt(c.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -397,7 +397,7 @@ export default function FinanceView({
                 <div className="flex flex-col gap-2 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-[12px] font-semibold text-ink-500">支出</span>
-                    <span className="text-[20px] font-bold tabular-nums leading-none" style={{ color: RED }}>{finFmt(expense)}</span>
+                    <span className="text-[20px] font-bold tabular-nums leading-none text-ink-900">{finFmt(expense)}</span>
                   </div>
                   <div className="flex flex-col">
                     {ms.expenseByCat.length === 0 ? (
@@ -408,7 +408,7 @@ export default function FinanceView({
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
                           <span className="text-[13px] text-ink-700 truncate">{c.name}</span>
                         </span>
-                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: RED }}>{finFmt(c.amount)}</span>
+                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0 text-ink-900">{finFmt(c.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -427,7 +427,7 @@ export default function FinanceView({
                     </span>
                   )}
                 </div>
-                <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: GOLD }}>
+                <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: FIN }}>
                   {monthBalance >= 0 ? '+' : ''}{finFmt(monthBalance)}
                 </span>
               </div>

@@ -13,7 +13,8 @@ import { store } from '../utils/store.js';
    · 工作：localStorage 读取工作目标，只显示目标级事项（不展开 KR）
    · 生活：手动创建的 cat=5 日程照常注入主线；生活体验记录（localStorage）不聚合，仅年度规划·生活页展示
    · 计划总结 ethan_schedules：只进日历右栏，不进主线面板（需求 6）*/
-import { HABITS, BOOKS, ABILITY, WORK, useEnergyHabits } from './AnnualPlan.jsx';
+import { HABITS, BOOKS, ABILITY, WORK } from '../components/annual/data.js';
+import { useEnergyHabits } from '../components/annual/hooks.js';
 
 /* ===== localStorage 读取年度规划用户真实数据（覆盖静态常量）===== */
 function readAnnualState(key, fallback) {

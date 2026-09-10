@@ -5,7 +5,7 @@ import { syncCloudNow, syncKey, cloudPush } from '../utils/cloudKV.js';
 import { trySubmitTopForm } from '../utils/formSubmitBus.js';
 import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
-import { CategoryIcon } from '../pages/AnnualPlan.jsx';
+import { CategoryIcon } from './annual/ui.jsx';
 
 const ICONS = {
   plan:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.4" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="3.4" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="3.4" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>),

@@ -14,9 +14,12 @@ import React, { useState } from 'react';
 const FIN = 'var(--m-finance)';
 const GREEN = '#34C759';
 const RED = '#FF3B30';
+const GOLD = '#C9A227'; // 净资产 / 月结余 强调色（金色）
 
 /* 金额格式：¥12,345.5 */
 export const finFmt = (v) => '¥' + (Number(v) || 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+/* 纯数字格式（无 ¥ 前缀，用于公式 112,300 - 25,800） */
+const finNum = (v) => (Number(v) || 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
 
 /* 账户类型元数据 */
 const ACCOUNT_TYPE_META = {
@@ -174,19 +177,6 @@ function MonthNav({ month, onChange }) {
   );
 }
 
-/* ===== 环比变化 chip（收入升绿/降红，支出反之） ===== */
-function DeltaChip({ cur, prev, goodWhenUp }) {
-  if (!(prev > 0) || !(cur > 0) || cur === prev) return null;
-  const up = cur > prev;
-  const pct = Math.round(Math.abs(cur - prev) / prev * 100);
-  const good = goodWhenUp ? up : !up;
-  return (
-    <span className="text-[10.5px] font-semibold tabular-nums" style={{ color: good ? GREEN : RED }}>
-      {up ? '↑' : '↓'}{pct}% 较上月
-    </span>
-  );
-}
-
 /* ============================================================ */
 export default function FinanceView({
   data, loading,
@@ -246,59 +236,104 @@ export default function FinanceView({
         )}
       </section>
 
-      {/* ================= 行二 · 资产负债 ================= */}
+      {/* ================= 行二 · 资产负债（左右两栏 + 底部净资产通栏卡） ================= */}
       <section className={`bg-white rounded-2xl border border-ink-100 p-4 ${transition} ${dim}`}>
         <FinHeader title="资产负债" countLabel={`${accounts.length} 个账户`}
-          right={<PlusBtn title="新建账户" onClick={onAccountAdd} />} />
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* 左：净资产（需求5：大数字用模块橙） */}
-          <div className="lg:w-[280px] flex-shrink-0 flex flex-col justify-center gap-2 lg:border-r border-ink-100 lg:pr-4">
-            <span className="text-[11px] font-semibold text-ink-400 tracking-wide uppercase">净资产</span>
-            <span className="text-[30px] font-extrabold tabular-nums tracking-tight leading-none" style={{ color: FIN }}>
-              {finFmt(nw.netWorth)}
-            </span>
-            <div className="flex items-center gap-4 text-[12px]">
-              <span className="text-ink-400">资产
-                <b className="ml-1 text-ink-800 tabular-nums">{finFmt(nw.assets)}</b>
-              </span>
-              <span className="text-ink-400">负债
-                <b className="ml-1 text-ink-800 tabular-nums">{finFmt(nw.liabilities)}</b>
-              </span>
-            </div>
-          </div>
-          {/* 右：账户列表（点击编辑） */}
-          <div className="flex-1 min-w-0">
-            {accounts.length === 0 ? (
-              <button onClick={onAccountAdd}
-                className="w-full rounded-xl border border-dashed border-ink-200 py-6 text-[12.5px] font-semibold text-ink-400 hover:text-ink-600 hover:border-ink-300 transition">
-                + 新建第一个账户（现金 / 储蓄卡 / 信用卡…）
-              </button>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
-                {accounts.map(a => {
-                  const meta = accTypeMeta(a.type);
-                  const neg = (Number(a.balance) || 0) < 0;
-                  return (
-                    <button key={a.id} onClick={() => onAccountEdit(a)} title="编辑账户"
-                      className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 text-left hover:brightness-[0.98] active:scale-[0.99] transition">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[16px] flex-shrink-0">{a.icon || meta.icon}</span>
-                        <div className="min-w-0">
-                          <div className="text-[12.5px] font-semibold text-ink-700 truncate leading-tight">{a.name}</div>
-                          <div className="text-[10px] text-ink-400 leading-tight mt-[1px]">{meta.lb}{a.include_in_net_worth ? '' : ' · 不计净资产'}</div>
-                        </div>
-                      </div>
-                      <span className={`text-[13.5px] font-bold tabular-nums flex-shrink-0 ${neg ? '' : 'text-ink-900'}`}
-                        style={neg ? { color: RED } : undefined}>
-                        {finFmt(a.balance)}
+          right={
+            <button onClick={onAccountAdd}
+              className="inline-flex items-center h-[26px] px-3 rounded-lg text-[11.5px] font-semibold transition hover:brightness-105 active:scale-95"
+              style={{ background: 'rgba(var(--m-finance-rgb),0.10)', color: FIN }}>
+              管理账户
+            </button>
+          } />
+        {accounts.length === 0 ? (
+          <button onClick={onAccountAdd}
+            className="w-full rounded-xl border border-dashed border-ink-200 py-6 text-[12.5px] font-semibold text-ink-400 hover:text-ink-600 hover:border-ink-300 transition">
+            + 新建第一个账户（现金 / 储蓄卡 / 信用卡…）
+          </button>
+        ) : (
+          (() => {
+            // 按余额正负拆分资产/负债（正→资产列，负→负债列显示为绝对值）
+            const assetAccs = accounts.filter(a => (Number(a.balance) || 0) >= 0);
+            const liabAccs = accounts.filter(a => (Number(a.balance) || 0) < 0);
+            const assetTotal = assetAccs.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+            const liabTotal = liabAccs.reduce((s, a) => s + Math.abs(Number(a.balance) || 0), 0);
+            const netWorth = assetTotal - liabTotal;
+            const nwDelta = (Number(ms.income) || 0) - (Number(ms.expense) || 0); // 当月净资产变化=收入-支出
+            return (
+              <div className="flex flex-col gap-3">
+                {/* 左右两栏：资产 / 负债 */}
+                <div className="grid grid-cols-2 gap-6">
+                  {/* 资产 */}
+                  <div className="flex flex-col gap-2 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[12px] font-semibold text-ink-500">资产</span>
+                      <span className="text-[20px] font-bold tabular-nums text-ink-900 leading-none">{finFmt(assetTotal)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      {assetAccs.length === 0 ? (
+                        <span className="text-[12px] text-ink-300 py-1.5">暂无资产账户</span>
+                      ) : assetAccs.map(a => {
+                        const meta = accTypeMeta(a.type);
+                        return (
+                          <button key={a.id} onClick={() => onAccountEdit(a)} title="编辑账户"
+                            className="flex items-center justify-between gap-2 py-1.5 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
+                            <span className="flex items-center gap-2 min-w-0">
+                              <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
+                              <span className="text-[13px] text-ink-700 truncate">{a.name}</span>
+                            </span>
+                            <span className="text-[13px] font-semibold tabular-nums text-ink-900 flex-shrink-0">{finFmt(a.balance)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* 负债 */}
+                  <div className="flex flex-col gap-2 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[12px] font-semibold text-ink-500">负债</span>
+                      <span className="text-[20px] font-bold tabular-nums leading-none" style={{ color: RED }}>{finFmt(liabTotal)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      {liabAccs.length === 0 ? (
+                        <span className="text-[12px] text-ink-300 py-1.5">暂无负债</span>
+                      ) : liabAccs.map(a => {
+                        const meta = accTypeMeta(a.type);
+                        return (
+                          <button key={a.id} onClick={() => onAccountEdit(a)} title="编辑账户"
+                            className="flex items-center justify-between gap-2 py-1.5 text-left hover:bg-ink-50/80 rounded-md px-1 -mx-1 transition">
+                            <span className="flex items-center gap-2 min-w-0">
+                              <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
+                              <span className="text-[13px] text-ink-700 truncate">{a.name}</span>
+                            </span>
+                            <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: RED }}>-{finFmt(Math.abs(Number(a.balance) || 0))}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                {/* 分割线 */}
+                <div className="h-px bg-ink-100" />
+                {/* 底部：净资产通栏灰色卡 */}
+                <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-4 py-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="text-[13px] font-bold text-ink-900">净资产</span>
+                    <span className="text-[12px] text-ink-400 tabular-nums">{finNum(assetTotal)} - {finNum(liabTotal)}</span>
+                    {nwDelta !== 0 && (
+                      <span className="text-[11px] font-semibold tabular-nums" style={{ color: nwDelta > 0 ? GREEN : RED }}>
+                        {nwDelta > 0 ? '▲' : '▼'} 本月 {nwDelta > 0 ? '+' : ''}{finFmt(nwDelta)}
                       </span>
-                    </button>
-                  );
-                })}
+                    )}
+                  </div>
+                  <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: GOLD }}>
+                    {finFmt(netWorth)}
+                  </span>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            );
+          })()
+        )}
       </section>
 
       {/* ================= 行三 · 本月收支（需求6：管理按钮） ================= */}
@@ -327,57 +362,78 @@ export default function FinanceView({
               </button>
             </>
           } />
-        {/* 三指标：收入（绿）/ 支出（红）/ 结余（模块橙）——红绿语义不变 */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3.5 py-3 flex flex-col gap-1">
-            <span className="text-[11px] font-semibold text-ink-400">收入</span>
-            <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: GREEN }}>{finFmt(ms.income)}</span>
-            <DeltaChip cur={ms.income} prev={ps.income} goodWhenUp />
-          </div>
-          <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3.5 py-3 flex flex-col gap-1">
-            <span className="text-[11px] font-semibold text-ink-400">支出</span>
-            <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: RED }}>{finFmt(ms.expense)}</span>
-            <DeltaChip cur={ms.expense} prev={ps.expense} goodWhenUp={false} />
-          </div>
-          <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-3.5 py-3 flex flex-col gap-1">
-            <span className="text-[11px] font-semibold text-ink-400">结余</span>
-            <span className="text-[19px] font-bold tabular-nums tracking-tight leading-none" style={{ color: FIN }}>{finFmt(balance)}</span>
-            <span className="text-[10.5px] text-ink-400 tabular-nums">{ms.income || ms.expense ? `结余率 ${Math.round(balance / Math.max(ms.income, 1) * 100)}%` : '本月暂无收支'}</span>
-          </div>
-        </div>
-        {/* 收支构成（按分类） */}
-        {(ms.incomeByCat.length > 0 || ms.expenseByCat.length > 0) && (
-          <div className="mt-3 pt-3 border-t border-ink-100 flex flex-col gap-2">
-            {ms.incomeByCat.length > 0 && (
-              <div className="flex items-start gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-ink-400 flex-shrink-0 mt-[2px]">收入构成</span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {ms.incomeByCat.slice(0, 6).map(c => (
-                    <span key={`inc-${c.id ?? c.name}`} className="inline-flex items-center gap-1 px-2 h-[22px] rounded-full text-[11px] font-semibold"
-                      style={{ background: 'rgba(52,199,89,0.08)', color: GREEN }}>
-                      <span>{c.icon}</span><span>{c.name}</span>
-                      <span className="tabular-nums font-bold">{finFmt(c.amount)}</span>
-                    </span>
-                  ))}
+        {/* 左右两栏：收入 / 支出 + 底部月结余通栏卡 */}
+        {(() => {
+          const income = Number(ms.income) || 0;
+          const expense = Number(ms.expense) || 0;
+          const prevIncome = Number(ps.income) || 0;
+          const prevExpense = Number(ps.expense) || 0;
+          const monthBalance = income - expense;
+          const balDelta = monthBalance - (prevIncome - prevExpense); // 较上月结余变化
+          return (
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-6">
+                {/* 收入 */}
+                <div className="flex flex-col gap-2 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[12px] font-semibold text-ink-500">收入</span>
+                    <span className="text-[20px] font-bold tabular-nums leading-none" style={{ color: GREEN }}>+{finFmt(income)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    {ms.incomeByCat.length === 0 ? (
+                      <span className="text-[12px] text-ink-300 py-1.5">本月暂无收入</span>
+                    ) : ms.incomeByCat.map(c => (
+                      <div key={`inc-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1.5">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="text-[15px] flex-shrink-0">{c.icon}</span>
+                          <span className="text-[13px] text-ink-700 truncate">{c.name}</span>
+                        </span>
+                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: GREEN }}>+{finFmt(c.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* 支出 */}
+                <div className="flex flex-col gap-2 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[12px] font-semibold text-ink-500">支出</span>
+                    <span className="text-[20px] font-bold tabular-nums leading-none" style={{ color: RED }}>{finFmt(expense)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    {ms.expenseByCat.length === 0 ? (
+                      <span className="text-[12px] text-ink-300 py-1.5">本月暂无支出</span>
+                    ) : ms.expenseByCat.map(c => (
+                      <div key={`exp-${c.id ?? c.name}`} className="flex items-center justify-between gap-2 py-1.5">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="text-[15px] flex-shrink-0">{c.icon}</span>
+                          <span className="text-[13px] text-ink-700 truncate">{c.name}</span>
+                        </span>
+                        <span className="text-[13px] font-semibold tabular-nums flex-shrink-0" style={{ color: RED }}>{finFmt(c.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
-            {ms.expenseByCat.length > 0 && (
-              <div className="flex items-start gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-ink-400 flex-shrink-0 mt-[2px]">支出构成</span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {ms.expenseByCat.slice(0, 8).map(c => (
-                    <span key={`exp-${c.id ?? c.name}`} className="inline-flex items-center gap-1 px-2 h-[22px] rounded-full text-[11px] font-semibold"
-                      style={{ background: 'rgba(255,59,48,0.07)', color: RED }}>
-                      <span>{c.icon}</span><span>{c.name}</span>
-                      <span className="tabular-nums font-bold">{finFmt(c.amount)}</span>
+              {/* 分割线 */}
+              <div className="h-px bg-ink-100" />
+              {/* 底部：月结余通栏灰色卡 */}
+              <div className="bg-[rgba(120,120,128,0.08)] rounded-xl px-4 py-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="text-[13px] font-bold text-ink-900">月结余</span>
+                  <span className="text-[12px] text-ink-400 tabular-nums">{finNum(income)} - {finNum(expense)}</span>
+                  {balDelta !== 0 && (
+                    <span className="text-[11px] font-semibold tabular-nums" style={{ color: balDelta > 0 ? GREEN : RED }}>
+                      {balDelta > 0 ? '▲' : '▼'} 较上月 {balDelta > 0 ? '+' : ''}{finFmt(balDelta)}
                     </span>
-                  ))}
+                  )}
                 </div>
+                <span className="text-[22px] font-bold tabular-nums tracking-tight leading-none flex-shrink-0" style={{ color: GOLD }}>
+                  {monthBalance >= 0 ? '+' : ''}{finFmt(monthBalance)}
+                </span>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </section>
 
       {/* ================= 行四 · 交易流水 ================= */}

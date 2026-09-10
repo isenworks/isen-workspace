@@ -3,6 +3,7 @@ import { API } from '../api/client.js';
 import { formatDuration, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 import { inferGrowthType, GROWTH_TYPES } from '../utils/uiConstants.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
@@ -38,6 +39,7 @@ function catOf(s) {
 
 export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onNew, onChange }) {
   const toast = useToast();
+  const { deleteScheduleConfirm, showContextMenu } = useWorkspaceActions();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
@@ -111,8 +113,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   }
 
   function remove(s) {
-    if (window.__deleteScheduleConfirm) {
-      window.__deleteScheduleConfirm(s.id, s.title);
+    if (deleteScheduleConfirm) {
+      deleteScheduleConfirm(s.id, s.title);
     } else {
       if (!confirm(`删除「${s.title}」？`)) return;
       API.schedules.remove(s.id).then(() => {
@@ -302,7 +304,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', s.id);
+          showContextMenu?.(e.clientX, e.clientY, 'schedule', s.id);
         }}
       >
         <input

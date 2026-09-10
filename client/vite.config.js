@@ -12,6 +12,16 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // 拆分框架层为独立长缓存分块，避免随业务代码变化而失效
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'scheduler'],
+        },
+      },
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

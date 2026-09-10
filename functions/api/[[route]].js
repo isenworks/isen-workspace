@@ -25,13 +25,13 @@ import {
   handleHabitsLogSleep, handleHabitsLogCount, handleHabitsStats,
 } from '../_lib/handlers/habits.js';
 import {
-  handleTasksList, handleTasksCreate, handleTasksUpdate, handleTasksRemove,
+  handleTasksList, handleTasksGet, handleTasksCreate, handleTasksUpdate, handleTasksRemove,
 } from '../_lib/handlers/tasks.js';
 import {
   handleInboxList, handleInboxCreate, handleInboxUpdate, handleInboxProcess, handleInboxRemove,
 } from '../_lib/handlers/inbox.js';
 import {
-  handleSchedulesList, handleSchedulesCreate, handleSchedulesUpdate,
+  handleSchedulesList, handleSchedulesGet, handleSchedulesCreate, handleSchedulesUpdate,
   handleSchedulesRemove, handleSchedulesSync,
 } from '../_lib/handlers/schedules.js';
 import {
@@ -116,6 +116,7 @@ export async function onRequest(context) {
     // /api/tasks/*
     // ------------------------------------------------------------
     if (path === '/api/tasks/list' && (method === 'GET' || method === 'POST')) return handleTasksList(env, qOrBody);
+    if (path === '/api/tasks/get' && (method === 'GET' || method === 'POST')) return handleTasksGet(env, qOrBody);
     if (path === '/api/tasks/create' && method === 'POST') return handleTasksCreate(env, body);
     if (path === '/api/tasks/update' && method === 'POST') return handleTasksUpdate(env, body);
     if (path === '/api/tasks/remove' && method === 'POST') return handleTasksRemove(env, body);
@@ -133,6 +134,7 @@ export async function onRequest(context) {
     // /api/schedules/*
     // ------------------------------------------------------------
     if (path === '/api/schedules/list' && (method === 'GET' || method === 'POST')) return handleSchedulesList(env, qOrBody);
+    if (path === '/api/schedules/get' && (method === 'GET' || method === 'POST')) return handleSchedulesGet(env, qOrBody);
     if (path === '/api/schedules/create' && method === 'POST') return handleSchedulesCreate(env, body);
     if (path === '/api/schedules/update' && method === 'POST') return handleSchedulesUpdate(env, body);
     if (path === '/api/schedules/remove' && method === 'POST') return handleSchedulesRemove(env, body);

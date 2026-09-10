@@ -1,6 +1,7 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { WorkspaceActionsProvider } from '../context/WorkspaceActionsContext.jsx';
 import { today as getToday, toISODate, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDaysISO, calcDurationMin } from '../utils/date.js';
 import Sidebar from '../components/Sidebar.jsx';
 import WeekCalendar from '../components/WeekCalendar.jsx';
@@ -8,25 +9,34 @@ import KeyTasks from '../components/KeyTasks.jsx';
 import HabitsPanel from '../components/HabitsPanel.jsx';
 import Timeline from '../components/Timeline.jsx';
 import Modal from '../components/Modal.jsx';
-import ScheduleForm from '../components/forms/ScheduleForm.jsx';
-import TaskForm from '../components/forms/TaskForm.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
 import BookForm from '../components/forms/BookForm.jsx';
 import KrForm from '../components/forms/KrForm.jsx';
 import MilestoneForm from '../components/forms/MilestoneForm.jsx';
 import AbilityForm from '../components/forms/AbilityForm.jsx';
-import FixedScheduleForm from '../components/forms/FixedScheduleForm.jsx';
-import FixedSchedulesPanel from '../components/FixedSchedulesPanel.jsx';
-import SummaryPanel from '../components/SummaryPanel.jsx';
-import QuickCapture from '../components/QuickCapture.jsx';
-import { API } from '../api/client.js';
-import SettingsModal from '../components/SettingsModal.jsx';
-import { store } from '../utils/store.js';
 import AnnualPlan from './AnnualPlan.jsx';
-import CalendarPage from './CalendarPage.jsx';
-import RecycleBinPage from './RecycleBinPage.jsx';
-import InboxPage from './InboxPage.jsx';
+import { API } from '../api/client.js';
+import { store } from '../utils/store.js';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
+
+// ===== 路由级 / 弹窗级懒加载：仅在对应菜单或弹窗打开时才拉取分块，减小首屏 JS =====
+// 注：CalendarPage 内含 lunar 农历库（大），懒加载后随「日历」菜单按需加载，不进首屏
+//     HabitForm/BookForm/KrForm/MilestoneForm/AbilityForm 被 AnnualPlan 静态引用（随其加载），懒加载无收益故保留静态
+const CalendarPage = lazy(() => import('./CalendarPage.jsx'));
+const RecycleBinPage = lazy(() => import('./RecycleBinPage.jsx'));
+const InboxPage = lazy(() => import('./InboxPage.jsx'));
+const ScheduleForm = lazy(() => import('../components/forms/ScheduleForm.jsx'));
+const TaskForm = lazy(() => import('../components/forms/TaskForm.jsx'));
+const FixedScheduleForm = lazy(() => import('../components/forms/FixedScheduleForm.jsx'));
+const FixedSchedulesPanel = lazy(() => import('../components/FixedSchedulesPanel.jsx'));
+const SummaryPanel = lazy(() => import('../components/SummaryPanel.jsx'));
+const QuickCapture = lazy(() => import('../components/QuickCapture.jsx'));
+const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'));
+
+// 懒加载分块拉取时的占位
+const ChunkFallback = () => (
+  <div className="flex items-center justify-center py-12 text-sm" style={{ color: '#8e8e93' }}>加载中…</div>
+);
 
 const VIEW_RANGES = {
   today: (d) => ({ from: d, to: d }),
@@ -225,17 +235,15 @@ export default function Workspace({ user: propUser }) {
     })();
   }, [user, refresh]);
 
-  // 挂载时把显示菜单/习惯弹窗方法暴露给子组件调用
-  useEffect(() => {
-    window.__showContextMenu = (x, y, type, id) => {
-      ctxMenuShownAt.current = Date.now();
-      setCtxMenu({ x, y, type, id });
-    };
-    window.__openHabitModal = (habit) => {
-      setModal(habit ? { type: 'habit', data: habit } : { type: 'habit', data: null });
-    };
-    return () => { delete window.__showContextMenu; delete window.__openHabitModal; };
+  // ===== 跨组件动作（替代原 window.__* 全局函数）：通过 Context 注入给子组件 =====
+  const showContextMenu = useCallback((x, y, type, id) => {
+    ctxMenuShownAt.current = Date.now();
+    setCtxMenu({ x, y, type, id });
   }, []);
+  const openHabitModal = useCallback((habit) => {
+    setModal(habit ? { type: 'habit', data: habit } : { type: 'habit', data: null });
+  }, []);
+  const openArchive = useCallback(() => setArchiveOpen(true), []);
 
   // 监听全局点击/滚动/按ESC，关闭上下文菜单
   useEffect(() => {
@@ -267,50 +275,46 @@ export default function Workspace({ user: propUser }) {
   }, []);
   useEffect(() => { if (archiveOpen) loadArchived(); }, [archiveOpen, loadArchived]);
 
-  // 提供给子组件调起"删除/归档确认弹窗"的方法
-  useEffect(() => {
-    window.__archiveHabitConfirm = (id, name) => {
-      setConfirm({
-        title: '归档该习惯？',
-        msg: `「${name}」将移至"归档"，可以从归档恢复。`,
-        okText: '归档',
-        okColor: '#FF9500',
-        onOk: async () => {
-          try {
-            await API.habits.archive(id);
-            store.broadcast({ type: 'reload' });
-            refresh();
-            setConfirm(null);
-          } catch (e) { toast.error(e.message); }
-        },
-        onCancel: () => setConfirm(null)
-      });
-    };
-    window.__deleteScheduleConfirm = (id, title) => {
-      setConfirm({
-        title: '确认删除',
-        msg: `「${title}」删除后无法恢复，确定要删除吗？`,
-        okText: '确定删除',
-        okColor: '#FF3B30',
-        onOk: async () => {
-          try {
-            await API.schedules.remove(id);
-            store.broadcast({ type: 'reload' });
-            refresh();
-            setConfirm(null);
-          } catch (e) { toast.error(e.message); }
-        },
-        onCancel: () => setConfirm(null)
-      });
-    };
-    return () => { delete window.__archiveHabitConfirm; delete window.__deleteScheduleConfirm; };
-  }, [refresh]);
+  // 归档习惯确认 / 删除事项确认（注入给子组件，替代原 window.__* ）
+  const archiveHabitConfirm = useCallback((id, name) => {
+    setConfirm({
+      title: '归档该习惯？',
+      msg: `「${name}」将移至"归档"，可以从归档恢复。`,
+      okText: '归档',
+      okColor: '#FF9500',
+      onOk: async () => {
+        try {
+          await API.habits.archive(id);
+          store.broadcast({ type: 'reload' });
+          refresh();
+          setConfirm(null);
+        } catch (e) { toast.error(e.message); }
+      },
+      onCancel: () => setConfirm(null)
+    });
+  }, [refresh, toast]);
+  const deleteScheduleConfirm = useCallback((id, title) => {
+    setConfirm({
+      title: '确认删除',
+      msg: `「${title}」删除后无法恢复，确定要删除吗？`,
+      okText: '确定删除',
+      okColor: '#FF3B30',
+      onOk: async () => {
+        try {
+          await API.schedules.remove(id);
+          store.broadcast({ type: 'reload' });
+          refresh();
+          setConfirm(null);
+        } catch (e) { toast.error(e.message); }
+      },
+      onCancel: () => setConfirm(null)
+    });
+  }, [refresh, toast]);
 
-  // 提供给 Sidebar 打开归档面板的方法
-  useEffect(() => {
-    window.__openArchive = () => setArchiveOpen(true);
-    return () => { delete window.__openArchive; };
-  }, []);
+  // 注入给子组件的动作集合（稳定引用，避免 Context 消费者无谓重渲染）
+  const workspaceActions = useMemo(() => ({
+    showContextMenu, openHabitModal, openArchive, archiveHabitConfirm, deleteScheduleConfirm,
+  }), [showContextMenu, openHabitModal, openArchive, archiveHabitConfirm, deleteScheduleConfirm]);
 
   // === 联动逻辑（参考 demo：Tab 与日历双向联动）===
   // Tab 切换：重置 selectedDate 到今天
@@ -334,22 +338,20 @@ export default function Workspace({ user: propUser }) {
     if (action === 'edit') {
       if (type === 'schedule') {
         try {
-          const list = await API.schedules.list({ from: '2000-01-01', to: '2100-01-01' });
-          const sch = list.schedules.find(s => s.id === id);
-          if (sch) setModal({ type: 'schedule', data: sch });
+          const r = await API.schedules.get(id);
+          if (r?.schedule) setModal({ type: 'schedule', data: r.schedule });
         } catch (e) { toast.error(e.message); }
       } else if (type === 'habit') {
         // 习惯编辑：通过统一入口打开，与新建习惯共用同一弹窗
         try {
           const r = await API.habits.list();
           const h = r.habits.find(x => x.id === id);
-          if (h) window.__openHabitModal && window.__openHabitModal(h);
+          if (h) openHabitModal(h);
         } catch (e) { toast.error(e.message); }
       } else if (type === 'task') {
         try {
-          const r = await API.tasks.list({ from: '2000-01-01', to: '2100-01-01' });
-          const t = (r.tasks || []).find(x => x.id === id);
-          if (t) setModal({ type: 'task', data: t });
+          const r = await API.tasks.get(id);
+          if (r?.task) setModal({ type: 'task', data: r.task });
         } catch (e) { toast.error(e.message); }
       }
     }
@@ -446,6 +448,7 @@ export default function Workspace({ user: propUser }) {
   }
 
   return (
+    <WorkspaceActionsProvider value={workspaceActions}>
     <div className="max-w-[1440px] mx-auto px-6 py-6 flex gap-6 min-h-screen">
       {/* 左侧边栏 */}
       <Sidebar 
@@ -493,7 +496,8 @@ export default function Workspace({ user: propUser }) {
         onQuickCapture={() => setQuickCaptureOpen(true)}
       />
 
-      {/* 主内容区 */}
+      {/* 主内容区（含懒加载页面，用 Suspense 兜底分块拉取） */}
+      <Suspense fallback={<ChunkFallback />}>
       {activeMenu === 'annual' ? (
         <div className="flex-1 min-w-0">
           <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} addRequest={annualAdd} />
@@ -626,14 +630,16 @@ export default function Workspace({ user: propUser }) {
             <div className="flex-1 min-w-0" style={rightStyle}>
               {showSummary ? (
                 <div className="glass-card p-4 h-full flex flex-col">
-                  <SummaryPanel
-                    embed
-                    userId={user?.id}
-                    date={selectedDate}
-                    refreshSignal={refreshKey}
-                    onChange={refresh}
-                    onBack={() => setShowSummary(false)}
-                  />
+                  <Suspense fallback={<ChunkFallback />}>
+                    <SummaryPanel
+                      embed
+                      userId={user?.id}
+                      date={selectedDate}
+                      refreshSignal={refreshKey}
+                      onChange={refresh}
+                      onBack={() => setShowSummary(false)}
+                    />
+                  </Suspense>
                 </div>
               ) : (
                 <Timeline
@@ -653,6 +659,7 @@ export default function Workspace({ user: propUser }) {
           </div>
         </main>
       )}
+      </Suspense>
 
       <Modal
         open={!!modal}
@@ -672,6 +679,7 @@ export default function Workspace({ user: propUser }) {
           : (modal.data?.id ? '编辑待办' : '新建待办')
         }
       >
+        <Suspense fallback={<ChunkFallback />}>
         {modal?.type === 'schedule' && (
           <ScheduleForm
             initial={modal?.data}
@@ -749,6 +757,7 @@ export default function Workspace({ user: propUser }) {
             onClose={() => setModal(null)}
           />
         )}
+        </Suspense>
       </Modal>
 
       {/* ===== 右键上下文菜单 ===== */}
@@ -949,24 +958,31 @@ export default function Workspace({ user: propUser }) {
       )}
 
       {/* ===== 设置面板 ===== */}
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} user={user} />
+      <Suspense fallback={null}>
+        <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} user={user} />
+      </Suspense>
 
       {/* ===== 快速捕获弹窗（快捷键 N / 侧边栏收集箱「＋」）===== */}
       <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="快速记录到收集箱">
-        <QuickCapture onSaved={loadInboxCount} onDispatch={openDispatchFor} />
+        <Suspense fallback={<ChunkFallback />}>
+          <QuickCapture onSaved={loadInboxCount} onDispatch={openDispatchFor} />
+        </Suspense>
       </Modal>
 
       {/* ===== 快速捕获「分派」：复用 ScheduleForm（支持时长/重要性/重复） ===== */}
       <Modal open={!!dispatchDetail} onClose={() => setDispatchDetail(null)} title="详细分派 · 新建日程">
-        {dispatchDetail && (
-          <ScheduleForm
-            initial={dispatchDetail.initial}
-            defaultDate={dispatchDetail.initial.date}
-            onSaved={onDispatchSaved}
-            onCancel={() => setDispatchDetail(null)}
-          />
-        )}
+        <Suspense fallback={<ChunkFallback />}>
+          {dispatchDetail && (
+            <ScheduleForm
+              initial={dispatchDetail.initial}
+              defaultDate={dispatchDetail.initial.date}
+              onSaved={onDispatchSaved}
+              onCancel={() => setDispatchDetail(null)}
+            />
+          )}
+        </Suspense>
       </Modal>
     </div>
+    </WorkspaceActionsProvider>
   );
 }

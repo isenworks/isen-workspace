@@ -4,6 +4,7 @@ import { API } from '../api/client.js';
 import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 import { syncKey, cloudPush } from '../utils/cloudKV.js';
 // 成长类型配色与推断逻辑：与 HabitsPanel/KeyTasks 统一来源（CSS 变量版，跟随模块主题色）
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
@@ -46,6 +47,7 @@ function isToday(dateStr) {
 
 export default function Timeline({ date, view, range, refreshSignal, onEdit, onChange, onAdd, onManageFixedSchedules, onSummaryToggle, showSummary }) {
   const toast = useToast();
+  const { showContextMenu } = useWorkspaceActions();
   const [schedules, setSchedules] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [habits, setHabits] = useState([]);
@@ -1000,8 +1002,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   onContextMenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (item.isHabit || isCat4) window.__showContextMenu?.(e.clientX, e.clientY, 'habit', item.id);
-                    else window.__showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
+                    if (item.isHabit || isCat4) showContextMenu?.(e.clientX, e.clientY, 'habit', item.id);
+                    else showContextMenu?.(e.clientX, e.clientY, 'schedule', item.id);
                   }}
                 >
                   {/* 上边缘拉伸手柄 */}
@@ -1090,7 +1092,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     onContextMenu={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      window.__showContextMenu?.(e.clientX, e.clientY, 'task', t.id);
+                      showContextMenu?.(e.clientX, e.clientY, 'task', t.id);
                     }}
                   >
                     <input

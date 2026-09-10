@@ -56,6 +56,15 @@ export async function handleSchedulesList(env, q) {
   return json({ schedules: out });
 }
 
+// 按 id 取单条（用于右键编辑等场景，避免 list 全表展开只为找一条）
+// 注意：返回 master 行本身；重复事项的单次例外完成状态不在本接口展开
+export async function handleSchedulesGet(env, q) {
+  const id = Number(q?.id);
+  if (!id) return json({ error: '缺少 id' }, 400);
+  const schedule = await dbFirst(env.DB, `SELECT * FROM ethan_schedules WHERE id=? AND user_id=?`, [id, uid(env)]);
+  return json({ schedule: schedule || null });
+}
+
 export async function handleSchedulesCreate(env, body) {
   const data = body || {};
   const userId = uid(env);

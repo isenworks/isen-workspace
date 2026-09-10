@@ -8,6 +8,7 @@ import { formatDuration, calcDurationMin, cachedLoad, cachePeek, cacheClear, loa
 import { store } from '../utils/store.js';
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 
 // 精力状态（3档）— 颜色统一用 iOS 系统色，弹窗按钮与行内 chip 共用
 const ENERGY_STATES = [
@@ -47,6 +48,7 @@ function isSleepHabit(h) {
 
 export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const toast = useToast();
+  const { showContextMenu, archiveHabitConfirm, openHabitModal } = useWorkspaceActions();
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
@@ -173,8 +175,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   }
 
   function remove(h) {
-    if (window.__archiveHabitConfirm) {
-      window.__archiveHabitConfirm(h.id, h.name);
+    if (archiveHabitConfirm) {
+      archiveHabitConfirm(h.id, h.name);
     } else {
       if (!confirm(`归档习惯「${h.name}」？`)) return;
       API.habits.archive(h.id).then(() => {
@@ -437,7 +439,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          window.__showContextMenu?.(e.clientX, e.clientY, 'habit', h.id);
+          showContextMenu?.(e.clientX, e.clientY, 'habit', h.id);
         }}
       >
         <input
@@ -577,7 +579,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           </div>
           <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}><span className="font-extrabold">{done}</span><span className="opacity-50 mx-0.5">/</span>{habits.length}</span>
           <button
-            onClick={() => { window.__openHabitModal && window.__openHabitModal(null); }}
+            onClick={() => openHabitModal?.(null)}
             className="inline-flex items-center justify-center rounded-lg text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
             style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
             title="添加习惯"

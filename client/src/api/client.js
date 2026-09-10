@@ -125,6 +125,8 @@ export const API = {
 
   schedules: {
     async list(params) { return fetchPages('/schedules/list', params || {}); },
+    // 按 id 取单条：替代「list 全表再 find」的编辑路径
+    async get(id) { return fetchPages('/schedules/get', { id }); },
     async create(data) { return fetchPages('/schedules/create', data); },
     async update(id, data) { return fetchPages('/schedules/update', { id, ...data }); },
     async remove(id) { return fetchPages('/schedules/remove', { id }); },
@@ -133,6 +135,8 @@ export const API = {
 
   tasks: {
     async list(params) { return fetchPages('/tasks/list', params || {}); },
+    // 按 id 取单条：替代「list 全表再 find」的编辑路径
+    async get(id) { return fetchPages('/tasks/get', { id }); },
     async create(data) { return fetchPages('/tasks/create', data); },
     async update(id, data) { return fetchPages('/tasks/update', { id, ...data }); },
     async remove(id) { return fetchPages('/tasks/remove', { id }); },

@@ -18,6 +18,14 @@ export async function handleTasksList(env, q) {
   return json({ tasks: await dbAll(env.DB, sql, params) });
 }
 
+// 按 id 取单条（用于右键编辑等场景，避免 list 全表只为找一条）
+export async function handleTasksGet(env, q) {
+  const id = Number(q?.id);
+  if (!id) return json({ error: '缺少 id' }, 400);
+  const task = await dbFirst(env.DB, `SELECT * FROM ethan_tasks WHERE id=? AND user_id=?`, [id, uid(env)]);
+  return json({ task: task || null });
+}
+
 export async function handleTasksCreate(env, body) {
   const data = body || {};
   const userId = uid(env);

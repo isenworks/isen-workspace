@@ -71,6 +71,8 @@
 
   * `BOOTSTRAP_OWNER_CODE` — 一次性初始化 owner 账号口令
 
+  * `GITHUB_PAT_ENC_KEY` — 可选，GitHub PAT 托管加密密钥（缺省时从 HMAC_SECRET 派生）
+
 ***
 
 ## 项目结构（活跃部分）
@@ -108,6 +110,7 @@ isen-workspace/
 │   │       ├── summaries.js         # /api/summaries/*   每日复盘
 │   │       ├── recycleBin.js        # /api/recycleBin/*  软删除回收站
 │   │       ├── inviteCodes.js       # /api/inviteCodes/* （仅 owner）
+│   │       ├── github.js            # /api/github/*      GitHub PAT 托管 + AI 推送授权（仅 owner）
 │   │       ├── users.js             # /api/users/*       用户管理（仅 owner）
 │   │       ├── userSettings.js      # /api/userSettings/* KV 配置（weread key / 年度规划镜像）
 │   │       ├── weread.js            # /api/weread/*      微信读书
@@ -164,6 +167,27 @@ functions/api/[[route]].js           # 薄路由
   * 多设备并发编辑不同字段不会互覆盖（A 改 habit\_1、B 改 habit\_2 → 两边都保留）
 
 * 前端入口：`client/src/utils/cloudKV.js` + `client/src/pages/AnnualPlan.jsx` 的 `usePersistentState` hook
+
+***
+
+## AI 推送授权（git push 凭证受控签发，给 AI 助手看）
+
+owner 已在工作台「设置 → AI 推送授权」托管 GitHub PAT（AES-GCM 加密存 `ethan_github_tokens`，仅 owner `1429000825@qq.com` 可管理）。当 owner 发来一段 30 分钟有效的 `grant code` 并要求 push 时：
+
+```bash
+# 1) 用 grant code 换 PAT（公开接口，code 本身即凭证）
+PAT=$(curl -s -X POST https://ethan-workspace.pages.dev/api/github/issueGrant \
+  -H 'Content-Type: application/json' \
+  -d '{"grant_code":"<owner给的code>"}' | jq -r .pat)
+
+# 2) 用临时 credential helper push（勿把 PAT 内嵌进 remote URL / 命令行，避免进日志）
+git -c credential.helper='!f() { echo "username=isenworks"; echo "password='"$PAT"'"; }; f' push origin main
+unset PAT
+
+# 3) push 完成即结束；owner 会自行关闭授权开关作废 code。PAT 明文永不回显到对话/日志。
+```
+
+注意：code 30 分钟过期、关闭开关立即作废、同一窗口可多次签发（有审计）。若 403 则请 owner 重新开启授权并给新 code。建议 PAT 用 fine-grained 最小权限（单仓库 + Contents 读写）。
 
 ***
 

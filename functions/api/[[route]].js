@@ -56,6 +56,10 @@ import {
 } from '../_lib/handlers/inviteCodes.js';
 import { handleUsersList, handleUsersBan } from '../_lib/handlers/users.js';
 import { handleUserSettingsGet, handleUserSettingsSet } from '../_lib/handlers/userSettings.js';
+import {
+  handleGithubSetToken, handleGithubStatus, handleGithubToggleGrant,
+  handleGithubIssueGrant, handleGithubClearToken,
+} from '../_lib/handlers/github.js';
 import { handleWereadSync, handleWereadSearch } from '../_lib/handlers/weread.js';
 import { handleCoverSearch, handleCoverProxy } from '../_lib/handlers/cover.js';
 import { handleBirthdayMigrate, handleMigrate } from '../_lib/handlers/migrate.js';
@@ -205,6 +209,16 @@ export async function onRequest(context) {
     // ------------------------------------------------------------
     if (path === '/api/userSettings/get' && method === 'GET') return handleUserSettingsGet(env, q.k || '');
     if (path === '/api/userSettings/set' && method === 'POST') return handleUserSettingsSet(env, body);
+
+    // ------------------------------------------------------------
+    // /api/github/*  — GitHub PAT 托管 + AI 推送授权（仅 owner，且锁定指定账号，见 github.js）
+    //   issueGrant 为公开路径（白名单）：AI 沙盒无登录态，凭 30 分钟 grant code 换 PAT 完成 git push
+    // ------------------------------------------------------------
+    if (path === '/api/github/setToken' && method === 'POST') return handleGithubSetToken(env, body, currentUser);
+    if (path === '/api/github/status' && (method === 'GET' || method === 'POST')) return handleGithubStatus(env, currentUser);
+    if (path === '/api/github/toggleGrant' && method === 'POST') return handleGithubToggleGrant(env, body, currentUser);
+    if (path === '/api/github/clearToken' && method === 'POST') return handleGithubClearToken(env, currentUser);
+    if (path === '/api/github/issueGrant' && method === 'POST') return handleGithubIssueGrant(env, body, request);
 
     // ------------------------------------------------------------
     // /api/weread/*  — 微信读书 Skills 官方 API（wrk-xxx）

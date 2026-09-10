@@ -233,6 +233,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               {[
                 { key: 'appearance', label: '外观' },
                 { key: 'admin', label: '邀请与用户' },
+                { key: 'github', label: 'AI 推送授权' },
                 { key: 'migrate', label: 'D1 数据迁移' },
               ].filter(Boolean).map(t => (
                 <button key={t.key} onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }} style={{
@@ -283,6 +284,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                   onUnban={handleUnbanUser}
                   ownerId={user?.id}
                 />
+              ) : tab === 'github' ? (
+                <GithubTab />
               ) : (
                 <MigrateTab
                   value={migrate}
@@ -1020,6 +1023,284 @@ function AdminTab({
   );
 }
 
+
+/* ---- AI 推送授权（GitHub PAT 托管，仅 owner）----
+   流程：保存 PAT（加密落库）→ 开启授权生成 30 分钟 grant code → 把 code 发给 AI
+        → AI 调 issueGrant 换 PAT 完成 git push → 用完关闭开关即断电 */
+function GithubTab() {
+  const toast = useToast();
+  const [status, setStatus] = useState(null);
+  const [pat, setPat] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [grantCode, setGrantCode] = useState(null); // { code, expires_at } 仅开启那一刻持有
+  const [copied, setCopied] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [, setTick] = useState(0); // 授权窗口内每 30s 重渲染刷新剩余时间
+
+  async function load() {
+    try {
+      const r = await API.github.status();
+      setStatus(r);
+    } catch (e) { setErr(e.message); }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setTick(v => v + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  function copyText(text) {
+    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        done();
+      } catch { toast.info('复制失败，请手动复制'); }
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(fallback);
+    } else fallback();
+  }
+
+  async function handleSavePat() {
+    setErr('');
+    const p = pat.trim();
+    if (!p) return;
+    try {
+      setBusy(true);
+      const r = await API.github.setToken(p);
+      setPat('');
+      toast.success(`PAT 已验证并加密保存（GitHub 账号：${r.pat_login || '未知'}）`);
+      load();
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  async function handleToggleGrant(enabled) {
+    setErr('');
+    try {
+      setBusy(true);
+      const r = await API.github.toggleGrant(enabled);
+      if (r.grant?.enabled && r.grant?.code) {
+        setGrantCode({ code: r.grant.code, expires_at: r.grant.expires_at });
+        copyText(r.grant.code);
+        toast.success('推送授权已开启，grant code 已复制');
+      } else {
+        setGrantCode(null);
+        toast.info('推送授权已关闭');
+      }
+      load();
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  async function handleClearPat() {
+    setErr('');
+    try {
+      setBusy(true);
+      await API.github.clearToken();
+      setConfirmClear(false);
+      setGrantCode(null);
+      toast.info('托管的 PAT 已彻底删除');
+      load();
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  const card = {
+    border: '1px solid #e5e5ea', borderRadius: '12px',
+    background: '#fff', overflow: 'hidden',
+  };
+  const header = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '12px 16px', borderBottom: '1px solid #e5e5ea', background: '#fafafa',
+  };
+  const title = { fontSize: '14px', fontWeight: '600', color: '#1c1c1e' };
+  const inputStyle = {
+    flex: 1, padding: '9px 12px', borderRadius: '9px',
+    border: '1px solid #e5e5ea', fontSize: '13px',
+    outline: 'none', color: '#1c1c1e', background: '#fafafa',
+    fontFamily: 'SF Mono, Menlo, monospace',
+  };
+
+  const configured = !!status?.configured;
+  const grantOn = !!status?.grant?.enabled;
+  // 剩余分钟（grantCode 本地持有的那份）
+  const remainMin = grantCode ? Math.max(0, Math.round((grantCode.expires_at - Date.now()) / 60000)) : 0;
+  // 给 AI 复制的完整指令模板
+  const aiInstruction = grantCode
+    ? `请通过我的工作台完成 GitHub 推送授权（30 分钟内有效）：\nPOST https://ethan-workspace.pages.dev/api/github/issueGrant\n{"grant_code":"${grantCode.code}"}\n拿到 PAT 后请用 git credential helper 配置（不要内嵌到 URL/命令行），push 完成后无需撤销，我会自行关闭授权开关。`
+    : '';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {err && (
+        <div style={{
+          padding: '10px 14px', fontSize: '13px', color: '#FF3B30',
+          background: '#FFEEED', borderRadius: '8px', border: '1px solid #FFD9D6',
+        }}>{err}</div>
+      )}
+      {/* ============ 卡片 1：GitHub PAT 托管 ============ */}
+      <div style={card}>
+        <div style={header}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={title}>GitHub PAT 托管</span>
+            <span style={{
+              fontSize: '11px', fontWeight: 600, color: '#fff',
+              padding: '3px 10px', borderRadius: '999px',
+              background: configured ? '#34C759' : '#8e8e93',
+            }}>{configured ? '已配置' : '未配置'}</span>
+          </div>
+        </div>
+        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {configured && (
+            <div style={{
+              padding: '10px 12px', borderRadius: '9px', background: '#f5f5f7',
+              fontSize: '12px', color: '#3c3c43', lineHeight: 1.6,
+            }}>
+              <div>当前 PAT：<code style={{ fontFamily: 'SF Mono, Menlo, monospace', fontWeight: 600 }}>{status.mask}</code></div>
+              <div style={{ color: '#8e8e93' }}>
+                GitHub 账号：{status.pat_login || '—'}
+                {status.updated_at ? ` · 保存于 ${new Date(status.updated_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="password"
+              value={pat}
+              onChange={(e) => setPat(e.target.value)}
+              placeholder={configured ? '粘贴新的 PAT 覆盖更新（会自动作废当前授权）' : '粘贴 GitHub PAT（建议 fine-grained，仅本仓库 + Contents 读写）'}
+              style={{ ...inputStyle, background: '#fff' }}
+              autoComplete="off"
+            />
+            <button onClick={handleSavePat} disabled={busy || !pat.trim()} style={{
+              padding: '8px 16px', borderRadius: '9px', border: 'none', flexShrink: 0,
+              background: busy || !pat.trim() ? '#ccc' : 'var(--s-main)',
+              color: '#fff', fontWeight: 600, fontSize: '13px',
+              cursor: busy || !pat.trim() ? 'not-allowed' : 'pointer',
+            }}>{busy ? '验证中...' : '验证并保存'}</button>
+          </div>
+          <div style={{ fontSize: '11px', color: '#8e8e93', lineHeight: 1.6 }}>
+            PAT 会先经 GitHub API 验证有效性，然后 AES-GCM 加密存入数据库（密钥在 Cloudflare Secrets）。
+            界面只显示掩码，任何接口都不会回显明文——这正是「只写不读」。
+          </div>
+          {configured && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => { if (!confirmClear) { setConfirmClear(true); setTimeout(() => setConfirmClear(false), 3000); } else handleClearPat(); }}
+                disabled={busy} style={{
+                  padding: '6px 14px', borderRadius: '8px', border: 'none',
+                  background: confirmClear ? '#FF3B30' : 'rgba(255,59,48,0.09)',
+                  color: confirmClear ? '#fff' : '#FF3B30',
+                  fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                }}>{confirmClear ? '确认彻底删除？' : '删除托管的 PAT'}</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ============ 卡片 2：AI 推送授权开关 ============ */}
+      <div style={card}>
+        <div style={header}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={title}>AI 推送授权</span>
+            <span style={{
+              fontSize: '11px', fontWeight: 600, color: '#fff',
+              padding: '3px 10px', borderRadius: '999px',
+              background: grantOn ? '#FF9500' : '#8e8e93',
+            }}>{grantOn ? '开启中' : '已关闭'}</span>
+          </div>
+          <button onClick={() => handleToggleGrant(!grantOn)} disabled={busy || !configured} style={{
+            padding: '8px 16px', borderRadius: '9px', border: 'none',
+            background: busy || !configured ? '#ccc' : grantOn ? 'rgba(255,59,48,0.09)' : '#34C759',
+            color: busy || !configured ? '#fff' : grantOn ? '#FF3B30' : '#fff',
+            fontWeight: 600, fontSize: '13px', cursor: busy || !configured ? 'not-allowed' : 'pointer',
+          }} title={!configured ? '请先保存 PAT' : ''}>
+            {grantOn ? '关闭授权' : '开启授权'}
+          </button>
+        </div>
+        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {!configured ? (
+            <div style={{ fontSize: '13px', color: '#8e8e93', padding: '6px 0' }}>
+              先在上方保存 GitHub PAT，才能开启推送授权。
+            </div>
+          ) : !grantOn ? (
+            <div style={{ fontSize: '13px', color: '#8e8e93', lineHeight: 1.7 }}>
+              开启后会生成一个 <b>30 分钟有效</b> 的一次性授权码（grant code），
+              把它发给 AI 助手，AI 即可在全新沙盒里通过本工作台换取 PAT 完成 git push。
+              推送完成后<b>关闭授权</b>即可断电；code 过期或关闭后立即作废。
+            </div>
+          ) : (
+            <>
+              {/* grant code 展示（仅本地持有 code 时） */}
+              {grantCode ? (
+                <div style={{
+                  padding: '12px 14px', borderRadius: '10px', background: '#fff8e6', border: '1px solid #f1d47a',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '12px', color: '#7a5b00', fontWeight: 700, marginBottom: '4px' }}>
+                        ⏳ 剩余 {remainMin} 分钟 · 用完或到期自动作废
+                      </div>
+                      <code style={{
+                        fontSize: '14px', fontWeight: 700, color: '#1c1c1e', wordBreak: 'break-all',
+                        fontFamily: 'SF Mono, Menlo, monospace',
+                      }}>{grantCode.code}</code>
+                    </div>
+                    <button onClick={() => copyText(grantCode.code)} style={{
+                      padding: '5px 12px', borderRadius: '7px', background: '#fff',
+                      border: '1px solid #d9a400', color: '#7a5b00',
+                      fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                    }}>{copied ? '✓ 已复制' : '复制 code'}</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: '12px', color: '#8e8e93', padding: '6px 0' }}>
+                  授权开启中，但授权码只在开启那一刻显示。如需给 AI 使用，请关闭后重新开启生成新 code。
+                </div>
+              )}
+              {/* 一键复制发给 AI 的完整指令 */}
+              {grantCode && (
+                <button onClick={() => copyText(aiInstruction)} style={{
+                  padding: '10px 16px', borderRadius: '10px', border: 'none',
+                  background: 'var(--s-main)', color: '#fff', fontWeight: 600, fontSize: '13px',
+                  cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--s-rgb),0.28)',
+                }}>{copied ? '✓ 已复制，发给 AI 即可' : '📋 复制发给 AI 的完整指令'}</button>
+              )}
+              {/* 审计信息 */}
+              {status?.grant?.issued_count > 0 && (
+                <div style={{ fontSize: '12px', color: '#8e8e93' }}>
+                  本次授权窗口内已被签发 {status.grant.issued_count} 次
+                  {status.grant.last_issued_at
+                    ? ` · 最近 ${new Date(status.grant.last_issued_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                    : ''}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ============ 卡片 3：安全机制说明 ============ */}
+      <div style={{
+        padding: '14px 16px', borderRadius: '10px', background: '#f5f5f7',
+        fontSize: '12px', color: '#6b7280', lineHeight: 1.8,
+      }}>
+        <b style={{ color: '#3c3c43' }}>安全机制（三层）：</b><br />
+        1. <b>加密存储</b>：PAT 以 AES-GCM 密文落库，密钥在 Cloudflare Secrets，拖库拿到的只是密文；<br />
+        2. <b>一次性票据</b>：发给 AI 的是 30 分钟随机授权码（即使对话泄露，过时即废）；<br />
+        3. <b>最小权限兜底</b>：请使用 fine-grained PAT，只授权 isen-workspace 单仓库 + Contents 读写 + 短有效期，
+        即使最坏情况泄露，影响面也仅限本仓库写入。
+      </div>
+    </div>
+  );
+}
 
 function MigrateTab({ value, onChange, busy, result, onRun }) {
   const TABLES = [

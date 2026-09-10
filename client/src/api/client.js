@@ -223,6 +223,18 @@ export const API = {
     async ban(userId) { return fetchPages('/users/ban', { user_id: userId }); },
     async unban(userId) { return fetchPages('/users/unban', { user_id: userId }); },
   },
+
+  // GitHub PAT 托管 + AI 推送授权（仅 owner，后端锁定 1429000825@qq.com）
+  github: {
+    // 托管状态：只返回掩码 / 授权开关 / 审计信息，永不返回 PAT 明文
+    async status() { return fetchPages('/github/status', {}, 'GET'); },
+    // 验证并加密保存 PAT（返回掩码 + GitHub 登录名）
+    async setToken(pat) { return fetchPages('/github/setToken', { pat }); },
+    // 开启返回一次性 grant code（30 分钟有效），关闭作废全部 code
+    async toggleGrant(enabled) { return fetchPages('/github/toggleGrant', { enabled: !!enabled }); },
+    // 彻底删除托管的 PAT 及授权状态
+    async clearToken() { return fetchPages('/github/clearToken', {}); },
+  },
 };
 
 // 兼容引用：保留 DEFAULT_USER_ID 导出（部分旧代码可能引用）

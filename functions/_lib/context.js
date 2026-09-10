@@ -12,6 +12,7 @@ export const PUBLIC_PATHS = new Set([
   '/api/auth/me',        // 未登录返回 null 给前端判断
   '/api/auth/logout',
   '/api/health',
+  '/api/github/issueGrant',  // AI 沙盒凭 grant code 换取 PAT（code 本身即凭证，30 分钟一次性）
 ]);
 
 /**

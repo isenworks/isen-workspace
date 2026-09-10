@@ -2014,7 +2014,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           </div>
           <button onClick={() => onAction?.('addHabit')}
             className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-            style={{ background: 'rgba(var(--m-energy-rgb),0.10)', border: '1px solid rgba(var(--m-energy-rgb),0.25)', color: 'var(--m-energy)' }}
+            style={{ background: moduleRgba('energy', 0.10), border: `1px solid ${moduleRgba('energy', 0.25)}`, color: 'var(--m-energy)' }}
             title="添加精力习惯">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
@@ -2056,7 +2056,7 @@ function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     {/* ★ ③ 56/230天 改为能力页同款胶囊（L4894-4901 规格：px-2 h-[26px] rounded-lg 主题色10底/40框） */}
                     <span
                       className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
-                      style={{ background: 'rgba(var(--m-energy-rgb),0.08)', color: GREEN }}
+                      style={{ background: `${moduleRgba('energy', 0.08)}`, color: GREEN }}
                     >
                       <span className="font-extrabold">{h.val}</span>
                       <span className="mx-0.5 opacity-50">/</span>
@@ -3112,24 +3112,23 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
     onSave?.(Array.from(set));
   };
 
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,var(--m-life),var(--m-finance))', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' };
-  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  // 布局/字重走 className（见按钮 JSX），这里只保留动态色值
+  const BTN_P = { background: 'linear-gradient(135deg,var(--m-life),var(--m-finance))', boxShadow: `0 1px 3px ${moduleRgba('life', 0.25)}` };
+  const BTN_G = { border: '1px solid rgba(15,23,42,0.1)' };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="flex flex-col gap-3.5">
       {/* 顶部说明 */}
-      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(var(--m-life-rgb),0.08) 0%, rgba(var(--m-finance-rgb),0.08) 100%)', border: '1px solid rgba(var(--m-life-rgb),0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg,var(--m-life),var(--m-finance))', color: '#fff',
-          display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(var(--m-life-rgb),0.3)',
-        }}>
+      <div className="p-3 rounded-xl flex items-start gap-2.5"
+        style={{ background: `linear-gradient(135deg, ${moduleRgba('life', 0.08)} 0%, ${moduleRgba('finance', 0.08)} 100%)`, border: `1px solid ${moduleRgba('life', 0.18)}` }}>
+        <div className="w-9 h-9 rounded-[10px] text-white grid place-items-center shrink-0"
+          style={{ background: 'linear-gradient(135deg,var(--m-life),var(--m-finance))', boxShadow: `0 2px 6px ${moduleRgba('life', 0.3)}` }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>{year} 年度精选 · 记忆卡生成</div>
-          <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
-            选择 <b style={{ color: 'var(--m-life)' }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-bold text-[#1c1c1e] mb-1">{year} 年度精选 · 记忆卡生成</div>
+          <div className="text-[12px] text-[#6b7280] leading-normal">
+            选择 <b style={{ color: moduleColor('life') }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
             已选 <b>{currentHl.length}</b> / 共 <b>{allEntries.length}</b> 条可挑选。
           </div>
         </div>
@@ -3137,72 +3136,67 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
 
       {/* 记忆卡预览 */}
       <div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1c1c1e', marginBottom: 8 }}>🪄 记忆卡预览</div>
-        <div style={{
-          borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden',
-          background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #FFEEED 100%)',
-          border: '1px solid rgba(var(--m-life-rgb),0.15)',
-          boxShadow: '0 4px 16px rgba(var(--m-life-rgb),0.1)',
-        }}>
+        <div className="text-[12.5px] font-bold text-[#1c1c1e] mb-2">🪄 记忆卡预览</div>
+        <div className="rounded-2xl p-5 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #FFEEED 100%)',
+            border: `1px solid ${moduleRgba('life', 0.15)}`,
+            boxShadow: `0 4px 16px ${moduleRgba('life', 0.1)}`,
+          }}>
           {/* 装饰光斑 */}
-          <div style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(255,45,85,0.22), transparent 60%)' }} />
-          <div style={{ position: 'absolute', bottom: -50, left: -30, width: 180, height: 180, borderRadius: 999, background: 'radial-gradient(circle, rgba(var(--m-life-rgb),0.22), transparent 60%)' }} />
+          <div className="absolute -top-10 -right-[30px] w-[180px] h-[180px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,45,85,0.22), transparent 60%)' }} />
+          <div className="absolute -bottom-[50px] -left-[30px] w-[180px] h-[180px] rounded-full" style={{ background: `radial-gradient(circle, ${moduleRgba('life', 0.22)}, transparent 60%)` }} />
 
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--m-life)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 1.5, color: 'var(--m-life)' }}>{year} · 我的珍藏年卡</span>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={moduleColor('life')}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span className="text-[12.5px] font-extrabold tracking-[1.5px]" style={{ color: moduleColor('life') }}>{year} · 我的珍藏年卡</span>
             </div>
             {currentHl.length === 0 ? (
-              <div style={{
-                padding: '22px 14px', textAlign: 'center', borderRadius: 12,
-                border: '1px dashed rgba(var(--m-life-rgb),0.35)', color: '#9C48C7', fontSize: 12, fontWeight: 600,
-              }}>
+              <div className="py-[22px] px-3.5 text-center rounded-xl text-[12px] font-semibold"
+                style={{ border: `1px dashed ${moduleRgba('life', 0.35)}`, color: '#9C48C7' }}>
                 还没有选中条目 · 点击下方卡片右下角的星号，或一键推荐。
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <div className="flex flex-col gap-[9px]">
                 {currentHl.slice(0, 9).map(e => (
-                  <div key={e.id} style={{
-                    padding: '9px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.7)',
-                    border: '1px solid rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)',
-                    display: 'flex', alignItems: 'flex-start', gap: 9,
-                  }}>
-                    <div style={{
-                      width: 22, height: 22, borderRadius: 7, background: 'rgba(var(--m-life-rgb),0.09)', color: 'var(--m-life)',
-                      display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 10.5, fontWeight: 800,
-                    }}>
+                  <div key={e.id} className="py-[9px] px-2.5 rounded-[10px] flex items-start gap-[9px]"
+                    style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)' }}>
+                    <div className="w-[22px] h-[22px] rounded-[7px] grid place-items-center shrink-0 text-[10.5px] font-extrabold"
+                      style={{ background: moduleRgba('life', 0.09), color: moduleColor('life') }}>
                       {e.catLb.slice(0, 1)}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e', lineHeight: 1.45 }}>{e.t}</div>
-                      {e.n && <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>{e.n}</div>}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-semibold text-[#1c1c1e] leading-[1.45]">{e.t}</div>
+                      {e.n && <div className="text-[10.5px] text-[#6b7280] mt-0.5 leading-[1.4]">{e.n}</div>}
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--m-life)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
+                    <div className="text-[10px] font-semibold tabular-nums shrink-0" style={{ color: moduleColor('life') }}>{e.d}</div>
                   </div>
                 ))}
               </div>
             )}
             {/* 底部签名 */}
-            <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px dashed rgba(var(--m-life-rgb),0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 10.5, fontWeight: 600, color: '#9C48C7', letterSpacing: .8 }}>PERSONAL · ANNUAL · CARD</span>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#FF2D55' }}>{currentHl.length} memories</span>
+            <div className="mt-3.5 pt-2.5 flex items-center justify-between"
+              style={{ borderTop: `1px dashed ${moduleRgba('life', 0.2)}` }}>
+              <span className="text-[10.5px] font-semibold text-[#9C48C7] tracking-[0.8px]">PERSONAL · ANNUAL · CARD</span>
+              <span className="text-[10.5px] font-bold text-[#FF2D55]">{currentHl.length} memories</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* 快速操作 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1c1c1e' }}>📋 挑选条目（{currentHl.length}）</div>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[12.5px] font-bold text-[#1c1c1e]">📋 挑选条目（{currentHl.length}）</div>
+        <div className="flex gap-2">
           <button type="button" onClick={autoSelectRecommended}
-            style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(var(--m-life-rgb),0.25)', background: 'rgba(var(--m-life-rgb),0.06)', color: '#9C48C7', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+            className="py-[5px] px-2.5 rounded-lg text-[11.5px] font-bold cursor-pointer"
+            style={{ border: `1px solid ${moduleRgba('life', 0.25)}`, background: moduleRgba('life', 0.06), color: '#9C48C7' }}>
             ★ 一键挑选前{topAuto.length}条
           </button>
           {currentHl.length > 0 && (
             <button type="button" onClick={() => onSave?.([])}
-              style={{ padding: '5px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#8e8e93', fontSize: 11.5, fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}>
+              className="py-[5px] px-2.5 rounded-lg border-none bg-transparent text-[#8e8e93] text-[11.5px] font-medium cursor-pointer underline">
               清空精选
             </button>
           )}
@@ -3210,39 +3204,35 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
       </div>
 
       {/* 条目列表 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 260, overflowY: 'auto', paddingRight: 2 }}>
+      <div className="flex flex-col gap-[7px] max-h-[260px] overflow-y-auto pr-0.5">
         {allEntries.length === 0 && (
-          <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#8a9491' }}>还没有生活记录，先去添加吧～</div>
+          <div className="p-5 text-center text-[12px] text-[#8a9491]">还没有生活记录，先去添加吧～</div>
         )}
         {allEntries.map(e => {
           const sel = isHl(e.id);
           return (
-            <div key={e.id} style={{
-              padding: '9px 10px', borderRadius: 10,
-              border: sel ? '1px solid rgba(var(--m-life-rgb),0.33)' : '1px solid rgba(15,23,42,0.08)',
-              background: sel ? 'rgba(var(--m-life-rgb),0.04)' : '#fff',
-              display: 'flex', alignItems: 'flex-start', gap: 10,
-            }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: 7, background: 'rgba(var(--m-life-rgb),0.09)', color: 'var(--m-life)',
-                display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 10.5, fontWeight: 800,
-              }}>{e.catLb.slice(0, 1)}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e', lineHeight: 1.4 }}>{e.t}</div>
-                {e.n && <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>{e.n}</div>}
+            <div key={e.id} className="py-[9px] px-2.5 rounded-[10px] flex items-start gap-2.5"
+              style={{
+                border: `1px solid ${sel ? moduleRgba('life', 0.33) : 'rgba(15,23,42,0.08)'}`,
+                background: sel ? moduleRgba('life', 0.04) : '#fff',
+              }}>
+              <div className="w-[22px] h-[22px] rounded-[7px] grid place-items-center shrink-0 text-[10.5px] font-extrabold"
+                style={{ background: moduleRgba('life', 0.09), color: moduleColor('life') }}>{e.catLb.slice(0, 1)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-semibold text-[#1c1c1e] leading-[1.4]">{e.t}</div>
+                {e.n && <div className="text-[10.5px] text-[#6b7280] mt-0.5 leading-[1.4]">{e.n}</div>}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 600, color: '#8e8e93', fontVariantNumeric: 'tabular-nums' }}>{e.d}</div>
+              <div className="flex flex-col items-end gap-[5px] shrink-0">
+                <div className="text-[10.5px] font-semibold text-[#8e8e93] tabular-nums">{e.d}</div>
                 <button
                   type="button"
                   onClick={() => onToggleHighlight?.(e.id)}
                   title={sel ? '取消精选' : '加入精选'}
+                  className="w-6 h-6 rounded-lg border-none cursor-pointer grid place-items-center transition-transform duration-[120ms]"
                   style={{
-                    width: 24, height: 24, borderRadius: 8, border: 'none', cursor: 'pointer',
-                    display: 'grid', placeItems: 'center', transition: 'transform 0.12s',
                     background: sel ? 'linear-gradient(135deg,var(--m-life),#FF2D55)' : 'rgba(15,23,42,0.05)',
                     color: sel ? '#fff' : '#cbd5e1',
-                    boxShadow: sel ? '0 1px 3px rgba(var(--m-life-rgb),0.3)' : 'none',
+                    boxShadow: sel ? `0 1px 3px ${moduleRgba('life', 0.3)}` : 'none',
                   }}>
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 </button>
@@ -3253,9 +3243,9 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
       </div>
 
       {/* 按钮 */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 2 }}>
-        <button onClick={onCancel} style={BTN_G}>关闭</button>
-        <button onClick={() => onSave?.(highlightedIds)} style={BTN_P}>确定 · 保存记忆卡</button>
+      <div className="flex justify-end gap-2 pt-0.5">
+        <button onClick={onCancel} className="px-4 py-2 rounded-[9px] bg-transparent text-[#8e8e93] text-[13px] font-medium cursor-pointer" style={BTN_G}>关闭</button>
+        <button onClick={() => onSave?.(highlightedIds)} className="px-4 py-2 rounded-[9px] border-none text-white text-[13px] font-semibold cursor-pointer" style={BTN_P}>确定 · 保存记忆卡</button>
       </div>
     </div>
   );
@@ -5336,7 +5326,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             {/* 已勾选/总数胶囊 */}
             <span
               className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: 'rgba(var(--m-ability-rgb),0.08)', color: AB_DARK }}
+              style={{ background: `${moduleRgba('ability', 0.08)}`, color: AB_DARK }}
             >
               <span className="font-extrabold">{as.mDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
@@ -5348,7 +5338,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
                 onClick={(e) => { e.stopPropagation(); onMsAdd?.(as.idx); }}
                 title="添加里程碑"
                 className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-                style={{ background: 'rgba(var(--m-ability-rgb),0.10)' }}
+                style={{ background: `${moduleRgba('ability', 0.10)}` }}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke={AB} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               </button>
@@ -5513,7 +5503,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
             <button
               onClick={() => onAbilityAdd?.()}
               className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-              style={{ color: AB_COLOR, background: 'rgba(var(--m-ability-rgb),0.10)' }}
+              style={{ color: AB_COLOR, background: `${moduleRgba('ability', 0.10)}` }}
               title="新建能力">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
             </button>
@@ -5532,7 +5522,7 @@ function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAd
               <button
                 onClick={() => onAbilityAdd?.()}
                 className="inline-flex items-center gap-1 rounded-xl text-[11px] font-bold px-3 py-1.5 transition hover:brightness-105 active:scale-[0.98]"
-                style={{ background: 'rgba(var(--m-ability-rgb),0.15)', color: AB_DARK }}>
+                style={{ background: `${moduleRgba('ability', 0.15)}`, color: AB_DARK }}>
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 添加第一个能力
               </button>
@@ -5810,9 +5800,9 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
       : null;
     let pace = null;
     if (paceDiff !== null) {
-      if (paceDiff === 0) pace = { t: '节奏匹配', bg: 'rgba(var(--m-work-rgb),0.10)', fg: color };
+      if (paceDiff === 0) pace = { t: '节奏匹配', bg: `${moduleRgba('work', 0.10)}`, fg: color };
       else if (paceAhead) pace = { t: `超前 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(52,199,89,0.10)', fg: '#34C759' };
-      else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(var(--m-work-rgb),0.10)', fg: RED_RISK };
+      else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: `${moduleRgba('work', 0.10)}`, fg: RED_RISK };
     }
     /* 工作页 renderObjective：容器级 px-1 pt-2 已移除，顶部/左右二次压缩消除，与能力页卡壳 p-3.5 像素级一致：
        卡顶→标题中心从 35px→27px；左右留白从 18px→14px；只留 pb-2.5 border-b 承担与下方子渲染区的分段语义 */
@@ -5832,7 +5822,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             {/* 恢复 1/5 KR 计数胶囊（原设计） */}
             <span
               className="inline-flex items-center px-3 h-[26px] rounded-full text-[11px] font-semibold tabular-nums leading-none"
-              style={{ background: 'rgba(var(--m-work-rgb),0.08)', color }}>
+              style={{ background: `${moduleRgba('work', 0.08)}`, color }}>
               <span className="font-extrabold">{krDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
               <span className="opacity-70">{krTotal}</span>
@@ -5840,7 +5830,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <button
               onClick={() => onKrAdd?.(goalIdx)}
               className="w-[26px] h-[26px] rounded-lg grid place-items-center transition hover:brightness-105 active:scale-95 flex-shrink-0"
-              style={{ background: 'rgba(var(--m-work-rgb),0.10)' }}
+              style={{ background: `${moduleRgba('work', 0.10)}` }}
               title="添加 KR">
               <svg className="w-3.5 h-3.5" fill="none" stroke={color} strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
@@ -5958,7 +5948,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                           width: `${pctWidth}%`,
                           minWidth: `${minPxWidth}px`,
                           background: isDone ? '#34C759' : COLOR,
-                          boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : '0 1px 3px rgba(var(--m-work-rgb),0.15)',
+                          boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${moduleRgba('work', 0.15)}`,
                         }}>
                         {p >= 15 && (
                           <span className="text-[10px] font-bold text-white/90 tabular-nums">
@@ -6206,7 +6196,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
                 <div
                   className="w-6 h-6 rounded-full grid place-items-center font-extrabold text-[10px] flex-shrink-0"
                   style={{
-                    background: isDone ? 'rgba(52,199,89,0.13)' : 'rgba(var(--m-work-rgb),0.08)',
+                    background: isDone ? 'rgba(52,199,89,0.13)' : `${moduleRgba('work', 0.08)}`,
                     color: isDone ? '#34C759' : rmColor,
                     border: `1.5px solid ${isDone ? '#34C759' : rmColor}`,
                   }}
@@ -6324,7 +6314,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
               className="absolute inset-y-0 left-0 rounded-full"
               style={{
                 width: `${timePct}%`,
-                background: `repeating-linear-gradient(135deg, rgba(var(--m-work-rgb),0.20), rgba(var(--m-work-rgb),0.20) 4px, rgba(var(--m-work-rgb),0.33) 4px, rgba(var(--m-work-rgb),0.33) 8px)`,
+                background: `repeating-linear-gradient(135deg, ${moduleRgba('work', 0.20)}, ${moduleRgba('work', 0.20)} 4px, ${moduleRgba('work', 0.33)} 4px, ${moduleRgba('work', 0.33)} 8px)`,
               }}
             />
           </div>
@@ -6369,7 +6359,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           {gs.krTotal > 0 && (
             <span
               className="inline-flex items-center px-3 h-[24px] rounded-full text-[11px] font-semibold tabular-nums leading-none flex-shrink-0"
-              style={{ background: 'rgba(var(--m-work-rgb),0.08)', color: gs.color }}>
+              style={{ background: `${moduleRgba('work', 0.08)}`, color: gs.color }}>
               <span className="font-extrabold">{gs.krDone}</span>
               <span className="mx-0.5 opacity-50">/</span>
               <span className="opacity-70">{gs.krTotal}</span>
@@ -6379,7 +6369,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
           <button
             onClick={() => onKrAdd?.(goalIdx)}
             className="w-7 h-7 rounded-lg grid place-items-center transition hover:brightness-110 active:scale-95 flex-shrink-0"
-            style={{ backgroundColor: 'rgba(var(--m-work-rgb),0.07)' }}
+            style={{ backgroundColor: `${moduleRgba('work', 0.07)}` }}
             title="添加 KR">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={gs.color} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
@@ -6496,7 +6486,7 @@ function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalE
             <button
               onClick={() => onGoalAdd?.()}
               className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition flex-shrink-0"
-              style={{ color: RED, background: 'rgba(var(--m-work-rgb),0.10)' }}
+              style={{ color: RED, background: `${moduleRgba('work', 0.10)}` }}
               title="新建目标">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
             </button>
@@ -6795,7 +6785,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               onContextMenu={handleLinkButtonContext}
               title={links.length ? `文档链接（${links.length} 条，右键增删改）` : '右键添加飞书文档链接'}
               className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
-              style={{ background: 'rgba(var(--m-life-rgb),0.10)', border: '1px solid rgba(var(--m-life-rgb),0.25)' }}>
+              style={{ background: moduleRgba('life', 0.10), border: `1px solid ${moduleRgba('life', 0.25)}` }}>
               {/* 外链图标：当前 UI 风格线形 · 紫 */}
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="var(--m-life)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -6824,7 +6814,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 8px', borderRadius: '8px', marginBottom: '2px',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.08)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = `${moduleRgba('life', 0.08)}`; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                     <span style={{
                       flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
@@ -6842,7 +6832,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                         background: 'transparent', color: '#8e8e93', cursor: 'pointer',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.14)'; e.currentTarget.style.color = 'var(--m-life)'; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = `${moduleRgba('life', 0.14)}`; e.currentTarget.style.color = 'var(--m-life)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
@@ -6900,7 +6890,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                           padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
                           border: 'none', cursor: 'pointer',
                           background: 'var(--m-life)', color: '#fff',
-                          boxShadow: '0 1px 4px rgba(var(--m-life-rgb),0.28)',
+                          boxShadow: `0 1px 4px ${moduleRgba('life', 0.28)}`,
                         }}>{linkMenu.editingId ? '保存' : '添加'}</button>
                     </div>
                   </div>
@@ -6914,7 +6904,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                       background: 'transparent', color: 'var(--m-life)',
                       fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.08)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = `${moduleRgba('life', 0.08)}`; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
                       <path d="M12 5v14M5 12h14"/>
@@ -6946,7 +6936,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                       fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--m-life-rgb),0.08)'; e.currentTarget.style.color = 'var(--m-life)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = `${moduleRgba('life', 0.08)}`; e.currentTarget.style.color = 'var(--m-life)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1c1c1e'; }}
                     title={l.url}>
                     {l.title}
@@ -6977,7 +6967,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
               <span className={`text-[12px] tabular-nums ${!lifeFilter ? '' : 'text-ink-400'}`}>{totalEntries}</span>
               <button onClick={() => { setShowNewCat(v => !v); setNewCatLb(''); }} title="新建模块"
                 className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer transition"
-                style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>
+                style={{ background: `${moduleRgba('life', 0.10)}`, color: 'var(--m-life)' }}>
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               </button>
             </div>
@@ -6988,7 +6978,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   onKeyDown={(e) => { if (e.key === 'Enter') createCategory(); if (e.key === 'Escape') setShowNewCat(false); }}
                   placeholder="模块名，如「健康」"
                   className="flex-1 min-w-0 text-[12px] px-2 py-1 rounded-md border outline-none"
-                  style={{ borderColor: 'rgba(var(--m-life-rgb),0.35)', background: '#fff' }} />
+                  style={{ borderColor: `${moduleRgba('life', 0.35)}`, background: '#fff' }} />
                 <button onClick={createCategory} title="确认新建"
                   className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md flex-shrink-0 cursor-pointer"
                   style={{ background: 'var(--m-life)', color: '#fff' }}>
@@ -7012,7 +7002,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{c.entries.length}</span>
                   <button onClick={() => onEntryAdd?.(c.key, c.lb)} title={`添加${c.lb}记录`}
                     className={`${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer`}
-                    style={{ background: 'rgba(var(--m-life-rgb),0.10)', color: 'var(--m-life)' }}>
+                    style={{ background: `${moduleRgba('life', 0.10)}`, color: 'var(--m-life)' }}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                   </button>
                 </div>
@@ -7044,7 +7034,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                         onClick={() => onStartHighlights?.()}
                         disabled={totalEntries === 0}
                         className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ background: 'linear-gradient(135deg, var(--m-life) 0%, #FF2D55 100%)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' }}>
+                        style={{ background: 'linear-gradient(135deg, var(--m-life) 0%, #FF2D55 100%)', color: '#fff', boxShadow: `0 1px 3px ${moduleRgba('life', 0.25)}` }}>
                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
                         </svg>
@@ -7081,7 +7071,7 @@ function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highli
                   <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
                     {hl && (
                       <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
-                        style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.35)' }}
+                        style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: `0 1px 3px ${moduleRgba('life', 0.35)}` }}
                         title="年度精选">
                         <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                       </div>

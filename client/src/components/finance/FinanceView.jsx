@@ -349,7 +349,7 @@ export default function FinanceView({
                 {/* 底部：净资产行（白底，左右与两栏内容对齐） */}
                 <div className="rounded-xl px-[17px] py-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    <span className="text-[13px] font-bold text-ink-900">净资产</span>
+                    <span className="text-[15px] font-semibold text-ink-700">净资产</span>
                     <span className="text-[12px] text-ink-400 tabular-nums">{finNum(assetTotal)} - {finNum(liabTotal)}</span>
                     {nwDelta !== 0 && (
                       <span className="text-[11px] font-semibold tabular-nums" style={{ color: nwDelta > 0 ? GREEN : RED }}>
@@ -463,7 +463,7 @@ export default function FinanceView({
               {/* 底部：月结余行（白底，左右与两栏内容对齐） */}
               <div className="rounded-xl px-[17px] py-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span className="text-[13px] font-bold text-ink-900">月结余</span>
+                  <span className="text-[15px] font-semibold text-ink-700">月结余</span>
                   <span className="text-[12px] text-ink-400 tabular-nums">{finNum(income)} - {finNum(expense)}</span>
                   {balDelta !== 0 && (
                     <span className="text-[11px] font-semibold tabular-nums" style={{ color: balDelta > 0 ? GREEN : RED }}>

@@ -307,7 +307,7 @@ export default function FinanceView({
                               <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
                               <span className="text-[14px] text-ink-800 truncate">{a.name}</span>
                             </span>
-                            <span className="text-[14px] font-semibold tabular-nums text-ink-900 flex-shrink-0">{finFmt(a.balance)}</span>
+                            <span className="text-[14px] tabular-nums text-ink-900 flex-shrink-0">{finFmt(a.balance)}</span>
                           </button>
                         );
                       })}
@@ -337,7 +337,7 @@ export default function FinanceView({
                               <span className="text-[15px] flex-shrink-0">{a.icon || meta.icon}</span>
                               <span className="text-[14px] text-ink-800 truncate">{a.name}</span>
                             </span>
-                            <span className="text-[14px] font-semibold tabular-nums flex-shrink-0 text-ink-900">-{finFmt(Math.abs(Number(a.balance) || 0))}</span>
+                            <span className="text-[14px] tabular-nums flex-shrink-0 text-ink-900">-{finFmt(Math.abs(Number(a.balance) || 0))}</span>
                           </button>
                         );
                       })}
@@ -426,7 +426,7 @@ export default function FinanceView({
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
                           <span className="text-[14px] text-ink-800 truncate">{c.name}</span>
                         </span>
-                        <span className="text-[14px] font-semibold tabular-nums flex-shrink-0 text-ink-900">+{finFmt(c.amount)}</span>
+                        <span className="text-[14px] tabular-nums flex-shrink-0 text-ink-900">+{finFmt(c.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -452,7 +452,7 @@ export default function FinanceView({
                           <span className="text-[15px] flex-shrink-0">{c.icon}</span>
                           <span className="text-[14px] text-ink-800 truncate">{c.name}</span>
                         </span>
-                        <span className="text-[14px] font-semibold tabular-nums flex-shrink-0 text-ink-900">{finFmt(c.amount)}</span>
+                        <span className="text-[14px] tabular-nums flex-shrink-0 text-ink-900">{finFmt(c.amount)}</span>
                       </div>
                     ))}
                   </div>

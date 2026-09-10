@@ -263,8 +263,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       // 「4/20天」挂在标签右侧（FocusPanel 渲染 note，浅灰色小字，知力卡片"阅读中·认知成长"同款式）
       note: `${monthCur}/${monthTarget}${h.unit || '天'}`,
       srcTag: `≡ 习惯同步 · ${HABIT_TAG_LABEL[habitKey] || cleanLabel}`,
-      srcTagColor: 'rgba(52,199,89,0.08)',
-      srcTagTextColor: '#34C759',
+      srcTagColor: 'rgba(var(--m-energy-rgb),0.08)',
+      srcTagTextColor: 'var(--m-energy)',
       habitData: { ...h, monthCur, monthTarget, cleanLabel },
     });
   }
@@ -356,8 +356,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
         done: false,
         dueDate: m.dueBy ? `截止 ${m.dueBy.slice(5).replace('-', '/')}` : undefined,
         srcTag: `≡ ${ab.title}`,
-        srcTagColor: 'rgba(255,149,0,0.08)',
-        srcTagTextColor: '#FF9500',
+        srcTagColor: 'rgba(var(--m-ability-rgb),0.08)',
+        srcTagTextColor: 'var(--m-ability)',
         milestoneData: { abilityId: ab.id, abilityTitle: ab.title, ...m, initial:
           { id: m.id, lb: m.lb, st: m.st, pct: Number(m.pct) || 0, dueBy: m.dueBy, abilityId: ab.id } },
       });
@@ -403,8 +403,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       done: wkDone,
       dueDate: wk.deadline ? `截止 ${wk.deadline.slice(5).replace('-', '/')}` : undefined,
       srcTag: `≡ ${wk.label || '工作'}目标`,
-      srcTagColor: 'rgba(255,59,48,0.08)',
-      srcTagTextColor: '#FF3B30',
+      srcTagColor: 'rgba(var(--m-work-rgb),0.08)',
+      srcTagTextColor: 'var(--m-work)',
     });
   }
 

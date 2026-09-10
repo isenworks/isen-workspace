@@ -2,16 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { readCats } from './forms/ScheduleForm.jsx';
-
-// hex → rgba（分类 chip 底色/描边，与 ScheduleForm catToStyle 同规则）
-function hexToRgba(hex, a = 0.08) {
-  const h = (hex || '').replace('#', '');
-  if (h.length !== 6) return `rgba(142,142,147,${a})`;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${a})`;
-}
+import { hexToRgba } from '../utils/color.js';
 
 /* ============================================================
  * QuickCapture · 收集箱输入框（新建与编辑统一同构）

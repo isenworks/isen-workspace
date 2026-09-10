@@ -3111,16 +3111,16 @@ function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight, onSav
     onSave?.(Array.from(set));
   };
 
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,var(--m-life),var(--m-finance))', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--m-life-rgb),0.25)' };
   const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 顶部说明 */}
-      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(var(--m-life-rgb),0.08) 0%, rgba(255,45,85,0.08) 100%)', border: '1px solid rgba(var(--m-life-rgb),0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(var(--m-life-rgb),0.08) 0%, rgba(var(--m-finance-rgb),0.08) 100%)', border: '1px solid rgba(var(--m-life-rgb),0.18)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff',
+          background: 'linear-gradient(135deg,var(--m-life),var(--m-finance))', color: '#fff',
           display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(var(--m-life-rgb),0.3)',
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>

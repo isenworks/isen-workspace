@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, useEffect } from 'react';
+import { hexToRgba } from '../utils/color.js';
 
 /* 双标记进度条：实际完成率 vs 计划完成率（时间锚点）
  * 设计要点（与终版定稿一致）：
@@ -14,20 +15,6 @@ const fmt = (x) => {
   const n = Number(x) || 0;
   return Math.round(n * 10) % 10 === 0 ? String(Math.round(n)) : String(Math.round(n * 10) / 10);
 };
-
-function hexToRgba(hex, a) {
-  const s = String(hex || '');
-  // CSS 变量：var(--m-xxx) → rgba(var(--m-xxx-rgb), a)（注意必须带 var() 包裹才能被子值解析）
-  if (s.startsWith('var(')) {
-    const inner = s.slice(4, -1); // --m-xxx
-    return `rgba(var(${inner}-rgb), ${a})`;
-  }
-  let h = s.replace('#', '');
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  const n = parseInt(h, 16);
-  if (Number.isNaN(n)) return `rgba(0,122,255,${a})`;
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-}
 
 export default function DualMarkerBar({
   actual = 0,

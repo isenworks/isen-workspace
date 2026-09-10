@@ -524,11 +524,11 @@ body {
 }
 .sb-avatar {
   width: 42px; height: 42px; border-radius: 50%;
-  background: linear-gradient(135deg, #FF9500 0%, #FF3B30 100%);
+  background: linear-gradient(135deg, var(--m-ability) 0%, var(--m-work) 100%);
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 600; font-size: 15px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(255,59,48,0.2);
+  box-shadow: 0 2px 8px rgba(var(--m-work-rgb),0.2);
 }
 .sb-date {
   font-size: 13px; font-weight: 700; color: #1c1c1e;

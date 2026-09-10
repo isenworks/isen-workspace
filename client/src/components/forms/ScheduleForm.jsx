@@ -7,6 +7,7 @@ import { store } from '../../utils/store.js';
 import { cloudPush } from '../../utils/cloudKV.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { reloadCategoryMapping } from '../../utils/categoryMapping.js';
+import { hexToRgba, tintBorder } from '../../utils/color.js';
 
 /* ============================================================
  * 分类管理 · 6 大模块 (精力/知力/能力/工作/生活/其他)
@@ -26,16 +27,6 @@ const BUILTIN_CATS = [
   { v: 5, label: '生活',  dot: '#AF52DE', builtin: true },
   { v: 3, label: '其他',  dot: '#8E8E93', builtin: true },
 ];
-
-function hexToRgba(hex, a = 0.08) {
-  const h = (hex || '').replace('#', '');
-  if (h.length !== 6) return `rgba(142,142,147,${a})`;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${a})`;
-}
-function tintBorder(dot) { return hexToRgba(dot, 0.55); }
 
 function catToStyle(c) {
   const bg = hexToRgba(c.dot, 0.09);

@@ -285,8 +285,14 @@ export default function FinanceView({
                 <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                   {/* 资产 */}
                   <div className="flex flex-col gap-2 min-w-0 pr-6">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[13px] font-semibold text-ink-500">资产</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
+                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" /><circle cx="12" cy="12" r="3.2" /></svg>
+                        </span>
+                        资产
+                      </span>
                       <span className="text-[16px] font-bold tabular-nums text-ink-900 leading-none">{finFmt(assetTotal)}</span>
                     </div>
                     <div className="flex flex-col">
@@ -309,8 +315,14 @@ export default function FinanceView({
                   </div>
                   {/* 负债（左缘灰色间隔线） */}
                   <div className="flex flex-col gap-2 min-w-0 border-l border-ink-100 pl-6">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[13px] font-semibold text-ink-500">负债</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
+                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5" /><path d="M2.5 10h19" /></svg>
+                        </span>
+                        负债
+                      </span>
                       <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">{finFmt(liabTotal)}</span>
                     </div>
                     <div className="flex flex-col">
@@ -395,10 +407,16 @@ export default function FinanceView({
               <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                 {/* 收入 */}
                 <div className="flex flex-col gap-2 min-w-0 pr-6">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-ink-500">收入</span>
-                    <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">+{finFmt(income)}</span>
-                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
+                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 5v13" /><path d="M6.5 12.5L12 18l5.5-5.5" /></svg>
+                        </span>
+                        收入
+                      </span>
+                      <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">+{finFmt(income)}</span>
+                    </div>
                   <div className="flex flex-col">
                     {ms.incomeByCat.length === 0 ? (
                       <span className="text-[12px] text-ink-300 py-1.5">本月暂无收入</span>
@@ -415,10 +433,16 @@ export default function FinanceView({
                 </div>
                 {/* 支出（左缘灰色间隔线） */}
                 <div className="flex flex-col gap-2 min-w-0 border-l border-ink-100 pl-6">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-ink-500">支出</span>
-                    <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">{finFmt(expense)}</span>
-                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-600">
+                        <span className="w-[19px] h-[19px] rounded-[5.5px] grid place-items-center flex-shrink-0"
+                          style={{ background: 'rgba(var(--m-finance-rgb),0.09)', color: FIN }}>
+                          <svg className="w-[11.5px] h-[11.5px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 19V6" /><path d="M6.5 11.5L12 6l5.5 5.5" /></svg>
+                        </span>
+                        支出
+                      </span>
+                      <span className="text-[16px] font-bold tabular-nums leading-none text-ink-900">{finFmt(expense)}</span>
+                    </div>
                   <div className="flex flex-col">
                     {ms.expenseByCat.length === 0 ? (
                       <span className="text-[12px] text-ink-300 py-1.5">本月暂无支出</span>

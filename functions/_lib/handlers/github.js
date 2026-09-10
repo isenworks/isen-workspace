@@ -4,8 +4,9 @@
 //   1) 存储层：PAT 经 GitHub API 验证后 AES-GCM 加密落 D1（ethan_github_tokens），
 //      密钥来自 Cloudflare Secrets 的 GITHUB_PAT_ENC_KEY（缺省时降级用 HMAC_SECRET 派生）；
 //      登录态接口一律不回 PAT 明文（status 只返回掩码）——「只写不读」。
-//   2) 签发层：「AI 推送授权」开关开启时生成 30 分钟有效的 grant code（256 位随机，
-//      库里只存 SHA-256，明文只在 owner 界面显示一次）；关闭 / 过期 / 重新开启 → 旧 code 立即作废。
+//   2) 签发层：「AI 推送授权」开关开启时生成时限 grant code（256 位随机，默认 1 天、
+//      可选 1 个月 / 3 个月，库里只存 SHA-256，明文只在 owner 界面显示一次）；
+//      关闭 / 过期 / 重新开启 / 切换时长 → 旧 code 立即作废。
 //   3) 兜底层：issueGrant 为公开路径（AI 沙盒无登录态），凭 grant code 换取 PAT 明文
 //      用于 git push；每次签发写审计（次数 / 时间 / IP）。PAT 本身建议用
 //      fine-grained 最小权限（单仓库 + Contents:write + 短有效期），泄露影响面可控。
@@ -14,8 +15,9 @@ import { json, nowIso, dbFirst, dbRun, ab2hex, toInt } from '../core.js';
 
 // 本功能仅对 owner 开放，且锁定到指定账号（双重校验，防止未来出现多个 owner 时误开放）
 const OWNER_EMAIL = '1429000825@qq.com';
-// grant code 有效期（毫秒）：30 分钟
-const GRANT_TTL_MS = 30 * 60 * 1000;
+// grant code 有效期选项（小时 → 毫秒）：默认 1 天，owner 可选 1 天 / 1 个月 / 3 个月
+const GRANT_TTL_HOURS = { 24: 86400000, 720: 2592000000, 2160: 7776000000 };
+const DEFAULT_GRANT_TTL_HOURS = 24;
 
 function isGithubOwner(currentUser) {
   return !!currentUser
@@ -39,8 +41,13 @@ async function ensureGithubTable(env) {
       grant_issued_count INTEGER NOT NULL DEFAULT 0,
       grant_last_issued_at TEXT,
       grant_last_ip TEXT,
+      grant_ttl_hours INTEGER,
       updated_at TEXT
     )`).run();
+    // 兼容已上线的旧表：补列（列已存在时忽略报错）
+    try {
+      await env.DB.prepare(`ALTER TABLE ethan_github_tokens ADD COLUMN grant_ttl_hours INTEGER`).run();
+    } catch (_) {}
   } catch (_) {}
 }
 
@@ -146,6 +153,7 @@ export async function handleGithubStatus(env, currentUser) {
     grant: {
       enabled: grantActive,
       expires_at: grantActive ? row.grant_expires_at : null,
+      ttl_hours: (row?.grant_ttl_hours && GRANT_TTL_HOURS[row.grant_ttl_hours]) ? row.grant_ttl_hours : DEFAULT_GRANT_TTL_HOURS,
       issued_count: row ? toInt(row.grant_issued_count) : 0,
       last_issued_at: row?.grant_last_issued_at || null,
     },
@@ -154,7 +162,8 @@ export async function handleGithubStatus(env, currentUser) {
 
 // ------------------------------------------------------------
 // POST /api/github/toggleGrant — 开/关 AI 推送授权（仅 owner）
-//   开启：生成新的 30 分钟 grant code（旧的立即作废），明文 code 只在本次响应返回一次
+//   开启：按 ttl_hours（24 / 720 / 2160，缺省 24）生成新 grant code（旧的立即作废），
+//         明文 code 只在本次响应返回一次；切换时长 = 重新生成 code
 //   关闭：清除 code，之后 issueGrant 一律拒绝
 // ------------------------------------------------------------
 export async function handleGithubToggleGrant(env, body, currentUser) {
@@ -170,13 +179,16 @@ export async function handleGithubToggleGrant(env, body, currentUser) {
     return json({ ok: true, grant: { enabled: false } });
   }
 
+  const ttlHours = toInt(body?.ttl_hours);
+  const ttlMs = GRANT_TTL_HOURS[ttlHours] || GRANT_TTL_HOURS[DEFAULT_GRANT_TTL_HOURS];
+  const effectiveTtl = GRANT_TTL_HOURS[ttlHours] ? ttlHours : DEFAULT_GRANT_TTL_HOURS;
   const code = ab2hex(crypto.getRandomValues(new Uint8Array(32)).buffer);
   const codeHash = ab2hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code)));
-  const expiresAt = Date.now() + GRANT_TTL_MS;
+  const expiresAt = Date.now() + ttlMs;
   await dbRun(env.DB,
-    `UPDATE ethan_github_tokens SET grant_enabled=1, grant_code_hash=?, grant_expires_at=? WHERE user_id=?`,
-    [codeHash, expiresAt, currentUser.id]);
-  return json({ ok: true, grant: { enabled: true, code, expires_at: expiresAt } });
+    `UPDATE ethan_github_tokens SET grant_enabled=1, grant_code_hash=?, grant_expires_at=?, grant_ttl_hours=? WHERE user_id=?`,
+    [codeHash, expiresAt, effectiveTtl, currentUser.id]);
+  return json({ ok: true, grant: { enabled: true, code, expires_at: expiresAt, ttl_hours: effectiveTtl } });
 }
 
 // ------------------------------------------------------------

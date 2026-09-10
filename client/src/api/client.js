@@ -230,8 +230,8 @@ export const API = {
     async status() { return fetchPages('/github/status', {}, 'GET'); },
     // 验证并加密保存 PAT（返回掩码 + GitHub 登录名）
     async setToken(pat) { return fetchPages('/github/setToken', { pat }); },
-    // 开启返回一次性 grant code（30 分钟有效），关闭作废全部 code
-    async toggleGrant(enabled) { return fetchPages('/github/toggleGrant', { enabled: !!enabled }); },
+    // 开启返回时限 grant code（默认 1 天，可选 720=1 个月 / 2160=3 个月），关闭作废全部 code
+    async toggleGrant(enabled, ttlHours) { return fetchPages('/github/toggleGrant', { enabled: !!enabled, ttl_hours: ttlHours || 24 }); },
     // 彻底删除托管的 PAT 及授权状态
     async clearToken() { return fetchPages('/github/clearToken', {}); },
   },

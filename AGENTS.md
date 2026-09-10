@@ -172,7 +172,7 @@ functions/api/[[route]].js           # 薄路由
 
 ## AI 推送授权（git push 凭证受控签发，给 AI 助手看）
 
-owner 已在工作台「设置 → AI 推送授权」托管 GitHub PAT（AES-GCM 加密存 `ethan_github_tokens`，仅 owner `1429000825@qq.com` 可管理）。当 owner 发来一段 30 分钟有效的 `grant code` 并要求 push 时：
+owner 已在工作台「设置 → AI 推送授权」托管 GitHub PAT（AES-GCM 加密存 `ethan_github_tokens`，仅 owner `1429000825@qq.com` 可管理）。当 owner 发来一条含 `grant code` 的推送指令并要求 push 时（授权码时限由 owner 选定：1 天 / 1 个月 / 3 个月，默认 1 天）：
 
 ```bash
 # 1) 用 grant code 换 PAT（公开接口，code 本身即凭证）

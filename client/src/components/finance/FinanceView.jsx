@@ -79,7 +79,7 @@ function GoalMenu({ goal, onDetail, onEdit, onRemove }) {
     <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        className="w-7 h-7 -mr-2.5 rounded-full flex items-center justify-center hover:bg-ink-100/70 active:bg-ink-200/60 transition-colors text-ink-400 hover:text-[var(--m-finance)]"
+        className="w-7 h-7 -mr-2.5 rounded-full flex items-center justify-center hover:bg-[rgba(var(--m-finance-rgb),0.08)] active:bg-[rgba(var(--m-finance-rgb),0.14)] transition-colors text-ink-400 hover:text-[var(--m-finance)]"
         title="更多操作">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
           <circle cx="12" cy="5" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="12" cy="19" r="1.4" />

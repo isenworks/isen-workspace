@@ -120,7 +120,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   /* 水位涨过球心（≥50%）后，球心百分比切白字 */
   const onWater = pct >= 50;
   return (
-    <div className="bg-white rounded-xl border border-ink-100 p-2 px-3 flex flex-col gap-1">
+    <div className="bg-ink-50 rounded-xl p-2 px-3 flex flex-col gap-1">
       {/* 标题行：目标名 + 已达成徽标 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center min-w-0 gap-1.5">
@@ -135,9 +135,9 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
 
       {/* 居中区：水位球 + 斜杠金额行 + 还差行 */}
       <div className="flex flex-col items-center gap-1.5 py-0">
-        {/* 水位球：浅红细线框 + 淡红轨道底 + 饱和水，球心红/白动态百分比 */}
+        {/* 水位球：浅红细线框 + 白色轨道底（灰卡上清晰）+ 饱和水，球心红/白动态百分比 */}
         <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border-2"
-          style={{ background: moduleRgba('finance', 0.06), borderColor: moduleRgba('finance', 0.35) }} role="img" aria-label={`进度 ${pct}%`}>
+          style={{ background: '#fff', borderColor: moduleRgba('finance', 0.35) }} role="img" aria-label={`进度 ${pct}%`}>
           <div className="absolute left-0 right-0 bottom-0 transition-[height] duration-500 ease-out"
             style={{ height: `${pct}%`, background: FIN }} />
           <span className="absolute inset-0 grid place-items-center text-[13px] font-bold tabular-nums"
@@ -163,7 +163,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
           <span className={overdue ? '' : 'text-ink-400'}>{overdue ? '已过期' : (plan || '未设定达成日期')}</span>
         </span>
         <button onClick={() => onDeposit(goal)} disabled={isDone}
-          className="inline-flex items-center h-[26px] px-3 rounded-lg text-[11.5px] font-bold transition flex-shrink-0 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-ink-50 text-ink-400 hover:bg-[rgba(var(--m-finance-rgb),0.12)] hover:text-[var(--m-finance)]">
+          className="inline-flex items-center h-[26px] px-3 rounded-lg text-[11.5px] font-bold transition flex-shrink-0 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-white text-ink-400 hover:bg-[rgba(var(--m-finance-rgb),0.12)] hover:text-[var(--m-finance)]">
           存入
         </button>
       </div>

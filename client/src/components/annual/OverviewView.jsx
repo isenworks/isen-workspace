@@ -350,7 +350,7 @@ export const Sparkline = ({ data, labels, color = '#34C759', width = 260, height
  * - 卡身 max-h-150px + 独立滚动 + 底部渐隐(解决等高栅格内长短不一的空白)
  * - 子行 5列→4列(名与规格合并)
  * - 漏斗行:名称/转化一行,比例条独立一行(窄卡水平摆放不可读) */
-export function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData }) {
+export function OverviewView({ onNav, stats, realHabits, books, abilities, workGoals, lifeData, finData }) {
   const year = new Date().getFullYear();
   const habits = realHabits || HABITS;
   const dynBooks = (!books || books.length === 0) ? BOOKS : books;
@@ -386,8 +386,25 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
   const mainWork = dynWork.find(o => o.core) || dynWork[0];
   const sideWork = dynWork.find(o => !o.core && o !== mainWork);
 
+  /* 财务：攒钱目标 + 资产负债（来自 finData.bootstrap，与财务页共享同一份数据） */
+  const finGoals = (finData?.goals) || [];
+  const finNw = finData?.netWorth || { assets: 0, liabilities: 0, netWorth: 0 };
+  /* 金额紧凑缩写：<1万 原样(去零)，≥1万 转「x.x万」，保证 SubRow 56px 数值列不溢出 */
+  const finShort = (v) => {
+    const n = Number(v) || 0;
+    if (n >= 10000) {
+      const w = n / 10000;
+      return `${w % 1 === 0 ? w.toFixed(0) : w.toFixed(1)}万`;
+    }
+    return n.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+  };
+  /* 资产/负债总额：从账户余额正负拆分（与财务页资产负债卡口径一致） */
+  const finAccs = (finData?.accounts) || [];
+  const finAssetTotal = finAccs.reduce((s, a) => s + Math.max(0, Number(a.balance) || 0), 0);
+  const finLiabTotal = finAccs.reduce((s, a) => s + Math.max(0, -Number(a.balance) || 0), 0);
+
   /* 折叠状态 */
-  const [collapsed, setCollapsed] = useState({ energy: false, cognition: false, ability: false, work: false, life: false });
+  const [collapsed, setCollapsed] = useState({ energy: false, cognition: false, ability: false, work: false, finance: false, life: false });
   const toggle = (k) => setCollapsed(s => ({ ...s, [k]: !s[k] }));
 
   /* 年度概览标题：右键可改（InlineEdit contextmenu + usePersistentState 持久化，清空回落默认） */
@@ -573,9 +590,38 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
             </CardBody>
           </div>
 
-          {/* 生活 */}
+          {/* 财务：攒钱目标为主体（目标量/已存量/截止日），底部脚注给资产负债锚点 */}
           <div className={CARD_PAD}>
             <CardHead c={CATEGORIES[4]} pctVal={perCat[4]} />
+            <CardBody show={!collapsed.finance}>
+              {finGoals.length === 0 ? (
+                <div className="text-[12.5px] text-[#8E8E93] py-4 text-center">还没有攒钱目标，去财务页创建</div>
+              ) : finGoals.map(g => {
+                const target = Number(g.target_amount) || 0;
+                const current = Number(g.current_amount) || 0;
+                const gp = target > 0 ? Math.min(100, (current / target) * 100) : 0;
+                const isDone = g.status === 'done' || (target > 0 && current >= target);
+                const dl = String(g.deadline || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                const dlShort = dl ? `${Number(dl[2])}.${Number(dl[3])}止` : '';
+                return (
+                  <SubRow key={g.id}
+                    name={dlShort ? `${g.name}  ${dlShort}` : g.name}
+                    pct={gp}
+                    val={`${finShort(current)}/${finShort(target)}`}
+                    color="var(--m-finance)"
+                    done={isDone ? true : undefined} />
+                );
+              })}
+              {/* 资产负债脚注：与知力卡「已读 X/Y · 待读 Z」同位，给资产/负债各一个锚点值 */}
+              <div className="text-[10.5px] text-[#8E8E93] leading-none py-1 truncate">
+                资产 <b style={{ color: '#48484A' }}>¥{finShort(finAssetTotal)}</b> · 负债 <b style={{ color: '#48484A' }}>¥{finShort(finLiabTotal)}</b>
+              </div>
+            </CardBody>
+          </div>
+
+          {/* 生活 */}
+          <div className={CARD_PAD}>
+            <CardHead c={CATEGORIES[5]} pctVal={perCat[5]} />
             <CardBody show={!collapsed.life}>
               {dynLife.map(cat => {
                 const n = cat.entries.length;

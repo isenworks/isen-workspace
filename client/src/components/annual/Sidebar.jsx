@@ -125,7 +125,7 @@ export function Sidebar({ active, onChange, stats }) {
 
       {/* 底部说明（仅宽屏） */}
       <div className="hidden lg:block px-2 text-[11px] text-ink-400 leading-relaxed">
-        五大类目 · 差异化追踪模型<br/>
+        六大类目 · 差异化追踪模型<br/>
         工作台年度规划
       </div>
     </aside>

@@ -127,7 +127,7 @@ export function useEnergyHabits() {
 }
 
 /* ---------- 3. 视图数据计算 · Overview ---------- */
-export function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dynamicWork, dynamicLife) {
+export function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dynamicWork, dynamicLife, finData) {
   return useMemo(() => {
     const habits = realHabits || HABITS;
     // 精力：各习惯 val/target 完成率平均 → 与精力页 Hero 胶囊一致
@@ -150,15 +150,20 @@ export function useOverviewStats(realHabits, dynamicBooks, dynamicAbilities, dyn
     // 工作：主+副所有KR的v/tgt完成率平均 → 与 WorkView Hero 胶囊 totalPct 一致
     const allKrs = work.flatMap(o => o.krs || []);
     const wkVal = allKrs.length > 0 ? allKrs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / allKrs.length : 0;
+    // 财务：全部攒钱目标 Σ已存 ÷ Σ目标（含已完成）→ 与财务页 GoalCard 进度口径一致
+    const finGoals = (finData?.goals) || [];
+    const finSumCur = finGoals.reduce((s, g) => s + (Number(g.current_amount) || 0), 0);
+    const finSumTgt = finGoals.reduce((s, g) => s + (Number(g.target_amount) || 0), 0);
+    const finVal = finSumTgt > 0 ? Math.min(100, (finSumCur / finSumTgt) * 100) : 0;
     const life = dynamicLife || LIFE;
     // 生活：有记录的类目数/总类目数*100 → 与 LifeView Hero 胶囊 lifePct 一致
     const lifeVal = life.length > 0 ? (life.filter(c => c.entries.length > 0).length / life.length) * 100 : 0;
-    const vals = [energyVal, cogVal, abilityVal, wkVal, lifeVal];
+    const vals = [energyVal, cogVal, abilityVal, wkVal, finVal, lifeVal];
     const weighted = Math.round(
       CATEGORIES.reduce((s, c, i) => s + vals[i] * c.weight, 0)
     );
     return { perCat: vals, weighted };
-  }, [realHabits, dynamicBooks, dynamicAbilities, dynamicWork, dynamicLife]);
+  }, [realHabits, dynamicBooks, dynamicAbilities, dynamicWork, dynamicLife, finData]);
 }
 
 /* ---------- 4. 子组件 · 顶部 Nav 条 ---------- */

@@ -4,8 +4,9 @@ import { pct } from './utils.js';
 export const CATEGORIES = [
   { key: 'energy',    label: '精力', type: '习惯型',    weight: 0.15, color: 'var(--m-energy)',    rgb: 'var(--m-energy-rgb)' },
   { key: 'cognition', label: '知力', type: '混合型',    weight: 0.20, color: 'var(--m-cognition)', rgb: 'var(--m-cognition-rgb)' },
-  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.25, color: 'var(--m-ability)',   rgb: 'var(--m-ability-rgb)' },
-  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.25, color: 'var(--m-work)',      rgb: 'var(--m-work-rgb)' },
+  { key: 'ability',   label: '能力', type: '里程碑型',  weight: 0.20, color: 'var(--m-ability)',   rgb: 'var(--m-ability-rgb)' },
+  { key: 'work',      label: '工作', type: 'OKR 量化型',weight: 0.20, color: 'var(--m-work)',      rgb: 'var(--m-work-rgb)' },
+  { key: 'finance',   label: '财务', type: '攒钱目标',  weight: 0.10, color: 'var(--m-finance)',   rgb: 'var(--m-finance-rgb)' },
   { key: 'life',      label: '生活', type: '体验记录',  weight: 0.15, color: 'var(--m-life)',      rgb: 'var(--m-life-rgb)' },
 ];
 

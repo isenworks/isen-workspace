@@ -200,8 +200,9 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   });
   const [finTick, setFinTick] = useState(0);
   const finRefresh = useCallback(() => setFinTick(t => t + 1), []);
+  // 概览页也需要财务数据（攒钱目标卡），故 overview/finance 两视图都拉取 bootstrap
   useEffect(() => {
-    if (view !== 'finance') return;
+    if (view !== 'finance' && view !== 'overview') return;
     let alive = true;
     setFinLoading(true);
     API.finance.bootstrap(finMonth)
@@ -1020,12 +1021,12 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     }
   })();
 
-  const stats = useOverviewStats(mergedHabits, books, abilities, workGoals, lifeData);
+  const stats = useOverviewStats(mergedHabits, books, abilities, workGoals, lifeData, finData);
 
   // 主内容
   const mainContent = (
     <main key={view} className="flex-1 min-w-0 animate-fade-in">
-      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} />}
+      {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} finData={finData} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} onBookMove={(id, st) => bookOps.move(id, st)}
         onBookUpdate={(id, patch) => { setBooks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b)); showToast('书籍已更新'); }}

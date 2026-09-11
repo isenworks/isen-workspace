@@ -1511,7 +1511,7 @@ export function CognitionView({
                   onContextMenu={handleWereadLinkContext}
                   title={wereadLinks.length ? `微信读书链接（${wereadLinks.length} 条，右键增删改）` : '右键添加微信读书链接'}
                   className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
-                  style={{ color: BLUE, background: `rgba(${S_RGB},0.10)`, border: `1px solid rgba(${S_RGB},0.25)` }}>
+                  style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}>
                   {/* 外链图标（与生活页链接按钮同款线形） */}
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>

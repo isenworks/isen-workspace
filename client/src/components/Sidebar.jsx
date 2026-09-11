@@ -478,17 +478,15 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 ) : (
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{labelOf(item)}</span>
                 )}
-                {/* 收集箱：待分派数量徽标紧跟文字右侧（唯一常驻色块）；默认浅灰，激活时跟随主题蓝 */}
+                {/* 收集箱：待分派计数「· N」紧跟文字右侧；颜色/字号与快速捕获加号一致（默认浅灰，激活跟随主题蓝） */}
                 {item.key === 'inbox' && inboxCount > 0 && (
                   <span
-                    className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[12px] font-semibold tabular-nums"
+                    className="flex-shrink-0 text-[11px] font-semibold tabular-nums"
                     style={{
                       marginLeft: '-4px',
-                      ...(activeMenu === 'inbox'
-                        ? { background: 'rgba(var(--s-rgb),0.16)', color: 'var(--s-main)' }
-                        : { background: 'rgba(120,120,128,0.10)', color: 'var(--ink-500, #8e8e93)' })
+                      color: activeMenu === 'inbox' ? 'var(--s-main)' : 'var(--ink-500, #8e8e93)'
                     }}
-                  >{inboxCount}</span>
+                  >· {inboxCount}</span>
                 )}
               </div>
               {/* 收集箱：快速捕获加号 · 默认纯图标无底色，hover 浮出圆角方形浅灰底（与二级导航加号同款），样式见 .sb-inbox-add */}

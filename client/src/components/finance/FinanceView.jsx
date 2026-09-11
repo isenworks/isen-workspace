@@ -348,7 +348,7 @@ export default function FinanceView({
                   </div>
                 </div>
                 {/* 分割线 */}
-                <div className="h-px bg-ink-100" />
+                <div className="h-px bg-ink-100 mt-auto" />
                 {/* 底部：净资产行（白底，左右与两栏内容对齐） */}
                 <div className="rounded-xl px-[17px] py-1 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -462,7 +462,7 @@ export default function FinanceView({
                 </div>
               </div>
               {/* 分割线 */}
-              <div className="h-px bg-ink-100" />
+              <div className="h-px bg-ink-100 mt-auto" />
               {/* 底部：月结余行（白底，左右与两栏内容对齐） */}
               <div className="rounded-xl px-[17px] py-1 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap min-w-0">

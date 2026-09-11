@@ -409,13 +409,13 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                     type="button"
                     aria-label="快速记一条"
                     title="快速记一条（快捷键 N）"
-                    className="flex-shrink-0 w-5 h-5 rounded-lg flex items-center justify-center transition-colors"
+                    className="flex-shrink-0 w-[18px] h-[18px] rounded-[5px] flex items-center justify-center transition-colors"
                     style={activeMenu === 'inbox'
                       ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' }
                       : { background: 'rgba(120,120,128,0.08)', color: 'var(--ink-500, #8e8e93)' }}
                     onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
                   >
-                    <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="13" height="13"><path d="M12 5v14M5 12h14"/></svg>
+                    <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="11" height="11"><path d="M12 5v14M5 12h14"/></svg>
                   </button>
                 )}
               </div>

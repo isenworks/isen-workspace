@@ -376,16 +376,12 @@ export default function FinanceView({
           right={
             <>
               <MonthNav month={month} onChange={onMonthChange} />
-              {/* 需求6：管理按钮 —— 增删收支分类（如新增副业收入项） */}
+              {/* 需求6：管理按钮 —— 增删收支分类（如新增副业收入项）；样式与资产负债"管理账户"按钮统一 */}
               <button onClick={onManage}
-                className="inline-flex items-center gap-1 h-[26px] px-2.5 rounded-lg text-[11.5px] font-semibold transition hover:brightness-105 active:scale-95"
+                className="inline-flex items-center h-[26px] px-3 rounded-lg text-[11.5px] font-semibold transition hover:brightness-105 active:scale-95"
                 style={{ background: moduleRgba('finance', 0.10), color: FIN }}
                 title="管理收支分类（如新增副业收入）">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-                </svg>
-                管理
+                管理分类
               </button>
               {/* 记一笔主操作 */}
               <button onClick={onTxAdd}

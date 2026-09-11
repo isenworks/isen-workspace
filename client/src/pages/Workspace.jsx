@@ -587,7 +587,7 @@ export default function Workspace({ user: propUser }) {
 
           {/* 主体：左右分栏（默认 38% + 62%，可拖拽调整并记忆） */}
           <div {...bindRoot} className="flex items-stretch">
-            {/* 左栏：重点事项 + 收集箱提醒条 + 习惯 */}
+            {/* 左栏：重点事项 + 习惯 */}
             <div className="flex flex-col gap-4 min-w-0" style={leftStyle}>
               <KeyTasks
                 date={selectedDate}
@@ -598,25 +598,6 @@ export default function Workspace({ user: propUser }) {
                 onNew={(info) => setModal({ type: 'schedule', data: info ? (typeof info === 'object' ? info : { category: info }) : undefined })}
                 onChange={refresh}
               />
-              {/* 收集箱提醒条：重点事项下方、习惯上方；有待分派想法时显示，引导每日清空 */}
-              {inboxCount > 0 && (
-                <button
-                  onClick={() => setActiveMenu('inbox')}
-                  className="glass-card rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 w-full text-left group"
-                  style={{ border: '1px solid rgba(var(--s-rgb),0.18)' }}
-                >
-                  <span className="flex-shrink-0" style={{ color: 'var(--s-main)' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
-                      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
-                    </svg>
-                  </span>
-                  <span className="flex-1 min-w-0 text-[12.5px] font-medium text-ink-600 group-hover:text-ink-900 transition-colors">
-                    收集箱 · <span className="font-semibold" style={{ color: 'var(--s-main)' }}>{inboxCount} 条待分派</span>
-                  </span>
-                  <svg className="flex-shrink-0 text-ink-300 group-hover:text-[color:var(--s-main)] transition-colors" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-              )}
               <HabitsPanel
                 date={selectedDate}
                 refreshSignal={refreshKey}

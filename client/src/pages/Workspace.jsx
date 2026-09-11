@@ -20,7 +20,8 @@ import { store } from '../utils/store.js';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
 // ===== 路由级 / 弹窗级懒加载：仅在对应菜单或弹窗打开时才拉取分块，减小首屏 JS =====
-// 注：CalendarPage 内含 lunar 农历库（大），懒加载后随「日历」菜单按需加载，不进首屏
+// 注：CalendarPage 内含 lunar 农历库（大），懒加载后随「日历」菜单按需加载，不进首屏；
+//     日历为高频页面，挂载后空闲时后台预取分块（见组件内 warm 效果），首次点击即秒开
 //     HabitForm/BookForm/KrForm/MilestoneForm/AbilityForm 被 AnnualPlan 静态引用（随其加载），懒加载无收益故保留静态
 const CalendarPage = lazy(() => import('./CalendarPage.jsx'));
 const RecycleBinPage = lazy(() => import('./RecycleBinPage.jsx'));
@@ -123,6 +124,18 @@ export default function Workspace({ user: propUser }) {
     API.inbox.list().then(r => setInboxCount((r.items || []).length)).catch(() => {});
   }, []);
   useEffect(() => { loadInboxCount(); }, [loadInboxCount, refreshKey]);
+
+  // ===== 日历分块预取：高频页面，登录后空闲时后台拉取（含农历库），首次点击免「加载中」 =====
+  // 与上方 lazy() 引用同一模块，预取后模块缓存命中，点击日历零网络等待
+  useEffect(() => {
+    const warm = () => { import('./CalendarPage.jsx'); };
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 2000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(warm, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // ===== 快速捕获「分派」：条目已先收进收集箱，这里打开详细分派（与收集箱页同款流程） =====
   function openDispatchFor(item) {

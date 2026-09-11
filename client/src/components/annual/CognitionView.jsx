@@ -1512,10 +1512,14 @@ export function CognitionView({
                   title={wereadLinks.length ? `微信读书链接（${wereadLinks.length} 条，右键增删改）` : '右键添加微信读书链接'}
                   className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
                   style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}>
-                  {/* 外链图标（与生活页链接按钮同款线形） */}
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                  {/* 书架图标（竖排三本带书脊线） */}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="5" height="16" rx="0.5"/>
+                    <line x1="5.5" y1="7" x2="5.5" y2="17"/>
+                    <rect x="9" y="4" width="5" height="16" rx="0.5"/>
+                    <line x1="11.5" y1="7" x2="11.5" y2="17"/>
+                    <rect x="15" y="4" width="5" height="16" rx="0.5"/>
+                    <line x1="17.5" y1="7" x2="17.5" y2="17"/>
                   </svg>
                 </button>
 

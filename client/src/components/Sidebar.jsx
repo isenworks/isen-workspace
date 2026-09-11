@@ -74,14 +74,14 @@ function saveNavLabel(user, key, label) {
 export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd, inboxCount = 0, onQuickCapture }) {
   const toast = useToast();
   const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
-  // 发展规划二级导航展开/收起态：纯持久化（与收集箱 inbox_layout 同模式）
-  // —— 只在「已处于发展规划页时再次点击主菜单」切换；切换到其他页面、重新登录都保持当前状态
+  // 发展规划二级导航展开/收起态：由主菜单右侧 ⌄ 按钮显式控制（localStorage 持久化）
+  // —— 切换到其他页面、重新登录都保持当前状态
   const ANNUAL_SUB_LS = 'annual_sub_collapsed';
-  const [annualSubManuallyClosed, setAnnualSubManuallyClosed] = useState(() => {
+  const [annualSubClosed, setAnnualSubClosed] = useState(() => {
     try { return localStorage.getItem(ANNUAL_SUB_LS) === '1'; } catch { return false; }
   });
   const toggleAnnualSub = (closed) => {
-    setAnnualSubManuallyClosed(closed);
+    setAnnualSubClosed(closed);
     try { localStorage.setItem(ANNUAL_SUB_LS, closed ? '1' : '0'); } catch { /* ignore */ }
   };
   // 导航标题云端同步：云端较新则覆盖本地（换浏览器/清缓存后自动恢复自定义标题）
@@ -368,14 +368,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               <div
                 className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
                 style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  // 发展规划：已处于该页时再次点击主菜单 → 切换二级导航展开/收起（持久化）；
-                  // 从其他页面点入只做导航，不改动展开/收起状态
-                  if (item.key === 'annual' && activeMenu === 'annual') {
-                    toggleAnnualSub(!annualSubManuallyClosed);
-                  }
-                  onMenuChange?.(item.key);
-                }}
+                onClick={() => onMenuChange?.(item.key)}
                 onContextMenu={(e) => handleNavContextMenu(e, item)}
                 title="右键可修改标题文字"
               >
@@ -395,10 +388,26 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 ) : (
                   <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
                 )}
+                {/* 发展规划：⌄ 展开指示按钮，点击切换二级导航（持久化）；箭头旋转指向状态 */}
+                {item.key === 'annual' && (
+                  <button
+                    type="button"
+                    className="sb-nav-chev"
+                    aria-expanded={!annualSubClosed}
+                    aria-label={annualSubClosed ? '展开发展规划二级导航' : '收起发展规划二级导航'}
+                    title={annualSubClosed ? '展开二级导航' : '收起二级导航'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleAnnualSub(!annualSubClosed);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                )}
               </div>
               {/* 发展规划 · 二级导航：展开/收起纯跟随持久化状态，切到其他页面仍保持（年度概览/精力/知力/能力/工作/生活） */}
               {item.key === 'annual' && (
-                <div className="sb-annual-subwrap" style={{ display: !annualSubManuallyClosed ? 'block' : 'none' }}>
+                <div className="sb-annual-subwrap" style={{ display: !annualSubClosed ? 'block' : 'none' }}>
                   {ANNUAL_SUB.map(sub => {
                     const on = activeMenu === 'annual' && (annualView || 'overview') === sub.key;
                     return (

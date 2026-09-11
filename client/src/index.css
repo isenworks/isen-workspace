@@ -587,8 +587,25 @@ body {
 }
 .sb-nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
 
+/* 发展规划 · ⌄ 展开指示按钮：箭头旋转指向二级导航展开/收起态 */
+.sb-nav-chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 6px; border: none; padding: 0;
+  background: transparent; color: var(--ink-500, #8e8e93);
+  cursor: pointer; flex-shrink: 0;
+  transition: background .15s ease, color .15s ease;
+}
+.sb-nav-chev:hover { background: rgba(120,120,128,0.14); color: #1c1c1e; }
+.sb-nav-chev svg { width: 14px; height: 14px; transition: transform .2s ease; }
+.sb-nav-chev[aria-expanded="false"] svg { transform: rotate(-90deg); }
+
 /* ====== 侧边栏 · 发展规划二级导航（原年度页顶部 Tab 整合） ====== */
-.sb-annual-subwrap { padding: 1px 0 3px; }
+.sb-annual-subwrap { padding: 1px 0 3px; animation: sb-annual-in .18s ease; }
+@keyframes sb-annual-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .sb-annual-sub {
   display: flex; align-items: center; gap: 8px;
   margin: 1px 8px 1px 38px; /* 左缩进对齐父级图标+文字起始位 */

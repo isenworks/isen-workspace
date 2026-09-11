@@ -398,10 +398,10 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 {/* 收集箱：待分派数量徽标 + 快速捕获加号（默认浅灰中性色；激活时跟随主题蓝，与导航行同源） */}
                 {item.key === 'inbox' && inboxCount > 0 && (
                   <span
-                    className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-[5px] text-[12px] font-semibold tabular-nums"
+                    className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[12px] font-semibold tabular-nums"
                     style={activeMenu === 'inbox'
                       ? { background: 'rgba(var(--s-rgb),0.16)', color: 'var(--s-main)' }
-                      : { background: 'rgba(120,120,128,0.10)', color: 'var(--ink-600, #6b7280)' }}
+                      : { background: 'rgba(120,120,128,0.10)', color: 'var(--ink-500, #8e8e93)' }}
                   >{inboxCount}</span>
                 )}
                 {item.key === 'inbox' && (
@@ -415,7 +415,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                       : { background: 'rgba(120,120,128,0.08)', color: 'var(--ink-500, #8e8e93)' }}
                     onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
                   >
-                    <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="12" height="12"><path d="M12 5v14M5 12h14"/></svg>
+                    <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="10" height="10"><path d="M12 5v14M5 12h14"/></svg>
                   </button>
                 )}
               </div>

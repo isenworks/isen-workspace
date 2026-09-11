@@ -463,31 +463,31 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
-                {editingNav?.key === item.key ? (
-                  <input
-                    autoFocus
-                    defaultValue={labelOf(item)}
-                    className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-sm py-0"
-                    onClick={(e) => e.stopPropagation()}
-                    onBlur={(e) => commitNavLabel(item, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') commitNavLabel(item, e.currentTarget.value);
-                      if (e.key === 'Escape') setEditingNav(null);
-                    }}
-                  />
-                ) : (
-                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{labelOf(item)}</span>
-                )}
-                {/* 收集箱：待分派计数「· N」紧跟文字右侧；颜色/字号与快速捕获加号一致（默认浅灰，激活跟随主题蓝） */}
-                {item.key === 'inbox' && inboxCount > 0 && (
-                  <span
-                    className="flex-shrink-0 text-[11px] font-semibold tabular-nums"
-                    style={{
-                      marginLeft: '-4px',
-                      color: activeMenu === 'inbox' ? 'var(--s-main)' : 'var(--ink-500, #8e8e93)'
-                    }}
-                  >· {inboxCount}</span>
-                )}
+                {/* 文字与「· N」计数按基线对齐：不同字号同行视觉居中，数字不上漂 */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>
+                  {editingNav?.key === item.key ? (
+                    <input
+                      autoFocus
+                      defaultValue={labelOf(item)}
+                      className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-sm py-0"
+                      onClick={(e) => e.stopPropagation()}
+                      onBlur={(e) => commitNavLabel(item, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitNavLabel(item, e.currentTarget.value);
+                        if (e.key === 'Escape') setEditingNav(null);
+                      }}
+                    />
+                  ) : (
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{labelOf(item)}</span>
+                  )}
+                  {/* 收集箱：待分派计数「· N」紧跟文字右侧；颜色/字号与快速捕获加号一致（默认浅灰，激活跟随主题蓝） */}
+                  {item.key === 'inbox' && inboxCount > 0 && (
+                    <span
+                      className="flex-shrink-0 text-[11px] font-semibold tabular-nums"
+                      style={{ color: activeMenu === 'inbox' ? 'var(--s-main)' : 'var(--ink-500, #8e8e93)' }}
+                    >· {inboxCount}</span>
+                  )}
+                </div>
               </div>
               {/* 收集箱：快速捕获加号 · 默认纯图标无底色，hover 浮出圆角方形浅灰底（与二级导航加号同款），样式见 .sb-inbox-add */}
               {item.key === 'inbox' && (

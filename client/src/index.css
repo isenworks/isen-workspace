@@ -597,8 +597,8 @@ body {
   transition: background .15s ease, color .15s ease;
 }
 .sb-nav-chev:hover { background: rgba(120,120,128,0.14); color: #1c1c1e; }
-/* 展开态：⌄ 跟随主题蓝（置于 hover 之后，展开时 hover 仅加浅底、保持蓝色） */
-.sb-nav-chev[aria-expanded="true"] { color: var(--s-main); }
+/* 激活（处于发展规划页）时：⌄ 跟随主题蓝；展开/收起仅控制箭头旋转，不改颜色 */
+.sb-nav-item.active .sb-nav-chev { color: var(--s-main); }
 .sb-nav-chev svg { width: 14px; height: 14px; transition: transform .2s ease; }
 .sb-nav-chev[aria-expanded="false"] svg { transform: rotate(-90deg); }
 

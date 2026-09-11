@@ -491,7 +491,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   >{inboxCount}</span>
                 )}
               </div>
-              {/* 收集箱：快速捕获加号 · 默认纯图标无底色，hover 浮出圆形底（与徽章同形），样式见 .sb-inbox-add */}
+              {/* 收集箱：快速捕获加号 · 默认纯图标无底色，hover 浮出圆角方形浅灰底（与二级导航加号同款），样式见 .sb-inbox-add */}
               {item.key === 'inbox' && (
                 <button
                   type="button"

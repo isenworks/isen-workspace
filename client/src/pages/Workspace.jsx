@@ -173,7 +173,9 @@ export default function Workspace({ user: propUser }) {
     }
   }
 
-  // ===== 快捷键 N：任意页面快速捕获（无输入框聚焦、无弹窗打开时） =====
+  // ===== 快捷键 N / Shift+N（无输入框聚焦、无弹窗打开时） =====
+  // N：任意页面快速捕获（打开快速记录面板）
+  // Shift+N：直达收集箱页面（原需求 Ctrl+N 被浏览器保留为新开窗口，无法拦截，故改用 Shift+N）
   useEffect(() => {
     function onKey(e) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -183,7 +185,8 @@ export default function Workspace({ user: propUser }) {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        setQuickCaptureOpen(true);
+        if (e.shiftKey) setActiveMenu('inbox');
+        else setQuickCaptureOpen(true);
       }
     }
     window.addEventListener('keydown', onKey);

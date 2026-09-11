@@ -120,8 +120,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
   /* 水位涨过球心（≥50%）后，球心百分比切白字 */
   const onWater = pct >= 50;
   return (
-    <div className="bg-white rounded-xl p-2 px-3 flex flex-col gap-1"
-      style={{ boxShadow: `0 2px 10px ${moduleRgba('finance', 0.12)}` }}>
+    <div className="bg-white rounded-xl border border-ink-100 p-2 px-3 flex flex-col gap-1">
       {/* 标题行：目标名 + 已达成徽标 + ⋮（需求2：右上角纵向三点） */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center min-w-0 gap-1.5">
@@ -164,7 +163,7 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
           <span className={overdue ? '' : 'text-ink-400'}>{overdue ? '已过期' : (plan || '未设定达成日期')}</span>
         </span>
         <button onClick={() => onDeposit(goal)} disabled={isDone}
-          className="inline-flex items-center h-[24px] px-2.5 rounded-lg text-[11.5px] font-bold transition flex-shrink-0 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-ink-50 text-ink-400 hover:bg-[rgba(var(--m-finance-rgb),0.12)] hover:text-[var(--m-finance)]">
+          className="inline-flex items-center h-[26px] px-3 rounded-lg text-[11.5px] font-bold transition flex-shrink-0 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-ink-50 text-ink-400 hover:bg-[rgba(var(--m-finance-rgb),0.12)] hover:text-[var(--m-finance)]">
           存入
         </button>
       </div>

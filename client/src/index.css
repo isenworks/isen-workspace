@@ -600,6 +600,21 @@ body {
 .sb-nav-chev svg { width: 14px; height: 14px; transition: transform .2s ease; }
 .sb-nav-chev[aria-expanded="false"] svg { transform: rotate(-90deg); }
 
+/* 收集箱 · 快速捕获加号：默认纯图标（无底色），hover 才浮出圆形底（与数量徽章同形） */
+.sb-inbox-add {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 999px;
+  background: transparent; color: var(--ink-500, #8e8e93);
+  border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+  transition: background .15s ease, color .15s ease;
+}
+.sb-inbox-add:hover { background: rgba(120,120,128,0.14); color: #1c1c1e; }
+.sb-nav-item:hover .sb-inbox-add:not(.on) { color: #3c3c43; }
+/* 激活：图标跟随主题蓝，hover 出同色浅圆底 */
+.sb-inbox-add.on { color: var(--s-main); }
+.sb-inbox-add.on:hover { background: rgba(var(--s-rgb),0.12); }
+.sb-inbox-add svg { width: 10px; height: 10px; }
+
 /* ====== 侧边栏 · 发展规划二级导航（原年度页顶部 Tab 整合） ====== */
 .sb-annual-subwrap { padding: 1px 0 3px; animation: sb-annual-in .18s ease; }
 @keyframes sb-annual-in {

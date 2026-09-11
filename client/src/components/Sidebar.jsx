@@ -478,28 +478,29 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 ) : (
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{labelOf(item)}</span>
                 )}
+                {/* 收集箱：待分派数量徽标紧跟文字右侧（唯一常驻色块）；默认浅灰，激活时跟随主题蓝 */}
+                {item.key === 'inbox' && inboxCount > 0 && (
+                  <span
+                    className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[12px] font-semibold tabular-nums"
+                    style={{
+                      marginLeft: '-4px',
+                      ...(activeMenu === 'inbox'
+                        ? { background: 'rgba(var(--s-rgb),0.16)', color: 'var(--s-main)' }
+                        : { background: 'rgba(120,120,128,0.10)', color: 'var(--ink-500, #8e8e93)' })
+                    }}
+                  >{inboxCount}</span>
+                )}
               </div>
-              {/* 收集箱：待分派数量徽标 + 快速捕获加号（默认浅灰中性色；激活时跟随主题蓝，与主导航行同源） */}
-              {item.key === 'inbox' && inboxCount > 0 && (
-                <span
-                  className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[12px] font-semibold tabular-nums"
-                  style={activeMenu === 'inbox'
-                    ? { background: 'rgba(var(--s-rgb),0.16)', color: 'var(--s-main)' }
-                    : { background: 'rgba(120,120,128,0.10)', color: 'var(--ink-500, #8e8e93)' }}
-                >{inboxCount}</span>
-              )}
+              {/* 收集箱：快速捕获加号 · 默认纯图标无底色，hover 浮出圆形底（与徽章同形），样式见 .sb-inbox-add */}
               {item.key === 'inbox' && (
                 <button
                   type="button"
                   aria-label="快速记一条"
                   title="快速记一条（快捷键 N）"
-                  className="flex-shrink-0 w-5 h-5 rounded-[5px] flex items-center justify-center transition-colors"
-                  style={activeMenu === 'inbox'
-                    ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' }
-                    : { background: 'rgba(120,120,128,0.08)', color: 'var(--ink-500, #8e8e93)' }}
+                  className={`sb-inbox-add ${activeMenu === 'inbox' ? 'on' : ''}`}
                   onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
                 >
-                  <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="10" height="10"><path d="M12 5v14M5 12h14"/></svg>
+                  <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 </button>
               )}
             </div>

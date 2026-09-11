@@ -257,9 +257,9 @@ export default function FinanceView({
       </section>
 
       {/* ================= 行二三 · 资产负债 + 本月收支（≥lg 左右并排，<lg 上下堆叠） ================= */}
-      <div className="grid gap-3 lg:grid-cols-2 items-start">
+      <div className="grid gap-3 lg:grid-cols-2 items-stretch">
       {/* 资产负债（左右两栏 + 底部净资产通栏卡） */}
-      <section className={`bg-white rounded-2xl border border-ink-100 p-4 ${transition} ${dim}`}>
+      <section className={`bg-white rounded-2xl border border-ink-100 p-4 flex flex-col ${transition} ${dim}`}>
         <FinHeader title="资产负债" countLabel={`${accounts.length} 个账户`}
           right={
             <button onClick={onAccountAdd}
@@ -283,7 +283,7 @@ export default function FinanceView({
             const netWorth = assetTotal - liabTotal;
             const nwDelta = (Number(ms.income) || 0) - (Number(ms.expense) || 0); // 当月净资产变化=收入-支出
             return (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 flex-1">
                 {/* 左右两栏：资产 / 负债 —— 缩进 17px 与标题文字左端对齐，右 17px 与边缘留距，中缝灰色间隔线 */}
                 <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                   {/* 资产 */}
@@ -371,7 +371,7 @@ export default function FinanceView({
       </section>
 
       {/* 本月收支（需求6：管理按钮） */}
-      <section className={`bg-white rounded-2xl border border-ink-100 p-4 ${transition} ${dim}`}>
+      <section className={`bg-white rounded-2xl border border-ink-100 p-4 flex flex-col ${transition} ${dim}`}>
         <FinHeader title="本月收支"
           right={
             <>
@@ -405,7 +405,7 @@ export default function FinanceView({
           const monthBalance = income - expense;
           const balDelta = monthBalance - (prevIncome - prevExpense); // 较上月结余变化
           return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 flex-1">
               {/* 左右两栏：收入 / 支出 —— 缩进 17px 与标题文字左端对齐，右 17px 与边缘留距，中缝灰色间隔线 */}
               <div className="grid grid-cols-2 pl-[17px] pr-[17px]">
                 {/* 收入 */}

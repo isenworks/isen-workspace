@@ -23,11 +23,11 @@ const ICONS = {
 
 const NAV_MAIN = [
   { key: 'plan',     label: '计划总结' },
-  { key: 'inbox',    label: '收集箱' },
   { key: 'calendar', label: '日历' },
   { key: 'annual',   label: '发展规划' }
 ];
 const NAV_OTHER = [
+  { key: 'inbox',    label: '收集箱' },
   { key: 'recycle',  label: '回收站' },
   { key: 'settings', label: '设置' }
 ];
@@ -395,29 +395,6 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 ) : (
                   <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
                 )}
-                {/* 收集箱：待分派数量徽标 + 快速捕获加号（默认浅灰中性色；激活时跟随主题蓝，与导航行同源） */}
-                {item.key === 'inbox' && inboxCount > 0 && (
-                  <span
-                    className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[12px] font-semibold tabular-nums"
-                    style={activeMenu === 'inbox'
-                      ? { background: 'rgba(var(--s-rgb),0.16)', color: 'var(--s-main)' }
-                      : { background: 'rgba(120,120,128,0.10)', color: 'var(--ink-500, #8e8e93)' }}
-                  >{inboxCount}</span>
-                )}
-                {item.key === 'inbox' && (
-                  <button
-                    type="button"
-                    aria-label="快速记一条"
-                    title="快速记一条（快捷键 N）"
-                    className="flex-shrink-0 w-5 h-5 rounded-[5px] flex items-center justify-center transition-colors"
-                    style={activeMenu === 'inbox'
-                      ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' }
-                      : { background: 'rgba(120,120,128,0.08)', color: 'var(--ink-500, #8e8e93)' }}
-                    onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
-                  >
-                    <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="10" height="10"><path d="M12 5v14M5 12h14"/></svg>
-                  </button>
-                )}
               </div>
               {/* 发展规划 · 二级导航：展开/收起纯跟随持久化状态，切到其他页面仍保持（年度概览/精力/知力/能力/工作/生活） */}
               {item.key === 'annual' && (
@@ -493,6 +470,29 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{labelOf(item)}</span>
                 )}
               </div>
+              {/* 收集箱：待分派数量徽标 + 快速捕获加号（默认浅灰中性色；激活时跟随主题蓝，与主导航行同源） */}
+              {item.key === 'inbox' && inboxCount > 0 && (
+                <span
+                  className="flex-shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[12px] font-semibold tabular-nums"
+                  style={activeMenu === 'inbox'
+                    ? { background: 'rgba(var(--s-rgb),0.16)', color: 'var(--s-main)' }
+                    : { background: 'rgba(120,120,128,0.10)', color: 'var(--ink-500, #8e8e93)' }}
+                >{inboxCount}</span>
+              )}
+              {item.key === 'inbox' && (
+                <button
+                  type="button"
+                  aria-label="快速记一条"
+                  title="快速记一条（快捷键 N）"
+                  className="flex-shrink-0 w-5 h-5 rounded-[5px] flex items-center justify-center transition-colors"
+                  style={activeMenu === 'inbox'
+                    ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' }
+                    : { background: 'rgba(120,120,128,0.08)', color: 'var(--ink-500, #8e8e93)' }}
+                  onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
+                >
+                  <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" width="10" height="10"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              )}
             </div>
           ))}
         </div>

@@ -1512,14 +1512,13 @@ export function CognitionView({
                   title={wereadLinks.length ? `微信读书链接（${wereadLinks.length} 条，右键增删改）` : '右键添加微信读书链接'}
                   className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
                   style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}>
-                  {/* 书架图标（竖排三本带书脊线） */}
+                  {/* 书架图标（三本竖立于书架上） */}
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="5" height="16" rx="0.5"/>
-                    <line x1="5.5" y1="7" x2="5.5" y2="17"/>
-                    <rect x="9" y="4" width="5" height="16" rx="0.5"/>
-                    <line x1="11.5" y1="7" x2="11.5" y2="17"/>
-                    <rect x="15" y="4" width="5" height="16" rx="0.5"/>
-                    <line x1="17.5" y1="7" x2="17.5" y2="17"/>
+                    <path d="M4 20.5h16"/>
+                    <rect x="5.5" y="7.5" width="3.8" height="13" rx="0.6"/>
+                    <rect x="10.1" y="9.5" width="3.8" height="11" rx="0.6"/>
+                    <rect x="14.7" y="6" width="3.8" height="14.5" rx="0.6"/>
+                    <path d="M7.4 7.5v2M12 9.5v2M16.6 6v2" opacity="0.55"/>
                   </svg>
                 </button>
 
@@ -1938,12 +1937,12 @@ export function CognitionView({
                                         e.currentTarget.style.background = 'transparent';
                                         e.currentTarget.style.color = hasEbookLink ? '#4F90FF' : '#cbd5e1';
                                       }}>
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: hasEbookLink ? 1 : 0.5 }}>
-                                        <path d="M4 20.5h16"/>
-                                        <rect x="5.5" y="7.5" width="3.8" height="13" rx="0.6"/>
-                                        <rect x="10.1" y="9.5" width="3.8" height="11" rx="0.6"/>
-                                        <rect x="14.7" y="6" width="3.8" height="14.5" rx="0.6"/>
-                                        <path d="M7.4 7.5v2M12 9.5v2M16.6 6v2" opacity="0.55"/>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        {hasEbookLink ? (
+                                          <path d="M7 17 17 7M7 7h10v10"/>
+                                        ) : (
+                                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" opacity="0.5"/>
+                                        )}
                                       </svg>
                                     </button>
                                   </div>

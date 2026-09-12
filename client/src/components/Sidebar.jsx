@@ -271,7 +271,10 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
         <div className="sb-user-row">
           <div
             className="sb-avatar"
-            style={{ cursor: 'pointer', position: 'relative', overflow: 'visible' }}
+            style={{ cursor: 'pointer', position: 'relative', overflow: 'visible',
+              // 图片头像完全覆盖渐变底，避免 PNG 透明边缘/圆角亚像素漏出红橙圈
+              ...(isImageAvatar ? { background: 'transparent', boxShadow: 'none' } : {})
+            }}
             onClick={() => setShowAvatarMenu(v => !v)}
             title="点击更换头像"
           >

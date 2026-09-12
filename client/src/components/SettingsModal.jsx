@@ -1233,20 +1233,20 @@ function GithubTab() {
 
             {grantCode && !expired ? (
               <>
-                {/* 授权码展示条：分组等宽，一眼可核对 */}
+                {/* 授权码展示条：紧凑单行等宽，缩小占用面积 */}
                 <div style={{
-                  padding: '12px 14px', borderRadius: '10px', background: '#fff8e6', border: '1px solid #f1d47a',
-                  display: 'flex', flexDirection: 'column', gap: '6px',
+                  padding: '7px 10px', borderRadius: '8px', background: '#fff8e6', border: '1px solid #f1d47a',
+                  display: 'flex', flexDirection: 'column', gap: '3px',
                 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 7px', justifyContent: 'center' }}>
                     {codeGroups.map((g, i) => (
                       <code key={i} style={{
-                        fontSize: '14px', fontWeight: 700, color: '#1c1c1e',
-                        fontFamily: 'SF Mono, Menlo, monospace', letterSpacing: '0.5px',
+                        fontSize: '10.5px', fontWeight: 600, color: '#1c1c1e',
+                        fontFamily: 'SF Mono, Menlo, monospace', letterSpacing: '0.3px',
                       }}>{g}</code>
                     ))}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#7a5b00', fontWeight: 600, textAlign: 'center' }}>
+                  <div style={{ fontSize: '10px', color: '#7a5b00', fontWeight: 600, textAlign: 'center' }}>
                     ⏳ {fmtRemain(remainMs)}内有效 · 关闭开关立即作废
                   </div>
                 </div>

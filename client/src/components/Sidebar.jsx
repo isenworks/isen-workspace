@@ -84,6 +84,18 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
     setAnnualSubClosed(closed);
     try { localStorage.setItem(ANNUAL_SUB_LS, closed ? '1' : '0'); } catch { /* ignore */ }
   };
+  // 侧栏折叠（图标栏）模式：收窄为图标导航给内容区让宽，localStorage 持久化、全局所有页面生效
+  const SIDEBAR_COLLAPSED_LS = 'sidebar_collapsed_v1';
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(SIDEBAR_COLLAPSED_LS) === '1'; } catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed(v => {
+      const next = !v;
+      try { localStorage.setItem(SIDEBAR_COLLAPSED_LS, next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  };
   // 导航标题云端同步：云端较新则覆盖本地（换浏览器/清缓存后自动恢复自定义标题）
   useEffect(() => {
     const uid = navLabelsUid(user);
@@ -104,6 +116,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
   const handleNavContextMenu = (e, item) => {
     e.preventDefault();
     e.stopPropagation();
+    if (collapsed) return; // 图标模式下标题已隐藏，无编辑入口
     setEditingNav({ key: item.key });
   };
   const commitNavLabel = (item, value) => {
@@ -265,8 +278,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
 
   return (
     <>
-    <aside className="sidebar-b">
-      {/* 用户 + 日期问候 + 搜索 */}
+    <aside className={`sidebar-b${collapsed ? ' collapsed' : ''}`}>
+      {/* 用户 + 日期问候 + 搜索（折叠态只留头像，点击头像 = 展开侧栏） */}
       <div className="sb-user-card">
         <div className="sb-user-row">
           <div
@@ -275,8 +288,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               // 图片头像完全覆盖渐变底，避免 PNG 透明边缘/圆角亚像素漏出红橙圈
               ...(isImageAvatar ? { background: 'transparent', boxShadow: 'none' } : {})
             }}
-            onClick={() => setShowAvatarMenu(v => !v)}
-            title="点击更换头像"
+            onClick={() => { if (collapsed) { toggleCollapsed(); return; } setShowAvatarMenu(v => !v); }}
+            title={collapsed ? '展开侧栏' : '点击更换头像'}
           >
             {isImageAvatar ? (
               <img
@@ -345,22 +358,38 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               )}
             </div>
           )}
-          <div className="min-w-0 flex-1">
-            <div className="sb-date truncate">{formatChineseDate(now)}</div>
-            <div className="sb-greet truncate">
-              <span>{formatGreeting(now)}</span>
-              <span style={{ marginLeft: '4px' }}>
-                {now.getHours() < 11 ? '☕️' : now.getHours() < 14 ? '🌞' : now.getHours() < 18 ? '✨' : '🌙'}
-              </span>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <div className="sb-date truncate">{formatChineseDate(now)}</div>
+              <div className="sb-greet truncate">
+                <span>{formatGreeting(now)}</span>
+                <span style={{ marginLeft: '4px' }}>
+                  {now.getHours() < 11 ? '☕️' : now.getHours() < 14 ? '🌞' : now.getHours() < 18 ? '✨' : '🌙'}
+                </span>
+              </div>
+            </div>
+          )}
+          {/* 折叠入口：展开态显示在用户行右侧；折叠态隐藏（点击头像即展开） */}
+          {!collapsed && (
+            <button
+              type="button"
+              className="sb-collapse-btn"
+              aria-label="折叠侧栏"
+              title="折叠侧栏，给内容区让出更多空间"
+              onClick={() => { setShowAvatarMenu(false); setEditingNav(null); toggleCollapsed(); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+            </button>
+          )}
+        </div>
+        {!collapsed && (
+          <div className="sb-iconrow">
+            <div className="sb-search">
+              {ICONS.search}
+              <input type="text" placeholder="搜索..." />
             </div>
           </div>
-        </div>
-        <div className="sb-iconrow">
-          <div className="sb-search">
-            {ICONS.search}
-            <input type="text" placeholder="搜索..." />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* 导航卡片 */}
@@ -373,7 +402,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 style={{ cursor: 'pointer' }}
                 onClick={() => onMenuChange?.(item.key)}
                 onContextMenu={(e) => handleNavContextMenu(e, item)}
-                title="右键可修改标题文字"
+                title={collapsed ? labelOf(item) : '右键可修改标题文字'}
               >
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
                 {editingNav?.key === item.key ? (
@@ -389,7 +418,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                     }}
                   />
                 ) : (
-                  <span className="flex-1 min-w-0 truncate">{labelOf(item)}</span>
+                  <span className="sb-nav-label flex-1 min-w-0 truncate">{labelOf(item)}</span>
                 )}
                 {/* 发展规划：⌄ 展开指示按钮，点击切换二级导航（持久化）；箭头旋转指向状态 */}
                 {item.key === 'annual' && (
@@ -408,9 +437,9 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                   </button>
                 )}
               </div>
-              {/* 发展规划 · 二级导航：展开/收起纯跟随持久化状态，切到其他页面仍保持（年度概览/精力/知力/能力/工作/生活） */}
+              {/* 发展规划 · 二级导航：展开/收起纯跟随持久化状态，切到其他页面仍保持（年度概览/精力/知力/能力/工作/生活）；侧栏折叠时隐藏 */}
               {item.key === 'annual' && (
-                <div className="sb-annual-subwrap" style={{ display: !annualSubClosed ? 'block' : 'none' }}>
+                <div className="sb-annual-subwrap" style={{ display: (collapsed || annualSubClosed) ? 'none' : 'block' }}>
                   {ANNUAL_SUB.map(sub => {
                     const on = activeMenu === 'annual' && (annualView || 'overview') === sub.key;
                     return (
@@ -459,15 +488,15 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
             <div
               key={item.key}
               className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', cursor: 'pointer' }}
+              style={{ cursor: 'pointer' }}
               onClick={() => { if (item.key === 'settings') onSettingsClick?.(); else onMenuChange?.(item.key); }}
               onContextMenu={(e) => handleNavContextMenu(e, item)}
-              title="右键可修改标题文字"
+              title={collapsed ? labelOf(item) : '右键可修改标题文字'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
                 {/* 文字与「· N」计数按基线对齐：不同字号同行视觉居中，数字不上漂 */}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>
+                <div className="sb-nav-label" style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>
                   {editingNav?.key === item.key ? (
                     <input
                       autoFocus
@@ -544,7 +573,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               </svg>
             )}
           </button>
-          <div style={{ width: '1px', height: '20px', background: 'rgba(60,60,67,0.15)', margin: '0 4px' }}></div>
+          <div className="sb-status-sep" style={{ width: '1px', height: '20px', background: 'rgba(60,60,67,0.15)', margin: '0 4px' }}></div>
           <button 
             className="sb-status-btn" 
             title="退出登录"

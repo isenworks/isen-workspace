@@ -537,4 +537,9 @@ export async function ensureScheduleRepeat(env) {
       PRIMARY KEY (schedule_id, date)
     )`).run();
   } catch (_) {}
+  // 多日事项支持：加 start_date / end_date 列（幂等，列已存在时 try-catch 吞错）
+  try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN start_date TEXT`).run(); } catch (_) {}
+  try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN end_date TEXT`).run(); } catch (_) {}
+  // 旧数据回填：start_date 为空时用 date 兜底，保证旧事项也能显示日期范围
+  try { await env.DB.prepare(`UPDATE ethan_schedules SET start_date = date WHERE start_date IS NULL`).run(); } catch (_) {}
 }

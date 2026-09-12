@@ -76,10 +76,11 @@ export async function handleSchedulesCreate(env, body) {
   const finalCat = cat === null ? (syncIsKey ? 2 : 3) : cat;
   const rule = REPEAT_RULES.includes(data.repeat_rule) ? data.repeat_rule : 'none';
   const info = await env.DB.prepare(
-    `INSERT INTO ethan_schedules (user_id,title,date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+    `INSERT INTO ethan_schedules (user_id,title,date,start_date,end_date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
   )
     .bind(
       userId, data.title, dateCheck.value,
+      data.start_date || dateCheck.value, data.end_date || null,
       data.start_time || null, data.end_time || null,
       data.duration_min != null ? Number(data.duration_min) : null,
       syncIsKey, finalCat, 0, toInt(data.sort_order, 0), rule
@@ -114,6 +115,8 @@ export async function handleSchedulesUpdate(env, body) {
   [
     ['title', null],
     ['date', null],
+    ['start_date', null],
+    ['end_date', null],
     ['start_time', null],
     ['end_time', null],
     ['duration_min', 'num'],

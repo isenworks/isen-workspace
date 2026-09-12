@@ -176,8 +176,8 @@ body {
 }
 .cal-day.today .cal-weekday { opacity: 0.85; color: #fff; }
 .cal-day.today .cal-date { color: #fff; }
-/* 选中日（非今天）：主题色描边环 + 文字着色，与「今天」实心块拉开语义差异；opacity:1 覆盖 .past 的压淡 */
-.cal-day.selected { background: rgba(var(--s-rgb),0.05); box-shadow: 0 0 0 2px var(--s-main); }
+/* 选中日（非今天）：主题色内描边环 + 文字着色，与「今天」实心块同尺寸，仅着色方式不同；opacity:1 覆盖 .past 的压淡 */
+.cal-day.selected { background: rgba(var(--s-rgb),0.05); box-shadow: inset 0 0 0 2px var(--s-main); }
 .cal-day.selected .cal-weekday { color: var(--s-main); opacity: 0.85; }
 .cal-day.selected .cal-date { color: var(--s-main); opacity: 1; }
 /* 回到今天按钮：查看非今天时出现在横条右端 */

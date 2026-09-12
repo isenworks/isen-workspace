@@ -29,10 +29,19 @@ function taskTimeKey(t) {
   return '99-99';
 }
 
-/* 单次事项右侧日期标注（MM-DD 补零）：优先 ISO start_date，兜底解析 dueDate 展示串（截止 09/30 / 9.5） */
+/* 单次事项右侧日期标注：优先 ISO start_date，有 end_date 追加范围（MM-DD ~ MM-DD）；兜底解析 dueDate */
 function taskDateLabel(t) {
   const iso = t?.start_date || t?.date || t?.schedule_date;
-  if (iso) { const s = String(iso); return `${s.slice(5, 7)}-${s.slice(8, 10)}`; }
+  if (iso) {
+    const s = String(iso);
+    const start = `${s.slice(5, 7)}-${s.slice(8, 10)}`;
+    const ed = t?.end_date;
+    if (ed && ed !== iso) {
+      const e = String(ed);
+      return `${start} ~ ${e.slice(5, 7)}-${e.slice(8, 10)}`;
+    }
+    return start;
+  }
   const m = String(t?.dueDate || '').match(/(\d{1,2})[./](\d{1,2})/);
   if (m) return `${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`;
   return null;

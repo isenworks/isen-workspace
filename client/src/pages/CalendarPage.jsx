@@ -249,7 +249,17 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
     // 仅离线 mock 回退时才用硬编码短标题 —— 与发展规划精力 tab 数据卡片口径一致
     const cleanLabel = String(h.label || h.name || '').replace(HABIT_EMOJI_RE, '').trim() || HABIT_SHORT_LABEL[habitKey] || '';
     const monthCur = Number(h.month?.[month] ?? 0);
-    const monthTarget = Math.max(1, Math.ceil(Number(h.target) / 12));
+    // 方案 A：按习惯类型分配月目标
+    //  - 打卡型（作息/喝水，每日打卡）：月目标 = 当月实际天数（28-31），避免 /12 系统性偏高导致 2月目标 31 天不可能完成
+    //  - 次数型（运动，按年总次数）：月目标 = round(年目标 × 当月天数 / 365)，按月长按比例分配
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const annualTarget = Number(h.target) || 0;
+    let monthTarget;
+    if (habitKey === 'sport' || h.unit === '次') {
+      monthTarget = Math.max(1, Math.round(annualTarget * daysInMonth / 365));
+    } else {
+      monthTarget = daysInMonth;
+    }
     const pct = Math.min(100, Math.round((monthCur / monthTarget) * 100));
     tasks.push({
       id: `hab_${year}_${monthPad(month)}_${habitKey}`,

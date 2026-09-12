@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef, lazy, Suspense } fro
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { WorkspaceActionsProvider } from '../context/WorkspaceActionsContext.jsx';
-import { today as getToday, toISODate, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDaysISO, calcDurationMin } from '../utils/date.js';
+import { today as getToday, toISODate, addDaysISO, calcDurationMin } from '../utils/date.js';
 import Sidebar from '../components/Sidebar.jsx';
 import WeekCalendar from '../components/WeekCalendar.jsx';
 import KeyTasks from '../components/KeyTasks.jsx';
@@ -39,12 +39,6 @@ const ChunkFallback = () => (
   <div className="flex items-center justify-center py-12 text-sm" style={{ color: '#8e8e93' }}>加载中…</div>
 );
 
-const VIEW_RANGES = {
-  today: (d) => ({ from: d, to: d }),
-  week: (d) => ({ from: toISODate(startOfWeek(d)), to: toISODate(endOfWeek(d)) }),
-  month: (d) => ({ from: toISODate(startOfMonth(d)), to: toISODate(endOfMonth(d)) })
-};
-
 export default function Workspace({ user: propUser }) {
   const { user: authUser, logout: authLogout, updateUser } = useAuth();
   const toast = useToast();
@@ -55,7 +49,7 @@ export default function Workspace({ user: propUser }) {
   // 侧边栏「发展规划」二级导航加号请求：{ view, ts } → AnnualPlan 打开对应添加弹窗
   const [annualAdd, setAnnualAdd] = useState(null);
   const [selectedDate, setSelectedDate] = useState(getToday());
-  const [view, setView] = useState('today');
+  const view = 'today'; // 今日计划页聚焦单日，周/月视角由左侧「周/月重点」页承担
   const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -82,7 +76,7 @@ export default function Workspace({ user: propUser }) {
   const lastSyncRef = useRef(Date.now()); // 防止过于频繁的自动同步
 
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
-  const range = useMemo(() => VIEW_RANGES[view](selectedDate), [view, selectedDate]);
+  const range = useMemo(() => ({ from: selectedDate, to: selectedDate }), [selectedDate]);
 
   // === 自动同步机制 ===
   // 1) 切回标签页时自动刷新（最常见场景：在手机改了数据，切回电脑）
@@ -332,17 +326,9 @@ export default function Workspace({ user: propUser }) {
     showContextMenu, openHabitModal, openArchive, archiveHabitConfirm, deleteScheduleConfirm,
   }), [showContextMenu, openHabitModal, openArchive, archiveHabitConfirm, deleteScheduleConfirm]);
 
-  // === 联动逻辑（参考 demo：Tab 与日历双向联动）===
-  // Tab 切换：重置 selectedDate 到今天
-  const handleViewChange = useCallback((v) => {
-    setView(v);
-    setSelectedDate(getToday());
-  }, []);
-
-  // 日历点击：强制 view 切回 'today'
+  // 日历点击：选中该日（今日计划页聚焦单日，不再有周/月视角切换）
   const handleSelectDate = useCallback((d) => {
     setSelectedDate(d);
-    setView('today');
   }, []);
 
   // ===== 上下文菜单操作 =====
@@ -592,13 +578,11 @@ export default function Workspace({ user: propUser }) {
         </div>
       ) : (
         <main className="flex-1 min-w-0 max-w-[1180px] flex flex-col gap-4">
-          {/* 顶部日历条（含 今日/本周/本月 视图切换） */}
+          {/* 顶部日历条 */}
           <WeekCalendar
             selectedDate={selectedDate}
             onSelectDate={handleSelectDate}
             refreshSignal={refreshKey}
-            view={view}
-            onViewChange={handleViewChange}
           />
 
           {/* 主体：左右分栏（默认 38% + 62%，可拖拽调整并记忆） */}

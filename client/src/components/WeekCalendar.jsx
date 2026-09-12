@@ -4,7 +4,7 @@ import { API } from '../api/client.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
-export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal, view, onViewChange }) {
+export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal }) {
   const today = getToday();
   const todayObj = fromISODate(today);
   const todayYear = todayObj.getFullYear();
@@ -136,7 +136,7 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
       className="glass-card px-5 py-3.5"
       style={{ opacity: loading && !hasData ? 0.7 : 1, transition: 'opacity .2s ease' }}
     >
-      {/* 左右布局：左侧 = ＜ 9月 ＞ 导航(上) + 今日/本周/本月 tab(下)；右侧 = 横向日期条 */}
+      {/* 左右布局：左侧 = ＜ 9月 ＞ 月份导航；右侧 = 横向日期条 */}
       <div className="flex items-center gap-4">
         <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
           <div className="flex items-center gap-0.5">
@@ -147,13 +147,6 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
             <button onClick={nextMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
             </button>
-          </div>
-
-          {/* 今日/本周/本月 视图切换（紧凑版，紧跟 ＜ 9月 ＞ 下方） */}
-          <div className="tab-group compact">
-            <button className={view === 'today' ? 'active' : ''} onClick={() => onViewChange?.('today')}>今日</button>
-            <button className={view === 'week' ? 'active' : ''} onClick={() => onViewChange?.('week')}>本周</button>
-            <button className={view === 'month' ? 'active' : ''} onClick={() => onViewChange?.('month')}>本月</button>
           </div>
         </div>
 

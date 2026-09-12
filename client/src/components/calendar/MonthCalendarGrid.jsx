@@ -260,14 +260,13 @@ export default function MonthCalendarGrid({
                 {dayEvents.slice(0, 3).map((ev, j) => {
                   const mod = scheduleModule(ev);
                   const done = Boolean(ev.is_done || ev.done);
-                  // 多日事项起止标记：首日 ►、末日 ◄、中间日 ─，让连续范围一眼可辨
+                  // 多日事项起止标记：首日 ›、末日 ‹（轻量角标，中间日不标——首尾包裹已表意）
                   const evStart = ev.start_date || ev.date || ev.schedule_date;
                   const evEnd = ev.end_date;
                   let spanMark = '';
                   if (evEnd && evEnd !== evStart) {
-                    if (date === evStart) spanMark = '► ';
-                    else if (date === evEnd) spanMark = '◄ ';
-                    else spanMark = '─ ';
+                    if (date === evStart) spanMark = '›';
+                    else if (date === evEnd) spanMark = '‹';
                   }
                   // 模块色 12% 透明度背景：在 8%（色相趋同难辨）与 16%（偏深）之间取平衡
                   // 注意 CSS 变量必须 var() 包裹：rgba(var(--m-xxx-rgb), 0.12)，缺 var() 是非法值会被丢弃

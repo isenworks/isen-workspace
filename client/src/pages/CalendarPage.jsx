@@ -480,13 +480,26 @@ function titleMatches(a = '', b = '') {
 }
 
 function buildEventsWithTaskLink(raw, tasks) {
+  // id 精确索引：API 日程（数字 id）与主线任务（注入时保留同一 schedule id）O(1) 关联。
+  // 背景：titleMatches 公共子串≥3 会把 "✈旅游|景德镇" 与 "✈旅游|桂林"（共享前缀）误判为
+  // 同一任务，导致勾选串扰（勾桂林，景德镇的格子也勾上）。id 匹配杜绝此类误联。
+  // allTasks 顺序 [...monthTasks, ...weekTasks]，先到先得 → month 优先，与原 find 行为一致。
+  const byId = new Map();
+  for (const t of tasks) {
+    if (t?.id == null) continue;
+    const k = String(t.id);
+    if (!byId.has(k)) byId.set(k, t);
+  }
   return raw.map(ev => {
     const mod = keyToModule(
       ({ 1:'work', 2:'ability', 5:'life', 6:'energy', 7:'cognition' })[Number(ev.category)] || 'others'
     );
-    // 先 moduleKey 一致再 titleMatches；若 moduleKey 一致也放宽（同名不同模块但跨月少见）
-    let match = tasks.find(t => t.moduleKey === mod.key && titleMatches((ev.title || ''), t.title));
-    if (!match) match = tasks.find(t => titleMatches((ev.title || ''), t.title));
+    // ① id 精确匹配（API 真实日程）；② 兜底：无 id 关联的（mock/合成任务）才走标题模糊匹配
+    let match = byId.get(String(ev.id ?? '')) || null;
+    if (!match) {
+      match = tasks.find(t => t.moduleKey === mod.key && titleMatches((ev.title || ''), t.title))
+           || tasks.find(t => titleMatches((ev.title || ''), t.title));
+    }
     const done = match ? !!match.done : Boolean(ev.is_done);
     return { ...ev, moduleKey: (match?.moduleKey) || mod.key, taskId: match?.id, is_done: done };
   });

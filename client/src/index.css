@@ -176,6 +176,22 @@ body {
 }
 .cal-day.today .cal-weekday { opacity: 0.85; color: #fff; }
 .cal-day.today .cal-date { color: #fff; }
+/* 选中日（非今天）：主题色描边环 + 文字着色，与「今天」实心块拉开语义差异；opacity:1 覆盖 .past 的压淡 */
+.cal-day.selected { background: rgba(var(--s-rgb),0.05); box-shadow: 0 0 0 2px var(--s-main); }
+.cal-day.selected .cal-weekday { color: var(--s-main); opacity: 0.85; }
+.cal-day.selected .cal-date { color: var(--s-main); opacity: 1; }
+/* 回到今天按钮：查看非今天时出现在横条右端 */
+.cal-back-today {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; line-height: 1;
+  color: var(--s-main); background: rgba(var(--s-rgb),0.08);
+  border: 1px solid rgba(var(--s-rgb),0.35);
+  cursor: pointer; transition: all .15s ease;
+}
+.cal-back-today:hover { background: rgba(var(--s-rgb),0.14); border-color: rgba(var(--s-rgb),0.55); }
+.cal-back-today:active { transform: scale(0.96); }
 .cal-weekday { font-size: 10px; line-height: 11px; opacity: 0.6; font-weight: 500; }
 .cal-date { font-size: 14px; line-height: 16px; font-weight: 600; }
 .cal-dots { display: flex; gap: 2px; margin-top: 0; min-height: 3px; }

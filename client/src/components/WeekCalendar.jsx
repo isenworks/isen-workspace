@@ -57,16 +57,28 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
 
   // 滚动到当前日
   useEffect(() => {
-    if (year === todayYear && month === todayMonth && scrollRef.current) {
-      setTimeout(() => {
-        const todayEl = scrollRef.current?.querySelector('.cal-day.today');
-        if (todayEl && scrollRef.current) {
-          const scrollLeft = todayEl.offsetLeft - scrollRef.current.clientWidth / 2 + todayEl.offsetWidth / 2;
-          scrollRef.current.scrollTo({ left: scrollLeft, behavior: 'auto' });
-        }
-      }, 50);
+    if (year === todayYear && month === todayMonth) {
+      setTimeout(scrollTodayIntoView, 50);
     }
   }, [year, month, dots]);
+
+  function scrollTodayIntoView() {
+    if (year === todayYear && month === todayMonth && scrollRef.current) {
+      const todayEl = scrollRef.current.querySelector('.cal-day.today');
+      if (todayEl && scrollRef.current) {
+        const scrollLeft = todayEl.offsetLeft - scrollRef.current.clientWidth / 2 + todayEl.offsetWidth / 2;
+        scrollRef.current.scrollTo({ left: scrollLeft, behavior: 'auto' });
+      }
+    }
+  }
+
+  // 「回到今天」：重置月份与选中日期，并兜底滚回今天（同月内 effect 不触发，需手动滚）
+  function backToToday() {
+    setYear(todayYear);
+    setMonth(todayMonth);
+    onSelectDate(today);
+    setTimeout(scrollTodayIntoView, 60);
+  }
 
   function prevMonth() {
     let m = month - 1, y = year;
@@ -111,7 +123,6 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
         key={day}
         className={`cal-day ${todayClass} ${pastClass} ${selectedClass}`}
         onClick={() => onSelectDate(toISODate(d))}
-        style={isSelected && !isToday ? { background: 'rgba(var(--s-rgb),0.08)', boxShadow: 'inset 0 0 0 2px rgba(var(--s-rgb),0.45)' } : undefined}
       >
         <div className="cal-weekday">{weekLabels[w]}</div>
         <div className="cal-date">{day}</div>
@@ -149,6 +160,14 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
         <div className="flex-1 overflow-x-auto pb-1.5 self-center" ref={scrollRef}>
           <div className="flex items-center gap-1 px-2">{days}</div>
         </div>
+
+        {/* 查看非今天时显示：一键回到今天（P1 迷路恢复出口） */}
+        {selectedDate !== today && (
+          <button className="cal-back-today" onClick={backToToday} title="回到今天">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+            回到今天
+          </button>
+        )}
       </div>
     </div>
   );

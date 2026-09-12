@@ -110,6 +110,19 @@ export function formatChineseDate(d = new Date()) {
   return `${date.getFullYear()}.${p(date.getMonth() + 1)}.${p(date.getDate())} 周${CN_WEEKDAYS[date.getDay()]}`;
 }
 
+// 面板标题的日期作用域标签：今天 →「今日」，±1~2 天用相对词，其余 M.D 简洁格式（跨年带年份）
+export function dateScopeLabel(dateStr) {
+  const t = today();
+  if (dateStr === t) return '今日';
+  if (dateStr === addDaysISO(t, -1)) return '昨天';
+  if (dateStr === addDaysISO(t, 1)) return '明天';
+  if (dateStr === addDaysISO(t, 2)) return '后天';
+  const d = fromISODate(dateStr);
+  const cur = fromISODate(t);
+  const base = `${d.getMonth() + 1}.${d.getDate()}`;
+  return d.getFullYear() === cur.getFullYear() ? base : `${d.getFullYear()}.${base}`;
+}
+
 // 时间转分钟数便于排序
 export function timeToMin(t) {
   if (!t) return null;

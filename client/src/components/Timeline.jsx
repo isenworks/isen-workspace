@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
-import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
+import { formatDuration, today as getToday, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate, dateScopeLabel } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
@@ -613,8 +613,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     return formatDuration(displayDur);
   }
 
+  // 今日视图的日期标签跟随选中日（dateScopeLabel：今天→「今日」，其余→「9.10」等），修复标题与数据脱节
   const titleText = view === 'today'
-    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">今日</span></>
+    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">{dateScopeLabel(date)}</span></>
     : view === 'week'
     ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">本周</span></>
     : <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">本月</span></>;
@@ -1189,7 +1190,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               <circle cx="12" cy="12" r="9"></circle>
               <polyline points="12 7 12 12 15.5 14"></polyline>
             </svg>
-            今天还没有安排
+            {date === getToday() ? '今天还没有安排' : `${dateScopeLabel(date)}还没有安排`}
           </div>
         )}
       </>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../api/client.js';
-import { formatDuration, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
+import { formatDuration, fromISODate, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate, dateScopeLabel, today as getToday } from '../utils/date.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
@@ -330,9 +330,11 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     );
   }
 
-  // 标题
+  // 标题（今日视图跟随选中日：非今天时追加主题色日期，今天保持干净不加热词）
   const titleText = view === 'today'
-    ? '重点事项'
+    ? (date !== getToday()
+      ? <>重点事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">{dateScopeLabel(date)}</span></>
+      : '重点事项')
     : view === 'week'
     ? '重点事项 · 本周'
     : '重点事项 · 本月';

@@ -70,14 +70,29 @@ export default function MonthCalendarGrid({
 
   const eventsByDate = useMemo(() => {
     const m = {};
+    // 多日事项范围铺开：[start_date, end_date] 覆盖的每一天都显示同一事件（同一引用，
+    // 勾选/完成态两格天然同步）；范围裁剪到当前网格，防跨月长循环
+    const first = grid[0]?.date;
+    const last = grid[grid.length - 1]?.date;
+    if (!first || !last) return m;
     for (const ev of events) {
-      const d = ev.date || ev.schedule_date;
-      if (!d) continue;
-      if (!m[d]) m[d] = [];
-      m[d].push(ev);
+      const start = ev.start_date || ev.date || ev.schedule_date;
+      if (!start) continue;
+      const end = ev.end_date || start;
+      const s = start < first ? first : start;
+      const e = end > last ? last : end;
+      if (s > e) continue;
+      const cur = new Date(`${s}T00:00:00`);
+      const stop = new Date(`${e}T00:00:00`);
+      while (cur <= stop) {
+        const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+        if (!m[key]) m[key] = [];
+        m[key].push(ev);
+        cur.setDate(cur.getDate() + 1);
+      }
     }
     return m;
-  }, [events]);
+  }, [events, grid]);
 
   const habitDotsForDate = (dateISO) => {
     const count = habitsMap[dateISO] || 0;

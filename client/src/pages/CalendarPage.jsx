@@ -556,6 +556,9 @@ function eventToScheduleInitial(ev, date) {
     duration_min: ev.duration_min != null ? Number(ev.duration_min) : undefined,
     is_done: ev.is_done,
     schedule_date: date || ev.date,
+    // 多日事项：把范围带给表单，否则重开编辑面板截止日期恒空
+    start_date: ev.start_date || ev.date,
+    end_date: ev.end_date || '',
   };
 }
 
@@ -934,6 +937,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             end_time: msg.schedule.end_time,
             duration_min: msg.schedule.duration_min,
             note: msg.schedule.note || '',
+            start_date: msg.schedule.start_date || msg.schedule.date,
+            end_date: msg.schedule.end_date || null,
           };
           if (idx < 0) return [...prev, mapped];
           const copy = [...prev];
@@ -1307,7 +1312,14 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   }
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month).padStart(2, '0')}`;
-    const apiRaw = apiSchedules.filter(e => e.date && e.date.startsWith(prefix));
+    // 多日事项：范围与当月有交集即纳入（开始日在上月、截止日跨进本月也要显示在日历上）
+    const mStart = `${prefix}-01`;
+    const mEnd = `${prefix}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
+    const apiRaw = apiSchedules.filter(e => {
+      if (!e.date) return false;
+      const end = e.end_date || e.date;
+      return e.date <= mEnd && end >= mStart;
+    });
     // 种子化完成后：只用 API 数据（用户删除 API 事件后不会被 MOCK fallback 复活）
     const mockRaw = seedDone ? [] : MOCK_EVENTS_RAW.filter(e => e.date && e.date.startsWith(prefix));
     return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);

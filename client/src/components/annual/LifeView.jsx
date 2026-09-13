@@ -9,6 +9,19 @@ import { API } from '../../api/client.js'
 import lunarLib from '../../vendor/lunar.js';
 import EntryForm from '../forms/EntryForm.jsx'
 
+/* 农历生日胶囊文案：把存储的公历日期换算回农历，得「农历八月初一」；
+ * 公历生日返回「公历」；换算失败回退「农历」 */
+function lunarBadgeText(b) {
+  if (b.repeat_rule !== 'lunar-yearly') return '公历';
+  try {
+    const parts = String(b.date || '').split('-');
+    const y = parseInt(parts[0], 10), mo = parseInt(parts[1], 10), d = parseInt(parts[2], 10);
+    if (!y || !mo || !d) return '农历';
+    const lun = lunarLib.Solar.fromYmd(y, mo, d).getLunar();
+    return `农历${lun.getMonthInChinese()}月${lun.getDayInChinese()}`;
+  } catch { return '农历'; }
+}
+
 function LifeStatsBar({ categories }) {
   const total = categories.reduce((s, c) => s + c.count, 0) || 1;
   const max = Math.max(...categories.map(c => c.count), 1);
@@ -159,7 +172,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       const parts = String(b.date || '').split('-');
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
-      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, passed: false, nextYear: today.getFullYear() };
+      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, passed: false, nextYear: today.getFullYear(), lunarText: lunarBadgeText(b) };
       // 计算今年生日
       let thisYearBd = new Date(today.getFullYear(), mo - 1, day);
       thisYearBd.setHours(0, 0, 0, 0);
@@ -172,7 +185,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       }
       const daysLeft = Math.round((nextBd - today) / (1000 * 60 * 60 * 24));
       const daysPassed = passed ? Math.round((today - thisYearBd) / (1000 * 60 * 60 * 24)) : 0;
-      return { ...b, name, mo, day, daysLeft, daysPassed, passed, nextYear: nextBd.getFullYear(), isLunar: b.repeat_rule === 'lunar-yearly' };
+      return { ...b, name, mo, day, daysLeft, daysPassed, passed, nextYear: nextBd.getFullYear(), isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b) };
     }).sort((a, b) => a.daysLeft - b.daysLeft);
   }, [birthdays]);
 
@@ -198,7 +211,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
       const baseYear = parts[0] ? parseInt(parts[0], 10) : today.getFullYear();
-      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, daysPassed: 0, passed: false, isLunar: b.repeat_rule === 'lunar-yearly' };
+      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, daysPassed: 0, passed: false, isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b) };
       let yMo = mo, yDay = day;
       if (b.repeat_rule === 'lunar-yearly') {
         try {
@@ -214,7 +227,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       return {
         ...b, name, mo: yMo, day: yDay,
         daysLeft: diff, daysPassed: diff < 0 ? -diff : 0, passed: diff < 0,
-        isToday: diff === 0, isLunar: b.repeat_rule === 'lunar-yearly',
+        isToday: diff === 0, isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b),
       };
     }).sort((a, b) => (a.mo - b.mo) || (a.day - b.day));
   }, [birthdays, bdYear]);
@@ -618,9 +631,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-[#1c1c1e] truncate">{b.name}</span>
-                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
-                              style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
-                              {b.isLunar ? '农历' : '公历'}
+                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none"
+                              style={b.isLunar
+                                ? { background: moduleRgba('life', 0.12), color: 'var(--m-life)', fontWeight: 600 }
+                                : { background: 'rgba(255,255,255,0.75)', color: '#8e8e93' }}>
+                              {b.lunarText || (b.isLunar ? '农历' : '公历')}
                             </span>
                           </div>
                           <div className="text-[11px] text-ink-500 tabular-nums mt-0.5">下次生日 {b.nextYear}年{b.mo}月{b.day}日</div>
@@ -693,9 +708,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                           <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
                             <LifeCatIcon catKey="birthday" lb="生日" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--m-life)' }} />
                             <span className="text-sm font-normal text-[#1c1c1e] truncate">{b.name}生日</span>
-                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
-                              style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
-                              {b.isLunar ? '农历' : '公历'}
+                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none"
+                              style={b.isLunar
+                                ? { background: moduleRgba('life', 0.12), color: 'var(--m-life)', fontWeight: 600 }
+                                : { background: 'rgba(255,255,255,0.75)', color: '#8e8e93' }}>
+                              {b.lunarText || (b.isLunar ? '农历' : '公历')}
                             </span>
                             <span className="ml-auto flex-shrink-0 text-[11px] font-bold tabular-nums"
                               style={{ color: b.isToday ? '#FF3B30' : b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>

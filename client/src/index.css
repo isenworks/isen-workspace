@@ -719,6 +719,8 @@ body {
    收起 ⌄/加号按钮与分隔线，图标水平居中；inline style 上有 display:flex 故需 !important */
 .sidebar-b.collapsed .sb-nav-item { justify-content: center; gap: 0; padding: 10px 0; }
 .sidebar-b.collapsed .sb-nav-label { display: none !important; }
+/* NAV_OTHER 内层 wrapper 默认 flex:1 撑满，折叠态收缩到内容宽度，配合父级 justify-content:center 让图标水平居中 */
+.sidebar-b.collapsed .sb-nav-other-inner { flex: 0 0 auto !important; }
 .sidebar-b.collapsed .sb-nav-chev,
 .sidebar-b.collapsed .sb-inbox-add,
 .sidebar-b.collapsed .sb-divider { display: none; }

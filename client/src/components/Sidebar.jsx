@@ -493,7 +493,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               onContextMenu={(e) => handleNavContextMenu(e, item)}
               title={collapsed ? labelOf(item) : '右键可修改标题文字'}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+              <div className="sb-nav-other-inner" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
                 {/* 文字与「· N」计数按基线对齐：不同字号同行视觉居中，数字不上漂 */}
                 <div className="sb-nav-label" style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>

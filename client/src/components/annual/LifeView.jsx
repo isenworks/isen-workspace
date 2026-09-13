@@ -68,7 +68,8 @@ function LifeStatsBar({ categories }) {
 function LifeCatIcon({ catKey, lb, className, style }) {
   const cls = className || 'w-4 h-4';
   const isPet = catKey === 'pet' || lb === '宠物';
-  const known = ['relation', 'food', 'travel', 'movie', 'shop'];
+  const isBd = catKey === 'birthday' || lb === '生日';
+  const known = ['relation', 'food', 'travel', 'movie', 'shop', 'birthday'];
   return (
     <svg className={cls} style={style} fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -77,6 +78,7 @@ function LifeCatIcon({ catKey, lb, className, style }) {
       {catKey === 'travel' && (<><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></>)}
       {catKey === 'movie' && (<><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></>)}
       {catKey === 'shop' && (<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>)}
+      {isBd && (<><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></>)}
       {isPet && (<><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></>)}
       {!isPet && !known.includes(catKey) && (<><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none"/></>)}
     </svg>
@@ -100,7 +102,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     try {
       const res = await API.schedules.list({});
       const all = (res?.schedules || res?.schedule || []);
-      setBirthdays(all.filter(s => String(s.title || '').includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly')));
+      // 生日 = 标题含「生日」且（每年重复 或 🎂 前缀标记）；一次性「生日聚会」不会误入
+      setBirthdays(all.filter(s => {
+        const t = String(s.title || '');
+        return t.includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly' || t.startsWith('🎂'));
+      }));
     } catch (e) { /* ignore */ }
     setBdLoading(false);
   }, []);
@@ -142,7 +148,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     return groups;
   }, [dynLife, lifeFilter]);
 
-  // 生日倒计时：计算今年/明年下次生日距今天数
+  // 生日倒计时：计算今年/明年下次生日距今天数（nextYear 用于正确分组年份）
   const bdCountdown = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -153,7 +159,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       const parts = String(b.date || '').split('-');
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
-      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, passed: false };
+      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, passed: false, nextYear: today.getFullYear() };
       // 计算今年生日
       let thisYearBd = new Date(today.getFullYear(), mo - 1, day);
       thisYearBd.setHours(0, 0, 0, 0);
@@ -165,13 +171,75 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
         passed = true;
       }
       const daysLeft = Math.round((nextBd - today) / (1000 * 60 * 60 * 24));
-      return { ...b, name, mo, day, daysLeft, passed, isLunar: b.repeat_rule === 'lunar-yearly' };
+      const daysPassed = passed ? Math.round((today - thisYearBd) / (1000 * 60 * 60 * 24)) : 0;
+      return { ...b, name, mo, day, daysLeft, daysPassed, passed, nextYear: nextBd.getFullYear(), isLunar: b.repeat_rule === 'lunar-yearly' };
     }).sort((a, b) => a.daysLeft - b.daysLeft);
   }, [birthdays]);
 
   /* ===== 需求 2：链接按钮 · 右键菜单增删改 · 点击跳转 ===== */
   const [linkMenu, setLinkMenu] = useState(null); // { x, y, editingId } | null
   const [bdMenu, setBdMenu] = useState(null); // { x, y, bd } | null
+  /* 生日视图切换：date=按日期时间流 / person=按人列表（记忆用户偏好） */
+  const [bdView, setBdView] = usePersistentState('annual_life_bd_view', () => 'date');
+  /* ===== 左侧分类手动排序：HTML5 拖拽，顺序持久化（含生日虚拟行；「全部分类」固定第一不参与） ===== */
+  const allRowKeys = useMemo(() => ['birthday', ...dynLife.map(c => c.key)], [dynLife]);
+  const [rowOrder, setRowOrder] = usePersistentState('annual_life_rows_order', () => []);
+  // 展示顺序 = 已保存顺序（过滤已删除项）+ 未记录的新类目追加尾部
+  const orderedRows = useMemo(() => {
+    const saved = (Array.isArray(rowOrder) ? rowOrder : []).filter(k => allRowKeys.includes(k));
+    const rest = allRowKeys.filter(k => !saved.includes(k));
+    return [...saved, ...rest].map(k => (k === 'birthday' ? { key: 'birthday' } : dynLife.find(c => c.key === k))).filter(Boolean);
+  }, [rowOrder, allRowKeys, dynLife]);
+  const dragCatKey = useRef(null);
+  const [dragSrcKey, setDragSrcKey] = useState(null);
+  const [dragOver, setDragOver] = useState(null); // { key, pos: 'before' | 'after' }
+  const resetDrag = () => { dragCatKey.current = null; setDragSrcKey(null); setDragOver(null); };
+  const handleRowDragStart = (e, key) => {
+    dragCatKey.current = key;
+    setDragSrcKey(key);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', key); } catch { /* Firefox 需要 setData 才能触发拖拽 */ }
+  };
+  const handleRowDragOver = (e, key) => {
+    if (!dragCatKey.current) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragCatKey.current === key) { setDragOver(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pos = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    if (!dragOver || dragOver.key !== key || dragOver.pos !== pos) setDragOver({ key, pos });
+  };
+  const handleRowDrop = (e, key) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const src = dragCatKey.current;
+    const pos = dragOver && dragOver.key === key ? dragOver.pos : 'before';
+    if (src && src !== key) {
+      const keys = orderedRows.map(r => r.key);
+      const from = keys.indexOf(src);
+      if (from >= 0) {
+        keys.splice(from, 1);
+        let to = keys.indexOf(key);
+        if (to >= 0) {
+          if (pos === 'after') to++;
+          keys.splice(to, 0, src);
+          setRowOrder(keys);
+        }
+      }
+    }
+    resetDrag();
+  };
+  /* 生日视图切换控件（右卡顶部）：iOS segmented 风格，与日历表单重复分段控件同语言 */
+  const bdToggle = (
+    <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[rgba(120,120,128,0.10)]">
+      {[['date', '按日期'], ['person', '按人']].map(([v, lb]) => (
+        <button key={v} onClick={() => setBdView(v)}
+          className={`px-2.5 py-1 text-[11px] font-bold rounded-[7px] transition cursor-pointer ${bdView === v ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'}`}>
+          {lb}
+        </button>
+      ))}
+    </div>
+  );
   const [linkListPopup, setLinkListPopup] = useState(null); // { x, y } | null — 多链接时点击弹出选择面板
   const [linkForm, setLinkForm] = useState({ title: '', url: '' }); // 编辑/新建 mini 表单
   const links = Array.isArray(docLinks) ? docLinks : [];
@@ -443,38 +511,36 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 </button>
               </div>
             )}
-            {/* 生日虚拟分类行：固定置顶，点击筛选生日，+ 号新建生日 */}
-            <div
-              className={`group flex items-center gap-2 pl-8 pr-2.5 h-9 rounded-lg text-sm transition text-left ${lifeFilter === 'birthday' ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
-              style={lifeFilter === 'birthday' ? { color: 'var(--m-life)' } : undefined}>
-              <button onClick={() => setLifeFilter(lifeFilter === 'birthday' ? null : 'birthday')}
-                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
-                title={lifeFilter === 'birthday' ? '点击取消筛选' : '筛选生日记录'}>
-                <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center text-[14px]">🎂</span>
-                <span className="flex-1 truncate">生日</span>
-              </button>
-              <span className={`text-[12px] tabular-nums ${lifeFilter === 'birthday' ? '' : 'text-ink-400'}`}>{birthdays.length}</span>
-              <button onClick={() => onBirthdayAdd?.()} title="新建生日"
-                className={`${lifeFilter === 'birthday' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer`}
-                style={{ background: `${moduleRgba('life', 0.10)}`, color: 'var(--m-life)' }}>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              </button>
-            </div>
-            {/* 各类目：图标 + 名称 + 条数；hover 出 + 直接带类目添加；激活态图标/标题/数字/加号全紫 */}
-            {dynLife.map(c => {
-              const active = lifeFilter === c.key;
+            {/* 生日虚拟行 + 各类目行：统一渲染；支持拖拽手动排序（顺序持久化）；hover 出 + 直接添加；激活态全紫 */}
+            {orderedRows.map(row => {
+              const key = row.key;
+              const isBd = key === 'birthday';
+              const active = lifeFilter === key;
+              const cnt = isBd ? birthdays.length : row.entries.length;
               return (
-                <div key={c.key}
-                  className={`group flex items-center gap-2 pl-8 pr-2.5 h-9 rounded-lg text-sm transition text-left ${active ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
+                <div key={key}
+                  draggable
+                  onDragStart={(e) => handleRowDragStart(e, key)}
+                  onDragOver={(e) => handleRowDragOver(e, key)}
+                  onDrop={(e) => handleRowDrop(e, key)}
+                  onDragEnd={resetDrag}
+                  title="拖拽可调整顺序"
+                  className={`group relative flex items-center gap-2 pl-8 pr-2.5 h-9 rounded-lg text-sm transition text-left cursor-grab active:cursor-grabbing ${active ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'} ${dragSrcKey === key ? 'opacity-40' : ''}`}
                   style={active ? { color: 'var(--m-life)' } : undefined}>
-                  <button onClick={() => setLifeFilter(active ? null : c.key)}
+                  {/* 拖拽插入位置指示线 */}
+                  {dragOver && dragOver.key === key && (
+                    <div className="absolute left-1.5 right-1.5 h-[2px] rounded-full pointer-events-none"
+                      style={{ background: 'var(--m-life)', top: dragOver.pos === 'before' ? -3 : undefined, bottom: dragOver.pos === 'after' ? -3 : undefined }} />
+                  )}
+                  <button onClick={() => setLifeFilter(active ? null : key)}
                     className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
-                    title={active ? '点击取消筛选' : `筛选${c.lb}记录`}>
-                    <LifeCatIcon catKey={c.key} lb={c.lb} className="w-4 h-4 flex-shrink-0" />
-                    <span className="flex-1 truncate">{c.lb}</span>
+                    title={active ? '点击取消筛选' : isBd ? '筛选生日记录' : `筛选${row.lb}记录`}>
+                    <LifeCatIcon catKey={key} lb={isBd ? '生日' : row.lb} className="w-4 h-4 flex-shrink-0" />
+                    <span className="flex-1 truncate">{isBd ? '生日' : row.lb}</span>
                   </button>
-                  <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{c.entries.length}</span>
-                  <button onClick={() => onEntryAdd?.(c.key, c.lb)} title={`添加${c.lb}记录`}
+                  <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{cnt}</span>
+                  <button onClick={() => isBd ? onBirthdayAdd?.() : onEntryAdd?.(row.key, row.lb)}
+                    title={isBd ? '新建生日' : `添加${row.lb}记录`}
                     className={`${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer`}
                     style={{ background: `${moduleRgba('life', 0.10)}`, color: 'var(--m-life)' }}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -492,63 +558,105 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
             {lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
                 <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
-                  还没有生日记录，点左侧「生日」行的 + 添加
+                  {bdLoading ? '正在加载生日…' : '还没有生日记录，点左侧「生日」行的 + 添加'}
                 </div>
+              ) : bdView === 'person' ? (
+                <React.Fragment>
+                  {/* 按人视图 · 顶部：人数大字 + 视图切换（与按日期视图首年份行同构） */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{bdCountdown.length} 位</div>
+                    {bdToggle}
+                  </div>
+                  <div className="flex flex-col gap-2.5">
+                    {bdCountdown.map((b, i) => (
+                      <div key={b.id || i}
+                        className={`flex items-center gap-3 pl-2.5 pr-3 h-[52px] rounded-xl bg-[rgba(120,120,128,0.08)] hover:bg-[rgba(120,120,128,0.12)] transition cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
+                        onClick={() => onBirthdayEdit?.(b)}
+                        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
+                        {/* 姓名首字头像 */}
+                        <span className="w-8 h-8 rounded-full grid place-items-center flex-shrink-0 text-[13px] font-bold"
+                          style={{ background: moduleRgba('life', 0.10), color: 'var(--m-life)' }}>
+                          {(b.name || '?').slice(0, 1)}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-[#1c1c1e] truncate">{b.name}</span>
+                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
+                              style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
+                              {b.isLunar ? '农历' : '公历'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-ink-500 tabular-nums mt-0.5">下次生日 {b.nextYear}年{b.mo}月{b.day}日</div>
+                        </div>
+                        <span className="flex-shrink-0 text-[11px] font-bold tabular-nums"
+                          style={{ color: b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
+                          {b.passed ? `已过 ${b.daysPassed}天` : `还有 ${b.daysLeft} 天`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </React.Fragment>
               ) : (
                 <React.Fragment>
                   {(() => {
-                    /* 生日按下次生日月份分组，复用 timeGroups 的年份大字 + 月份标签结构 */
-                    const today = new Date(); today.setHours(0,0,0,0);
+                    /* 按下次生日分组：nextYear 保证跨年正确；同一年只显示一次年份大字（与普通时间流一致） */
                     const groups = [];
                     bdCountdown.forEach(b => {
-                      const g = groups.find(x => x.year === today.getFullYear() && x.mo === b.mo);
+                      const g = groups.find(x => x.year === b.nextYear && x.mo === b.mo);
                       if (g) g.items.push(b);
-                      else groups.push({ year: today.getFullYear(), mo: b.mo, label: `${b.mo}月`, items: [b] });
+                      else groups.push({ year: b.nextYear, mo: b.mo, label: b.mo ? `${b.mo}月` : '无日期', items: [b] });
                     });
-                    return groups.map((g, gi) => (
-                      <React.Fragment key={`bdg-${g.mo}`}>
-                        {gi === 0 && (
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{g.year}年</div>
-                          </div>
-                        )}
-                        {gi > 0 && <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide mt-3 mb-4">{g.year}年</div>}
-                        {g.items.map((b, ri) => {
-                          const isLast = gi === groups.length - 1 && ri === g.items.length - 1;
-                          return (
-                            <div key={b.id || ri} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
-                              onClick={() => onBirthdayEdit?.(b)}
-                              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
-                              <div className="w-9 flex-shrink-0">
-                                {ri === 0 && (
-                                  <div className="h-5 flex items-center justify-end">
-                                    <span className="text-sm font-bold text-ink-700 leading-none">{g.label}</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="w-6 flex-shrink-0 h-5 flex items-center justify-end">
-                                <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{b.day ? String(b.day).padStart(2, '0') : '--'}</span>
-                              </div>
-                              <div className="flex flex-col items-center flex-shrink-0">
-                                <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
-                                {!isLast && <span className="flex-1 w-px bg-ink-100" />}
-                              </div>
-                              <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
-                                <span className="text-sm font-normal text-[#1c1c1e] truncate">🎂 {b.name}生日</span>
-                                <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
-                                  style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
-                                  {b.isLunar ? '农历' : '公历'}
-                                </span>
-                                <span className="ml-auto flex-shrink-0 text-[11px] font-bold tabular-nums"
-                                  style={{ color: b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
-                                  {b.passed ? `已过 ${365 - b.daysLeft}天` : `还有 ${b.daysLeft} 天`}
-                                </span>
-                              </div>
+                    return groups.map((g, gi) => {
+                      const showYear = gi === 0 || groups[gi - 1].year !== g.year;
+                      return (
+                        <React.Fragment key={`bdg-${g.year}-${g.mo}`}>
+                          {showYear && (gi === 0 ? (
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{g.year}年</div>
+                              {bdToggle}
                             </div>
-                          );
-                        })}
-                      </React.Fragment>
-                    ));
+                          ) : (
+                            <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide mt-3 mb-4">{g.year}年</div>
+                          ))}
+                          {g.items.map((b, ri) => {
+                            const isLast = gi === groups.length - 1 && ri === g.items.length - 1;
+                            return (
+                              <div key={b.id || ri} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
+                                onClick={() => onBirthdayEdit?.(b)}
+                                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
+                                {/* 月份列（组首行）：左端与年份大字严格对齐 */}
+                                <div className="w-9 flex-shrink-0">
+                                  {ri === 0 && (
+                                    <div className="h-5 flex items-center justify-start pl-3.5">
+                                      <span className="text-sm font-bold text-ink-700 leading-none">{g.label}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="w-6 flex-shrink-0 h-5 flex items-center justify-end">
+                                  <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{b.day ? String(b.day).padStart(2, '0') : '--'}</span>
+                                </div>
+                                <div className="flex flex-col items-center flex-shrink-0">
+                                  <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
+                                  {!isLast && <span className="flex-1 w-px bg-ink-100" />}
+                                </div>
+                                <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
+                                  <LifeCatIcon catKey="birthday" lb="生日" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--m-life)' }} />
+                                  <span className="text-sm font-normal text-[#1c1c1e] truncate">{b.name}生日</span>
+                                  <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
+                                    style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
+                                    {b.isLunar ? '农历' : '公历'}
+                                  </span>
+                                  <span className="ml-auto flex-shrink-0 text-[11px] font-bold tabular-nums"
+                                    style={{ color: b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
+                                    {b.passed ? `已过 ${b.daysPassed}天` : `还有 ${b.daysLeft} 天`}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    });
                   })()}
                 </React.Fragment>
               )
@@ -588,10 +696,10 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               return (
                 <div key={`${r.cat.key}-${r.idx}`} className="flex gap-2.5 cursor-pointer"
                   onClick={() => onEntryEdit?.(r.cat.key, r.idx, r.e)}>
-                  {/* 月份列（组首行）：与当月首条标题行等高居中（h-5 对齐标题行，不受笔记行影响） */}
+                  {/* 月份列（组首行）：与当月首条标题行等高居中（h-5 对齐标题行）；左端与年份大字严格对齐 */}
                   <div className="w-9 flex-shrink-0">
                     {ri === 0 && (
-                      <div className="h-5 flex items-center justify-end">
+                      <div className="h-5 flex items-center justify-start pl-3.5">
                         <span className="text-sm font-bold text-ink-700 leading-none">{g.label}</span>
                       </div>
                     )}

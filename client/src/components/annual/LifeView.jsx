@@ -181,6 +181,43 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   const [bdMenu, setBdMenu] = useState(null); // { x, y, bd } | null
   /* 生日视图切换：date=按日期时间流 / person=按人列表（记忆用户偏好） */
   const [bdView, setBdView] = usePersistentState('annual_life_bd_view', () => 'date');
+  /* 按日期视图的浏览年份（默认当年；◀▶ 切换，不持久化避免停在旧年份） */
+  const [bdYear, setBdYear] = useState(new Date().getFullYear());
+
+  /* 按日期视图：浏览年 bdYear 内各生日的「当次日期」。
+   * 语义与按人视图（下次生日）不同 —— 年份切换浏览的是日历年内所有人该年的生日：
+   *   - 公历：直接用存储的月/日
+   *   - 农历：存储的是创建年的公历日期 → 先转回农历月日，再换算到浏览年（农历生日每年公历日期会漂移）
+   */
+  const bdYearRows = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return birthdays.map(b => {
+      const name = String(b.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || b.title;
+      const parts = String(b.date || '').split('-');
+      const mo = parts[1] ? parseInt(parts[1], 10) : 0;
+      const day = parts[2] ? parseInt(parts[2], 10) : 0;
+      const baseYear = parts[0] ? parseInt(parts[0], 10) : today.getFullYear();
+      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, daysPassed: 0, passed: false, isLunar: b.repeat_rule === 'lunar-yearly' };
+      let yMo = mo, yDay = day;
+      if (b.repeat_rule === 'lunar-yearly') {
+        try {
+          const lun = lunarLib.Solar.fromYmd(baseYear, mo, day).getLunar();
+          const solarY = lunarLib.Lunar.fromYmd(bdYear, lun.getMonth(), lun.getDay()).getSolar();
+          yMo = solarY.getMonth();
+          yDay = solarY.getDay();
+        } catch { /* 换算失败回退固定月日 */ }
+      }
+      const yBd = new Date(bdYear, yMo - 1, yDay);
+      yBd.setHours(0, 0, 0, 0);
+      const diff = Math.round((yBd - today) / (1000 * 60 * 60 * 24));
+      return {
+        ...b, name, mo: yMo, day: yDay,
+        daysLeft: diff, daysPassed: diff < 0 ? -diff : 0, passed: diff < 0,
+        isToday: diff === 0, isLunar: b.repeat_rule === 'lunar-yearly',
+      };
+    }).sort((a, b) => (a.mo - b.mo) || (a.day - b.day));
+  }, [birthdays, bdYear]);
   /* ===== 左侧分类手动排序：HTML5 拖拽，顺序持久化（含生日虚拟行；「全部分类」固定第一不参与） ===== */
   const allRowKeys = useMemo(() => ['birthday', ...dynLife.map(c => c.key)], [dynLife]);
   const [rowOrder, setRowOrder] = usePersistentState('annual_life_rows_order', () => []);
@@ -598,63 +635,74 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 </React.Fragment>
               ) : (
                 <React.Fragment>
+                  {/* 年份行：浏览年大字 + ◀▶ 年份切换（SVG chevron）+ 偏离今年时的「今年」快捷回位 + 右侧视图切换 */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-1 pl-3.5">
+                      <span className="text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{bdYear}年</span>
+                      <div className="flex items-center gap-0.5 ml-1.5">
+                        <button onClick={() => setBdYear(y => y - 1)} title="上一年"
+                          className="w-6 h-6 grid place-items-center rounded-md text-ink-400 hover:text-ink-700 hover:bg-[rgba(120,120,128,0.12)] transition cursor-pointer active:scale-95">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <button onClick={() => setBdYear(y => y + 1)} title="下一年"
+                          className="w-6 h-6 grid place-items-center rounded-md text-ink-400 hover:text-ink-700 hover:bg-[rgba(120,120,128,0.12)] transition cursor-pointer active:scale-95">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                      </div>
+                      {bdYear !== new Date().getFullYear() && (
+                        <button onClick={() => setBdYear(new Date().getFullYear())} title="回到今年"
+                          className="ml-1 px-2 py-0.5 text-[11px] font-bold rounded-md transition cursor-pointer hover:brightness-105 active:scale-95"
+                          style={{ background: moduleRgba('life', 0.10), color: 'var(--m-life)' }}>
+                          今年
+                        </button>
+                      )}
+                    </div>
+                    {bdToggle}
+                  </div>
+                  {/* 浏览年内时间流：按月升序分组；农历生日已换算到该年的公历日期 */}
                   {(() => {
-                    /* 按下次生日分组：nextYear 保证跨年正确；同一年只显示一次年份大字（与普通时间流一致） */
                     const groups = [];
-                    bdCountdown.forEach(b => {
-                      const g = groups.find(x => x.year === b.nextYear && x.mo === b.mo);
+                    bdYearRows.forEach(b => {
+                      const g = groups.find(x => x.mo === b.mo);
                       if (g) g.items.push(b);
-                      else groups.push({ year: b.nextYear, mo: b.mo, label: b.mo ? `${b.mo}月` : '无日期', items: [b] });
+                      else groups.push({ mo: b.mo, label: b.mo ? `${b.mo}月` : '无日期', items: [b] });
                     });
-                    return groups.map((g, gi) => {
-                      const showYear = gi === 0 || groups[gi - 1].year !== g.year;
+                    const flat = [];
+                    groups.forEach(g => g.items.forEach((b, i) => flat.push({ b, label: i === 0 ? g.label : null })));
+                    return flat.map(({ b, label }, idx) => {
+                      const isLast = idx === flat.length - 1;
                       return (
-                        <React.Fragment key={`bdg-${g.year}-${g.mo}`}>
-                          {showYear && (gi === 0 ? (
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{g.year}年</div>
-                              {bdToggle}
-                            </div>
-                          ) : (
-                            <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide mt-3 mb-4">{g.year}年</div>
-                          ))}
-                          {g.items.map((b, ri) => {
-                            const isLast = gi === groups.length - 1 && ri === g.items.length - 1;
-                            return (
-                              <div key={b.id || ri} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
-                                onClick={() => onBirthdayEdit?.(b)}
-                                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
-                                {/* 月份列（组首行）：左端与年份大字严格对齐；w-12 保证「10月」两位数月份不折行 */}
-                                <div className="w-12 flex-shrink-0">
-                                  {ri === 0 && (
-                                    <div className="h-5 flex items-center justify-start pl-3.5">
-                                      <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{g.label}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="w-6 flex-shrink-0 h-5 flex items-center justify-end">
-                                  <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{b.day ? String(b.day).padStart(2, '0') : '--'}</span>
-                                </div>
-                                <div className="flex flex-col items-center flex-shrink-0">
-                                  <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
-                                  {!isLast && <span className="flex-1 w-px bg-ink-100" />}
-                                </div>
-                                <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
-                                  <LifeCatIcon catKey="birthday" lb="生日" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--m-life)' }} />
-                                  <span className="text-sm font-normal text-[#1c1c1e] truncate">{b.name}生日</span>
-                                  <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
-                                    style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
-                                    {b.isLunar ? '农历' : '公历'}
-                                  </span>
-                                  <span className="ml-auto flex-shrink-0 text-[11px] font-bold tabular-nums"
-                                    style={{ color: b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
-                                    {b.passed ? `已过 ${b.daysPassed}天` : `还有 ${b.daysLeft} 天`}
-                                  </span>
-                                </div>
+                        <div key={b.id || idx} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
+                          onClick={() => onBirthdayEdit?.(b)}
+                          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
+                          {/* 月份列（组首行）：左端与年份大字严格对齐；w-12 保证「10月」两位数月份不折行 */}
+                          <div className="w-12 flex-shrink-0">
+                            {label && (
+                              <div className="h-5 flex items-center justify-start pl-3.5">
+                                <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{label}</span>
                               </div>
-                            );
-                          })}
-                        </React.Fragment>
+                            )}
+                          </div>
+                          <div className="w-6 flex-shrink-0 h-5 flex items-center justify-end">
+                            <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{b.day ? String(b.day).padStart(2, '0') : '--'}</span>
+                          </div>
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
+                            {!isLast && <span className="flex-1 w-px bg-ink-100" />}
+                          </div>
+                          <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
+                            <LifeCatIcon catKey="birthday" lb="生日" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--m-life)' }} />
+                            <span className="text-sm font-normal text-[#1c1c1e] truncate">{b.name}生日</span>
+                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
+                              style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
+                              {b.isLunar ? '农历' : '公历'}
+                            </span>
+                            <span className="ml-auto flex-shrink-0 text-[11px] font-bold tabular-nums"
+                              style={{ color: b.isToday ? '#FF3B30' : b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
+                              {b.isToday ? '今天' : b.passed ? `已过 ${b.daysPassed}天` : `还有 ${b.daysLeft} 天`}
+                            </span>
+                          </div>
+                        </div>
                       );
                     });
                   })()}

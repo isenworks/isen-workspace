@@ -198,6 +198,22 @@ try {
   console.warn('migrate category warn:', e.message);
 }
 
+// 迁移：若 schedules 没有 repeat_rule 列则添加（支持生日/纪念日每年重复）
+try {
+  const cols2 = db.prepare("PRAGMA table_info(schedules)").all();
+  const hasRepeatRule = cols2.some(c => c.name === 'repeat_rule');
+  if (!hasRepeatRule) {
+    db.exec(`ALTER TABLE schedules ADD COLUMN repeat_rule TEXT`);
+  }
+  // note 列：D1 路由用，本地表可能没有
+  const hasNote = cols2.some(c => c.name === 'note');
+  if (!hasNote) {
+    db.exec(`ALTER TABLE schedules ADD COLUMN note TEXT`);
+  }
+} catch (e) {
+  console.warn('migrate repeat_rule/note warn:', e.message);
+}
+
 // habits 表迁移：若没有 accent_color 列则添加
 try {
   let cols = db.prepare("PRAGMA table_info(habits)").all();

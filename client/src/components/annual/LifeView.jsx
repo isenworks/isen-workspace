@@ -6,6 +6,7 @@ import { usePersistentState } from './hooks.js';
 import { useSplitRatio, SplitDivider } from '../useSplitRatio.jsx'
 import { moduleColor, moduleRgba } from '../../utils/color.js'
 import { API } from '../../api/client.js'
+import lunarLib from '../../vendor/lunar.js';
 import EntryForm from '../forms/EntryForm.jsx'
 
 function LifeStatsBar({ categories }) {
@@ -82,7 +83,7 @@ function LifeCatIcon({ catKey, lb, className, style }) {
   );
 }
 
-export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd }) {
+export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd, onBirthdayAdd, onBirthdayEdit, onBirthdayDelete, bdRefreshKey }) {
   const dynLife = lifeData || LIFE;
   const totalEntries = dynLife.reduce((s, c) => s + c.entries.length, 0);
   // 生活模块完成率：有记录的类目数 / 总类目数 * 100（体验型鼓励每个类目都有内容）
@@ -90,7 +91,20 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   const hlCount = Array.isArray(highlightedIds) ? highlightedIds.length : 0;
 
   /* ===== 双面板布局：左类目导航（筛选器）+ 右时间流（唯一主视图） ===== */
-  const [lifeFilter, setLifeFilter] = useState(null); // null=全部 | 类目 key
+  const [lifeFilter, setLifeFilter] = useState(null); // null=全部 | 类目 key | 'birthday'=生日虚拟分类
+  // 生日数据（从 schedules API 获取，title 含"生日" + repeat_rule=yearly/lunar-yearly）
+  const [birthdays, setBirthdays] = useState([]);
+  const [bdLoading, setBdLoading] = useState(false);
+  const refreshBirthdays = useCallback(async () => {
+    setBdLoading(true);
+    try {
+      const res = await API.schedules.list({});
+      const all = (res?.schedules || res?.schedule || []);
+      setBirthdays(all.filter(s => String(s.title || '').includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly')));
+    } catch (e) { /* ignore */ }
+    setBdLoading(false);
+  }, []);
+  useEffect(() => { refreshBirthdays(); }, [refreshBirthdays, bdRefreshKey]);
   /* 「全部分类」行 + 号：新建模块 mini 输入行（交互设计复用 EntryForm 的新建模块面板） */
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatLb, setNewCatLb] = useState('');
@@ -128,8 +142,36 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     return groups;
   }, [dynLife, lifeFilter]);
 
+  // 生日倒计时：计算今年/明年下次生日距今天数
+  const bdCountdown = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return birthdays.map(b => {
+      // 从 title 去掉 🎂 前缀和"生日"后缀得到姓名
+      const name = String(b.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || b.title;
+      // 从 date 字段解析月日
+      const parts = String(b.date || '').split('-');
+      const mo = parts[1] ? parseInt(parts[1], 10) : 0;
+      const day = parts[2] ? parseInt(parts[2], 10) : 0;
+      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, passed: false };
+      // 计算今年生日
+      let thisYearBd = new Date(today.getFullYear(), mo - 1, day);
+      thisYearBd.setHours(0, 0, 0, 0);
+      let nextBd = thisYearBd;
+      let passed = false;
+      if (nextBd < today) {
+        // 今年已过，算明年
+        nextBd = new Date(today.getFullYear() + 1, mo - 1, day);
+        passed = true;
+      }
+      const daysLeft = Math.round((nextBd - today) / (1000 * 60 * 60 * 24));
+      return { ...b, name, mo, day, daysLeft, passed, isLunar: b.repeat_rule === 'lunar-yearly' };
+    }).sort((a, b) => a.daysLeft - b.daysLeft);
+  }, [birthdays]);
+
   /* ===== 需求 2：链接按钮 · 右键菜单增删改 · 点击跳转 ===== */
   const [linkMenu, setLinkMenu] = useState(null); // { x, y, editingId } | null
+  const [bdMenu, setBdMenu] = useState(null); // { x, y, bd } | null
   const [linkListPopup, setLinkListPopup] = useState(null); // { x, y } | null — 多链接时点击弹出选择面板
   const [linkForm, setLinkForm] = useState({ title: '', url: '' }); // 编辑/新建 mini 表单
   const links = Array.isArray(docLinks) ? docLinks : [];
@@ -401,6 +443,23 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 </button>
               </div>
             )}
+            {/* 生日虚拟分类行：固定置顶，点击筛选生日，+ 号新建生日 */}
+            <div
+              className={`group flex items-center gap-2 px-2.5 h-9 rounded-lg text-sm transition text-left ${lifeFilter === 'birthday' ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}
+              style={lifeFilter === 'birthday' ? { color: 'var(--m-life)' } : undefined}>
+              <button onClick={() => setLifeFilter(lifeFilter === 'birthday' ? null : 'birthday')}
+                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
+                title={lifeFilter === 'birthday' ? '点击取消筛选' : '筛选生日记录'}>
+                <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center text-[14px]">🎂</span>
+                <span className="flex-1 truncate">生日</span>
+              </button>
+              <span className={`text-[12px] tabular-nums ${lifeFilter === 'birthday' ? '' : 'text-ink-400'}`}>{birthdays.length}</span>
+              <button onClick={() => onBirthdayAdd?.()} title="新建生日"
+                className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer transition"
+                style={{ background: `${moduleRgba('life', 0.10)}`, color: 'var(--m-life)' }}>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
             {/* 各类目：图标 + 名称 + 条数；hover 出 + 直接带类目添加；激活态图标/标题/数字/加号全紫 */}
             {dynLife.map(c => {
               const active = lifeFilter === c.key;
@@ -430,12 +489,49 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
 
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0" style={rightStyle}>
-            {timeGroups.length === 0 && (
+            {lifeFilter === 'birthday' ? (
+              bdCountdown.length === 0 ? (
+                <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
+                  还没有生日记录，点左侧「生日」行的 + 添加
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {bdCountdown.map((b, i) => (
+                    <div key={b.id || i}
+                      className={`flex gap-2.5 cursor-pointer group ${b.passed ? 'opacity-50' : ''}`}
+                      onClick={() => onBirthdayEdit?.(b)}
+                      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
+                      <div className="w-9 flex-shrink-0 flex items-center justify-end">
+                        <span className="text-sm font-bold text-ink-700 leading-none">{b.mo}月</span>
+                      </div>
+                      <div className="w-6 flex-shrink-0 flex items-center justify-end">
+                        <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{b.day ? String(b.day).padStart(2, '0') : '--'}</span>
+                      </div>
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
+                      </div>
+                      <div className="flex-1 min-w-0 h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] mb-2">
+                        <span className="text-sm font-normal text-[#1c1c1e] truncate">🎂 {b.name}生日</span>
+                        <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
+                          style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba('var(--m-life)', 0.85) }}>
+                          {b.isLunar ? '农历' : '公历'}
+                        </span>
+                        <span className="ml-auto flex-shrink-0 text-[11px] font-bold tabular-nums"
+                          style={{ color: b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
+                          {b.passed ? `已过 ${365 - b.daysLeft}天` : `还有 ${b.daysLeft} 天`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : timeGroups.length === 0 ? (
               <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
                 {selFilterCat ? `「${selFilterCat.lb}」还没有记录，点左侧类目行的 + 添加` : '还没有生活记录，点左侧类目行的 + 添加'}
               </div>
-            )}
-            {timeGroups.map((g, gi) => {
+            ) : (
+              <React.Fragment>
+                {timeGroups.map((g, gi) => {
               /* 年份大字分隔（方案 C）：每年一个，始终显示当年；出现跨年记录时自动追加（数据可带 e.y 扩展字段）。
                   首个年份行右侧同排挂年度精选 CTA：精选星标就在本卡条目上（作用域匹配），年份左、动作右对角平衡 */
               const showYear = gi === 0 || timeGroups[gi - 1].year !== g.year;
@@ -505,7 +601,25 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 </React.Fragment>
               );
             })}
+              </React.Fragment>
+            )}
       </div>
+      {/* 生日条目右键菜单 */}
+      {bdMenu && (
+        <div className="fixed inset-0 z-50" onClick={() => setBdMenu(null)}>
+          <div className="absolute glass-card p-1.5 flex flex-col gap-0.5 min-w-[120px]"
+            style={{ left: bdMenu.x, top: bdMenu.y }}>
+            <button className="px-3 py-1.5 text-left text-sm rounded-md hover:bg-surface-soft transition"
+              onClick={() => { onBirthdayEdit?.(bdMenu.bd); setBdMenu(null); }}>
+              编辑
+            </button>
+            <button className="px-3 py-1.5 text-left text-sm rounded-md hover:bg-red-50 text-red-500 transition"
+              onClick={() => { onBirthdayDelete?.(bdMenu.bd); setBdMenu(null); }}>
+              删除
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

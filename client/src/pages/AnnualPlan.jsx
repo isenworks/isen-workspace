@@ -20,6 +20,7 @@ import AbilityForm from '../components/forms/AbilityForm.jsx'
 import KrForm from '../components/forms/KrForm.jsx'
 import WorkGoalForm from '../components/forms/WorkGoalForm.jsx'
 import EntryForm from '../components/forms/EntryForm.jsx'
+import BirthdayForm from '../components/forms/BirthdayForm.jsx'
 import FinanceView from '../components/finance/FinanceView.jsx'
 
 /* ============================================================
@@ -99,6 +100,8 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   })();
   const [workGoals, setWorkGoals] = usePersistentState('annual_work', () => WORK.map(o => ({ ...o, krs: o.krs.map(k => ({ ...k, id: uid(), st: k.st === 'tg' ? 'pending' : k.st })) })));
   const [lifeData, setLifeData] = usePersistentState('annual_life', () => LIFE.map(c => ({ ...c, entries: c.entries.map(e => ({ ...e, id: uid() })) })));
+  // 生日数据刷新触发器：增删改后递增 → LifeView useEffect 重新 fetch
+  const [bdRefreshKey, setBdRefreshKey] = useState(0);
   // 一次性迁移：类目「关系」改名「情感」（默认常量已改，历史 localStorage 数据未跟上）
   useEffect(() => {
     if (Array.isArray(lifeData) && lifeData.some(c => c?.lb === '关系')) {
@@ -672,6 +675,27 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     },
   };
 
+  // 生活·生日：新建/编辑/删除（写入 schedules 表，category=5 + repeat_rule）
+  const birthdayOps = {
+    save: async (data) => {
+      if (data.id) {
+        await API.schedules.update(data.id, { title: data.title, date: data.date, category: data.category, repeat_rule: data.repeat_rule });
+        showToast('生日已更新');
+      } else {
+        await API.schedules.create({ title: data.title, date: data.date, category: data.category, repeat_rule: data.repeat_rule });
+        showToast('生日已创建');
+      }
+      setBdRefreshKey(k => k + 1);
+      closeModal();
+    },
+    remove: async (bd) => {
+      await API.schedules.remove(bd.id);
+      showToast('生日已删除');
+      setBdRefreshKey(k => k + 1);
+      closeModal();
+    },
+  };
+
   // ---- Modal 状态 ----
   const [modal, setModal] = useState(null); // { type, initial, categoryLabel }
   const closeModal = () => setModal(null);
@@ -1017,6 +1041,17 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
             />
           </Modal>
         );
+      case 'birthday':
+        return (
+          <Modal open onClose={closeModal} title={modal.initial?.id ? '编辑生日' : '新建生日'} maxWidth={420}>
+            <BirthdayForm
+              initial={modal.initial}
+              onCancel={closeModal}
+              onSaved={(data) => birthdayOps.save(data)}
+              onDelete={(bd) => birthdayOps.remove(bd)}
+            />
+          </Modal>
+        );
       default: return null;
     }
   })();
@@ -1096,7 +1131,11 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         onStartHighlights={() => setModal({ type: 'life_highlights' })}
         docLinks={lifeDocLinks}
         onDocLinksChange={(next) => setLifeDocLinks(next)}
-        onCatAdd={(d) => lifeCatOps.add(d)} />}
+        onCatAdd={(d) => lifeCatOps.add(d)}
+        bdRefreshKey={bdRefreshKey}
+        onBirthdayAdd={() => setModal({ type: 'birthday' })}
+        onBirthdayEdit={(bd) => setModal({ type: 'birthday', initial: bd })}
+        onBirthdayDelete={(bd) => setModal({ type: 'birthday', initial: bd })} />}
       {view === 'finance'   && (
         <FinanceView
           data={finData}

@@ -285,12 +285,24 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
 
   // Ctrl+S / Cmd+S：有表单打开时优先提交表单（等同点击表单“保存”按钮，
   // 校验通过即保存并走各自同步管线）；无表单时才执行全局同步（跳过防抖）
+  // Ctrl+B / Cmd+B：切换侧栏收起/展开（VSCode/Notion 同款；输入框聚焦时忽略防打字误触）
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's') {
         e.preventDefault(); // 阻止浏览器“保存网页”对话框
         const formSubmitted = trySubmitTopForm();
         if (!formSubmitted) handleSync();
+      }
+      if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'b') {
+        const t = e.target;
+        const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+        if (inField) return; // 表单内不拦截（避免影响富文本加粗等编辑操作）
+        e.preventDefault();
+        setCollapsed(v => {
+          const next = !v;
+          try { localStorage.setItem(SIDEBAR_COLLAPSED_LS, next ? '1' : '0'); } catch { /* ignore */ }
+          return next;
+        });
       }
     };
     window.addEventListener('keydown', onKey);
@@ -310,7 +322,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               ...(isImageAvatar ? { background: 'transparent', boxShadow: 'none' } : {})
             }}
             onClick={() => { if (collapsed) { toggleCollapsed(); return; } setShowAvatarMenu(v => !v); }}
-            title={collapsed ? '展开侧栏' : '点击更换头像'}
+            title={collapsed ? '展开侧栏（Ctrl/Cmd+B）' : '点击更换头像'}
           >
             {isImageAvatar ? (
               <img
@@ -396,7 +408,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
               type="button"
               className="sb-collapse-btn"
               aria-label="折叠侧栏"
-              title="折叠侧栏，给内容区让出更多空间"
+              title="折叠侧栏，给内容区让出更多空间（Ctrl/Cmd+B）"
               onClick={() => { setShowAvatarMenu(false); setEditingNav(null); toggleCollapsed(); }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg>

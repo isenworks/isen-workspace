@@ -667,6 +667,31 @@ body {
 .sb-annual-sub-add.on:hover { background: color-mix(in srgb, currentColor 15%, transparent); }
 .sb-annual-sub-add svg { width: 11px; height: 11px; }
 
+/* ====== 折叠态 · 发展规划二级导航浮层（图标右侧弹出，fixed 定位不受侧栏 overflow 裁剪） ====== */
+.sb-annual-flyout {
+  position: fixed; z-index: 300;
+  width: 180px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.06);
+  padding: 8px;
+  animation: sb-annual-fly-in .16s ease;
+}
+@keyframes sb-annual-fly-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.sb-annual-flyout-head {
+  padding: 3px 8px 8px;
+  margin: 0 0 4px;
+  border-bottom: 1px solid rgba(60,60,67,0.08);
+  font-size: 11px; font-weight: 600;
+  color: #8e8e93; letter-spacing: 0.04em;
+}
+/* 复用展开态条目样式，但去掉侧栏内嵌版的左缩进边距 */
+.sb-annual-flyout .sb-annual-sub { margin: 1px 0; }
+
 .sb-status-bar {
   display: flex;
   align-items: center;

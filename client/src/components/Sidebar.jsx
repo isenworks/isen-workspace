@@ -96,6 +96,27 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
       return next;
     });
   };
+  // 折叠态 · 发展规划二级导航浮层：点击图标在右侧弹出（VSCode 折叠侧栏同款交互）
+  const [annualFly, setAnnualFly] = useState(null); // { x, y } 图标右缘锚点（fixed 定位）
+  const annualNavRef = useRef(null);  // 发展规划导航项（图标锚定 + 区分"点外部关闭"与"点图标切换"）
+  const annualFlyRef = useRef(null);  // 浮层根节点（contains 判定外部点击）
+  useEffect(() => { if (!collapsed) setAnnualFly(null); }, [collapsed]);
+  useEffect(() => {
+    if (!annualFly) return;
+    const onDocMouseDown = (e) => {
+      // 点在浮层内（含条目/加号）或发展规划图标上：交给对应 onClick 处理，不视为外部关闭
+      if (annualFlyRef.current?.contains(e.target)) return;
+      if (annualNavRef.current?.contains(e.target)) return;
+      setAnnualFly(null);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setAnnualFly(null); };
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [annualFly]);
   // 导航标题云端同步：云端较新则覆盖本地（换浏览器/清缓存后自动恢复自定义标题）
   useEffect(() => {
     const uid = navLabelsUid(user);
@@ -398,11 +419,28 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
           {NAV_MAIN.map(item => (
             <Fragment key={item.key}>
               <div
+                ref={item.key === 'annual' ? annualNavRef : undefined}
                 className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
                 style={{ cursor: 'pointer' }}
-                onClick={() => onMenuChange?.(item.key)}
+                onClick={(e) => {
+                  // 折叠态：点击发展规划 → 在图标右侧弹出二级导航浮层（再点一次关闭）
+                  if (collapsed && item.key === 'annual') {
+                    setAnnualFly(v => v ? null : {
+                      x: e.currentTarget.getBoundingClientRect().right + 10,
+                      y: Math.max(12, Math.min(
+                        e.currentTarget.getBoundingClientRect().top - 6,
+                        window.innerHeight - 320
+                      )),
+                    });
+                    return;
+                  }
+                  setAnnualFly(null);
+                  onMenuChange?.(item.key);
+                }}
                 onContextMenu={(e) => handleNavContextMenu(e, item)}
-                title={collapsed ? labelOf(item) : '右键可修改标题文字'}
+                title={collapsed
+                  ? (item.key === 'annual' ? `${labelOf(item)} · 点击展开二级导航` : labelOf(item))
+                  : '右键可修改标题文字'}
               >
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
                 {editingNav?.key === item.key ? (
@@ -589,6 +627,53 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
         </div>
       </div>
     </aside>
+
+    {/* 折叠态 · 发展规划二级导航浮层：锚定图标右侧（fixed 不受侧栏 overflow 裁剪），
+        条目复用展开态 .sb-annual-sub 样式（margin 由 .sb-annual-flyout 覆盖），交互完全同构 */}
+    {collapsed && annualFly && (
+      <div ref={annualFlyRef} className="sb-annual-flyout" style={{ left: annualFly.x, top: annualFly.y }}>
+        <div className="sb-annual-flyout-head">{labelOf(NAV_MAIN.find(n => n.key === 'annual') || {})}</div>
+        {ANNUAL_SUB.map(sub => {
+          const on = activeMenu === 'annual' && (annualView || 'overview') === sub.key;
+          return (
+            <div
+              key={sub.key}
+              className={`sb-annual-sub ${on ? 'on' : ''}`}
+              style={on ? (sub.rgb
+                ? { background: `rgba(${sub.rgb},0.1)`, color: sub.color }
+                : { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' })
+                : undefined}
+              onClick={() => {
+                onMenuChange?.('annual');
+                onAnnualView?.(sub.key);
+                setAnnualFly(null);
+              }}
+            >
+              <span className="sb-annual-sub-ic" style={{ color: on ? (sub.color || 'var(--s-main)') : undefined }}>
+                <CategoryIcon catKey={sub.key} />
+              </span>
+              <span className="flex-1 min-w-0 truncate">{sub.label}</span>
+              {sub.add && (
+                <button
+                  type="button"
+                  className={`sb-annual-sub-add ${on ? 'on' : ''}`}
+                  aria-label={`添加${sub.add}`}
+                  title={`添加${sub.add}`}
+                  style={on ? { color: sub.color } : undefined}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAnnualAdd?.(sub.key);
+                    setAnnualFly(null);
+                  }}
+                >
+                  <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    )}
 
     <AvatarCropModal
       open={!!cropFile}

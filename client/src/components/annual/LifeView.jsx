@@ -675,10 +675,10 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                         <div key={b.id || idx} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
                           onClick={() => onBirthdayEdit?.(b)}
                           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
-                          {/* 月份列（组首行）：月字右端对齐——变宽数字右对齐形成整齐垂直线，与日期列右对齐节奏一致 */}
-                          <div className="w-9 flex-shrink-0">
+                          {/* 月份列（组首行）：pl-3.5 与年份缩进同源，左缘与年份大字严格对齐；补零后月份等宽，右缘也自然整齐 */}
+                          <div className="w-12 flex-shrink-0">
                             {label && (
-                              <div className="h-5 flex items-center justify-end">
+                              <div className="h-5 flex items-center justify-start pl-3.5">
                                 <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{label}</span>
                               </div>
                             )}
@@ -744,10 +744,10 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               return (
                 <div key={`${r.cat.key}-${r.idx}`} className="flex gap-2.5 cursor-pointer"
                   onClick={() => onEntryEdit?.(r.cat.key, r.idx, r.e)}>
-                  {/* 月份列（组首行）：月字右端对齐——变宽数字右对齐形成整齐垂直线，与日期列右对齐节奏一致 */}
-                  <div className="w-9 flex-shrink-0">
+                  {/* 月份列（组首行）：pl-3.5 与年份缩进同源，左缘与年份大字严格对齐；补零后月份等宽，右缘也自然整齐 */}
+                  <div className="w-12 flex-shrink-0">
                     {ri === 0 && (
-                      <div className="h-5 flex items-center justify-end">
+                      <div className="h-5 flex items-center justify-start pl-3.5">
                         <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{g.label}</span>
                       </div>
                     )}

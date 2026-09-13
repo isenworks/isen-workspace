@@ -1046,6 +1046,16 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       MOCK_EVENTS_RAW.forEach(raw => {
         if (titleMatches(raw.title, t.title)) raw.is_done = nextDone;
       });
+      // 真实 API 日程（ScheduleForm 新建注入主线）：勾选状态落库，防刷新回滚
+      if ((t.__origin === 'api' || t.__fromSchedule === true) && /^\d+$/.test(String(t.id))) {
+        setApiSchedules(prev => prev.map(s =>
+          String(s.id) === String(t.id) ? { ...s, is_done: nextDone } : s));
+        API.schedules.update(t.id, { is_done: nextDone }).catch(() => {
+          setApiSchedules(prev => prev.map(s =>
+            String(s.id) === String(t.id) ? { ...s, is_done: !nextDone } : s));
+          setTick(v => v + 1);
+        });
+      }
       // 勾选 → 100%；取消勾选 → 恢复勾选前进度（_prevProgress 暂存），修复取消后仍显示 100%
       return {
         ...t,
@@ -1242,6 +1252,26 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         raw.is_done = !raw.is_done;
       }
     });
+    // 3) 真实 API 日程：勾选状态必须落库（根因修复 —— 之前只改内存态，
+    //    切月/刷新后 effect 重新拉取服务端旧值把 is_done 覆盖回去 →「保存不成功」）
+    const isRealApiSchedule = ev.__origin === 'api'
+      || (ev.id != null && /^\d+$/.test(String(ev.id)));
+    if (isRealApiSchedule && ev.id != null) {
+      const nextDone = !Boolean(ev.is_done || ev.done);
+      // 乐观更新本地事件源：月历格子 / 当日详情立即变色（含未注入主线的 category=3 事项）
+      setApiSchedules(prev => prev.map(s =>
+        String(s.id) === String(ev.id) ? { ...s, is_done: nextDone } : s));
+      (async () => {
+        try {
+          await API.schedules.update(ev.id, { is_done: nextDone });
+        } catch (_) {
+          // 失败回滚乐观更新
+          setApiSchedules(prev => prev.map(s =>
+            String(s.id) === String(ev.id) ? { ...s, is_done: !nextDone } : s));
+          setTick(v => v + 1);
+        }
+      })();
+    }
     // 强制刷新（改变引用 → useMemo 重建 monthEvents）
     setTick(v => v + 1);
   }, []);

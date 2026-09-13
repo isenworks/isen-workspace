@@ -143,7 +143,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     rows.forEach(r => {
       const last = groups[groups.length - 1];
       if (last && last.mo === r.mo && last.year === r.yr) last.items.push(r);
-      else groups.push({ mo: r.mo, year: r.yr, label: r.mo ? `${r.mo}月` : '无日期', items: [r] });
+      else groups.push({ mo: r.mo, year: r.yr, label: r.mo ? `${String(r.mo).padStart(2, '0')}月` : '无日期', items: [r] });
     });
     return groups;
   }, [dynLife, lifeFilter]);
@@ -665,7 +665,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     bdYearRows.forEach(b => {
                       const g = groups.find(x => x.mo === b.mo);
                       if (g) g.items.push(b);
-                      else groups.push({ mo: b.mo, label: b.mo ? `${b.mo}月` : '无日期', items: [b] });
+                      else groups.push({ mo: b.mo, label: b.mo ? `${String(b.mo).padStart(2, '0')}月` : '无日期', items: [b] });
                     });
                     const flat = [];
                     groups.forEach(g => g.items.forEach((b, i) => flat.push({ b, label: i === 0 ? g.label : null })));

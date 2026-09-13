@@ -577,7 +577,7 @@ export default function Workspace({ user: propUser }) {
           />
         </div>
       ) : (
-        <main className="flex-1 min-w-0 max-w-[1180px] flex flex-col gap-4">
+        <main className="flex-1 min-w-0 max-w-[1320px] flex flex-col gap-4">
           {/* 顶部日历条 */}
           <WeekCalendar
             selectedDate={selectedDate}

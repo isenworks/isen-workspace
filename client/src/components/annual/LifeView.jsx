@@ -624,11 +624,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                               <div key={b.id || ri} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
                                 onClick={() => onBirthdayEdit?.(b)}
                                 onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
-                                {/* 月份列（组首行）：左端与年份大字严格对齐 */}
-                                <div className="w-9 flex-shrink-0">
+                                {/* 月份列（组首行）：左端与年份大字严格对齐；w-12 保证「10月」两位数月份不折行 */}
+                                <div className="w-12 flex-shrink-0">
                                   {ri === 0 && (
                                     <div className="h-5 flex items-center justify-start pl-3.5">
-                                      <span className="text-sm font-bold text-ink-700 leading-none">{g.label}</span>
+                                      <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{g.label}</span>
                                     </div>
                                   )}
                                 </div>
@@ -696,11 +696,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               return (
                 <div key={`${r.cat.key}-${r.idx}`} className="flex gap-2.5 cursor-pointer"
                   onClick={() => onEntryEdit?.(r.cat.key, r.idx, r.e)}>
-                  {/* 月份列（组首行）：与当月首条标题行等高居中（h-5 对齐标题行）；左端与年份大字严格对齐 */}
-                  <div className="w-9 flex-shrink-0">
+                  {/* 月份列（组首行）：与当月首条标题行等高居中（h-5 对齐标题行）；左端与年份大字严格对齐；w-12 防两位数月份折行 */}
+                  <div className="w-12 flex-shrink-0">
                     {ri === 0 && (
                       <div className="h-5 flex items-center justify-start pl-3.5">
-                        <span className="text-sm font-bold text-ink-700 leading-none">{g.label}</span>
+                        <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{g.label}</span>
                       </div>
                     )}
                   </div>

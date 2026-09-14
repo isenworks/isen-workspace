@@ -117,28 +117,33 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
     }
   };
 
-  /* ===== 即将到来：生日倒计时 + 未来 7 天关键事项 ===== */
-  const upcomingBds = useMemo(() => {
+  /* ===== 即将到来：生日 + 关键事项合并时间轴，按剩余天数升序取前 4 ===== */
+  const upcomingList = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    return (sched || []).filter(s => {
+    const list = [];
+    // 生日（未来一年内最近的下一次，含农历标记）
+    (sched || []).filter(s => {
       const t = String(s.title || '');
       return t.includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly' || t.startsWith('🎂'));
-    }).map(b => {
+    }).forEach(b => {
       const name = String(b.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || b.title;
       const parts = String(b.date || '').split('-');
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
-      if (!mo || !day) return null;
+      if (!mo || !day) return;
       let next = new Date(today.getFullYear(), mo - 1, day); next.setHours(0, 0, 0, 0);
       if (next < today) next = new Date(today.getFullYear() + 1, mo - 1, day);
       const daysLeft = Math.round((next - today) / 86400000);
-      return { id: b.id, name, daysLeft, isLunar: b.repeat_rule === 'lunar-yearly' };
-    }).filter(Boolean).sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [sched]);
-  const upcomingKeys = useMemo(() => (sched || [])
-    .filter(s => s.is_key && s.date > todayStr && s.date <= addDaysISO(todayStr, 7))
-    .sort((a, b) => String(a.date).localeCompare(String(b.date))),
-    [sched, todayStr]);
+      list.push({ key: `bd-${b.id}`, type: 'birthday', title: `${name}的生日`, isLunar: b.repeat_rule === 'lunar-yearly', daysLeft });
+    });
+    // 关键事项：未来 30 天（与取数窗口一致）
+    (sched || []).filter(s => s.is_key && s.date > todayStr && s.date <= addDaysISO(todayStr, 30))
+      .forEach(s => {
+        const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
+        list.push({ key: `uk-${s.id}`, type: 'key', title: s.title, date: s.date, daysLeft });
+      });
+    return list.sort((a, b) => a.daysLeft - b.daysLeft);
+  }, [sched, todayStr]);
 
   /* ===== 精力：本周打卡统计 ===== */
   const habitRows = habits.slice(0, 3);
@@ -295,49 +300,41 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
             </div>
           </div>
 
-          {/* ---- 即将到来 ---- */}
+          {/* ---- 即将到来：生日 + 关键事项统一时间轴（前 4 条） ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead title="即将到来" sub="生日 / 关键日程" onClick={() => onNav?.('annual', 'life')} />
+            <CardHead title="即将到来" sub="未来 30 天" onClick={() => onNav?.('plan')} />
             <div className="flex-1 flex flex-col gap-1.5 justify-start">
-              {upcomingBds.slice(0, 2).map(b => (
+              {upcomingList.slice(0, 4).map(u => (
                 <button
-                  key={`bd-${b.id}`}
-                  onClick={() => onNav?.('annual', 'life')}
-                  className="flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition hover:bg-[rgba(175,82,222,0.06)]"
+                  key={u.key}
+                  onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : onNav?.('plan')}
+                  className={`flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition ${u.type === 'birthday' ? 'hover:bg-[rgba(175,82,222,0.06)]' : 'hover:bg-[rgba(var(--s-rgb),0.05)]'}`}
                 >
-                  <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-life-rgb),0.1)' }}>
-                    <svg className="w-4 h-4" style={{ color: 'var(--m-life)' }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2l2.4 5.4L20 9l-4 4 .9 6.3L12 16.5 7.1 19.3 8 13 4 9l5.6-1.6L12 2z"/></svg>
-                  </span>
+                  {u.type === 'birthday' ? (
+                    <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-life-rgb),0.1)' }}>
+                      <svg className="w-4 h-4" style={{ color: 'var(--m-life)' }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2l2.4 5.4L20 9l-4 4 .9 6.3L12 16.5 7.1 19.3 8 13 4 9l5.6-1.6L12 2z"/></svg>
+                    </span>
+                  ) : (
+                    <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
+                      {String(u.date).slice(8)}
+                    </span>
+                  )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-semibold text-ink-800 truncate">{b.name}的生日{b.isLunar ? ' · 农历' : ''}</div>
-                    <div className="text-[10.5px] text-ink-400">{b.daysLeft === 0 ? '就是今天' : `还有 ${b.daysLeft} 天`}</div>
+                    <div className="text-[12.5px] font-semibold text-ink-800 truncate">{u.title}</div>
+                    <div className="text-[10.5px] text-ink-400">
+                      {u.type === 'birthday'
+                        ? `${u.daysLeft === 0 ? '就是今天' : `还有 ${u.daysLeft} 天`}${u.isLunar ? ' · 农历' : ''}`
+                        : `${String(u.date).slice(5).replace('-', '/')} · 关键事项`}
+                    </div>
                   </div>
-                  <span className="text-[16px] font-extrabold tabular-nums flex-shrink-0" style={{ color: 'var(--m-life)' }}>{b.daysLeft}</span>
+                  <span className="text-[16px] font-extrabold tabular-nums flex-shrink-0" style={{ color: u.type === 'birthday' ? 'var(--m-life)' : 'var(--s-main)' }}>{u.daysLeft}</span>
                 </button>
               ))}
-              {upcomingKeys.slice(0, 2).map(s => (
-                <button
-                  key={`uk-${s.id}`}
-                  onClick={() => onNav?.('plan')}
-                  className="flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition hover:bg-[rgba(var(--s-rgb),0.05)]"
-                >
-                  <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
-                    {String(s.date).slice(8)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-semibold text-ink-800 truncate">{s.title}</div>
-                    <div className="text-[10.5px] text-ink-400">{String(s.date).slice(5).replace('-', '/')} · 关键事项</div>
-                  </div>
-                </button>
-              ))}
-              {upcomingBds.length === 0 && upcomingKeys.length === 0 && (
-                <div className="text-[12.5px] text-ink-400 text-center py-3">近期没有生日和关键日程</div>
+              {upcomingList.length === 0 && (
+                <div className="text-[12.5px] text-ink-400 text-center py-3">未来 30 天没有生日和关键日程</div>
               )}
-              {upcomingBds.length > 2 && (
-                <button onClick={() => onNav?.('annual', 'life')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingBds.length - 2} 个生日…</button>
-              )}
-              {upcomingKeys.length > 2 && (
-                <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingKeys.length - 2} 项关键日程…</button>
+              {upcomingList.length > 4 && (
+                <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingList.length - 4} 项…</button>
               )}
             </div>
           </div>

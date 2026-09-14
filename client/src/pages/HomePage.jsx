@@ -7,10 +7,6 @@ import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWee
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
 const modColor = (k) => `var(--m-${k})`;
 const modRgba = (k, a) => `rgba(var(--m-${k}-rgb),${a})`;
-const fmtMoney = (n) => {
-  const v = Number(n) || 0;
-  return v >= 10000 ? `${(v / 10000).toFixed(v % 10000 === 0 ? 0 : 1)}万` : String(Math.round(v));
-};
 
 /* 卡片头：模块色竖条 + 标题 + 右侧查看更多 */
 function CardHead({ moduleKey, title, sub, onClick, more = '查看' }) {
@@ -42,20 +38,20 @@ function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
   );
 }
 
-/* 完成率圆环（今日聚焦） */
+/* 完成率圆环（今日聚焦）· 80px 小环，适配 1/4 宽卡片 */
 function Ring({ value, done, total, color = 'var(--s-main)' }) {
-  const R = 34, C = 2 * Math.PI * R;
+  const R = 31, C = 2 * Math.PI * R;
   return (
-    <div className="relative w-[86px] h-[86px] flex-shrink-0">
-      <svg width="86" height="86" viewBox="0 0 86 86">
-        <circle cx="43" cy="43" r={R} fill="none" stroke="rgba(120,120,128,0.12)" strokeWidth="7.5" />
-        <circle cx="43" cy="43" r={R} fill="none" stroke={color} strokeWidth="7.5" strokeLinecap="round"
-          strokeDasharray={C} strokeDashoffset={C * (1 - value / 100)} transform="rotate(-90 43 43)"
+    <div className="relative w-[80px] h-[80px] flex-shrink-0">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(120,120,128,0.12)" strokeWidth="7" />
+        <circle cx="40" cy="40" r={R} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+          strokeDasharray={C} strokeDashoffset={C * (1 - value / 100)} transform="rotate(-90 40 40)"
           style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)' }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[19px] font-extrabold text-ink-900 leading-none tabular-nums">{value}%</span>
-        <span className="text-[9.5px] text-ink-400 mt-1 tabular-nums">{done}/{total} 完成</span>
+        <span className="text-[17px] font-extrabold text-ink-900 leading-none tabular-nums">{value}%</span>
+        <span className="text-[9px] text-ink-400 mt-1 tabular-nums">{done}/{total} 完成</span>
       </div>
     </div>
   );
@@ -68,7 +64,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
   const weekStartStr = toISODate(weekStart);
   const weekEndStr = toISODate(endOfWeek(new Date()));
 
-  /* ===== 签名（localStorage + 云端 KV 持久化，右键/点击编辑） ===== */
+  /* ===== 签名（localStorage + 云端 KV 持久化，点击编辑） ===== */
   const [signature, setSignature] = usePersistentState('home_signature_v1', () => '');
   const [sigEditing, setSigEditing] = useState(false);
 
@@ -87,21 +83,10 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
   const habits = realHabits || [];
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysISO(weekStartStr, i)), [weekStartStr]);
 
-  /* ===== 知力 / 能力 / 工作 / 生活（与年度规划共享同一份 localStorage 数据） ===== */
+  /* ===== 知力 / 能力 / 工作（与年度规划共享同一份 localStorage 数据） ===== */
   const [books] = usePersistentState('annual_books_v12', () => null);
   const [abilities] = usePersistentState('annual_abilities_v2', () => null);
   const [workGoals] = usePersistentState('annual_work', () => null);
-  const [lifeData] = usePersistentState('annual_life', () => null);
-
-  /* ===== 财务（攒钱目标 / 净资产） ===== */
-  const [fin, setFin] = useState(null);
-  useEffect(() => {
-    let alive = true;
-    API.finance.bootstrap(todayStr.slice(0, 7))
-      .then(r => { if (alive) setFin(r || null); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [syncSignal, todayStr]);
 
   /* ===== 今日聚焦 ===== */
   const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr), [sched, todayStr]);
@@ -139,7 +124,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
   }, [sched]);
   const upcomingKeys = useMemo(() => (sched || [])
     .filter(s => s.is_key && s.date > todayStr && s.date <= addDaysISO(todayStr, 7))
-    .sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 3),
+    .sort((a, b) => String(a.date).localeCompare(String(b.date))),
     [sched, todayStr]);
 
   /* ===== 精力：本周打卡统计 ===== */
@@ -147,7 +132,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
   const weekDoneCnt = useMemo(() => habitRows.reduce((sum, h) => {
     const set = new Set(h.allDates || []);
     return sum + weekDates.filter(d => set.has(d)).length;
-  }, 0), [habitRows, weekDates]);
+  }, 0), [habits, weekDates]);
 
   /* ===== 知力：在读（1 本主推 + 多本列表） ===== */
   const reading = useMemo(() => (books || []).filter(b => b.st === 'reading').sort((a, b) => (b.pct || 0) - (a.pct || 0)), [books]);
@@ -169,22 +154,6 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
       const avg = krs.length > 0 ? Math.round(krs.reduce((s, k) => s + pct(k.v, k.tgt), 0) / krs.length) : 0;
       return { id: o.id, title: o.title, label: o.label, avg, krCnt: krs.length };
     }), [workGoals]);
-
-  /* ===== 财务：Σ攒钱目标 + 净资产 ===== */
-  const finGoals = (fin?.goals) || [];
-  const finSumCur = finGoals.reduce((s, g) => s + (Number(g.current_amount) || 0), 0);
-  const finSumTgt = finGoals.reduce((s, g) => s + (Number(g.target_amount) || 0), 0);
-  const finPct = pct(finSumCur, finSumTgt);
-  const nw = fin?.netWorth || null;
-
-  /* ===== 生活：记录统计 + 最近记录 ===== */
-  const lifeCats = lifeData || [];
-  const lifeEntryCnt = lifeCats.reduce((s, c) => s + (c.entries?.length || 0), 0);
-  const lifeRecent = useMemo(() => {
-    const rows = [];
-    lifeCats.forEach(c => (c.entries || []).forEach(e => rows.push({ cat: c.lb, e })));
-    return rows.slice(-3).reverse();
-  }, [lifeData]);
 
   const hour = new Date().getHours();
   const greeting = hour < 6 ? '夜深了' : hour < 11 ? '早上好' : hour < 13 ? '中午好' : hour < 18 ? '下午好' : hour < 22 ? '晚上好' : '夜深了';
@@ -236,8 +205,9 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
           </div>
         </div>
 
-        {/* ========== Bento 网格 ========== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* ========== Bento 网格：上行 = 时间三卡 + 快捷动作，下行 = 精力/知力/能力/工作 ==========
+            xl 4 列 · auto-rows-fr：全部 8 张卡片同宽同高（时间卡与成长卡尺寸完全一致） */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4">
 
           {/* ---- 今日聚焦 ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -329,7 +299,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
                   <span className="text-[16px] font-extrabold tabular-nums flex-shrink-0" style={{ color: 'var(--m-life)' }}>{b.daysLeft}</span>
                 </button>
               ))}
-              {upcomingKeys.slice(0, 2).map(s => (
+              {upcomingKeys.slice(0, 1).map(s => (
                 <button
                   key={`uk-${s.id}`}
                   onClick={() => onNav?.('plan')}
@@ -350,6 +320,41 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
               {upcomingBds.length > 2 && (
                 <button onClick={() => onNav?.('annual', 'life')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingBds.length - 2} 个生日…</button>
               )}
+              {upcomingKeys.length > 1 && (
+                <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingKeys.length - 1} 项关键日程…</button>
+              )}
+            </div>
+          </div>
+
+          {/* ---- 快捷动作（上行第 4 格 · 与其余卡同尺寸） ---- */}
+          <div className="glass-card p-4 flex flex-col">
+            <CardHead title="快捷动作" />
+            <div className="flex-1 flex flex-col justify-center gap-2">
+              <button
+                onClick={() => onQuickCapture?.()}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:brightness-105 active:scale-[0.98]"
+                style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)' }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                快速记一条
+                <kbd className="text-[9.5px] font-bold px-1.5 py-px rounded bg-white/25">N</kbd>
+              </button>
+              <button
+                onClick={() => onNewSchedule?.()}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(var(--s-rgb),0.1)] active:scale-[0.98]"
+                style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                新建事项
+              </button>
+              <button
+                onClick={() => onSync?.()}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(120,120,128,0.1)] active:scale-[0.98]"
+                style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--ink-600, #3a3a3c)' }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                同步数据
+              </button>
             </div>
           </div>
 
@@ -479,97 +484,6 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
               )}
             </div>
           </div>
-
-          {/* ---- 财务 ---- */}
-          <div className="glass-card p-4 flex flex-col">
-            <CardHead moduleKey="finance" title="财务" sub="攒钱目标" onClick={() => onNav?.('annual', 'finance')} />
-            <div className="flex-1 flex flex-col justify-center gap-2.5">
-              {finSumTgt > 0 ? (
-                <>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[11px] text-ink-400">已存 / 目标</span>
-                    <span className="text-[12px] font-bold text-ink-800 tabular-nums">
-                      ¥{fmtMoney(finSumCur)} / ¥{fmtMoney(finSumTgt)}
-                    </span>
-                  </div>
-                  <Bar value={finPct} color="var(--m-finance)" h="6px" />
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-[11px] text-ink-400">{finGoals.length} 个攒钱目标</span>
-                    {nw && (
-                      <span className="text-[11px] text-ink-500 tabular-nums">
-                        净资产 <span className="font-bold" style={{ color: 'var(--m-finance)' }}>¥{fmtMoney(nw.netWorth)}</span>
-                      </span>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                  <span className="text-[12.5px] font-semibold text-ink-600">还没有攒钱目标</span>
-                  <span className="text-[11px] text-ink-400">{nw ? `净资产 ¥${fmtMoney(nw.netWorth)}` : '去财务页创建第一个目标'}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ---- 生活 ---- */}
-          <div className="glass-card p-4 flex flex-col">
-            <CardHead moduleKey="life" title="生活" sub="体验记录" onClick={() => onNav?.('annual', 'life')} />
-            <div className="flex-1 flex flex-col justify-center gap-2">
-              {lifeEntryCnt > 0 ? (
-                <>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-[11px] text-ink-400">今年已记录</span>
-                    <span className="text-[13px] font-extrabold tabular-nums" style={{ color: 'var(--m-life)' }}>{lifeEntryCnt} 条</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {lifeRecent.map((r, i) => (
-                      <div key={`${r.cat}-${i}`} className="flex items-center gap-2 text-[11.5px]">
-                        <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'var(--m-life)' }} />
-                        <span className="text-ink-600 truncate flex-1">{r.e.txt || r.e.lb || '记录'}</span>
-                        <span className="text-ink-300 flex-shrink-0 tabular-nums">{r.e.d || ''}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                  <span className="text-[12.5px] font-semibold text-ink-600">还没有生活记录</span>
-                  <span className="text-[11px] text-ink-400">去生活页记下美好瞬间</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ========== 快捷动作（通栏） ========== */}
-        <div className="glass-card px-5 py-4 flex items-center gap-3 flex-wrap">
-          <span className="text-[12px] font-bold text-ink-500 flex-shrink-0">快捷动作</span>
-          <div className="w-px h-5 flex-shrink-0" style={{ background: 'rgba(120,120,128,0.18)' }} />
-          <button
-            onClick={() => onQuickCapture?.()}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition hover:brightness-105 active:scale-95"
-            style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)' }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            快速记一条
-            <kbd className="text-[9.5px] font-bold px-1.5 py-px rounded bg-white/25">N</kbd>
-          </button>
-          <button
-            onClick={() => onNewSchedule?.()}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(var(--s-rgb),0.1)] active:scale-95"
-            style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            新建事项
-          </button>
-          <button
-            onClick={() => onSync?.()}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(120,120,128,0.1)] active:scale-95"
-            style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--ink-600, #3a3a3c)' }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-            同步数据
-          </button>
         </div>
       </div>
     </div>

@@ -38,21 +38,23 @@ function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
   );
 }
 
-/* 完成率圆环（今日聚焦）· 80px 小环，适配 1/4 宽卡片 */
+/* 完成率圆环（今日聚焦）· 80px 小环，统计文字在环下方 */
 function Ring({ value, done, total, color = 'var(--s-main)' }) {
   const R = 31, C = 2 * Math.PI * R;
   return (
-    <div className="relative w-[80px] h-[80px] flex-shrink-0">
-      <svg width="80" height="80" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(120,120,128,0.12)" strokeWidth="7" />
-        <circle cx="40" cy="40" r={R} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
-          strokeDasharray={C} strokeDashoffset={C * (1 - value / 100)} transform="rotate(-90 40 40)"
-          style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)' }} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[17px] font-extrabold text-ink-900 leading-none tabular-nums">{value}%</span>
-        <span className="text-[9px] text-ink-400 mt-1 tabular-nums">{done}/{total} 完成</span>
+    <div className="flex flex-col items-center flex-shrink-0">
+      <div className="relative w-[80px] h-[80px]">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(120,120,128,0.12)" strokeWidth="7" />
+          <circle cx="40" cy="40" r={R} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+            strokeDasharray={C} strokeDashoffset={C * (1 - value / 100)} transform="rotate(-90 40 40)"
+            style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)' }} />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[17px] font-extrabold text-ink-900 leading-none tabular-nums">{value}%</span>
+        </div>
       </div>
+      <span className="text-[9.5px] text-ink-400 mt-1.5 tabular-nums">{done}/{total} 完成</span>
     </div>
   );
 }
@@ -103,6 +105,17 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
     .sort((a, b) => (a.is_done ? 1 : 0) - (b.is_done ? 1 : 0) || String(a.date).localeCompare(String(b.date))),
     [sched, weekEndStr]);
   const weekKeyDone = weekKeys.filter(s => s.is_done).length;
+
+  /* 勾选/取消关键事项（乐观更新 + API 持久化，与 KeyTasks 同款含重复事项 occurrence 处理） */
+  const toggleWeekKey = async (s) => {
+    const nextDone = !s.is_done;
+    setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: nextDone } : x));
+    try {
+      await API.schedules.update(s.id, { is_done: nextDone, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
+    } catch {
+      setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: !nextDone } : x));
+    }
+  };
 
   /* ===== 即将到来：生日倒计时 + 未来 7 天关键事项 ===== */
   const upcomingBds = useMemo(() => {
@@ -250,12 +263,13 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
                 <span className="text-[12px] font-bold text-ink-800 tabular-nums">{weekKeyDone}/{weekKeys.length}</span>
               </div>
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
-              <div className="flex-1 flex flex-col justify-center gap-1.5 mt-1">
+              <div className="flex-1 flex flex-col justify-start gap-1.5 mt-1">
                 {weekKeys.slice(0, 3).map(s => (
-                  <button key={s.id} onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left group">
-                    <span
-                      onClick={e => e.stopPropagation()}
-                      className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition"
+                  <div key={s.id} className="flex items-center gap-2 group">
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
+                      className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
+                      title={s.is_done ? '取消完成' : '标记完成'}
                       style={{
                         background: s.is_done ? 'var(--s-main)' : 'transparent',
                         borderColor: s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'
@@ -264,10 +278,12 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
                       {s.is_done ? (
                         <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       ) : null}
-                    </span>
-                    <span className={`text-[12.5px] truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-700'}`}>{s.title}</span>
-                    <span className="text-[10px] text-ink-300 flex-shrink-0 ml-auto tabular-nums">{String(s.date).slice(5).replace('-', '/')}</span>
-                  </button>
+                    </button>
+                    <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1">
+                      <span className={`text-[12.5px] truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-700'}`}>{s.title}</span>
+                      <span className="text-[10px] text-ink-300 flex-shrink-0 ml-auto tabular-nums">{String(s.date).slice(5).replace('-', '/')}</span>
+                    </button>
+                  </div>
                 ))}
                 {weekKeys.length === 0 && (
                   <div className="text-[12.5px] text-ink-400 text-center py-3">本周暂无关键事项</div>
@@ -282,7 +298,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
           {/* ---- 即将到来 ---- */}
           <div className="glass-card p-4 flex flex-col">
             <CardHead title="即将到来" sub="生日 / 关键日程" onClick={() => onNav?.('annual', 'life')} />
-            <div className="flex-1 flex flex-col gap-1.5 justify-center">
+            <div className="flex-1 flex flex-col gap-1.5 justify-start">
               {upcomingBds.slice(0, 2).map(b => (
                 <button
                   key={`bd-${b.id}`}
@@ -299,7 +315,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
                   <span className="text-[16px] font-extrabold tabular-nums flex-shrink-0" style={{ color: 'var(--m-life)' }}>{b.daysLeft}</span>
                 </button>
               ))}
-              {upcomingKeys.slice(0, 1).map(s => (
+              {upcomingKeys.slice(0, 2).map(s => (
                 <button
                   key={`uk-${s.id}`}
                   onClick={() => onNav?.('plan')}
@@ -320,39 +336,39 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
               {upcomingBds.length > 2 && (
                 <button onClick={() => onNav?.('annual', 'life')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingBds.length - 2} 个生日…</button>
               )}
-              {upcomingKeys.length > 1 && (
-                <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingKeys.length - 1} 项关键日程…</button>
+              {upcomingKeys.length > 2 && (
+                <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingKeys.length - 2} 项关键日程…</button>
               )}
             </div>
           </div>
 
-          {/* ---- 快捷动作（上行第 4 格 · 与其余卡同尺寸） ---- */}
+          {/* ---- 快捷动作（上行第 4 格 · 横条方框按钮，与其余卡同尺寸） ---- */}
           <div className="glass-card p-4 flex flex-col">
             <CardHead title="快捷动作" />
-            <div className="flex-1 flex flex-col justify-center gap-2">
+            <div className="flex-1 flex flex-col gap-2">
               <button
                 onClick={() => onQuickCapture?.()}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:brightness-105 active:scale-[0.98]"
+                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:brightness-105 active:scale-[0.98]"
                 style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)' }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 快速记一条
-                <kbd className="text-[9.5px] font-bold px-1.5 py-px rounded bg-white/25">N</kbd>
+                <kbd className="ml-auto text-[9.5px] font-bold px-1.5 py-px rounded bg-white/25">N</kbd>
               </button>
               <button
                 onClick={() => onNewSchedule?.()}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(var(--s-rgb),0.1)] active:scale-[0.98]"
+                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(var(--s-rgb),0.1)] active:scale-[0.98]"
                 style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                 新建事项
               </button>
               <button
                 onClick={() => onSync?.()}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(120,120,128,0.1)] active:scale-[0.98]"
+                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(120,120,128,0.1)] active:scale-[0.98]"
                 style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--ink-600, #3a3a3c)' }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
                 同步数据
               </button>
             </div>
@@ -403,7 +419,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
           {/* ---- 知力：在读 ---- */}
           <div className="glass-card p-4 flex flex-col">
             <CardHead moduleKey="cognition" title="知力" sub={reading.length > 0 ? `在读 ${reading.length} 本` : `已读 ${booksDone} 本`} onClick={() => onNav?.('annual', 'cognition')} />
-            <div className="flex-1 flex flex-col justify-center min-h-0">
+            <div className="flex-1 flex flex-col justify-start min-h-0">
               {reading.length > 0 && (
                 <div className="rounded-xl p-3" style={{ background: 'rgba(var(--m-cognition-rgb),0.06)' }}>
                   <div className="flex items-baseline justify-between gap-2 mb-1">
@@ -438,7 +454,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
           {/* ---- 能力 ---- */}
           <div className="glass-card p-4 flex flex-col">
             <CardHead moduleKey="ability" title="能力" sub="里程碑进度" onClick={() => onNav?.('annual', 'ability')} />
-            <div className="flex-1 flex flex-col justify-center gap-3">
+            <div className="flex-1 flex flex-col justify-start gap-3">
               {abilRows.map(a => (
                 <div key={a.id}>
                   <div className="flex items-baseline justify-between gap-2 mb-1">
@@ -461,7 +477,7 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
           {/* ---- 工作 ---- */}
           <div className="glass-card p-4 flex flex-col">
             <CardHead moduleKey="work" title="工作" sub="目标进度" onClick={() => onNav?.('annual', 'work')} />
-            <div className="flex-1 flex flex-col justify-center gap-3">
+            <div className="flex-1 flex flex-col justify-start gap-3">
               {workRows.map(o => (
                 <div key={o.id}>
                   <div className="flex items-baseline justify-between gap-2 mb-1">

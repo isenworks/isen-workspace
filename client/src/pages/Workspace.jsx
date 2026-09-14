@@ -24,6 +24,7 @@ import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 //     日历为高频页面，挂载后空闲时后台预取分块（见组件内 warm 效果），首次点击即秒开
 //     HabitForm/BookForm/KrForm/MilestoneForm/AbilityForm 被 AnnualPlan 静态引用（随其加载），懒加载无收益故保留静态
 const CalendarPage = lazy(() => import('./CalendarPage.jsx'));
+const HomePage = lazy(() => import('./HomePage.jsx'));
 const RecycleBinPage = lazy(() => import('./RecycleBinPage.jsx'));
 const InboxPage = lazy(() => import('./InboxPage.jsx'));
 const ScheduleForm = lazy(() => import('../components/forms/ScheduleForm.jsx'));
@@ -500,7 +501,25 @@ export default function Workspace({ user: propUser }) {
 
       {/* 主内容区（含懒加载页面，用 Suspense 兜底分块拉取） */}
       <Suspense fallback={<ChunkFallback />}>
-      {activeMenu === 'annual' ? (
+      {activeMenu === 'home' ? (
+        <div className="flex-1 min-w-0">
+          <HomePage
+            user={user}
+            syncSignal={refreshKey}
+            onNav={(menu, annualView) => {
+              setActiveMenu(menu);
+              if (annualView) setAnnualView(annualView);
+            }}
+            onNewSchedule={() => setModal({ type: 'schedule', data: undefined })}
+            onQuickCapture={() => setQuickCaptureOpen(true)}
+            onSync={() => {
+              // 与侧边栏手动同步同款：刷新全部面板数据
+              lastSyncRef.current = Date.now();
+              refresh();
+            }}
+          />
+        </div>
+      ) : activeMenu === 'annual' ? (
         <div className="flex-1 min-w-0">
           <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} addRequest={annualAdd} />
         </div>

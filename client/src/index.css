@@ -969,3 +969,29 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   z-index: 99;
   background: transparent;
 }
+
+/* ====== 主页 · 精力周打卡矩阵（HomePage） ======
+   hp-hb     矩阵容器（习惯行竖排）
+   hp-hrow   单条习惯行：名称 + 7 天格子
+   hp-hname  习惯名（定宽截断）
+   hp-hcells 7 天格子网格
+   hp-hcell  单日格子：数字 = 日期；.ok 已打卡 / .fut 未来 / .tdy 今天描边 */
+.hp-hb { display: flex; flex-direction: column; gap: 9px; flex: 1; justify-content: center; }
+.hp-hrow { display: flex; align-items: center; gap: 8px; }
+.hp-hname {
+  font-size: 11px; font-weight: 600; color: #8e8e93;
+  width: 76px; flex-shrink: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hp-hcells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; flex: 1; }
+.hp-hcell {
+  aspect-ratio: 1.45; border-radius: 5px;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: #a8a8ad; background: #ececef;
+}
+.hp-hcell.ok { background: rgba(52, 199, 89, 0.16); color: #34C759; font-weight: 700; }
+.hp-hcell.fut { background: rgba(120, 120, 128, 0.06); color: #c7c7cc; }
+.hp-hcell.tdy { box-shadow: 0 0 0 1.5px rgba(120, 120, 128, 0.45); }
+.hp-hcell.tdy.ok { box-shadow: 0 0 0 1.5px rgba(52, 199, 89, 0.55); }
+

@@ -205,6 +205,9 @@ export function usePersistentState(key, initial) {
     return () => { alive = false; };
   }, [key]);
   useEffect(() => {
+    // null = 只读占位（如 HomePage 首次挂载时本地/云端暂无该数据）：跳过写本地与推云端，
+    // 避免 "null" 覆盖 localStorage / 云端 KV，导致后续 AnnualPlan 读到 null 崩溃
+    if (state === null || state === undefined) return;
     try { localStorage.setItem(key, JSON.stringify(state)); } catch {}
     // 云端拉取未完成期间的本地写入不推（避免用旧值覆盖云端；拉取完成后如有差异会在下次加载纠正）
     if (!cloudSyncedRef.current || suppressPushRef.current) {

@@ -64,6 +64,29 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   // 拉伸刚结束标记：mouseup 后浏览器会在方块上合成 click（mousedown/mouseup 公共祖先），
   // 用此标记吞掉该 click，实现「拖拽只调时间、点击才开面板」；下一个宏任务复位，不影响后续真实点击
   const justResizedRef = useRef(false);
+  // 勾选/打卡编辑缓冲：`s|id|date`(日程) / `t|id`(待办) / `h|id`(习惯) → 新值
+  // 兜底三条回退路径：① 飞行中的旧请求迟到 ② 落库窗口内被 reload 触发的旧数据覆盖 ③ 缓存写穿失败
+  // load() 应用任何数据源（缓存/服务器）前重放未确认的编辑，数据源返回一致值时自动确认清除
+  const pendingTogglesRef = useRef(new Map());
+
+  function applyPendingToggles(r) {
+    if (!pendingTogglesRef.current.size || !r) return r;
+    let sched = r.sched, tasks = r.tasks, habits = r.habits;
+    for (const [key, val] of [...pendingTogglesRef.current]) {
+      const parts = key.split('|');
+      const type = parts[0], id = parts[1], date = parts[2] || '';
+      const field = type === 'h' ? 'done_today' : 'is_done';
+      const arr = type === 's' ? sched : type === 't' ? tasks : habits;
+      if (!Array.isArray(arr)) continue;
+      const idx = arr.findIndex(x => String(x.id) === id && (!date || !x.date || x.date === date));
+      if (idx < 0) continue; // 该数据源不含此项（不同日期）：保留待确认
+      if (!!arr[idx][field] === !!val) { pendingTogglesRef.current.delete(key); continue; } // 服务器已确认
+      const copy = [...arr];
+      copy[idx] = { ...copy[idx], [field]: val };
+      if (type === 's') sched = copy; else if (type === 't') tasks = copy; else habits = copy;
+    }
+    return { ...r, sched, tasks, habits };
+  }
 
   // ==== 总结下拉菜单（位于"全部事项"标题旁） ====
   const [sumMenuOpen, setSumMenuOpen] = useState(false);
@@ -141,7 +164,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     const CACHE_TTL = 120000;
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
-      const r = peeked.value;
+      const r = applyPendingToggles(peeked.value);
       setSchedules(r.sched);
       setTasks(r.tasks);
       setHabits(r.habits);
@@ -159,9 +182,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       ]);
       return { sched: s.schedules, tasks: t.tasks, habits: h.habits };
     }, inFlightRef, cacheRef, CACHE_TTL).then(r => {
-      setSchedules(r.sched);
-      setTasks(r.tasks);
-      setHabits(r.habits);
+      const m = applyPendingToggles(r);
+      setSchedules(m.sched);
+      setTasks(m.tasks);
+      setHabits(m.habits);
       setHasData(true);
       gate.done();
     }).catch(e => { console.error(e); gate.done(); });
@@ -188,11 +212,28 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   useEffect(() => store.subscribe(patch => {
     if (patch.type === 'schedule' && patch.id !== undefined) {
       // patch.date 存在时仅更新该日期的实例（重复事项的虚拟实例按 id+date 定位）
-      setSchedules(ss => ss.map(x => (x.id === patch.id && (!patch.date || x.date === patch.date)) ? { ...x, is_done: patch.is_done } : x));
+      const matches = x => String(x.id) === String(patch.id) && (!patch.date || x.date === patch.date);
+      setSchedules(ss => ss.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x));
+      // 写穿缓存：任何面板（含本面板）的勾选同步进 2 分钟缓存，防止后续 load() 命中旧快照回退
+      for (const ent of cacheRef.current.values()) {
+        if (ent?.value && Array.isArray(ent.value.sched)) {
+          ent.value = { ...ent.value, sched: ent.value.sched.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x) };
+        }
+      }
     } else if (patch.type === 'habit' && patch.id !== undefined) {
       setHabits(hs => hs.map(x => x.id === patch.id ? { ...x, done_today: patch.done_today } : x));
+      for (const ent of cacheRef.current.values()) {
+        if (ent?.value && Array.isArray(ent.value.habits)) {
+          ent.value = { ...ent.value, habits: ent.value.habits.map(x => x.id === patch.id ? { ...x, done_today: patch.done_today } : x) };
+        }
+      }
     } else if (patch.type === 'task' && patch.id !== undefined) {
       setTasks(ts => ts.map(x => x.id === patch.id ? { ...x, is_done: patch.is_done } : x));
+      for (const ent of cacheRef.current.values()) {
+        if (ent?.value && Array.isArray(ent.value.tasks)) {
+          ent.value = { ...ent.value, tasks: ent.value.tasks.map(x => x.id === patch.id ? { ...x, is_done: patch.is_done } : x) };
+        }
+      }
     } else if (patch.type === 'reload') {
       cacheClear(cacheRef, 'tl:');
       load();
@@ -203,12 +244,16 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   async function toggleSchedule(s) {
     const nextDone = s.is_done ? 0 : 1;
+    const pKey = `s|${s.id}|${s.date || ''}`;
     setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: nextDone } : x));
     store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: nextDone });
+    // 落库确认窗口兜底：登记本地编辑，load() 应用旧数据源前重放，防止覆盖
+    pendingTogglesRef.current.set(pKey, nextDone);
     try {
       // 重复事项的虚拟实例：传 occurrence_date，后端把完成状态记到该日期（不影响整个序列）
       await API.schedules.update(s.id, { is_done: nextDone, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
     } catch (e) {
+      pendingTogglesRef.current.delete(pKey);
       setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done } : x));
       store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done });
       toast.error(e.message);
@@ -217,11 +262,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   async function toggleTask(t) {
     const nextDone = t.is_done ? 0 : 1;
+    const pKey = `t|${t.id}`;
     setTasks(ts => ts.map(x => x.id === t.id ? { ...x, is_done: nextDone } : x));
     store.broadcast({ type: 'task', id: t.id, is_done: nextDone });
+    pendingTogglesRef.current.set(pKey, nextDone);
     try {
       await API.tasks.update(t.id, { is_done: nextDone });
     } catch (e) {
+      pendingTogglesRef.current.delete(pKey);
       setTasks(ts => ts.map(x => x.id === t.id ? { ...x, is_done: t.is_done } : x));
       store.broadcast({ type: 'task', id: t.id, is_done: t.is_done });
       toast.error(e.message);
@@ -230,11 +278,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   async function toggleHabit(h) {
     const nextDone = h.done_today ? 0 : 1;
+    const pKey = `h|${h.id}`;
     setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: nextDone } : x));
     store.broadcast({ type: 'habit', id: h.id, done_today: nextDone });
+    pendingTogglesRef.current.set(pKey, nextDone);
     try {
       await API.habits.toggle(h.id, date, nextDone);
     } catch (e) {
+      pendingTogglesRef.current.delete(pKey);
       setHabits(hs => hs.map(x => x.id === h.id ? { ...x, done_today: h.done_today } : x));
       store.broadcast({ type: 'habit', id: h.id, done_today: h.done_today });
       toast.error(e.message);

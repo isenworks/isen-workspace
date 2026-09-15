@@ -47,13 +47,32 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const [sortBy, setSortBy] = useState('priority');
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
+  // 勾选编辑缓冲：`id|date` → 新 is_done
+  // 兜底三条回退路径：① 飞行中的旧请求迟到 ② 落库窗口内被 reload 触发的旧数据覆盖 ③ 缓存写穿失败
+  // load() 应用任何数据源（缓存/服务器）前重放未确认的编辑，数据源返回一致值时自动确认清除
+  const pendingTogglesRef = useRef(new Map());
+
+  function applyPendingToggles(list) {
+    if (!pendingTogglesRef.current.size || !Array.isArray(list)) return list;
+    let out = list;
+    for (const [key, val] of [...pendingTogglesRef.current]) {
+      const bar = key.indexOf('|');
+      const id = key.slice(0, bar), date = key.slice(bar + 1);
+      const idx = out.findIndex(x => String(x.id) === id && (!date || x.date === date));
+      if (idx < 0) continue; // 该数据源不含此项（不同日期范围）：保留待确认
+      if (!!out[idx].is_done === !!val) { pendingTogglesRef.current.delete(key); continue; } // 服务器已确认
+      if (out === list) out = [...list];
+      out[idx] = { ...out[idx], is_done: val };
+    }
+    return out;
+  }
 
   function load() {
     const cacheKey = `kt:${range.from}:${range.to}`;
     const CACHE_TTL = 120000; // 2分钟缓存，跨天切换零延迟
     const peeked = cachePeek(cacheKey, cacheRef, CACHE_TTL);
     if (peeked) {
-      setList(peeked.value);
+      setList(applyPendingToggles(peeked.value));
       setHasData(true);
       // 命中缓存立即返回，不再 setLoading(false) 避免骨架屏闪烁
       // 后台静默刷新
@@ -61,7 +80,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         const r = await API.schedules.list({ from: range.from, to: range.to });
         return r.schedules.filter(s => isDisplayInKeyTasks(s));
       }, inFlightRef, cacheRef, CACHE_TTL).then(key => {
-        setList(key);
+        setList(applyPendingToggles(key));
       }).catch(() => {});
       return;
     }
@@ -78,7 +97,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           return (a.start_time || '99').localeCompare(b.start_time || '99');
         });
     }, inFlightRef, cacheRef, CACHE_TTL).then(key => {
-      setList(key);
+      setList(applyPendingToggles(key));
       setHasData(true);
       gate.done();
     }).catch(e => { console.error(e); gate.done(); });
@@ -90,7 +109,15 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   useEffect(() => store.subscribe(patch => {
     if (patch.type === 'schedule' && patch.id !== undefined) {
       // patch.date 存在时仅更新该日期的实例（重复事项的虚拟实例按 id+date 定位）
-      setList(ls => ls.map(x => (x.id === patch.id && (!patch.date || x.date === patch.date)) ? { ...x, is_done: patch.is_done } : x));
+      const matches = x => String(x.id) === String(patch.id) && (!patch.date || x.date === patch.date);
+      setList(ls => ls.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x));
+      // 写穿缓存：任何面板（含本面板）的勾选同步进 2 分钟缓存，
+      // 防止后续 load() 命中 TTL 内旧快照导致复选框回退（broadcast 会送达发起方自身）
+      for (const ent of cacheRef.current.values()) {
+        if (Array.isArray(ent?.value)) {
+          ent.value = ent.value.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x);
+        }
+      }
     } else if (patch.type === 'reload') {
       cacheClear(cacheRef, 'kt:');
       load();
@@ -100,12 +127,16 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   async function toggle(s) {
     const nextDone = s.is_done ? 0 : 1;
+    const pKey = `${s.id}|${s.date || ''}`;
     setList(ls => ls.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: nextDone } : x));
     store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: nextDone });
+    // 落库确认窗口兜底：登记本地编辑，load() 应用旧数据源前重放，防止覆盖
+    pendingTogglesRef.current.set(pKey, nextDone);
     try {
       // 重复事项的虚拟实例：传 occurrence_date，后端把完成状态记到该日期（不影响整个序列）
       await API.schedules.update(s.id, { is_done: nextDone, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
     } catch (e) {
+      pendingTogglesRef.current.delete(pKey);
       setList(ls => ls.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done } : x));
       store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done });
       toast.error(e.message);

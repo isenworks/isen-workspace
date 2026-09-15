@@ -103,6 +103,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   useEffect(() => store.subscribe(patch => {
     if (patch.type === 'habit' && patch.id !== undefined) {
       setHabits(hs => hs.map(x => x.id === patch.id ? { ...x, done_today: patch.done_today } : x));
+      // 其他面板（时间线）勾选习惯时同步清掉本面板缓存快照，防止 TTL 内 load() 旧值回退
+      cacheClear(cacheRef, 'hp:');
     } else if (patch.type === 'reload') {
       cacheClear(cacheRef, 'hp:');
       load();

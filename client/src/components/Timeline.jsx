@@ -61,6 +61,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const contentColRef = useRef(null);
   // 拉伸进行中标记：避免手柄 mousedown 误触发方块整体 drag
   const isResizingRef = useRef(false);
+  // 拉伸刚结束标记：mouseup 后浏览器会在方块上合成 click（mousedown/mouseup 公共祖先），
+  // 用此标记吞掉该 click，实现「拖拽只调时间、点击才开面板」；下一个宏任务复位，不影响后续真实点击
+  const justResizedRef = useRef(false);
 
   // ==== 总结下拉菜单（位于"全部事项"标题旁） ====
   const [sumMenuOpen, setSumMenuOpen] = useState(false);
@@ -360,6 +363,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
     function onMove(ev) {
       const deltaY = ev.clientY - startY;
+      // 位移 <3px 视为手抖或纯点击手柄：不进入拉伸（latest 保持 null，onUp 不落库不吞 click）
+      if (!latest && Math.abs(deltaY) < 3) return;
       const deltaMin = Math.round(deltaY / TL_PX_PER_MIN);
 
       if (type === 'top') {
@@ -395,17 +400,24 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       isResizingRef.current = false;
 
       // 读闭包内最新态（而非 React state 的旧闭包值）
-      if (latest && !item.isHabit && !item.isFixed) {
-        const updates = {};
-        if (latest.tempStart) updates.start_time = latest.tempStart;
-        if (latest.tempEnd) updates.end_time = latest.tempEnd;
-        updates.duration_min = Math.round(latest.hPx / TL_PX_PER_MIN);
+      if (latest) {
+        // 发生过真实拖动：置 justResized 并延迟到下一个宏任务复位——
+        // 浏览器在 mouseup 之后、timeout 之前合成的 click 会被吞掉，之后的真实点击不受影响
+        justResizedRef.current = true;
+        setTimeout(() => { justResizedRef.current = false; }, 0);
 
-        API.schedules.update(item.id, updates).then(() => {
-          setSchedules(ss => ss.map(x => x.id === item.id ? { ...x, ...updates } : x));
-          store.broadcast({ type: 'reload' });
-          onChange?.();
-        }).catch(err => toast.error('更新失败'));
+        if (!item.isHabit && !item.isFixed) {
+          const updates = {};
+          if (latest.tempStart) updates.start_time = latest.tempStart;
+          if (latest.tempEnd) updates.end_time = latest.tempEnd;
+          updates.duration_min = Math.round(latest.hPx / TL_PX_PER_MIN);
+
+          API.schedules.update(item.id, updates).then(() => {
+            setSchedules(ss => ss.map(x => x.id === item.id ? { ...x, ...updates } : x));
+            store.broadcast({ type: 'reload' });
+            onChange?.();
+          }).catch(err => toast.error('更新失败'));
+        }
       }
       setResizingEvent(null);
     }
@@ -956,6 +968,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               const handleEdit = (e) => {
                 e.stopPropagation();
                 if (item.isHabit || isCat4) return;
+                // 刚完成边缘拉伸：吞掉浏览器合成的 click，只有真实点击才打开编辑面板
+                if (justResizedRef.current) return;
                 onEdit?.(item);
               };
               // 双保险：除了 cat-N 的 CSS class，再直接写 inline backgroundImage

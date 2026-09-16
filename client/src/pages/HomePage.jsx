@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useEnergyHabits, usePersistentState } from '../components/annual/hooks.js';
 import { API } from '../api/client.js';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
@@ -7,6 +7,15 @@ import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWee
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
 const modColor = (k) => `var(--m-${k})`;
 const modRgba = (k, a) => `rgba(var(--m-${k}-rgb),${a})`;
+
+/* Hero 渐变预设：Apple 系统色 · 相邻色相，中段不脏 */
+const HERO_GRADIENTS = {
+  A: { name: '晴空',   css: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)', shadow: 'rgba(0,122,255,0.28)' },
+  B: { name: '晨曦',   css: 'linear-gradient(135deg, #5856D6 0%, #007AFF 100%)', shadow: 'rgba(88,86,214,0.28)' },
+  C: { name: '碧波',   css: 'linear-gradient(135deg, #00C7BE 0%, #007AFF 100%)', shadow: 'rgba(0,122,255,0.24)' },
+  D: { name: '朝霞',   css: 'linear-gradient(135deg, #FF9500 0%, #FF6B35 100%)', shadow: 'rgba(255,149,0,0.28)' },
+  E: { name: '薰衣草', css: 'linear-gradient(135deg, #AF52DE 0%, #5856D6 100%)', shadow: 'rgba(175,82,222,0.28)' },
+};
 
 /* 卡片头：模块色竖条 + 标题 + 右侧查看更多 */
 function CardHead({ moduleKey, title, sub, onClick, more = '查看' }) {
@@ -69,6 +78,57 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
   /* ===== 签名（localStorage + 云端 KV 持久化，点击编辑） ===== */
   const [signature, setSignature] = usePersistentState('home_signature_v1', () => '');
   const [sigEditing, setSigEditing] = useState(false);
+
+  /* ===== Hero 背景（渐变预设 / 自定义图片，localStorage + 云端 KV） ===== */
+  const [heroBg, setHeroBg] = usePersistentState('home_hero_bg_v1', () => ({ type: 'gradient', value: 'A' }));
+  const [heroEditOpen, setHeroEditOpen] = useState(false);
+  const heroRef = useRef(null);
+
+  const heroStyle = useMemo(() => {
+    if (heroBg?.type === 'image' && heroBg?.value) {
+      return {
+        backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), url(${heroBg.value})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        boxShadow: '0 8px 28px rgba(0,0,0,0.18)',
+      };
+    }
+    const g = HERO_GRADIENTS[heroBg?.value] || HERO_GRADIENTS.A;
+    return { background: g.css, boxShadow: `0 8px 28px ${g.shadow}` };
+  }, [heroBg]);
+
+  // 点击外部关闭浮层
+  useEffect(() => {
+    if (!heroEditOpen) return;
+    function onDocClick(e) {
+      if (heroRef.current && !heroRef.current.contains(e.target)) setHeroEditOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [heroEditOpen]);
+
+  // 图片上传：canvas 压缩后存 data URL（限制 < 500KB）
+  function handleImageUpload(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxW = 1920, maxH = 400;
+        let w = img.width, h = img.height;
+        const ratio = Math.min(maxW / w, maxH / h, 1);
+        w = Math.round(w * ratio); h = Math.round(h * ratio);
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        setHeroBg({ type: 'image', value: dataUrl });
+        setHeroEditOpen(false);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
   /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 近期关键） ===== */
   const [sched, setSched] = useState(null);
@@ -181,11 +241,64 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
     <div className="flex-1 min-w-0 flex flex-col gap-4">
       <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-4">
 
-        {/* ========== Hero：品牌渐变通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
+        {/* ========== Hero：渐变 / 图片通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div
-          className="relative overflow-hidden px-7 py-6 flex items-center justify-between gap-6 flex-wrap rounded-[18px]"
-          style={{ background: 'var(--s-grad-bg)', boxShadow: '0 8px 28px rgba(var(--s-rgb),0.30)' }}
+          ref={heroRef}
+          className="relative overflow-hidden px-7 py-6 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group"
+          style={heroStyle}
+          onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
         >
+          {/* 编辑按钮（hover / 右键显示） */}
+          <button
+            onClick={() => setHeroEditOpen(v => !v)}
+            className="absolute top-3 right-3 w-7 h-7 rounded-full grid place-items-center transition-opacity opacity-0 group-hover:opacity-100 z-10"
+            style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+            title="编辑 Hero 背景（也可右键）"
+          >
+            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+
+          {/* 编辑浮层（glass-card 风格，复用工作台设计语言） */}
+          {heroEditOpen && (
+            <div className="absolute top-full right-0 mt-2 z-20 p-4 w-[280px] rounded-[18px] popover-enter" style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
+              <div className="text-[14px] font-bold text-ink-900 mb-3">Hero 背景</div>
+
+              {/* 预设渐变 */}
+              <div className="text-[11px] font-semibold text-ink-400 uppercase tracking-wide mb-2">预设渐变</div>
+              <div className="grid grid-cols-5 gap-2 mb-4">
+                {Object.entries(HERO_GRADIENTS).map(([k, g]) => {
+                  const isSel = heroBg?.type === 'gradient' && (heroBg?.value || 'A') === k;
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => setHeroBg({ type: 'gradient', value: k })}
+                      className="aspect-[4/3] rounded-lg transition hover:scale-105"
+                      style={{
+                        background: g.css,
+                        outline: isSel ? '2px solid var(--s-main)' : '2px solid transparent',
+                        outlineOffset: '2px',
+                      }}
+                      title={g.name}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* 自定义图片 */}
+              <div className="text-[11px] font-semibold text-ink-400 uppercase tracking-wide mb-2">自定义图片</div>
+              <label className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer transition hover:brightness-95" style={{ background: 'rgba(120,120,128,0.10)', color: 'var(--ink-600, #3a3a3c)' }}>
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                上传图片
+                <input type="file" accept="image/*" className="hidden" onChange={e => { handleImageUpload(e.target.files?.[0]); e.target.value = ''; }} />
+              </label>
+              {heroBg?.type === 'image' && (
+                <button
+                  onClick={() => setHeroBg({ type: 'gradient', value: 'A' })}
+                  className="w-full mt-2 px-3 py-2 rounded-xl text-[13px] font-semibold text-red-500 transition hover:bg-red-50"
+                >移除图片，恢复渐变</button>
+              )}
+            </div>
+          )}
           {/* 装饰光斑（纯视觉，不响应交互） */}
           <div className="absolute -right-14 -top-28 w-[280px] h-[280px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, transparent 68%)' }} />
           <div className="absolute right-40 -bottom-24 w-[190px] h-[190px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.09) 0%, transparent 70%)' }} />

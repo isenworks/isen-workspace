@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useEnergyHabits, usePersistentState } from '../components/annual/hooks.js';
 import { API } from '../api/client.js';
+import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
 
@@ -17,6 +18,35 @@ const HERO_GRADIENTS = {
   D: { name: '朝霞',   css: 'linear-gradient(135deg, #FF9500 0%, #FF6B35 100%)', shadow: 'rgba(255,149,0,0.28)' },
   E: { name: '薰衣草', css: 'linear-gradient(135deg, #AF52DE 0%, #5856D6 100%)', shadow: 'rgba(175,82,222,0.28)' },
 };
+
+/* ===== Hero 背景多图轮播（localStorage + 云端 KV） =====
+ * 数据形态 v2：{ type: 'gradient'|'images', value: 渐变key, images: [{id,url}], interval: 轮播秒(0=关), shuffle }
+ * 兼容 v1 旧形态 { type:'gradient', value } / { type:'image', value: dataURL } → 读取时自动迁移
+ * 存储预算：≤6 张 × ≤120KB/张（裁剪端自适应压缩），保证 localStorage 与 D1 单行 KV 不超限 */
+const HERO_IMG_MAX = 6;
+const HERO_INTERVALS = [['关', 0], ['10s', 10], ['30s', 30], ['60s', 60]];
+const newHeroImgId = () => `hero_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+function normalizeHeroBg(v) {
+  const out = {
+    type: 'gradient',
+    value: HERO_GRADIENTS[v?.value] ? v.value : 'A',
+    images: [],
+    interval: HERO_INTERVALS.some(([, s]) => s === v?.interval) ? v.interval : 10,
+    shuffle: !!v?.shuffle,
+  };
+  if (Array.isArray(v?.images)) {
+    out.images = v.images
+      .filter(im => im && typeof im.url === 'string' && im.url)
+      .map(im => ({ id: im.id || newHeroImgId(), url: im.url }));
+  }
+  // v1 单图形态迁移
+  if (v?.type === 'image' && typeof v.value === 'string' && v.value.startsWith('data:')) {
+    out.images.push({ id: newHeroImgId(), url: v.value });
+  }
+  if (out.images.length > HERO_IMG_MAX) out.images = out.images.slice(0, HERO_IMG_MAX);
+  if (v?.type === 'images' && out.images.length > 0) out.type = 'images';
+  return out;
+}
 
 /* 卡片头：模块色竖条 + 标题 + 右侧查看更多 */
 function CardHead({ moduleKey, title, sub, onClick, more = '查看' }) {
@@ -80,25 +110,57 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
   const [signature, setSignature] = usePersistentState('home_signature_v1', () => '');
   const [sigEditing, setSigEditing] = useState(false);
 
-  /* ===== Hero 背景（渐变预设 / 自定义图片，localStorage + 云端 KV） ===== */
-  const [heroBg, setHeroBg] = usePersistentState('home_hero_bg_v1', () => ({ type: 'gradient', value: 'A' }));
+  /* ===== Hero 背景（渐变预设 / 多图轮播，localStorage + 云端 KV） ===== */
+  // null = 本地/云端暂无该数据（不写回，避免默认值覆盖旧设备数据）；读取后统一 normalize 迁移
+  const [heroBgRaw, setHeroBgRaw] = usePersistentState('home_hero_bg_v1', () => null);
+  const heroBg = useMemo(() => normalizeHeroBg(heroBgRaw), [heroBgRaw]);
+  const setHeroBg = useCallback((updater) => {
+    setHeroBgRaw(prev => normalizeHeroBg(
+      typeof updater === 'function' ? updater(normalizeHeroBg(prev)) : updater
+    ));
+  }, [setHeroBgRaw]);
+  const heroImgs = heroBg.images;
+
   const [heroEditOpen, setHeroEditOpen] = useState(false);
   const heroRef = useRef(null);
-  // 图片裁剪弹窗：选完文件 → 弹出裁剪 → 确认后写入
+  const [curIdx, setCurIdx] = useState(0);   // 当前展示的图片下标（轮播/手动切换）
+  const toast = useToast();
+
+  // 图片裁剪弹窗：选完文件 → 弹出裁剪 → 确认后写入（cropReplaceId 非空 = 原位更换该图）
   const [cropFile, setCropFile] = useState(null);
+  const [cropReplaceId, setCropReplaceId] = useState(null);
+  const filePickRef = useRef(null);
+  const replaceTargetRef = useRef(null);
+  const [confirmDelId, setConfirmDelId] = useState(null);
+  const delTimerRef = useRef(null);
 
   const heroStyle = useMemo(() => {
-    if (heroBg?.type === 'image' && heroBg?.value) {
-      return {
-        backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), url(${heroBg.value})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.18)',
-      };
+    if (heroBg.type === 'images') {
+      // 打底晕影：图片层交叉淡入时透出，任意切换不闪白
+      return { background: 'linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12))', boxShadow: '0 8px 28px rgba(0,0,0,0.18)' };
     }
-    const g = HERO_GRADIENTS[heroBg?.value] || HERO_GRADIENTS.A;
+    const g = HERO_GRADIENTS[heroBg.value] || HERO_GRADIENTS.A;
     return { background: g.css, boxShadow: `0 8px 28px ${g.shadow}` };
   }, [heroBg]);
+
+  // 多图轮播：interval 秒切换（随机模式不重复当前张）
+  useEffect(() => {
+    if (heroBg.type !== 'images' || heroImgs.length < 2 || !heroBg.interval) return;
+    const t = setInterval(() => {
+      setCurIdx(i => {
+        if (heroBg.shuffle && heroImgs.length > 1) {
+          let n = i;
+          while (n === i) n = Math.floor(Math.random() * heroImgs.length);
+          return n;
+        }
+        return (i + 1) % heroImgs.length;
+      });
+    }, heroBg.interval * 1000);
+    return () => clearInterval(t);
+  }, [heroBg.type, heroBg.interval, heroBg.shuffle, heroImgs.length]);
+
+  // 图片数量变化（删除）后索引钳回范围
+  useEffect(() => { setCurIdx(i => Math.min(i, Math.max(0, heroImgs.length - 1))); }, [heroImgs.length]);
 
   // 点击外部关闭浮层
   useEffect(() => {
@@ -110,17 +172,82 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [heroEditOpen]);
 
-  // 选完图片 → 弹出裁剪弹窗（而非直接写入）
-  function handleImageUpload(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    setCropFile(file);
+  /* ---- Hero 图片管理（增 / 删 / 换 / 排序 / 选用） ---- */
+  function applyHeroGradient(k) { setHeroBg(prev => ({ ...prev, type: 'gradient', value: k })); }
+  function selectHeroImg(i) {
+    setCurIdx(i);
+    setHeroBg(prev => ({ ...prev, type: 'images' }));
   }
-  // 裁剪确认 → Blob 转 data URL 写入 heroBg
+  function moveHeroImg(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= heroImgs.length) return;
+    setHeroBg(prev => {
+      const images = [...prev.images];
+      [images[i], images[j]] = [images[j], images[i]];
+      return { ...prev, images };
+    });
+  }
+  function removeHeroImg(id) {
+    setHeroBg(prev => {
+      const images = prev.images.filter(x => x.id !== id);
+      return { ...prev, images, type: images.length > 0 ? 'images' : 'gradient' };
+    });
+  }
+  // 删除需二次确认（首次点 × 进入红色确认态，2.6s 未复点自动还原）
+  function onHeroImgDel(e, id) {
+    e.stopPropagation();
+    if (confirmDelId === id) {
+      clearTimeout(delTimerRef.current);
+      setConfirmDelId(null);
+      removeHeroImg(id);
+      toast.success('已删除背景图');
+    } else {
+      setConfirmDelId(id);
+      clearTimeout(delTimerRef.current);
+      delTimerRef.current = setTimeout(() => setConfirmDelId(null), 2600);
+      toast.info('再点一次 × 确认删除');
+    }
+  }
+
+  // 触发文件选择（replaceId 非空 = 更换指定图片，否则追加）
+  function pickHeroImage(replaceId) {
+    if (!replaceId && heroImgs.length >= HERO_IMG_MAX) {
+      toast.warn(`最多 ${HERO_IMG_MAX} 张背景图，请先删除部分图片`);
+      return;
+    }
+    replaceTargetRef.current = replaceId || null;
+    filePickRef.current?.click();
+  }
+  function handleHeroFilePick(e) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { toast.error('请选择图片文件'); return; }
+    if (f.size > 20 * 1024 * 1024) { toast.error('图片过大（超过 20MB），请先压缩后再上传'); return; }
+    setCropReplaceId(replaceTargetRef.current);
+    setCropFile(f);
+  }
+  // 裁剪确认 → Blob 转 data URL：原位替换或追加，并立即展示该图
   function handleCropConfirm(blob) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      setHeroBg({ type: 'image', value: e.target.result });
+      const url = e.target.result;
+      const rid = cropReplaceId;
+      const idx = rid ? Math.max(0, heroImgs.findIndex(x => x.id === rid)) : heroImgs.length;
+      setHeroBg(prev => {
+        const images = [...prev.images];
+        if (rid) {
+          const i = images.findIndex(x => x.id === rid);
+          if (i >= 0) images[i] = { ...images[i], url };
+          else if (images.length < HERO_IMG_MAX) images.push({ id: newHeroImgId(), url });
+        } else if (images.length < HERO_IMG_MAX) {
+          images.push({ id: newHeroImgId(), url });
+        }
+        return { ...prev, type: 'images', images };
+      });
+      setCurIdx(idx);
       setCropFile(null);
+      setCropReplaceId(null);
       setHeroEditOpen(false);
     };
     reader.readAsDataURL(blob);
@@ -237,13 +364,27 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
     <div className="flex-1 min-w-0 flex flex-col gap-4">
       <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-4">
 
-        {/* ========== Hero：渐变 / 图片通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
+        {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative">
         <div
           className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group"
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
         >
+          {/* 背景图片层 ×N（交叉淡入；渐变模式时全透明，容器渐变打底） */}
+          {heroImgs.map((im, i) => (
+            <div
+              key={im.id}
+              className="absolute inset-0 pointer-events-none transition-opacity duration-700"
+              style={{
+                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), url(${im.url})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                opacity: heroBg.type === 'images' && i === curIdx ? 1 : 0,
+              }}
+            />
+          ))}
+
           {/* 编辑按钮（hover / 右键显示） */}
           <button
             onClick={() => setHeroEditOpen(v => !v)}
@@ -253,6 +394,24 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
           >
             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </button>
+
+          {/* 轮播指示点（多图时显示，点击直达；hover Hero 时增强可见性） */}
+          {heroBg.type === 'images' && heroImgs.length > 1 && (
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+              {heroImgs.map((im, i) => (
+                <button
+                  key={im.id}
+                  onClick={() => setCurIdx(i)}
+                  className="w-[7px] h-[7px] rounded-full transition-all duration-300 hover:scale-125"
+                  style={{
+                    background: i === curIdx ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+                    boxShadow: i === curIdx ? '0 0 0 3px rgba(255,255,255,0.18)' : 'none',
+                  }}
+                  aria-label={`显示第 ${i + 1} 张背景`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* 装饰光斑（纯视觉，不响应交互） */}
           <div className="absolute -right-14 -top-28 w-[280px] h-[280px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, transparent 68%)' }} />
@@ -310,18 +469,18 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
 
         {/* 编辑浮层：置于 overflow-hidden Hero 之外避免被裁剪，锚定外层 wrapper 右上（glass-card 风格） */}
         {heroEditOpen && (
-          <div className="absolute top-full right-0 mt-2 z-20 p-4 w-[280px] rounded-[18px] popover-enter" style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
+          <div className="absolute top-full right-0 mt-2 z-20 p-4 w-[320px] rounded-[18px] popover-enter" style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
             <div className="text-[14px] font-bold text-ink-900 mb-3">Hero 背景</div>
 
             {/* 预设渐变 */}
             <div className="text-[11px] font-semibold text-ink-400 uppercase tracking-wide mb-2">预设渐变</div>
             <div className="grid grid-cols-5 gap-2 mb-4">
               {Object.entries(HERO_GRADIENTS).map(([k, g]) => {
-                const isSel = heroBg?.type === 'gradient' && (heroBg?.value || 'A') === k;
+                const isSel = heroBg.type === 'gradient' && heroBg.value === k;
                 return (
                   <button
                     key={k}
-                    onClick={() => setHeroBg({ type: 'gradient', value: k })}
+                    onClick={() => applyHeroGradient(k)}
                     className="aspect-[4/3] rounded-lg transition hover:scale-105"
                     style={{
                       background: g.css,
@@ -334,18 +493,75 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
               })}
             </div>
 
-            {/* 自定义图片 */}
-            <div className="text-[11px] font-semibold text-ink-400 uppercase tracking-wide mb-2">自定义图片</div>
-            <label className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer transition hover:brightness-95" style={{ background: 'rgba(120,120,128,0.10)', color: 'var(--ink-600, #3a3a3c)' }}>
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              上传图片
-              <input type="file" accept="image/*" className="hidden" onChange={e => { handleImageUpload(e.target.files?.[0]); e.target.value = ''; }} />
-            </label>
-            {heroBg?.type === 'image' && (
-              <button
-                onClick={() => setHeroBg({ type: 'gradient', value: 'A' })}
-                className="w-full mt-2 px-3 py-2 rounded-xl text-[13px] font-semibold text-red-500 transition hover:bg-red-50"
-              >移除图片，恢复渐变</button>
+            {/* 背景图片：网格管理（选用 / 排序 / 更换 / 删除 / 添加） */}
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="text-[11px] font-semibold text-ink-400 uppercase tracking-wide">背景图片</div>
+              <span className="text-[10.5px] text-ink-300 tabular-nums">{heroImgs.length}/{HERO_IMG_MAX}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {heroImgs.map((im, i) => {
+                const isCur = heroBg.type === 'images' && i === curIdx;
+                const isConfirmDel = confirmDelId === im.id;
+                return (
+                  <div
+                    key={im.id}
+                    className="relative group/img rounded-lg overflow-hidden cursor-pointer transition"
+                    style={{ aspectRatio: '3 / 1', outline: isCur ? '2px solid var(--s-main)' : '1px solid rgba(0,0,0,0.08)', outlineOffset: isCur ? '1px' : '-1px' }}
+                    onClick={() => selectHeroImg(i)}
+                    title={isCur ? '正在展示' : '点击展示这张'}
+                  >
+                    <div className="absolute inset-0" style={{ backgroundImage: `url(${im.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                    <span className="absolute top-1 left-1 px-1 rounded text-[9px] font-bold tabular-nums" style={{ background: 'rgba(0,0,0,0.4)', color: 'rgba(255,255,255,0.9)' }}>{i + 1}</span>
+                    {/* hover 工具条：排序 / 更换 / 删除 */}
+                    <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                      <button title="前移" disabled={i === 0} onClick={e => { e.stopPropagation(); moveHeroImg(i, -1); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition disabled:opacity-25 disabled:pointer-events-none">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                      </button>
+                      <button title="后移" disabled={i === heroImgs.length - 1} onClick={e => { e.stopPropagation(); moveHeroImg(i, 1); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition disabled:opacity-25 disabled:pointer-events-none">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                      </button>
+                      <button title="更换图片" onClick={e => { e.stopPropagation(); pickHeroImage(im.id); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      </button>
+                      <button title={isConfirmDel ? '再点一次确认删除' : '删除'} onClick={e => onHeroImgDel(e, im.id)} className={`w-[22px] h-[22px] rounded-md grid place-items-center transition ${isConfirmDel ? 'bg-[#FF3B30] text-white' : 'text-white/85 hover:text-white hover:bg-[#FF3B30]/80'}`}>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* 添加格 */}
+              {heroImgs.length < HERO_IMG_MAX && (
+                <button
+                  onClick={() => pickHeroImage(null)}
+                  className="relative rounded-lg border border-dashed border-[rgba(120,120,128,0.35)] bg-[rgba(120,120,128,0.04)] flex flex-col items-center justify-center gap-1 transition hover:border-[rgba(var(--s-rgb),0.55)] hover:bg-[rgba(var(--s-rgb),0.05)] active:scale-[0.98]"
+                  style={{ aspectRatio: '3 / 1' }}
+                >
+                  <svg className="w-4 h-4 text-ink-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span className="text-[10.5px] font-medium text-ink-400">添加图片</span>
+                </button>
+              )}
+            </div>
+            {heroImgs.length === 0 && (
+              <div className="text-[11px] text-ink-300 mt-1.5">支持多张图片轮播展示，自动裁剪为 3:1 横幅</div>
+            )}
+
+            {/* 轮播设置（≥2 张时显示） */}
+            {heroImgs.length > 1 && (
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(60,60,67,0.1)' }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-ink-400 uppercase tracking-wide">轮播</span>
+                  <div className="tab-group compact">
+                    {HERO_INTERVALS.map(([label, v]) => (
+                      <button key={v} className={heroBg.interval === v ? 'active' : ''} onClick={() => setHeroBg(prev => ({ ...prev, interval: v }))}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 mt-2.5 cursor-pointer select-none">
+                  <input type="checkbox" className="cb-square" checked={heroBg.shuffle} onChange={e => setHeroBg(prev => ({ ...prev, shuffle: e.target.checked }))} />
+                  <span className="text-[12px] text-ink-600">随机顺序切换</span>
+                </label>
+              </div>
             )}
           </div>
         )}
@@ -599,11 +815,14 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
         </div>
       </div>
 
+      {/* Hero 背景图上传入口（添加 / 更换共用一个文件选择器） */}
+      <input ref={filePickRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFilePick} />
+
       {/* Hero 图片裁剪弹窗（选完图片后弹出，确认后写入背景） */}
       <HeroCropModal
         open={!!cropFile}
         file={cropFile}
-        onClose={() => setCropFile(null)}
+        onClose={() => { setCropFile(null); setCropReplaceId(null); }}
         onConfirm={handleCropConfirm}
       />
     </div>

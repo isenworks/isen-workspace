@@ -1,10 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
- * Hero 背景横幅裁剪 Modal（纯 Canvas 实现，无第三方依赖）
- * 与 AvatarCropModal 同款交互：拖动调位置 · 滚轮/滑块缩放
- * 区别：矩形裁剪框（3:1 宽幅，贴合 Hero 通栏比例），整框即裁剪结果（所见即所得）
- * 拖拽/缩放均做边缘钳制，图片始终铺满裁剪框、不会出现空白
+ * Hero 背景横幅裁剪 Modal（纯 Canvas 实现，无第三方依赖 · 选区模式）
+ *
+ * 交互（对齐专业图片裁剪器：完整图片可见 + 3:1 选区框）：
+ *   · 图片 contain 完整显示在画布中，选区外半透明遮罩 —— 所见即所得
+ *   · 拖动选区移动取景；四角手柄 / 滚轮 / 滑块缩放选区（锁定 3:1）
+ *   · 选区始终约束在图片范围内 → 任意宽高比（含超宽 banner）都能裁到顶部/底部区域
+ *   · 双击画布重置为最大选区
+ *   · 输出 1440×480 JPEG，自适应质量压缩（≤120KB/张，为多图轮播的 KV 同步留预算）
  *
  * Props:
  *   open: boolean
@@ -15,12 +19,40 @@ import { useEffect, useRef, useState } from 'react';
 export default function HeroCropModal({ open, file, onClose, onConfirm }) {
   const canvasRef = useRef(null);
   const [img, setImg] = useState(null);
-  const [scale, setScale] = useState(1);       // 图片相对原图的缩放比例
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const dragState = useRef({ active: false, startX: 0, startY: 0, ox: 0, oy: 0 });
+  const [box, setBox] = useState(null);   // 选区 { x, y, w }（画布逻辑坐标，高 = w/3）
+  const [cursor, setCursor] = useState('default');
+  const boxRef = useRef(null);
+  const dragRef = useRef(null);           // { mode: 'move'|'resize', id, startX, startY, box0 }
 
-  // 画布（= 裁剪框）尺寸：3:1 宽幅，贴合 Hero 通栏
-  const CW = 480, CH = 160;
+  const CW = 480;                          // 画布逻辑宽（= modal 内容区宽）
+  const CH_CAP = 280;                      // 画布高上限（图片 contain 适配）
+  const OUT_W = 1440, OUT_H = 480;         // 输出尺寸（3:1，贴合 Hero 通栏）
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  /* ---- 图片几何：contain 适配 CW × CH_CAP；画布高随图片（下限 96 防超宽图过扁） ---- */
+  const geo = useMemo(() => {
+    if (!img) return null;
+    const sf = Math.min(CW / img.width, CH_CAP / img.height);
+    const dw = img.width * sf, dh = img.height * sf;
+    const ch = Math.max(Math.round(dh), 96);
+    const imgX = (CW - dw) / 2, imgY = (ch - dh) / 2;
+    const wMax = Math.min(dw, dh * 3);     // 3:1 选区在图片内的最大宽
+    // 最小选区宽：输出上采样不超过 2 倍（≥720·sf），且不小于最大选区的 15%
+    const wMin = Math.min(wMax, Math.max(720 * sf, wMax * 0.15, 40));
+    return { sf, dw, dh, ch, imgX, imgY, wMin, wMax };
+  }, [img]);
+
+  /* ---- 选区钳制：锁定 3:1 且完全落在图片内（不露空白） ---- */
+  function clampBox(b) {
+    if (!geo) return b;
+    const w = Math.min(geo.wMax, Math.max(geo.wMin, b.w));
+    const h = w / 3;
+    return {
+      w,
+      x: Math.min(geo.imgX + geo.dw - w, Math.max(geo.imgX, b.x)),
+      y: Math.min(geo.imgY + geo.dh - h, Math.max(geo.imgY, b.y)),
+    };
+  }
 
   // 加载图片
   useEffect(() => {
@@ -29,147 +61,240 @@ export default function HeroCropModal({ open, file, onClose, onConfirm }) {
     const im = new Image();
     im.onload = () => { setImg(im); };
     im.src = url;
-    return () => { setImg(null); URL.revokeObjectURL(url); };
+    return () => { setImg(null); setBox(null); URL.revokeObjectURL(url); };
   }, [open, file]);
 
-  // 铺满裁剪框所需的最小缩放（cover）
-  function coverScale(im) { return Math.max(CW / im.width, CH / im.height); }
-  // 钳制缩放：cover ~ cover×6
-  function clampScale(s) {
-    if (!img) return s;
-    const c = coverScale(img);
-    return Math.max(c, Math.min(c * 6, s));
-  }
-  // 钳制偏移：图片始终铺满裁剪框（不露空白）
-  function clampOffset(o, s) {
-    if (!img) return o;
-    const w = img.width * s, h = img.height * s;
-    return {
-      x: Math.min(0, Math.max(CW - w, o.x)),
-      y: Math.min(0, Math.max(CH - h, o.y)),
-    };
-  }
-
-  // 图片加载完成 → cover 铺满 + 居中
+  // 图片加载 → 初始选区 = 最大选区居中（与 cover 裁剪等价）
   useEffect(() => {
-    if (!img) return;
-    const s = coverScale(img);
-    setScale(s);
-    setOffset({ x: (CW - img.width * s) / 2, y: (CH - img.height * s) / 2 });
-  }, [img]);
+    if (!geo) return;
+    const w = geo.wMax, h = w / 3;
+    setBox({ w, x: geo.imgX + (geo.dw - w) / 2, y: geo.imgY + (geo.dh - h) / 2 });
+  }, [geo]);
 
-  // 缩放变化 → 重新钳制偏移
-  useEffect(() => { setOffset(o => clampOffset(o, scale)); }, [scale]);
+  // box 渲染期同步到 ref（拖动闭包读最新值）
+  boxRef.current = box;
 
-  // 渲染画布
+  /* ---- 渲染画布 ---- */
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !geo || !box) return;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, CW, CH);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const CH = geo.ch;
+    // 画布底（图片外区域）
     ctx.fillStyle = '#1c1c1e';
     ctx.fillRect(0, 0, CW, CH);
-    if (!img) return;
-
-    ctx.drawImage(img, offset.x, offset.y, img.width * scale, img.height * scale);
-
+    // 完整图片（所见即所得）
+    ctx.drawImage(img, geo.imgX, geo.imgY, geo.dw, geo.dh);
+    // 选区外半透明遮罩
+    const bx = box.x, by = box.y, bw = box.w, bh = bw / 3;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, CW, by);
+    ctx.fillRect(0, by + bh, CW, CH - by - bh);
+    ctx.fillRect(0, by, bx, bh);
+    ctx.fillRect(bx + bw, by, CW - bx - bw, bh);
     // 三分线辅助构图
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let i = 1; i <= 2; i++) {
-      ctx.moveTo((CW / 3) * i, 0); ctx.lineTo((CW / 3) * i, CH);
-      ctx.moveTo(0, (CH / 3) * i); ctx.lineTo(CW, (CH / 3) * i);
+      ctx.moveTo(bx + (bw / 3) * i, by); ctx.lineTo(bx + (bw / 3) * i, by + bh);
+      ctx.moveTo(bx, by + (bh / 3) * i); ctx.lineTo(bx + bw, by + (bh / 3) * i);
     }
     ctx.stroke();
-
-    // 裁剪框边缘
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    // 选区边框
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(0.75, 0.75, CW - 1.5, CH - 1.5);
-  }, [img, scale, offset]);
+    ctx.strokeRect(bx + 0.75, by + 0.75, bw - 1.5, bh - 1.5);
+    // 四角手柄
+    ctx.fillStyle = '#fff';
+    [[bx, by], [bx + bw, by], [bx, by + bh], [bx + bw, by + bh]].forEach(([hx, hy]) => {
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(hx - 4, hy - 4, 8, 8, 2);
+      else ctx.rect(hx - 4, hy - 4, 8, 8);
+      ctx.fill();
+    });
+  }, [img, geo, box]);
 
-  // 拖动图片
-  function onMouseDown(e) {
-    if (!img) return;
-    dragState.current = {
-      active: true, startX: e.clientX, startY: e.clientY, ox: offset.x, oy: offset.y
+  /* ---- 命中检测：四角手柄 > 选区内 > 图片区域 ---- */
+  function hitTest(mx, my) {
+    const b = boxRef.current;
+    if (!b || !geo) return null;
+    const h = b.w / 3;
+    const handles = [
+      { id: 'lt', x: b.x, y: b.y }, { id: 'rt', x: b.x + b.w, y: b.y },
+      { id: 'lb', x: b.x, y: b.y + h }, { id: 'rb', x: b.x + b.w, y: b.y + h },
+    ];
+    for (const hd of handles) {
+      if (Math.abs(mx - hd.x) <= 11 && Math.abs(my - hd.y) <= 11) return { mode: 'resize', id: hd.id };
+    }
+    if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + h) return { mode: 'move' };
+    if (mx >= geo.imgX && mx <= geo.imgX + geo.dw && my >= geo.imgY && my <= geo.imgY + geo.dh) return { mode: 'move' };
+    return null;
+  }
+
+  // 鼠标 → 画布逻辑坐标
+  function toLogical(e) {
+    const rect = canvasRef.current.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (CW / rect.width),
+      y: (e.clientY - rect.top) * (geo ? geo.ch / rect.height : 1),
     };
   }
+
+  function onMouseDown(e) {
+    if (!img || !geo || !box) return;
+    const p = toLogical(e);
+    const hit = hitTest(p.x, p.y);
+    if (!hit) return;
+    dragRef.current = { ...hit, startX: p.x, startY: p.y, box0: { ...boxRef.current } };
+  }
+
+  // 拖动：move 平移 / resize 以对角为锚沿 3:1 对角方向缩放
   useEffect(() => {
+    if (!open) return;
     function onMove(e) {
-      if (!dragState.current.active) return;
-      const dx = e.clientX - dragState.current.startX;
-      const dy = e.clientY - dragState.current.startY;
-      setOffset(clampOffset({ x: dragState.current.ox + dx, y: dragState.current.oy + dy }, scale));
+      const d = dragRef.current;
+      if (!d || !geo) return;
+      const p = toLogical(e);
+      const dx = p.x - d.startX, dy = p.y - d.startY;
+      const b0 = d.box0;
+      if (d.mode === 'move') {
+        setBox(clampBox({ x: b0.x + dx, y: b0.y + dy, w: b0.w }));
+        return;
+      }
+      const anchors = {
+        rb: { x: b0.x, y: b0.y, dir: [1, 1 / 3] },
+        lt: { x: b0.x + b0.w, y: b0.y + b0.w / 3, dir: [-1, -1 / 3] },
+        rt: { x: b0.x, y: b0.y + b0.w / 3, dir: [1, -1 / 3] },
+        lb: { x: b0.x + b0.w, y: b0.y, dir: [-1, 1 / 3] },
+      };
+      const a = anchors[d.id];
+      const dw = 0.9 * (dx * a.dir[0] + dy * a.dir[1]);   // 位移沿对角方向的投影
+      const w = Math.min(geo.wMax, Math.max(geo.wMin, b0.w + dw));
+      setBox(clampBox({
+        w,
+        x: a.dir[0] > 0 ? a.x : a.x - w,
+        y: a.dir[1] > 0 ? a.y : a.y - w / 3,
+      }));
     }
-    function onUp() { dragState.current.active = false; }
+    function onUp() { dragRef.current = null; }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [scale, img]);
+  }, [open, geo, img]);
 
-  // 滚轮缩放
-  function onWheel(e) {
-    e.preventDefault();
-    if (!img) return;
-    const delta = -e.deltaY * 0.0015;
-    setScale(s => clampScale(s + s * delta));
+  // hover 光标反馈（非拖动态）
+  function updateCursor(e) {
+    if (dragRef.current || !geo || !box) return;
+    const p = toLogical(e);
+    const hit = hitTest(p.x, p.y);
+    setCursor(
+      hit?.mode === 'resize' ? ((hit.id === 'lt' || hit.id === 'rb') ? 'nwse-resize' : 'nesw-resize')
+        : hit?.mode === 'move' ? 'move'
+        : 'default'
+    );
   }
 
-  // 确认裁剪 → 输出 1600×533 JPEG
+  // 滚轮：以选区中心为锚缩放
+  function onWheel(e) {
+    e.preventDefault();
+    if (!geo || !box) return;
+    const b = boxRef.current;
+    const cx = b.x + b.w / 2, cy = b.y + b.w / 6;
+    const w = Math.min(geo.wMax, Math.max(geo.wMin, b.w * (1 - e.deltaY * 0.0012)));
+    setBox(clampBox({ x: cx - w / 2, y: cy - w / 6, w }));
+  }
+
+  // 双击重置为最大选区
+  function onDblClick() {
+    if (!geo) return;
+    const w = geo.wMax, h = w / 3;
+    setBox({ w, x: geo.imgX + (geo.dw - w) / 2, y: geo.imgY + (geo.dh - h) / 2 });
+  }
+
+  /* ---- 确认：选区映射回原图坐标，输出 1440×480，自适应质量压缩 ---- */
   function handleConfirm() {
-    if (!img) return;
-    const OUT_W = 1600, OUT_H = 533;
+    if (!img || !geo || !box) return;
+    const sx = (box.x - geo.imgX) / geo.sf;
+    const sy = (box.y - geo.imgY) / geo.sf;
+    const sw = box.w / geo.sf, sh = (box.w / 3) / geo.sf;
     const oc = document.createElement('canvas');
     oc.width = OUT_W; oc.height = OUT_H;
     const octx = oc.getContext('2d');
-    // 裁剪框整体映射到原图坐标
-    octx.drawImage(
-      img,
-      -offset.x / scale, -offset.y / scale,
-      CW / scale, CH / scale,
-      0, 0, OUT_W, OUT_H
-    );
-    oc.toBlob(blob => {
-      if (blob) onConfirm(blob);
-    }, 'image/jpeg', 0.85);
+    octx.drawImage(img, sx, sy, sw, sh, 0, 0, OUT_W, OUT_H);
+    const qualities = [0.82, 0.72, 0.62, 0.5];
+    (function attempt(i) {
+      oc.toBlob(blob => {
+        if (blob && (blob.size <= 120 * 1024 || i === qualities.length - 1)) {
+          onConfirm(blob);
+        } else {
+          attempt(i + 1);
+        }
+      }, 'image/jpeg', qualities[i]);
+    })(0);
   }
 
   if (!open) return null;
+
+  const zoom = (geo && box) ? OUT_W / (box.w / geo.sf) : 1;
+  const smallImg = geo && (geo.wMax - geo.wMin) < 8;   // 原图太小：选区无法再缩小（输出会模糊）
 
   return (
     <div style={styles.overlay} onMouseDown={e => e.stopPropagation()}>
       <div style={styles.modal}>
         <div style={styles.header}>
           <div style={styles.title}>裁剪 Hero 背景</div>
-          <div style={{ fontSize: '12px', color: '#8e8e93' }}>拖动调整位置 · 滚轮或滑块缩放</div>
+          <div style={{ fontSize: '12px', color: '#8e8e93' }}>拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位</div>
         </div>
 
         <div
-          style={{ ...styles.canvasWrap, cursor: img ? 'grab' : 'default' }}
+          style={{ ...styles.canvasWrap, cursor }}
           onMouseDown={onMouseDown}
+          onMouseMove={updateCursor}
           onWheel={onWheel}
+          onDoubleClick={onDblClick}
         >
-          <canvas ref={canvasRef} width={CW} height={CH} style={{ display: 'block', borderRadius: '12px', width: '100%' }} />
+          {img && geo ? (
+            <canvas ref={canvasRef} width={CW * DPR} height={geo.ch * DPR} style={{ display: 'block', borderRadius: '12px', width: '100%' }} />
+          ) : (
+            <div style={{ height: 160, display: 'grid', placeItems: 'center', color: '#8e8e93', fontSize: 13 }}>加载图片中…</div>
+          )}
+          {/* 输出倍率指示（超过 ×2 提示放大可能模糊） */}
+          {img && geo && box && (
+            <div style={{
+              position: 'absolute', top: 8, right: 8,
+              padding: '2px 7px', borderRadius: 7,
+              background: 'rgba(0,0,0,0.55)', color: zoom > 2 ? '#FF9F0A' : 'rgba(255,255,255,0.92)',
+              fontSize: 10.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+            }}>×{zoom.toFixed(1)}</div>
+          )}
         </div>
 
         <div style={styles.sliderRow}>
-          <span style={{ fontSize: '12px', color: '#8e8e93', width: '28px' }}>缩小</span>
-          <input
-            type="range" min={0} max={100}
-            value={img ? Math.round(((scale / coverScale(img)) - 1) / 5 * 100) : 0}
-            onChange={e => {
-              if (!img) return;
-              const ratio = 1 + (Number(e.target.value) / 100) * 5;
-              setScale(clampScale(coverScale(img) * ratio));
-            }}
-            style={{ flex: 1, accentColor: 'var(--s-main)' }}
-          />
-          <span style={{ fontSize: '12px', color: '#8e8e93', width: '28px', textAlign: 'right' }}>放大</span>
+          {smallImg ? (
+            <div style={{ flex: 1, textAlign: 'center', fontSize: 12, color: '#8e8e93' }}>原图较小，仅可拖动选区位置</div>
+          ) : (
+            <>
+              <span style={{ fontSize: '12px', color: '#8e8e93', width: '38px' }}>视野广</span>
+              <input
+                type="range" min={0} max={100}
+                value={geo && box ? Math.round(((geo.wMax - box.w) / (geo.wMax - geo.wMin)) * 100) : 0}
+                onChange={e => {
+                  if (!geo || !box) return;
+                  const t = Number(e.target.value) / 100;
+                  const w = geo.wMax - (geo.wMax - geo.wMin) * t;
+                  const cx = box.x + box.w / 2, cy = box.y + box.w / 6;
+                  setBox(clampBox({ x: cx - w / 2, y: cy - w / 6, w }));
+                }}
+                style={{ flex: 1, accentColor: 'var(--s-main)' }}
+              />
+              <span style={{ fontSize: '12px', color: '#8e8e93', width: '38px', textAlign: 'right' }}>特写</span>
+            </>
+          )}
         </div>
 
         <div style={styles.footer}>
@@ -202,6 +327,7 @@ const styles = {
   canvasWrap: {
     width: '480px', maxWidth: '100%', margin: '0 auto',
     borderRadius: '12px', overflow: 'hidden',
+    position: 'relative',
     touchAction: 'none', userSelect: 'none'
   },
   sliderRow: {

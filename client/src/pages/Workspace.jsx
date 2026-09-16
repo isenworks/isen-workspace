@@ -510,8 +510,9 @@ export default function Workspace({ user: propUser }) {
               setActiveMenu(menu);
               if (annualView) setAnnualView(annualView);
             }}
-            onNewSchedule={() => setModal({ type: 'schedule', data: undefined })}
+            onNewSchedule={() => { setSelectedDate(getToday()); setModal({ type: 'schedule', data: undefined }); }}
             onQuickCapture={() => setQuickCaptureOpen(true)}
+            onOpenSummary={() => { setSelectedDate(getToday()); setModal({ type: 'summary' }); }}
             onSync={() => {
               // 与侧边栏手动同步同款：刷新全部面板数据
               lastSyncRef.current = Date.now();

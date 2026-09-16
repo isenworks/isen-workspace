@@ -3,7 +3,7 @@ import { useEnergyHabits, usePersistentState } from '../components/annual/hooks.
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
-import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
+import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek, calendarGrid } from '../utils/date.js';
 
 /* ============ 小工具 ============ */
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
@@ -100,7 +100,7 @@ function Ring({ value, done, total, color = 'var(--s-main)' }) {
 }
 
 /* ============ 主页 ============ */
-export default function HomePage({ user, onNav, syncSignal = 0 }) {
+export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, onQuickCapture, onOpenSummary }) {
   const todayStr = getToday();
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayStr]);
   const weekStartStr = toISODate(weekStart);
@@ -253,15 +253,18 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
     reader.readAsDataURL(blob);
   }
 
-  /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 近期关键） ===== */
+  /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 近期关键） =====
+   * 窗口前伸到本月 1 号（与周一起点取更早者）：迷你月历需要整月事件点 */
+  const monthStartStr = `${todayStr.slice(0, 7)}-01`;
+  const schedFromStr = monthStartStr < weekStartStr ? monthStartStr : weekStartStr;
   const [sched, setSched] = useState(null);
   useEffect(() => {
     let alive = true;
-    API.schedules.list({ from: weekStartStr, to: addDaysISO(todayStr, 30) })
+    API.schedules.list({ from: schedFromStr, to: addDaysISO(todayStr, 30) })
       .then(r => { if (alive) setSched(r?.schedules || []); })
       .catch(() => { if (alive) setSched([]); });
     return () => { alive = false; };
-  }, [weekStartStr, todayStr, syncSignal]);
+  }, [schedFromStr, todayStr, syncSignal]);
 
   /* ===== 精力习惯（周打卡矩阵） ===== */
   const { realHabits } = useEnergyHabits();
@@ -326,6 +329,32 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
         list.push({ key: `uk-${s.id}`, type: 'key', title: s.title, date: s.date, daysLeft });
       });
     return list.sort((a, b) => a.daysLeft - b.daysLeft);
+  }, [sched, todayStr]);
+
+  /* ===== 迷你月历（即将到来混合卡）：本月网格 + 生日/关键事项事件点 ===== */
+  const miniGrid = useMemo(() => {
+    const y = Number(todayStr.slice(0, 4));
+    const mo = Number(todayStr.slice(5, 7)) - 1;
+    let g = calendarGrid(y, mo);
+    // 尾部整行都是跨月占位时裁掉（高度自适应 5/6 行，避免整行灰数字）
+    while (g.length > 35 && g.slice(-7).every(c => !c.inMonth)) g = g.slice(0, -7);
+    return g;
+  }, [todayStr]);
+  const monthDots = useMemo(() => {
+    const prefix = todayStr.slice(0, 7);
+    const map = new Map();
+    (sched || []).forEach(s => {
+      const date = String(s.date || '');
+      if (!date.startsWith(prefix)) return;
+      const t = String(s.title || '');
+      // 生日判定与 upcomingList 同源（重复事项服务端已按实际发生日展开）
+      const isBd = t.includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly' || t.startsWith('🎂'));
+      const isKey = !!s.is_key && !isBd;
+      if (!isBd && !isKey) return;
+      const cur = map.get(date) || {};
+      map.set(date, { bd: cur.bd || isBd, key: cur.key || isKey });
+    });
+    return map;
   }, [sched, todayStr]);
 
   /* ===== 精力：本周打卡统计 ===== */
@@ -643,41 +672,69 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
             </div>
           </div>
 
-          {/* ---- 即将到来：生日 + 关键事项统一时间轴（前 4 条） ---- */}
+          {/* ---- 即将到来 → 混合卡：迷你月历（日期感知 + 跳日历页） + 下一件事（前瞻提醒） ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead title="即将到来" sub="未来 30 天" onClick={() => onNav?.('plan')} />
-            <div className="flex-1 flex flex-col gap-1.5 justify-start">
-              {upcomingList.slice(0, 4).map(u => (
+            <CardHead title="即将到来" sub={`${Number(todayStr.slice(5, 7))} 月`} more="日历" onClick={() => onNav?.('calendar')} />
+            <div className="flex-1 flex flex-col justify-between gap-2.5 min-h-0">
+              {/* 迷你月历：生日点（生活紫）/ 关键事项点（主色），点日期跳日历页 */}
+              <div className="grid grid-cols-7 gap-y-[2px] select-none">
+                {['一', '二', '三', '四', '五', '六', '日'].map(w => (
+                  <span key={w} className="text-center text-[9.5px] font-semibold text-ink-300 pb-0.5">{w}</span>
+                ))}
+                {miniGrid.map(({ date, inMonth }) => {
+                  const dayNum = parseInt(date.slice(8), 10);
+                  const isToday = date === todayStr;
+                  const isPast = inMonth && date < todayStr;
+                  const dot = inMonth ? monthDots.get(date) : null;
+                  return (
+                    <button
+                      key={date}
+                      onClick={() => onNav?.('calendar')}
+                      title={dot ? (dot.bd && dot.key ? '有生日和关键事项' : dot.bd ? '有生日' : '有关键事项') : '去日历页'}
+                      className={`relative h-[25px] rounded-[7px] grid place-items-center text-[11px] leading-none tabular-nums transition hover:bg-[rgba(120,120,128,0.08)] active:scale-95 ${
+                        isToday ? 'font-bold text-white' : !inMonth || isPast ? 'text-ink-300' : 'text-ink-600'
+                      }`}
+                      style={isToday ? { background: 'var(--s-main)' } : undefined}
+                    >
+                      <span className={isToday || dot ? '-translate-y-[1.5px]' : ''}>{dayNum}</span>
+                      {(dot?.bd || dot?.key) && (
+                        <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 flex items-center gap-[2.5px]">
+                          {dot.bd && <span className="w-[3.5px] h-[3.5px] rounded-full" style={{ background: isToday ? 'rgba(255,255,255,0.9)' : 'var(--m-life)' }} />}
+                          {dot.key && <span className="w-[3.5px] h-[3.5px] rounded-full" style={{ background: isToday ? 'rgba(255,255,255,0.9)' : 'var(--s-main)' }} />}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 下一件事：生日 → 年度规划·生活，关键事项 → 今日计划 */}
+              {upcomingList[0] ? (
                 <button
-                  key={u.key}
-                  onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : onNav?.('plan')}
-                  className={`flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition ${u.type === 'birthday' ? 'hover:bg-[rgba(175,82,222,0.06)]' : 'hover:bg-[rgba(var(--s-rgb),0.05)]'}`}
+                  onClick={() => upcomingList[0].type === 'birthday' ? onNav?.('annual', 'life') : onNav?.('plan')}
+                  className={`flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition ${upcomingList[0].type === 'birthday' ? 'hover:bg-[rgba(175,82,222,0.06)]' : 'hover:bg-[rgba(var(--s-rgb),0.05)]'}`}
                 >
-                  {u.type === 'birthday' ? (
+                  {upcomingList[0].type === 'birthday' ? (
                     <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-life-rgb),0.1)' }}>
                       <svg className="w-4 h-4" style={{ color: 'var(--m-life)' }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2l2.4 5.4L20 9l-4 4 .9 6.3L12 16.5 7.1 19.3 8 13 4 9l5.6-1.6L12 2z"/></svg>
                     </span>
                   ) : (
                     <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
-                      {String(u.date).slice(8)}
+                      {String(upcomingList[0].date).slice(8)}
                     </span>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-semibold text-ink-800 truncate">{u.title}</div>
+                    <div className="text-[12.5px] font-semibold text-ink-800 truncate">{upcomingList[0].title}</div>
                     <div className="text-[10.5px] text-ink-400">
-                      {u.type === 'birthday'
-                        ? `${u.daysLeft === 0 ? '就是今天' : `还有 ${u.daysLeft} 天`}${u.isLunar ? ' · 农历' : ''}`
-                        : `${String(u.date).slice(5).replace('-', '/')} · 关键事项`}
+                      {upcomingList[0].type === 'birthday'
+                        ? `${upcomingList[0].daysLeft === 0 ? '就是今天' : `还有 ${upcomingList[0].daysLeft} 天`}${upcomingList[0].isLunar ? ' · 农历' : ''}`
+                        : `${String(upcomingList[0].date).slice(5).replace('-', '/')} · 关键事项`}
                     </div>
                   </div>
-                  <span className="text-[16px] font-extrabold tabular-nums flex-shrink-0" style={{ color: u.type === 'birthday' ? 'var(--m-life)' : 'var(--s-main)' }}>{u.daysLeft}</span>
+                  <span className="text-[16px] font-extrabold tabular-nums flex-shrink-0" style={{ color: upcomingList[0].type === 'birthday' ? 'var(--m-life)' : 'var(--s-main)' }}>{upcomingList[0].daysLeft}</span>
                 </button>
-              ))}
-              {upcomingList.length === 0 && (
-                <div className="text-[12.5px] text-ink-400 text-center py-3">未来 30 天没有生日和关键日程</div>
-              )}
-              {upcomingList.length > 4 && (
-                <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {upcomingList.length - 4} 项…</button>
+              ) : (
+                <div className="text-[11px] text-ink-400 text-center py-1">未来 30 天没有生日和关键日程</div>
               )}
             </div>
           </div>
@@ -812,6 +869,49 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ========== 快捷操作横条：计划 → 捕获 → 复盘（首页行动枢纽，填充底部空间） ========== */}
+        <div className="glass-card px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button
+            onClick={() => onNewSchedule?.()}
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition hover:bg-[rgba(120,120,128,0.06)] active:scale-[0.98]"
+          >
+            <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--s-rgb),0.08)' }}>
+              <svg className="w-[19px] h-[19px]" style={{ color: 'var(--s-main)' }} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+            </span>
+            <span className="flex flex-col min-w-0">
+              <span className="text-[13.5px] font-semibold text-ink-800">新建事项</span>
+              <span className="text-[11px] text-ink-400">日程 / 待办 · 默认今天</span>
+            </span>
+          </button>
+          <button
+            onClick={() => onQuickCapture?.()}
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition hover:bg-[rgba(120,120,128,0.06)] active:scale-[0.98]"
+          >
+            <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-energy-rgb),0.08)' }}>
+              <svg className="w-[19px] h-[19px]" style={{ color: 'var(--m-energy)' }} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </span>
+            <span className="flex flex-col min-w-0">
+              <span className="flex items-center gap-1.5 text-[13.5px] font-semibold text-ink-800">
+                快速记录
+                <span className="text-[9px] font-bold leading-none px-1.5 py-[2px] rounded border border-ink-300 text-ink-400" title="键盘快捷键">N</span>
+              </span>
+              <span className="text-[11px] text-ink-400">收进收集箱 · 稍后分派</span>
+            </span>
+          </button>
+          <button
+            onClick={() => onOpenSummary?.()}
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition hover:bg-[rgba(120,120,128,0.06)] active:scale-[0.98]"
+          >
+            <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-cognition-rgb),0.08)' }}>
+              <svg className="w-[19px] h-[19px]" style={{ color: 'var(--m-cognition)' }} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </span>
+            <span className="flex flex-col min-w-0">
+              <span className="text-[13.5px] font-semibold text-ink-800">今日总结</span>
+              <span className="text-[11px] text-ink-400">复盘今天 · 四套模板</span>
+            </span>
+          </button>
         </div>
       </div>
 

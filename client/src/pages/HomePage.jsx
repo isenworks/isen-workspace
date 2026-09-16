@@ -60,7 +60,7 @@ function Ring({ value, done, total, color = 'var(--s-main)' }) {
 }
 
 /* ============ 主页 ============ */
-export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, onSync, syncSignal = 0 }) {
+export default function HomePage({ user, onNav, syncSignal = 0 }) {
   const todayStr = getToday();
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayStr]);
   const weekStartStr = toISODate(weekStart);
@@ -181,27 +181,36 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
     <div className="flex-1 min-w-0 flex flex-col gap-4">
       <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-4">
 
-        {/* ========== 问候 + 签名（通栏） ========== */}
-        <div className="glass-card px-6 py-5 flex items-center justify-between gap-6 flex-wrap">
-          <div className="flex flex-col gap-1 min-w-0">
+        {/* ========== Hero：品牌渐变通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
+        <div
+          className="relative overflow-hidden px-7 py-6 flex items-center justify-between gap-6 flex-wrap rounded-[18px]"
+          style={{ background: 'var(--s-grad-bg)', boxShadow: '0 8px 28px rgba(var(--s-rgb),0.30)' }}
+        >
+          {/* 装饰光斑（纯视觉，不响应交互） */}
+          <div className="absolute -right-14 -top-28 w-[280px] h-[280px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, transparent 68%)' }} />
+          <div className="absolute right-40 -bottom-24 w-[190px] h-[190px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.09) 0%, transparent 70%)' }} />
+
+          {/* 左：问候 */}
+          <div className="relative flex flex-col gap-1.5 min-w-0">
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-[26px] font-extrabold text-ink-900 tracking-tight">{greeting}，{name}</span>
-              <span className="text-[13px] text-ink-400">{formatChineseDate(new Date())}</span>
+              <span className="text-[28px] font-extrabold text-white tracking-tight">{greeting}，{name}</span>
+              <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.72)' }}>{formatChineseDate(new Date())}</span>
             </div>
-            <span className="text-[13px] text-ink-500">
-              {hour < 12 ? '新的一天，从最重要的事开始' : hour < 18 ? '午后时光，保持节奏' : '晚上好，回顾一下今天的收获吧'}
+            <span className="text-[13.5px] font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              {hour < 12 ? '新的一天，从最重要的事开始' : hour < 18 ? '午后时光，保持节奏' : '回顾一下今天的收获吧'}
             </span>
           </div>
-          {/* 签名：点击编辑，回车/失焦保存 */}
-          <div className="flex items-center gap-2 min-w-0 max-w-[420px]">
+
+          {/* 右：签名 / 座右铭（点击编辑，回车/失焦保存） */}
+          <div className="relative flex items-center gap-2 min-w-0 max-w-[440px]">
             {sigEditing ? (
               <input
                 autoFocus
                 defaultValue={signature}
                 placeholder="写一句自己的话…"
                 maxLength={60}
-                className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-[13px] text-ink-700 bg-white border outline-none"
-                style={{ borderColor: 'rgba(var(--s-rgb),0.4)' }}
+                className="flex-1 min-w-0 px-3.5 py-2 rounded-xl text-[14px] font-medium outline-none text-white placeholder:text-[rgba(255,255,255,0.55)]"
+                style={{ background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.45)' }}
                 onBlur={e => { setSignature(e.target.value.trim()); setSigEditing(false); }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') { setSignature(e.currentTarget.value.trim()); setSigEditing(false); }
@@ -211,21 +220,28 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
             ) : (
               <button
                 onClick={() => setSigEditing(true)}
-                className="group flex items-center gap-2 min-w-0 px-3 py-1.5 rounded-lg transition hover:bg-[rgba(120,120,128,0.06)]"
+                className="group flex items-center gap-2 min-w-0 px-3 py-2 rounded-xl transition hover:bg-[rgba(255,255,255,0.12)]"
                 title="点击编辑签名"
               >
-                <svg className="w-3.5 h-3.5 text-ink-300 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M6.17 17.53c.24 0 .45-.09.62-.26l11.4-11.4c.15-.15.23-.34.23-.54 0-.42-.32-.73-.74-.73-.2 0-.39.07-.53.21L5.77 15.65c-.18.18-.27.4-.3.66l-.13 1.21c-.02.2.12.34.31.34l.52-.02c.26-.02.5-.11.65-.28l-.05-.03zm-1.79 3.15c-.18 0-.31-.13-.29-.32l.21-2.06c.04-.42.23-.81.53-1.11l10.6-10.6c.51-.53 1.22-.53 1.71-.05l.95.95c.48.49.5 1.2-.02 1.72L7.9 19.36c-.3.3-.68.48-1.11.53l-2.03.21-.28.02-.4-.44z"/></svg>
-                <span className={`text-[13px] italic truncate ${signature ? 'text-ink-600' : 'text-ink-300'}`}>
-                  {signature || '点击写一句签名 / 座右铭'}
-                </span>
+                {signature ? (
+                  <>
+                    <span className="text-[30px] font-serif leading-none flex-shrink-0 -mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>“</span>
+                    <span className="text-[14.5px] italic font-medium truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
+                    <span className="text-[30px] font-serif leading-none flex-shrink-0 -mt-3 self-start" style={{ color: 'rgba(255,255,255,0.4)' }}>”</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5 flex-shrink-0 transition" style={{ color: 'rgba(255,255,255,0.55)' }} fill="currentColor" viewBox="0 0 24 24"><path d="M6.17 17.53c.24 0 .45-.09.62-.26l11.4-11.4c.15-.15.23-.34.23-.54 0-.42-.32-.73-.74-.73-.2 0-.39.07-.53.21L5.77 15.65c-.18.18-.27.4-.3.66l-.13 1.21c-.02.2.12.34.31.34l.52-.02c.26-.02.5-.11.65-.28l-.05-.03zm-1.79 3.15c-.18 0-.31-.13-.29-.32l.21-2.06c.04-.42.23-.81.53-1.11l10.6-10.6c.51-.53 1.22-.53 1.71-.05l.95.95c.48.49.5 1.2-.02 1.72L7.9 19.36c-.3.3-.68.48-1.11.53l-2.03.21-.28.02-.4-.44z"/></svg>
+                    <span className="text-[13.5px] italic truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>点击写一句签名 / 座右铭</span>
+                  </>
+                )}
               </button>
             )}
           </div>
         </div>
 
-        {/* ========== Bento 网格：上行 = 时间三卡 + 快捷动作，下行 = 精力/知力/能力/工作 ==========
-            xl 4 列 · auto-rows-fr：全部 8 张卡片同宽同高（时间卡与成长卡尺寸完全一致） */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4">
+        {/* ========== 时间层：今日聚焦 / 本周重点 / 即将到来（3 等分，md 起 3 列） ========== */}
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4">
 
           {/* ---- 今日聚焦 ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -338,38 +354,10 @@ export default function HomePage({ user, onNav, onNewSchedule, onQuickCapture, o
               )}
             </div>
           </div>
+        </div>
 
-          {/* ---- 快捷动作（上行第 4 格 · 横条方框按钮，与其余卡同尺寸） ---- */}
-          <div className="glass-card p-4 flex flex-col">
-            <CardHead title="快捷动作" />
-            <div className="flex-1 flex flex-col gap-2">
-              <button
-                onClick={() => onQuickCapture?.()}
-                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:brightness-105 active:scale-[0.98]"
-                style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)' }}
-              >
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                快速记一条
-                <kbd className="ml-auto text-[9.5px] font-bold px-1.5 py-px rounded bg-white/25">N</kbd>
-              </button>
-              <button
-                onClick={() => onNewSchedule?.()}
-                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(var(--s-rgb),0.1)] active:scale-[0.98]"
-                style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
-              >
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                新建事项
-              </button>
-              <button
-                onClick={() => onSync?.()}
-                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold transition hover:bg-[rgba(120,120,128,0.1)] active:scale-[0.98]"
-                style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--ink-600, #3a3a3c)' }}
-              >
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-                同步数据
-              </button>
-            </div>
-          </div>
+        {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，xl 起 4 列） ========== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4">
 
           {/* ---- 精力：周打卡矩阵 ---- */}
           <div className="glass-card p-4 flex flex-col">

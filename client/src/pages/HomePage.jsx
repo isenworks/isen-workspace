@@ -20,12 +20,30 @@ const HERO_GRADIENTS = {
 };
 
 /* ===== Hero 背景多图轮播（localStorage + 云端 KV） =====
- * 数据形态 v2：{ type: 'gradient'|'images', value: 渐变key, images: [{id,url}], interval: 轮播秒(0=关), shuffle }
- * 兼容 v1 旧形态 { type:'gradient', value } / { type:'image', value: dataURL } → 读取时自动迁移
- * 存储预算：≤15 张 × ≤80KB/张（裁剪端自适应压缩，base64 后 ≈1.6MB），守住 D1 单行 2MB 与 localStorage 配额 */
+ * 数据形态 v3：{ type: 'gradient'|'images', value: 渐变key, images: [{id, src, crop}], interval: 轮播秒(0=关), shuffle }
+ *   · src  = 压缩原图（≤2048px / ≤75KB，保留完整取景余量，重新编辑零质量损失）
+ *   · crop = 归一化取景参数 {sx,sy,sw,sh}；展示用 CSS background-size/position 从原图实时裁剪铺满
+ * 兼容 v2 {images:[{id,url}]}（已裁 3:1 结果图）与 v1 {type:'image',value} → 读取时按等效 cover 取景自动迁移
+ * 存储预算：≤15 张 × ≤75KB/张（base64 后 ≈1.5MB），守住 D1 单行 2MB 与 localStorage 配额 */
 const HERO_IMG_MAX = 15;
+const HERO_ASPECT = 8;   // 选区/展示宽高比，= Hero 卡片实际尺寸（主列 1128px / 高约 141px）
 const HERO_INTERVALS = [['关', 0], ['10s', 10], ['30s', 30], ['60s', 60]];
 const newHeroImgId = () => `hero_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+// 取景参数规整（防 NaN / 越界）
+function normCrop(c) {
+  if (!c || !(c.sw > 0) || !(c.sh > 0)) return null;
+  return {
+    sx: Math.min(Math.max(0, c.sx || 0), 1),
+    sy: Math.min(Math.max(0, c.sy || 0), 1),
+    sw: Math.min(1, c.sw),
+    sh: Math.min(1, c.sh),
+  };
+}
+// 宽高比 sr 的整图在 HERO_ASPECT 容器中 cover 居中显示的等效取景（旧数据迁移用）
+function coverCrop(sr) {
+  if (HERO_ASPECT >= sr) return { sx: 0, sy: (1 - sr / HERO_ASPECT) / 2, sw: 1, sh: sr / HERO_ASPECT };
+  return { sx: (1 - HERO_ASPECT / sr) / 2, sy: 0, sw: HERO_ASPECT / sr, sh: 1 };
+}
 function normalizeHeroBg(v) {
   const out = {
     type: 'gradient',
@@ -34,18 +52,34 @@ function normalizeHeroBg(v) {
     interval: HERO_INTERVALS.some(([, s]) => s === v?.interval) ? v.interval : 10,
     shuffle: !!v?.shuffle,
   };
-  if (Array.isArray(v?.images)) {
-    out.images = v.images
-      .filter(im => im && typeof im.url === 'string' && im.url)
-      .map(im => ({ id: im.id || newHeroImgId(), url: im.url }));
-  }
+  const pushImg = (im) => {
+    if (typeof im?.src === 'string' && im.src) {
+      out.images.push({ id: im.id || newHeroImgId(), src: im.src, crop: normCrop(im.crop) || coverCrop(3) });
+    } else if (typeof im?.url === 'string' && im.url) {
+      // v2 已裁 3:1 结果图：等效 cover 迁移（src 沿用，重编辑仍可在 8:1 框内重取景）
+      out.images.push({ id: im.id || newHeroImgId(), src: im.url, crop: coverCrop(3) });
+    }
+  };
+  if (Array.isArray(v?.images)) v.images.forEach(pushImg);
   // v1 单图形态迁移
-  if (v?.type === 'image' && typeof v.value === 'string' && v.value.startsWith('data:')) {
-    out.images.push({ id: newHeroImgId(), url: v.value });
-  }
+  if (v?.type === 'image' && typeof v.value === 'string' && v.value.startsWith('data:')) pushImg({ url: v.value });
   if (out.images.length > HERO_IMG_MAX) out.images = out.images.slice(0, HERO_IMG_MAX);
   if (v?.type === 'images' && out.images.length > 0) out.type = 'images';
   return out;
+}
+/* 原图 + 取景参数 → CSS 裁剪铺满样式（百分比相对容器，天然响应式）
+ *   size   = 100/sw% × 100/sh%（裁剪区恰好铺满容器；选区比例=容器比例保证不变形）
+ *   pos    = sx/(1-sw)% × sy/(1-sh)%（把裁剪区左上角对齐容器原点） */
+function heroCropBg(im, withShade = true) {
+  const c = im.crop || coverCrop(3);
+  const sw = Math.min(c.sw, 0.9995), sh = Math.min(c.sh, 0.9995);   // 防除零
+  const px = (c.sx / (1 - sw)) * 100, py = (c.sy / (1 - sh)) * 100;
+  return {
+    backgroundImage: `${withShade ? 'linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), ' : ''}url(${im.src})`,
+    backgroundSize: `${withShade ? 'cover, ' : ''}${100 / sw}% ${100 / sh}%`,
+    backgroundPosition: `${withShade ? 'center, ' : ''}${px}% ${py}%`,
+    backgroundRepeat: 'no-repeat',
+  };
 }
 
 /* 卡片头：模块色竖条 + 标题 + 右侧查看更多 */
@@ -126,8 +160,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const [curIdx, setCurIdx] = useState(0);   // 当前展示的图片下标（轮播/手动切换）
   const toast = useToast();
 
-  // 裁剪弹窗数据源：新上传为 File，笔图标重新编辑为 data URL（cropReplaceId 非空 = 原位更新该图）
+  // 裁剪弹窗数据源：新上传为 File，笔图标重新编辑为 data URL（cropReplaceId 非空 = 原位更新取景）
   const [cropSrc, setCropSrc] = useState(null);
+  const [cropCrop, setCropCrop] = useState(null);      // 重新编辑时恢复的上次取景参数
   const [cropReplaceId, setCropReplaceId] = useState(null);
   const filePickRef = useRef(null);
   const [confirmDelId, setConfirmDelId] = useState(null);   // 待二次确认删除的图片 id（卡片上方小弹窗）
@@ -217,44 +252,48 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     if (!f.type.startsWith('image/')) { toast.error('请选择图片文件'); return; }
     if (f.size > 20 * 1024 * 1024) { toast.error('图片过大（超过 20MB），请先压缩后再上传'); return; }
     setCropReplaceId(null);
+    setCropCrop(null);
     setCropSrc(f);
   }
-  // 重新编辑已上传的图：基于当前存储图重新取景裁剪（原位更新，不换图）
+  // 笔图标：基于原图重新取景（恢复上次取景参数，只改 crop 不动原图）
   function editHeroImage(id) {
     const im = heroImgs.find(x => x.id === id);
     if (!im) return;
     setCropReplaceId(id);
-    setCropSrc(im.url);
+    setCropCrop(im.crop || null);
+    setCropSrc(im.src);
   }
-  // 裁剪确认 → Blob 转 data URL：原位更新（保留 id/顺序）或追加，并立即展示该图
-  function handleCropConfirm(blob) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const url = e.target.result;
+  // 裁剪确认：{ srcBlob(新图才有), crop } → 原位更新取景（保留 id/顺序/src）或追加新图
+  function handleCropConfirm({ srcBlob, crop }) {
+    const done = (srcDataUrl) => {
       const rid = cropReplaceId;
       const idx = rid ? heroImgs.findIndex(x => x.id === rid) : heroImgs.length;
-      if (rid && idx < 0) { setCropSrc(null); setCropReplaceId(null); return; }   // 目标图已被删除
+      if (rid && idx < 0) { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); return; }   // 目标图已被删除
       setHeroBg(prev => {
         const images = [...prev.images];
-        if (rid) images[idx] = { ...images[idx], url };
-        else if (images.length < HERO_IMG_MAX) images.push({ id: newHeroImgId(), url });
+        if (rid) images[idx] = { ...images[idx], crop };
+        else if (images.length < HERO_IMG_MAX) images.push({ id: newHeroImgId(), src: srcDataUrl, crop });
         return { ...prev, type: 'images', images };
       });
       setCurIdx(idx);
       setCropSrc(null);
       setCropReplaceId(null);
+      setCropCrop(null);
       if (rid) {
-        toast.success('已更新背景图');          // 编辑流程：保留面板，便于继续管理
+        toast.success('已更新取景');            // 编辑流程：保留面板，便于继续管理
       } else {
         setHeroEditOpen(false);                 // 新增流程：收起面板展示效果
         toast.success('已添加背景图');
         // 云端单行 2MB 预算告警（data URL 较二进制约 1.33 倍膨胀）
-        if (JSON.stringify(heroImgs).length + url.length > 1900000) {
-          toast.warn('背景图总量接近云端同步上限，建议删除不常用的图片');
-        }
+        const total = heroImgs.reduce((s, x) => s + (x.src?.length || 0), 0) + (srcDataUrl?.length || 0);
+        if (total > 1900000) toast.warn('背景图总量接近云端同步上限，建议删除不常用的图片');
       }
     };
-    reader.readAsDataURL(blob);
+    if (srcBlob) {
+      const reader = new FileReader();
+      reader.onload = e => done(e.target.result);
+      reader.readAsDataURL(srcBlob);
+    } else done(null);
   }
 
   /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 近期关键） =====
@@ -404,15 +443,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
         >
-          {/* 背景图片层 ×N（交叉淡入；渐变模式时全透明，容器渐变打底） */}
+          {/* 背景图片层 ×N（交叉淡入；按 crop 从原图实时裁剪铺满，渐变模式时全透明） */}
           {heroImgs.map((im, i) => (
             <div
               key={im.id}
               className="absolute inset-0 pointer-events-none transition-opacity duration-700"
               style={{
-                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), url(${im.url})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                ...heroCropBg(im),
                 opacity: heroBg.type === 'images' && i === curIdx ? 1 : 0,
               }}
             />
@@ -531,7 +568,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <div className="text-[11px] font-semibold text-ink-400 uppercase tracking-wide">背景图片</div>
               <span className="text-[10.5px] text-ink-300 tabular-nums">{heroImgs.length}/{HERO_IMG_MAX}</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {heroImgs.map((im, i) => {
                 const isCur = heroBg.type === 'images' && i === curIdx;
                 const isConfirmDel = confirmDelId === im.id;
@@ -539,11 +576,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   <div key={im.id} className="relative">
                     <div
                       className="group/img rounded-lg overflow-hidden cursor-pointer transition"
-                      style={{ aspectRatio: '3 / 1', outline: isCur ? '2px solid var(--s-main)' : '1px solid rgba(0,0,0,0.08)', outlineOffset: isCur ? '1px' : '-1px' }}
+                      style={{ ...heroCropBg(im, false), aspectRatio: `${HERO_ASPECT} / 1`, outline: isCur ? '2px solid var(--s-main)' : '1px solid rgba(0,0,0,0.08)', outlineOffset: isCur ? '1px' : '-1px' }}
                       onClick={() => selectHeroImg(i)}
                       title={isCur ? '正在展示' : '点击展示这张'}
                     >
-                      <div className="absolute inset-0" style={{ backgroundImage: `url(${im.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
                       <span className="absolute top-1 left-1 px-1 rounded text-[9px] font-bold tabular-nums" style={{ background: 'rgba(0,0,0,0.4)', color: 'rgba(255,255,255,0.9)' }}>{i + 1}</span>
                       {/* hover 工具条：排序 / 重新裁剪 / 删除 */}
                       <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.5)' }}>
@@ -579,20 +615,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   </div>
                 );
               })}
-              {/* 添加格 */}
+              {/* 添加条 */}
               {heroImgs.length < HERO_IMG_MAX && (
                 <button
                   onClick={() => pickHeroImage()}
-                  className="relative rounded-lg border border-dashed border-[rgba(120,120,128,0.35)] bg-[rgba(120,120,128,0.04)] flex flex-col items-center justify-center gap-1 transition hover:border-[rgba(var(--s-rgb),0.55)] hover:bg-[rgba(var(--s-rgb),0.05)] active:scale-[0.98]"
-                  style={{ aspectRatio: '3 / 1' }}
+                  className="relative rounded-lg border border-dashed border-[rgba(120,120,128,0.35)] bg-[rgba(120,120,128,0.04)] h-[40px] flex flex-row items-center justify-center gap-1.5 transition hover:border-[rgba(var(--s-rgb),0.55)] hover:bg-[rgba(var(--s-rgb),0.05)] active:scale-[0.99]"
                 >
-                  <svg className="w-4 h-4 text-ink-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  <span className="text-[10.5px] font-medium text-ink-400">添加图片</span>
+                  <svg className="w-3.5 h-3.5 text-ink-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span className="text-[11px] font-medium text-ink-400">添加图片</span>
                 </button>
               )}
             </div>
             {heroImgs.length === 0 && (
-              <div className="text-[11px] text-ink-300 mt-1.5">最多 {HERO_IMG_MAX} 张轮播，自动裁剪为 3:1 横幅</div>
+              <div className="text-[11px] text-ink-300 mt-1.5">最多 {HERO_IMG_MAX} 张轮播 · 按 Hero 卡片实际比例取景，可随时重新调整</div>
             )}
 
             {/* 轮播设置（≥2 张时显示） */}
@@ -938,11 +973,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       {/* Hero 背景图上传入口（仅添加；重新编辑已有图走卡片上的笔图标） */}
       <input ref={filePickRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFilePick} />
 
-      {/* Hero 图片裁剪弹窗（新上传裁剪 / 重新编辑已存图共用） */}
+      {/* Hero 图片裁剪弹窗（新上传裁剪 / 笔图标基于原图重新取景共用） */}
       <HeroCropModal
         open={!!cropSrc}
         source={cropSrc}
-        onClose={() => { setCropSrc(null); setCropReplaceId(null); }}
+        ratio={HERO_ASPECT}
+        initialCrop={cropCrop}
+        onClose={() => { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); }}
         onConfirm={handleCropConfirm}
       />
     </div>

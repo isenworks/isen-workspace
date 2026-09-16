@@ -1,33 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
- * Hero 背景横幅裁剪 Modal（纯 Canvas 实现，无第三方依赖 · 选区模式）
+ * Hero 背景裁剪 Modal（纯 Canvas 实现，无第三方依赖 · 选区模式）
  *
- * 交互（对齐专业图片裁剪器：完整图片可见 + 3:1 选区框）：
+ * 交互（对齐专业图片裁剪器：完整图片可见 + 固定比例选区框）：
  *   · 图片 contain 完整显示在画布中，选区外半透明遮罩 —— 所见即所得
- *   · 拖动选区移动取景；四角手柄 / 滚轮 / 滑块缩放选区（锁定 3:1）
+ *   · 拖动选区移动取景；四角手柄 / 滚轮 / 滑块缩放选区（锁定 ratio 比例）
  *   · 选区始终约束在图片范围内 → 任意宽高比（含超宽 banner）都能裁到顶部/底部区域
  *   · 双击画布重置为最大选区
- *   · 输出 1440×480 JPEG，自适应质量压缩（≤80KB/张 × 15 张 ≈ 1.6MB base64，守住 D1 单行 2MB / localStorage 配额）
+ *
+ * 数据策略（保留原图，支持无损重新取景）：
+ *   · 新上传：输出 压缩原图(≤2048px, ≤75KB JPEG) + 归一化取景参数 crop
+ *   · 重新编辑：仅输出新 crop（src 不变，编辑零成本、云端增量极小）
+ *   · 展示端用 CSS background-size/position 从原图按 crop 裁剪铺满
  *
  * Props:
  *   open: boolean
- *   source: File（新上传）| string（data URL，重新编辑已存图）
+ *   source: File（新上传）| string（dataURL，重新编辑已存原图）
+ *   ratio: number 选区宽高比（与 Hero 卡片实际显示比例一致）
+ *   initialCrop: { sx, sy, sw, sh } 上次保存的取景参数（重新编辑时恢复）
  *   onClose: () => void
- *   onConfirm: (croppedBlob: Blob) => void
+ *   onConfirm: ({ srcBlob: Blob|null, crop: {sx,sy,sw,sh} }) => void
  */
-export default function HeroCropModal({ open, source, onClose, onConfirm }) {
+export default function HeroCropModal({ open, source, ratio = 8, initialCrop = null, onClose, onConfirm }) {
   const canvasRef = useRef(null);
   const [img, setImg] = useState(null);
-  const [box, setBox] = useState(null);   // 选区 { x, y, w }（画布逻辑坐标，高 = w/3）
+  const [box, setBox] = useState(null);   // 选区 { x, y, w }（画布逻辑坐标，高 = w/ratio）
   const [cursor, setCursor] = useState('default');
   const boxRef = useRef(null);
   const dragRef = useRef(null);           // { mode: 'move'|'resize', id, startX, startY, box0 }
 
   const CW = 480;                          // 画布逻辑宽（= modal 内容区宽）
   const CH_CAP = 280;                      // 画布高上限（图片 contain 适配）
-  const OUT_W = 1440, OUT_H = 480;         // 输出尺寸（3:1，贴合 Hero 通栏）
+  const SRC_MAX_SIDE = 2048;               // 压缩原图最长边
+  const SRC_MAX_BYTES = 75 * 1024;         // 压缩原图体积预算（15 张 ≈ 1.5MB base64，守住 D1 2MB 行）
+  const SHOW_W = 1128;                     // Hero 设计显示宽（px，低于此值的取景提示可能模糊）
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const isNew = typeof source !== 'string';
 
   /* ---- 图片几何：contain 适配 CW × CH_CAP；画布高随图片（下限 96 防超宽图过扁） ---- */
   const geo = useMemo(() => {
@@ -36,17 +45,17 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
     const dw = img.width * sf, dh = img.height * sf;
     const ch = Math.max(Math.round(dh), 96);
     const imgX = (CW - dw) / 2, imgY = (ch - dh) / 2;
-    const wMax = Math.min(dw, dh * 3);     // 3:1 选区在图片内的最大宽
-    // 最小选区宽：输出上采样不超过 2 倍（≥720·sf），且不小于最大选区的 15%
-    const wMin = Math.min(wMax, Math.max(720 * sf, wMax * 0.15, 40));
+    const wMax = Math.min(dw, dh * ratio);  // 选区在图片内的最大宽
+    // 最小选区宽：取景源不低于 800 源像素，且不小于最大选区的 15%
+    const wMin = Math.min(wMax, Math.max(800 * sf, wMax * 0.15, 40));
     return { sf, dw, dh, ch, imgX, imgY, wMin, wMax };
-  }, [img]);
+  }, [img, ratio]);
 
-  /* ---- 选区钳制：锁定 3:1 且完全落在图片内（不露空白） ---- */
+  /* ---- 选区钳制：锁定 ratio 且完全落在图片内（不露空白） ---- */
   function clampBox(b) {
     if (!geo) return b;
     const w = Math.min(geo.wMax, Math.max(geo.wMin, b.w));
-    const h = w / 3;
+    const h = w / ratio;
     return {
       w,
       x: Math.min(geo.imgX + geo.dw - w, Math.max(geo.imgX, b.x)),
@@ -54,21 +63,29 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
     };
   }
 
-  // 加载图片：File（新上传）或 data URL（重新编辑已存图，无需 revoke）
+  // 加载图片：File（新上传）或 data URL（重新编辑已存原图）
   useEffect(() => {
     if (!open || !source) return;
-    const url = typeof source === 'string' ? source : URL.createObjectURL(source);
+    const url = isNew ? URL.createObjectURL(source) : source;
     const im = new Image();
     im.onload = () => { setImg(im); };
     im.src = url;
-    return () => { setImg(null); setBox(null); if (typeof source !== 'string') URL.revokeObjectURL(url); };
+    return () => { setImg(null); setBox(null); if (isNew) URL.revokeObjectURL(url); };
   }, [open, source]);
 
-  // 图片加载 → 初始选区 = 最大选区居中（与 cover 裁剪等价）
+  // 图片加载 → 初始选区：恢复上次取景，否则最大选区居中
   useEffect(() => {
     if (!geo) return;
-    const w = geo.wMax, h = w / 3;
-    setBox({ w, x: geo.imgX + (geo.dw - w) / 2, y: geo.imgY + (geo.dh - h) / 2 });
+    if (initialCrop && initialCrop.sw > 0) {
+      setBox(clampBox({
+        w: initialCrop.sw * geo.dw,
+        x: geo.imgX + initialCrop.sx * geo.dw,
+        y: geo.imgY + initialCrop.sy * geo.dh,
+      }));
+    } else {
+      const w = geo.wMax, h = w / ratio;
+      setBox({ w, x: geo.imgX + (geo.dw - w) / 2, y: geo.imgY + (geo.dh - h) / 2 });
+    }
   }, [geo]);
 
   // box 渲染期同步到 ref（拖动闭包读最新值）
@@ -87,7 +104,7 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
     // 完整图片（所见即所得）
     ctx.drawImage(img, geo.imgX, geo.imgY, geo.dw, geo.dh);
     // 选区外半透明遮罩
-    const bx = box.x, by = box.y, bw = box.w, bh = bw / 3;
+    const bx = box.x, by = box.y, bw = box.w, bh = bw / ratio;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, CW, by);
     ctx.fillRect(0, by + bh, CW, CH - by - bh);
@@ -114,13 +131,13 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
       else ctx.rect(hx - 4, hy - 4, 8, 8);
       ctx.fill();
     });
-  }, [img, geo, box]);
+  }, [img, geo, box, ratio]);
 
   /* ---- 命中检测：四角手柄 > 选区内 > 图片区域 ---- */
   function hitTest(mx, my) {
     const b = boxRef.current;
     if (!b || !geo) return null;
-    const h = b.w / 3;
+    const h = b.w / ratio;
     const handles = [
       { id: 'lt', x: b.x, y: b.y }, { id: 'rt', x: b.x + b.w, y: b.y },
       { id: 'lb', x: b.x, y: b.y + h }, { id: 'rb', x: b.x + b.w, y: b.y + h },
@@ -150,7 +167,7 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
     dragRef.current = { ...hit, startX: p.x, startY: p.y, box0: { ...boxRef.current } };
   }
 
-  // 拖动：move 平移 / resize 以对角为锚沿 3:1 对角方向缩放
+  // 拖动：move 平移 / resize 以对角为锚沿锁定比例的对角方向缩放
   useEffect(() => {
     if (!open) return;
     function onMove(e) {
@@ -163,11 +180,12 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
         setBox(clampBox({ x: b0.x + dx, y: b0.y + dy, w: b0.w }));
         return;
       }
+      const k = 1 / ratio;   // 垂直步长换算
       const anchors = {
-        rb: { x: b0.x, y: b0.y, dir: [1, 1 / 3] },
-        lt: { x: b0.x + b0.w, y: b0.y + b0.w / 3, dir: [-1, -1 / 3] },
-        rt: { x: b0.x, y: b0.y + b0.w / 3, dir: [1, -1 / 3] },
-        lb: { x: b0.x + b0.w, y: b0.y, dir: [-1, 1 / 3] },
+        rb: { x: b0.x, y: b0.y, dir: [1, k] },
+        lt: { x: b0.x + b0.w, y: b0.y + b0.w * k, dir: [-1, -k] },
+        rt: { x: b0.x, y: b0.y + b0.w * k, dir: [1, -k] },
+        lb: { x: b0.x + b0.w, y: b0.y, dir: [-1, k] },
       };
       const a = anchors[d.id];
       const dw = 0.9 * (dx * a.dir[0] + dy * a.dir[1]);   // 位移沿对角方向的投影
@@ -175,7 +193,7 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
       setBox(clampBox({
         w,
         x: a.dir[0] > 0 ? a.x : a.x - w,
-        y: a.dir[1] > 0 ? a.y : a.y - w / 3,
+        y: a.dir[1] > 0 ? a.y : a.y - w * k,
       }));
     }
     function onUp() { dragRef.current = null; }
@@ -185,7 +203,7 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [open, geo, img]);
+  }, [open, geo, img, ratio]);
 
   // hover 光标反馈（非拖动态）
   function updateCursor(e) {
@@ -204,53 +222,65 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
     e.preventDefault();
     if (!geo || !box) return;
     const b = boxRef.current;
-    const cx = b.x + b.w / 2, cy = b.y + b.w / 6;
+    const cx = b.x + b.w / 2, cy = b.y + b.w / (2 * ratio);
     const w = Math.min(geo.wMax, Math.max(geo.wMin, b.w * (1 - e.deltaY * 0.0012)));
-    setBox(clampBox({ x: cx - w / 2, y: cy - w / 6, w }));
+    setBox(clampBox({ x: cx - w / 2, y: cy - w / (2 * ratio), w }));
   }
 
   // 双击重置为最大选区
   function onDblClick() {
     if (!geo) return;
-    const w = geo.wMax, h = w / 3;
+    const w = geo.wMax, h = w / ratio;
     setBox({ w, x: geo.imgX + (geo.dw - w) / 2, y: geo.imgY + (geo.dh - h) / 2 });
   }
 
-  /* ---- 确认：选区映射回原图坐标，输出 1440×480，自适应质量压缩 ---- */
-  function handleConfirm() {
-    if (!img || !geo || !box) return;
-    const sx = (box.x - geo.imgX) / geo.sf;
-    const sy = (box.y - geo.imgY) / geo.sf;
-    const sw = box.w / geo.sf, sh = (box.w / 3) / geo.sf;
+  /* ---- 压缩原图：最长边 ≤2048，自适应质量 ≤75KB（保留取景余量，重新编辑不损质量） ---- */
+  function compressSource() {
+    const scale = Math.min(1, SRC_MAX_SIDE / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
     const oc = document.createElement('canvas');
-    oc.width = OUT_W; oc.height = OUT_H;
+    oc.width = w; oc.height = h;
     const octx = oc.getContext('2d');
-    octx.drawImage(img, sx, sy, sw, sh, 0, 0, OUT_W, OUT_H);
-    const qualities = [0.82, 0.72, 0.62, 0.52, 0.45];
-    (function attempt(i) {
-      oc.toBlob(blob => {
-        if (blob && (blob.size <= 80 * 1024 || i === qualities.length - 1)) {
-          onConfirm(blob);
-        } else {
-          attempt(i + 1);
-        }
-      }, 'image/jpeg', qualities[i]);
-    })(0);
+    octx.fillStyle = '#fff';                  // PNG 透明区转 JPEG 防黑底
+    octx.fillRect(0, 0, w, h);
+    octx.drawImage(img, 0, 0, w, h);
+    return new Promise(resolve => {
+      const qualities = [0.85, 0.75, 0.65, 0.55, 0.45];
+      (function attempt(i) {
+        oc.toBlob(blob => {
+          if (blob && (blob.size <= SRC_MAX_BYTES || i === qualities.length - 1)) resolve(blob);
+          else attempt(i + 1);
+        }, 'image/jpeg', qualities[i]);
+      })(0);
+    });
+  }
+
+  /* ---- 确认：归一化取景参数 + （新图）压缩原图 ---- */
+  async function handleConfirm() {
+    if (!img || !geo || !box) return;
+    const crop = {
+      sx: (box.x - geo.imgX) / geo.dw,
+      sy: (box.y - geo.imgY) / geo.dh,
+      sw: box.w / geo.dw,
+      sh: (box.w / ratio) / geo.dh,
+    };
+    const srcBlob = isNew ? await compressSource() : null;
+    onConfirm({ srcBlob, crop });
   }
 
   if (!open) return null;
 
-  const reedit = typeof source === 'string';   // 重新编辑已存图（笔图标入口）
-  const zoom = (geo && box) ? OUT_W / (box.w / geo.sf) : 1;
+  const srcW = (geo && box) ? box.w / geo.sf : 0;   // 裁剪区源像素宽
   const smallImg = geo && (geo.wMax - geo.wMin) < 8;   // 原图太小：选区无法再缩小（输出会模糊）
 
   return (
     <div style={styles.overlay} onMouseDown={e => e.stopPropagation()}>
       <div style={styles.modal}>
         <div style={styles.header}>
-          <div style={styles.title}>{reedit ? '调整背景图' : '裁剪 Hero 背景'}</div>
+          <div style={styles.title}>裁剪 Hero 背景</div>
           <div style={{ fontSize: '12px', color: '#8e8e93' }}>
-            {reedit ? '在当前图片基础上重新取景 · 双击复位' : '拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位'}
+            {isNew ? '拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位' : '在原图上重新取景 · 双击复位'}
           </div>
         </div>
 
@@ -266,14 +296,14 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
           ) : (
             <div style={{ height: 160, display: 'grid', placeItems: 'center', color: '#8e8e93', fontSize: 13 }}>加载图片中…</div>
           )}
-          {/* 输出倍率指示（超过 ×2 提示放大可能模糊） */}
+          {/* 取景分辨率指示（低于设计显示宽提示放大可能模糊） */}
           {img && geo && box && (
             <div style={{
               position: 'absolute', top: 8, right: 8,
               padding: '2px 7px', borderRadius: 7,
-              background: 'rgba(0,0,0,0.55)', color: zoom > 2 ? '#FF9F0A' : 'rgba(255,255,255,0.92)',
+              background: 'rgba(0,0,0,0.55)', color: srcW < SHOW_W ? '#FF9F0A' : 'rgba(255,255,255,0.92)',
               fontSize: 10.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-            }}>×{zoom.toFixed(1)}</div>
+            }}>{Math.round(srcW)}×{Math.round(srcW / ratio)}</div>
           )}
         </div>
 
@@ -290,8 +320,8 @@ export default function HeroCropModal({ open, source, onClose, onConfirm }) {
                   if (!geo || !box) return;
                   const t = Number(e.target.value) / 100;
                   const w = geo.wMax - (geo.wMax - geo.wMin) * t;
-                  const cx = box.x + box.w / 2, cy = box.y + box.w / 6;
-                  setBox(clampBox({ x: cx - w / 2, y: cy - w / 6, w }));
+                  const cx = box.x + box.w / 2, cy = box.y + box.w / (2 * ratio);
+                  setBox(clampBox({ x: cx - w / 2, y: cy - w / (2 * ratio), w }));
                 }}
                 style={{ flex: 1, accentColor: 'var(--s-main)' }}
               />

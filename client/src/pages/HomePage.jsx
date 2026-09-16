@@ -22,8 +22,8 @@ const HERO_GRADIENTS = {
 /* ===== Hero 背景多图轮播（localStorage + 云端 KV） =====
  * 数据形态 v2：{ type: 'gradient'|'images', value: 渐变key, images: [{id,url}], interval: 轮播秒(0=关), shuffle }
  * 兼容 v1 旧形态 { type:'gradient', value } / { type:'image', value: dataURL } → 读取时自动迁移
- * 存储预算：≤6 张 × ≤120KB/张（裁剪端自适应压缩），保证 localStorage 与 D1 单行 KV 不超限 */
-const HERO_IMG_MAX = 6;
+ * 存储预算：≤15 张 × ≤80KB/张（裁剪端自适应压缩，base64 后 ≈1.6MB），守住 D1 单行 2MB 与 localStorage 配额 */
+const HERO_IMG_MAX = 15;
 const HERO_INTERVALS = [['关', 0], ['10s', 10], ['30s', 30], ['60s', 60]];
 const newHeroImgId = () => `hero_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 function normalizeHeroBg(v) {
@@ -126,13 +126,11 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const [curIdx, setCurIdx] = useState(0);   // 当前展示的图片下标（轮播/手动切换）
   const toast = useToast();
 
-  // 图片裁剪弹窗：选完文件 → 弹出裁剪 → 确认后写入（cropReplaceId 非空 = 原位更换该图）
-  const [cropFile, setCropFile] = useState(null);
+  // 裁剪弹窗数据源：新上传为 File，笔图标重新编辑为 data URL（cropReplaceId 非空 = 原位更新该图）
+  const [cropSrc, setCropSrc] = useState(null);
   const [cropReplaceId, setCropReplaceId] = useState(null);
   const filePickRef = useRef(null);
-  const replaceTargetRef = useRef(null);
-  const [confirmDelId, setConfirmDelId] = useState(null);
-  const delTimerRef = useRef(null);
+  const [confirmDelId, setConfirmDelId] = useState(null);   // 待二次确认删除的图片 id（卡片上方小弹窗）
 
   const heroStyle = useMemo(() => {
     if (heroBg.type === 'images') {
@@ -193,29 +191,23 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       return { ...prev, images, type: images.length > 0 ? 'images' : 'gradient' };
     });
   }
-  // 删除需二次确认（首次点 × 进入红色确认态，2.6s 未复点自动还原）
+  // 删除：点 × 弹出卡片上方的二次确认小弹窗，确认后才删除
   function onHeroImgDel(e, id) {
     e.stopPropagation();
-    if (confirmDelId === id) {
-      clearTimeout(delTimerRef.current);
-      setConfirmDelId(null);
-      removeHeroImg(id);
-      toast.success('已删除背景图');
-    } else {
-      setConfirmDelId(id);
-      clearTimeout(delTimerRef.current);
-      delTimerRef.current = setTimeout(() => setConfirmDelId(null), 2600);
-      toast.info('再点一次 × 确认删除');
-    }
+    setConfirmDelId(v => (v === id ? null : id));
+  }
+  function confirmHeroImgDel() {
+    removeHeroImg(confirmDelId);
+    setConfirmDelId(null);
+    toast.success('已删除背景图');
   }
 
-  // 触发文件选择（replaceId 非空 = 更换指定图片，否则追加）
-  function pickHeroImage(replaceId) {
-    if (!replaceId && heroImgs.length >= HERO_IMG_MAX) {
+  // 添加图片：触发文件选择（仅追加；修改已有图走笔图标重新裁剪）
+  function pickHeroImage() {
+    if (heroImgs.length >= HERO_IMG_MAX) {
       toast.warn(`最多 ${HERO_IMG_MAX} 张背景图，请先删除部分图片`);
       return;
     }
-    replaceTargetRef.current = replaceId || null;
     filePickRef.current?.click();
   }
   function handleHeroFilePick(e) {
@@ -224,31 +216,43 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     if (!f) return;
     if (!f.type.startsWith('image/')) { toast.error('请选择图片文件'); return; }
     if (f.size > 20 * 1024 * 1024) { toast.error('图片过大（超过 20MB），请先压缩后再上传'); return; }
-    setCropReplaceId(replaceTargetRef.current);
-    setCropFile(f);
+    setCropReplaceId(null);
+    setCropSrc(f);
   }
-  // 裁剪确认 → Blob 转 data URL：原位替换或追加，并立即展示该图
+  // 重新编辑已上传的图：基于当前存储图重新取景裁剪（原位更新，不换图）
+  function editHeroImage(id) {
+    const im = heroImgs.find(x => x.id === id);
+    if (!im) return;
+    setCropReplaceId(id);
+    setCropSrc(im.url);
+  }
+  // 裁剪确认 → Blob 转 data URL：原位更新（保留 id/顺序）或追加，并立即展示该图
   function handleCropConfirm(blob) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const url = e.target.result;
       const rid = cropReplaceId;
-      const idx = rid ? Math.max(0, heroImgs.findIndex(x => x.id === rid)) : heroImgs.length;
+      const idx = rid ? heroImgs.findIndex(x => x.id === rid) : heroImgs.length;
+      if (rid && idx < 0) { setCropSrc(null); setCropReplaceId(null); return; }   // 目标图已被删除
       setHeroBg(prev => {
         const images = [...prev.images];
-        if (rid) {
-          const i = images.findIndex(x => x.id === rid);
-          if (i >= 0) images[i] = { ...images[i], url };
-          else if (images.length < HERO_IMG_MAX) images.push({ id: newHeroImgId(), url });
-        } else if (images.length < HERO_IMG_MAX) {
-          images.push({ id: newHeroImgId(), url });
-        }
+        if (rid) images[idx] = { ...images[idx], url };
+        else if (images.length < HERO_IMG_MAX) images.push({ id: newHeroImgId(), url });
         return { ...prev, type: 'images', images };
       });
       setCurIdx(idx);
-      setCropFile(null);
+      setCropSrc(null);
       setCropReplaceId(null);
-      setHeroEditOpen(false);
+      if (rid) {
+        toast.success('已更新背景图');          // 编辑流程：保留面板，便于继续管理
+      } else {
+        setHeroEditOpen(false);                 // 新增流程：收起面板展示效果
+        toast.success('已添加背景图');
+        // 云端单行 2MB 预算告警（data URL 较二进制约 1.33 倍膨胀）
+        if (JSON.stringify(heroImgs).length + url.length > 1900000) {
+          toast.warn('背景图总量接近云端同步上限，建议删除不常用的图片');
+        }
+      }
     };
     reader.readAsDataURL(blob);
   }
@@ -498,7 +502,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
         {/* 编辑浮层：置于 overflow-hidden Hero 之外避免被裁剪，锚定外层 wrapper 右上（glass-card 风格） */}
         {heroEditOpen && (
-          <div className="absolute top-full right-0 mt-2 z-20 p-4 w-[320px] rounded-[18px] popover-enter" style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
+          <div className="absolute top-full right-0 mt-2 z-20 p-4 w-[320px] rounded-[18px] popover-enter" style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12)', maxHeight: 'min(600px, 72vh)', overflowY: 'auto', overscrollBehavior: 'contain' }} onClick={e => e.stopPropagation()} onMouseDown={() => { if (confirmDelId) setConfirmDelId(null); }}>
             <div className="text-[14px] font-bold text-ink-900 mb-3">Hero 背景</div>
 
             {/* 预设渐变 */}
@@ -532,37 +536,53 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 const isCur = heroBg.type === 'images' && i === curIdx;
                 const isConfirmDel = confirmDelId === im.id;
                 return (
-                  <div
-                    key={im.id}
-                    className="relative group/img rounded-lg overflow-hidden cursor-pointer transition"
-                    style={{ aspectRatio: '3 / 1', outline: isCur ? '2px solid var(--s-main)' : '1px solid rgba(0,0,0,0.08)', outlineOffset: isCur ? '1px' : '-1px' }}
-                    onClick={() => selectHeroImg(i)}
-                    title={isCur ? '正在展示' : '点击展示这张'}
-                  >
-                    <div className="absolute inset-0" style={{ backgroundImage: `url(${im.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                    <span className="absolute top-1 left-1 px-1 rounded text-[9px] font-bold tabular-nums" style={{ background: 'rgba(0,0,0,0.4)', color: 'rgba(255,255,255,0.9)' }}>{i + 1}</span>
-                    {/* hover 工具条：排序 / 更换 / 删除 */}
-                    <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.5)' }}>
-                      <button title="前移" disabled={i === 0} onClick={e => { e.stopPropagation(); moveHeroImg(i, -1); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition disabled:opacity-25 disabled:pointer-events-none">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-                      </button>
-                      <button title="后移" disabled={i === heroImgs.length - 1} onClick={e => { e.stopPropagation(); moveHeroImg(i, 1); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition disabled:opacity-25 disabled:pointer-events-none">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-                      </button>
-                      <button title="更换图片" onClick={e => { e.stopPropagation(); pickHeroImage(im.id); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                      </button>
-                      <button title={isConfirmDel ? '再点一次确认删除' : '删除'} onClick={e => onHeroImgDel(e, im.id)} className={`w-[22px] h-[22px] rounded-md grid place-items-center transition ${isConfirmDel ? 'bg-[#FF3B30] text-white' : 'text-white/85 hover:text-white hover:bg-[#FF3B30]/80'}`}>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
+                  <div key={im.id} className="relative">
+                    <div
+                      className="group/img rounded-lg overflow-hidden cursor-pointer transition"
+                      style={{ aspectRatio: '3 / 1', outline: isCur ? '2px solid var(--s-main)' : '1px solid rgba(0,0,0,0.08)', outlineOffset: isCur ? '1px' : '-1px' }}
+                      onClick={() => selectHeroImg(i)}
+                      title={isCur ? '正在展示' : '点击展示这张'}
+                    >
+                      <div className="absolute inset-0" style={{ backgroundImage: `url(${im.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                      <span className="absolute top-1 left-1 px-1 rounded text-[9px] font-bold tabular-nums" style={{ background: 'rgba(0,0,0,0.4)', color: 'rgba(255,255,255,0.9)' }}>{i + 1}</span>
+                      {/* hover 工具条：排序 / 重新裁剪 / 删除 */}
+                      <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                        <button title="前移" disabled={i === 0} onClick={e => { e.stopPropagation(); moveHeroImg(i, -1); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition disabled:opacity-25 disabled:pointer-events-none">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <button title="后移" disabled={i === heroImgs.length - 1} onClick={e => { e.stopPropagation(); moveHeroImg(i, 1); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition disabled:opacity-25 disabled:pointer-events-none">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <button title="调整裁剪" onClick={e => { e.stopPropagation(); editHeroImage(im.id); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </button>
+                        <button title="删除" onClick={e => onHeroImgDel(e, im.id)} className={`w-[22px] h-[22px] rounded-md grid place-items-center transition ${isConfirmDel ? 'bg-[#FF3B30] text-white' : 'text-white/85 hover:text-white hover:bg-[#FF3B30]/80'}`}>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
                     </div>
+                    {/* 删除二次确认小弹窗（卡片上方锚定，点面板其他区域关闭） */}
+                    {isConfirmDel && (
+                      <div
+                        className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-30 popover-enter"
+                        style={{ background: '#fff', borderRadius: 10, padding: '8px 10px 9px', boxShadow: '0 6px 24px rgba(0,0,0,0.18)', width: 'max-content' }}
+                        onMouseDown={e => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <div className="text-[11px] font-semibold text-ink-600 whitespace-nowrap">删除这张背景图？</div>
+                        <div className="flex gap-1.5 mt-2">
+                          <button onClick={() => setConfirmDelId(null)} className="h-[22px] px-2.5 rounded-md text-[11px] font-semibold transition hover:brightness-95" style={{ background: 'rgba(120,120,128,0.12)', color: 'var(--ink-600, #3a3a3c)' }}>取消</button>
+                          <button onClick={confirmHeroImgDel} className="h-[22px] px-2.5 rounded-md text-[11px] font-semibold text-white transition hover:brightness-110" style={{ background: '#FF3B30' }}>删除</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
               {/* 添加格 */}
               {heroImgs.length < HERO_IMG_MAX && (
                 <button
-                  onClick={() => pickHeroImage(null)}
+                  onClick={() => pickHeroImage()}
                   className="relative rounded-lg border border-dashed border-[rgba(120,120,128,0.35)] bg-[rgba(120,120,128,0.04)] flex flex-col items-center justify-center gap-1 transition hover:border-[rgba(var(--s-rgb),0.55)] hover:bg-[rgba(var(--s-rgb),0.05)] active:scale-[0.98]"
                   style={{ aspectRatio: '3 / 1' }}
                 >
@@ -572,7 +592,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               )}
             </div>
             {heroImgs.length === 0 && (
-              <div className="text-[11px] text-ink-300 mt-1.5">支持多张图片轮播展示，自动裁剪为 3:1 横幅</div>
+              <div className="text-[11px] text-ink-300 mt-1.5">最多 {HERO_IMG_MAX} 张轮播，自动裁剪为 3:1 横幅</div>
             )}
 
             {/* 轮播设置（≥2 张时显示） */}
@@ -915,14 +935,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
       </div>
 
-      {/* Hero 背景图上传入口（添加 / 更换共用一个文件选择器） */}
+      {/* Hero 背景图上传入口（仅添加；重新编辑已有图走卡片上的笔图标） */}
       <input ref={filePickRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFilePick} />
 
-      {/* Hero 图片裁剪弹窗（选完图片后弹出，确认后写入背景） */}
+      {/* Hero 图片裁剪弹窗（新上传裁剪 / 重新编辑已存图共用） */}
       <HeroCropModal
-        open={!!cropFile}
-        file={cropFile}
-        onClose={() => { setCropFile(null); setCropReplaceId(null); }}
+        open={!!cropSrc}
+        source={cropSrc}
+        onClose={() => { setCropSrc(null); setCropReplaceId(null); }}
         onConfirm={handleCropConfirm}
       />
     </div>

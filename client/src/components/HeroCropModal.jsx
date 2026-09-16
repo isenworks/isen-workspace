@@ -8,15 +8,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
  *   · 拖动选区移动取景；四角手柄 / 滚轮 / 滑块缩放选区（锁定 3:1）
  *   · 选区始终约束在图片范围内 → 任意宽高比（含超宽 banner）都能裁到顶部/底部区域
  *   · 双击画布重置为最大选区
- *   · 输出 1440×480 JPEG，自适应质量压缩（≤120KB/张，为多图轮播的 KV 同步留预算）
+ *   · 输出 1440×480 JPEG，自适应质量压缩（≤80KB/张 × 15 张 ≈ 1.6MB base64，守住 D1 单行 2MB / localStorage 配额）
  *
  * Props:
  *   open: boolean
- *   file: File
+ *   source: File（新上传）| string（data URL，重新编辑已存图）
  *   onClose: () => void
  *   onConfirm: (croppedBlob: Blob) => void
  */
-export default function HeroCropModal({ open, file, onClose, onConfirm }) {
+export default function HeroCropModal({ open, source, onClose, onConfirm }) {
   const canvasRef = useRef(null);
   const [img, setImg] = useState(null);
   const [box, setBox] = useState(null);   // 选区 { x, y, w }（画布逻辑坐标，高 = w/3）
@@ -54,15 +54,15 @@ export default function HeroCropModal({ open, file, onClose, onConfirm }) {
     };
   }
 
-  // 加载图片
+  // 加载图片：File（新上传）或 data URL（重新编辑已存图，无需 revoke）
   useEffect(() => {
-    if (!open || !file) return;
-    const url = URL.createObjectURL(file);
+    if (!open || !source) return;
+    const url = typeof source === 'string' ? source : URL.createObjectURL(source);
     const im = new Image();
     im.onload = () => { setImg(im); };
     im.src = url;
-    return () => { setImg(null); setBox(null); URL.revokeObjectURL(url); };
-  }, [open, file]);
+    return () => { setImg(null); setBox(null); if (typeof source !== 'string') URL.revokeObjectURL(url); };
+  }, [open, source]);
 
   // 图片加载 → 初始选区 = 最大选区居中（与 cover 裁剪等价）
   useEffect(() => {
@@ -226,10 +226,10 @@ export default function HeroCropModal({ open, file, onClose, onConfirm }) {
     oc.width = OUT_W; oc.height = OUT_H;
     const octx = oc.getContext('2d');
     octx.drawImage(img, sx, sy, sw, sh, 0, 0, OUT_W, OUT_H);
-    const qualities = [0.82, 0.72, 0.62, 0.5];
+    const qualities = [0.82, 0.72, 0.62, 0.52, 0.45];
     (function attempt(i) {
       oc.toBlob(blob => {
-        if (blob && (blob.size <= 120 * 1024 || i === qualities.length - 1)) {
+        if (blob && (blob.size <= 80 * 1024 || i === qualities.length - 1)) {
           onConfirm(blob);
         } else {
           attempt(i + 1);
@@ -240,6 +240,7 @@ export default function HeroCropModal({ open, file, onClose, onConfirm }) {
 
   if (!open) return null;
 
+  const reedit = typeof source === 'string';   // 重新编辑已存图（笔图标入口）
   const zoom = (geo && box) ? OUT_W / (box.w / geo.sf) : 1;
   const smallImg = geo && (geo.wMax - geo.wMin) < 8;   // 原图太小：选区无法再缩小（输出会模糊）
 
@@ -247,8 +248,10 @@ export default function HeroCropModal({ open, file, onClose, onConfirm }) {
     <div style={styles.overlay} onMouseDown={e => e.stopPropagation()}>
       <div style={styles.modal}>
         <div style={styles.header}>
-          <div style={styles.title}>裁剪 Hero 背景</div>
-          <div style={{ fontSize: '12px', color: '#8e8e93' }}>拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位</div>
+          <div style={styles.title}>{reedit ? '调整背景图' : '裁剪 Hero 背景'}</div>
+          <div style={{ fontSize: '12px', color: '#8e8e93' }}>
+            {reedit ? '在当前图片基础上重新取景 · 双击复位' : '拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位'}
+          </div>
         </div>
 
         <div

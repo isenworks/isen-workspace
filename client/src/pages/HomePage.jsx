@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useEnergyHabits, usePersistentState } from '../components/annual/hooks.js';
 import { API } from '../api/client.js';
+import HeroCropModal from '../components/HeroCropModal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
 
 /* ============ 小工具 ============ */
@@ -83,6 +84,8 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
   const [heroBg, setHeroBg] = usePersistentState('home_hero_bg_v1', () => ({ type: 'gradient', value: 'A' }));
   const [heroEditOpen, setHeroEditOpen] = useState(false);
   const heroRef = useRef(null);
+  // 图片裁剪弹窗：选完文件 → 弹出裁剪 → 确认后写入
+  const [cropFile, setCropFile] = useState(null);
 
   const heroStyle = useMemo(() => {
     if (heroBg?.type === 'image' && heroBg?.value) {
@@ -107,27 +110,20 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [heroEditOpen]);
 
-  // 图片上传：canvas 压缩后存 data URL（限制 < 500KB）
+  // 选完图片 → 弹出裁剪弹窗（而非直接写入）
   function handleImageUpload(file) {
     if (!file || !file.type.startsWith('image/')) return;
+    setCropFile(file);
+  }
+  // 裁剪确认 → Blob 转 data URL 写入 heroBg
+  function handleCropConfirm(blob) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxW = 1920, maxH = 400;
-        let w = img.width, h = img.height;
-        const ratio = Math.min(maxW / w, maxH / h, 1);
-        w = Math.round(w * ratio); h = Math.round(h * ratio);
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-        setHeroBg({ type: 'image', value: dataUrl });
-        setHeroEditOpen(false);
-      };
-      img.src = e.target.result;
+      setHeroBg({ type: 'image', value: e.target.result });
+      setCropFile(null);
+      setHeroEditOpen(false);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
   }
 
   /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 近期关键） ===== */
@@ -602,6 +598,14 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
           </div>
         </div>
       </div>
+
+      {/* Hero 图片裁剪弹窗（选完图片后弹出，确认后写入背景） */}
+      <HeroCropModal
+        open={!!cropFile}
+        file={cropFile}
+        onClose={() => setCropFile(null)}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   );
 }

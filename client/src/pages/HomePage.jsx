@@ -240,7 +240,7 @@ export default function HomePage({ user, onNav, syncSignal = 0 }) {
         {/* ========== Hero：渐变 / 图片通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative">
         <div
-          className="relative overflow-hidden px-7 py-6 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group"
+          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group"
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
         >

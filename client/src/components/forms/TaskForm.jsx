@@ -8,7 +8,8 @@ import { useToast } from '../../context/ToastContext.jsx';
 const PRIORITY = [
   { v: 1, label: '高', active: { background: '#FFEEED', color: '#FF3B30' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
   { v: 2, label: '中', active: { background: '#fff4d8', color: '#FF9500' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
-  { v: 3, label: '低', active: { background: '#e5f6ea', color: '#34C759' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } }
+  { v: 3, label: '低', active: { background: '#e5f6ea', color: '#34C759' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } },
+  { v: null, label: '无', active: { background: '#f2f2f7', color: '#636366' }, inactive: { background: 'rgba(120,120,128,0.08)', color: '#8e8e93' } }
 ];
 
 const INPUT_STYLE = {
@@ -64,7 +65,7 @@ export default function TaskForm({ initial, defaultDate, onSaved, onCancel }) {
   const [form, setForm] = useState({
     title: initial?.title || '',
     date: initial?.date || defaultDate,
-    priority: initial?.priority ?? 2,
+    priority: (initial?.priority != null && Number(initial.priority) >= 1 && Number(initial.priority) <= 3) ? Number(initial.priority) : null,
     due_time: initial?.due_time || ''
   });
   const [busy, setBusy] = useState(false);
@@ -82,7 +83,7 @@ export default function TaskForm({ initial, defaultDate, onSaved, onCancel }) {
       const payload = {
         title: form.title.trim(),
         date: form.date,
-        priority: Number(form.priority),
+        priority: (form.priority == null || form.priority === '') ? null : Number(form.priority),
         due_time: form.due_time || null
       };
       if (initial?.id) await API.tasks.update(initial.id, payload);
@@ -146,7 +147,7 @@ export default function TaskForm({ initial, defaultDate, onSaved, onCancel }) {
         <label style={LABEL_STYLE}>优先级</label>
         <div style={{ display: 'flex', gap: '8px' }}>
           {PRIORITY.map(p => {
-            const isActive = Number(form.priority) === p.v;
+            const isActive = (form.priority == null ? null : Number(form.priority)) === p.v;
             const sty = isActive ? p.active : p.inactive;
             return (
               <button

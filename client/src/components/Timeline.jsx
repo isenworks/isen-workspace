@@ -1311,7 +1311,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
               <div className="space-y-0.5">
                 {sortedItems.map(item => {
-                  const isSched = !!item.start_time || !!item.is_key || !item.priority;
+                  const isSched = !item.isTask && (!!item.start_time || !!item.is_key || !item.priority);
                   const color = isSched ? getColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
                   const lineColor = isSched ? getLineColor(item) : (item.priority === 1 ? '#FF8E85' : '#c7c7cc');
                   const rowBg = isSched ? getRowBg(item) : (item.is_done

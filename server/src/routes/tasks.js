@@ -22,7 +22,7 @@ router.post('/', (req, res) => {
   const info = db.prepare(`
     INSERT INTO tasks (user_id, title, date, priority, due_time, sort_order)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(req.user.id, title, date, priority ?? 2, due_time || null, sort_order || 0);
+  `).run(req.user.id, title, date, (priority != null && Number(priority) >= 1 && Number(priority) <= 3) ? Number(priority) : null, due_time || null, sort_order || 0);
   res.json({ task: db.prepare('SELECT * FROM tasks WHERE id = ?').get(info.lastInsertRowid) });
 });
 
@@ -31,16 +31,18 @@ router.put('/:id', (req, res) => {
   const cur = db.prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?').get(id, req.user.id);
   if (!cur) return res.status(404).json({ error: '任务不存在' });
   const { title, date, priority, due_time, is_done, sort_order } = req.body || {};
+  // priority 允许显式清空为 null（"无"）；undefined 表示不更新
+  const newPrio = priority === undefined ? null : ((priority == null || Number(priority) < 1 || Number(priority) > 3) ? null : Number(priority));
   db.prepare(`
     UPDATE tasks SET
       title = COALESCE(?, title),
       date = COALESCE(?, date),
-      priority = COALESCE(?, priority),
+      priority = CASE WHEN ? = 1 THEN ? ELSE priority END,
       due_time = COALESCE(?, due_time),
       is_done = COALESCE(?, is_done),
       sort_order = COALESCE(?, sort_order)
     WHERE id = ? AND user_id = ?
-  `).run(title ?? null, date ?? null, priority ?? null, due_time ?? null,
+  `).run(title ?? null, date ?? null, priority === undefined ? 0 : 1, newPrio, due_time ?? null,
          is_done === undefined ? null : (is_done ? 1 : 0),
          sort_order ?? null, id, req.user.id);
   res.json({ task: db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) });
@@ -75,7 +77,7 @@ router.post('/create', (req, res) => {
   const info = db.prepare(`
     INSERT INTO tasks (user_id, title, date, priority, due_time, sort_order)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(req.user.id, title, date, priority ?? 2, due_time || null, sort_order || 0);
+  `).run(req.user.id, title, date, (priority != null && Number(priority) >= 1 && Number(priority) <= 3) ? Number(priority) : null, due_time || null, sort_order || 0);
   res.json({ task: db.prepare('SELECT * FROM tasks WHERE id = ?').get(info.lastInsertRowid), id: info.lastInsertRowid });
 });
 
@@ -86,16 +88,18 @@ router.post('/update', (req, res) => {
   const cur = db.prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?').get(id, req.user.id);
   if (!cur) return res.status(404).json({ error: '任务不存在' });
   const { title, date, priority, due_time, is_done, sort_order } = body;
+  // priority 允许显式清空为 null（"无"）；undefined 表示不更新
+  const newPrio = priority === undefined ? null : ((priority == null || Number(priority) < 1 || Number(priority) > 3) ? null : Number(priority));
   db.prepare(`
     UPDATE tasks SET
       title = COALESCE(?, title),
       date = COALESCE(?, date),
-      priority = COALESCE(?, priority),
+      priority = CASE WHEN ? = 1 THEN ? ELSE priority END,
       due_time = COALESCE(?, due_time),
       is_done = COALESCE(?, is_done),
       sort_order = COALESCE(?, sort_order)
     WHERE id = ? AND user_id = ?
-  `).run(title ?? null, date ?? null, priority ?? null, due_time ?? null,
+  `).run(title ?? null, date ?? null, priority === undefined ? 0 : 1, newPrio, due_time ?? null,
          is_done === undefined ? null : (is_done ? 1 : 0),
          sort_order ?? null, id, req.user.id);
   res.json({ task: db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) });

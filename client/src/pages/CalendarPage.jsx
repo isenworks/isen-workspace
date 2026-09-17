@@ -117,13 +117,11 @@ function overlapsWeek(t, weekStartISO, weekEndISO) {
   if (!sd) return true; // 无日期的默认算在本周
   return sd <= weekEndISO && ed >= weekStartISO;
 }
-/* 初始化 weekTasks：先过滤本地已删的 WEEK_SEED，再追加 ethan_schedules 本周内属于五大模块的真实记录 */
+/* 初始化 weekTasks：先过滤本地已删的 WEEK_SEED，再追加 ethan_schedules 本周内的真实记录（全分类） */
 function computeInitialWeekTasks(weekStartISO, weekEndISO, remoteSchedules = []) {
   const seed = WEEK_SEED.filter(t => !isWeekSeedDeletedLocally(t.id));
   const fromSchedules = remoteSchedules
     .filter(s => {
-      const cat = Number(s.category);
-      if (![1, 2, 5, 6, 7].includes(cat)) return false;
       const sd = s.start_date || s.schedule_date || s.date;
       const ed = s.end_date || sd;
       if (!sd) return false;
@@ -429,33 +427,6 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
 
 /* 精力："体检 + 买复合维生素"等独立事项（用户手动创建的示例，非习惯同步）
    · 与 ethan_schedules 双向同步，FocusPanel 排序排在三个习惯前面（isHabit=false 的非习惯项自动排最前）*/
-/* ===== 用户白名单：只显示这 3 个事项 + 用户手动新建的事项（localStorage 存 id）===== */
-const USER_ONLY_TITLES = [
-  '准备面试-伊利 · 客户经理(渠道运营)',
-  '提前还房贷2万',
-  '杭州宠物博览会（抖音团购票）',
-];
-function getUserCreatedIds() {
-  try { return JSON.parse(localStorage.getItem(`user_created_schedule_ids_${curUserId()}`) || '[]'); } catch { return []; }
-}
-function saveUserCreatedIds(ids) {
-  try { localStorage.setItem(`user_created_schedule_ids_${curUserId()}`, JSON.stringify(ids)); } catch { /* ignore */ }
-}
-function isUserSchedule(ev) {
-  if (!ev) return false;
-  // ① id 在用户手动新建集合里 → 放行
-  if (ev.id != null && getUserCreatedIds().some(id => String(id) === String(ev.id))) return true;
-  const nt = normTitle(String(ev?.title || ''));
-  if (!nt) return false;
-  // ①' 生日/纪念日类每年重复事项（含迁移录入）→ 放行
-  if (nt.includes('生日')) return true;
-  // ② title 匹配白名单 → 放行
-  return USER_ONLY_TITLES.some(w => {
-    const wn = normTitle(w);
-    return nt.includes(wn) || wn.includes(nt);
-  });
-}
-
 const SEED_ENERGY_NONHABIT = [];
 const WEEK_SEED = [];
 const MOCK_EVENTS_RAW = [];
@@ -599,12 +570,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     return [...seedTasks, ...planTasks];
   }, [realHabits]);
   const [monthTasks, setMonthTasks] = useState(() => computeInitialMonthTasks(todayObj.getFullYear(), todayObj.getMonth() + 1));
-  // monthTasks 的实时镜像：供异步回调（apiSchedules 拉取后的白名单过滤）读取最新值，
-  // 避免 useEffect 闭包捕获旧 state（初始聚合值）导致放行列表过期
-  const monthTasksRef = useRef(monthTasks);
-  useEffect(() => { monthTasksRef.current = monthTasks; }, [monthTasks]);
   // 本周主线：首次挂载先按 WEEK_SEED（过滤本地已删）占位；后续 API.schedules.list 拉完后
-  // 再把 ethan_schedules 里"本周内的五大模块事项"追加进来（避免刷新后用户新建的本周任务丢失）
+  // 再把 ethan_schedules 里"本周内的事项"追加进来（避免刷新后用户新建的本周任务丢失）
   const [weekTasks, setWeekTasks] = useState(() => {
     const todayISO = toISODate(new Date());
     const ws = toISODate(startOfWeek(todayISO));
@@ -754,30 +721,22 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             start_date: s.start_date || s.date,
           };
         });
-        // 从 apiSchedules 里也剔除本地 tombstone 记录（防止日历右栏/月历再显示"已删"事项）
-        // 白名单过滤：用户明确创建的事项（写死标题 + id 白名单）；
-        // 另外本月主线面板已注入的 __fromSchedule 事项也放行 —— 它们能进主线说明是用户建的，
-        // 日历右栏应与主线同口径显示（修复"主线有但日历格子里没有"的不一致）
-        const monthTaskTitles = new Set(monthTasksRef.current
-          .filter(t => t.__fromSchedule)
-          .map(t => normTitle(t.title || '')));
+        // 从 apiSchedules 里剔除本地 tombstone 记录（防止日历右栏/月历再显示"已删"事项）
+        // 全量口径：与其他页面（今日计划/时间线/主页）一致显示所有日程，
+        // 不再做白名单过滤（MOCK 演示时代已结束，主页等入口新建的事项 id 无法登记白名单会被误隐藏）
         const cleaned = mapped
-          .filter(s => s.id == null || !isScheduleDeletedLocally(s.id))
-          .filter(s => isUserSchedule(s) || monthTaskTitles.has(normTitle(s.title || '')));
+          .filter(s => s.id == null || !isScheduleDeletedLocally(s.id));
         if (!cancelled) { setApiSchedules(cleaned); setSeedDone(true); }
 
         // 只注入「用户通过 ScheduleForm 新建」的事项到 monthTasks（切页回来恢复）
         // 排除：① planBase 已有（按 title 去重，因为 planBase 用字符串 id、API 用数字 id，id 比对无效）
         //       ② 种子化的 MOCK 演示事件（按 title 匹配 MOCK_EVENTS_RAW，这些不该进主线面板）
+        // 全分类放行：其他/财务/自定义类型同样进主线（时间顺序视图显示所有行动计划/日程）
         if (!cancelled) {
           setMonthTasks(prev => {
             const existingTitles = new Set(prev.map(t => normTitle(t.title || '')));
             const mockTitles = new Set(MOCK_EVENTS_RAW.map(e => normTitle(e.title || '')));
             const toInject = mapped
-              .filter(s => {
-                const cat = Number(s.category);
-                return [1, 2, 5, 6, 7].includes(cat);
-              })
               .filter(s => {
                 const sd = s.start_date || s.date;
                 if (!sd) return true;
@@ -851,7 +810,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   }, [year, month, computeInitialMonthTasks]);
 
   /* ===== 跨组件同步：ScheduleForm 保存/删除事项后，实时注入或移除主线对应条目
-       · 只有属于五大主线模块（精力=6/知力=7/能力=2/工作=1/生活=5）的事项才进本月主线
+       · 全分类放行：五大模块 + 其他/财务/自定义类型事项都进主线（时间顺序视图显示所有事项）
        · 并且时间 span 与当前月有交集（overlapsMonth），避免把 2025 年的事项塞进 2026 年视图
        · "更新"操作：先删旧（按 id）再新增，保持分类/配色/span 与最新数据一致
        · "删除"操作：按 id 移除主线条目 */
@@ -891,8 +850,6 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       // 本地 tombstone 兜底：刚刚被用户删掉的 id 即使 API 短暂回返也不注入主线
       if (s.id != null && isScheduleDeletedLocally(s.id)) return;
       const mod = catToModule(Number(s.category));
-      // 只保留五大主线模块；cat=3(其他)不进本月主线
-      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
       const proxyTask = buildProxyTask(s);
       if (!overlapsMonth(proxyTask, year, month)) return;
       setMonthTasks(prev => {
@@ -910,7 +867,6 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (!s) return;
       if (s.id != null && isScheduleDeletedLocally(s.id)) return;
       const mod = catToModule(Number(s.category));
-      if (![1, 2, 5, 6, 7].includes(mod.cat)) return;
       const proxyTask = buildProxyTask(s);
       const ws = toISODate(startOfWeek(todayISO));
       const we = toISODate(endOfWeek(todayISO));
@@ -929,13 +885,6 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (msg.type === 'schedule_saved') {
         // 保存回来（新建 / 编辑）：从 tombstone 移出，避免用户先删再改标题新建回来时被误过滤
         if (msg.schedule?.id != null) unmarkScheduleDeletedLocally(msg.schedule.id);
-        // 用户新建的事项：存 id 到 localStorage，白名单 filter 放行（避免刷新被过滤）
-        if (msg.schedule?.id != null) {
-          const ids = getUserCreatedIds();
-          if (!ids.some(x => String(x) === String(msg.schedule.id))) {
-            saveUserCreatedIds([...ids, msg.schedule.id]);
-          }
-        }
         upsertScheduleIntoMonthTasks(msg.schedule);
         upsertScheduleIntoWeekTasks(msg.schedule);
         // 同步更新 apiSchedules（日历事件源），否则删除/编辑后日历格子不刷新
@@ -1398,39 +1347,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
   return (
     <div className="flex-1 min-w-0 max-w-[1320px] flex flex-col gap-4">
-      {/* ===== Header ===== */}
-      <div className="glass-card px-5 py-3.5">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-1">
-            <button onClick={prevMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
-            </button>
-            <span className="text-[15px] font-bold text-[#1c1c1e] min-w-[92px] text-center tracking-tight">
-              {year}年{month}月
-            </span>
-            <button onClick={nextMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
-            </button>
-          </div>
-
-          <div className="tab-group">
-            <button className={tabView === 'week'  ? 'active' : ''} onClick={() => setTabView('week')}>周</button>
-            <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>月</button>
-          </div>
-
-          <div className="flex-1" />
-
-          <button
-            onClick={() => onEditSchedule?.()}
-            className="px-3.5 py-1.5 rounded-[9px] text-[13px] font-semibold text-white bg-[color:var(--s-main)] hover:brightness-105 transition border-none cursor-pointer"
-            style={{ boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)' }}
-          >
-            + 新建
-          </button>
-        </div>
-      </div>
-
-      {/* ===== Body: 12 列网格 ===== */}
+      {/* ===== Body: 12 列网格（原顶部横条已整合：年月切换/新建 → 日历卡顶部，周/月 → 主线卡内） ===== */}
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
           {tabView === 'month' && (
@@ -1443,6 +1360,12 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               progressPct={monthProgress}
               timePct={monthTimePct}
               moduleGoalsOnly
+              headerExtra={(
+                <div className="tab-group compact">
+                  <button className={tabView === 'week' ? '' : 'active'} onClick={() => setTabView('week')}>周</button>
+                  <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>月</button>
+                </div>
+              )}
               onToggle={(id) => toggleTask(id, true)}
               onAdd={() => {
                 // 新建目标：默认当天（浏览其他月份时落在该月 1 号），全天无时刻
@@ -1469,6 +1392,12 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               progressPct={weekProgress}
               timePct={weekTimePct}
               moduleGoalsOnly
+              headerExtra={(
+                <div className="tab-group compact">
+                  <button className={tabView === 'week' ? 'active' : ''} onClick={() => setTabView('week')}>周</button>
+                  <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>月</button>
+                </div>
+              )}
               onToggle={(id) => toggleTask(id, false)}
               onAdd={() => {
                 // 新建目标：默认当天（浏览其他周时落在该周周一），全天无时刻
@@ -1491,6 +1420,34 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             className="bg-white"
             style={{ borderRadius: '18px', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06)' }}
           >
+            {/* 顶部（原页面横条整合至此）：年月切换 + 新建 */}
+            <div
+              className="flex items-center gap-4 px-5 pt-4 pb-3 flex-wrap"
+              style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+            >
+              <div className="flex items-center gap-1">
+                <button onClick={prevMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
+                </button>
+                <span className="text-[15px] font-bold text-[#1c1c1e] min-w-[92px] text-center tracking-tight">
+                  {year}年{month}月
+                </span>
+                <button onClick={nextMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
+                </button>
+              </div>
+
+              <div className="flex-1" />
+
+              <button
+                onClick={() => onEditSchedule?.()}
+                className="px-3.5 py-1.5 rounded-[9px] text-[13px] font-semibold text-white bg-[color:var(--s-main)] hover:brightness-105 transition border-none cursor-pointer"
+                style={{ boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)' }}
+              >
+                + 新建
+              </button>
+            </div>
+
             <MonthCalendarGrid
               year={year}
               month={month}

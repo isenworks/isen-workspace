@@ -202,8 +202,9 @@ export default function FocusPanel({
       return items.length ? [{ key: '__time', label: '', color: 'rgba(142,142,147,0.35)', items }] : [];
     }
     // 模块分组视图（默认）—— 主线面板（moduleGoalsOnly）只显示 is_goal 目标：聚合抓取的年度规划事项仅时间顺序视图可见
+    // 其他/财务/自定义类型同样成组（其他类型目标也要进目标看板，不再被排除）
     const goalTasks = moduleGoalsOnly ? tasks.filter(t => t.is_goal) : tasks;
-    return MODULES.filter(m => m.key !== 'others').map(mod => {
+    return MODULES.map(mod => {
       const raw = goalTasks.filter(t => t.moduleKey === mod.key);
       if (mod.key === 'energy') {
         const habits = raw.filter(t => t.isHabit).sort((a, b) =>
@@ -534,7 +535,6 @@ export default function FocusPanel({
                             >
                               {task.title}
                             </span>
-                            <PTag p={task.priority} />
                           </span>
                           <div className="flex items-center gap-2 text-[11px] font-medium text-[#8E8E93]">
                             {task.srcTag && (
@@ -584,6 +584,7 @@ export default function FocusPanel({
                                   : { background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }} // 紧急：红
                               >{urgency === 'overdue' ? '逾期' : '紧急'}</span>
                             )}
+                            <PTag p={task.priority} />
                             {dateLabel && (
                               <span
                                 className="text-[12px] font-bold tabular-nums leading-none"
@@ -593,8 +594,11 @@ export default function FocusPanel({
                           </div>
                         ) : (
                           <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]" onClick={handleEdit}>
-                            <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
-                              {task.isEvent ? '100%' : `${pct}%`}
+                            <span className="flex items-center gap-1.5">
+                              <PTag p={task.priority} />
+                              <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
+                                {task.isEvent ? '100%' : `${pct}%`}
+                              </span>
                             </span>
                             <div className="w-[72px] h-[6px] rounded-full overflow-hidden" style={{ background: modRgba(mod.color, 0.09) }}>
                               <div

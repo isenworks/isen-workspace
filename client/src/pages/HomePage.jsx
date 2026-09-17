@@ -83,8 +83,11 @@ function heroCropBg(im, withShade = true) {
   };
 }
 
-/* 卡片头：模块色竖条 + 标题 + 右侧查看更多 */
-function CardHead({ moduleKey, title, sub, onClick, more = '查看' }) {
+/* 重要节日白名单：lunar 库 getFestivals 会带出全民国防教育日这类小众纪念日，首页只展示大众节日 */
+const MAJOR_FESTIVALS = new Set(['元旦', '除夕', '春节', '元宵节', '情人节', '妇女节', '植树节', '清明节', '劳动节', '青年节', '母亲节', '儿童节', '父亲节', '端午节', '建党节', '建军节', '七夕节', '教师节', '中秋节', '国庆节', '重阳节', '万圣节', '感恩节', '圣诞节']);
+
+/* 卡片头：模块色竖条 + 标题 + 右侧查看入口（右上箭头） */
+function CardHead({ moduleKey, title, sub, onClick }) {
   const color = moduleKey ? modColor(moduleKey) : 'var(--s-main)';
   return (
     <div className="flex items-center justify-between mb-3">
@@ -96,9 +99,12 @@ function CardHead({ moduleKey, title, sub, onClick, more = '查看' }) {
       {onClick ? (
         <button
           onClick={onClick}
-          className="text-[11px] font-semibold flex-shrink-0 px-2 py-1 rounded-md transition hover:brightness-105 active:scale-95"
+          className="w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition hover:brightness-105 active:scale-95"
           style={{ color, background: moduleKey ? modRgba(moduleKey, 0.08) : 'rgba(var(--s-rgb),0.06)' }}
-        >{more} →</button>
+          title="查看"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>
+        </button>
       ) : null}
     </div>
   );
@@ -376,7 +382,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       const iso = addDaysISO(todayStr, i);
       const [y, m, d] = iso.split('-').map(Number);
       const solar = lunarLib.Solar.fromYmd(y, m, d);
-      const fests = [...solar.getLunar().getFestivals(), ...solar.getFestivals()];
+      const fests = [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
       if (fests.length > 0) list.push({ key: `ft-${iso}`, type: 'festival', title: fests[0], date: iso, daysLeft: i });
     }
     return list.sort((a, b) => a.daysLeft - b.daysLeft || String(a.date).localeCompare(String(b.date)));
@@ -677,7 +683,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 <span className="text-[12px] font-bold text-ink-800 tabular-nums">{weekKeyDone}/{weekKeys.length}</span>
               </div>
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
-              <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 max-h-[190px]">
+              <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 max-h-[168px]">
                 {weekKeys.map(s => (
                   <div key={s.id} className="flex items-center gap-2 group">
                     <button
@@ -709,7 +715,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           {/* ---- 即将到来：今日起全部事项（日程 + 生日 + 节日）全量滚动，查看 → 周月重点页 ---- */}
           <div className="glass-card p-4 flex flex-col">
             <CardHead title="即将到来" sub="全部事项" onClick={() => onNav?.('calendar')} />
-            <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1 max-h-[236px]">
+            <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1 max-h-[168px]">
               {followUpList.map(u => {
                 const weekday = '日一二三四五六'[new Date(`${u.date}T00:00:00`).getDay()];
                 const meta = u.type === 'birthday'
@@ -807,7 +813,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       <img
                         src={reading[0].coverUrl} alt=""
                         className="w-[46px] h-[64px] rounded-lg object-cover flex-shrink-0"
-                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+                        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
                         onError={e => { e.currentTarget.style.visibility = 'hidden'; }}
                       />
                     ) : (

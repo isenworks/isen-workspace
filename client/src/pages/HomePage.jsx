@@ -904,7 +904,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--s-rgb),0.08)' }}>
               <svg className="w-[19px] h-[19px]" style={{ color: 'var(--s-main)' }} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
             </span>
-            <span className="text-[14px] font-semibold text-ink-800">新建</span>
+            <span className="flex items-center gap-1.5 text-[14px] font-semibold text-ink-800">
+              新建
+              <span className="text-[9px] font-bold leading-none px-1.5 py-[2px] rounded border border-ink-300 text-ink-400" title="键盘快捷键">S</span>
+            </span>
           </button>
           <button
             onClick={() => onQuickCapture?.()}

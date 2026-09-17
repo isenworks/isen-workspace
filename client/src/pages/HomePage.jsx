@@ -404,7 +404,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-3">
-      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:h-[calc(100vh-48px)] md:overflow-y-auto nice-scroll">
+      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:min-h-[calc(100vh-48px)]">
 
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative md:shrink-0">

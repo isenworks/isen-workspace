@@ -404,7 +404,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-3">
-      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:min-h-[calc(100vh-48px)]">
+      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:h-[calc(100vh-48px)] md:overflow-y-auto md:bg-white nice-scroll">
 
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative md:shrink-0">
@@ -897,7 +897,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
         {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ========== */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10 md:pt-2 md:pb-1"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10 md:pt-2"
+          style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.92) 46%)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
         >
           <button
             onClick={() => onNewSchedule?.()}

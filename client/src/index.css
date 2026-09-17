@@ -50,8 +50,8 @@ body {
   background: #ffffff;
   border: 1px solid rgba(255,255,255,0.6);
   border-radius: 18px;
-  /* iOS 紧凑阴影：ambient 收窄到 12px，12px 行间隙里不再被阴影染深 */
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+  /* 零阴影渗出：仅 1px 发丝环，行间隙=画布逐像素一致（Apple 设置页风格） */
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
   position: relative;
 }
 

@@ -157,10 +157,11 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const heroStyle = useMemo(() => {
     if (heroBg.type === 'images') {
       // 打底晕影：图片层交叉淡入时透出，任意切换不闪白
-      return { background: 'linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12))', boxShadow: '0 8px 28px rgba(0,0,0,0.18)' };
+      // 零阴影渗出：仅 1px 发丝线，行间隙不再被 28px ambient 染深
+      return { background: 'linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12))', boxShadow: '0 0 0 1px rgba(0,0,0,0.06)' };
     }
     const g = HERO_GRADIENTS[heroBg.value] || HERO_GRADIENTS.A;
-    return { background: g.css, boxShadow: `0 8px 28px ${g.shadow}` };
+    return { background: g.css, boxShadow: '0 0 0 1px rgba(0,0,0,0.06)' };
   }, [heroBg]);
 
   // 多图轮播：interval 秒切换（随机模式不重复当前张）

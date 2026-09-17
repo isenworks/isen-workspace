@@ -408,7 +408,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative">
         <div
-          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group md:h-[192px]"
+          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group md:h-[168px]"
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
         >
@@ -624,7 +624,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:flex-1 md:min-h-[206px]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
-          <div className="glass-card p-4 flex flex-col">
+          <div className="glass-card p-4 flex flex-col min-h-0">
             <CardHead title="今日聚焦" sub={`${+todayStr.slice(5, 7)}.${+todayStr.slice(8, 10)}`} onClick={() => onNav?.('plan')} />
             <div className="flex flex-col gap-2 min-h-0 flex-1">
               <div className="flex items-baseline justify-between mb-0.5">
@@ -669,7 +669,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
 
           {/* ---- 本周重点（标题右侧显示本周日期区间，查看 → 周月重点页，列表全量滚动） ---- */}
-          <div className="glass-card p-4 flex flex-col">
+          <div className="glass-card p-4 flex flex-col min-h-0">
             <CardHead title="本周重点" sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(5, 7)}.${+weekEndStr.slice(8, 10)}`} onClick={() => onNav?.('calendar')} />
             <div className="flex flex-col gap-2 min-h-0">
               <div className="flex items-baseline justify-between mb-0.5">
@@ -707,7 +707,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
 
           {/* ---- 即将到来：本周之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月重点页 ---- */}
-          <div className="glass-card p-4 flex flex-col">
+          <div className="glass-card p-4 flex flex-col min-h-0">
             <CardHead title="即将到来" sub="本周之后" onClick={() => onNav?.('calendar')} />
             <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0">
               {followUpList.map(u => {

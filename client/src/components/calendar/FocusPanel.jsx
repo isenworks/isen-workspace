@@ -166,7 +166,8 @@ export default function FocusPanel({
   const [dragState, setDragState] = useState(null); // { taskId, groupKey } | null
   const [dragOverId, setDragOverId] = useState(null);
   // 列表视图：time=按时间顺序平铺（默认·单次在前长跨度在后）| module=按模块分组
-  const [sortBy, setSortBy] = useState('time');
+  // 主线面板（moduleGoalsOnly）默认按模块分组进目标看板；当日详情弹层保持时间顺序
+  const [sortBy, setSortBy] = useState(moduleGoalsOnly ? 'module' : 'time');
   // 按模块分组
   //   · 精力模块：自定义排序 —— ① 新建非习惯事项（如体检）排最前；② 习惯按 HABIT_ORDER_WEIGHT（作息→运动→喝水）
   //   · 其他模块：保持传入顺序

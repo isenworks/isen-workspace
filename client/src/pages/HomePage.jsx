@@ -407,12 +407,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-3">
-      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:flex-1">
+      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:flex-1 md:min-h-[calc(100vh-48px)]">
 
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
-        <div ref={heroRef} className="relative">
+        <div ref={heroRef} className="relative md:flex-1 flex flex-col gap-3">
         <div
-          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group"
+          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group flex-1 md:min-h-[148px]"
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
         >
@@ -625,7 +625,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 时间层：今日聚焦 / 本周重点 / 即将到来（3 等分，md 起 3 列） ========== */}
-        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:flex-1 md:min-h-[272px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:h-[300px]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -754,7 +754,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，xl 起 4 列） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:flex-1 md:min-h-[226px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:h-[240px]">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">

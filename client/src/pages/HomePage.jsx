@@ -651,9 +651,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       ) : null}
                     </button>
                     <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1" title="跳转今日计划">
-                      <span className={`text-[10px] tabular-nums flex-shrink-0 w-[32px] ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
+                      <span className={`text-[12.5px] font-semibold truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-800'}`}>{s.title || '（无标题）'}</span>
                       <PTag p={s.priority} />
-                      <span className={`text-[12.5px] truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-700'}`}>{s.title || '（无标题）'}</span>
+                      <span className={`text-[10px] tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
                     </button>
                   </div>
                 ))}
@@ -697,7 +697,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       ) : null}
                     </button>
                     <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1">
-                      <span className={`text-[12.5px] truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-700'}`}>{s.title}</span>
+                      <span className={`text-[12.5px] font-semibold truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-800'}`}>{s.title}</span>
                       <PTag p={s.priority} />
                       <span className="text-[10px] text-ink-300 flex-shrink-0 ml-auto tabular-nums">{String(s.date).slice(5).replace('-', '/')}</span>
                     </button>
@@ -807,8 +807,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     {reading[0].coverUrl ? (
                       <img
                         src={reading[0].coverUrl} alt=""
-                        className="w-[46px] h-[64px] rounded-lg object-cover flex-shrink-0"
-                        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
+                        className="w-[46px] h-[64px] rounded-lg object-cover flex-shrink-0 border border-[rgba(0,0,0,0.08)]"
+                        style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.10), 0 3px 8px rgba(0,0,0,0.09)' }}
                         onError={e => { e.currentTarget.style.visibility = 'hidden'; }}
                       />
                     ) : (
@@ -816,8 +816,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     )}
                     <div className="flex-1 min-w-0 flex flex-col">
                       <div className="flex items-baseline justify-between gap-2 mb-1">
-                        <span className="text-[14px] font-bold text-ink-900 truncate">《{reading[0].t}》</span>
-                        <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: 'var(--m-cognition)' }}>{reading[0].pct || 0}%</span>
+                        <span className="text-[12.5px] font-semibold text-ink-800 truncate">《{reading[0].t}》</span>
+                        <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--m-cognition)' }}>{reading[0].pct || 0}%</span>
                       </div>
                       <div className="text-[11px] text-ink-400 truncate">{reading[0].author || '佚名'} · {reading[0].cat || '未分类'}</div>
                       <div className="mt-auto pt-1.5"><Bar value={reading[0].pct || 0} color="var(--m-cognition)" /></div>

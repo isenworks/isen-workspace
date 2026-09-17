@@ -47,9 +47,7 @@ body {
 
 /* ====== 玻璃卡片 ====== */
 .glass-card {
-  background: rgba(255,255,255,0.72);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: #ffffff;
   border: 1px solid rgba(255,255,255,0.6);
   border-radius: 18px;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);

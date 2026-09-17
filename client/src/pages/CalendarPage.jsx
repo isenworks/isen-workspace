@@ -300,8 +300,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       done: (Number(b.pct) || 0) >= 100,
       note: `阅读中 · ${b.cat || '知力'}`,
       srcTag: `≡ 书架同步`,
-      srcTagColor: 'rgba(0,122,255,0.08)',
-      srcTagTextColor: '#0040DD',
+      srcTagColor: 'rgba(0,163,255,0.08)',
+      srcTagTextColor: '#0071B3',
       bookData: { ...b },
     });
     // ② 输出 1组【核心触动+行动计划】
@@ -317,8 +317,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
       progress: b.hasInsights ? 1 : 0,
       done: b.hasInsights || false,
       srcTag: '≡ 读后思考',
-      srcTagColor: 'rgba(0,122,255,0.08)',
-      srcTagTextColor: '#0040DD',
+      srcTagColor: 'rgba(0,163,255,0.08)',
+      srcTagTextColor: '#0071B3',
     });
     // ③ 行动计划的内容
     const actionText = b.action || (b.actions && b.actions[0] ? b.actions[0].text : '');
@@ -335,8 +335,8 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
         progress: (b.actions && b.actions[0] && b.actions[0].done) ? 1 : 0,
         done: (b.actions && b.actions[0] && b.actions[0].done) || false,
         srcTag: '≡ 思后行动',
-        srcTagColor: 'rgba(0,122,255,0.08)',
-        srcTagTextColor: '#0040DD',
+        srcTagColor: 'rgba(0,163,255,0.08)',
+        srcTagTextColor: '#0071B3',
       });
     }
   }

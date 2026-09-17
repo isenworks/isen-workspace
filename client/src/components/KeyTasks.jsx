@@ -257,13 +257,13 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         doneColor: '#34C759'
       };
     }
-    // 知力（cat=7）蓝色 — 与主线知力模块一致（#007AFF）
+    // 知力（cat=7）蓝色 — 与主线知力模块一致（#00A3FF）
     if (cat === 7) {
       return {
-        bg: 'linear-gradient(90deg,#e0ecff 0%,transparent 70%)',
-        borderColor: '#007AFF',
-        dotColor: '#007AFF',
-        doneColor: '#007AFF'
+        bg: 'linear-gradient(90deg,#e0f0ff 0%,transparent 70%)',
+        borderColor: '#00A3FF',
+        dotColor: '#00A3FF',
+        doneColor: '#00A3FF'
       };
     }
     // 常规事项

@@ -798,7 +798,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   <div className="text-[11px] text-ink-400 mb-2 truncate">{reading[0].author || '佚名'} · {reading[0].cat || '未分类'}</div>
                   <Bar value={reading[0].pct || 0} color="var(--m-cognition)" />
                   {reading.length > 1 && (
-                    <div className="mt-1.5 pt-1.5 flex flex-col gap-1" style={{ borderTop: '1px dashed rgba(0,122,255,0.18)' }}>
+                    <div className="mt-1.5 pt-1.5 flex flex-col gap-1" style={{ borderTop: '1px dashed rgba(0,163,255,0.18)' }}>
                       {reading.slice(1, 3).map(b => (
                         <div key={b.id} className="flex items-center gap-2">
                           <span className="text-[11.5px] text-ink-600 truncate flex-1">{b.t}</span>

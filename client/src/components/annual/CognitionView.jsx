@@ -33,7 +33,7 @@ function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar })
  * 里程碑条目级 dueBy：可选（微截止）
  */
 function ReadingFunnel({
-  total, done, notes, changes, reviews, color = '#007AFF', embedded,
+  total, done, notes, changes, reviews, color = '#00A3FF', embedded,
   headerTitle = '阅读转化漏斗',
   headerSub = '输入→思考→行动→改变→改变',
   onHeaderChange,
@@ -42,7 +42,7 @@ function ReadingFunnel({
 }) {
   // 五层漏斗（严格真子集递减）：目标量 → 输入量 → 思考量 → 行动量 → 改变量
   // 对应 ReadingFunnel 字段 total → done → notes → changes → reviews
-  // 统一蓝色：全部使用计划总结页主色 #007AFF
+  // 统一蓝色：全部使用知力模块主色 #00A3FF
   const STAGE_COLORS = [color, color, color, color, color];
   const DEFAULT_STAGES = [
     { key: 'total',   label: '目标量', sub: '年度目标',   convLabel: '' },

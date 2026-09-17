@@ -21,7 +21,7 @@ import { hexToRgba, tintBorder } from '../../utils/color.js';
 // 自定义类别 cat 从 101 起分配，避免与内置重复
 const BUILTIN_CATS = [
   { v: 6, label: '精力',  dot: '#34C759', builtin: true },
-  { v: 7, label: '知力',  dot: '#007AFF', builtin: true },
+  { v: 7, label: '知力',  dot: '#00A3FF', builtin: true },
   { v: 2, label: '能力',  dot: '#FF9500', builtin: true },
   { v: 1, label: '工作',  dot: '#FF3B30', builtin: true },
   { v: 5, label: '生活',  dot: '#AF52DE', builtin: true },

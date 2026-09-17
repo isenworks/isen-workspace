@@ -982,6 +982,9 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .nice-scroll::-webkit-scrollbar-thumb { background: rgba(120,120,128,0.28); border-radius: 999px; }
 .nice-scroll::-webkit-scrollbar-track { background: transparent; }
 
+/* 卡片头「查看」箭头：hover 填充模块主题色（白图标） */
+.hp-more:hover { background: var(--hc) !important; color: #fff !important; }
+
 .hp-hb { display: flex; flex-direction: column; gap: 9px; flex: 1; justify-content: flex-start; }
 .hp-hrow { display: flex; align-items: center; gap: 7px; }
 .hp-hname {

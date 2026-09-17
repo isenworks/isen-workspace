@@ -99,8 +99,8 @@ function CardHead({ moduleKey, title, sub, onClick }) {
       {onClick ? (
         <button
           onClick={onClick}
-          className="w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition hover:brightness-105 active:scale-95"
-          style={{ color, background: moduleKey ? modRgba(moduleKey, 0.08) : 'rgba(var(--s-rgb),0.06)' }}
+          className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
+          style={{ color, background: moduleKey ? modRgba(moduleKey, 0.08) : 'rgba(var(--s-rgb),0.06)', '--hc': color }}
           title="查看"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>
@@ -115,27 +115,6 @@ function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
   return (
     <div className="w-full rounded-full overflow-hidden" style={{ height: h, background: 'rgba(120,120,128,0.12)' }}>
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, background: color }} />
-    </div>
-  );
-}
-
-/* 完成率圆环（今日聚焦）· 80px 小环，统计文字在环下方 */
-function Ring({ value, done, total, color = 'var(--s-main)' }) {
-  const R = 31, C = 2 * Math.PI * R;
-  return (
-    <div className="flex flex-col items-center flex-shrink-0">
-      <div className="relative w-[80px] h-[80px]">
-        <svg width="80" height="80" viewBox="0 0 80 80">
-          <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(120,120,128,0.12)" strokeWidth="7" />
-          <circle cx="40" cy="40" r={R} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
-            strokeDasharray={C} strokeDashoffset={C * (1 - value / 100)} transform="rotate(-90 40 40)"
-            style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)' }} />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[17px] font-extrabold text-ink-900 leading-none tabular-nums">{value}%</span>
-        </div>
-      </div>
-      <span className="text-[9.5px] text-ink-400 mt-1.5 tabular-nums">{done}/{total} 完成</span>
     </div>
   );
 }
@@ -327,10 +306,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr), [sched, todayStr]);
   const todayDone = todayItems.filter(s => s.is_done).length;
   const todayPct = pct(todayDone, todayItems.length);
-  const nextTodo = useMemo(() => todayItems
-    .filter(s => !s.is_done)
-    .sort((a, b) => String(a.start_time || '99:99').localeCompare(String(b.start_time || '99:99')))[0] || null,
-    [todayItems]);
+  /* 今日全部事项按时间升序（全天排最后） + 今日节日（与月历同源、白名单过滤） */
+  const todaySorted = useMemo(() => [...todayItems]
+    .sort((a, b) => String(a.start_time || '99:99').localeCompare(String(b.start_time || '99:99'))), [todayItems]);
+  const todayFestivals = useMemo(() => {
+    const [y, m, d] = todayStr.split('-').map(Number);
+    const solar = lunarLib.Solar.fromYmd(y, m, d);
+    return [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
+  }, [todayStr]);
 
   /* ===== 本周重点：关键事项（is_key） ===== */
   const weekKeys = useMemo(() => (sched || [])
@@ -350,35 +333,37 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
-  /* ===== 即将到来：今日起全部事项（日程全量 + 生日 + 节日，排除本周重点已展示的前 3 条），按日期升序滚动查看 ===== */
+  /* ===== 即将到来：本周之后的事项（日程 + 生日 + 节日，30 天内），按日期升序滚动查看 ===== */
   const followUpList = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const shownIds = new Set(weekKeys.slice(0, 3).map(s => s.id));
+    const weekEndDate = new Date(`${weekEndStr}T00:00:00`);
     const isBirthday = s => {
       const t = String(s.title || '');
       return t.includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly' || t.startsWith('🎂'));
     };
     const list = [];
-    // 生日（未来一年内最近的下一次，含农历标记）
+    // 生日（未来一年内最近的一次，须在本周之后）
     (sched || []).filter(isBirthday).forEach(b => {
       const name = String(b.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || b.title;
       const parts = String(b.date || '').split('-');
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
       if (!mo || !day) return;
-      let next = new Date(today.getFullYear(), mo - 1, day); next.setHours(0, 0, 0, 0);
-      if (next < today) next = new Date(today.getFullYear() + 1, mo - 1, day);
+      const cand = yy => new Date(yy, mo - 1, day);
+      let next = cand(today.getFullYear());
+      if (next <= weekEndDate) next = cand(weekEndDate.getFullYear()) > weekEndDate ? cand(weekEndDate.getFullYear()) : cand(weekEndDate.getFullYear() + 1);
       const daysLeft = Math.round((next - today) / 86400000);
       list.push({ key: `bd-${b.id}`, type: 'birthday', title: `${name}的生日`, date: toISODate(next), isLunar: b.repeat_rule === 'lunar-yearly', daysLeft });
     });
-    // 日程全量（关键 + 普通，排除生日原事项与本周重点已展示的）
-    (sched || []).filter(s => s.date >= todayStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s) && !shownIds.has(s.id))
+    // 日程（本周之后 30 天内，排除生日原事项）
+    (sched || []).filter(s => s.date > weekEndStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s))
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
         list.push({ key: `uk-${s.id}`, type: s.is_key ? 'key' : 'sched', title: s.title, date: s.date, daysLeft });
       });
-    // 节日（今天 ~ 未来 30 天，农历 + 公历，与月历同源）
-    for (let i = 0; i <= 30; i++) {
+    // 节日（本周之后 ~ 30 天内，农历 + 公历，与月历同源）
+    const startAfter = Math.max(0, Math.round((weekEndDate - today) / 86400000) + 1);
+    for (let i = startAfter; i <= 30; i++) {
       const iso = addDaysISO(todayStr, i);
       const [y, m, d] = iso.split('-').map(Number);
       const solar = lunarLib.Solar.fromYmd(y, m, d);
@@ -386,7 +371,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       if (fests.length > 0) list.push({ key: `ft-${iso}`, type: 'festival', title: fests[0], date: iso, daysLeft: i });
     }
     return list.sort((a, b) => a.daysLeft - b.daysLeft || String(a.date).localeCompare(String(b.date)));
-  }, [sched, todayStr, weekKeys]);
+  }, [sched, todayStr, weekEndStr]);
 
   /* ===== 精力：本周打卡统计 ===== */
   const habitRows = habits.slice(0, 3);
@@ -422,7 +407,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-3">
-      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3">
+      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:flex-1">
 
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative">
@@ -640,35 +625,48 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 时间层：今日聚焦 / 本周重点 / 即将到来（3 等分，md 起 3 列） ========== */}
-        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:flex-1 md:min-h-[272px]">
 
-          {/* ---- 今日聚焦 ---- */}
+          {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead title="今日聚焦" sub={todayStr.slice(5).replace('-', '/')} onClick={() => onNav?.('plan')} />
-            <div className="flex items-center gap-4 flex-1">
-              <Ring value={todayPct} done={todayDone} total={todayItems.length} />
-              <div className="flex-1 min-w-0 flex flex-col gap-2">
-                {nextTodo ? (
-                  <button
-                    onClick={() => onNav?.('plan')}
-                    className="text-left w-full rounded-xl px-3 py-2.5 transition hover:bg-[rgba(120,120,128,0.06)]"
-                    title="跳转今日计划"
-                  >
-                    <div className="text-[10px] font-bold text-ink-400 mb-0.5 tracking-wide">下一个待办</div>
-                    <div className="text-[13.5px] font-semibold text-ink-800 truncate">{nextTodo.title || '（无标题）'}</div>
-                    <div className="text-[11px] text-ink-400 mt-0.5 tabular-nums">
-                      {nextTodo.start_time ? `${nextTodo.start_time}${nextTodo.end_time ? ` - ${nextTodo.end_time}` : ''}` : '全天'}
-                    </div>
-                  </button>
-                ) : (
-                  <div className="px-1">
-                    <div className="text-[13.5px] font-semibold text-ink-800">
-                      {todayItems.length === 0 ? '今天还没有安排' : '今日事项已全部完成'}
-                    </div>
-                    <div className="text-[11.5px] text-ink-400 mt-1">
-                      {todayItems.length === 0 ? '点右上角「查看」去安排今天' : '享受这份清爽，或复盘一下今天 ✦'}
-                    </div>
+            <CardHead title="今日聚焦" sub={`${+todayStr.slice(5, 7)}.${+todayStr.slice(8, 10)}`} onClick={() => onNav?.('plan')} />
+            <div className="flex flex-col gap-2 min-h-0 flex-1">
+              <div className="flex items-baseline justify-between mb-0.5">
+                <span className="text-[11px] text-ink-400">今日进度</span>
+                <span className="text-[12px] font-bold text-ink-800 tabular-nums">{todayDone}/{todayItems.length}</span>
+              </div>
+              <Bar value={todayPct} />
+              <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0">
+                {todaySorted.map(s => (
+                  <div key={s.id} className="flex items-center gap-2 group">
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
+                      className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
+                      title={s.is_done ? '取消完成' : '标记完成'}
+                      style={{
+                        background: s.is_done ? 'var(--s-main)' : 'transparent',
+                        borderColor: s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'
+                      }}
+                    >
+                      {s.is_done ? (
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      ) : null}
+                    </button>
+                    <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1" title="跳转今日计划">
+                      <span className={`text-[10px] tabular-nums flex-shrink-0 w-[32px] ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
+                      <span className={`text-[12.5px] truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-700'}`}>{s.title || '（无标题）'}</span>
+                    </button>
                   </div>
+                ))}
+                {todayFestivals.map(f => (
+                  <div key={f} className="flex items-center gap-2 px-0.5">
+                    <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#FF3B30" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 3v2M5 7h14l-1.3 9.8a3 3 0 01-3 2.7H9.3a3 3 0 01-3-2.7L5 7z"/></svg>
+                    <span className="text-[12.5px] font-semibold text-ink-800 truncate">{f}</span>
+                    <span className="text-[10px] font-bold ml-auto flex-shrink-0" style={{ color: '#FF3B30' }}>今天 · 节日</span>
+                  </div>
+                ))}
+                {todaySorted.length === 0 && todayFestivals.length === 0 && (
+                  <div className="text-[12.5px] text-ink-400 text-center py-3">今天还没有安排</div>
                 )}
               </div>
             </div>
@@ -676,14 +674,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
           {/* ---- 本周重点（标题右侧显示本周日期区间，查看 → 周月重点页，列表全量滚动） ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead title="本周重点" sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(8, 10)}`} onClick={() => onNav?.('calendar')} />
+            <CardHead title="本周重点" sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(5, 7)}.${+weekEndStr.slice(8, 10)}`} onClick={() => onNav?.('calendar')} />
             <div className="flex flex-col gap-2 min-h-0">
               <div className="flex items-baseline justify-between mb-0.5">
                 <span className="text-[11px] text-ink-400">本周进度</span>
                 <span className="text-[12px] font-bold text-ink-800 tabular-nums">{weekKeyDone}/{weekKeys.length}</span>
               </div>
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
-              <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 max-h-[168px]">
+              <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 flex-1 min-h-0">
                 {weekKeys.map(s => (
                   <div key={s.id} className="flex items-center gap-2 group">
                     <button
@@ -712,10 +710,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
 
-          {/* ---- 即将到来：今日起全部事项（日程 + 生日 + 节日）全量滚动，查看 → 周月重点页 ---- */}
+          {/* ---- 即将到来：本周之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月重点页 ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead title="即将到来" sub="全部事项" onClick={() => onNav?.('calendar')} />
-            <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1 max-h-[168px]">
+            <CardHead title="即将到来" sub="本周之后" onClick={() => onNav?.('calendar')} />
+            <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0">
               {followUpList.map(u => {
                 const weekday = '日一二三四五六'[new Date(`${u.date}T00:00:00`).getDay()];
                 const meta = u.type === 'birthday'
@@ -756,7 +754,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，xl 起 4 列） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:flex-1 md:min-h-[226px]">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -787,7 +785,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     );
                   })}
                 </div>
-                <div className="flex items-center justify-between mt-2.5 pt-2.5" style={{ borderTop: '1px solid rgba(120,120,128,0.1)' }}>
+                <div className="flex items-center justify-between mt-auto pt-2.5" style={{ borderTop: '1px solid rgba(120,120,128,0.1)' }}>
                   <span className="text-[11px] text-ink-400">本周已打卡</span>
                   <span className="text-[12px] font-bold tabular-nums" style={{ color: 'var(--m-energy)' }}>
                     {weekDoneCnt}/{habitRows.length * 7} 次
@@ -807,7 +805,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             <CardHead moduleKey="cognition" title="知力" sub={reading.length > 0 ? `在读 ${reading.length} 本` : `已读 ${booksDone} 本`} onClick={() => onNav?.('annual', 'cognition')} />
             <div className="flex-1 flex flex-col justify-start min-h-0">
               {reading.length > 0 && (
-                <div className="rounded-xl p-2.5" style={{ background: 'rgba(var(--m-cognition-rgb),0.06)' }}>
+                <div className="rounded-xl p-2.5 bg-white dark:bg-white/5 border border-ink-100 dark:border-white/10">
                   <div className="flex gap-3">
                     {reading[0].coverUrl ? (
                       <img
@@ -829,7 +827,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     </div>
                   </div>
                   {reading.length > 1 && (
-                    <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: '1px dashed rgba(0,163,255,0.18)' }}>
+                    <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: '1px dashed rgba(120,120,128,0.16)' }}>
                       {reading.slice(1, 4).map(b => (
                         <div key={b.id} className="flex items-center gap-2">
                           <span className="text-[11.5px] text-ink-600 truncate flex-1">{b.t}</span>

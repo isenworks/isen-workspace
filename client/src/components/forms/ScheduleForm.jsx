@@ -181,9 +181,10 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
   const toast = useToast();
   // isPreset 时：initial.title 只做 placeholder 提示，不预填真实值
   const presetHint = initial?.isPreset && initial?.title ? initial.title : null;
-  // 新建默认 00:00；编辑保留原值（原值为空则留空）
-  const initStartTime = initial?.start_time || (initial?.id ? '' : '00:00');
-  const initEndTime = initial?.end_time || (initial?.id ? '' : '00:00');
+  // 新建默认 00:00；编辑保留原值（原值为空则留空）；目标（is_goal）默认全天 → 留空
+  const isGoal = !!initial?.is_goal;
+  const initStartTime = initial?.start_time || (initial?.id || isGoal ? '' : '00:00');
+  const initEndTime = initial?.end_time || (initial?.id || isGoal ? '' : '00:00');
   const isRecurring = !!initial?.repeat_rule && initial.repeat_rule !== 'none';
   const [form, setForm] = useState(() => {
     const startDate = initial?.date || initial?.start_date || initial?.schedule_date || defaultDate;
@@ -198,6 +199,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
       category: initialCategory(initial),
       priority: (initial?.priority != null && Number(initial.priority) >= 0 && Number(initial.priority) <= 3) ? Number(initial.priority) : null,
       is_key: initial?.is_key ? 1 : 0,
+      is_goal: isGoal ? 1 : 0,
       repeat_rule: isRecurring ? initial.repeat_rule : 'none',
     };
   });
@@ -316,6 +318,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         duration_min: form.duration_min ? Number(form.duration_min) : null,
         category: cat,
         is_key: (cat === 1 || cat === 2) ? 1 : 0,
+        is_goal: form.is_goal ? 1 : 0,
         priority: form.priority,
         repeat_rule: form.repeat_rule || 'none',
       };
@@ -359,7 +362,18 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div>
-        <label style={LABEL_STYLE}>标题</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+          <label style={{ ...LABEL_STYLE, display: 'inline', marginBottom: 0 }}>标题</label>
+          {isGoal && (
+            <span
+              style={{
+                fontSize: '10px', fontWeight: 700, lineHeight: 1,
+                padding: '3px 8px', borderRadius: '999px',
+                background: 'rgba(var(--s-rgb),0.10)', color: 'var(--s-main)',
+              }}
+            >目标</span>
+          )}
+        </div>
         <input
           className="form-input"
           style={{

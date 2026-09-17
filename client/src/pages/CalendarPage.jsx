@@ -141,6 +141,7 @@ function computeInitialWeekTasks(weekStartISO, weekEndISO, remoteSchedules = [])
         title: s.title || '',
         done: !!s.is_done,
         progress: s.is_done ? 1 : 0,
+        is_goal: !!s.is_goal,
         start_date: sd,
         end_date: s.end_date || null,
         schedule_date: sd,
@@ -802,6 +803,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
                   title: s.title || '',
                   done: !!s.is_done,
                   progress: s.is_done ? 1 : 0,
+                  is_goal: !!s.is_goal,
                   start_date: s.start_date,
                   end_date: s.end_date || null,
                   schedule_date: s.start_date,
@@ -867,6 +869,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         title: s.title || '',
         done: !!s.is_done,
         progress: s.is_done ? 1 : 0,
+        is_goal: !!s.is_goal,
         start_date,
         end_date,
         schedule_date: start_date,
@@ -1439,8 +1442,14 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               tasks={visibleMonthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
+              moduleGoalsOnly
               onToggle={(id) => toggleTask(id, true)}
-              onAdd={() => onEditSchedule?.()}
+              onAdd={() => {
+                // 新建目标：默认当天（浏览其他月份时落在该月 1 号），全天无时刻
+                const ym = `${year}-${String(month).padStart(2, '0')}`;
+                const date = todayISO.slice(0, 7) === ym ? todayISO : `${ym}-01`;
+                onEditSchedule?.({ date, is_goal: 1 });
+              }}
               onEditTask={(task) => openEditorForTask(task, { isMonth: true })}
               onDeleteTask={(task) => deleteTask(task, { isMonth: true })}
               onRestoreTask={(task) => restoreTask(task, { isMonth: true })}
@@ -1459,8 +1468,13 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               tasks={visibleWeekTasks}
               progressPct={weekProgress}
               timePct={weekTimePct}
+              moduleGoalsOnly
               onToggle={(id) => toggleTask(id, false)}
-              onAdd={() => onEditSchedule?.()}
+              onAdd={() => {
+                // 新建目标：默认当天（浏览其他周时落在该周周一），全天无时刻
+                const date = (todayISO >= weekStartStr && todayISO <= weekEndStr) ? todayISO : weekStartStr;
+                onEditSchedule?.({ date, is_goal: 1 });
+              }}
               onEditTask={(task) => openEditorForTask(task, { isMonth: false })}
               onDeleteTask={(task) => deleteTask(task, { isMonth: false })}
               onRestoreTask={(task) => restoreTask(task, { isMonth: false })}

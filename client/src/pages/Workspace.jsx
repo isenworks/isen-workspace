@@ -54,8 +54,12 @@ export default function Workspace({ user: propUser }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // 新建事项弹窗（快捷键 S / 首页新建卡共用）：默认今天
-  const openNewSchedule = () => { setSelectedDate(getToday()); setModal({ type: 'schedule', data: undefined }); };
+  // 新建事项弹窗（快捷键 S / 首页新建卡共用）：默认今天；可传预置对象（如 { date, is_goal:1 } 从主线/本周重点建目标）
+  const openNewSchedule = (preset) => {
+    const p = (preset && typeof preset === 'object' && !preset.type) ? preset : undefined;
+    setSelectedDate(p?.date || getToday());
+    setModal({ type: 'schedule', data: p });
+  };
   // 今日总结弹窗（快捷键 D / 首页总结卡共用）：默认今天
   const openDailySummary = () => { setSelectedDate(getToday()); setModal({ type: 'summary' }); };
   // 右栏显示总结面板状态：默认显示时间线
@@ -687,7 +691,7 @@ export default function Workspace({ user: propUser }) {
           : modal.type === 'kr' ? (modal.initial?.id ? '编辑 KR' : '新增 KR')
           : modal.type === 'milestone' ? (modal.initial?.id ? '编辑里程碑' : '新增里程碑')
           : modal.type === 'ability' ? (modal.initial?.id ? '编辑能力目标' : '新增能力目标')
-          : modal.type === 'schedule' ? (modal.data?.id ? '编辑事项' : '新建事项')
+          : modal.type === 'schedule' ? (modal.data?.id ? (modal.data?.is_goal ? '编辑目标' : '编辑事项') : (modal.data?.is_goal ? '新建目标' : '新建事项'))
           : modal.type === 'habit' ? (modal.data?.id ? '编辑习惯' : '新建习惯')
           : modal.type === 'fixedSchedules' ? '固定日程管理'
           : modal.type === 'fixedSchedule' ? (modal.data?.id ? '编辑固定日程' : '新建固定日程')

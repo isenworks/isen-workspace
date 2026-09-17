@@ -160,6 +160,7 @@ export default function FocusPanel({
   showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
   headerExtra,
   fill,              // 页面布局场景：卡片纵向撑满所在列（列表区吃剩余高度，超出滚动）；弹层不传则保持自然高度
+  moduleGoalsOnly,   // 主线面板场景：模块分组视图只显示 is_goal 目标事项（时间顺序视图仍显示全部）；当日详情弹层不传保持全量
 }) {
   // HTML5 DnD 排序：记录当前拖拽的 { taskId, groupKey } 以及 drop 目标 taskId（用于插入位置视觉提示）
   const [dragState, setDragState] = useState(null); // { taskId, groupKey } | null
@@ -199,9 +200,10 @@ export default function FocusPanel({
         .map(t => ({ ...t, __rowColor: keyToModule(t.moduleKey).color }));
       return items.length ? [{ key: '__time', label: '', color: 'rgba(142,142,147,0.35)', items }] : [];
     }
-    // 模块分组视图（默认）
+    // 模块分组视图（默认）—— 主线面板（moduleGoalsOnly）只显示 is_goal 目标：聚合抓取的年度规划事项仅时间顺序视图可见
+    const goalTasks = moduleGoalsOnly ? tasks.filter(t => t.is_goal) : tasks;
     return MODULES.filter(m => m.key !== 'others').map(mod => {
-      const raw = tasks.filter(t => t.moduleKey === mod.key);
+      const raw = goalTasks.filter(t => t.moduleKey === mod.key);
       if (mod.key === 'energy') {
         const habits = raw.filter(t => t.isHabit).sort((a, b) =>
           (HABIT_ORDER_WEIGHT[a.habitKey] || 99) - (HABIT_ORDER_WEIGHT[b.habitKey] || 99)
@@ -211,9 +213,11 @@ export default function FocusPanel({
       }
       return { ...mod, items: raw };
     }).filter(g => g.items.length > 0);
-  }, [tasks, sortBy]);
+  }, [tasks, sortBy, moduleGoalsOnly]);
 
-  const totalDone = useMemo(() => tasks.filter(t => t.done).length, [tasks]);
+  /* 计数胶囊口径随视图：时间顺序=全部事项；模块分组（主线目标模式）=仅目标 */
+  const pillTasks = (moduleGoalsOnly && sortBy === 'module') ? tasks.filter(t => t.is_goal) : tasks;
+  const totalDone = pillTasks.filter(t => t.done).length;
   const pace = paceStatus(progressPct, timePct);
 
   /* 折叠状态：以面板 title 为作用域，避免月/周面板相互影响 */
@@ -282,7 +286,7 @@ export default function FocusPanel({
           >
             <span>{totalDone}</span>
             <span style={{ opacity: 0.35 }}>/</span>
-            <span style={{ opacity: 0.80 }}>{tasks.length}</span>
+            <span style={{ opacity: 0.80 }}>{pillTasks.length}</span>
           </span>
           {/* +号印章：圆角方填充（与能力页 AnnualPlan.jsx L5095 加号设计同构：rounded-lg + 色软填充 1a + stroke=主题色 + w3.5 h3.5） */}
           <button
@@ -614,14 +618,16 @@ export default function FocusPanel({
         })}
       </div>
 
-      {/* 空状态 */}
+      {/* 空状态（目标模式下提示建目标，而非同步年度规划） */}
       {grouped.length === 0 && !deletedTasks?.length && (
         <div className="py-8 text-center">
           <div className="text-[12px] text-[#8E8E93]">
-            {type === 'month' ? '本月还没有主线任务' : '本周还没有主线任务'}
+            {moduleGoalsOnly && sortBy === 'module'
+              ? (type === 'month' ? '本月还没有目标' : '本周还没有目标')
+              : (type === 'month' ? '本月还没有主线任务' : '本周还没有主线任务')}
           </div>
           <div className="text-[12px] text-[#8E8E93] mt-1">
-            从年度规划一键同步 或 点右上角 + 新建
+            {moduleGoalsOnly && sortBy === 'module' ? '点右上角 + 新建目标' : '从年度规划一键同步 或 点右上角 + 新建'}
           </div>
         </div>
       )}

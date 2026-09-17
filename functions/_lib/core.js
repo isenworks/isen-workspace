@@ -544,4 +544,7 @@ export async function ensureScheduleRepeat(env) {
   try { await env.DB.prepare(`UPDATE ethan_schedules SET start_date = date WHERE start_date IS NULL`).run(); } catch (_) {}
   // 重要紧急程度（P0-P3，NULL=未设置）：与 category 同款 try-Alter 迁移
   try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN priority INTEGER`).run(); } catch (_) {}
+  // 主线目标标记（1=用户从周/月主线面板创建的目标事项；0=普通日程）
+  // 主线面板「按模块分组」视图只显示 is_goal=1 的事项，「按时间顺序」视图仍显示全部
+  try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN is_goal INTEGER DEFAULT 0`).run(); } catch (_) {}
 }

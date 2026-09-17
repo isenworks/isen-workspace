@@ -87,8 +87,8 @@ function heroCropBg(im, withShade = true) {
 /* 重要节日白名单：lunar 库 getFestivals 会带出全民国防教育日这类小众纪念日，首页只展示大众节日 */
 const MAJOR_FESTIVALS = new Set(['元旦', '除夕', '春节', '元宵节', '情人节', '妇女节', '植树节', '清明节', '劳动节', '青年节', '母亲节', '儿童节', '父亲节', '端午节', '建党节', '建军节', '七夕节', '教师节', '中秋节', '国庆节', '重阳节', '万圣节', '感恩节', '圣诞节']);
 
-/* 卡片头：模块色竖条 + 标题 + 右侧查看入口（右上箭头） */
-function CardHead({ moduleKey, title, sub, onClick }) {
+/* 卡片头：模块色竖条 + 标题 + 右侧自定义动作位 + 查看入口（右上箭头） */
+function CardHead({ moduleKey, title, sub, onClick, action }) {
   const color = moduleKey ? modColor(moduleKey) : 'var(--s-main)';
   return (
     <div className="flex items-center justify-between mb-3">
@@ -97,16 +97,19 @@ function CardHead({ moduleKey, title, sub, onClick }) {
         <span className="text-[15px] font-bold text-ink-900 truncate">{title}</span>
         {sub ? <span className="text-[11px] text-ink-400 flex-shrink-0">{sub}</span> : null}
       </div>
-      {onClick ? (
-        <button
-          onClick={onClick}
-          className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
-          style={{ color, background: moduleKey ? modRgba(moduleKey, 0.08) : 'rgba(var(--s-rgb),0.06)', '--hc': color }}
-          title="查看"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>
-        </button>
-      ) : null}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {action}
+        {onClick ? (
+          <button
+            onClick={onClick}
+            className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
+            style={{ color, background: moduleKey ? modRgba(moduleKey, 0.08) : 'rgba(var(--s-rgb),0.06)', '--hc': color }}
+            title="查看"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -329,9 +332,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     return [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
   }, [todayStr]);
 
-  /* ===== 本周重点：关键事项（is_key） ===== */
+  /* ===== 本周重点：关键事项（is_key）+ 主线目标（is_goal，从周/月主线面板或本卡 + 创建） ===== */
   const weekKeys = useMemo(() => (sched || [])
-    .filter(s => s.is_key && s.date <= weekEndStr)
+    .filter(s => (s.is_key || s.is_goal) && s.date <= weekEndStr)
     .sort((a, b) => (a.is_done ? 1 : 0) - (b.is_done ? 1 : 0) || String(a.date).localeCompare(String(b.date))),
     [sched, weekEndStr]);
   const weekKeyDone = weekKeys.filter(s => s.is_done).length;
@@ -685,7 +688,21 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
           {/* ---- 本周重点（标题右侧显示本周日期区间，查看 → 周月重点页，列表全量滚动） ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
-            <CardHead title="本周重点" sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(5, 7)}.${+weekEndStr.slice(8, 10)}`} onClick={() => onNav?.('calendar')} />
+            <CardHead
+              title="本周重点"
+              sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(5, 7)}.${+weekEndStr.slice(8, 10)}`}
+              onClick={() => onNav?.('calendar')}
+              action={(
+                <button
+                  onClick={() => onNewSchedule?.({ date: todayStr, is_goal: 1 })}
+                  className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
+                  style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                  title="新建本周目标"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              )}
+            />
             <div className="flex flex-col gap-2 min-h-0 flex-1">
               <div className="flex items-baseline justify-between mb-0.5">
                 <span className="text-[11px] text-ink-400">本周进度</span>

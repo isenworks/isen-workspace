@@ -77,14 +77,15 @@ export async function handleSchedulesCreate(env, body) {
   const rule = REPEAT_RULES.includes(data.repeat_rule) ? data.repeat_rule : 'none';
   const prio = data.priority != null && Number(data.priority) >= 0 && Number(data.priority) <= 3 ? Number(data.priority) : null;
   const info = await env.DB.prepare(
-    `INSERT INTO ethan_schedules (user_id,title,date,start_date,end_date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule,priority) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    `INSERT INTO ethan_schedules (user_id,title,date,start_date,end_date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule,priority,is_goal) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   )
     .bind(
       userId, data.title, dateCheck.value,
       data.start_date || dateCheck.value, data.end_date || null,
       data.start_time || null, data.end_time || null,
       data.duration_min != null ? Number(data.duration_min) : null,
-      syncIsKey, finalCat, 0, toInt(data.sort_order, 0), rule, prio
+      syncIsKey, finalCat, 0, toInt(data.sort_order, 0), rule, prio,
+      data.is_goal ? 1 : 0
     )
     .run();
   return json({ schedule: await dbFirst(env.DB, `SELECT * FROM ethan_schedules WHERE id=?`, [Number(info.meta.last_row_id)]) });
@@ -131,6 +132,7 @@ export async function handleSchedulesUpdate(env, body) {
     }
   });
   if (body.is_done !== undefined) { sets.push('is_done=?'); params.push(toBoolInt(body.is_done)); }
+  if (body.is_goal !== undefined) { sets.push('is_goal=?'); params.push(toBoolInt(body.is_goal)); }
   if (body.repeat_rule !== undefined) { sets.push('repeat_rule=?'); params.push(REPEAT_RULES.includes(body.repeat_rule) ? body.repeat_rule : 'none'); }
   if (body.category !== undefined) {
     const cat = Number(body.category);
@@ -167,7 +169,7 @@ export async function handleSchedulesSync(env, body) {
   await dbRun(env.DB, `DELETE FROM ethan_schedules WHERE user_id=? AND date=?`, [userId, date]);
   if (items.length > 0) {
     const stmt = env.DB.prepare(
-      `INSERT INTO ethan_schedules (user_id,title,date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,priority) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+      `INSERT INTO ethan_schedules (user_id,title,date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,priority,is_goal) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
     );
     const ps = items.map((it, i) => {
       const cat = it.category !== undefined ? Number(it.category) : null;
@@ -181,7 +183,8 @@ export async function handleSchedulesSync(env, body) {
         syncIsKey, finalCat,
         it.is_done ? 1 : 0,
         it.sort_order != null ? Number(it.sort_order) : i,
-        prio
+        prio,
+        it.is_goal ? 1 : 0
       );
     });
     await env.DB.batch(ps);

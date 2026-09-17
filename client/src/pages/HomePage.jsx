@@ -642,7 +642,21 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
-            <CardHead title="今日聚焦" sub={`${+todayStr.slice(5, 7)}.${+todayStr.slice(8, 10)}`} onClick={() => onNav?.('plan')} />
+            <CardHead
+              title="今日聚焦"
+              sub={`${+todayStr.slice(5, 7)}.${+todayStr.slice(8, 10)}`}
+              onClick={() => onNav?.('plan')}
+              action={(
+                <button
+                  onClick={() => onNewSchedule?.({ date: todayStr })}
+                  className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
+                  style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                  title="新建今日事项"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              )}
+            />
             <div className="flex flex-col gap-2 min-h-0 flex-1">
               <div className="flex items-baseline justify-between mb-0.5">
                 <span className="text-[11px] text-ink-400">今日进度</span>

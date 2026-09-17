@@ -332,9 +332,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     return [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
   }, [todayStr]);
 
-  /* ===== 本周重点：关键事项（is_key）+ 主线目标（is_goal，从周/月主线面板或本卡 + 创建） ===== */
+  /* ===== 本周重点：仅展示目标（is_goal，从周/月主线面板或本卡 + 创建），本周内含逾期未完成 ===== */
   const weekKeys = useMemo(() => (sched || [])
-    .filter(s => (s.is_key || s.is_goal) && s.date <= weekEndStr)
+    .filter(s => s.is_goal && s.date <= weekEndStr)
     .sort((a, b) => (a.is_done ? 1 : 0) - (b.is_done ? 1 : 0) || String(a.date).localeCompare(String(b.date))),
     [sched, weekEndStr]);
   const weekKeyDone = weekKeys.filter(s => s.is_done).length;
@@ -733,7 +733,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   </div>
                 ))}
                 {weekKeys.length === 0 && (
-                  <div className="text-[12.5px] text-ink-400 text-center py-3">本周暂无关键事项</div>
+                  <div className="text-[12.5px] text-ink-400 text-center py-3">本周暂无目标，点右上角 + 新建</div>
                 )}
               </div>
             </div>

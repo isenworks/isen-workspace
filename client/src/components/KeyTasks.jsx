@@ -4,6 +4,7 @@ import { formatDuration, fromISODate, calcDurationMin, cachedLoad, cachePeek, ca
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
+import PTag from './PTag.jsx';
 import { inferGrowthType, GROWTH_TYPES } from '../utils/uiConstants.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
@@ -266,6 +267,15 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         doneColor: '#00A3FF'
       };
     }
+    // 财务（cat=8）金色
+    if (cat === 8) {
+      return {
+        bg: 'linear-gradient(90deg,#fdf6df 0%,transparent 70%)',
+        borderColor: '#EAB308',
+        dotColor: '#EAB308',
+        doneColor: '#EAB308'
+      };
+    }
     // 常规事项
     return {
       bg: 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)',
@@ -347,7 +357,10 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           onClick={(e) => { e.stopPropagation(); toggle(s); }}
         />
         <div className="flex-1 min-w-0">
-          <p className={`text-[14px] ${s.is_done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>{s.title}</p>
+          <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+            <span className="truncate">{s.title}</span>
+            <PTag p={s.priority} />
+          </p>
           <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>{formatTime(s)}</p>
         </div>
         {/* 小圆点始终保留原色 */}

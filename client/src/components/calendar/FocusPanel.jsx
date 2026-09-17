@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { MODULES, keyToModule, paceStatus } from '../../utils/categoryMapping.js';
+import PTag from '../PTag.jsx';
 
 /* 模块色 + 透明度工具：模块色是 var(--m-xxx) CSS 变量，不支持 hex 拼接（如 `${color}14` 会产出
    非法值被浏览器丢弃），统一转成 rgba(var(--m-xxx-rgb), α) 形式 */
@@ -520,12 +521,15 @@ export default function FocusPanel({
 
                         {/* 左侧标题区（点击进入编辑面板，因为父 div onClick=handleEdit）*/}
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                          <span
-                            className={`text-[13px] font-semibold leading-tight truncate ${
-                              task.done ? 'text-[#8E8E93] line-through' : 'text-[#1C1C1E]'
-                            }`}
-                          >
-                            {task.title}
+                          <span className="flex items-center gap-1.5">
+                            <span
+                              className={`text-[13px] font-semibold leading-tight truncate flex-1 ${
+                                task.done ? 'text-[#8E8E93] line-through' : 'text-[#1C1C1E]'
+                              }`}
+                            >
+                              {task.title}
+                            </span>
+                            <PTag p={task.priority} />
                           </span>
                           <div className="flex items-center gap-2 text-[11px] font-medium text-[#8E8E93]">
                             {task.srcTag && (

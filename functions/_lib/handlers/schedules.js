@@ -75,15 +75,16 @@ export async function handleSchedulesCreate(env, body) {
   const syncIsKey = cat === null ? (data.is_key ? 1 : 0) : cat === 1 || cat === 2 ? 1 : 0;
   const finalCat = cat === null ? (syncIsKey ? 2 : 3) : cat;
   const rule = REPEAT_RULES.includes(data.repeat_rule) ? data.repeat_rule : 'none';
+  const prio = data.priority != null && Number(data.priority) >= 0 && Number(data.priority) <= 3 ? Number(data.priority) : null;
   const info = await env.DB.prepare(
-    `INSERT INTO ethan_schedules (user_id,title,date,start_date,end_date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    `INSERT INTO ethan_schedules (user_id,title,date,start_date,end_date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule,priority) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   )
     .bind(
       userId, data.title, dateCheck.value,
       data.start_date || dateCheck.value, data.end_date || null,
       data.start_time || null, data.end_time || null,
       data.duration_min != null ? Number(data.duration_min) : null,
-      syncIsKey, finalCat, 0, toInt(data.sort_order, 0), rule
+      syncIsKey, finalCat, 0, toInt(data.sort_order, 0), rule, prio
     )
     .run();
   return json({ schedule: await dbFirst(env.DB, `SELECT * FROM ethan_schedules WHERE id=?`, [Number(info.meta.last_row_id)]) });
@@ -136,6 +137,12 @@ export async function handleSchedulesUpdate(env, body) {
     sets.push('category=?, is_key=?');
     params.push(cat, cat === 1 || cat === 2 ? 1 : 0);
   }
+  // priority：undefined 不动；null/0-3 直接赋值（null=清除紧急程度）
+  if (body.priority !== undefined) {
+    const p = body.priority == null ? null : (Number(body.priority) >= 0 && Number(body.priority) <= 3 ? Number(body.priority) : null);
+    sets.push('priority=?');
+    params.push(p);
+  }
   if (sets.length === 0) return json({ schedule: await dbFirst(env.DB, `SELECT * FROM ethan_schedules WHERE id=?`, [id]) });
   params.push(id);
   await env.DB.prepare(`UPDATE ethan_schedules SET ${sets.join(', ')} WHERE id=?`).bind(...params).run();
@@ -160,19 +167,21 @@ export async function handleSchedulesSync(env, body) {
   await dbRun(env.DB, `DELETE FROM ethan_schedules WHERE user_id=? AND date=?`, [userId, date]);
   if (items.length > 0) {
     const stmt = env.DB.prepare(
-      `INSERT INTO ethan_schedules (user_id,title,date,start_time,end_time,duration_min,is_key,category,is_done,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?)`
+      `INSERT INTO ethan_schedules (user_id,title,date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,priority) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
     );
     const ps = items.map((it, i) => {
       const cat = it.category !== undefined ? Number(it.category) : null;
       const syncIsKey = cat === null ? (it.is_key ? 1 : 0) : cat === 1 || cat === 2 ? 1 : 0;
       const finalCat = cat === null ? (syncIsKey ? 2 : 3) : cat;
+      const prio = it.priority != null && Number(it.priority) >= 0 && Number(it.priority) <= 3 ? Number(it.priority) : null;
       return stmt.bind(
         userId, it.title, date,
         it.start_time || null, it.end_time || null,
         it.duration_min != null ? Number(it.duration_min) : null,
         syncIsKey, finalCat,
         it.is_done ? 1 : 0,
-        it.sort_order != null ? Number(it.sort_order) : i
+        it.sort_order != null ? Number(it.sort_order) : i,
+        prio
       );
     });
     await env.DB.batch(ps);

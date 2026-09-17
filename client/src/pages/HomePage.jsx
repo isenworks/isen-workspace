@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
 import lunarLib from '../vendor/lunar.js';
+import PTag from '../components/PTag.jsx';
 
 /* ============ 小工具 ============ */
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
@@ -359,7 +360,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     (sched || []).filter(s => s.date > weekEndStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s))
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
-        list.push({ key: `uk-${s.id}`, type: s.is_key ? 'key' : 'sched', title: s.title, date: s.date, daysLeft });
+        list.push({ key: `uk-${s.id}`, type: s.is_key ? 'key' : 'sched', title: s.title, date: s.date, daysLeft, priority: s.priority });
       });
     // 节日（本周之后 ~ 30 天内，农历 + 公历，与月历同源）
     const startAfter = Math.max(0, Math.round((weekEndDate - today) / 86400000) + 1);
@@ -650,6 +651,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     </button>
                     <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1" title="跳转今日计划">
                       <span className={`text-[10px] tabular-nums flex-shrink-0 w-[32px] ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
+                      <PTag p={s.priority} />
                       <span className={`text-[12.5px] truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-700'}`}>{s.title || '（无标题）'}</span>
                     </button>
                   </div>
@@ -695,6 +697,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     </button>
                     <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1">
                       <span className={`text-[12.5px] truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-700'}`}>{s.title}</span>
+                      <PTag p={s.priority} />
                       <span className="text-[10px] text-ink-300 flex-shrink-0 ml-auto tabular-nums">{String(s.date).slice(5).replace('-', '/')}</span>
                     </button>
                   </div>
@@ -735,7 +738,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       )}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12.5px] font-semibold text-ink-800 truncate">{u.title}</div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[12.5px] font-semibold text-ink-800 truncate">{u.title}</span>
+                        <PTag p={u.priority} />
+                      </div>
                       <div className="text-[10.5px] text-ink-400 tabular-nums">{`${String(u.date).slice(5).replace('-', '.')} ${weekday} · ${meta.tag}`}</div>
                     </div>
                     <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: meta.fg }}>{u.daysLeft === 0 ? '今天' : `${u.daysLeft}天后`}</span>

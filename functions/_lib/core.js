@@ -542,4 +542,6 @@ export async function ensureScheduleRepeat(env) {
   try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN end_date TEXT`).run(); } catch (_) {}
   // 旧数据回填：start_date 为空时用 date 兜底，保证旧事项也能显示日期范围
   try { await env.DB.prepare(`UPDATE ethan_schedules SET start_date = date WHERE start_date IS NULL`).run(); } catch (_) {}
+  // 重要紧急程度（P0-P3，NULL=未设置）：与 category 同款 try-Alter 迁移
+  try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN priority INTEGER`).run(); } catch (_) {}
 }

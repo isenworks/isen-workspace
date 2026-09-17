@@ -33,15 +33,16 @@ function deriveIsKey(category) {
 
 // 创建
 router.post('/', (req, res) => {
-  const { title, date, start_time, end_time, duration_min, is_key, category, sort_order, repeat_rule } = req.body || {};
+  const { title, date, start_time, end_time, duration_min, is_key, category, sort_order, repeat_rule, priority } = req.body || {};
   if (!title || !date) return res.status(400).json({ error: '标题与日期必填' });
   const cat = category === undefined ? null : Number(category);
   const syncIsKey = cat === null ? (is_key ? 1 : 0) : deriveIsKey(cat);
   const finalCat = cat === null ? (syncIsKey ? 2 : 3) : cat;
+  const prio = priority != null && Number(priority) >= 0 && Number(priority) <= 3 ? Number(priority) : null;
   const info = db.prepare(`
-    INSERT INTO schedules (user_id, title, date, start_time, end_time, duration_min, is_key, category, sort_order, repeat_rule)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(req.user.id, title, date, start_time || null, end_time || null, duration_min || null, syncIsKey, finalCat, sort_order || 0, repeat_rule || null);
+    INSERT INTO schedules (user_id, title, date, start_time, end_time, duration_min, is_key, category, sort_order, repeat_rule, priority)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.user.id, title, date, start_time || null, end_time || null, duration_min || null, syncIsKey, finalCat, sort_order || 0, repeat_rule || null, prio);
   const row = db.prepare('SELECT * FROM schedules WHERE id = ?').get(info.lastInsertRowid);
   res.json({ schedule: row });
 });
@@ -51,12 +52,13 @@ router.put('/:id', (req, res) => {
   const id = Number(req.params.id);
   const cur = db.prepare('SELECT * FROM schedules WHERE id = ? AND user_id = ?').get(id, req.user.id);
   if (!cur) return res.status(404).json({ error: '日程不存在' });
-  const { title, date, start_time, end_time, duration_min, is_key, category, is_done, sort_order, repeat_rule } = req.body || {};
+  const { title, date, start_time, end_time, duration_min, is_key, category, is_done, sort_order, repeat_rule, priority } = req.body || {};
   const cat = category === undefined ? null : Number(category);
   const newIsKey = cat === null
     ? (is_key === undefined ? null : (is_key ? 1 : 0))
     : deriveIsKey(cat);
   const newCat = cat;
+  const newPrio = priority === undefined ? null : (priority == null ? null : (Number(priority) >= 0 && Number(priority) <= 3 ? Number(priority) : null));
   db.prepare(`
     UPDATE schedules SET
       title = COALESCE(?, title),
@@ -68,7 +70,8 @@ router.put('/:id', (req, res) => {
       category = COALESCE(?, category),
       is_done = COALESCE(?, is_done),
       sort_order = COALESCE(?, sort_order),
-      repeat_rule = COALESCE(?, repeat_rule)
+      repeat_rule = COALESCE(?, repeat_rule),
+      priority = CASE WHEN ? = 1 THEN ? ELSE priority END
     WHERE id = ? AND user_id = ?
   `).run(
     title ?? null, date ?? null, start_time ?? null, end_time ?? null, duration_min ?? null,
@@ -77,6 +80,8 @@ router.put('/:id', (req, res) => {
     is_done === undefined ? null : (is_done ? 1 : 0),
     sort_order ?? null,
     repeat_rule ?? null,
+    priority === undefined ? 0 : 1,
+    newPrio,
     id, req.user.id
   );
   const row = db.prepare('SELECT * FROM schedules WHERE id = ?').get(id);

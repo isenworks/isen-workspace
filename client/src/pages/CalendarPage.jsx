@@ -150,6 +150,7 @@ function computeInitialWeekTasks(weekStartISO, weekEndISO, remoteSchedules = [])
         start_time: s.start_time || null,
         end_time: s.end_time || null,
         category: Number(s.category),
+        priority: s.priority ?? null,
         srcTag: `≡ ${mod.label}事项`,
         srcTagColor: mod.soft,
         srcTagTextColor: mod.color,

@@ -198,6 +198,16 @@ try {
   console.warn('migrate category warn:', e.message);
 }
 
+// 迁移：重要紧急程度 P0-P3（NULL=未设置）
+try {
+  const colsP = db.prepare("PRAGMA table_info(schedules)").all();
+  if (!colsP.some(c => c.name === 'priority')) {
+    db.exec(`ALTER TABLE schedules ADD COLUMN priority INTEGER`);
+  }
+} catch (e) {
+  console.warn('migrate priority warn:', e.message);
+}
+
 // 迁移：若 schedules 没有 repeat_rule 列则添加（支持生日/纪念日每年重复）
 try {
   const cols2 = db.prepare("PRAGMA table_info(schedules)").all();

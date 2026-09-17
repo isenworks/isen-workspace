@@ -4,6 +4,7 @@ import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
+import lunarLib from '../vendor/lunar.js';
 
 /* ============ 小工具 ============ */
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
@@ -343,16 +344,17 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
-  /* ===== 即将到来：本周重点展示 3 条之后的后续事项（本周剩余关键 + 未来 30 天关键 + 生日），每条带具体日期 ===== */
+  /* ===== 即将到来：今日起全部事项（日程全量 + 生日 + 节日，排除本周重点已展示的前 3 条），按日期升序滚动查看 ===== */
   const followUpList = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const shownIds = new Set(weekKeys.slice(0, 3).map(s => s.id));
-    const list = [];
-    // 生日（未来一年内最近的下一次，含农历标记）
-    (sched || []).filter(s => {
+    const isBirthday = s => {
       const t = String(s.title || '');
       return t.includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly' || t.startsWith('🎂'));
-    }).forEach(b => {
+    };
+    const list = [];
+    // 生日（未来一年内最近的下一次，含农历标记）
+    (sched || []).filter(isBirthday).forEach(b => {
       const name = String(b.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || b.title;
       const parts = String(b.date || '').split('-');
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
@@ -363,17 +365,25 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       const daysLeft = Math.round((next - today) / 86400000);
       list.push({ key: `bd-${b.id}`, type: 'birthday', title: `${name}的生日`, date: toISODate(next), isLunar: b.repeat_rule === 'lunar-yearly', daysLeft });
     });
-    // 关键事项：本周重点未展示的本周剩余 + 本周之后 30 天内
-    (sched || []).filter(s => s.is_key && s.date > todayStr && s.date <= addDaysISO(todayStr, 30) && !shownIds.has(s.id))
+    // 日程全量（关键 + 普通，排除生日原事项与本周重点已展示的）
+    (sched || []).filter(s => s.date >= todayStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s) && !shownIds.has(s.id))
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
-        list.push({ key: `uk-${s.id}`, type: 'key', title: s.title, date: s.date, daysLeft });
+        list.push({ key: `uk-${s.id}`, type: s.is_key ? 'key' : 'sched', title: s.title, date: s.date, daysLeft });
       });
-    return list.sort((a, b) => a.daysLeft - b.daysLeft);
+    // 节日（今天 ~ 未来 30 天，农历 + 公历，与月历同源）
+    for (let i = 0; i <= 30; i++) {
+      const iso = addDaysISO(todayStr, i);
+      const [y, m, d] = iso.split('-').map(Number);
+      const solar = lunarLib.Solar.fromYmd(y, m, d);
+      const fests = [...solar.getLunar().getFestivals(), ...solar.getFestivals()];
+      if (fests.length > 0) list.push({ key: `ft-${iso}`, type: 'festival', title: fests[0], date: iso, daysLeft: i });
+    }
+    return list.sort((a, b) => a.daysLeft - b.daysLeft || String(a.date).localeCompare(String(b.date)));
   }, [sched, todayStr, weekKeys]);
 
   /* ===== 精力：本周打卡统计 ===== */
-  const habitRows = habits.slice(0, 2);
+  const habitRows = habits.slice(0, 3);
   const weekDoneCnt = useMemo(() => habitRows.reduce((sum, h) => {
     const set = new Set(h.allDates || []);
     return sum + weekDates.filter(d => set.has(d)).length;
@@ -384,7 +394,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const booksDone = (books || []).filter(b => b.st === 'done').length;
 
   /* ===== 能力：各能力里程碑平均进度 ===== */
-  const abilRows = useMemo(() => (abilities || []).slice(0, 2).map(a => {
+  const abilRows = useMemo(() => (abilities || []).slice(0, 3).map(a => {
     const ms = a.mstones || [];
     const avg = ms.length > 0 ? Math.round(ms.reduce((s, m) => s + (m.pct || 0), 0) / ms.length) : 0;
     const doing = ms.filter(m => m.st === 'doing').length;
@@ -658,17 +668,17 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
 
-          {/* ---- 本周重点 ---- */}
+          {/* ---- 本周重点（标题右侧显示本周日期区间，查看 → 周月重点页，列表全量滚动） ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead title="本周重点" sub="关键事项" onClick={() => onNav?.('plan')} />
-            <div className="flex-1 flex flex-col gap-2 min-h-0">
+            <CardHead title="本周重点" sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(8, 10)}`} onClick={() => onNav?.('calendar')} />
+            <div className="flex flex-col gap-2 min-h-0">
               <div className="flex items-baseline justify-between mb-0.5">
                 <span className="text-[11px] text-ink-400">本周进度</span>
                 <span className="text-[12px] font-bold text-ink-800 tabular-nums">{weekKeyDone}/{weekKeys.length}</span>
               </div>
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
-              <div className="flex-1 flex flex-col justify-start gap-1.5 mt-1">
-                {weekKeys.slice(0, 3).map(s => (
+              <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 max-h-[190px]">
+                {weekKeys.map(s => (
                   <div key={s.id} className="flex items-center gap-2 group">
                     <button
                       onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
@@ -692,49 +702,48 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 {weekKeys.length === 0 && (
                   <div className="text-[12.5px] text-ink-400 text-center py-3">本周暂无关键事项</div>
                 )}
-                {weekKeys.length > 3 && (
-                  <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left">还有 {weekKeys.length - 3} 项…</button>
-                )}
               </div>
             </div>
           </div>
 
-          {/* ---- 即将到来：本周重点之后的后续事项（每条带具体日期 + 剩余天数） ---- */}
+          {/* ---- 即将到来：今日起全部事项（日程 + 生日 + 节日）全量滚动，查看 → 周月重点页 ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead title="即将到来" sub="本周后续" onClick={() => onNav?.('plan')} />
-            <div className="flex-1 flex flex-col gap-1.5 justify-start">
-              {followUpList.slice(0, 4).map(u => {
+            <CardHead title="即将到来" sub="全部事项" onClick={() => onNav?.('calendar')} />
+            <div className="overflow-y-auto nice-scroll pr-0.5 flex flex-col justify-start gap-1 max-h-[236px]">
+              {followUpList.map(u => {
                 const weekday = '日一二三四五六'[new Date(`${u.date}T00:00:00`).getDay()];
+                const meta = u.type === 'birthday'
+                  ? { bg: 'rgba(var(--m-life-rgb),0.1)', fg: 'var(--m-life)', tag: u.isLunar ? '农历生日' : '生日' }
+                  : u.type === 'festival'
+                    ? { bg: 'rgba(255,59,48,0.08)', fg: '#FF3B30', tag: '节日' }
+                    : u.type === 'key'
+                      ? { bg: 'rgba(var(--s-rgb),0.08)', fg: 'var(--s-main)', tag: '关键事项' }
+                      : { bg: 'rgba(120,120,128,0.08)', fg: '#8e8e93', tag: '日程' };
                 return (
                   <button
                     key={u.key}
-                    onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : onNav?.('plan')}
-                    className={`flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition ${u.type === 'birthday' ? 'hover:bg-[rgba(175,82,222,0.06)]' : 'hover:bg-[rgba(var(--s-rgb),0.05)]'}`}
+                    onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : onNav?.('calendar')}
+                    className="flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition hover:bg-[rgba(120,120,128,0.05)] flex-shrink-0"
                   >
-                    {u.type === 'birthday' ? (
-                      <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-life-rgb),0.1)' }}>
-                        <svg className="w-4 h-4" style={{ color: 'var(--m-life)' }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2l2.4 5.4L20 9l-4 4 .9 6.3L12 16.5 7.1 19.3 8 13 4 9l5.6-1.6L12 2z"/></svg>
-                      </span>
-                    ) : (
-                      <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
-                        {String(u.date).slice(8)}
-                      </span>
-                    )}
+                    <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: meta.bg, color: meta.fg }}>
+                      {u.type === 'birthday' ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2l2.4 5.4L20 9l-4 4 .9 6.3L12 16.5 7.1 19.3 8 13 4 9l5.6-1.6L12 2z"/></svg>
+                      ) : u.type === 'festival' ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 3v2M5 7h14l-1.3 9.8a3 3 0 01-3 2.7H9.3a3 3 0 01-3-2.7L5 7z"/></svg>
+                      ) : (
+                        String(u.date).slice(8)
+                      )}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="text-[12.5px] font-semibold text-ink-800 truncate">{u.title}</div>
-                      <div className="text-[10.5px] text-ink-400">
-                        {`${String(u.date).slice(5).replace('-', '/')} ${weekday}${u.type === 'birthday' ? (u.isLunar ? ' · 农历生日' : ' · 生日') : ' · 关键事项'}`}
-                      </div>
+                      <div className="text-[10.5px] text-ink-400 tabular-nums">{`${String(u.date).slice(5).replace('-', '.')} ${weekday} · ${meta.tag}`}</div>
                     </div>
-                    <span className="text-[16px] font-extrabold tabular-nums flex-shrink-0" style={{ color: u.type === 'birthday' ? 'var(--m-life)' : 'var(--s-main)' }}>{u.daysLeft}</span>
+                    <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: meta.fg }}>{u.daysLeft === 0 ? '今天' : `${u.daysLeft}天后`}</span>
                   </button>
                 );
               })}
               {followUpList.length === 0 && (
-                <div className="text-[12.5px] text-ink-400 text-center py-3">本周关键事项之后暂无安排</div>
-              )}
-              {followUpList.length > 4 && (
-                <button onClick={() => onNav?.('plan')} className="text-[11px] text-ink-400 hover:text-ink-600 text-left px-2">还有 {followUpList.length - 4} 项…</button>
+                <div className="text-[12.5px] text-ink-400 text-center py-3">近期暂无安排</div>
               )}
             </div>
           </div>
@@ -743,17 +752,18 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，xl 起 4 列） ========== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4">
 
-          {/* ---- 精力：周打卡矩阵 ---- */}
-          <div className="glass-card p-3 flex flex-col">
+          {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
+          <div className="glass-card p-4 flex flex-col">
             <CardHead moduleKey="energy" title="精力" sub="本周打卡" onClick={() => onNav?.('annual', 'energy')} />
             {habitRows.length > 0 ? (
               <>
                 <div className="hp-hb">
                   {habitRows.map(h => {
                     const set = new Set(h.allDates || []);
+                    const cnt = weekDates.filter(d => set.has(d)).length;
                     return (
                       <div key={h.id} className="hp-hrow">
-                        <span className="hp-hname" title={h.label}>{h.label}</span>
+                        <span className="hp-hname" title={h.label}>{String(h.label || '').split('·')[0].trim().slice(0, 2) || '习惯'}</span>
                         <div className="hp-hcells">
                           {weekDates.map(d => {
                             const isTdy = d === todayStr;
@@ -766,11 +776,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                             );
                           })}
                         </div>
+                        <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[22px] text-right" style={{ color: cnt >= 7 ? 'var(--m-energy)' : '#8e8e93' }}>{cnt}/7</span>
                       </div>
                     );
                   })}
                 </div>
-                <div className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: '1px solid rgba(120,120,128,0.1)' }}>
+                <div className="flex items-center justify-between mt-2.5 pt-2.5" style={{ borderTop: '1px solid rgba(120,120,128,0.1)' }}>
                   <span className="text-[11px] text-ink-400">本周已打卡</span>
                   <span className="text-[12px] font-bold tabular-nums" style={{ color: 'var(--m-energy)' }}>
                     {weekDoneCnt}/{habitRows.length * 7} 次
@@ -785,28 +796,42 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             )}
           </div>
 
-          {/* ---- 知力：在读 ---- */}
-          <div className="glass-card p-3 flex flex-col">
+          {/* ---- 知力：在读（主推书带封面） ---- */}
+          <div className="glass-card p-4 flex flex-col">
             <CardHead moduleKey="cognition" title="知力" sub={reading.length > 0 ? `在读 ${reading.length} 本` : `已读 ${booksDone} 本`} onClick={() => onNav?.('annual', 'cognition')} />
             <div className="flex-1 flex flex-col justify-start min-h-0">
               {reading.length > 0 && (
                 <div className="rounded-xl p-2.5" style={{ background: 'rgba(var(--m-cognition-rgb),0.06)' }}>
-                  <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <span className="text-[14px] font-bold text-ink-900 truncate">《{reading[0].t}》</span>
-                    <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: 'var(--m-cognition)' }}>{reading[0].pct || 0}%</span>
+                  <div className="flex gap-3">
+                    {reading[0].coverUrl ? (
+                      <img
+                        src={reading[0].coverUrl} alt=""
+                        className="w-[46px] h-[64px] rounded-lg object-cover flex-shrink-0"
+                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+                        onError={e => { e.currentTarget.style.visibility = 'hidden'; }}
+                      />
+                    ) : (
+                      <span className="w-[46px] h-[64px] rounded-lg flex-shrink-0 grid place-items-center text-[16px] font-bold" style={{ background: 'rgba(var(--m-cognition-rgb),0.12)', color: 'var(--m-cognition)' }}>{String(reading[0].t || '书')[0]}</span>
+                    )}
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <span className="text-[14px] font-bold text-ink-900 truncate">《{reading[0].t}》</span>
+                        <span className="text-[12px] font-extrabold tabular-nums flex-shrink-0" style={{ color: 'var(--m-cognition)' }}>{reading[0].pct || 0}%</span>
+                      </div>
+                      <div className="text-[11px] text-ink-400 truncate">{reading[0].author || '佚名'} · {reading[0].cat || '未分类'}</div>
+                      <div className="mt-auto pt-1.5"><Bar value={reading[0].pct || 0} color="var(--m-cognition)" /></div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-ink-400 mb-2 truncate">{reading[0].author || '佚名'} · {reading[0].cat || '未分类'}</div>
-                  <Bar value={reading[0].pct || 0} color="var(--m-cognition)" />
                   {reading.length > 1 && (
-                    <div className="mt-1.5 pt-1.5 flex flex-col gap-1" style={{ borderTop: '1px dashed rgba(0,163,255,0.18)' }}>
-                      {reading.slice(1, 3).map(b => (
+                    <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: '1px dashed rgba(0,163,255,0.18)' }}>
+                      {reading.slice(1, 4).map(b => (
                         <div key={b.id} className="flex items-center gap-2">
                           <span className="text-[11.5px] text-ink-600 truncate flex-1">{b.t}</span>
                           <div className="w-[54px] flex-shrink-0"><Bar value={b.pct || 0} color="var(--m-cognition)" h="4px" /></div>
                           <span className="text-[10px] text-ink-400 tabular-nums w-[27px] text-right">{b.pct || 0}%</span>
                         </div>
                       ))}
-                      {reading.length > 3 && <div className="text-[10.5px] text-ink-300">等 {reading.length - 3} 本在读…</div>}
+                      {reading.length > 4 && <div className="text-[10.5px] text-ink-300">等 {reading.length - 4} 本在读…</div>}
                     </div>
                   )}
                 </div>
@@ -821,9 +846,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
 
           {/* ---- 能力 ---- */}
-          <div className="glass-card p-3 flex flex-col">
+          <div className="glass-card p-4 flex flex-col">
             <CardHead moduleKey="ability" title="能力" sub="里程碑进度" onClick={() => onNav?.('annual', 'ability')} />
-            <div className="flex-1 flex flex-col justify-start gap-2">
+            <div className="flex-1 flex flex-col justify-start gap-2.5">
               {abilRows.map(a => (
                 <div key={a.id}>
                   <div className="flex items-baseline justify-between gap-2 mb-1">
@@ -831,7 +856,6 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--m-ability)' }}>{a.avg}%</span>
                   </div>
                   <Bar value={a.avg} color="var(--m-ability)" />
-                  <div className="text-[10px] text-ink-300 mt-1">{a.doing > 0 ? `${a.doing} 个里程碑进行中` : `共 ${a.total} 个里程碑`}</div>
                 </div>
               ))}
               {abilRows.length === 0 && (
@@ -844,9 +868,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
 
           {/* ---- 工作 ---- */}
-          <div className="glass-card p-3 flex flex-col">
+          <div className="glass-card p-4 flex flex-col">
             <CardHead moduleKey="work" title="工作" sub="目标进度" onClick={() => onNav?.('annual', 'work')} />
-            <div className="flex-1 flex flex-col justify-start gap-2">
+            <div className="flex-1 flex flex-col justify-start gap-2.5">
               {workRows.map(o => (
                 <div key={o.id}>
                   <div className="flex items-baseline justify-between gap-2 mb-1">

@@ -976,11 +976,17 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
    hp-hname  习惯名（定宽截断）
    hp-hcells 7 天格子网格
    hp-hcell  单日格子：数字 = 日期；.ok 已打卡 / .fut 未来 / .tdy 今天描边 */
+/* 卡片内细滚动条（首页本周重点 / 即将到来列表） */
+.nice-scroll { scrollbar-width: thin; scrollbar-color: rgba(120,120,128,0.28) transparent; }
+.nice-scroll::-webkit-scrollbar { width: 4px; }
+.nice-scroll::-webkit-scrollbar-thumb { background: rgba(120,120,128,0.28); border-radius: 999px; }
+.nice-scroll::-webkit-scrollbar-track { background: transparent; }
+
 .hp-hb { display: flex; flex-direction: column; gap: 9px; flex: 1; justify-content: flex-start; }
 .hp-hrow { display: flex; align-items: center; gap: 7px; }
 .hp-hname {
   font-size: 11px; font-weight: 600; color: #8e8e93;
-  width: 64px; flex-shrink: 0;
+  width: 40px; flex-shrink: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .hp-hcells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; flex: 1; }

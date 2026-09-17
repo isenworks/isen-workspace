@@ -899,7 +899,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <button
             onClick={() => onNewSchedule?.()}
-            className="glass-card p-3.5 flex items-center gap-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(0,0,0,0.08)] active:translate-y-0 active:scale-[0.98]"
+            className="glass-card p-3.5 flex items-center justify-center gap-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(0,0,0,0.08)] active:translate-y-0 active:scale-[0.98]"
           >
             <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--s-rgb),0.08)' }}>
               <svg className="w-[19px] h-[19px]" style={{ color: 'var(--s-main)' }} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
@@ -911,7 +911,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </button>
           <button
             onClick={() => onQuickCapture?.()}
-            className="glass-card p-3.5 flex items-center gap-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(0,0,0,0.08)] active:translate-y-0 active:scale-[0.98]"
+            className="glass-card p-3.5 flex items-center justify-center gap-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(0,0,0,0.08)] active:translate-y-0 active:scale-[0.98]"
           >
             <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-energy-rgb),0.08)' }}>
               <svg className="w-[19px] h-[19px]" style={{ color: 'var(--m-energy)' }} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
@@ -923,12 +923,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </button>
           <button
             onClick={() => onOpenSummary?.()}
-            className="glass-card p-3.5 flex items-center gap-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(0,0,0,0.08)] active:translate-y-0 active:scale-[0.98]"
+            className="glass-card p-3.5 flex items-center justify-center gap-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_6px_14px_rgba(0,0,0,0.08)] active:translate-y-0 active:scale-[0.98]"
           >
             <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--m-cognition-rgb),0.08)' }}>
               <svg className="w-[19px] h-[19px]" style={{ color: 'var(--m-cognition)' }} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             </span>
-            <span className="text-[14px] font-semibold text-ink-800">总结</span>
+            <span className="flex items-center gap-1.5 text-[14px] font-semibold text-ink-800">
+              总结
+              <span className="text-[9px] font-bold leading-none px-1.5 py-[2px] rounded border border-ink-300 text-ink-400" title="键盘快捷键">D</span>
+            </span>
           </button>
         </div>
       </div>

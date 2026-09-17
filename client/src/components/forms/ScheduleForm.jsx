@@ -421,8 +421,8 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         </div>
       </div>
 
-      {/* 时间 · 开始 + 结束 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      {/* 时间 · 开始 + 结束 + 时长（比例三列：时间输入带钟表按钮需更宽，时长为纯数字输入天然窄） */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.85fr', gap: '10px' }}>
         <div>
           <label style={LABEL_STYLE}>开始时间</label>
           <FriendlyTimeInput
@@ -439,23 +439,24 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
             placeholder="几点结束？"
           />
         </div>
-      </div>
-
-      <div>
-        <label style={LABEL_STYLE}>时长（分钟）</label>
-        <input
-          className="form-input"
-          style={{ ...INPUT_STYLE, width: '50%', minWidth: '160px' }}
-          type="number"
-          value={form.duration_min}
-          onChange={e => set('duration_min', e.target.value)}
-          placeholder="可留空"
-        />
-        {form.duration_min && (
-          <span style={{ fontSize: '11px', color: '#8e8e93', marginTop: '4px', marginLeft: '10px', display: 'inline-block' }}>
-            {formatDuration(Number(form.duration_min))}
-          </span>
-        )}
+        <div>
+          <label style={{ ...LABEL_STYLE, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px' }}>
+            <span style={{ flexShrink: 0 }}>时长（分）</span>
+            {form.duration_min ? (
+              <span style={{ fontSize: '10px', fontWeight: '500', color: '#aeaeb2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {formatDuration(Number(form.duration_min))}
+              </span>
+            ) : null}
+          </label>
+          <input
+            className="form-input"
+            style={INPUT_STYLE}
+            type="number"
+            value={form.duration_min}
+            onChange={e => set('duration_min', e.target.value)}
+            placeholder="可留空"
+          />
+        </div>
       </div>
 
       {/* 重复 · iOS segmented 风格五选一 */}

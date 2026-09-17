@@ -423,7 +423,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className="flex items-center justify-end text-[11px] text-ink-400 mb-3 ml-auto">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-[14px] h-[14px] rounded-md bg-accent-green/15 text-accent-green grid place-items-center" style={{border: '1px solid rgba(52,199,89,0.25)'}}>
+              <span className="w-[14px] h-[14px] rounded-md text-white grid place-items-center" style={{ background: 'var(--m-energy)' }}>
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </span>已打卡
             </span>
@@ -508,8 +508,11 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     let cellText = '';
                     let cellRing = '';
                     let cellBorder = '';
+                    let cellColor = '';
                     if (checked) {
-                      cellBg = 'bg-accent-green/15 text-accent-green';
+                      cellBg = 'text-white';
+                      cellBorder = `border border-transparent`;
+                      cellColor = GREEN;
                       cellText = 'font-bold';
                     } else if (!isPast) {
                       cellBg = 'bg-ink-50 text-ink-300';
@@ -531,7 +534,8 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                           'aspect-square rounded-md grid place-items-center',
                           'text-[12px] tabular-nums leading-none transition-colors',
                           cellBg, cellText, cellRing, cellBorder
-                        ].join(' ')}>
+                        ].join(' ')}
+                        style={cellColor ? { background: cellColor } : undefined}>
                         {day}
                       </div>
                     );

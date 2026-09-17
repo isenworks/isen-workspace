@@ -375,10 +375,6 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   /* ===== 精力：本周打卡统计 ===== */
   const habitRows = habits.slice(0, 3);
-  const weekDoneCnt = useMemo(() => habitRows.reduce((sum, h) => {
-    const set = new Set(h.allDates || []);
-    return sum + weekDates.filter(d => set.has(d)).length;
-  }, 0), [habits, weekDates]);
 
   /* ===== 知力：在读（1 本主推 + 多本列表） ===== */
   const reading = useMemo(() => (books || []).filter(b => b.st === 'reading').sort((a, b) => (b.pct || 0) - (a.pct || 0)), [books]);
@@ -412,7 +408,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative md:flex-1 flex flex-col gap-3">
         <div
-          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group flex-1 md:min-h-[148px]"
+          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group flex-1 md:min-h-[136px]"
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
         >
@@ -625,7 +621,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 时间层：今日聚焦 / 本周重点 / 即将到来（3 等分，md 起 3 列） ========== */}
-        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:h-[300px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:h-[clamp(206px,31vh,300px)]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -754,7 +750,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，xl 起 4 列） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:h-[240px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:h-[clamp(160px,23vh,240px)]">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -784,12 +780,6 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       </div>
                     );
                   })}
-                </div>
-                <div className="flex items-center justify-between mt-auto pt-2.5" style={{ borderTop: '1px solid rgba(120,120,128,0.1)' }}>
-                  <span className="text-[11px] text-ink-400">本周已打卡</span>
-                  <span className="text-[12px] font-bold tabular-nums" style={{ color: 'var(--m-energy)' }}>
-                    {weekDoneCnt}/{habitRows.length * 7} 次
-                  </span>
                 </div>
               </>
             ) : (

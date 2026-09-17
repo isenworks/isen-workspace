@@ -7,47 +7,47 @@ import { store } from '../../utils/store.js';
 import { cloudPush } from '../../utils/cloudKV.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { reloadCategoryMapping } from '../../utils/categoryMapping.js';
-import { hexToRgba, tintBorder } from '../../utils/color.js';
+import { hexToRgba } from '../../utils/color.js';
+import { getModuleColors } from '../../utils/moduleTheme.js';
 
 /* ============================================================
- * 分类管理 · 6 大模块 (精力/知力/能力/工作/生活/其他)
- *   - 内置项不可删，但可改名+改色（防止模块映射断裂）
+ * 分类管理 · 7 大内置模块 (精力/知力/能力/工作/生活/财务/其他)
+ *   - 内置项不可删，可改名；颜色以系统设置的模块色为单一真源
  *   - 支持「+」新增自定义类型（支持删改：文字+颜色）
  *   - 持久化到 localStorage: `schedule_cats_v1` (按用户 id 隔离)
  * ============================================================ */
 
-// 七大内置类型 (v, label, dot)
+// 七大内置类型 (v, label)
 // category 值约定：  6=精力  7=知力   2=能力   1=工作   5=生活   8=财务   3=其他(原"常规")
 // 自定义类别 cat 从 101 起分配，避免与内置重复
-const BUILTIN_CATS = [
-  { v: 6, label: '精力',  dot: '#34C759', builtin: true },
-  { v: 7, label: '知力',  dot: '#00A3FF', builtin: true },
-  { v: 2, label: '能力',  dot: '#FF9500', builtin: true },
-  { v: 1, label: '工作',  dot: '#FF3B30', builtin: true },
-  { v: 5, label: '生活',  dot: '#AF52DE', builtin: true },
-  { v: 8, label: '财务',  dot: '#EAB308', builtin: true },
-  { v: 3, label: '其他',  dot: '#8E8E93', builtin: true },
+// 颜色单一真源：系统设置的模块色（getModuleColors），改设置即全站生效
+const CAT_MODULE_KEY = { 6: 'energy', 7: 'cognition', 2: 'ability', 1: 'work', 5: 'life', 8: 'finance' };
+const BUILTIN_LABELS = [
+  { v: 6, label: '精力' },
+  { v: 7, label: '知力' },
+  { v: 2, label: '能力' },
+  { v: 1, label: '工作' },
+  { v: 5, label: '生活' },
+  { v: 8, label: '财务' },
+  { v: 3, label: '其他' },
 ];
-
-// 重要紧急程度选项（P0 最紧急；NULL=未设置）
-const PRIORITY_OPTS = [
-  { v: 0, label: 'P0', color: '#FF3B30', title: 'P0 · 紧急且重要' },
-  { v: 1, label: 'P1', color: '#FF9500', title: 'P1 · 重要不紧急' },
-  { v: 2, label: 'P2', color: '#00A3FF', title: 'P2 · 紧急不重要' },
-  { v: 3, label: 'P3', color: '#8E8E93', title: 'P3 · 不重要不紧急' },
-];
-
-function catToStyle(c) {
-  const bg = hexToRgba(c.dot, 0.09);
-  const border = tintBorder(c.dot);
-  return {
-    dot: c.dot,
-    bg,
-    border,
-    text: c.dot,
-    textActive: '#1c1c1e',
-  };
+function builtinCats() {
+  let mc = {};
+  try { mc = getModuleColors(); } catch {}
+  return BUILTIN_LABELS.map(b => ({
+    ...b,
+    dot: (CAT_MODULE_KEY[b.v] && mc[CAT_MODULE_KEY[b.v]]?.hex) || '#8E8E93',
+    builtin: true,
+  }));
 }
+
+// 重要紧急程度选项（P0 最紧急；NULL=未设置）· P2 用 iOS 蓝 #007AFF（区别于知力主题色）
+const PRIORITY_OPTS = [
+  { v: 0, label: 'P0', short: '紧急且重要',   color: '#FF3B30', title: 'P0 · 紧急且重要' },
+  { v: 1, label: 'P1', short: '重要不紧急',   color: '#FF9500', title: 'P1 · 重要不紧急' },
+  { v: 2, label: 'P2', short: '紧急不重要',   color: '#007AFF', title: 'P2 · 紧急不重要' },
+  { v: 3, label: 'P3', short: '不重要不紧急', color: '#8E8E93', title: 'P3 · 不重要不紧急' },
+];
 
 const LS_KEY = 'schedule_cats_v1';
 function curUserId() {
@@ -57,19 +57,21 @@ function curUserId() {
     return (obj && obj.id) ? String(obj.id) : 'anon';
   } catch { return 'anon'; }
 }
-// 读取分类列表（内置 6 项 + 用户自定义）；收集箱等模块复用，保证分类体系单一来源
+// 读取分类列表（内置 7 项 + 用户自定义）；收集箱等模块复用，保证分类体系单一来源
+// 内置类型颜色跟随系统设置模块色；schedule_cats_v1 对内置只覆盖 label，自定义类型全量生效
 export function readCats() {
+  const base = builtinCats();
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return BUILTIN_CATS.map(c => ({ ...c }));
+    if (!raw) return base;
     const obj = JSON.parse(raw) || {};
     const saved = obj[curUserId()];
-    if (!saved) return BUILTIN_CATS.map(c => ({ ...c }));
-    // 合并：内置保留 + 自定义追加；内置 label/dot 以持久化覆盖
-    const merged = BUILTIN_CATS.map(base => {
-      const ov = saved.find(s => s.v === base.v);
-      if (!ov) return { ...base };
-      return { ...base, label: ov.label ?? base.label, dot: ov.dot ?? base.dot };
+    if (!saved) return base;
+    // 合并：内置保留（label 可覆盖，颜色以系统设置为准）+ 自定义追加
+    const merged = base.map(b => {
+      const ov = saved.find(s => s.v === b.v);
+      if (!ov) return { ...b };
+      return { ...b, label: ov.label ?? b.label };
     });
     saved.forEach(s => {
       if (s.v >= 100 && !merged.find(m => m.v === s.v)) {
@@ -78,7 +80,7 @@ export function readCats() {
     });
     return merged;
   } catch {
-    return BUILTIN_CATS.map(c => ({ ...c }));
+    return base;
   }
 }
 function writeCats(list) {
@@ -620,23 +622,24 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
  * ============================================================ */
 
 function PickerCell({ c, active, onClick, onEdit }) {
-  const s = catToStyle(c);
   return (
     <div style={{ position: 'relative' }}>
       <button
         type="button"
         onClick={onClick}
         style={{
-          padding: '5px 9px',
-          borderRadius: '8px',
-          fontSize: '12px',
-          fontWeight: active ? '600' : '500',
-          background: active ? s.bg : '#ffffff',
-          color: active ? s.textActive : '#636366',
-          border: active ? `1.5px solid ${s.border}` : '1px solid #d1d1d6',
+          width: '100%',
+          padding: '7px 0',
+          borderRadius: '9px',
+          fontSize: '12.5px',
+          fontWeight: active ? '700' : '600',
+          background: active ? c.dot : '#ffffff',
+          color: active ? '#ffffff' : '#636366',
+          border: active ? 'none' : '1px solid #d1d1d6',
+          boxShadow: active ? `0 2px 6px ${hexToRgba(c.dot, 0.3)}` : 'none',
           cursor: 'pointer',
           transition: 'all .15s',
-          display: 'inline-flex',
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '5px',
@@ -649,10 +652,10 @@ function PickerCell({ c, active, onClick, onEdit }) {
           display: 'inline-block',
           width: '7px', height: '7px',
           borderRadius: '2px',
-          background: active ? c.dot : '#c7c7cc',
+          background: active ? 'rgba(255,255,255,0.95)' : '#c7c7cc',
           flexShrink: 0
         }}></span>
-        <span>{c.label}</span>
+        <span className="truncate">{c.label}</span>
       </button>
       {/* 编辑画笔（hover 显示，移动端始终有触点） */}
       <button
@@ -680,79 +683,64 @@ function PickerCell({ c, active, onClick, onEdit }) {
 }
 
 function CategoryPicker({ cats, value, onSelect, onManage, priority, onPriority }) {
-  // 左：类型紧凑 chip（流式换行）；右：重要紧急 P0-P3（竖线分隔，同层一行）
+  // 上：类型（标题+管理按钮，方块同重复规格，一行 3 个）；下：重要紧急（标题同款对齐，一行 2 个）
   const cells = [...cats];
-  const needPlus = cells.length < 6;
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
         <label style={{ ...LABEL_STYLE, marginBottom: 0 }}>类型</label>
-        {!needPlus && (
-          <button
-            type="button"
-            onClick={onManage}
-            style={{
-              fontSize: '11px', fontWeight: '500', color: 'var(--s-main)',
-              background: 'rgba(var(--s-rgb),0.08)',
-              padding: '3px 10px', borderRadius: '999px',
-              border: 'none', cursor: 'pointer'
-            }}
-          >管理类型</button>
-        )}
+        <button
+          type="button"
+          onClick={onManage}
+          style={{
+            fontSize: '11px', fontWeight: '500', color: 'var(--s-main)',
+            background: 'rgba(var(--s-rgb),0.08)',
+            padding: '3px 10px', borderRadius: '999px',
+            border: 'none', cursor: 'pointer'
+          }}
+        >管理类型</button>
       </div>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
-        {/* 类型 chips（缩小后流式排布） */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'flex-start' }}>
-          {cells.map(c => (
-            <PickerCell
-              key={c.v}
-              c={c}
-              active={value === c.v}
-              onClick={() => onSelect(c.v)}
-              onEdit={(e) => { if (e && e.stopPropagation) e.stopPropagation(); onManage(); }}
-            />
-          ))}
-          {needPlus && (
-            <button
-              type="button"
-              onClick={onManage}
-              style={{
-                borderRadius: '8px', border: '1px dashed #c7c7cc',
-                background: '#ffffff', color: '#8e8e93',
-                fontSize: '12px', fontWeight: '500',
-                cursor: 'pointer', padding: '5px 9px',
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                transition: 'all .15s'
-              }}
-            >
-              <span style={{ fontSize: '13px', lineHeight: '1' }}>+</span>
-              管理
-            </button>
-          )}
-        </div>
-        {/* 重要紧急 P0-P3（点击选中，再点取消） */}
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '5px', paddingLeft: '10px', borderLeft: '1px solid #e5e5ea' }}>
-          <label style={{ fontSize: '10px', fontWeight: '600', color: '#8e8e93', letterSpacing: '0.02em' }}>重要紧急</label>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {PRIORITY_OPTS.map(po => {
-              const on = priority === po.v;
-              return (
-                <button
-                  key={po.v}
-                  type="button"
-                  onClick={() => onPriority(on ? null : po.v)}
-                  title={po.title}
-                  style={{
-                    width: '30px', height: '26px', borderRadius: '7px', cursor: 'pointer',
-                    fontSize: '11px', fontWeight: '700', transition: 'all .15s',
-                    background: on ? po.color : '#ffffff',
-                    color: on ? '#ffffff' : '#8e8e93',
-                    border: on ? `1.5px solid ${po.color}` : '1px solid #d1d1d6',
-                  }}
-                >{po.label}</button>
-              );
-            })}
-          </div>
+      {/* 类型方块 · 与重复选项同规格，一行 3 个 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+        {cells.map(c => (
+          <PickerCell
+            key={c.v}
+            c={c}
+            active={value === c.v}
+            onClick={() => onSelect(c.v)}
+            onEdit={(e) => { if (e && e.stopPropagation) e.stopPropagation(); onManage(); }}
+          />
+        ))}
+      </div>
+
+      {/* 重要紧急 · 标题与「类型」同款对齐，方块一行 2 个 */}
+      <div style={{ marginTop: '10px' }}>
+        <label style={{ ...LABEL_STYLE, marginBottom: '5px' }}>重要紧急</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          {PRIORITY_OPTS.map(po => {
+            const on = priority === po.v;
+            return (
+              <button
+                key={po.v}
+                type="button"
+                onClick={() => onPriority(on ? null : po.v)}
+                title={po.title}
+                style={{
+                  padding: '7px 0',
+                  borderRadius: '9px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  background: on ? po.color : '#ffffff',
+                  color: on ? '#ffffff' : '#636366',
+                  border: on ? 'none' : '1px solid #d1d1d6',
+                  boxShadow: on ? `0 2px 6px ${hexToRgba(po.color, 0.3)}` : 'none',
+                  cursor: 'pointer',
+                  transition: 'all .15s',
+                  whiteSpace: 'nowrap',
+                }}
+              >{po.label} · {po.short}</button>
+            );
+          })}
         </div>
       </div>
     </div>

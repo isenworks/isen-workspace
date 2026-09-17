@@ -15,6 +15,7 @@ const BASE_MODULES = [
   { key: 'cognition', label: '知力', cat: 7, color: moduleColor('cognition'), soft: moduleRgba('cognition'), weight: 0.20 },
   { key: 'ability',   label: '能力', cat: 2, color: moduleColor('ability'),   soft: moduleRgba('ability'),   weight: 0.25 },
   { key: 'work',      label: '工作', cat: 1, color: moduleColor('work'),      soft: moduleRgba('work'),      weight: 0.25 },
+  { key: 'finance',   label: '财务', cat: 8, color: moduleColor('finance'),   soft: moduleRgba('finance'),   weight: 0.10 },
   { key: 'life',      label: '生活', cat: 5, color: moduleColor('life'),      soft: moduleRgba('life'),      weight: 0.15 },
   { key: 'others',    label: '其他', cat: 3, color: '#8E8E93',                soft: 'rgba(142,142,147,0.08)', weight: 0    },
 ];

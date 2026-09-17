@@ -267,13 +267,13 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         doneColor: '#00A3FF'
       };
     }
-    // 财务（cat=8）金色
+    // 财务（cat=8）粉色 — 与系统设置财务模块色一致（#FF2D55）
     if (cat === 8) {
       return {
-        bg: 'linear-gradient(90deg,#fdf6df 0%,transparent 70%)',
-        borderColor: '#EAB308',
-        dotColor: '#EAB308',
-        doneColor: '#EAB308'
+        bg: 'linear-gradient(90deg,#ffe9ee 0%,transparent 70%)',
+        borderColor: '#FF2D55',
+        dotColor: '#FF2D55',
+        doneColor: '#FF2D55'
       };
     }
     // 常规事项

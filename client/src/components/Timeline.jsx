@@ -20,7 +20,7 @@ const CAT_COLORS = {
   5: { color: '#AF52DE', bg: '#f3e8ff', borderColor: '#AF52DE', doneColor: '#AF52DE', lineColor: '#AF52DE', timeColor: '#AF52DE' },
   6: { color: '#34C759', bg: '#e5f6ea', borderColor: '#34C759', doneColor: '#34C759', lineColor: '#34C759', timeColor: '#34C759' },
   7: { color: '#00A3FF', bg: '#e0f0ff', borderColor: '#00A3FF', doneColor: '#00A3FF', lineColor: '#00A3FF', timeColor: '#00A3FF' },
-  8: { color: '#EAB308', bg: '#fdf6df', borderColor: '#EAB308', doneColor: '#EAB308', lineColor: '#EAB308', timeColor: '#EAB308' },
+  8: { color: '#FF2D55', bg: '#ffe9ee', borderColor: '#FF2D55', doneColor: '#FF2D55', lineColor: '#FF2D55', timeColor: '#FF2D55' },
 };
 
 // 将 hex 颜色与白色混合，生成浅色背景

@@ -5,7 +5,7 @@
 const P_META = {
   0: { label: 'P0', color: '#FF3B30', bg: 'rgba(255,59,48,0.10)' },
   1: { label: 'P1', color: '#FF9500', bg: 'rgba(255,149,0,0.10)' },
-  2: { label: 'P2', color: '#00A3FF', bg: 'rgba(0,163,255,0.10)' },
+  2: { label: 'P2', color: '#007AFF', bg: 'rgba(0,122,255,0.10)' },
   3: { label: 'P3', color: '#8E8E93', bg: 'rgba(142,142,147,0.12)' },
 };
 

@@ -54,6 +54,8 @@ export default function Workspace({ user: propUser }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // 新建事项弹窗（快捷键 S / 首页新建卡共用）：默认今天
+  const openNewSchedule = () => { setSelectedDate(getToday()); setModal({ type: 'schedule', data: undefined }); };
   // 右栏显示总结面板状态：默认显示时间线
   const [showSummary, setShowSummary] = useState(false);
 
@@ -514,7 +516,7 @@ export default function Workspace({ user: propUser }) {
               setActiveMenu(menu);
               if (annualView) setAnnualView(annualView);
             }}
-            onNewSchedule={() => { setSelectedDate(getToday()); setModal({ type: 'schedule', data: undefined }); }}
+            onNewSchedule={openNewSchedule}
             onQuickCapture={() => setQuickCaptureOpen(true)}
             onOpenSummary={() => { setSelectedDate(getToday()); setModal({ type: 'summary' }); }}
             onSync={() => {

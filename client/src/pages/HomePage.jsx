@@ -403,10 +403,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-3">
-      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:flex-1 md:min-h-[calc(100vh-48px)]">
+      <div className="w-full max-w-[1320px] mx-auto flex flex-col gap-3 md:h-[calc(100vh-48px)] md:overflow-y-auto nice-scroll">
 
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
-        <div ref={heroRef} className="relative">
+        <div ref={heroRef} className="relative md:shrink-0">
         <div
           className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group md:h-[168px]"
           style={heroStyle}
@@ -624,7 +624,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:flex-1 md:min-h-[206px]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
-          <div className="glass-card p-4 flex flex-col min-h-0">
+          <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead title="今日聚焦" sub={`${+todayStr.slice(5, 7)}.${+todayStr.slice(8, 10)}`} onClick={() => onNav?.('plan')} />
             <div className="flex flex-col gap-2 min-h-0 flex-1">
               <div className="flex items-baseline justify-between mb-0.5">
@@ -669,9 +669,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
 
           {/* ---- 本周重点（标题右侧显示本周日期区间，查看 → 周月重点页，列表全量滚动） ---- */}
-          <div className="glass-card p-4 flex flex-col min-h-0">
+          <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead title="本周重点" sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(5, 7)}.${+weekEndStr.slice(8, 10)}`} onClick={() => onNav?.('calendar')} />
-            <div className="flex flex-col gap-2 min-h-0">
+            <div className="flex flex-col gap-2 min-h-0 flex-1">
               <div className="flex items-baseline justify-between mb-0.5">
                 <span className="text-[11px] text-ink-400">本周进度</span>
                 <span className="text-[12px] font-bold text-ink-800 tabular-nums">{weekKeyDone}/{weekKeys.length}</span>
@@ -707,7 +707,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
 
           {/* ---- 即将到来：本周之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月重点页 ---- */}
-          <div className="glass-card p-4 flex flex-col min-h-0">
+          <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead title="即将到来" sub="本周之后" onClick={() => onNav?.('calendar')} />
             <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0">
               {followUpList.map(u => {
@@ -750,7 +750,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，xl 起 4 列） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:h-[clamp(176px,28vh,264px)]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:h-[clamp(176px,28vh,264px)] md:shrink-0">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -889,8 +889,11 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
         </div>
 
-        {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，首页行动枢纽） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ========== */}
+        <div
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10 md:pt-2"
+          style={{ background: 'linear-gradient(180deg, rgba(245,245,247,0), rgba(245,245,247,0.92) 46%)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
+        >
           <button
             onClick={() => onNewSchedule?.()}
             className="flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-ink-200/60 bg-white/70 dark:bg-white/5 transition hover:border-ink-300 hover:bg-ink-50 active:scale-[0.97] text-[13px] font-semibold text-ink-800"

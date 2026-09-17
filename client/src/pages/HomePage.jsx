@@ -898,7 +898,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
         {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ========== */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10 md:pt-2"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10"
           style={{ background: 'linear-gradient(180deg, rgba(232,232,237,0), rgba(232,232,237,0.92) 46%)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
         >
           <button

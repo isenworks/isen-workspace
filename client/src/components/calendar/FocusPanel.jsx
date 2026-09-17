@@ -158,7 +158,7 @@ export default function FocusPanel({
   onReorder,          // (groupKey, fromTaskId, toTaskId) => void — 组内拖拽排序回调
   deletedTasks,       // 回收站任务数组（若传则底部出现回收站卡）
   showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
-  headerExtra,
+  titleExtra,         // 标题行内嵌插槽：紧跟标题文字渲染（月周重点页传 本周/本月 分段切换 + 日期辅助）
   fill,              // 页面布局场景：卡片纵向撑满所在列（列表区吃剩余高度，超出滚动）；弹层不传则保持自然高度
   moduleGoalsOnly,   // 主线面板场景：模块分组视图只显示 is_goal 目标事项（时间顺序视图仍显示全部）；当日详情弹层不传保持全量
 }) {
@@ -252,33 +252,11 @@ export default function FocusPanel({
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-[5px] h-[18px] rounded-[3px] flex-shrink-0" style={{ background: accentColor }} />
-        <div className="min-w-0 truncate text-[15px] font-extrabold text-[#1C1C1E] tracking-tight">
+        <div className="flex-shrink-0 text-[15px] font-extrabold text-[#1C1C1E] tracking-tight">
           {title}
         </div>
-        {/* 视图切换（紧随标题）：时间顺序（递减线·默认）/ 模块分组（田字），逻辑同重点事项卡片的排序按钮 */}
-        <button
-          onClick={() => setSortBy(s => (s === 'module' ? 'time' : 'module'))}
-          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
-          title={sortBy === 'time' ? '按时间顺序（点击切换为按模块分组）' : '按模块分组（点击切换为按时间顺序）'}
-          aria-label={sortBy === 'time' ? '按时间顺序' : '按模块分组'}
-        >
-          {sortBy === 'time' ? (
-            <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
-              <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
-                <line x1="1.5" y1="3" x2="12.5" y2="3" />
-                <line x1="1.5" y1="7" x2="9.5" y2="7" />
-                <line x1="1.5" y1="11" x2="6.5" y2="11" />
-              </g>
-            </svg>
-          ) : (
-            <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" />
-              <rect x="14" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-          )}
-        </button>
+        {/* 标题行内嵌插槽：月周重点页在此传 本周/本月 分段切换 + 日期辅助 */}
+        {titleExtra && <div className="flex items-center gap-2 min-w-0">{titleExtra}</div>}
         <div className="flex-1" />
         <div className="flex items-center gap-2">
           {/* 卡片右上：完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
@@ -290,6 +268,30 @@ export default function FocusPanel({
             <span style={{ opacity: 0.35 }}>/</span>
             <span style={{ opacity: 0.80 }}>{pillTasks.length}</span>
           </span>
+          {/* 视图切换：时间顺序（递减线）/ 模块分组（田字），逻辑同重点事项卡片的排序按钮 */}
+          <button
+            onClick={() => setSortBy(s => (s === 'module' ? 'time' : 'module'))}
+            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
+            title={sortBy === 'time' ? '按时间顺序（点击切换为按模块分组）' : '按模块分组（点击切换为按时间顺序）'}
+            aria-label={sortBy === 'time' ? '按时间顺序' : '按模块分组'}
+          >
+            {sortBy === 'time' ? (
+              <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
+                <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
+                  <line x1="1.5" y1="3" x2="12.5" y2="3" />
+                  <line x1="1.5" y1="7" x2="9.5" y2="7" />
+                  <line x1="1.5" y1="11" x2="6.5" y2="11" />
+                </g>
+              </svg>
+            ) : (
+              <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            )}
+          </button>
           {/* +号印章：圆角方填充（与能力页 AnnualPlan.jsx L5095 加号设计同构：rounded-lg + 色软填充 1a + stroke=主题色 + w3.5 h3.5） */}
           <button
             onClick={onAdd}
@@ -303,9 +305,6 @@ export default function FocusPanel({
           </button>
         </div>
       </div>
-
-      {/* 额外头部内容 */}
-      {headerExtra && <div className="mt-2">{headerExtra}</div>}
 
       {/* 分隔线 */}
       <div className="h-px my-3" style={{ background: 'linear-gradient(90deg, transparent, rgba(var(--s-rgb),0.08), transparent)' }} />

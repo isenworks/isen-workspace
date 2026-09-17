@@ -1345,6 +1345,22 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);
   }, [dayDetail?.date, allTasks, apiSchedules, seedDone]);
 
+  /* 主线卡标题行内嵌：本周/本月 分段切换（紧跟"主线"标题）+ 日期辅助
+     · 周 = 本周日期区间（MM/DD-MM/DD）；月 = 当前浏览年月（切月跟随，比原固定"本月"文字信息更全） */
+  const mainTitleExtra = (
+    <>
+      <div className="tab-group compact flex-shrink-0">
+        <button className={tabView === 'week' ? 'active' : ''} onClick={() => setTabView('week')}>本周</button>
+        <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>本月</button>
+      </div>
+      <span className="text-[12px] text-[#8e8e93] tabular-nums truncate">
+        {tabView === 'month'
+          ? `${year}年${month}月`
+          : `${weekStartStr.slice(5).replace('-', '/')} - ${weekEndStr.slice(5).replace('-', '/')}`}
+      </span>
+    </>
+  );
+
   return (
     <div className="flex-1 min-w-0 max-w-[1320px] flex flex-col gap-4">
       {/* ===== Body: 12 列网格（原顶部横条已整合：年月切换/新建 → 日历卡顶部，周/月 → 主线卡内） ===== */}
@@ -1355,17 +1371,12 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="month"
               accentColor="var(--s-main)"
-              title="本月主线"
+              title="主线"
               tasks={visibleMonthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
               moduleGoalsOnly
-              headerExtra={(
-                <div className="tab-group compact">
-                  <button className={tabView === 'week' ? '' : 'active'} onClick={() => setTabView('week')}>周</button>
-                  <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>月</button>
-                </div>
-              )}
+              titleExtra={mainTitleExtra}
               onToggle={(id) => toggleTask(id, true)}
               onAdd={() => {
                 // 新建目标：默认当天（浏览其他月份时落在该月 1 号），全天无时刻
@@ -1387,17 +1398,12 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="week"
               accentColor="var(--s-main)"
-              title={`本周主线 · ${weekStartStr}-${weekEndStr}`}
+              title="主线"
               tasks={visibleWeekTasks}
               progressPct={weekProgress}
               timePct={weekTimePct}
               moduleGoalsOnly
-              headerExtra={(
-                <div className="tab-group compact">
-                  <button className={tabView === 'week' ? 'active' : ''} onClick={() => setTabView('week')}>周</button>
-                  <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>月</button>
-                </div>
-              )}
+              titleExtra={mainTitleExtra}
               onToggle={(id) => toggleTask(id, false)}
               onAdd={() => {
                 // 新建目标：默认当天（浏览其他周时落在该周周一），全天无时刻

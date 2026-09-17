@@ -10,6 +10,8 @@ const P_META = {
 };
 
 export default function PTag({ p, className = '' }) {
+  // null/undefined/空串 = 未选择紧急程度，不渲染任何标签（Number(null)===0 会误命中 P0，须先挡）
+  if (p == null || p === '') return null;
   const m = P_META[Number(p)];
   if (!m) return null;
   return (

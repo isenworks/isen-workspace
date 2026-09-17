@@ -523,6 +523,8 @@ export default function Workspace({ user: propUser }) {
               if (annualView) setAnnualView(annualView);
             }}
             onNewSchedule={openNewSchedule}
+            onEditSchedule={(sch) => setModal({ type: 'schedule', data: sch })}
+            onEditBook={(book) => setModal({ type: 'book', initial: book, tab: 'basic' })}
             onQuickCapture={() => setQuickCaptureOpen(true)}
             onOpenSummary={openDailySummary}
             onSync={() => {

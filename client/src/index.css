@@ -1002,4 +1002,9 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .hp-hcell.fut { background: rgba(120, 120, 128, 0.06); color: #c7c7cc; }
 .hp-hcell.tdy { box-shadow: 0 0 0 1.5px rgba(120, 120, 128, 0.45); }
 .hp-hcell.tdy.ok { box-shadow: 0 0 0 1.5px rgba(52, 199, 89, 0.55); }
+/* 可点击打卡：button 元素形态重置 + 悬停反馈（未来日期 disabled 无光标反馈） */
+.hp-hcell-btn { border: 0; padding: 0; font: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.hp-hcell-btn:disabled { cursor: default; }
+.hp-hcell-btn:not(.fut):not(:disabled):hover { box-shadow: 0 0 0 1.5px rgba(52, 199, 89, 0.6); }
+.hp-hcell-btn:not(.fut):not(:disabled):active { transform: scale(0.9); }
 

@@ -121,7 +121,7 @@ function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
 }
 
 /* ============ 主页 ============ */
-export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, onQuickCapture, onOpenSummary }) {
+export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, onQuickCapture, onOpenSummary, onEditSchedule, onEditBook }) {
   const todayStr = getToday();
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayStr]);
   const weekStartStr = toISODate(weekStart);
@@ -295,9 +295,21 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   }, [weekStartStr, todayStr, syncSignal]);
 
   /* ===== 精力习惯（周打卡矩阵） ===== */
-  const { realHabits } = useEnergyHabits();
+  const { realHabits, refresh: refreshEnergy } = useEnergyHabits();
   const habits = realHabits || [];
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysISO(weekStartStr, i)), [weekStartStr]);
+
+  /* ===== 精力格子打卡：乐观覆盖 + API 持久化（与今日计划/习惯面板同接口，切页重新拉取即同步） ===== */
+  const [habitTweaks, setHabitTweaks] = useState({});
+  const toggleHabitCell = async (h, d, ok) => {
+    const next = !ok;
+    const apply = v => setHabitTweaks(p => ({ ...p, [h.id]: { ...(p[h.id] || {}), [d]: v } }));
+    apply(next);
+    try {
+      await API.habits.toggle(h.id, d, next ? 1 : 0);
+      refreshEnergy(); // 后台重拉年度统计，用真实数据覆盖乐观 tweaks
+    } catch { apply(ok); }
+  };
 
   /* ===== 知力 / 能力 / 工作（与年度规划共享同一份 localStorage 数据） ===== */
   const [books] = usePersistentState('annual_books_v12', () => null);
@@ -361,7 +373,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     (sched || []).filter(s => s.date > weekEndStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s))
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
-        list.push({ key: `uk-${s.id}`, type: s.is_key ? 'key' : 'sched', title: s.title, date: s.date, daysLeft, priority: s.priority });
+        list.push({ key: `uk-${s.id}`, type: s.is_key ? 'key' : 'sched', title: s.title, date: s.date, daysLeft, priority: s.priority, s });
       });
     // 节日（本周之后 ~ 30 天内，农历 + 公历，与月历同源）
     const startAfter = Math.max(0, Math.round((weekEndDate - today) / 86400000) + 1);
@@ -650,10 +662,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                         <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       ) : null}
                     </button>
-                    <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1" title="跳转今日计划">
+                    <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
                       <span className={`text-[12.5px] font-semibold truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-800'}`}>{s.title || '（无标题）'}</span>
                       <PTag p={s.priority} />
-                      <span className={`text-[10px] tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
+                      <span className={`text-[11.5px] font-semibold tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
                     </button>
                   </div>
                 ))}
@@ -696,10 +708,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                         <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       ) : null}
                     </button>
-                    <button onClick={() => onNav?.('plan')} className="flex items-center gap-2 text-left min-w-0 flex-1">
+                    <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
                       <span className={`text-[12.5px] font-semibold truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-800'}`}>{s.title}</span>
                       <PTag p={s.priority} />
-                      <span className="text-[10px] text-ink-300 flex-shrink-0 ml-auto tabular-nums">{String(s.date).slice(5).replace('-', '/')}</span>
+                      <span className="text-[11.5px] font-semibold text-ink-300 flex-shrink-0 ml-auto tabular-nums">{String(s.date).slice(5).replace('-', '/')}</span>
                     </button>
                   </div>
                 ))}
@@ -726,7 +738,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 return (
                   <button
                     key={u.key}
-                    onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : onNav?.('calendar')}
+                    onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : (u.type === 'festival' || !onEditSchedule || !u.s) ? onNav?.('calendar') : onEditSchedule(u.s)}
+                    title={u.type === 'sched' || u.type === 'key' ? '编辑事项' : undefined}
                     className="flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition hover:bg-[rgba(120,120,128,0.05)] flex-shrink-0"
                   >
                     <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: meta.bg, color: meta.fg }}>
@@ -767,6 +780,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 <div className="hp-hb">
                   {habitRows.map(h => {
                     const set = new Set(h.allDates || []);
+                    Object.entries(habitTweaks[h.id] || {}).forEach(([d, v]) => v ? set.add(d) : set.delete(d));
                     const cnt = weekDates.filter(d => set.has(d)).length;
                     return (
                       <div key={h.id} className="hp-hrow">
@@ -777,9 +791,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                             const isFut = d > todayStr;
                             const ok = set.has(d);
                             return (
-                              <span key={d} className={`hp-hcell${ok ? ' ok' : ''}${isFut ? ' fut' : ''}${isTdy ? ' tdy' : ''}`}>
+                              <button
+                                key={d}
+                                onClick={() => !isFut && toggleHabitCell(h, d, ok)}
+                                disabled={isFut}
+                                title={isFut ? '未来日期' : ok ? '取消打卡' : '打卡'}
+                                className={`hp-hcell hp-hcell-btn${ok ? ' ok' : ''}${isFut ? ' fut' : ''}${isTdy ? ' tdy' : ''}`}
+                              >
                                 {parseInt(d.slice(8), 10)}
-                              </span>
+                              </button>
                             );
                           })}
                         </div>
@@ -802,7 +822,11 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             <CardHead moduleKey="cognition" title="知力" sub={reading.length > 0 ? `在读 ${reading.length} 本` : `已读 ${booksDone} 本`} onClick={() => onNav?.('annual', 'cognition')} />
             <div className="flex-1 flex flex-col justify-start min-h-0">
               {reading.length > 0 && (
-                <div className="rounded-xl p-2.5 bg-white dark:bg-white/5 border border-ink-100 dark:border-white/10">
+                <div
+                  onClick={() => onEditBook?.(reading[0])}
+                  title="编辑书籍"
+                  className="rounded-xl p-2.5 bg-white dark:bg-white/5 border border-ink-100 dark:border-white/10 cursor-pointer transition hover:border-[rgba(var(--m-cognition-rgb),0.45)]"
+                >
                   <div className="flex gap-3">
                     {reading[0].coverUrl ? (
                       <img
@@ -826,7 +850,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   {reading.length > 1 && (
                     <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: '1px dashed rgba(120,120,128,0.16)' }}>
                       {reading.slice(1, 4).map(b => (
-                        <div key={b.id} className="flex items-center gap-2">
+                        <div key={b.id} onClick={() => onEditBook?.(b)} title="编辑书籍" className="flex items-center gap-2 cursor-pointer rounded-md px-1 -mx-1 py-0.5 transition hover:bg-[rgba(var(--m-cognition-rgb),0.06)]">
                           <span className="text-[11.5px] text-ink-600 truncate flex-1">{b.t}</span>
                           <div className="w-[54px] flex-shrink-0"><Bar value={b.pct || 0} color="var(--m-cognition)" h="4px" /></div>
                           <span className="text-[10px] text-ink-400 tabular-nums w-[27px] text-right">{b.pct || 0}%</span>

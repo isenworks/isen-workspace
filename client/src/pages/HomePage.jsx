@@ -443,9 +443,6 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             />
           ))}
 
-          {/* 左侧渐变遮罩：保证文字区可读性，右侧留出图片全貌 */}
-          <div className="absolute inset-0 pointer-events-none z-[1]" style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 35%, rgba(0,0,0,0.05) 55%, transparent 75%)' }} />
-
           {/* 编辑按钮（hover / 右键显示） */}
           <button
             onClick={() => setHeroEditOpen(v => !v)}

@@ -176,10 +176,11 @@ export default function Workspace({ user: propUser }) {
     }
   }
 
-  // ===== 快捷键 N / Shift+N / S / D（无输入框聚焦、无弹窗打开时） =====
+  // ===== 快捷键 N / Shift+N / S / G / D（无输入框聚焦、无弹窗打开时） =====
   // N：任意页面快速捕获（打开快速记录面板）
   // Shift+N：直达收集箱页面（原需求 Ctrl+N 被浏览器保留为新开窗口，无法拦截，故改用 Shift+N）
   // S：新建事项（ScheduleForm 弹窗，默认今天）
+  // G：新建目标（ScheduleForm 弹窗，默认今天 + is_goal:1）
   // D：今日总结（Daily 总结弹窗，默认今天）
   useEffect(() => {
     function onKey(e) {
@@ -195,6 +196,9 @@ export default function Workspace({ user: propUser }) {
       } else if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
         openNewSchedule();
+      } else if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        openNewSchedule({ is_goal: 1 });
       } else if (e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         openDailySummary();

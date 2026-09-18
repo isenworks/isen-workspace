@@ -714,7 +714,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   onClick={() => onNewSchedule?.({ date: todayStr, is_goal: 1 })}
                   className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
                   style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
-                  title="新建本周目标"
+                  title="新建本周目标（快捷键 G）"
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 </button>
@@ -974,7 +974,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
         {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ========== */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10"
+          className="grid grid-cols-1 sm:grid-cols-4 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10"
           style={{ background: 'linear-gradient(180deg, rgba(232,232,237,0), rgba(232,232,237,0.92) 46%)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
         >
           <button
@@ -986,6 +986,16 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </span>
             新建
             <span className="text-[9px] font-bold leading-none px-1.5 py-[2px] rounded border border-ink-300 text-ink-400" title="键盘快捷键">S</span>
+          </button>
+          <button
+            onClick={() => onNewSchedule?.({ is_goal: 1 })}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-ink-200/60 bg-white dark:bg-white/5 transition hover:border-ink-300 hover:bg-ink-50 active:scale-[0.97] text-[13px] font-semibold text-ink-800"
+          >
+            <span className="w-6 h-6 rounded-full grid place-items-center flex-shrink-0" style={{ background: 'rgba(var(--s-rgb),0.1)' }}>
+              <svg className="w-[13px] h-[13px]" style={{ color: 'var(--s-main)' }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+            </span>
+            目标
+            <span className="text-[9px] font-bold leading-none px-1.5 py-[2px] rounded border border-ink-300 text-ink-400" title="键盘快捷键">G</span>
           </button>
           <button
             onClick={() => onQuickCapture?.()}

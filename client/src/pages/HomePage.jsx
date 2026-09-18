@@ -319,8 +319,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const [abilities] = usePersistentState('annual_abilities_v2', () => null);
   const [workGoals] = usePersistentState('annual_work', () => null);
 
-  /* ===== 今日聚焦 ===== */
-  const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr), [sched, todayStr]);
+  /* ===== 今日聚焦（排除 is_goal 目标事项：目标只归属本周重点/日历主线面板，不进当日列表与进度统计） ===== */
+  const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr && !s.is_goal), [sched, todayStr]);
   const todayDone = todayItems.filter(s => s.is_done).length;
   const todayPct = pct(todayDone, todayItems.length);
   /* 今日全部事项按时间升序（全天排最后） + 今日节日（与月历同源、白名单过滤） */

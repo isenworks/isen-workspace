@@ -1285,8 +1285,11 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
   const weekStart = startOfWeek(todayISO);
   const weekEnd = endOfWeek(todayISO);
+  // 两种形态：M.D 用于标题展示（9.14-9.20）；ISO 用于与 todayISO 做区间比较（onAdd 默认日期）
   const weekStartStr = `${weekStart.getMonth() + 1}.${weekStart.getDate()}`;
   const weekEndStr = `${weekEnd.getMonth() + 1}.${weekEnd.getDate()}`;
+  const weekStartISO = toISODate(weekStart);
+  const weekEndISO = toISODate(weekEnd);
 
   /* === 月历事项：加入 taskId/is_done 引用同步左卡
        需求 6：日历右栏显示「计划总结 ethan_schedules + 本月主线单日事项」=== */
@@ -1356,7 +1359,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       <span className="text-[12px] text-[#8e8e93] tabular-nums truncate">
         {tabView === 'month'
           ? `${year}年${month}月`
-          : `${weekStartStr.slice(5).replace('-', '/')} - ${weekEndStr.slice(5).replace('-', '/')}`}
+          : `${weekStartStr}-${weekEndStr}`}
       </span>
     </>
   );
@@ -1371,7 +1374,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="month"
               accentColor="var(--s-main)"
-              title="主线"
+              title="主线事项"
+              titleByView={{ module: '主线事项', time: '日程事项' }}
               tasks={visibleMonthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
@@ -1398,7 +1402,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="week"
               accentColor="var(--s-main)"
-              title="主线"
+              title="主线事项"
+              titleByView={{ module: '主线事项', time: '日程事项' }}
               tasks={visibleWeekTasks}
               progressPct={weekProgress}
               timePct={weekTimePct}
@@ -1407,7 +1412,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               onToggle={(id) => toggleTask(id, false)}
               onAdd={() => {
                 // 新建目标：默认当天（浏览其他周时落在该周周一），全天无时刻
-                const date = (todayISO >= weekStartStr && todayISO <= weekEndStr) ? todayISO : weekStartStr;
+                const date = (todayISO >= weekStartISO && todayISO <= weekEndISO) ? todayISO : weekStartISO;
                 onEditSchedule?.({ date, is_goal: 1 });
               }}
               onEditTask={(task) => openEditorForTask(task, { isMonth: false })}

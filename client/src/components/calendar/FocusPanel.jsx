@@ -159,6 +159,7 @@ export default function FocusPanel({
   deletedTasks,       // 回收站任务数组（若传则底部出现回收站卡）
   showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
   titleExtra,         // 标题行内嵌插槽：紧跟标题文字渲染（月周重点页传 本周/本月 分段切换 + 日期辅助）
+  titleByView,        // 视图态标题 { module, time }：按模块分组/按时间顺序 切换时标题跟随（月周重点主线卡）；不传则恒用 title
   fill,              // 页面布局场景：卡片纵向撑满所在列（列表区吃剩余高度，超出滚动）；弹层不传则保持自然高度
   moduleGoalsOnly,   // 主线面板场景：模块分组视图只显示 is_goal 目标事项（时间顺序视图仍显示全部）；当日详情弹层不传保持全量
 }) {
@@ -253,21 +254,12 @@ export default function FocusPanel({
       <div className="flex items-center gap-3">
         <div className="w-[5px] h-[18px] rounded-[3px] flex-shrink-0" style={{ background: accentColor }} />
         <div className="flex-shrink-0 text-[15px] font-extrabold text-[#1C1C1E] tracking-tight">
-          {title}
+          {titleByView?.[sortBy] || title}
         </div>
         {/* 标题行内嵌插槽：月周重点页在此传 本周/本月 分段切换 + 日期辅助 */}
         {titleExtra && <div className="flex items-center gap-2 min-w-0">{titleExtra}</div>}
         <div className="flex-1" />
         <div className="flex items-center gap-2">
-          {/* 卡片右上：完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
-          <span
-            className="inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
-            style={{ background: 'rgba(var(--s-rgb),0.09)', color: accentColor }}
-          >
-            <span>{totalDone}</span>
-            <span style={{ opacity: 0.35 }}>/</span>
-            <span style={{ opacity: 0.80 }}>{pillTasks.length}</span>
-          </span>
           {/* 视图切换：时间顺序（递减线）/ 模块分组（田字），逻辑同重点事项卡片的排序按钮 */}
           <button
             onClick={() => setSortBy(s => (s === 'module' ? 'time' : 'module'))}
@@ -292,6 +284,15 @@ export default function FocusPanel({
               </svg>
             )}
           </button>
+          {/* 卡片右上：完成/总数 胶囊（2/9 规格，与分组头同构但用面板 accentColor） */}
+          <span
+            className="inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums gap-[2px]"
+            style={{ background: 'rgba(var(--s-rgb),0.09)', color: accentColor }}
+          >
+            <span>{totalDone}</span>
+            <span style={{ opacity: 0.35 }}>/</span>
+            <span style={{ opacity: 0.80 }}>{pillTasks.length}</span>
+          </span>
           {/* +号印章：圆角方填充（与能力页 AnnualPlan.jsx L5095 加号设计同构：rounded-lg + 色软填充 1a + stroke=主题色 + w3.5 h3.5） */}
           <button
             onClick={onAdd}

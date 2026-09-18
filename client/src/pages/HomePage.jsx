@@ -800,8 +800,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
         </div>
 
-        {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，xl 起 4 列） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4 md:h-[clamp(170px,26vh,248px)] md:shrink-0">
+        {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，lg 起 4 列） ========== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4 md:min-h-[clamp(170px,26vh,248px)] md:shrink-0">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -834,7 +834,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                             );
                           })}
                         </div>
-                        <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[22px] text-right" style={{ color: cnt >= 7 ? 'var(--m-energy)' : '#8e8e93' }}>{cnt}/7</span>
+                        <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[20px] text-right" style={{ color: cnt >= 7 ? 'var(--m-energy)' : '#8e8e93' }}>{cnt}/7</span>
                       </div>
                     );
                   })}

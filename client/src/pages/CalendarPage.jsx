@@ -902,6 +902,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             category: msg.schedule.category,
             moduleKey: mod.key,
             is_done: !!msg.schedule.is_done,
+            is_goal: !!msg.schedule.is_goal,
             start_time: msg.schedule.start_time,
             end_time: msg.schedule.end_time,
             duration_min: msg.schedule.duration_min,
@@ -1318,7 +1319,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     const mStart = `${prefix}-01`;
     const mEnd = `${prefix}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
     const apiRaw = apiSchedules.filter(e => {
-      if (!e.date) return false;
+      if (!e.date || e.is_goal) return false;
       const end = e.end_date || e.date;
       return e.date <= mEnd && end >= mStart;
     });
@@ -1346,7 +1347,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   const detailDateObj = dayDetail?.date ? fromISODate(dayDetail.date) : null;
   const detailEvents = useMemo(() => {
     if (!dayDetail?.date) return [];
-    const apiRaw = apiSchedules.filter(e => e.date === dayDetail.date);
+    const apiRaw = apiSchedules.filter(e => e.date === dayDetail.date && !e.is_goal);
     const mockRaw = seedDone ? [] : MOCK_EVENTS_RAW.filter(e => e.date === dayDetail.date);
     return buildEventsWithTaskLink(dedupeMockVsApi(mockRaw, apiRaw), allTasks);
   }, [dayDetail?.date, allTasks, apiSchedules, seedDone]);

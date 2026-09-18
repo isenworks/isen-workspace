@@ -1374,8 +1374,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="month"
               accentColor="var(--s-main)"
-              title="主线事项"
-              titleByView={{ module: '主线事项', time: '日程事项' }}
+              title="重点"
+              titleByView={{ module: '重点', time: '日程' }}
               tasks={visibleMonthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
@@ -1402,8 +1402,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="week"
               accentColor="var(--s-main)"
-              title="主线事项"
-              titleByView={{ module: '主线事项', time: '日程事项' }}
+              title="重点"
+              titleByView={{ module: '重点', time: '日程' }}
               tasks={visibleWeekTasks}
               progressPct={weekProgress}
               timePct={weekTimePct}

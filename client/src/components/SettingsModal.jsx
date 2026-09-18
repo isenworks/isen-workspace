@@ -1276,13 +1276,17 @@ function GithubTab() {
                   cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--s-rgb),0.28)',
                 }}>{copied ? '✓ 已复制，发给 AI 即可' : '📋 复制推送指令发给 AI'}</button>
               </>
-            ) : expired ? (
-              <div style={{ fontSize: '12px', color: '#8e8e93' }}>
-                授权码已过期，请先关闭再重新开启，生成新授权码。
-              </div>
             ) : (
-              <div style={{ fontSize: '12px', color: '#8e8e93' }}>
-                授权开启中，但授权码只在开启那一刻生成。如需给 AI 使用，请关闭后重新开启。
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7 }}>
+                  {expired ? '授权码已过期。' : '授权开启中，但授权码只在开启那一刻生成，不会重现；新会话的 AI 需要新授权码才能推送。'}
+                </div>
+                {/* 一键重新生成（等价于关→开，但免去两步操作），成功后自动复制推送指令 */}
+                <button onClick={() => handleToggleGrant(true, ttlHours)} disabled={busy} style={{
+                  padding: '10px 16px', borderRadius: '10px', border: 'none',
+                  background: 'var(--s-main)', color: '#fff', fontWeight: 600, fontSize: '13px',
+                  cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
+                }}>{busy ? '生成中…' : '重新生成授权码'}</button>
               </div>
             )}
           </>

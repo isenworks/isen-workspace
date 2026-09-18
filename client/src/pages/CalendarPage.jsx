@@ -713,6 +713,9 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             category: s.category,
             moduleKey: mod.key,
             is_done: !!s.is_done,
+            // is_goal 必须映射：否则挂载恢复注入主线面板时目标标识丢失，
+            // 「重点」看板（模块分组视图只显示 is_goal）看不到目标，只剩时间顺序视图可见
+            is_goal: !!s.is_goal,
             start_time: s.start_time,
             end_time: s.end_time,
             duration_min: s.duration_min,

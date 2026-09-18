@@ -185,24 +185,36 @@ functions/api/[[route]].js           # 薄路由
 
 ***
 
-## AI 推送授权（git push 凭证受控签发，给 AI 助手看）
+## AI 推送授权（grant code 持久化，自动推送）
 
-owner 已在工作台「设置 → AI 推送授权」托管 GitHub PAT（AES-GCM 加密存 `ethan_github_tokens`，仅 owner `1429000825@qq.com` 可管理）。当 owner 发来一条含 `grant code` 的推送指令并要求 push 时（授权码时限由 owner 选定：1 天 / 1 个月 / 3 个月，默认 1 天）：
+owner 已在工作台「设置 → AI 推送授权」托管 GitHub PAT（AES-GCM 加密存 `ethan_github_tokens`，仅 owner `1429000825@qq.com` 可管理）。
+
+### Grant code 持久化
+
+owner 首次提供 grant code 后，AI 助手将其保存到 `/data/user/work/grant_code.txt`。**后续修改代码后，AI 助手自动读取该文件中的 grant code 完成推送，无需 owner 再次提供。**
+
+- grant code 有效期内（30 分钟）可多次使用，同一窗口内可多次签发 PAT。
+- 若推送时返回 403（code 过期或授权开关已关闭），AI 助手会通知 owner 重新开启授权并提供新 code，同时更新 `/data/user/work/grant_code.txt`。
+
+### 自动推送流程
+
+代码修改并构建通过后，AI 助手自动执行：
 
 ```bash
+# 0) 读取已保存的 grant code
+GRANT=$(cat /data/user/work/grant_code.txt)
+
 # 1) 用 grant code 换 PAT（公开接口，code 本身即凭证）
 PAT=$(curl -s -X POST https://ethan-workspace.pages.dev/api/github/issueGrant \
   -H 'Content-Type: application/json' \
-  -d '{"grant_code":"<owner给的code>"}' | jq -r .pat)
+  -d "{\"grant_code\":\"$GRANT\"}" | jq -r .pat)
 
 # 2) 用临时 credential helper push（勿把 PAT 内嵌进 remote URL / 命令行，避免进日志）
 git -c credential.helper='!f() { echo "username=isenworks"; echo "password='"$PAT"'"; }; f' push origin main
 unset PAT
-
-# 3) push 完成即结束；owner 会自行关闭授权开关作废 code。PAT 明文永不回显到对话/日志。
 ```
 
-注意：code 30 分钟过期、关闭开关立即作废、同一窗口可多次签发（有审计）。若 403 则请 owner 重新开启授权并给新 code。建议 PAT 用 fine-grained 最小权限（单仓库 + Contents 读写）。
+注意：PAT 明文永不回显到对话/日志。若 403 则通知 owner 重新开启授权并给新 code。建议 PAT 用 fine-grained 最小权限（单仓库 + Contents 读写）。
 
 ***
 

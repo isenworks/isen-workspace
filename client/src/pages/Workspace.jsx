@@ -45,7 +45,7 @@ export default function Workspace({ user: propUser }) {
   const toast = useToast();
   const user = propUser || authUser;
   const logout = authLogout || (() => {});
-  const [activeMenu, setActiveMenu] = useState('plan');
+  const [activeMenu, setActiveMenu] = useState('home');
   const [annualView, setAnnualView] = useState('overview');
   // 侧边栏「发展规划」二级导航加号请求：{ view, ts } → AnnualPlan 打开对应添加弹窗
   const [annualAdd, setAnnualAdd] = useState(null);

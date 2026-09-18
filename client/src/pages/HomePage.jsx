@@ -391,7 +391,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   }, [sched, todayStr, weekEndStr]);
 
   /* ===== 精力：本周打卡统计 ===== */
-  const habitRows = habits.slice(0, 3);
+  const habitRows = habits.slice(0, 4);
 
   /* ===== 知力：在读（1 本主推 + 多本列表） ===== */
   const reading = useMemo(() => (books || []).filter(b => b.st === 'reading').sort((a, b) => (b.pct || 0) - (a.pct || 0)), [books]);

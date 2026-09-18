@@ -854,7 +854,24 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
           {/* ---- 知力：在读（主推书带封面） ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead moduleKey="cognition" title="知力" sub={reading.length > 0 ? `在读 ${reading.length} 本` : `已读 ${booksDone} 本`} onClick={() => onNav?.('annual', 'cognition')} />
+            <CardHead
+              moduleKey="cognition"
+              title="知力"
+              sub={reading.length > 0 ? `在读 ${reading.length} 本` : `已读 ${booksDone} 本`}
+              onClick={() => onNav?.('annual', 'cognition')}
+              action={reading[0]?.ebookUrl ? (
+                <a
+                  href={reading[0].ebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
+                  style={{ color: 'var(--m-cognition)', background: 'rgba(var(--m-cognition-rgb),0.08)', '--hc': 'var(--m-cognition)' }}
+                  title={`微信读书继续读 ·《${reading[0].t}》`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                </a>
+              ) : null}
+            />
             <div className="flex-1 flex flex-col justify-start min-h-0">
               {reading.length > 0 && (
                 <div

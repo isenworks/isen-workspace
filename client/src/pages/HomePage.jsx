@@ -417,6 +417,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const hour = new Date().getHours();
   const greeting = hour < 6 ? '夜深了' : hour < 11 ? '早上好' : hour < 13 ? '中午好' : hour < 18 ? '下午好' : hour < 22 ? '晚上好' : '夜深了';
   const name = String(user?.username || user?.name || user?.nickname || '').trim() || '朋友';
+  const now = new Date();
+  const daysLeftInYear = Math.ceil((new Date(now.getFullYear(), 11, 31, 23, 59, 59) - now) / 86400000);
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-3">
@@ -440,6 +442,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               }}
             />
           ))}
+
+          {/* 左侧渐变遮罩：保证文字区可读性，右侧留出图片全貌 */}
+          <div className="absolute inset-0 pointer-events-none z-[1]" style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 35%, rgba(0,0,0,0.05) 55%, transparent 75%)' }} />
 
           {/* 编辑按钮（hover / 右键显示） */}
           <button
@@ -474,18 +479,18 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           <div className="absolute right-40 -bottom-24 w-[190px] h-[190px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.09) 0%, transparent 70%)' }} />
 
           {/* 左：问候 */}
-          <div className="relative flex flex-col gap-1.5 min-w-0">
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-[28px] font-extrabold text-white tracking-tight">{greeting}，{name}</span>
-              <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.72)' }}>{formatChineseDate(new Date())}</span>
-            </div>
+          <div className="relative z-[2] flex flex-col gap-1.5 min-w-0">
+            <span className="text-[12px] font-semibold tracking-wide" style={{ color: 'rgba(255,255,255,0.72)' }}>
+              {formatChineseDate(new Date())} · 余{daysLeftInYear}天
+            </span>
+            <span className="text-[28px] font-extrabold text-white tracking-tight">{greeting}，{name}</span>
             <span className="text-[13.5px] font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
               {hour < 12 ? '新的一天，从最重要的事开始' : hour < 18 ? '午后时光，保持节奏' : '回顾一下今天的收获吧'}
             </span>
           </div>
 
           {/* 右：签名 / 座右铭（点击编辑，回车/失焦保存） */}
-          <div className="relative flex items-center gap-2 min-w-0 max-w-[440px]">
+          <div className="relative z-[2] flex items-center gap-2 min-w-0 max-w-[440px]">
             {sigEditing ? (
               <input
                 autoFocus

@@ -479,9 +479,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           <div className="absolute right-40 -bottom-24 w-[190px] h-[190px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.09) 0%, transparent 70%)' }} />
 
           {/* 左：问候 */}
-          <div className="relative z-[2] flex flex-col gap-1.5 min-w-0">
+          <div className="relative z-[2] flex flex-col gap-0.5 min-w-0">
             <span className="text-[12px] font-semibold tracking-wide" style={{ color: 'rgba(255,255,255,0.72)' }}>
-              {formatChineseDate(new Date())} · 余{daysLeftInYear}天
+              {`${now.getMonth() + 1}月${now.getDate()}日 周${'日一二三四五六'[now.getDay()]} · 余${daysLeftInYear}天`}
             </span>
             <span className="text-[28px] font-extrabold text-white tracking-tight">{greeting}，{name}</span>
             <span className="text-[13.5px] font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
@@ -508,14 +508,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             ) : (
               <button
                 onClick={() => setSigEditing(true)}
-                className="group flex items-center gap-2 min-w-0 px-3 py-2 rounded-xl transition hover:bg-[rgba(255,255,255,0.12)]"
+                className="group flex items-center gap-1 min-w-0 px-3 py-2 rounded-xl transition hover:bg-[rgba(255,255,255,0.12)]"
                 title="点击编辑签名"
               >
                 {signature ? (
                   <>
-                    <span className="text-[30px] font-serif leading-none flex-shrink-0 -mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>“</span>
+                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>“</span>
                     <span className="text-[14.5px] italic font-medium truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
-                    <span className="text-[30px] font-serif leading-none flex-shrink-0 -mt-3 self-start" style={{ color: 'rgba(255,255,255,0.4)' }}>”</span>
+                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>”</span>
                   </>
                 ) : (
                   <>

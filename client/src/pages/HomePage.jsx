@@ -4,6 +4,7 @@ import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
+import { catToModule } from '../utils/categoryMapping.js';
 import lunarLib from '../vendor/lunar.js';
 import PTag from '../components/PTag.jsx';
 
@@ -376,7 +377,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     (sched || []).filter(s => s.date > weekEndStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s))
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
-        list.push({ key: `uk-${s.id}`, type: s.is_key ? 'key' : 'sched', title: s.title, date: s.date, daysLeft, priority: s.priority, s });
+        list.push({ key: `uk-${s.id}`, type: 'sched', category: s.category, title: s.title, date: s.date, daysLeft, priority: s.priority, s });
       });
     // 节日（本周之后 ~ 30 天内，农历 + 公历，与月历同源）
     const startAfter = Math.max(0, Math.round((weekEndDate - today) / 86400000) + 1);
@@ -761,18 +762,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0">
               {followUpList.map(u => {
                 const weekday = '日一二三四五六'[new Date(`${u.date}T00:00:00`).getDay()];
+                const schedMod = u.category != null ? catToModule(Number(u.category)) : null;
                 const meta = u.type === 'birthday'
                   ? { bg: 'rgba(var(--m-life-rgb),0.1)', fg: 'var(--m-life)', tag: u.isLunar ? '农历生日' : '生日' }
                   : u.type === 'festival'
                     ? { bg: 'rgba(255,59,48,0.08)', fg: '#FF3B30', tag: '节日' }
-                    : u.type === 'key'
-                      ? { bg: 'rgba(var(--s-rgb),0.08)', fg: 'var(--s-main)', tag: '关键事项' }
+                    : schedMod
+                      ? { bg: schedMod.soft, fg: schedMod.color, tag: schedMod.label }
                       : { bg: 'rgba(120,120,128,0.08)', fg: '#8e8e93', tag: '日程' };
                 return (
                   <button
                     key={u.key}
                     onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : (u.type === 'festival' || !onEditSchedule || !u.s) ? onNav?.('calendar') : onEditSchedule(u.s)}
-                    title={u.type === 'sched' || u.type === 'key' ? '编辑事项' : undefined}
+                    title={u.type === 'sched' ? '编辑事项' : undefined}
                     className="flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition hover:bg-[rgba(120,120,128,0.05)] flex-shrink-0"
                   >
                     <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: meta.bg, color: meta.fg }}>

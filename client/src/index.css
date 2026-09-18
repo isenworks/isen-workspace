@@ -996,9 +996,9 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 }
 .hp-hcells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; flex: 1; }
 .hp-hcell {
-  height: 26px; border-radius: 5px;
+  height: 22px; border-radius: 4px;
   display: grid; place-items: center;
-  font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums;
+  font-size: 9px; font-weight: 600; font-variant-numeric: tabular-nums;
   color: #a8a8ad; background: #ececef;
 }
 .hp-hcell.ok { background: var(--m-energy, #34C759); color: #fff; font-weight: 700; }

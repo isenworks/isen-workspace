@@ -1,0 +1,228 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Modal from './Modal.jsx';
+import { API } from '../api/client.js';
+import { catToModule } from '../utils/categoryMapping.js';
+
+/* ============ 全局搜索命令面板（Spotlight 式） ============
+ * - 打开时并行拉取：事项/目标（最近200）、待办（最近200）、习惯、收集箱；单个源失败不阻塞整体
+ * - 本地实时过滤：大小写不敏感，匹配标题/内容，前缀与包含都命中
+ * - 分组：事项与目标 / 待办 / 习惯 / 收集箱；空查询时展示最近条目（最近优先）
+ * - 键盘：↑↓ 选择 · Enter 打开 · Esc 关闭（Modal 自带）
+ * - 匹配文字高亮；习惯→计划总结页，收集箱→收集箱页，事项/待办/目标→打开编辑弹窗
+ */
+
+// 类型图标（与侧栏 Feather 线条风格同款：strokeWidth 2 · 圆角线帽）
+const TYPE_ICONS = {
+  schedule: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>),
+  goal: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>),
+  task: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>),
+  habit: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>),
+  inbox: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>),
+};
+
+const GROUP_META = {
+  schedule: { label: '事项与目标', color: 'var(--s-main)' },
+  task:     { label: '待办',       color: '#34C759' },
+  habit:    { label: '习惯',       color: '#FF9500' },
+  inbox:    { label: '收集箱',     color: '#AF52DE' },
+};
+
+// 「9月18日」式短日期；非法日期返回空串
+function fmtMD(iso) {
+  if (!iso || typeof iso !== 'string') return '';
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  return `${Number(m[2])}月${Number(m[3])}日`;
+}
+
+// 标题匹配高亮：大小写不敏感，返回 [文本, 是否命中] 片段数组
+function hilite(text, q) {
+  const s = String(text || '');
+  if (!q) return [{ t: s, hit: false }];
+  const idx = s.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return [{ t: s, hit: false }];
+  return [
+    { t: s.slice(0, idx), hit: false },
+    { t: s.slice(idx, idx + q.length), hit: true },
+    { t: s.slice(idx + q.length), hit: false },
+  ];
+}
+
+export default function SearchPalette({ open, onClose, onPick }) {
+  const [q, setQ] = useState('');
+  const [data, setData] = useState(null);   // { schedules, tasks, habits, inbox }
+  const [sel, setSel] = useState(0);
+  const inputRef = useRef(null);
+  const listRef = useRef(null);
+
+  // 打开时并行拉取四个数据源（allSettled：单源失败不拖垮整体）
+  useEffect(() => {
+    if (!open) return;
+    setQ('');
+    setSel(0);
+    setData(null);
+    let alive = true;
+    (async () => {
+      const [rS, rT, rH, rI] = await Promise.allSettled([
+        API.schedules.list({}),
+        API.tasks.list({}),
+        API.habits.list({}),
+        API.inbox.list(),
+      ]);
+      if (!alive) return;
+      setData({
+        schedules: rS.status === 'fulfilled' ? (rS.value?.schedules || []) : [],
+        tasks:     rT.status === 'fulfilled' ? (rT.value?.tasks || []) : [],
+        habits:    rH.status === 'fulfilled' ? (rH.value?.habits || []) : [],
+        inbox:     rI.status === 'fulfilled' ? (rI.value?.items || []) : [],
+      });
+    })();
+    return () => { alive = false; };
+  }, [open]);
+
+  // 打开后聚焦输入框
+  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 30); }, [open]);
+
+  // 过滤 + 分组 + 扁平化（键盘导航用扁平索引）
+  const { groups, flat } = useMemo(() => {
+    if (!data) return { groups: [], flat: [] };
+    const kw = q.trim().toLowerCase();
+    const match = (...fields) => !kw || fields.some(f => String(f || '').toLowerCase().includes(kw));
+
+    // 空查询时展示最近 8 条（事项按日期倒序已由后端保证）；有查询时每组最多 6 条，避免长列表
+    const LIMIT = kw ? 6 : 4;
+    const mk = (type, items) => items.slice(0, LIMIT).map(it => ({ type, it }));
+
+    const scheds = data.schedules
+      .filter(s => match(s.title, s.note))
+      .map(s => ({ type: s.is_goal ? 'goal' : 'schedule', it: s }));
+    const tasks = mk('task', data.tasks.filter(t => match(t.title) && !t.is_done));
+    const habits = mk('habit', data.habits.filter(h => match(h.name)));
+    const inboxItems = mk('inbox', data.inbox.filter(i => match(i.content)));
+
+    const byGroup = {
+      schedule: scheds.slice(0, LIMIT),
+      task: tasks,
+      habit: habits,
+      inbox: inboxItems,
+    };
+    const gs = Object.entries(byGroup).filter(([, arr]) => arr.length > 0)
+      .map(([type, arr]) => ({ type, items: arr }));
+    return { groups: gs, flat: gs.flatMap(g => g.items) };
+  }, [data, q]);
+
+  // 查询变化后选中索引归零
+  useEffect(() => { setSel(0); }, [q]);
+
+  // 键盘导航：↑↓ 移动 · Enter 打开
+  const onKeydown = (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (flat.length === 0) return;
+      setSel(i => {
+        const next = e.key === 'ArrowDown'
+          ? (i + 1) % flat.length
+          : (i - 1 + flat.length) % flat.length;
+        // 选中项滚入可视区
+        requestAnimationFrame(() => {
+          listRef.current?.querySelector(`[data-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+        });
+        return next;
+      });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const item = flat[sel];
+      if (item) { onClose?.(); onPick?.(item.type, item.it); }
+    }
+  };
+
+  const pick = (type, it) => { onClose?.(); onPick?.(type, it); };
+
+  // 行渲染：类型图标 + 高亮标题 + 右侧元信息
+  const Row = ({ type, it, idx }) => {
+    const on = idx === sel;
+    const mod = (type === 'schedule' || type === 'goal') ? catToModule(it.category) : null;
+    const title = type === 'habit' ? it.name : type === 'inbox' ? it.content : it.title;
+    const meta = type === 'inbox'
+      ? '待分派'
+      : type === 'habit'
+        ? (it.emoji ? `${it.emoji} 习惯` : '习惯')
+        : `${fmtMD(it.date) || '无日期'}${mod ? ` · ${mod.label}` : ''}`;
+    return (
+      <div
+        data-idx={idx}
+        className={`sp-row ${on ? 'sel' : ''}`}
+        onMouseEnter={() => setSel(idx)}
+        onClick={() => pick(type, it)}
+      >
+        <span className="sp-row-ic" style={{ color: on ? 'var(--s-main)' : '#8e8e93' }}>
+          {TYPE_ICONS[type]}
+        </span>
+        <span className="sp-row-title">
+          {hilite(title, q.trim()).map((seg, i) =>
+            seg.hit
+              ? <mark key={i} className="sp-hit">{seg.t}</mark>
+              : <React.Fragment key={i}>{seg.t}</React.Fragment>
+          )}
+        </span>
+        <span className="sp-row-meta">{meta}</span>
+      </div>
+    );
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="搜索工作台" maxWidth={540}>
+      <div className="flex flex-col">
+        {/* 搜索输入：面板内继续输入（Notion/Linear 同款） */}
+        <div className="sp-inputwrap">
+          <svg fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="sp-input-ic"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            ref={inputRef}
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            onKeyDown={onKeydown}
+            placeholder="搜索事项、待办、习惯、收集箱…"
+            spellCheck={false}
+          />
+          {q && (
+            <button type="button" className="sp-clear" aria-label="清空" onClick={() => { setQ(''); inputRef.current?.focus(); }}>×</button>
+          )}
+        </div>
+
+        {/* 结果区 */}
+        <div ref={listRef} className="sp-list">
+          {!data ? (
+            // 加载骨架
+            [0, 1, 2].map(i => <div key={i} className="sp-skeleton" style={{ width: `${70 - i * 12}%` }} />)
+          ) : flat.length === 0 ? (
+            <div className="sp-empty">
+              <div className="sp-empty-t">{q.trim() ? `未找到「${q.trim()}」相关内容` : '暂无可搜索的数据'}</div>
+              <div className="sp-empty-s">换个关键词试试，或按 N 快速记一条</div>
+            </div>
+          ) : (
+            <>
+              {!q.trim() && <div className="sp-hint">最近条目 · 输入关键词搜索全部</div>}
+              {groups.map(g => (
+                <div key={g.type} className="sp-group">
+                  <div className="sp-group-label" style={{ color: GROUP_META[g.type].color }}>
+                    {GROUP_META[g.type].label}
+                  </div>
+                  {g.items.map(item => (
+                    <Row key={`${item.type}-${item.it.id}`} type={item.type} it={item.it} idx={flat.indexOf(item)} />
+                  ))}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* 底部键位提示 */}
+        <div className="sp-footer">
+          <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+          <span><kbd>↵</kbd> 打开</span>
+          <span><kbd>Esc</kbd> 关闭</span>
+        </div>
+      </div>
+    </Modal>
+  );
+}

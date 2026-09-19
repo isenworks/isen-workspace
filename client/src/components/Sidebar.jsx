@@ -70,7 +70,7 @@ function saveNavLabel(user, key, label) {
   } catch { /* ignore */ }
 }
 
-export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd, inboxCount = 0, onQuickCapture }) {
+export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsClick, onSearchClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd, inboxCount = 0, onQuickCapture }) {
   const toast = useToast();
   const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
   // 发展规划二级导航展开/收起态：由主菜单右侧 ⌄ 按钮显式控制（localStorage 持久化）
@@ -285,6 +285,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
   // Ctrl+S / Cmd+S：有表单打开时优先提交表单（等同点击表单“保存”按钮，
   // 校验通过即保存并走各自同步管线）；无表单时才执行全局同步（跳过防抖）
   // Ctrl+B / Cmd+B：切换侧栏收起/展开（VSCode/Notion 同款；输入框聚焦时忽略防打字误触）
+  // Ctrl+K / Cmd+K：打开全局搜索面板（Spotlight/命令面板惯例键）
   // ? / Shift+?：打开快捷键说明弹窗（行业惯例，VS Code / Notion 同款）
   useEffect(() => {
     const onKey = (e) => {
@@ -292,6 +293,10 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
         e.preventDefault(); // 阻止浏览器“保存网页”对话框
         const formSubmitted = trySubmitTopForm();
         if (!formSubmitted) handleSync();
+      }
+      if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'k') {
+        e.preventDefault(); // 阻止浏览器地址栏搜索
+        onSearchClick?.();
       }
       if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 'b') {
         const t = e.target;
@@ -425,9 +430,15 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
         </div>
         {!collapsed && (
           <div className="sb-iconrow">
-            <div className="sb-search">
+            {/* 搜索入口：点击/聚焦弹出全局搜索面板（面板内继续输入，Notion 同款）；Ctrl/Cmd+K 全局直达 */}
+            <div className="sb-search" style={{ cursor: 'text' }} onClick={() => onSearchClick?.()}>
               {ICONS.search}
-              <input type="text" placeholder="搜索..." />
+              <input
+                type="text"
+                placeholder="搜索... (Ctrl/⌘+K)"
+                readOnly
+                onFocus={(e) => { e.target.blur(); onSearchClick?.(); }}
+              />
             </div>
           </div>
         )}

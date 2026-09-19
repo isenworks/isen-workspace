@@ -17,6 +17,7 @@ const GLOBAL_SHORTCUTS = [
 ];
 
 const COMBO_SHORTCUTS = [
+  { keys: ['Ctrl', 'K'], desc: '全局搜索', macKeys: ['⌘', 'K'] },
   { keys: ['Ctrl', 'S'], desc: '保存 / 同步', macKeys: ['⌘', 'S'] },
   { keys: ['Ctrl', 'B'], desc: '折叠 / 展开侧边栏', macKeys: ['⌘', 'B'] },
 ];

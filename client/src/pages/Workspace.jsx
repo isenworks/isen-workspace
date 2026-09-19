@@ -35,6 +35,7 @@ const SummaryPanel = lazy(() => import('../components/SummaryPanel.jsx'));
 const QuickCapture = lazy(() => import('../components/QuickCapture.jsx'));
 const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'));
 const ShortcutsModal = lazy(() => import('../components/ShortcutsModal.jsx'));
+const SearchPalette = lazy(() => import('../components/SearchPalette.jsx'));
 
 // 懒加载分块拉取时的占位
 const ChunkFallback = () => (
@@ -56,6 +57,7 @@ export default function Workspace({ user: propUser }) {
   const [modal, setModal] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   // 新建事项弹窗（快捷键 S / 首页新建卡共用）：默认今天；可传预置对象（如 { date, is_goal:1 } 从主线/本周重点建目标）
   const openNewSchedule = (preset) => {
     const p = (preset && typeof preset === 'object' && !preset.type) ? preset : undefined;
@@ -480,7 +482,8 @@ export default function Workspace({ user: propUser }) {
         user={user} 
         onLogout={logout} 
         onSettingsClick={() => setSettingsOpen(true)}
-        onShortcutsClick={() => setShortcutsOpen(true)} 
+        onShortcutsClick={() => setShortcutsOpen(true)}
+        onSearchClick={() => setSearchOpen(true)}
         syncSignal={syncSignal}
         onSync={async () => {
           // 手动同步：立即刷新所有面板
@@ -991,6 +994,21 @@ export default function Workspace({ user: propUser }) {
       {/* ===== 快捷键说明弹窗 ===== */}
       <Suspense fallback={null}>
         <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      </Suspense>
+
+      {/* ===== 全局搜索命令面板（侧栏搜索框 / Ctrl+K）===== */}
+      <Suspense fallback={null}>
+        <SearchPalette
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          onPick={(type, it) => {
+            // 事项/目标/待办 → 打开对应编辑弹窗；习惯 → 计划总结页（习惯面板所在）；收集箱 → 收集箱页
+            if (type === 'schedule' || type === 'goal') setModal({ type: 'schedule', data: it });
+            else if (type === 'task') setModal({ type: 'task', data: it });
+            else if (type === 'habit') setActiveMenu('plan');
+            else if (type === 'inbox') setActiveMenu('inbox');
+          }}
+        />
       </Suspense>
 
       {/* ===== 快速捕获弹窗（快捷键 N / 侧边栏收集箱「＋」）===== */}

@@ -740,7 +740,16 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 ))}
                 {todayFestivals.map(f => (
                   <div key={f} className="flex items-center gap-2 px-0.5">
-                    <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#FF3B30" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 3v2M5 7h14l-1.3 9.8a3 3 0 01-3 2.7H9.3a3 3 0 01-3-2.7L5 7z"/></svg>
+                    <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#FF3B30" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
+                      <path d="M5 5v14a2 2 0 0 0 2 2h6"/>
+                      <path d="M5 10h15"/>
+                      <path d="M8 3v4M14 3v4"/>
+                      <path d="M17 21h-2"/>
+                      <path d="M19 17v-5"/>
+                      <path d="M17 19a2 2 0 0 0 2 2"/>
+                      <path d="M19 16l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z"/>
+                    </svg>
                     <span className="text-[12.5px] font-semibold text-ink-800 truncate">{f}</span>
                     <span className="text-[10px] font-bold ml-auto flex-shrink-0" style={{ color: '#FF3B30' }}>今天 · 节日</span>
                   </div>
@@ -839,13 +848,24 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                           <path d="M4 17v-0.5M8 17v-0.5M12 17v-0.5M16 17v-0.5M20 17v-0.5"/>
                         </svg>
                       ) : u.type === 'festival' ? (
-                        /* 烟花：中心爆发 + 四散火花，stroke 风格 */
+                        /* 节日日历：日历右下角遇星星即断，缺口避让，星星完整展示 */
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="2"/>
-                          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-                          <path d="M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>
-                          <path d="M12 6v1M12 17v1M6 12h1M17 12h1"/>
-                          <path d="M7 7l.7.7M16.3 16.3l.7.7M7 17l.7-.7M16.3 7.7l.7-.7"/>
+                          {/* 上边框 + 右上圆角 */}
+                          <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
+                          {/* 左边框 + 左下圆角 */}
+                          <path d="M5 5v14a2 2 0 0 0 2 2h6"/>
+                          {/* 中间分隔线 */}
+                          <path d="M5 10h15"/>
+                          {/* 顶部挂耳 */}
+                          <path d="M8 3v4M14 3v4"/>
+                          {/* 下边框（右段：到星星左侧停止） */}
+                          <path d="M17 21h-2"/>
+                          {/* 右边框（下段：从分隔线到星星顶部停止） */}
+                          <path d="M19 17v-5"/>
+                          {/* 右下圆角（只画外弧的上半段，遇星即断） */}
+                          <path d="M17 19a2 2 0 0 0 2 2"/>
+                          {/* 星星：右下角外侧，完整展示 */}
+                          <path d="M19 16l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z"/>
                         </svg>
                       ) : schedMod ? (
                         <CategoryIcon catKey={schedMod.key} className="w-4 h-4" />

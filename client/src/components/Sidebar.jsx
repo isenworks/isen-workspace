@@ -27,13 +27,8 @@ const NAV_MAIN = [
   { key: 'home',     label: '主页' },
   { key: 'plan',     label: '计划总结' },
   { key: 'calendar', label: '日历' },
-  { key: 'annual',   label: '发展规划' }
-];
-const NAV_OTHER = [
-  { key: 'inbox',    label: '收集箱' },
-  { key: 'recycle',  label: '回收站' },
-  { key: 'settings', label: '设置' },
-  { key: 'shortcuts', label: '快捷键', action: true }
+  { key: 'annual',   label: '发展规划' },
+  { key: 'inbox',    label: '收集箱' }
 ];
 
 /* 发展规划 · 二级导航（原页面顶部 Tab 整合进侧边栏：图标+文字+加号）
@@ -481,7 +476,16 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                     }}
                   />
                 ) : (
-                  <span className="sb-nav-label flex-1 min-w-0 truncate">{labelOf(item)}</span>
+                  <span className="sb-nav-label flex-1 min-w-0 flex items-baseline" style={{ gap: '6px' }}>
+                    <span className="min-w-0 truncate">{labelOf(item)}</span>
+                    {/* 收集箱：待分派计数「· N」紧跟文字右侧；颜色/字号与快速捕获加号一致（默认浅灰，激活跟随主题蓝） */}
+                    {item.key === 'inbox' && inboxCount > 0 && (
+                      <span
+                        className="flex-shrink-0 text-[11px] font-semibold tabular-nums"
+                        style={{ color: activeMenu === 'inbox' ? 'var(--s-main)' : 'var(--ink-500, #8e8e93)' }}
+                      >· {inboxCount}</span>
+                    )}
+                  </span>
                 )}
                 {/* 发展规划：⌄ 展开指示按钮，点击切换二级导航（持久化）；箭头旋转指向状态 */}
                 {item.key === 'annual' && (
@@ -497,6 +501,18 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                     }}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                )}
+                {/* 收集箱：快速捕获加号 · 默认纯图标无底色，hover 浮出圆角方形浅灰底（与二级导航加号同款），样式见 .sb-inbox-add */}
+                {item.key === 'inbox' && (
+                  <button
+                    type="button"
+                    aria-label="快速记一条"
+                    title="快速记一条（快捷键 N）"
+                    className={`sb-inbox-add ${activeMenu === 'inbox' ? 'on' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
+                  >
+                    <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                   </button>
                 )}
               </div>
@@ -544,80 +560,34 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
               )}
             </Fragment>
           ))}
-
-          <div className="sb-divider"></div>
-
-          {NAV_OTHER.map(item => {
-            const isAction = item.action; // action 类：弹窗式入口，无 active 态、不可重命名、不跳页面
-            return (
-            <div
-              key={item.key}
-              className={`sb-nav-item ${!isAction && activeMenu === item.key ? 'active' : ''}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                if (item.key === 'settings') onSettingsClick?.();
-                else if (isAction) onShortcutsClick?.();
-                else onMenuChange?.(item.key);
-              }}
-              onContextMenu={(e) => { if (isAction) e.preventDefault(); else handleNavContextMenu(e, item); }}
-              title={isAction ? labelOf(item) : (collapsed ? labelOf(item) : '右键可修改标题文字')}
-            >
-              <div className="sb-nav-other-inner" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
-                {/* 文字与「· N」计数按基线对齐：不同字号同行视觉居中，数字不上漂 */}
-                <div className="sb-nav-label" style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>
-                  {!isAction && editingNav?.key === item.key ? (
-                    <input
-                      autoFocus
-                      defaultValue={labelOf(item)}
-                      className="flex-1 min-w-0 bg-transparent outline-none border-b border-[rgba(120,120,128,0.4)] text-sm py-0"
-                      onClick={(e) => e.stopPropagation()}
-                      onBlur={(e) => commitNavLabel(item, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') commitNavLabel(item, e.currentTarget.value);
-                        if (e.key === 'Escape') setEditingNav(null);
-                      }}
-                    />
-                  ) : (
-                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{labelOf(item)}</span>
-                  )}
-                  {/* 收集箱：待分派计数「· N」紧跟文字右侧；颜色/字号与快速捕获加号一致（默认浅灰，激活跟随主题蓝） */}
-                  {item.key === 'inbox' && inboxCount > 0 && (
-                    <span
-                      className="flex-shrink-0 text-[11px] font-semibold tabular-nums"
-                      style={{ color: activeMenu === 'inbox' ? 'var(--s-main)' : 'var(--ink-500, #8e8e93)' }}
-                    >· {inboxCount}</span>
-                  )}
-                </div>
-              </div>
-              {/* 收集箱：快速捕获加号 · 默认纯图标无底色，hover 浮出圆角方形浅灰底（与二级导航加号同款），样式见 .sb-inbox-add */}
-              {item.key === 'inbox' && (
-                <button
-                  type="button"
-                  aria-label="快速记一条"
-                  title="快速记一条（快捷键 N）"
-                  className={`sb-inbox-add ${activeMenu === 'inbox' ? 'on' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); onQuickCapture?.(); }}
-                >
-                  <svg fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
-              )}
-            </div>
-            );
-          })}
         </div>
 
         <div className="hairline mx-2 my-3"></div>
 
-        {/* 状态工具栏 */}
+        {/* 底部工具栏：工具组（回收站/设置/快捷键）｜系统组（同步/退出登录）· 纯图标行，无背景容器 */}
         <div className="sb-status-bar">
-          <button className="sb-status-btn" title="通知">
-            {ICONS.bell}
-            <span className="sb-status-dot"></span>
+          <button
+            className={`sb-status-btn ${activeMenu === 'recycle' ? 'on' : ''}`}
+            title="回收站"
+            onClick={() => onMenuChange?.('recycle')}
+          >
+            {ICONS.recycle}
           </button>
-          <button className="sb-status-btn" title="消息">
-            {ICONS.msg}
+          <button
+            className="sb-status-btn"
+            title="设置"
+            onClick={() => onSettingsClick?.()}
+          >
+            {ICONS.settings}
           </button>
+          <button
+            className="sb-status-btn"
+            title="快捷键说明（按 ? 随时打开）"
+            onClick={() => onShortcutsClick?.()}
+          >
+            {ICONS.shortcuts}
+          </button>
+          <div className="sb-status-sep" style={{ width: '1px', height: '20px', background: 'rgba(60,60,67,0.15)', margin: '0 4px' }}></div>
           <button
             className={`sb-status-btn sync-icon-btn ${syncState}`}
             title={
@@ -643,9 +613,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
               </svg>
             )}
           </button>
-          <div className="sb-status-sep" style={{ width: '1px', height: '20px', background: 'rgba(60,60,67,0.15)', margin: '0 4px' }}></div>
-          <button 
-            className="sb-status-btn" 
+          <button
+            className="sb-status-btn"
             title="退出登录"
             onClick={handleLogoutClick}
             style={{ color: '#FF3B30' }}

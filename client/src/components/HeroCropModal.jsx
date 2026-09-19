@@ -33,7 +33,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
   const CW = 480;                          // 画布逻辑宽（= modal 内容区宽）
   const CH_CAP = 280;                      // 画布高上限（图片 contain 适配）
   const SRC_MAX_SIDE = 2048;               // 压缩原图最长边
-  const SRC_MAX_BYTES = 75 * 1024;         // 压缩原图体积预算（15 张 ≈ 1.5MB base64，守住 D1 2MB 行）
+  const SRC_MAX_BYTES = 56 * 1024;         // 压缩原图体积预算（20 张 ≈ 1.5MB base64，守住 D1 2MB 行）
   const SHOW_W = 1128;                     // Hero 设计显示宽（px，低于此值的取景提示可能模糊）
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
   const isNew = typeof source !== 'string';

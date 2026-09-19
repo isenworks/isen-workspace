@@ -27,8 +27,8 @@ const HERO_GRADIENTS = {
  *   · src  = 压缩原图（≤2048px / ≤75KB，保留完整取景余量，重新编辑零质量损失）
  *   · crop = 归一化取景参数 {sx,sy,sw,sh}；展示用 CSS background-size/position 从原图实时裁剪铺满
  * 兼容 v2 {images:[{id,url}]}（已裁 3:1 结果图）与 v1 {type:'image',value} → 读取时按等效 cover 取景自动迁移
- * 存储预算：≤15 张 × ≤75KB/张（base64 后 ≈1.5MB），守住 D1 单行 2MB 与 localStorage 配额 */
-const HERO_IMG_MAX = 15;
+ * 存储预算：≤20 张 × ≤56KB/张（base64 后 ≈1.5MB），守住 D1 单行 2MB 与 localStorage 配额 */
+const HERO_IMG_MAX = 20;
 const HERO_ASPECT = 8;   // 选区/展示宽高比，= Hero 卡片实际尺寸（主列 1128px / 高约 141px）
 const HERO_INTERVALS = [['关', 0], ['10s', 10], ['30s', 30], ['60s', 60]];
 const newHeroImgId = () => `hero_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;

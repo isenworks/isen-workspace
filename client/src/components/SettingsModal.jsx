@@ -1275,7 +1275,7 @@ function GithubTab() {
                   padding: '10px 16px', borderRadius: '10px', border: 'none',
                   background: 'var(--s-main)', color: '#fff', fontWeight: 600, fontSize: '13px',
                   cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--s-rgb),0.28)',
-                }}>{copied ? '✓ 已复制，发给 AI 即可' : '📋 复制推送指令发给 AI'}</button>
+                }}>{copied ? '✓ 已复制，发给 AI 即可' : '复制推送指令发给 AI'}</button>
               </>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

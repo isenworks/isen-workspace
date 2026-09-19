@@ -713,14 +713,19 @@ body {
 .sb-status-btn.on { color: var(--s-main); background: rgba(var(--s-rgb),0.1); }
 .sb-status-btn.on:hover { background: rgba(var(--s-rgb),0.14); }
 .sb-status-btn svg { width: 18px; height: 18px; }
-.sb-status-dot {
+/* 同步状态灯：常驻小圆点，颜色表状态（绿=已同步 · 橙=同步中 · 红=失败）；白描边环保证任何底色下清晰 */
+.sb-sync-dot {
   position: absolute;
   top: 6px; right: 6px;
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: #FF3B30;
+  background: #34C759;
   border: 1.5px solid rgba(255,255,255,0.9);
 }
+.sb-sync-dot.syncing { background: #FF9500; }
+.sb-sync-dot.error { background: #FF3B30; }
+/* 退出登录：默认灰色（系统工具类操作），hover 才亮红——破坏性操作在意图出现瞬间确认 */
+.sb-logout-btn:hover { color: #FF3B30; background: rgba(255,59,48,0.08); }
 .sb-divider { height: 1px; background: rgba(60,60,67,0.1); margin: 10px 6px; }
 
 /* ====== 侧边栏折叠（图标栏）模式：收窄为 64px 图标导航，给内容区让宽 ====== */
@@ -762,10 +767,7 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-.sync-icon-btn.syncing { color: #FF9500; }
-.sync-icon-btn.synced { color: #34C759; }
-.sync-icon-btn.error { color: #FF3B30; }
-.sync-icon-btn:hover { background: rgba(var(--s-rgb),0.08); color: var(--s-main) !important; }
+/* 同步图标常态灰色，状态由右上角状态灯表达（.sb-sync-dot）；hover 与其他底部工具按钮同款浅灰底 */
 
 /* ====== Toast ====== */
 .toast-layer {

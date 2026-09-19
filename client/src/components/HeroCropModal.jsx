@@ -9,20 +9,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
  *   · 选区始终约束在图片范围内 → 任意宽高比（含超宽 banner）都能裁到顶部/底部区域
  *   · 双击画布重置为最大选区
  *
- * 数据策略（保留原图，支持无损重新取景）：
- *   · 新上传：输出 压缩原图(≤2048px, ≤75KB JPEG) + 归一化取景参数 crop
- *   · 重新编辑：仅输出新 crop（src 不变，编辑零成本、云端增量极小）
- *   · 展示端用 CSS background-size/position 从原图按 crop 裁剪铺满
+ * 数据策略 v4（预裁剪成品图，字节全用在可见像素上）：
+ *   · 新上传 / 重新编辑：输出 成品图 outBlob（按选区裁剪 + 压缩到预算）+ 取景参数 crop
+ *   · 展示端直接用成品图 background-size: cover，画质更高且省存储
+ *   · srcBlob 仅在新上传时输出（调用方决定是否保留原图用于后续重新取景）
  *
  * Props:
  *   open: boolean
  *   source: File（新上传）| string（dataURL，重新编辑已存原图）
  *   ratio: number 选区宽高比（与 Hero 卡片实际显示比例一致）
  *   initialCrop: { sx, sy, sw, sh } 上次保存的取景参数（重新编辑时恢复）
+ *   outWidth: number 成品图输出宽度（px，高度按 ratio 计算）
+ *   outMaxBytes: number 成品图体积预算（字节）
  *   onClose: () => void
- *   onConfirm: ({ srcBlob: Blob|null, crop: {sx,sy,sw,sh} }) => void
+ *   onConfirm: ({ outBlob: Blob, srcBlob: Blob|null, crop: {sx,sy,sw,sh} }) => void
  */
-export default function HeroCropModal({ open, source, ratio = 8, initialCrop = null, onClose, onConfirm }) {
+export default function HeroCropModal({ open, source, ratio = 8, initialCrop = null, outWidth = 1440, outMaxBytes = 80 * 1024, onClose, onConfirm }) {
   const canvasRef = useRef(null);
   const [img, setImg] = useState(null);
   const [box, setBox] = useState(null);   // 选区 { x, y, w }（画布逻辑坐标，高 = w/ratio）
@@ -234,7 +236,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
     setBox({ w, x: geo.imgX + (geo.dw - w) / 2, y: geo.imgY + (geo.dh - h) / 2 });
   }
 
-  /* ---- 压缩原图：最长边 ≤2048，自适应质量 ≤75KB（保留取景余量，重新编辑不损质量） ---- */
+  /* ---- 压缩原图：最长边 ≤2048，自适应质量 ≤ SRC_MAX_BYTES（保留取景余量，重新编辑不损质量） ---- */
   function compressSource() {
     const scale = Math.min(1, SRC_MAX_SIDE / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
@@ -256,7 +258,38 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
     });
   }
 
-  /* ---- 确认：归一化取景参数 + （新图）压缩原图 ---- */
+  /* ---- 生成成品图：按当前选区从原图裁出 8:1 横条，缩放到 outWidth，压缩到 outMaxBytes 预算 ----
+   * 核心收益：同样体积的字节，全部花在最终可见像素上（而不是 70%+ 浪费在被 CSS 裁掉的区域） */
+  function generateOutput() {
+    if (!img || !box || !geo) return null;
+    // 选区对应原图坐标（源像素）
+    const sx = (box.x - geo.imgX) / geo.sf;
+    const sy = (box.y - geo.imgY) / geo.sf;
+    const sw = box.w / geo.sf;
+    const sh = sw / ratio;
+    // 输出尺寸
+    const ow = Math.max(1, Math.round(outWidth));
+    const oh = Math.max(1, Math.round(ow / ratio));
+    const oc = document.createElement('canvas');
+    oc.width = ow; oc.height = oh;
+    const octx = oc.getContext('2d');
+    octx.fillStyle = '#fff';
+    octx.fillRect(0, 0, ow, oh);
+    octx.imageSmoothingEnabled = true;
+    octx.imageSmoothingQuality = 'high';
+    octx.drawImage(img, sx, sy, sw, sh, 0, 0, ow, oh);
+    return new Promise(resolve => {
+      const qualities = [0.9, 0.82, 0.74, 0.66, 0.58, 0.5, 0.42];
+      (function attempt(i) {
+        oc.toBlob(blob => {
+          if (blob && (blob.size <= outMaxBytes || i === qualities.length - 1)) resolve(blob);
+          else attempt(i + 1);
+        }, 'image/jpeg', qualities[i]);
+      })(0);
+    });
+  }
+
+  /* ---- 确认：归一化取景参数 + 成品图 + （新图）压缩原图 ---- */
   async function handleConfirm() {
     if (!img || !geo || !box) return;
     const crop = {
@@ -265,8 +298,11 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
       sw: box.w / geo.dw,
       sh: (box.w / ratio) / geo.dh,
     };
-    const srcBlob = isNew ? await compressSource() : null;
-    onConfirm({ srcBlob, crop });
+    const [outBlob, srcBlob] = await Promise.all([
+      generateOutput(),
+      isNew ? compressSource() : Promise.resolve(null),
+    ]);
+    onConfirm({ outBlob, srcBlob, crop });
   }
 
   if (!open) return null;

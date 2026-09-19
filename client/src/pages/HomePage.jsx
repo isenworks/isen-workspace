@@ -23,13 +23,18 @@ const HERO_GRADIENTS = {
 };
 
 /* ===== Hero 背景多图轮播（localStorage + 云端 KV） =====
- * 数据形态 v3：{ type: 'gradient'|'images', value: 渐变key, images: [{id, src, crop}], interval: 轮播秒(0=关), shuffle }
- *   · src  = 压缩原图（≤2048px / ≤75KB，保留完整取景余量，重新编辑零质量损失）
- *   · crop = 归一化取景参数 {sx,sy,sw,sh}；展示用 CSS background-size/position 从原图实时裁剪铺满
- * 兼容 v2 {images:[{id,url}]}（已裁 3:1 结果图）与 v1 {type:'image',value} → 读取时按等效 cover 取景自动迁移
- * 存储预算：≤20 张 × ≤56KB/张（base64 后 ≈1.5MB），守住 D1 单行 2MB 与 localStorage 配额 */
+ * 数据形态 v4：{ type: 'gradient'|'images', value: 渐变key, images: [{id, out, src?, crop}], interval, shuffle }
+ *   · out  = 预裁剪成品图（按 Hero 8:1 比例裁剪输出，展示直接用，字节全部花在可见像素上）
+ *   · src? = 原图（可选，保留后可重新取景；v3 及以前的图都有，v4 新图默认不存以省空间）
+ *   · crop = 归一化取景参数 {sx,sy,sw,sh}（保留用于从 src 重新生成 out）
+ * 兼容 v3 {images:[{id,src,crop}]} / v2 {images:[{id,url}]} / v1 {type:'image',value}
+ *   → 读取时自动迁移：有 out 优先用 out，无 out 回退到 src+crop 的 CSS 裁剪
+ * 存储预算：≤20 张 × ≤80KB/张成品图（base64 后 ≈2.1MB，留出余量守住 D1 单行 2MB + 其他字段）
+ *   实际旧数据若仍带 src，体积会超预算；首次编辑旧图后会自动转为仅 out 的省空间格式 */
 const HERO_IMG_MAX = 20;
-const HERO_ASPECT = 8;   // 选区/展示宽高比，= Hero 卡片实际尺寸（主列 1128px / 高约 141px）
+const HERO_OUT_MAX_BYTES = 80 * 1024;    // 成品图体积预算（JPEG）
+const HERO_OUT_WIDTH = 1440;              // 成品图输出宽度（px，2x 屏也清晰）
+const HERO_ASPECT = 8;                    // 选区/展示宽高比，= Hero 卡片实际尺寸（主列 1128px / 高约 141px）
 const HERO_INTERVALS = [['关', 0], ['10s', 10], ['30s', 30], ['60s', 60]];
 const newHeroImgId = () => `hero_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 // 取景参数规整（防 NaN / 越界）
@@ -56,7 +61,16 @@ function normalizeHeroBg(v) {
     shuffle: !!v?.shuffle,
   };
   const pushImg = (im) => {
-    if (typeof im?.src === 'string' && im.src) {
+    // v4: 有 out 成品图 → 优先用（展示画质更高、省存储）
+    if (typeof im?.out === 'string' && im.out) {
+      out.images.push({
+        id: im.id || newHeroImgId(),
+        out: im.out,
+        src: typeof im.src === 'string' && im.src ? im.src : undefined,   // 原图可选（旧数据有，新数据可能没有）
+        crop: normCrop(im.crop) || coverCrop(3),
+      });
+    } else if (typeof im?.src === 'string' && im.src) {
+      // v3: 原图 + crop → 保留原图，展示走 CSS 裁剪（旧数据自动兼容）
       out.images.push({ id: im.id || newHeroImgId(), src: im.src, crop: normCrop(im.crop) || coverCrop(3) });
     } else if (typeof im?.url === 'string' && im.url) {
       // v2 已裁 3:1 结果图：等效 cover 迁移（src 沿用，重编辑仍可在 8:1 框内重取景）
@@ -70,15 +84,25 @@ function normalizeHeroBg(v) {
   if (v?.type === 'images' && out.images.length > 0) out.type = 'images';
   return out;
 }
-/* 原图 + 取景参数 → CSS 裁剪铺满样式（百分比相对容器，天然响应式）
- *   size   = 100/sw% × 100/sh%（裁剪区恰好铺满容器；选区比例=容器比例保证不变形）
- *   pos    = sx/(1-sw)% × sy/(1-sh)%（把裁剪区左上角对齐容器原点） */
+/* Hero 背景样式生成：
+ *   · 有 out（v4 成品图）：直接 background-size: cover，像素 100% 有效，画质更高
+ *   · 无 out（v3 及以前）：原图 + crop → CSS 按比例裁剪铺满（向后兼容）
+ *   渐变遮罩统一叠加在图片上 */
 function heroCropBg(im, withShade = true) {
+  const shade = withShade ? 'linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), ' : '';
+  if (im.out) {
+    return {
+      backgroundImage: `${shade}url(${im.out})`,
+      backgroundSize: `${withShade ? 'cover, ' : ''}cover`,
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    };
+  }
   const c = im.crop || coverCrop(3);
   const sw = Math.min(c.sw, 0.9995), sh = Math.min(c.sh, 0.9995);   // 防除零
   const px = (c.sx / (1 - sw)) * 100, py = (c.sy / (1 - sh)) * 100;
   return {
-    backgroundImage: `${withShade ? 'linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), ' : ''}url(${im.src})`,
+    backgroundImage: `${shade}url(${im.src})`,
     backgroundSize: `${withShade ? 'cover, ' : ''}${100 / sw}% ${100 / sh}%`,
     backgroundPosition: `${withShade ? 'center, ' : ''}${px}% ${py}%`,
     backgroundRepeat: 'no-repeat',
@@ -247,24 +271,53 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     setCropCrop(null);
     setCropSrc(f);
   }
-  // 笔图标：基于原图重新取景（恢复上次取景参数，只改 crop 不动原图）
+  // 笔图标：有原图 → 基于原图重新取景；无原图（v4 新图） → 直接选新图重新裁剪
   function editHeroImage(id) {
     const im = heroImgs.find(x => x.id === id);
     if (!im) return;
-    setCropReplaceId(id);
-    setCropCrop(im.crop || null);
-    setCropSrc(im.src);
+    if (im.src) {
+      // 旧数据：有原图，可在原图上重新取景
+      setCropReplaceId(id);
+      setCropCrop(im.crop || null);
+      setCropSrc(im.src);
+    } else {
+      // v4 新图：只存成品图，调整取景需要重新选图上传
+      setCropReplaceId(id);
+      setCropCrop(null);
+      filePickRef.current?.click();
+    }
   }
-  // 裁剪确认：{ srcBlob(新图才有), crop } → 原位更新取景（保留 id/顺序/src）或追加新图
-  function handleCropConfirm({ srcBlob, crop }) {
-    const done = (srcDataUrl) => {
+  // 裁剪确认：{ outBlob, srcBlob, crop } → 保存成品图 out（原图 src 可选保留）
+  //   · 新图：只存 out（省空间），不存 src
+  //   · 编辑旧图（有 src）：更新 out 和 crop，保留 src 以便继续重取景
+  //   · 编辑新图（无 src，即"重新上传调整"）：替换 out
+  function handleCropConfirm({ outBlob, srcBlob, crop }) {
+    const readDataUrl = (blob) => new Promise(resolve => {
+      if (!blob) { resolve(null); return; }
+      const r = new FileReader();
+      r.onload = e => resolve(e.target.result);
+      r.readAsDataURL(blob);
+    });
+    Promise.all([readDataUrl(outBlob), readDataUrl(srcBlob)]).then(([outDataUrl, srcDataUrl]) => {
       const rid = cropReplaceId;
       const idx = rid ? heroImgs.findIndex(x => x.id === rid) : heroImgs.length;
-      if (rid && idx < 0) { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); return; }   // 目标图已被删除
+      if (rid && idx < 0) { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); return; }
       setHeroBg(prev => {
         const images = [...prev.images];
-        if (rid) images[idx] = { ...images[idx], crop };
-        else if (images.length < HERO_IMG_MAX) images.push({ id: newHeroImgId(), src: srcDataUrl, crop });
+        if (rid) {
+          // 编辑已有图：更新 out + crop；src 视情况保留（旧图有就保留，新图没有就不新增）
+          const old = images[idx];
+          images[idx] = {
+            ...old,
+            out: outDataUrl || old.out,
+            crop,
+            // 只有原本就有 src 且有新 srcBlob 时才更新 src；否则保留原状态
+            ...(old.src && srcDataUrl ? { src: srcDataUrl } : {}),
+          };
+        } else if (images.length < HERO_IMG_MAX) {
+          // 新图：只存 out + crop，不存 src（省空间）
+          images.push({ id: newHeroImgId(), out: outDataUrl, crop });
+        }
         return { ...prev, type: 'images', images };
       });
       setCurIdx(idx);
@@ -272,20 +325,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       setCropReplaceId(null);
       setCropCrop(null);
       if (rid) {
-        toast.success('已更新取景');            // 编辑流程：保留面板，便于继续管理
+        toast.success('已更新裁剪');
       } else {
-        setHeroEditOpen(false);                 // 新增流程：收起面板展示效果
+        setHeroEditOpen(false);
         toast.success('已添加背景图');
-        // 云端单行 2MB 预算告警（data URL 较二进制约 1.33 倍膨胀）
-        const total = heroImgs.reduce((s, x) => s + (x.src?.length || 0), 0) + (srcDataUrl?.length || 0);
-        if (total > 1900000) toast.warn('背景图总量接近云端同步上限，建议删除不常用的图片');
+        // 云端预算告警：按 out 成品图估算（base64 膨胀 ~1.33×）
+        const totalOut = heroImgs.reduce((s, x) => s + (x.out?.length || 0), 0) + (outDataUrl?.length || 0);
+        if (totalOut > 1900000) toast.warn('背景图总量接近云端同步上限，建议删除不常用的图片');
       }
-    };
-    if (srcBlob) {
-      const reader = new FileReader();
-      reader.onload = e => done(e.target.result);
-      reader.readAsDataURL(srcBlob);
-    } else done(null);
+    });
   }
 
   /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 后续事项） ===== */
@@ -578,7 +626,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                         <button title="后移" disabled={i === heroImgs.length - 1} onClick={e => { e.stopPropagation(); moveHeroImg(i, 1); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition disabled:opacity-25 disabled:pointer-events-none">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
                         </button>
-                        <button title="调整裁剪" onClick={e => { e.stopPropagation(); editHeroImage(im.id); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition">
+                        <button title="调整图片" onClick={e => { e.stopPropagation(); editHeroImage(im.id); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                         </button>
                         <button title="删除" onClick={e => onHeroImgDel(e, im.id)} className={`w-[22px] h-[22px] rounded-md grid place-items-center transition ${isConfirmDel ? 'bg-[#FF3B30] text-white' : 'text-white/85 hover:text-white hover:bg-[#FF3B30]/80'}`}>
@@ -616,7 +664,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               )}
             </div>
             {heroImgs.length === 0 && (
-              <div className="text-[11px] text-ink-300 mt-1.5">最多 {HERO_IMG_MAX} 张轮播 · 按 Hero 卡片实际比例取景，可随时重新调整</div>
+              <div className="text-[11px] text-ink-300 mt-1.5">最多 {HERO_IMG_MAX} 张轮播 · 按 Hero 卡片实际比例取景裁剪，成品图 100% 像素用于展示</div>
             )}
 
             {/* 轮播设置（≥2 张时显示） */}
@@ -1023,12 +1071,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       {/* Hero 背景图上传入口（仅添加；重新编辑已有图走卡片上的笔图标） */}
       <input ref={filePickRef} type="file" accept="image/*" className="hidden" onChange={handleHeroFilePick} />
 
-      {/* Hero 图片裁剪弹窗（新上传裁剪 / 笔图标基于原图重新取景共用） */}
+      {/* Hero 图片裁剪弹窗（新上传裁剪 / 笔图标重新调整共用） */}
       <HeroCropModal
         open={!!cropSrc}
         source={cropSrc}
         ratio={HERO_ASPECT}
         initialCrop={cropCrop}
+        outWidth={HERO_OUT_WIDTH}
+        outMaxBytes={HERO_OUT_MAX_BYTES}
         onClose={() => { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); }}
         onConfirm={handleCropConfirm}
       />

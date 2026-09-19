@@ -625,7 +625,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                 <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
               </svg>
             )}
-            {/* 同步状态灯：图标右上角常驻小圆点，颜色表状态（绿·橙·红），白环保证底色兼容 */}
+            {/* 同步状态灯：图标中心小圆点，颜色表状态（绿·橙·红），白环保证底色兼容 */}
             <span className={`sb-sync-dot ${syncState}`}></span>
           </button>
           <button

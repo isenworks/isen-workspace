@@ -20,6 +20,7 @@ const ICONS = {
   sync:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path></svg>),
   check:   (<svg fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>),
   search:  (<svg fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>),
+  keyboard:(<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M10 14h.01M14 14h.01M18 14h.01M8 14h8"/></svg>),
 };
 
 const NAV_MAIN = [
@@ -31,7 +32,8 @@ const NAV_MAIN = [
 const NAV_OTHER = [
   { key: 'inbox',    label: '收集箱' },
   { key: 'recycle',  label: '回收站' },
-  { key: 'settings', label: '设置' }
+  { key: 'settings', label: '设置' },
+  { key: 'shortcuts', label: '快捷键', action: true }
 ];
 
 /* 发展规划 · 二级导航（原页面顶部 Tab 整合进侧边栏：图标+文字+加号）
@@ -73,7 +75,7 @@ function saveNavLabel(user, key, label) {
   } catch { /* ignore */ }
 }
 
-export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd, inboxCount = 0, onQuickCapture }) {
+export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd, inboxCount = 0, onQuickCapture }) {
   const toast = useToast();
   const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
   // 发展规划二级导航展开/收起态：由主菜单右侧 ⌄ 按钮显式控制（localStorage 持久化）
@@ -288,6 +290,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
   // Ctrl+S / Cmd+S：有表单打开时优先提交表单（等同点击表单“保存”按钮，
   // 校验通过即保存并走各自同步管线）；无表单时才执行全局同步（跳过防抖）
   // Ctrl+B / Cmd+B：切换侧栏收起/展开（VSCode/Notion 同款；输入框聚焦时忽略防打字误触）
+  // ? / Shift+?：打开快捷键说明弹窗（行业惯例，VS Code / Notion 同款）
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's') {
@@ -305,6 +308,14 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
           try { localStorage.setItem(SIDEBAR_COLLAPSED_LS, next ? '1' : '0'); } catch { /* ignore */ }
           return next;
         });
+      }
+      // ? / Shift+?：打开快捷键说明
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        const t = e.target;
+        const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+        if (inField) return;
+        e.preventDefault();
+        onShortcutsClick?.();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -536,20 +547,26 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
 
           <div className="sb-divider"></div>
 
-          {NAV_OTHER.map(item => (
+          {NAV_OTHER.map(item => {
+            const isAction = item.action; // action 类：弹窗式入口，无 active 态、不可重命名、不跳页面
+            return (
             <div
               key={item.key}
-              className={`sb-nav-item ${activeMenu === item.key ? 'active' : ''}`}
+              className={`sb-nav-item ${!isAction && activeMenu === item.key ? 'active' : ''}`}
               style={{ cursor: 'pointer' }}
-              onClick={() => { if (item.key === 'settings') onSettingsClick?.(); else onMenuChange?.(item.key); }}
-              onContextMenu={(e) => handleNavContextMenu(e, item)}
-              title={collapsed ? labelOf(item) : '右键可修改标题文字'}
+              onClick={() => {
+                if (item.key === 'settings') onSettingsClick?.();
+                else if (isAction) onShortcutsClick?.();
+                else onMenuChange?.(item.key);
+              }}
+              onContextMenu={(e) => { if (isAction) e.preventDefault(); else handleNavContextMenu(e, item); }}
+              title={isAction ? labelOf(item) : (collapsed ? labelOf(item) : '右键可修改标题文字')}
             >
               <div className="sb-nav-other-inner" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
                 {/* 文字与「· N」计数按基线对齐：不同字号同行视觉居中，数字不上漂 */}
                 <div className="sb-nav-label" style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>
-                  {editingNav?.key === item.key ? (
+                  {!isAction && editingNav?.key === item.key ? (
                     <input
                       autoFocus
                       defaultValue={labelOf(item)}
@@ -586,7 +603,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, activeMenu = 
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="hairline mx-2 my-3"></div>

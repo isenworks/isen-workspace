@@ -430,13 +430,15 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
         </div>
         {!collapsed && (
           <div className="sb-iconrow">
-            {/* 搜索入口：点击/聚焦弹出全局搜索面板（面板内继续输入，Notion 同款）；Ctrl/Cmd+K 全局直达 */}
-            <div className="sb-search" style={{ cursor: 'text' }} onClick={() => onSearchClick?.()}>
+            {/* 搜索入口：点击/聚焦弹出全局搜索面板（面板内继续输入，Notion 同款）；Ctrl/Cmd+K 全局直达
+                · 快捷键提示收纳进 tooltip（渐进式披露），框内只留「搜索」，保持入口视觉干净 */}
+            <div className="sb-search" style={{ cursor: 'text' }} onClick={() => onSearchClick?.()} title="全局搜索（Ctrl/⌘+K）">
               {ICONS.search}
               <input
                 type="text"
-                placeholder="搜索... (Ctrl/⌘+K)"
+                placeholder="搜索"
                 readOnly
+                aria-label="全局搜索"
                 onFocus={(e) => { e.target.blur(); onSearchClick?.(); }}
               />
             </div>

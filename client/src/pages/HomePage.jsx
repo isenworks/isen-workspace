@@ -23,17 +23,17 @@ const HERO_GRADIENTS = {
   E: { name: '薰衣草', css: 'linear-gradient(135deg, #AF52DE 0%, #5856D6 100%)', shadow: 'rgba(175,82,222,0.28)' },
 };
 
-/* ===== Hero 背景多图轮播（localStorage + 云端 KV） =====
- * 数据形态 v4：{ type: 'gradient'|'images', value: 渐变key, images: [{id, out, src?, crop}], interval, shuffle }
- *   · out  = 预裁剪成品图（按 Hero 8:1 比例裁剪输出，展示直接用，字节全部花在可见像素上）
- *   · src? = 原图（可选，保留后可重新取景；v3 及以前的图都有，v4 新图默认不存以省空间）
- *   · crop = 归一化取景参数 {sx,sy,sw,sh}（保留用于从 src 重新生成 out）
- * 兼容 v3 {images:[{id,src,crop}]} / v2 {images:[{id,url}]} / v1 {type:'image',value}
+/* ===== Hero 背景多图轮播（R2 对象存储 + 本地元数据同步） =====
+ * 数据形态 v5：{ type: 'gradient'|'images', value: 渐变key, images: [{id, out, src, outKey?, srcKey?, crop}], interval, shuffle }
+ *   · out    = 成品图 URL（/api/hero/img/... 或旧版 base64），展示直接用，字节全部花在可见像素上
+ *   · src    = 原图 URL（/api/hero/img/... 或旧版 base64），供重新取景
+ *   · outKey / srcKey = R2 存储 key（删除时用；旧版 base64 图没有）
+ *   · crop   = 归一化取景参数 {sx,sy,sw,sh}
+ * 兼容 v4 {images:[{id,out,src?,crop}]} / v3 {images:[{id,src,crop}]} / v2 {images:[{id,url}]} / v1
  *   → 读取时自动迁移：有 out 优先用 out，无 out 回退到 src+crop 的 CSS 裁剪
- * 存储预算：≤20 张 × ≤80KB/张成品图（base64 后 ≈2.1MB，留出余量守住 D1 单行 2MB + 其他字段）
- *   实际旧数据若仍带 src，体积会超预算；首次编辑旧图后会自动转为仅 out 的省空间格式 */
-const HERO_IMG_MAX = 20;
-const HERO_OUT_MAX_BYTES = 80 * 1024;    // 成品图体积预算（JPEG）
+ * R2 模式下张数上限放宽到 50，单张成品图 120KB，原图 4K 高质量保留（重新取景无损可调） */
+const HERO_IMG_MAX = 50;
+const HERO_OUT_MAX_BYTES = 120 * 1024;   // 成品图体积预算（JPEG）
 const HERO_OUT_WIDTH = 1440;              // 成品图输出宽度（px，2x 屏也清晰）
 const HERO_ASPECT = 8;                    // 选区/展示宽高比，= Hero 卡片实际尺寸（主列 1128px / 高约 141px）
 const HERO_INTERVALS = [['关', 0], ['10s', 10], ['30s', 30], ['60s', 60]];
@@ -62,19 +62,27 @@ function normalizeHeroBg(v) {
     shuffle: !!v?.shuffle,
   };
   const pushImg = (im) => {
-    // v4: 有 out 成品图 → 优先用（展示画质更高、省存储）
+    // v5/v4: 有 out 成品图 → 优先用（展示画质更高）
     if (typeof im?.out === 'string' && im.out) {
       out.images.push({
         id: im.id || newHeroImgId(),
         out: im.out,
-        src: typeof im.src === 'string' && im.src ? im.src : undefined,   // 原图可选（旧数据有，新数据可能没有）
+        src: typeof im.src === 'string' && im.src ? im.src : undefined,
+        outKey: typeof im.outKey === 'string' && im.outKey ? im.outKey : undefined,
+        srcKey: typeof im.srcKey === 'string' && im.srcKey ? im.srcKey : undefined,
         crop: normCrop(im.crop) || coverCrop(3),
       });
     } else if (typeof im?.src === 'string' && im.src) {
       // v3: 原图 + crop → 保留原图，展示走 CSS 裁剪（旧数据自动兼容）
-      out.images.push({ id: im.id || newHeroImgId(), src: im.src, crop: normCrop(im.crop) || coverCrop(3) });
+      out.images.push({
+        id: im.id || newHeroImgId(),
+        src: im.src,
+        crop: normCrop(im.crop) || coverCrop(3),
+        outKey: typeof im.outKey === 'string' && im.outKey ? im.outKey : undefined,
+        srcKey: typeof im.srcKey === 'string' && im.srcKey ? im.srcKey : undefined,
+      });
     } else if (typeof im?.url === 'string' && im.url) {
-      // v2 已裁 3:1 结果图：等效 cover 迁移（src 沿用，重编辑仍可在 8:1 框内重取景）
+      // v2 已裁 3:1 结果图：等效 cover 迁移
       out.images.push({ id: im.id || newHeroImgId(), src: im.url, crop: coverCrop(3) });
     }
   };
@@ -222,7 +230,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [heroEditOpen]);
 
-  /* ---- Hero 图片管理（增 / 删 / 换 / 排序 / 选用） ---- */
+  /* ---- Hero 图片管理（增 / 删 / 换 / 排序 / 选用 · R2 对象存储） ---- */
   function applyHeroGradient(k) { setHeroBg(prev => ({ ...prev, type: 'gradient', value: k })); }
   function selectHeroImg(i) {
     setCurIdx(i);
@@ -237,11 +245,16 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       return { ...prev, images };
     });
   }
-  function removeHeroImg(id) {
+  // 删除：从 R2 移除 + 从状态移除；旧 base64 图直接删状态
+  async function removeHeroImg(id) {
+    const im = heroImgs.find(x => x.id === id);
     setHeroBg(prev => {
       const images = prev.images.filter(x => x.id !== id);
       return { ...prev, images, type: images.length > 0 ? 'images' : 'gradient' };
     });
+    // 异步清理 R2（不阻塞 UI）
+    if (im?.outKey) API.hero.remove(im.outKey).catch(() => {});
+    if (im?.srcKey && im.srcKey !== im.outKey) API.hero.remove(im.srcKey).catch(() => {});
   }
   // 删除：点 × 弹出卡片上方的二次确认小弹窗，确认后才删除
   function onHeroImgDel(e, id) {
@@ -272,69 +285,100 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     setCropCrop(null);
     setCropSrc(f);
   }
-  // 笔图标：有原图 → 基于原图重新取景；无原图（v4 新图） → 直接选新图重新裁剪
-  function editHeroImage(id) {
+  // 笔图标：有原图 → 基于原图重新取景（R2 URL 则先 fetch 成 Blob）；无原图 → 直接选新图重新裁剪
+  async function editHeroImage(id) {
     const im = heroImgs.find(x => x.id === id);
     if (!im) return;
     if (im.src) {
-      // 旧数据：有原图，可在原图上重新取景
       setCropReplaceId(id);
       setCropCrop(im.crop || null);
-      setCropSrc(im.src);
+      // R2 URL：先 fetch 成 Blob 再转 dataURL（跨域/缓存友好）
+      if (im.src.startsWith('/api/hero/img/') || im.src.startsWith('http')) {
+        try {
+          const res = await fetch(im.src, { cache: 'force-cache' });
+          const blob = await res.blob();
+          const reader = new FileReader();
+          reader.onload = e => setCropSrc(e.target.result);
+          reader.readAsDataURL(blob);
+        } catch {
+          toast.error('加载原图失败，请重新上传');
+          filePickRef.current?.click();
+        }
+      } else {
+        // base64（旧数据）：直接用
+        setCropSrc(im.src);
+      }
     } else {
-      // v4 新图：只存成品图，调整取景需要重新选图上传
+      // 无原图：重新选图上传
       setCropReplaceId(id);
       setCropCrop(null);
       filePickRef.current?.click();
     }
   }
-  // 裁剪确认：{ outBlob, srcBlob, crop } → 保存成品图 out（原图 src 可选保留）
-  //   · 新图：只存 out（省空间），不存 src
-  //   · 编辑旧图（有 src）：更新 out 和 crop，保留 src 以便继续重取景
-  //   · 编辑新图（无 src，即"重新上传调整"）：替换 out
-  function handleCropConfirm({ outBlob, srcBlob, crop }) {
-    const readDataUrl = (blob) => new Promise(resolve => {
-      if (!blob) { resolve(null); return; }
-      const r = new FileReader();
-      r.onload = e => resolve(e.target.result);
-      r.readAsDataURL(blob);
-    });
-    Promise.all([readDataUrl(outBlob), readDataUrl(srcBlob)]).then(([outDataUrl, srcDataUrl]) => {
-      const rid = cropReplaceId;
-      const idx = rid ? heroImgs.findIndex(x => x.id === rid) : heroImgs.length;
-      if (rid && idx < 0) { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); return; }
+  // 裁剪确认：{ outBlob, srcBlob, crop } → 上传 R2 → 保存 URL + key + crop
+  async function handleCropConfirm({ outBlob, srcBlob, crop }) {
+    const rid = cropReplaceId;
+    const idx = rid ? heroImgs.findIndex(x => x.id === rid) : heroImgs.length;
+    if (rid && idx < 0) { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); return; }
+
+    const id = rid || newHeroImgId();
+    const isEdit = !!rid;
+    const oldImg = isEdit ? heroImgs[idx] : null;
+
+    try {
+      // 并行上传成品图 + 原图到 R2
+      const [outResult, srcResult] = await Promise.all([
+        API.hero.upload(outBlob, { kind: 'out', id }),
+        srcBlob ? API.hero.upload(srcBlob, { kind: 'src', id }) : Promise.resolve(null),
+      ]);
+
       setHeroBg(prev => {
         const images = [...prev.images];
-        if (rid) {
-          // 编辑已有图：更新 out + crop；src 视情况保留（旧图有就保留，新图没有就不新增）
+        if (isEdit) {
+          // 编辑已有图：更新 out/src URL + key + crop
           const old = images[idx];
           images[idx] = {
             ...old,
-            out: outDataUrl || old.out,
+            out: outResult.url,
+            outKey: outResult.key,
+            src: srcResult ? srcResult.url : old.src,
+            srcKey: srcResult ? srcResult.key : old.srcKey,
             crop,
-            // 只有原本就有 src 且有新 srcBlob 时才更新 src；否则保留原状态
-            ...(old.src && srcDataUrl ? { src: srcDataUrl } : {}),
           };
+          // 异步清理旧 R2 文件（key 变化时才删，避免误删同 id 的新文件）
+          if (old.outKey && old.outKey !== outResult.key) {
+            API.hero.remove(old.outKey).catch(() => {});
+          }
+          if (old.srcKey && srcResult && old.srcKey !== srcResult.key) {
+            API.hero.remove(old.srcKey).catch(() => {});
+          }
         } else if (images.length < HERO_IMG_MAX) {
-          // 新图：只存 out + crop，不存 src（省空间）
-          images.push({ id: newHeroImgId(), out: outDataUrl, crop });
+          // 新图：存 URL + key + crop
+          images.push({
+            id,
+            out: outResult.url,
+            outKey: outResult.key,
+            src: srcResult ? srcResult.url : undefined,
+            srcKey: srcResult ? srcResult.key : undefined,
+            crop,
+          });
         }
         return { ...prev, type: 'images', images };
       });
-      setCurIdx(idx);
+
+      setCurIdx(Math.min(idx, heroImgs.length - (isEdit ? 1 : 0)));
       setCropSrc(null);
       setCropReplaceId(null);
       setCropCrop(null);
-      if (rid) {
+      if (isEdit) {
         toast.success('已更新裁剪');
       } else {
         setHeroEditOpen(false);
         toast.success('已添加背景图');
-        // 云端预算告警：按 out 成品图估算（base64 膨胀 ~1.33×）
-        const totalOut = heroImgs.reduce((s, x) => s + (x.out?.length || 0), 0) + (outDataUrl?.length || 0);
-        if (totalOut > 1900000) toast.warn('背景图总量接近云端同步上限，建议删除不常用的图片');
       }
-    });
+    } catch (err) {
+      toast.error(err.message || '上传失败');
+    }
   }
 
   /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 后续事项） ===== */

@@ -193,6 +193,35 @@ export const API = {
     async all(q) { return fetchPages('/search/all', { q }); },
   },
 
+  // Hero 背景图 R2 对象存储（原图保留，支持无损重新取景）
+  //   upload: multipart 上传文件，kind='src'（原图）|'out'（成品图），返回 { key, url, size }
+  //   remove: 按 key 删除 R2 中的文件
+  hero: {
+    async upload(file, { kind = 'out', id = '' } = {}) {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('kind', kind);
+      fd.append('id', id);
+      const res = await fetch('/api/hero/upload', {
+        method: 'POST',
+        headers: { 'X-Unlock-Token': unlockToken() },
+        body: fd,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.error) throw new Error(data?.error || `上传失败 (${res.status})`);
+      return data;
+    },
+    async remove(key) {
+      const res = await fetch(`/api/hero/img/${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+        headers: { 'X-Unlock-Token': unlockToken() },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.error) throw new Error(data?.error || `删除失败 (${res.status})`);
+      return data;
+    },
+  },
+
   // 财务模块（发展规划 · 第 6 模块：攒钱目标 / 资产负债 / 当月收支 / 流水）
   //   bootstrap 一次拉全仪表盘；金额 API 层统一「元」，服务端以「分」存储
   finance: {

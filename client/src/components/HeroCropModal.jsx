@@ -9,22 +9,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
  *   · 选区始终约束在图片范围内 → 任意宽高比（含超宽 banner）都能裁到顶部/底部区域
  *   · 双击画布重置为最大选区
  *
- * 数据策略 v4（预裁剪成品图，字节全用在可见像素上）：
- *   · 新上传 / 重新编辑：输出 成品图 outBlob（按选区裁剪 + 压缩到预算）+ 取景参数 crop
- *   · 展示端直接用成品图 background-size: cover，画质更高且省存储
- *   · srcBlob 仅在新上传时输出（调用方决定是否保留原图用于后续重新取景）
+ * 数据策略 v5（R2 对象存储 · 原图保留 · 无损重新取景）：
+ *   · 新上传 / 重新编辑：输出 成品图 outBlob（按选区裁剪压缩）+ 原图 srcBlob（最长边限 4096px，保留重新取景余量）
+ *   · 展示端用成品图 background-size: cover，字节全部花在可见像素上
+ *   · 原图存入 R2 供后续重新取景，画质无损可调
  *
  * Props:
  *   open: boolean
- *   source: File（新上传）| string（dataURL，重新编辑已存原图）
+ *   source: File（新上传）| string（URL/dataURL，重新编辑）
  *   ratio: number 选区宽高比（与 Hero 卡片实际显示比例一致）
  *   initialCrop: { sx, sy, sw, sh } 上次保存的取景参数（重新编辑时恢复）
  *   outWidth: number 成品图输出宽度（px，高度按 ratio 计算）
  *   outMaxBytes: number 成品图体积预算（字节）
  *   onClose: () => void
- *   onConfirm: ({ outBlob: Blob, srcBlob: Blob|null, crop: {sx,sy,sw,sh} }) => void
+ *   onConfirm: ({ outBlob: Blob, srcBlob: Blob, crop: {sx,sy,sw,sh} }) => void
  */
-export default function HeroCropModal({ open, source, ratio = 8, initialCrop = null, outWidth = 1440, outMaxBytes = 80 * 1024, onClose, onConfirm }) {
+export default function HeroCropModal({ open, source, ratio = 8, initialCrop = null, outWidth = 1440, outMaxBytes = 120 * 1024, onClose, onConfirm }) {
   const canvasRef = useRef(null);
   const [img, setImg] = useState(null);
   const [box, setBox] = useState(null);   // 选区 { x, y, w }（画布逻辑坐标，高 = w/ratio）
@@ -34,8 +34,8 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
 
   const CW = 480;                          // 画布逻辑宽（= modal 内容区宽）
   const CH_CAP = 280;                      // 画布高上限（图片 contain 适配）
-  const SRC_MAX_SIDE = 2048;               // 压缩原图最长边
-  const SRC_MAX_BYTES = 56 * 1024;         // 压缩原图体积预算（20 张 ≈ 1.5MB base64，守住 D1 2MB 行）
+  const SRC_MAX_SIDE = 4096;               // 原图最长边上限（R2 存储，保留重新取景余量，超 4K 才缩）
+  const SRC_QUALITY = 0.88;                // 原图 JPEG 质量（R2 不心疼体积，高质量保留）
   const SHOW_W = 1128;                     // Hero 设计显示宽（px，低于此值的取景提示可能模糊）
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
   const isNew = typeof source !== 'string';
@@ -236,7 +236,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
     setBox({ w, x: geo.imgX + (geo.dw - w) / 2, y: geo.imgY + (geo.dh - h) / 2 });
   }
 
-  /* ---- 压缩原图：最长边 ≤2048，自适应质量 ≤ SRC_MAX_BYTES（保留取景余量，重新编辑不损质量） ---- */
+  /* ---- 压缩原图：最长边 ≤4096px（超 4K 才缩），固定高质量；R2 存储不心疼体积 ---- */
   function compressSource() {
     const scale = Math.min(1, SRC_MAX_SIDE / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
@@ -246,15 +246,11 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
     const octx = oc.getContext('2d');
     octx.fillStyle = '#fff';                  // PNG 透明区转 JPEG 防黑底
     octx.fillRect(0, 0, w, h);
+    octx.imageSmoothingEnabled = true;
+    octx.imageSmoothingQuality = 'high';
     octx.drawImage(img, 0, 0, w, h);
     return new Promise(resolve => {
-      const qualities = [0.85, 0.75, 0.65, 0.55, 0.45];
-      (function attempt(i) {
-        oc.toBlob(blob => {
-          if (blob && (blob.size <= SRC_MAX_BYTES || i === qualities.length - 1)) resolve(blob);
-          else attempt(i + 1);
-        }, 'image/jpeg', qualities[i]);
-      })(0);
+      oc.toBlob(blob => resolve(blob), 'image/jpeg', SRC_QUALITY);
     });
   }
 
@@ -289,7 +285,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
     });
   }
 
-  /* ---- 确认：归一化取景参数 + 成品图 + （新图）压缩原图 ---- */
+  /* ---- 确认：归一化取景参数 + 成品图 + 原图（始终保留，供后续重新取景） ---- */
   async function handleConfirm() {
     if (!img || !geo || !box) return;
     const crop = {
@@ -300,7 +296,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
     };
     const [outBlob, srcBlob] = await Promise.all([
       generateOutput(),
-      isNew ? compressSource() : Promise.resolve(null),
+      compressSource(),
     ]);
     onConfirm({ outBlob, srcBlob, crop });
   }
@@ -316,7 +312,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
         <div style={styles.header}>
           <div style={styles.title}>裁剪 Hero 背景</div>
           <div style={{ fontSize: '12px', color: '#8e8e93' }}>
-            {isNew ? '拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位' : '在原图上重新取景 · 双击复位'}
+            拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位
           </div>
         </div>
 

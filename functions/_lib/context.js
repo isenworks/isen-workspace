@@ -67,6 +67,7 @@ export function isPublicPath(path) {
   return PUBLIC_PATHS.has(path)
     || path.startsWith('/api/weread/')
     || path.startsWith('/api/cover/')
+    || path.startsWith('/api/hero/img/')
     || path === '/api/birthday-migrate'
     || path === '/api/migrate';
 }

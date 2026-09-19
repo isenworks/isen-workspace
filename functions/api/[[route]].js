@@ -64,6 +64,7 @@ import {
 import { handleWereadSync, handleWereadSearch } from '../_lib/handlers/weread.js';
 import { handleCoverSearch, handleCoverProxy } from '../_lib/handlers/cover.js';
 import { handleBirthdayMigrate, handleMigrate } from '../_lib/handlers/migrate.js';
+import { handleHeroUpload, handleHeroImg, handleHeroDelete } from '../_lib/handlers/hero.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -241,6 +242,19 @@ export async function onRequest(context) {
     // /api/birthday-migrate  — 一次性迁移：录入生日事项
     // ------------------------------------------------------------
     if (path === '/api/birthday-migrate' && method === 'GET') return handleBirthdayMigrate(env);
+
+    // ------------------------------------------------------------
+    // /api/hero/*  — Hero 背景图 R2 对象存储（原图保留，支持无损重新取景）
+    // ------------------------------------------------------------
+    if (path === '/api/hero/upload' && method === 'POST') return handleHeroUpload(env, request);
+    if (path.startsWith('/api/hero/img/') && method === 'GET') {
+      const key = path.slice('/api/hero/img/'.length);
+      return handleHeroImg(env, key);
+    }
+    if (path.startsWith('/api/hero/img/') && method === 'DELETE') {
+      const key = path.slice('/api/hero/img/'.length);
+      return handleHeroDelete(env, key);
+    }
 
     // 404
     return json({ error: 'Not Found: ' + method + ' ' + path }, 404);

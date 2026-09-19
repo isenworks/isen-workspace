@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
 import { catToModule } from '../utils/categoryMapping.js';
+import { CategoryIcon } from '../components/annual/ui.jsx';
 import lunarLib from '../vendor/lunar.js';
 import PTag from '../components/PTag.jsx';
 
@@ -825,13 +826,31 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     title={u.type === 'sched' ? '编辑事项' : undefined}
                     className="flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition hover:bg-[rgba(120,120,128,0.05)] flex-shrink-0"
                   >
-                    <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0 text-[10px] font-bold" style={{ background: meta.bg, color: meta.fg }}>
+                    <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: meta.bg, color: meta.fg }}>
                       {u.type === 'birthday' ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2l2.4 5.4L20 9l-4 4 .9 6.3L12 16.5 7.1 19.3 8 13 4 9l5.6-1.6L12 2z"/></svg>
+                        /* 生日蛋糕：3 层蛋糕 + 蜡烛火焰，stroke 风格与分类图标一致 */
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M4 17h16v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4z"/>
+                          <path d="M6 13h12v4H6z"/>
+                          <path d="M8 9h8v4H8z"/>
+                          <path d="M12 3v3"/>
+                          <path d="M12 2a1 1 0 0 1 1 1c0 1-1 1.5-1 2.5"/>
+                          <path d="M6 13v-0.5M9 13v-0.5M12 13v-0.5M15 13v-0.5M18 13v-0.5"/>
+                          <path d="M4 17v-0.5M8 17v-0.5M12 17v-0.5M16 17v-0.5M20 17v-0.5"/>
+                        </svg>
                       ) : u.type === 'festival' ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 3v2M5 7h14l-1.3 9.8a3 3 0 01-3 2.7H9.3a3 3 0 01-3-2.7L5 7z"/></svg>
+                        /* 烟花：中心爆发 + 四散火花，stroke 风格 */
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="2"/>
+                          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+                          <path d="M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>
+                          <path d="M12 6v1M12 17v1M6 12h1M17 12h1"/>
+                          <path d="M7 7l.7.7M16.3 16.3l.7.7M7 17l.7-.7M16.3 7.7l.7-.7"/>
+                        </svg>
+                      ) : schedMod ? (
+                        <CategoryIcon catKey={schedMod.key} className="w-4 h-4" />
                       ) : (
-                        String(u.date).slice(8)
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                       )}
                     </span>
                     <div className="flex-1 min-w-0">

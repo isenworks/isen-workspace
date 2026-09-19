@@ -1025,8 +1025,8 @@ function AdminTab({
 
 
 /* ---- AI 推送授权（GitHub PAT 托管，仅 owner）----
-   布局原则：高频操作上浮——授权主卡置顶（Switch 状态即操作、分组展示授权码、
-   全页唯一主按钮「复制推送指令」）；PAT 托管压缩为行卡（更新/删除为文字链接）；
+   布局原则：高频操作上浮——授权主卡置顶（Switch 状态即操作、推送指令预览含内嵌
+   授权码、全页唯一主按钮「复制推送指令」）；PAT 托管压缩为行卡（更新/删除为文字链接）；
    安全说明降为一行脚注（可展开）。 */
 // 授权码有效期选项（与后端 GRANT_TTL_HOURS 对应：24 小时 / 1 个月 / 3 个月）
 const TTL_OPTIONS = [
@@ -1036,8 +1036,16 @@ const TTL_OPTIONS = [
 ];
 
 // 发给 AI 的完整推送指令（授权码已内含，AI 无需单独拿到 code 文本）
+// 话术设计：①仓库用 owner/repo 定位（跨沙盒环境通用，不硬编码本地路径，未 clone 可自行 clone）
+//   ②指明响应字段名 pat ③credential helper 防 PAT 落进 URL/命令行/进程列表
+//   ④交代后续动作（验证推送 + 以后自动推送）⑤失效兜底：向用户要新码而不是瞎试
 function buildGithubInstruction(code) {
-  return `请通过我的工作台完成 GitHub 推送授权：\nPOST https://ethan-workspace.pages.dev/api/github/issueGrant\n{"grant_code":"${code}"}\n拿到 PAT 后请用 git credential helper 配置（勿内嵌到 URL/命令行），push 完成后我会自行关闭授权开关；若提示授权码无效或过期，请重新找我要新的推送指令。`;
+  return `完成 GitHub 推送授权（仓库 isenworks/isen-workspace，推 origin main）：
+① POST \`https://ethan-workspace.pages.dev/api/github/issueGrant\`
+   body {"grant_code":"${code}"}，响应里的 pat 字段即 GitHub 凭证
+② 将 pat 配置进 git credential helper（勿内嵌到 URL/命令行）
+③ 沙盒无此仓库则先 git clone；有未提交改动则 commit 并 push 验证；以后每次改完代码自动 commit+push
+若接口返回授权码无效/过期：停止操作，向我要新授权码`;
 }
 
 function fmtRemain(ms) {
@@ -1171,7 +1179,6 @@ function GithubTab() {
   const grantOn = !!status?.grant?.enabled;
   const remainMs = grantCode ? grantCode.expires_at - Date.now() : 0;
   const expired = grantCode && remainMs <= 0;
-  const codeGroups = grantCode ? (grantCode.code.match(/.{1,8}/g) || []) : [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1233,22 +1240,16 @@ function GithubTab() {
 
             {grantCode && !expired ? (
               <>
-                {/* 授权码展示条：紧凑单行等宽，缩小占用面积 */}
+                {/* 推送指令预览：所见即所复制（授权码已内嵌话术），剪贴板被拦截时可手动选中 */}
                 <div style={{
-                  padding: '7px 10px', borderRadius: '8px', background: '#fff8e6', border: '1px solid #f1d47a',
-                  display: 'flex', flexDirection: 'column', gap: '3px',
+                  padding: '10px 12px', borderRadius: '8px', background: '#fff8e6', border: '1px solid #f1d47a',
+                  fontFamily: 'SF Mono, Menlo, monospace', fontSize: '11px', lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#3c3c43',
                 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 7px', justifyContent: 'center' }}>
-                    {codeGroups.map((g, i) => (
-                      <code key={i} style={{
-                        fontSize: '10.5px', fontWeight: 600, color: '#1c1c1e',
-                        fontFamily: 'SF Mono, Menlo, monospace', letterSpacing: '0.3px',
-                      }}>{g}</code>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#7a5b00', fontWeight: 600, textAlign: 'center' }}>
-                    ⏳ {fmtRemain(remainMs)}内有效 · 关闭开关立即作废
-                  </div>
+                  {buildGithubInstruction(grantCode.code)}
+                </div>
+                <div style={{ fontSize: '10px', color: '#7a5b00', fontWeight: 600, textAlign: 'center' }}>
+                  ⏳ {fmtRemain(remainMs)}内有效 · 关闭开关立即作废 · 生成时已自动复制
                 </div>
 
                 {/* 有效期选择（切换将重新生成授权码） */}

@@ -34,6 +34,7 @@ import {
   handleSchedulesList, handleSchedulesGet, handleSchedulesCreate, handleSchedulesUpdate,
   handleSchedulesRemove, handleSchedulesSync,
 } from '../_lib/handlers/schedules.js';
+import { handleSearchAll } from '../_lib/handlers/search.js';
 import {
   handleSummariesGet, handleSummariesRange, handleSummariesUpsert, handleSummariesRemove,
 } from '../_lib/handlers/summaries.js';
@@ -143,6 +144,9 @@ export async function onRequest(context) {
     if (path === '/api/schedules/update' && method === 'POST') return handleSchedulesUpdate(env, body);
     if (path === '/api/schedules/remove' && method === 'POST') return handleSchedulesRemove(env, body);
     if (path === '/api/schedules/sync' && method === 'POST') return handleSchedulesSync(env, body);
+
+    // /api/search/*（全局搜索：四表 LIKE 并行查询，前端防抖后调用）
+    if (path === '/api/search/all' && (method === 'GET' || method === 'POST')) return handleSearchAll(env, qOrBody);
 
     // ------------------------------------------------------------
     // /api/summaries/*

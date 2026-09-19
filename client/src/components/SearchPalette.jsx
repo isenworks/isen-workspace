@@ -4,9 +4,9 @@ import { API } from '../api/client.js';
 import { catToModule } from '../utils/categoryMapping.js';
 
 /* ============ 全局搜索命令面板（Spotlight 式） ============
- * - 打开时并行拉取：事项/目标（最近200）、待办（最近200）、习惯、收集箱；单个源失败不阻塞整体
- * - 本地实时过滤：大小写不敏感，匹配标题/内容，前缀与包含都命中
- * - 分组：事项与目标 / 待办 / 习惯 / 收集箱；空查询时展示最近条目（最近优先）
+ * - 空查询：打开时并行拉取最近条目（事项/待办各200、习惯、收集箱），本地展示
+ * - 有关键词：300ms 防抖后调 /api/search/all 服务端全量 LIKE 查询（覆盖全部历史，不受 200 条窗口限制）
+ * - 分组：事项与目标 / 待办 / 习惯 / 收集箱；每组限量，避免长列表
  * - 键盘：↑↓ 选择 · Enter 打开 · Esc 关闭（Modal 自带）
  * - 匹配文字高亮；习惯→计划总结页，收集箱→收集箱页，事项/待办/目标→打开编辑弹窗
  */
@@ -83,22 +83,44 @@ export default function SearchPalette({ open, onClose, onPick }) {
   // 打开后聚焦输入框
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 30); }, [open]);
 
-  // 过滤 + 分组 + 扁平化（键盘导航用扁平索引）
-  const { groups, flat } = useMemo(() => {
-    if (!data) return { groups: [], flat: [] };
-    const kw = q.trim().toLowerCase();
-    const match = (...fields) => !kw || fields.some(f => String(f || '').toLowerCase().includes(kw));
+  // 服务端搜索（关键词非空时）：300ms 防抖后调 /api/search/all 全量 LIKE 查询
+  // 空查询不发请求，回退到打开时拉取的本地最近条目——省 D1 行读取
+  const [remote, setRemote] = useState(null);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const kw = q.trim();
+    if (!kw) { setRemote(null); setSearching(false); return; }
+    setSearching(true);
+    let alive = true;
+    const timer = setTimeout(async () => {
+      try {
+        const r = await API.search.all(kw);
+        if (alive) setRemote(r || { schedules: [], tasks: [], habits: [], inbox: [] });
+      } catch {
+        if (alive) setRemote({ schedules: [], tasks: [], habits: [], inbox: [] });
+      } finally {
+        if (alive) setSearching(false);
+      }
+    }, 300);
+    return () => { alive = false; clearTimeout(timer); };
+  }, [q]);
 
-    // 空查询时展示最近 8 条（事项按日期倒序已由后端保证）；有查询时每组最多 6 条，避免长列表
-    const LIMIT = kw ? 6 : 4;
+  // 分组 + 扁平化（键盘导航用扁平索引）
+  // 关键词非空 → 服务端 remote（已 LIKE 过滤，本地不再二次匹配）；空查询 → 本地最近条目
+  const { groups, flat } = useMemo(() => {
+    const useServer = !!q.trim();
+    const src = useServer ? remote : data;
+    if (!src) return { groups: [], flat: [] };
+    // 空查询时展示最近条目；搜索时每组最多 6 条，避免长列表
+    const LIMIT = useServer ? 6 : 4;
     const mk = (type, items) => items.slice(0, LIMIT).map(it => ({ type, it }));
 
-    const scheds = data.schedules
-      .filter(s => match(s.title, s.note))
+    const scheds = src.schedules
       .map(s => ({ type: s.is_goal ? 'goal' : 'schedule', it: s }));
-    const tasks = mk('task', data.tasks.filter(t => match(t.title) && !t.is_done));
-    const habits = mk('habit', data.habits.filter(h => match(h.name)));
-    const inboxItems = mk('inbox', data.inbox.filter(i => match(i.content)));
+    // 服务端搜索可搜到已完成待办（找历史）；本地最近视图只看未完成
+    const tasks = mk('task', src.tasks.filter(t => useServer || !t.is_done));
+    const habits = mk('habit', src.habits);
+    const inboxItems = mk('inbox', src.inbox);
 
     const byGroup = {
       schedule: scheds.slice(0, LIMIT),
@@ -109,7 +131,7 @@ export default function SearchPalette({ open, onClose, onPick }) {
     const gs = Object.entries(byGroup).filter(([, arr]) => arr.length > 0)
       .map(([type, arr]) => ({ type, items: arr }));
     return { groups: gs, flat: gs.flatMap(g => g.items) };
-  }, [data, q]);
+  }, [data, remote, q]);
 
   // 查询变化后选中索引归零
   useEffect(() => { setSel(0); }, [q]);
@@ -191,8 +213,8 @@ export default function SearchPalette({ open, onClose, onPick }) {
 
         {/* 结果区 */}
         <div ref={listRef} className="sp-list">
-          {!data ? (
-            // 加载骨架
+          {(!data || (q.trim() && searching)) ? (
+            // 加载骨架（初次拉取 / 服务端搜索进行中）
             [0, 1, 2].map(i => <div key={i} className="sp-skeleton" style={{ width: `${70 - i * 12}%` }} />)
           ) : flat.length === 0 ? (
             <div className="sp-empty">

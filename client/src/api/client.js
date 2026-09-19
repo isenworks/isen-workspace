@@ -188,6 +188,11 @@ export const API = {
     async clear() { return fetchPages('/recycleBin/clear', {}); },
   },
 
+  // 全局搜索：四表 LIKE 并行查询（服务端全量历史，前端 300ms 防抖后调用）
+  search: {
+    async all(q) { return fetchPages('/search/all', { q }); },
+  },
+
   // 财务模块（发展规划 · 第 6 模块：攒钱目标 / 资产负债 / 当月收支 / 流水）
   //   bootstrap 一次拉全仪表盘；金额 API 层统一「元」，服务端以「分」存储
   finance: {

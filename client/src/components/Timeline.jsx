@@ -745,7 +745,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   // === Today 视图：绝对定位时间轴（1min=1px 精确映射） ===
   function renderTodayView() {
-    const todaySchedules = schedules.filter(s => s.date === date).map(s => ({ ...s, isHabit: false, isTask: false, isFixed: false }));
+    const todaySchedules = schedules.filter(s => s.date === date && !s.is_goal).map(s => ({ ...s, isHabit: false, isTask: false, isFixed: false }));
     const todayTasks = tasks.filter(t => t.date === date).map(t => ({ ...t, isHabit: false, isTask: true, isFixed: false }));
     const todayHabits = habits.map(h => ({
       ...h,
@@ -1309,6 +1309,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   function renderRangeView() {
     const groups = {};
     schedules.forEach(s => {
+      if (s.is_goal) return; // 目标事项只归属主线面板，不在时间线展示
       if (!groups[s.date]) groups[s.date] = [];
       groups[s.date].push({ ...s, isHabit: false, isTask: false });
     });

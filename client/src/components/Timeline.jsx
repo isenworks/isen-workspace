@@ -357,20 +357,41 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       const actualDur = endMin - startMin;
 
       if (data.scheduleId) {
-        const updateResult = await API.schedules.update(data.scheduleId, {
+        // 乐观更新：先更新 UI，API 调用在后台异步执行
+        const oldSched = schedules.find(s => String(s.id) === String(data.scheduleId));
+        setSchedules(ss => ss.map(s => String(s.id) === String(data.scheduleId)
+          ? { ...s, start_time: startTime, end_time: endTime, duration_min: actualDur }
+          : s
+        ));
+        // 写穿缓存：防止后续 load() 命中旧快照回退
+        for (const ent of cacheRef.current.values()) {
+          if (ent?.value && Array.isArray(ent.value.sched)) {
+            ent.value = {
+              ...ent.value,
+              sched: ent.value.sched.map(x => String(x.id) === String(data.scheduleId)
+                ? { ...x, start_time: startTime, end_time: endTime, duration_min: actualDur }
+                : x
+              )
+            };
+          }
+        }
+        toast.success(`已移动到 ${startTime}`);
+        onChange?.();
+
+        // 后台落库，失败时回滚
+        API.schedules.update(data.scheduleId, {
           start_time: startTime,
           end_time: endTime,
           duration_min: actualDur,
+        }).catch(err => {
+          if (oldSched) {
+            setSchedules(ss => ss.map(s => String(s.id) === String(data.scheduleId)
+              ? { ...s, start_time: oldSched.start_time, end_time: oldSched.end_time, duration_min: oldSched.duration_min }
+              : s
+            ));
+          }
+          toast.error('移动失败，已恢复');
         });
-        if (updateResult?.schedule) {
-          setSchedules(ss => ss.map(s => s.id === data.scheduleId
-            ? { ...s, start_time: startTime, end_time: endTime, duration_min: actualDur }
-            : s
-          ));
-          store.broadcast({ type: 'reload' });
-          onChange?.();
-          toast.success(`已移动到 ${startTime}`);
-        }
       } else {
         const newSchedule = {
           title: data.title,
@@ -385,7 +406,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         const result = await API.schedules.create(newSchedule);
         if (result?.schedule) {
           setSchedules(ss => [...ss, { ...result.schedule, isHabit: false, isTask: false }]);
-          store.broadcast({ type: 'reload' });
+          // 写穿缓存
+          for (const ent of cacheRef.current.values()) {
+            if (ent?.value && Array.isArray(ent.value.sched)) {
+              ent.value = { ...ent.value, sched: [...ent.value.sched, result.schedule] };
+            }
+          }
           onChange?.();
           toast.success(`已添加到 ${startTime}`);
         }
@@ -464,11 +490,27 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           if (latest.tempEnd) updates.end_time = latest.tempEnd;
           updates.duration_min = Math.round(latest.hPx / TL_PX_PER_MIN);
 
-          API.schedules.update(item.id, updates).then(() => {
-            setSchedules(ss => ss.map(x => x.id === item.id ? { ...x, ...updates } : x));
-            store.broadcast({ type: 'reload' });
-            onChange?.();
-          }).catch(err => toast.error('更新失败'));
+          // 乐观更新：立即更新 UI + 写穿缓存
+          const oldItem = { start_time: item.start_time, end_time: item.end_time, duration_min: item.duration_min };
+          setSchedules(ss => ss.map(x => String(x.id) === String(item.id) ? { ...x, ...updates } : x));
+          for (const ent of cacheRef.current.values()) {
+            if (ent?.value && Array.isArray(ent.value.sched)) {
+              ent.value = {
+                ...ent.value,
+                sched: ent.value.sched.map(x => String(x.id) === String(item.id) ? { ...x, ...updates } : x)
+              };
+            }
+          }
+          onChange?.();
+
+          // 后台落库，失败时回滚
+          API.schedules.update(item.id, updates).catch(err => {
+            setSchedules(ss => ss.map(x => String(x.id) === String(item.id)
+              ? { ...x, start_time: oldItem.start_time, end_time: oldItem.end_time, duration_min: oldItem.duration_min }
+              : x
+            ));
+            toast.error('更新失败');
+          });
         }
       }
       setResizingEvent(null);

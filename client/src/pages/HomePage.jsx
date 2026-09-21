@@ -538,8 +538,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       const daysLeft = Math.round((next - today) / 86400000);
       list.push({ key: `bd-${b.id}`, type: 'birthday', title: `${name}的生日`, date: toISODate(next), isLunar: b.repeat_rule === 'lunar-yearly', daysLeft });
     });
-    // 日程（今日之后 30 天内，排除生日原事项）
-    (sched || []).filter(s => s.date > todayStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s))
+    // 日程（今日之后 30 天内，排除生日原事项与目标事项——目标归属"本周重点"卡，避免同屏重复）
+    (sched || []).filter(s => s.date > todayStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s) && !s.is_goal)
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
         list.push({ key: `uk-${s.id}`, type: 'sched', category: s.category, title: s.title, date: s.date, daysLeft, priority: s.priority, s });
@@ -987,10 +987,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     title={u.type === 'sched' ? '编辑事项' : undefined}
                     className="flex items-center gap-2.5 text-left rounded-lg px-2 py-1.5 -mx-2 transition hover:bg-[rgba(120,120,128,0.05)] flex-shrink-0"
                   >
-                    <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: meta.bg, color: meta.fg }}>
+                    <span className="w-[32px] h-[32px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: meta.bg, color: meta.fg }}>
                       {u.type === 'birthday' ? (
                         /* 生日蛋糕：3 层蛋糕 + 蜡烛火焰，stroke 风格与分类图标一致 */
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <svg className="w-[19px] h-[19px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           <path d="M4 17h16v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4z"/>
                           <path d="M6 13h12v4H6z"/>
                           <path d="M8 9h8v4H8z"/>
@@ -1003,7 +1003,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                         /* 节日日历：完整闭合圆角轮廓 + 主体内实心星标
                            （Lucide calendar 系标准形：闭合几何形在小尺寸下比断裂轮廓干净，
                              星标居中填充，与分隔线上下留白均衡） */
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <svg className="w-[19px] h-[19px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           {/* 顶部挂耳 */}
                           <path d="M8 2v4M16 2v4"/>
                           {/* 日历主体：完整圆角矩形 */}
@@ -1015,15 +1015,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                         </svg>
                       ) : u.s?.is_goal ? (
                         /* 目标事项：同心圆靶心图标 */
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <svg className="w-[19px] h-[19px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="8.5"/>
                           <circle cx="12" cy="12" r="5"/>
                           <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
                         </svg>
                       ) : schedMod ? (
-                        <CategoryIcon catKey={schedMod.key} className="w-4 h-4" />
+                        <CategoryIcon catKey={schedMod.key} className="w-[19px] h-[19px]" />
                       ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        <svg className="w-[19px] h-[19px]" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                       )}
                     </span>
                     <div className="flex-1 min-w-0">

@@ -517,16 +517,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
-  /* ===== 即将到来：本周之后的事项（日程 + 生日 + 节日，30 天内），按日期升序滚动查看 ===== */
+  /* ===== 即将到来：今日之后的事项（日程 + 生日 + 节日，30 天内），按日期升序滚动查看 ===== */
   const followUpList = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const weekEndDate = new Date(`${weekEndStr}T00:00:00`);
     const isBirthday = s => {
       const t = String(s.title || '');
       return t.includes('生日') && (s.repeat_rule === 'yearly' || s.repeat_rule === 'lunar-yearly' || t.startsWith('🎂'));
     };
     const list = [];
-    // 生日（未来一年内最近的一次，须在本周之后）
+    // 生日（未来一年内最近的一次，须在今日之后）
     (sched || []).filter(isBirthday).forEach(b => {
       const name = String(b.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || b.title;
       const parts = String(b.date || '').split('-');
@@ -535,19 +534,18 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       if (!mo || !day) return;
       const cand = yy => new Date(yy, mo - 1, day);
       let next = cand(today.getFullYear());
-      if (next <= weekEndDate) next = cand(weekEndDate.getFullYear()) > weekEndDate ? cand(weekEndDate.getFullYear()) : cand(weekEndDate.getFullYear() + 1);
+      if (next <= today) next = cand(today.getFullYear() + 1);
       const daysLeft = Math.round((next - today) / 86400000);
       list.push({ key: `bd-${b.id}`, type: 'birthday', title: `${name}的生日`, date: toISODate(next), isLunar: b.repeat_rule === 'lunar-yearly', daysLeft });
     });
-    // 日程（本周之后 30 天内，排除生日原事项）
-    (sched || []).filter(s => s.date > weekEndStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s))
+    // 日程（今日之后 30 天内，排除生日原事项）
+    (sched || []).filter(s => s.date > todayStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s))
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
         list.push({ key: `uk-${s.id}`, type: 'sched', category: s.category, title: s.title, date: s.date, daysLeft, priority: s.priority, s });
       });
-    // 节日（本周之后 ~ 30 天内，农历 + 公历，与月历同源）
-    const startAfter = Math.max(0, Math.round((weekEndDate - today) / 86400000) + 1);
-    for (let i = startAfter; i <= 30; i++) {
+    // 节日（今日之后 ~ 30 天内，农历 + 公历，与月历同源）
+    for (let i = 1; i <= 30; i++) {
       const iso = addDaysISO(todayStr, i);
       const [y, m, d] = iso.split('-').map(Number);
       const solar = lunarLib.Solar.fromYmd(y, m, d);
@@ -555,7 +553,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       if (fests.length > 0) list.push({ key: `ft-${iso}`, type: 'festival', title: fests[0], date: iso, daysLeft: i });
     }
     return list.sort((a, b) => a.daysLeft - b.daysLeft || String(a.date).localeCompare(String(b.date)));
-  }, [sched, todayStr, weekEndStr]);
+  }, [sched, todayStr]);
 
   /* ===== 精力：本周打卡统计 ===== */
   const habitRows = habits.slice(0, 4);
@@ -968,9 +966,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
 
-          {/* ---- 即将到来：本周之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月重点页 ---- */}
+          {/* ---- 即将到来：今日之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月重点页 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
-            <CardHead title="即将到来" sub="本周之后" onClick={() => onNav?.('calendar')} />
+            <CardHead title="即将到来" sub="今日之后" onClick={() => onNav?.('calendar')} />
             <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0">
               {followUpList.map(u => {
                 const weekday = '日一二三四五六'[new Date(`${u.date}T00:00:00`).getDay()];

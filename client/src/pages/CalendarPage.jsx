@@ -140,6 +140,7 @@ function computeInitialWeekTasks(weekStartISO, weekEndISO, remoteSchedules = [])
         done: !!s.is_done,
         progress: s.is_done ? 1 : 0,
         is_goal: !!s.is_goal,
+        is_failed: !!s.is_failed,
         start_date: sd,
         end_date: s.end_date || null,
         schedule_date: sd,
@@ -802,7 +803,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             const seedStateMap = new Map();
             prevWeek.forEach(t => {
               if (t && typeof t.id === 'string' && /^w\d+$/.test(t.id)) {
-                seedStateMap.set(String(t.id), { done: !!t.done, progress: Number(t.progress || 0) });
+                seedStateMap.set(String(t.id), { done: !!t.done, progress: Number(t.progress || 0), is_failed: !!t.is_failed });
               }
             });
             const recomputed = computeInitialWeekTasks(weekSISO, weekEISO, cleaned);
@@ -810,7 +811,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             return recomputed.map(t => {
               const st = seedStateMap.get(String(t.id));
               if (!st) return t;
-              return { ...t, done: st.done, progress: st.done ? 1 : st.progress };
+              return { ...t, done: st.done, progress: st.done ? 1 : st.progress, is_failed: st.is_failed };
             });
           });
         }
@@ -1021,7 +1022,15 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if ((t.__origin === 'api' || t.__fromSchedule === true) && /^\d+$/.test(String(t.id))) {
         setApiSchedules(prev => prev.map(s =>
           String(s.id) === String(t.id) ? { ...s, is_done: nextDone, is_failed: nextFailed } : s));
-        API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).catch(() => {
+        API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).then(r => {
+          // 广播勾选结果：主页"本周重点"卡等挂载中的监听方实时同步状态
+          const saved = r?.schedule;
+          if (saved) {
+            saved.is_done = nextDone;
+            saved.is_failed = nextFailed;
+            store?.broadcast?.({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
+          }
+        }).catch(() => {
           setApiSchedules(prev => prev.map(s =>
             String(s.id) === String(t.id) ? { ...s, is_done: !nextDone, is_failed: t.is_failed } : s));
           setTick(v => v + 1);
@@ -1050,7 +1059,15 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if ((t.__origin === 'api' || t.__fromSchedule === true) && /^\d+$/.test(String(t.id))) {
         setApiSchedules(prev => prev.map(s =>
           String(s.id) === String(t.id) ? { ...s, is_done: nextDone, is_failed: nextFailed } : s));
-        API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).catch(() => {
+        API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).then(r => {
+          // 广播"未达成"标记结果：主页"本周重点"卡等挂载中的监听方实时同步状态
+          const saved = r?.schedule;
+          if (saved) {
+            saved.is_done = nextDone;
+            saved.is_failed = nextFailed;
+            store?.broadcast?.({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
+          }
+        }).catch(() => {
           setApiSchedules(prev => prev.map(s =>
             String(s.id) === String(t.id) ? { ...s, is_done: t.done, is_failed: t.is_failed } : s));
           setTick(v => v + 1);

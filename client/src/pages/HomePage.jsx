@@ -479,7 +479,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     const nextDone = !s.is_done;
     setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: nextDone, is_failed: false } : x));
     try {
-      await API.schedules.update(s.id, { is_done: nextDone, is_failed: false, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
+      const r = await API.schedules.update(s.id, { is_done: nextDone, is_failed: false, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
+      // 广播勾选结果：日历"周月重点"面板等挂载中的监听方实时同步状态
+      const saved = r?.schedule || { ...s, is_done: nextDone, is_failed: false };
+      saved.is_done = nextDone;
+      saved.is_failed = false;
+      store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
     } catch {
       setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: !nextDone, is_failed: s.is_failed } : x));
     }
@@ -491,7 +496,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     const nextDone = nextFailed ? false : s.done;
     setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: nextFailed, is_done: nextDone } : x));
     try {
-      await API.schedules.update(s.id, { is_failed: nextFailed, is_done: nextDone });
+      const r = await API.schedules.update(s.id, { is_failed: nextFailed, is_done: nextDone });
+      // 广播"未达成"标记结果：日历"周月重点"面板等挂载中的监听方实时同步状态
+      const saved = r?.schedule || { ...s, is_failed: nextFailed, is_done: nextDone };
+      saved.is_failed = nextFailed;
+      saved.is_done = nextDone;
+      store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
     } catch {
       setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: s.is_failed, is_done: s.is_done } : x));
     }

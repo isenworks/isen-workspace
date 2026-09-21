@@ -832,7 +832,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <Bar value={todayPct} />
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0">
                 {todaySorted.map(s => (
-                  <div key={s.id} className="flex items-center gap-2 group rounded-[10px] px-2 py-1 -mx-2 transition-colors hover:bg-[rgba(var(--s-rgb),0.06)]">
+                  <div key={s.id} className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 -mx-2 transition-colors hover:bg-[rgba(120,120,128,0.06)]">
                     <button
                       onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
                       className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
@@ -854,7 +854,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   </div>
                 ))}
                 {todayFestivals.map(f => (
-                  <div key={f} className="flex items-center gap-2 px-2 py-1 -mx-2 rounded-[10px] transition-colors hover:bg-[rgba(255,59,48,0.05)]">
+                  <div key={f} className="flex items-center gap-2 px-2 py-1.5 -mx-2 rounded-[12px] transition-colors hover:bg-[rgba(120,120,128,0.06)]">
                     <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#FF3B30" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
                       <path d="M5 5v14a2 2 0 0 0 2 2h6"/>
@@ -931,7 +931,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 flex-1 min-h-0">
                 {weekKeys.map(s => (
-                  <div key={s.id} className="flex items-center gap-2 group rounded-[10px] px-2 py-1 -mx-2 transition-colors hover:bg-[rgba(var(--s-rgb),0.06)]">
+                  <div key={s.id} className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 -mx-2 transition-colors hover:bg-[rgba(120,120,128,0.06)]">
                     <button
                       onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
                       onContextMenu={e => { e.preventDefault(); e.stopPropagation(); markFailedWeekKey(s); }}
@@ -985,7 +985,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     key={u.key}
                     onClick={() => u.type === 'birthday' ? onNav?.('annual', 'life') : (u.type === 'festival' || !onEditSchedule || !u.s) ? onNav?.('calendar') : onEditSchedule(u.s)}
                     title={u.type === 'sched' ? '编辑事项' : undefined}
-                    className="flex items-center gap-2.5 text-left rounded-[10px] px-2 py-1.5 -mx-2 transition hover:bg-[rgba(var(--s-rgb),0.06)] flex-shrink-0"
+                    className="flex items-center gap-2.5 text-left rounded-[12px] px-2 py-1.5 -mx-2 transition hover:bg-[rgba(120,120,128,0.06)] flex-shrink-0"
                   >
                     <span className="w-[32px] h-[32px] rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: meta.bg, color: meta.fg }}>
                       {u.type === 'birthday' ? (

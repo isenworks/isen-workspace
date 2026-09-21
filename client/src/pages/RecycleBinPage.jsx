@@ -3,6 +3,7 @@ import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import Modal from '../components/Modal.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
+import { catToModule } from '../utils/categoryMapping.js';
 
 /* ============================================================
    RecycleBinPage · 回收站（双栏 38:62，与工作台各页同构）
@@ -24,6 +25,40 @@ const TYPE_META = {
   financeTx:       { label: '财务流水', color: '#FF2D55' },
   financeGoal:      { label: '攒钱目标', color: '#FF2D55' },
 };
+
+/* 左栏导航：按生活模块分类（与工作台六大模块一致），来源降级为右侧标签 */
+const MODULE_NAV = [
+  { key: 'energy',    label: '精力', color: '#34C759' },
+  { key: 'cognition', label: '知力', color: '#00A3FF' },
+  { key: 'ability',   label: '能力', color: '#FF9500' },
+  { key: 'work',      label: '工作', color: '#FF3B30' },
+  { key: 'finance',   label: '财务', color: '#FF2D55' },
+  { key: 'life',      label: '生活', color: '#AF52DE' },
+  { key: 'others',    label: '其他', color: '#8E8E93' },
+];
+
+/* 回收站条目 → 模块 key 映射：
+   · schedule/fixedSchedule 有 category 字段 → catToModule
+   · habit 统一归精力
+   · 财务四类统一归财务
+   · task/summary/inbox 无模块字段 → 其他兜底 */
+function itemToModuleKey(sourceType, payload) {
+  const row = payload?.row || {};
+  switch (sourceType) {
+    case 'schedule':
+    case 'fixedSchedule':
+      return catToModule(row.category).key;
+    case 'habit':
+      return 'energy';
+    case 'financeAccount':
+    case 'financeCategory':
+    case 'financeTx':
+    case 'financeGoal':
+      return 'finance';
+    default:
+      return 'others';
+  }
+}
 
 // 从快照 payload 提取展示信息：{ title, sub }
 function describeItem(type, payload) {
@@ -121,19 +156,24 @@ export default function RecycleBinPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  /* 删除时间倒序 + 分组 */
-  const sorted = [...(items || [])].sort((a, b) =>
+  /* 删除时间倒序 + 按模块筛选 + 时间分组 */
+  const enriched = (items || []).map(it => {
+    let payload = null;
+    try { payload = JSON.parse(it.payload); } catch { /* ignore */ }
+    return { ...it, _payload: payload, _module: itemToModuleKey(it.source_type, payload) };
+  });
+  const sorted = [...enriched].sort((a, b) =>
     (parseDeletedAt(b.deleted_at)?.getTime() || 0) - (parseDeletedAt(a.deleted_at)?.getTime() || 0));
-  const filtered = sorted.filter(it => filter === 'all' || it.source_type === filter);
+  const filtered = sorted.filter(it => filter === 'all' || it._module === filter);
   const grouped = GROUP_ORDER
     .map(bucket => ({ bucket, rows: filtered.filter(it => bucketOf(it.deleted_at) === bucket) }))
     .filter(g => g.rows.length > 0);
 
   const counts = { all: items?.length || 0 };
-  (items || []).forEach(it => { counts[it.source_type] = (counts[it.source_type] || 0) + 1; });
-  // 清空确认的分类明细（如「3 条待办、2 条日程」）
-  const clearBreakdown = Object.entries(TYPE_META)
-    .map(([k, m]) => (counts[k] ? `${counts[k]} 条${m.label}` : null))
+  enriched.forEach(it => { counts[it._module] = (counts[it._module] || 0) + 1; });
+  // 清空确认的模块明细（如「3 条工作、2 条生活」）
+  const clearBreakdown = MODULE_NAV
+    .map(m => (counts[m.key] ? `${counts[m.key]} 条${m.label}` : null))
     .filter(Boolean)
     .join('、');
 
@@ -153,9 +193,7 @@ export default function RecycleBinPage() {
   /* 永久删除（Modal 确认后执行） */
   function askRemove(it) {
     const meta = TYPE_META[it.source_type] || { label: it.source_type };
-    let payload = null;
-    try { payload = JSON.parse(it.payload); } catch { /* ignore */ }
-    const { title } = describeItem(it.source_type, payload);
+    const { title } = describeItem(it.source_type, it._payload);
     setConfirming({ kind: 'remove', id: it.id, title, typeLabel: meta.label });
   }
   async function doRemove(id) {
@@ -214,7 +252,7 @@ export default function RecycleBinPage() {
           </div>
         </div>
 
-        {/* 卡② 类型导航：全部 + 6 类（色点 + 标签 + 计数）；点击筛选，再点取消 */}
+        {/* 卡② 模块导航：全部 + 六大生活模块 + 其他（色点 + 标签 + 计数）；点击筛选，再点取消 */}
         <div className="glass-card rounded-2xl p-3 flex-1 flex flex-col gap-1">
           <div className={navRowCls(filter === 'all')} style={filter === 'all' ? { color: 'var(--s-main)' } : undefined}>
             <button onClick={() => setFilter('all')} className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left" title="显示全部">
@@ -228,18 +266,18 @@ export default function RecycleBinPage() {
             </button>
             <span className={`text-[12px] tabular-nums ${filter === 'all' ? '' : 'text-ink-400'}`}>{counts.all}</span>
           </div>
-          {Object.entries(TYPE_META).map(([k, m]) => {
-            const active = filter === k;
+          {MODULE_NAV.map(m => {
+            const active = filter === m.key;
             return (
-              <div key={k} className={navRowCls(active, true)} style={active ? { color: 'var(--s-main)' } : undefined}>
+              <div key={m.key} className={navRowCls(active, true)} style={active ? { color: 'var(--s-main)' } : undefined}>
                 <button
-                  onClick={() => setFilter(active ? 'all' : k)}
+                  onClick={() => setFilter(active ? 'all' : m.key)}
                   className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer text-left"
                   title={active ? '点击取消筛选' : `筛选${m.label}`}>
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.color }} />
                   <span className="flex-1 truncate">{m.label}</span>
                 </button>
-                <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{counts[k] || 0}</span>
+                <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{counts[m.key] || 0}</span>
               </div>
             );
           })}
@@ -259,7 +297,7 @@ export default function RecycleBinPage() {
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
             <div className="text-[14px] font-semibold text-ink-900">{items.length === 0 ? '回收站是空的' : '该分类下暂无内容'}</div>
-            <div className="text-[12px] text-ink-400">删除的待办、日程、习惯、固定日程和总结会出现在这里</div>
+            <div className="text-[12px] text-ink-400">删除的待办、日程、习惯、收集等会出现在这里</div>
           </div>
         ) : grouped.map((g, gi) => (
           <div key={g.bucket}>
@@ -268,9 +306,7 @@ export default function RecycleBinPage() {
             </div>
             {g.rows.map(it => {
               const meta = TYPE_META[it.source_type] || { label: it.source_type, color: '#8E8E93' };
-              let payload = null;
-              try { payload = JSON.parse(it.payload); } catch { /* ignore */ }
-              const { title, sub } = describeItem(it.source_type, payload);
+              const { title, sub } = describeItem(it.source_type, it._payload);
               const busy = busyIds.has(it.id);
               return (
                 <div key={it.id} className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-ink-50 transition-colors">

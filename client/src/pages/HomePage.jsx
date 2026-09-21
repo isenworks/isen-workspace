@@ -1002,24 +1002,27 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                           <path d="M4 17v-0.5M8 17v-0.5M12 17v-0.5M16 17v-0.5M20 17v-0.5"/>
                         </svg>
                       ) : u.type === 'festival' ? (
-                        /* 节日日历：日历右下角遇星星即断，缺口避让，星星完整展示 */
+                        /* 节日日历：日历右下角开放，内侧填充星标 */
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                          {/* 上边框 + 右上圆角 */}
-                          <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
-                          {/* 左边框 + 左下圆角 */}
-                          <path d="M5 5v14a2 2 0 0 0 2 2h6"/>
-                          {/* 中间分隔线 */}
-                          <path d="M5 10h15"/>
                           {/* 顶部挂耳 */}
-                          <path d="M8 3v4M14 3v4"/>
-                          {/* 下边框（右段：到星星左侧停止） */}
-                          <path d="M17 21h-2"/>
-                          {/* 右边框（下段：从分隔线到星星顶部停止） */}
-                          <path d="M19 17v-5"/>
-                          {/* 右下圆角（只画外弧的上半段，遇星即断） */}
-                          <path d="M17 19a2 2 0 0 0 2 2"/>
-                          {/* 星星：右下角外侧，完整展示 */}
-                          <path d="M19 16l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z"/>
+                          <path d="M8 3v3M14 3v3"/>
+                          {/* 上边框 + 右侧上段（到星顶前停） */}
+                          <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
+                          {/* 左侧 + 底边左段（到星左前停） */}
+                          <path d="M5 5v14a2 2 0 0 0 2 2h4"/>
+                          {/* 中间分隔线 */}
+                          <path d="M5 10h14"/>
+                          {/* 右下圆角 + 底边右段（框住星星右下） */}
+                          <path d="M19 19a2 2 0 0 1-2 2h-3"/>
+                          {/* 星星：右下角内侧填充 */}
+                          <path d="M15 14l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z" fill="currentColor" stroke="none"/>
+                        </svg>
+                      ) : u.s?.is_goal ? (
+                        /* 目标事项：同心圆靶心图标 */
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="8.5"/>
+                          <circle cx="12" cy="12" r="5"/>
+                          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
                         </svg>
                       ) : schedMod ? (
                         <CategoryIcon catKey={schedMod.key} className="w-4 h-4" />

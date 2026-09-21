@@ -1000,18 +1000,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                           <path d="M4 17v-0.5M8 17v-0.5M12 17v-0.5M16 17v-0.5M20 17v-0.5"/>
                         </svg>
                       ) : u.type === 'festival' ? (
-                        /* 节日日历：日历右下角开放（L 形），星标填充于内侧 */
+                        /* 节日日历：四角圆角、方正比例、星标放大、L 形开放 */
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           {/* 顶部挂耳（居中） */}
-                          <path d="M9 3v3M15 3v3"/>
-                          {/* 上边框 + 右侧上段（到星顶前停） */}
-                          <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
-                          {/* 左侧 + 底边左段（到星左前停） */}
-                          <path d="M5 5v14a2 2 0 0 0 2 2h4"/>
+                          <path d="M8 3v3M16 3v3"/>
+                          {/* 上边框 + 左上圆角 + 右上圆角 + 右侧（到星顶前断开） */}
+                          <path d="M6 5h8a2 2 0 0 1 2 2v5"/>
+                          <path d="M6 5a2 2 0 0 0-2 2v0"/>
+                          {/* 左侧 + 左下圆角 + 底边左段（到星左前断开） */}
+                          <path d="M4 7v10a2 2 0 0 0 2 2h5"/>
                           {/* 中间分隔线 */}
-                          <path d="M5 10h14"/>
-                          {/* 星标：右下角内侧填充（右移） */}
-                          <path d="M16 14l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z" fill="currentColor" stroke="none"/>
+                          <path d="M4 9.5h12"/>
+                          {/* 星标：更大，右下角内侧填充 */}
+                          <path d="M15.5 11.5l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4 1.2-2.5z" fill="currentColor" stroke="none"/>
                         </svg>
                       ) : u.s?.is_goal ? (
                         /* 目标事项：同心圆靶心图标 */

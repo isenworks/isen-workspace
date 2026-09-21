@@ -515,6 +515,8 @@ function taskToScheduleInitial(task, defaultDate) {
     is_key: true,
     // is_goal 兜底：schedulePayload 存在时由末尾展开覆盖；不存在时从 task 本身取，防止编辑保存后丢失目标标识
     is_goal: task.is_goal ? 1 : (task.schedulePayload?.is_goal ? 1 : 0),
+    // is_failed 兜底：同 is_goal 逻辑，三态复选框状态需保留
+    is_failed: task.is_failed ? 1 : (task.schedulePayload?.is_failed ? 1 : 0),
     note: [task.dueDate, task.note, task.srcTag].filter(Boolean).join(' · '),
     start_time: '00:00',
     end_time: '00:00',
@@ -539,6 +541,7 @@ function eventToScheduleInitial(ev, date) {
     category,
     is_key: (category === 1 || category === 2) ? 1 : (ev.is_key ? 1 : 0),
     is_goal: ev.is_goal ? 1 : 0,
+    is_failed: ev.is_failed ? 1 : 0,
     note: ev.note || '',
     start_time: ev.start_time || '09:00',
     end_time: ev.end_time || '10:00',
@@ -719,6 +722,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             // is_goal 必须映射：否则挂载恢复注入主线面板时目标标识丢失，
             // 「重点」看板（模块分组视图只显示 is_goal）看不到目标，只剩时间顺序视图可见
             is_goal: !!s.is_goal,
+            is_failed: !!s.is_failed,
             start_time: s.start_time,
             end_time: s.end_time,
             duration_min: s.duration_min,
@@ -769,6 +773,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
                   done: !!s.is_done,
                   progress: s.is_done ? 1 : 0,
                   is_goal: !!s.is_goal,
+                  is_failed: !!s.is_failed,
                   start_date: s.start_date,
                   end_date: s.end_date || null,
                   schedule_date: s.start_date,
@@ -836,6 +841,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         done: !!s.is_done,
         progress: s.is_done ? 1 : 0,
         is_goal: !!s.is_goal,
+        is_failed: !!s.is_failed,
         start_date,
         end_date,
         schedule_date: start_date,
@@ -907,6 +913,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             moduleKey: mod.key,
             is_done: !!msg.schedule.is_done,
             is_goal: !!msg.schedule.is_goal,
+            is_failed: !!msg.schedule.is_failed,
             start_time: msg.schedule.start_time,
             end_time: msg.schedule.end_time,
             duration_min: msg.schedule.duration_min,
@@ -997,12 +1004,15 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   }, []);
 
   /* === 勾选主线任务：仅复选框触发（来自 FocusPanel onToggle）
+       三态循环（仅 is_goal 目标事项）：○进行中 → ✓已达成 → ○进行中
+       普通事项：○ → ✓ → ○（二元切换）
        同步修改月格对应事件的 is_done（MOCK_EVENTS_RAW），保证左卡勾完右格立即变色 */
   const toggleTask = useCallback((taskId, isMonth) => {
     const setter = isMonth ? setMonthTasks : setWeekTasks;
     setter(prev => prev.map(t => {
       if (t.id !== taskId) return t;
       const nextDone = !t.done;
+      const nextFailed = false; // 勾选/取消勾选时清除未达成标记
       // 联动：月历事件（标题匹配）的 is_done 立即同步
       MOCK_EVENTS_RAW.forEach(raw => {
         if (titleMatches(raw.title, t.title)) raw.is_done = nextDone;
@@ -1010,10 +1020,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       // 真实 API 日程（ScheduleForm 新建注入主线）：勾选状态落库，防刷新回滚
       if ((t.__origin === 'api' || t.__fromSchedule === true) && /^\d+$/.test(String(t.id))) {
         setApiSchedules(prev => prev.map(s =>
-          String(s.id) === String(t.id) ? { ...s, is_done: nextDone } : s));
-        API.schedules.update(t.id, { is_done: nextDone }).catch(() => {
+          String(s.id) === String(t.id) ? { ...s, is_done: nextDone, is_failed: nextFailed } : s));
+        API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).catch(() => {
           setApiSchedules(prev => prev.map(s =>
-            String(s.id) === String(t.id) ? { ...s, is_done: !nextDone } : s));
+            String(s.id) === String(t.id) ? { ...s, is_done: !nextDone, is_failed: t.is_failed } : s));
           setTick(v => v + 1);
         });
       }
@@ -1021,9 +1031,32 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       return {
         ...t,
         done: nextDone,
+        is_failed: nextFailed,
         progress: nextDone ? 1 : (t._prevProgress ?? 0),
         _prevProgress: nextDone ? (t.progress ?? 0) : undefined,
       };
+    }));
+    setTick(v => v + 1);
+  }, []);
+
+  /* === 右键标记目标事项为"未达成"：is_failed=1, is_done=0
+       仅 is_goal 目标事项有效（普通事项右键仍是删除） */
+  const markFailedTask = useCallback((taskId, isMonth) => {
+    const setter = isMonth ? setMonthTasks : setWeekTasks;
+    setter(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const nextFailed = !t.is_failed; // 切换：未标记 → 标记；已标记 → 取消
+      const nextDone = nextFailed ? false : t.done; // 标记未达成时清除已勾选
+      if ((t.__origin === 'api' || t.__fromSchedule === true) && /^\d+$/.test(String(t.id))) {
+        setApiSchedules(prev => prev.map(s =>
+          String(s.id) === String(t.id) ? { ...s, is_done: nextDone, is_failed: nextFailed } : s));
+        API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).catch(() => {
+          setApiSchedules(prev => prev.map(s =>
+            String(s.id) === String(t.id) ? { ...s, is_done: t.done, is_failed: t.is_failed } : s));
+          setTick(v => v + 1);
+        });
+      }
+      return { ...t, done: nextDone, is_failed: nextFailed, progress: nextDone ? 1 : (t._prevProgress ?? 0) };
     }));
     setTick(v => v + 1);
   }, []);
@@ -1390,6 +1423,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               moduleGoalsOnly
               titleExtra={mainTitleExtra}
               onToggle={(id) => toggleTask(id, true)}
+              onMarkFailed={(id) => markFailedTask(id, true)}
               onAdd={() => {
                 // 新建目标：默认当天（浏览其他月份时落在该月 1 号），全天无时刻
                 const ym = `${year}-${String(month).padStart(2, '0')}`;
@@ -1418,6 +1452,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               moduleGoalsOnly
               titleExtra={mainTitleExtra}
               onToggle={(id) => toggleTask(id, false)}
+              onMarkFailed={(id) => markFailedTask(id, false)}
               onAdd={() => {
                 // 新建目标：默认当天（浏览其他周时落在该周周一），全天无时刻
                 const date = (todayISO >= weekStartISO && todayISO <= weekEndISO) ? todayISO : weekStartISO;

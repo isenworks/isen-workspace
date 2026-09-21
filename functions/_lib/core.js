@@ -547,4 +547,6 @@ export async function ensureScheduleRepeat(env) {
   // 主线目标标记（1=用户从周/月主线面板创建的目标事项；0=普通日程）
   // 主线面板「按模块分组」视图只显示 is_goal=1 的事项，「按时间顺序」视图仍显示全部
   try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN is_goal INTEGER DEFAULT 0`).run(); } catch (_) {}
+  // 目标三态：is_failed=1 表示"已尝试但未达成"（如面试未通过），区别于 is_done=1 已达成
+  try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN is_failed INTEGER DEFAULT 0`).run(); } catch (_) {}
 }

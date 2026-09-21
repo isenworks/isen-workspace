@@ -200,6 +200,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
       priority: (initial?.priority != null && Number(initial.priority) >= 0 && Number(initial.priority) <= 3) ? Number(initial.priority) : null,
       is_key: initial?.is_key ? 1 : 0,
       is_goal: isGoal ? 1 : 0,
+      is_failed: initial?.is_failed ? 1 : 0,
       repeat_rule: isRecurring ? initial.repeat_rule : 'none',
     };
   });
@@ -319,6 +320,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         category: cat,
         is_key: (cat === 1 || cat === 2) ? 1 : 0,
         is_goal: form.is_goal ? 1 : 0,
+        is_failed: form.is_failed ? 1 : 0,
         priority: form.priority,
         repeat_rule: form.repeat_rule || 'none',
       };

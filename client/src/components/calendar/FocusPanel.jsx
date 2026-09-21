@@ -150,6 +150,7 @@ export default function FocusPanel({
   progressPct = 0,
   timePct = 0,
   onToggle,           // (taskId) => void  — 仅复选框点击触发
+  onMarkFailed,       // (taskId) => void  — 右键"标记为未达成"触发（仅 is_goal 目标事项）
   onAdd,              // () => void         — 右上角 + 新增
   onEditTask,         // (task) => void     — 标题/非复选框区域点击触发：打开对应编辑面板
   onDeleteTask,       // (task) => void     — 任务行删除（右键删除 / 回收站还原等场景）
@@ -221,6 +222,7 @@ export default function FocusPanel({
   /* 计数胶囊口径随视图：时间顺序=全部事项；模块分组（主线目标模式）=仅目标 */
   const pillTasks = (moduleGoalsOnly && sortBy === 'module') ? tasks.filter(t => t.is_goal) : tasks;
   const totalDone = pillTasks.filter(t => t.done).length;
+  const totalFailed = pillTasks.filter(t => t.is_failed).length;
   const pace = paceStatus(progressPct, timePct);
 
   /* 折叠状态：以面板 title 为作用域，避免月/周面板相互影响 */
@@ -290,6 +292,12 @@ export default function FocusPanel({
             style={{ background: 'rgba(var(--s-rgb),0.09)', color: accentColor }}
           >
             <span>{totalDone}</span>
+            {totalFailed > 0 && (
+              <>
+                <span style={{ opacity: 0.35 }}>·</span>
+                <span style={{ color: '#FF3B30' }}>{totalFailed}</span>
+              </>
+            )}
             <span style={{ opacity: 0.35 }}>/</span>
             <span style={{ opacity: 0.80 }}>{pillTasks.length}</span>
           </span>
@@ -421,8 +429,12 @@ export default function FocusPanel({
                     const handleContextMenu = (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      // 抓取的习惯（isFromFetch = true 的习惯项）不支持直接删；其他非抓取正常走删除弹窗
                       if (task.isFromFetch) return;
+                      // is_goal 目标事项：右键 → 标记/取消"未达成"
+                      if (task.is_goal && onMarkFailed) {
+                        onMarkFailed(task.id);
+                        return;
+                      }
                       if (!onDeleteTask) return;
                       openDeleteConfirm(task, '任务行');
                     };
@@ -448,6 +460,7 @@ export default function FocusPanel({
                           canDrag ? '拖拽排序 · 点击编辑 · 右键删除' :
                           task.isHabit ? '长期习惯 · 实心圆标记' :
                           task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
+                          task.is_goal ? '点击编辑 · 右键标记为未达成' :
                           '点击编辑 · 右键删除'
                         }
                         onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? modRgba(rowColor, 0.09) : modRgba(rowColor, 0.07); }}
@@ -497,17 +510,18 @@ export default function FocusPanel({
                             aria-hidden="true"
                           />
                         ) : (
-                          /* 普通事项：圆复选框 — 独立 onClick + stopPropagation，只点这里才勾选 */
+                          /* 三态复选框：○进行中 / ✓已达成 / ✗未达成（仅 is_goal） */
                           <div
                             onClick={handleToggle}
+                            onContextMenu={task.is_goal && onMarkFailed ? handleContextMenu : undefined}
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
                             style={{
-                              borderColor: mod.color,
-                              background: task.done ? mod.color : '#fff',
+                              borderColor: task.is_failed ? '#FF3B30' : mod.color,
+                              background: task.done ? mod.color : (task.is_failed ? 'rgba(255,59,48,0.08)' : '#fff'),
                               boxShadow: task.done ? `0 2px 6px ${modRgba(mod.color, 0.25)}` : 'none',
                             }}
                             role="checkbox"
-                            aria-checked={task.done}
+                            aria-checked={task.done ? true : (task.is_failed ? 'mixed' : false)}
                             tabIndex={0}
                             onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
                           >
@@ -522,6 +536,16 @@ export default function FocusPanel({
                                 />
                               </svg>
                             )}
+                            {task.is_failed && !task.done && (
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                <path
+                                  d="M2.5 2.5L7.5 7.5M7.5 2.5L2.5 7.5"
+                                  stroke="#FF3B30"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            )}
                           </div>
                         )}
 
@@ -530,7 +554,9 @@ export default function FocusPanel({
                           <span className="flex items-center gap-1.5">
                             <span
                               className={`text-[13px] font-semibold leading-tight truncate flex-1 ${
-                                task.done ? 'text-[#8E8E93] line-through' : 'text-[#1C1C1E]'
+                                task.done ? 'text-[#8E8E93] line-through' :
+                                task.is_failed ? 'text-[#FF3B30] line-through' :
+                                'text-[#1C1C1E]'
                               }`}
                             >
                               {task.title}

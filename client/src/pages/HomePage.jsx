@@ -164,6 +164,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayStr]);
   const weekStartStr = toISODate(weekStart);
   const weekEndStr = toISODate(endOfWeek(new Date()));
+  /* 本周重点卡片：周切换偏移量（0 = 当前周，-1 = 上周，1 = 下周…） */
+  const [weekOffset, setWeekOffset] = useState(0);
+  const viewWeekStartStr = useMemo(() => addDaysISO(weekStartStr, weekOffset * 7), [weekStartStr, weekOffset]);
+  const viewWeekEndStr = useMemo(() => addDaysISO(weekEndStr, weekOffset * 7), [weekEndStr, weekOffset]);
 
   /* ===== 签名（localStorage + 云端 KV 持久化，点击编辑） ===== */
   const [signature, setSignature] = usePersistentState('home_signature_v1', () => '');
@@ -386,11 +390,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const [sched, setSched] = useState(null);
   useEffect(() => {
     let alive = true;
-    API.schedules.list({ from: weekStartStr, to: addDaysISO(todayStr, 30) })
+    const fetchFrom = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
+    API.schedules.list({ from: fetchFrom, to: addDaysISO(todayStr, 30) })
       .then(r => { if (alive) setSched(r?.schedules || []); })
       .catch(() => { if (alive) setSched([]); });
     return () => { alive = false; };
-  }, [weekStartStr, todayStr, syncSignal]);
+  }, [weekStartStr, todayStr, syncSignal, weekOffset, viewWeekStartStr]);
 
   /* ===== 跨组件同步：监听 schedule_saved / schedule_deleted 事件
        CalendarPage 在周月重点面板修改状态后广播，HomePage 实时更新本周重点卡 ===== */
@@ -418,14 +423,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       } else if (msg.type === 'reload') {
         // 全局 reload：重新拉取（与 syncSignal 触发同款路径）
         let alive = true;
-        API.schedules.list({ from: weekStartStr, to: addDaysISO(todayStr, 30) })
+        const rf = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
+        API.schedules.list({ from: rf, to: addDaysISO(todayStr, 30) })
           .then(r => { if (alive) setSched(r?.schedules || []); })
           .catch(() => {});
         return () => { alive = false; };
       }
     });
     return unsub;
-  }, [weekStartStr, todayStr]);
+  }, [weekStartStr, todayStr, weekOffset, viewWeekStartStr]);
 
   /* ===== 精力习惯（周打卡矩阵） ===== */
   const { realHabits, refresh: refreshEnergy } = useEnergyHabits();
@@ -462,15 +468,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     return [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
   }, [todayStr]);
 
-  /* ===== 本周重点：仅展示目标（is_goal，从周/月主线面板或本卡 + 创建），本周内含逾期未完成 ===== */
+  /* ===== 本周重点：仅展示目标（is_goal），当前周含逾期未完成；其他周严格限定该周范围内 ===== */
   const weekKeys = useMemo(() => (sched || [])
-    .filter(s => s.is_goal && s.date <= weekEndStr)
+    .filter(s => {
+      if (!s.is_goal) return false;
+      if (weekOffset === 0) return s.date <= viewWeekEndStr;
+      return s.date >= viewWeekStartStr && s.date <= viewWeekEndStr;
+    })
     .sort((a, b) => {
       const sa = a.is_done ? 2 : (a.is_failed ? 1 : 0);
       const sb = b.is_done ? 2 : (b.is_failed ? 1 : 0);
       return sa - sb || String(a.date).localeCompare(String(b.date));
     }),
-    [sched, weekEndStr]);
+    [sched, viewWeekStartStr, viewWeekEndStr, weekOffset]);
   const weekKeyDone = weekKeys.filter(s => s.is_done).length;
   const weekKeyFailed = weekKeys.filter(s => s.is_failed).length;
 
@@ -868,21 +878,49 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
 
-          {/* ---- 本周重点（标题右侧显示本周日期区间，查看 → 周月重点页，列表全量滚动） ---- */}
+          {/* ---- 本周重点（标题右侧显示本周日期区间 + 周切换按钮，查看 → 周月重点页） ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead
               title="本周重点"
-              sub={`${+weekStartStr.slice(5, 7)}.${+weekStartStr.slice(8, 10)}-${+weekEndStr.slice(5, 7)}.${+weekEndStr.slice(8, 10)}`}
+              sub={`${+viewWeekStartStr.slice(5, 7)}.${+viewWeekStartStr.slice(8, 10)}-${+viewWeekEndStr.slice(5, 7)}.${+viewWeekEndStr.slice(8, 10)}`}
               onClick={() => onNav?.('calendar')}
               action={(
-                <button
-                  onClick={() => onNewSchedule?.({ date: todayStr, is_goal: 1 })}
-                  className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
-                  style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
-                  title="新建本周目标（快捷键 G）"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setWeekOffset(o => o - 1)}
+                    className="hp-more w-[24px] h-[24px] rounded-[7px] grid place-items-center flex-shrink-0 transition active:scale-90"
+                    style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                    title="上一周"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  {weekOffset !== 0 && (
+                    <button
+                      onClick={() => setWeekOffset(0)}
+                      className="hp-more px-1.5 h-[24px] rounded-[7px] grid place-items-center flex-shrink-0 transition active:scale-90 text-[10px] font-bold"
+                      style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.1)', '--hc': 'var(--s-main)' }}
+                      title="回到本周"
+                    >
+                      本周
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setWeekOffset(o => o + 1)}
+                    className="hp-more w-[24px] h-[24px] rounded-[7px] grid place-items-center flex-shrink-0 transition active:scale-90"
+                    style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                    title="下一周"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                  <button
+                    onClick={() => onNewSchedule?.({ date: todayStr, is_goal: 1 })}
+                    className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95 ml-0.5"
+                    style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                    title="新建本周目标（快捷键 G）"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  </button>
+                </div>
               )}
             />
             <div className="flex flex-col gap-2 min-h-0 flex-1">

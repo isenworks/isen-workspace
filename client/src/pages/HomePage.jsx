@@ -1000,19 +1000,18 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                           <path d="M4 17v-0.5M8 17v-0.5M12 17v-0.5M16 17v-0.5M20 17v-0.5"/>
                         </svg>
                       ) : u.type === 'festival' ? (
-                        /* 节日日历：四角圆角、方正比例、星标放大、L 形开放 */
+                        /* 节日日历：完整闭合圆角轮廓 + 主体内实心星标
+                           （Lucide calendar 系标准形：闭合几何形在小尺寸下比断裂轮廓干净，
+                             星标居中填充，与分隔线上下留白均衡） */
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                          {/* 顶部挂耳（居中） */}
-                          <path d="M8 3v3M16 3v3"/>
-                          {/* 上边框 + 左上圆角 + 右上圆角 + 右侧（到星顶前断开） */}
-                          <path d="M6 5h8a2 2 0 0 1 2 2v5"/>
-                          <path d="M6 5a2 2 0 0 0-2 2v0"/>
-                          {/* 左侧 + 左下圆角 + 底边左段（到星左前断开） */}
-                          <path d="M4 7v10a2 2 0 0 0 2 2h5"/>
+                          {/* 顶部挂耳 */}
+                          <path d="M8 2v4M16 2v4"/>
+                          {/* 日历主体：完整圆角矩形 */}
+                          <rect x="3" y="4" width="18" height="18" rx="2.5"/>
                           {/* 中间分隔线 */}
-                          <path d="M4 9.5h12"/>
-                          {/* 星标：更大，右下角内侧填充 */}
-                          <path d="M15.5 11.5l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4 1.2-2.5z" fill="currentColor" stroke="none"/>
+                          <path d="M3 9.5h18"/>
+                          {/* 星标：主体内部居中，实心填充 */}
+                          <path d="M12 11.8 L13.29 14.32 L16.09 14.77 L14.09 16.78 L14.53 19.58 L12 18.3 L9.47 19.58 L9.91 16.78 L7.91 14.77 L10.71 14.32 Z" fill="currentColor" stroke="none"/>
                         </svg>
                       ) : u.s?.is_goal ? (
                         /* 目标事项：同心圆靶心图标 */

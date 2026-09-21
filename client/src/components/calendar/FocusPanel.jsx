@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MODULES, keyToModule, paceStatus } from '../../utils/categoryMapping.js';
 import PTag from '../PTag.jsx';
 
@@ -245,6 +245,25 @@ export default function FocusPanel({
     });
   };
 
+  /* ===== 右键浮动菜单：目标事项显示「未完成/取消未完成」+「删除」，普通事项仅「删除」
+       · 菜单位置跟随光标，自动避开视口右下边缘
+       · 点击外部 / 滚动 / ESC 关闭 */
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, task } | null
+  useEffect(() => {
+    if (!contextMenu) return;
+    const onDown = (e) => { if (e.button !== 2) setContextMenu(null); };
+    const onScroll = () => setContextMenu(null);
+    const onKey = (e) => { if (e.key === 'Escape') setContextMenu(null); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('scroll', onScroll, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [contextMenu]);
+
   return (
     <>
     <div className={`card p-4 flex flex-col${fill ? ' flex-1 min-h-0' : ''}`} style={{
@@ -430,13 +449,10 @@ export default function FocusPanel({
                       e.preventDefault();
                       e.stopPropagation();
                       if (task.isFromFetch) return;
-                      // is_goal 目标事项：右键 → 标记/取消"未达成"
-                      if (task.is_goal && onMarkFailed) {
-                        onMarkFailed(task.id);
-                        return;
-                      }
-                      if (!onDeleteTask) return;
-                      openDeleteConfirm(task, '任务行');
+                      // 至少有一个可用动作才弹菜单：目标事项可标记未完成 / 有删除回调
+                      const canMarkFailed = task.is_goal && onMarkFailed;
+                      if (!canMarkFailed && !onDeleteTask) return;
+                      setContextMenu({ x: e.clientX, y: e.clientY, task });
                     };
                     // DnD：仅模块分组视图、同组内、非习惯（习惯固定顺序按打卡权重，不可打乱）项可拖拽排序
                     const canDrag = !!onReorder && !task.__rowColor && !task.isHabit && !task.isSubItem;
@@ -457,11 +473,11 @@ export default function FocusPanel({
                         onClick={handleEdit}
                         onContextMenu={handleContextMenu}
                         title={
-                          canDrag ? '拖拽排序 · 点击编辑 · 右键删除' :
+                          canDrag ? '拖拽排序 · 点击编辑 · 右键菜单' :
                           task.isHabit ? '长期习惯 · 实心圆标记' :
-                          task.isFromFetch ? '已关联 · 抓取的事项不支持右键删除' :
-                          task.is_goal ? '点击编辑 · 右键标记为未达成' :
-                          '点击编辑 · 右键删除'
+                          task.isFromFetch ? '已关联 · 抓取的事项不支持右键操作' :
+                          task.is_goal ? '点击编辑 · 右键菜单（未完成/删除）' :
+                          '点击编辑 · 右键菜单（删除）'
                         }
                         onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? modRgba(rowColor, 0.09) : modRgba(rowColor, 0.07); }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = isDropTarget ? modRgba(rowColor, 0.13) : completedBg; }}
@@ -783,6 +799,54 @@ export default function FocusPanel({
 
       {/* 底部统计条：根据用户 2026-08-31 需求删除（原来显示「共 X 项·已完成 Y  ZZ%」） */}
     </div>
+
+    {/* ===== 右键浮动菜单：目标事项「未完成/取消未完成」+「删除」，普通事项仅「删除」
+         · 跟随光标定位，自动避开视口右下边缘（菜单宽约 160 / 高约 90） */}
+    {contextMenu && (
+      <div
+        className="fixed z-[70] select-none"
+        style={{
+          left: Math.min(contextMenu.x, window.innerWidth - 172),
+          top: Math.min(contextMenu.y, window.innerHeight - 110),
+          minWidth: 156,
+          background: '#ffffff',
+          borderRadius: '12px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(0,0,0,0.06)',
+          padding: '4px',
+        }}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {contextMenu.task.is_goal && onMarkFailed && (
+          <button
+            type="button"
+            onClick={() => { onMarkFailed(contextMenu.task.id); setContextMenu(null); }}
+            className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
+            style={{ color: contextMenu.task.is_failed ? 'var(--s-main)' : '#1C1C1E' }}
+          >
+            <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              {contextMenu.task.is_failed
+                ? <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                : <path d="M18 6 6 18M6 6l12 12" />}
+            </svg>
+            {contextMenu.task.is_failed ? '取消未完成' : '标记未完成'}
+          </button>
+        )}
+        {onDeleteTask && (
+          <button
+            type="button"
+            onClick={() => { openDeleteConfirm(contextMenu.task, '任务行'); setContextMenu(null); }}
+            className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(255,59,48,0.08)] flex items-center gap-2"
+            style={{ color: '#FF3B30' }}
+          >
+            <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            </svg>
+            删除
+          </button>
+        )}
+      </div>
+    )}
 
     {/* ===== iOS 风格确认弹窗（与 AnnualPlan confirmEl 同构）
          · 遮罩：40% 黑 + backdrop-blur-sm · 卡 360px · 圆角 16

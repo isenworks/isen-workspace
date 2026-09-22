@@ -358,7 +358,7 @@ export default function InboxPage({ onCountChange }) {
       ) : items.length === 0 ? (
         <div className={`glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2 ${fill ? 'flex-1' : ''}`}>
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 6h4a1.2 1.2 0 0 1 0 2.4v3.6a1.2 1.2 0 0 0 2.4 0V8.4a1.2 1.2 0 0 1 0-2.4h4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+            <path d="M6 8a2 2 0 0 1 2-2h1.5a2.5 2.5 0 1 1 5 0H16a2 2 0 0 1 2 2v1.5a2.5 2.5 0 1 1 0 5V16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8z" />
           </svg>
           <div className="text-[14px] font-semibold text-ink-900">小记是空的</div>
           <div className="text-[12px] text-ink-400">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 可随时记录</div>

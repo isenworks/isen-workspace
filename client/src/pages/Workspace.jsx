@@ -557,7 +557,7 @@ export default function Workspace({ user: propUser }) {
       ) : activeMenu === 'knowledge' ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>
+            <rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M12 3v10a2 2 0 1 1 0 4v4"/><path d="M3 12h4a2 2 0 1 1 4 0h10"/>
           </svg>
           <div className="text-[15px] font-bold text-ink-900">知识库</div>
           <div className="text-[12px] text-ink-400">即将上线，敬请期待</div>

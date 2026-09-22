@@ -77,6 +77,7 @@ export default function InboxPage({ onCountChange }) {
   const [menu, setMenu] = useState(null); // { id, cat }
   const [detail, setDetail] = useState(null);
   const [filterTagId, setFilterTagId] = useState(null); // null=全部
+  const [filterPopover, setFilterPopover] = useState(false);
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null); // 待删除的 item
 
@@ -316,40 +317,106 @@ export default function InboxPage({ onCountChange }) {
     );
   };
 
-  // ===== 标签筛选条 =====
-  const renderFilterBar = () => (
-    <div className="flex items-center gap-1.5 flex-wrap mb-1">
-      <button
-        onClick={() => setFilterTagId(null)}
-        className={`px-2.5 py-1 rounded-full text-[12px] transition-all ${
-          filterTagId == null ? 'bg-[var(--s-main)] text-white font-medium' : 'bg-ink-100 text-ink-600 hover:bg-ink-200/70'
-        }`}
-      >全部</button>
-      {tags.map(t => {
-        const on = filterTagId === t.id;
-        return (
-          <button
-            key={t.id}
-            onClick={() => setFilterTagId(on ? null : t.id)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
-            style={{
-              background: on ? t.color : hexToRgba(t.color, 0.12),
-              color: on ? '#fff' : t.color,
-              fontWeight: on ? 600 : 400,
-            }}
-          >
-            <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: on ? '#fff' : t.color }} />
-            {t.name}
-          </button>
-        );
-      })}
-      <button
-        onClick={() => setTagManagerOpen(true)}
-        title="管理标签"
-        className="w-6 h-6 rounded-full flex items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-700 transition-colors flex-shrink-0"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      </button>
+  // ===== 标签筛选 Popover =====
+  const renderFilterPopover = () => {
+    const activeTag = tags.find(t => t.id === filterTagId) || null;
+    const isActive = filterTagId != null;
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setFilterPopover(v => !v)}
+          title={activeTag ? `筛选：${activeTag.name}` : '筛选标签'}
+          className="relative flex items-center gap-1 w-[32px] h-[24px] rounded-lg transition-all"
+          style={isActive
+            ? { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }
+            : { background: 'transparent', color: '#8e8e93' }
+          }
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto' }}>
+            <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          {isActive && (
+            <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full border border-white"
+              style={{ background: activeTag?.color || 'var(--s-main)' }} />
+          )}
+        </button>
+        {filterPopover && (
+          <>
+            <div className="fixed inset-0 z-[10]" onClick={() => setFilterPopover(false)} />
+            <div className="absolute right-0 top-8 z-[20] w-[220px] py-1.5 rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
+              <div className="px-3 py-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">筛选标签</div>
+              <button
+                onClick={() => { setFilterTagId(null); setFilterPopover(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors ${filterTagId == null ? 'text-ink-900 font-semibold bg-ink-50' : 'text-ink-600 hover:bg-ink-50'}`}
+              >
+                <span className="w-2 h-2 rounded-full bg-ink-300" />
+                全部
+                {filterTagId == null && <span className="ml-auto text-[var(--s-main)]">✓</span>}
+              </button>
+              {tags.length > 0 && <div className="my-1 border-t border-ink-100/80" />}
+              {tags.map(t => {
+                const on = filterTagId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => { setFilterTagId(on ? null : t.id); setFilterPopover(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors ${on ? 'text-ink-900 font-semibold bg-ink-50' : 'text-ink-700 hover:bg-ink-50'}`}
+                  >
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
+                    <span className="flex-1 text-left">{t.name}</span>
+                    {on && <span style={{ color: t.color }}>✓</span>}
+                  </button>
+                );
+              })}
+              <div className="my-1 border-t border-ink-100/80" />
+              <button
+                onClick={() => { setFilterPopover(false); setTagManagerOpen(true); }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] text-[var(--s-main)] hover:bg-ink-50 transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                管理标签…
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderHeader = () => (
+    <div className="flex items-center gap-3">
+      <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
+      <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
+      <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+        <button onClick={() => switchLayout('tri')} title="三分布局"
+          className="px-2 py-1 rounded-md transition-all flex items-center"
+          style={layout === 'tri' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
+          </svg>
+        </button>
+        <button onClick={() => switchLayout('duo')} title="二分布局"
+          className="px-2 py-1 rounded-md transition-all flex items-center"
+          style={layout === 'duo' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
+          </svg>
+        </button>
+      </div>
+      {renderFilterPopover()}
+      <div className="flex-1" />
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span className="text-[11px] text-ink-400">快捷键</span>
+        <kbd className="px-1.5 py-0.5 rounded-md text-[11px] font-medium tabular-nums border border-ink-100 bg-white/70 text-ink-500">N</kbd>
+      </div>
+      {isDuo && (
+        <button onClick={() => setSelectedId(null)} title="新增记录"
+          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all"
+          style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        </button>
+      )}
     </div>
   );
 
@@ -384,41 +451,6 @@ export default function InboxPage({ onCountChange }) {
         </div>
       )}
     </>
-  );
-
-  const renderHeader = () => (
-    <div className="flex items-center gap-3">
-      <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
-      <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
-      <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
-        <button onClick={() => switchLayout('tri')} title="三分布局"
-          className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'tri' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
-          </svg>
-        </button>
-        <button onClick={() => switchLayout('duo')} title="二分布局"
-          className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'duo' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
-          </svg>
-        </button>
-      </div>
-      <div className="flex-1" />
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="text-[11px] text-ink-400">快捷键</span>
-        <kbd className="px-1.5 py-0.5 rounded-md text-[11px] font-medium tabular-nums border border-ink-100 bg-white/70 text-ink-500">N</kbd>
-      </div>
-      {isDuo && (
-        <button onClick={() => setSelectedId(null)} title="新增记录"
-          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all"
-          style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        </button>
-      )}
-    </div>
   );
 
   const renderEditPanel = (emptyHint) => {
@@ -457,7 +489,6 @@ export default function InboxPage({ onCountChange }) {
           <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
             <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
-              <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">{renderFilterBar()}</div>
             </div>
             {renderList(true)}
           </div>
@@ -473,7 +504,6 @@ export default function InboxPage({ onCountChange }) {
               {renderHeader()}
               <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">
                 <QuickCapture tags={tags} onSaved={loadItems} onDispatch={openDetailFor} />
-                <div className="mt-3">{renderFilterBar()}</div>
               </div>
             </div>
             {renderList(true)}

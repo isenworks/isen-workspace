@@ -238,20 +238,25 @@ export default function InboxPage({ onCountChange }) {
               }}
         ></span>
 
-        {/* 单行缩略：有分行展示第一行，无分行整条截断 */}
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
+        {/* 单行缩略：有分行展示第一行，无分行整条截断
+             · 标签移出此容器，作为独立属性列放在日期左侧 */}
+        <div className="flex-1 min-w-0 flex items-center">
           <span className="text-[13.5px] leading-snug font-medium text-ink-900 truncate">
             {(sc.title || sc.body || '（空）').slice(0, 60)}
           </span>
-          {catInfo && (
-              <span
-                className="flex-shrink-0 inline-flex items-center justify-center h-[18px] px-2 rounded-[5px] text-[10px] font-semibold leading-none select-none"
-                style={{ color: catInfo.dot, background: hexToRgba(catInfo.dot, 0.10) }}
-              >
-                {catInfo.label}
-              </span>
-          )}
         </div>
+
+        {/* 分类标签：胶囊形，独立属性列（日期左侧）
+             · 状态属性而非内容修饰 → 右对齐独立列，扫描效率高且不打断标题阅读
+             · 与左侧模块色圆点形成"感知→确认"视觉路径 */}
+        {catInfo && (
+            <span
+              className="flex-shrink-0 inline-flex items-center justify-center h-[18px] px-2.5 rounded-full text-[10px] font-semibold leading-none select-none"
+              style={{ color: catInfo.dot, background: hexToRgba(catInfo.dot, 0.10) }}
+            >
+              {catInfo.label}
+            </span>
+        )}
 
         {/* 日期（最右，hover 显示完整时间） */}
         <span

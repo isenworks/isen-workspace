@@ -507,6 +507,7 @@ export async function ensureInboxTable(env) {
       content TEXT NOT NULL,
       category INTEGER,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       done INTEGER NOT NULL DEFAULT 0,
       done_at TEXT,
       processed_type TEXT,
@@ -514,6 +515,7 @@ export async function ensureInboxTable(env) {
       tag_id INTEGER
     )`).run();
     try { await env.DB.prepare(`ALTER TABLE ethan_inbox ADD COLUMN tag_id INTEGER`).run(); } catch (_) {}
+    try { await env.DB.prepare(`ALTER TABLE ethan_inbox ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`).run(); } catch (_) {}
     _inboxTableReady = true;
   } catch (_) {}
 }

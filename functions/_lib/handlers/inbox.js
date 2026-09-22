@@ -62,6 +62,7 @@ export async function handleInboxUpdate(env, body) {
     params.push(nowIso(), body.processed_type, body.processed_id != null ? Number(body.processed_id) : null);
   }
   if (!sets.length) return json({ item: await dbFirst(env.DB, `SELECT * FROM ethan_inbox WHERE id=? AND user_id=?`, [id, uid(env)]) });
+  sets.push('updated_at=datetime(\'now\')');
   params.push(id, uid(env));
   await env.DB.prepare(`UPDATE ethan_inbox SET ${sets.join(', ')} WHERE id=? AND user_id=?`).bind(...params).run();
   return json({ item: await dbFirst(env.DB, `SELECT * FROM ethan_inbox WHERE id=?`, [id]) });

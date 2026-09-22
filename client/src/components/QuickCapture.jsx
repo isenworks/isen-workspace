@@ -16,7 +16,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
   const [showTags, setShowTags] = useState(false);
   const [busy, setBusy] = useState(false);
   const [flashMsg, setFlashMsg] = useState('');
-  const [savedAt, setSavedAt] = useState(edit?.created_at || '');
+  const [savedAt, setSavedAt] = useState(edit?.updated_at || edit?.created_at || '');
   const [focused, setFocused] = useState(false);
   const flashTimer = useRef(null);
 
@@ -25,7 +25,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     if (editorRef.current) {
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
     }
-    setSavedAt(edit?.created_at || '');
+    setSavedAt(edit?.updated_at || edit?.created_at || '');
   }, [edit]);
 
   useEffect(() => {
@@ -36,7 +36,9 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
 
   function fmtSavedTime(iso) {
     if (!iso) return '';
-    const d = new Date(iso);
+    // D1 datetime('now') 返回 UTC 字符串无时区后缀，必须显式按 UTC 解析
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+    const d = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])) : new Date(iso);
     if (isNaN(d)) return '';
     const now = new Date();
     const p = n => String(n).padStart(2, '0');
@@ -73,8 +75,9 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     setBusy(true);
     try {
       if (edit) {
-        await API.inbox.update(edit.id, { content, tag_id: tagId });
-        setSavedAt(new Date().toISOString());
+        const r = await API.inbox.update(edit.id, { content, tag_id: tagId });
+        // 用后端返回的 updated_at（服务器时间，UTC），比前端 new Date() 准
+        setSavedAt(r?.item?.updated_at || new Date().toISOString());
         flash('✓ 已保存');
         onUpdated?.();
       } else {

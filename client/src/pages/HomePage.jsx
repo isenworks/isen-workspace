@@ -4,6 +4,7 @@ import { API } from '../api/client.js';
 import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
+import Modal from '../components/Modal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
 import { catToModule } from '../utils/categoryMapping.js';
 import { CategoryIcon } from '../components/annual/ui.jsx';
@@ -517,6 +518,40 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
+  /* ===== 本周重点右键浮动菜单 + 删除确认 ===== */
+  const [wkContextMenu, setWkContextMenu] = useState(null); // { x, y, task } | null
+  const [wkConfirmDelete, setWkConfirmDelete] = useState(null); // { task } | null
+  useEffect(() => {
+    if (!wkContextMenu) return;
+    // 排除菜单内部点击：marker class 'hp-ctx-menu'
+    const onDown = (e) => {
+      if (e.button !== 2 && !e.target.closest('.hp-ctx-menu')) setWkContextMenu(null);
+    };
+    const onScroll = () => setWkContextMenu(null);
+    const onKey = (e) => { if (e.key === 'Escape') setWkContextMenu(null); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('scroll', onScroll, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [wkContextMenu]);
+
+  const deleteWeekKey = async (s) => {
+    const tid = s?.id;
+    if (tid == null) return;
+    // 1) 乐观更新：从 sched 立即移除（UI 立刻消失）
+    setSched(prev => (prev || []).filter(x => String(x.id) !== String(tid)));
+    // 2) 广播：让其他挂载组件（日历周/月视图）同步移除
+    store.broadcast({ type: 'schedule_deleted', schedule: { id: tid, category: s.category } });
+    // 3) 后端删除
+    try {
+      await API.schedules.remove(tid);
+    } catch { /* tombstone/乐观更新兜底；也可把条目加回 */ }
+  };
+
   /* ===== 即将到来：今日之后的事项（日程 + 生日 + 节日，30 天内），按日期升序滚动查看 ===== */
   const followUpList = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -931,12 +966,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 flex-1 min-h-0">
                 {weekKeys.map(s => (
-                  <div key={s.id} className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]">
+                  <div
+                    key={s.id}
+                    onContextMenu={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setWkContextMenu({ x: e.clientX, y: e.clientY, task: s });
+                    }}
+                    className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
+                  >
                     <button
                       onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
-                      onContextMenu={e => { e.preventDefault(); e.stopPropagation(); markFailedWeekKey(s); }}
                       className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
-                      title={s.is_done ? '左键取消完成 · 右键标记未达成' : s.is_failed ? '左键标记完成 · 右键取消未达成' : '左键标记完成 · 右键标记未达成'}
+                      title={s.is_done ? '左键取消完成 · 右键菜单' : s.is_failed ? '左键标记完成 · 右键菜单' : '左键标记完成 · 右键菜单'}
                       style={{
                         background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
                         borderColor: s.is_failed ? '#FF3B30' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
@@ -1274,6 +1316,80 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         onClose={() => { setCropSrc(null); setCropReplaceId(null); setCropCrop(null); }}
         onConfirm={handleCropConfirm}
       />
+
+      {/* ===== 本周重点右键浮动菜单 + 删除确认 Modal（与周月重点 FocusPanel 同构） ===== */}
+      {wkContextMenu && (
+        <div
+          className="hp-ctx-menu fixed z-[70] select-none"
+          style={{
+            left: Math.min(wkContextMenu.x, window.innerWidth - 172),
+            top: Math.min(wkContextMenu.y, window.innerHeight - 110),
+            minWidth: 156,
+            background: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)',
+            border: '1px solid rgba(0,0,0,0.06)',
+            padding: '4px',
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <button
+            type="button"
+            onClick={() => { markFailedWeekKey(wkContextMenu.task); setWkContextMenu(null); }}
+            className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
+            style={{ color: wkContextMenu.task.is_failed ? 'var(--s-main)' : '#1C1C1E' }}
+          >
+            <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              {wkContextMenu.task.is_failed
+                ? <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                : <path d="M18 6 6 18M6 6l12 12" />}
+            </svg>
+            {wkContextMenu.task.is_failed ? '取消未完成' : '标记未完成'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setWkConfirmDelete({ task: wkContextMenu.task }); setWkContextMenu(null); }}
+            className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(255,59,48,0.08)] flex items-center gap-2"
+            style={{ color: '#FF3B30' }}
+          >
+            <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            </svg>
+            删除
+          </button>
+        </div>
+      )}
+
+      {/* 删除确认 Modal（iOS 风格，与 FocusPanel 一致） */}
+      <Modal
+        open={!!wkConfirmDelete}
+        onClose={() => setWkConfirmDelete(null)}
+        title="永久删除"
+        maxWidth={420}
+        footer={
+          <>
+            <button
+              onClick={() => setWkConfirmDelete(null)}
+              className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-ink-600 bg-ink-100 hover:bg-ink-100/70 transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={() => { deleteWeekKey(wkConfirmDelete.task); setWkConfirmDelete(null); }}
+              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#FF3B30] hover:brightness-105 active:scale-[0.98] transition-all"
+            >
+              永久删除
+            </button>
+          </>
+        }
+      >
+        {wkConfirmDelete && (
+          <div className="text-[13px] leading-relaxed">
+            <div className="text-ink-600">删除后不可恢复，确定删除这条目标事项吗？</div>
+            <div className="mt-2 font-semibold text-ink-900 break-words">{wkConfirmDelete.task.title}</div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

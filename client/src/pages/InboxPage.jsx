@@ -3,6 +3,7 @@ import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
 import { today as getToday } from '../utils/date.js';
+import { hexToRgba } from '../utils/color.js';
 import QuickCapture from '../components/QuickCapture.jsx';
 import Modal from '../components/Modal.jsx';
 import ScheduleForm, { readCats } from '../components/forms/ScheduleForm.jsx';
@@ -242,21 +243,14 @@ export default function InboxPage({ onCountChange }) {
           <span className="text-[13.5px] leading-snug font-medium text-ink-900 truncate">
             {(sc.title || sc.body || '（空）').slice(0, 60)}
           </span>
-          {catInfo && (() => {
-            // hex → rgba(..., 0.14) 浅底（catInfo.dot 永远是 hex）
-            const c = catInfo.dot;
-            const r = parseInt(c.slice(1, 3), 16);
-            const g = parseInt(c.slice(3, 5), 16);
-            const b = parseInt(c.slice(5, 7), 16);
-            return (
+          {catInfo && (
               <span
-                className="flex-shrink-0 px-1.5 py-[1px] rounded-md text-[10.5px] font-semibold leading-none tabular-nums"
-                style={{ color: catInfo.dot, background: `rgba(${r},${g},${b},0.14)` }}
+                className="flex-shrink-0 inline-flex items-center px-2 py-[1.5px] rounded-full text-[10px] font-semibold leading-none select-none"
+                style={{ color: catInfo.dot, background: hexToRgba(catInfo.dot, 0.08) }}
               >
                 {catInfo.label}
               </span>
-            );
-          })()}
+          )}
         </div>
 
         {/* 日期（最右，hover 显示完整时间） */}

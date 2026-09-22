@@ -208,14 +208,33 @@ export default function InboxPage({ onCountChange }) {
         className={`relative flex items-center gap-2.5 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
-        {/* 主题色实心圆点：未选中浅实心（rgba ~40%），选中全值实心；
-             · 统一工作台各视图的彩色实心圆点风格，替代原空心边框
-             · 选中态仍通过圆点深浅 + 行背景双层反馈 */}
+        {/* 分类色实心圆点：
+             · 已分派标签 → 对应模块色（catInfo.dot，如生活=紫、工作=红）
+             · 未分派 → fallback 全局主题色（与上次空心→实心改动对齐）
+             · 选中态用该模块色全值实心，未选中态用 40% 透明度 */}
         <span
           className="flex-shrink-0 w-[8px] h-[8px] rounded-full transition-colors"
           style={isSelected
-            ? { background: 'var(--s-main)' }
-            : { background: 'rgba(var(--s-rgb),0.40)' }}
+            ? { background: catInfo?.dot || 'var(--s-main)' }
+            : { background: catInfo
+                ? (() => {
+                    const c = catInfo.dot;
+                    // 兼容 CSS 变量（var(--m-xxx) → rgba(var(--m-xxx-rgb),0.40)）
+                    if (typeof c === 'string' && c.startsWith('var(')) {
+                      const inner = c.slice(4, -1);
+                      return `rgba(var(${inner}-rgb), 0.40)`;
+                    }
+                    // 兼容 hex（#RRGGBB → rgba）
+                    if (/^#[0-9a-fA-F]{6}$/.test(c)) {
+                      const r = parseInt(c.slice(1, 3), 16);
+                      const g = parseInt(c.slice(3, 5), 16);
+                      const b = parseInt(c.slice(5, 7), 16);
+                      return `rgba(${r},${g},${b},0.40)`;
+                    }
+                    return c;
+                  })()
+                : 'rgba(var(--s-rgb),0.40)'
+              }}
         ></span>
 
         {/* 单行缩略：有分行展示第一行，无分行整条截断 */}

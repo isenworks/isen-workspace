@@ -294,14 +294,21 @@ export default function InboxPage({ onCountChange }) {
           {menuFor && (
             <>
               <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenu(null); }} />
-              <div className="absolute right-0 top-7 z-[20] flex items-start gap-1">
-                {/* 「标签」二级面板：三个点在行尾，面板向左级联展开，避免溢出屏幕右缘 */}
+              {/* 单面板手风琴：点「标签」原位展开标签列表（箭头下/上 + 旋转过渡），不再另开面板 */}
+              <div className="absolute right-0 top-7 z-[20] w-[120px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenu(m => ({ id: item.id, cat: !m?.cat })); }}
+                  className={`w-full flex items-center px-3 py-1.5 text-[12.5px] transition-colors ${catPickFor ? 'bg-ink-50 text-ink-900 font-medium' : 'text-ink-700 hover:bg-ink-50'}`}
+                >
+                  <span className="whitespace-nowrap">标签</span>
+                  <svg
+                    width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                    className={`flex-shrink-0 ml-auto text-ink-400 transition-transform duration-200 ${catPickFor ? 'rotate-180' : ''}`}
+                  ><polyline points="6 9 12 15 18 9" /></svg>
+                </button>
                 {catPickFor && (
-                  <div
-                    className="w-[116px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-ink-400 tracking-wide">标签</div>
+                  <>
+                    <div className="my-1 border-t border-ink-100/80" />
                     <button
                       onClick={() => setItemCategory(item, null)}
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] hover:bg-ink-50 transition-colors ${item.category == null ? 'text-ink-900 font-medium' : 'text-ink-500'}`}
@@ -324,27 +331,17 @@ export default function InboxPage({ onCountChange }) {
                         </button>
                       );
                     })}
-                  </div>
+                    <div className="my-1 border-t border-ink-100/80" />
+                  </>
                 )}
-                {/* 主菜单：固定宽度防止「标签」按钮折行；标签展开时高亮 */}
-                <div className="w-[120px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setMenu(m => ({ id: item.id, cat: !m?.cat })); }}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors ${catPickFor ? 'bg-ink-50 text-ink-900' : 'text-ink-700 hover:bg-ink-50'}`}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="flex-shrink-0"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-                    <span className="whitespace-nowrap">标签</span>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="flex-shrink-0 ml-auto text-ink-400"><polyline points="15 18 9 12 15 6"/></svg>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setMenu(null); openDetailFor(item); }}
-                    className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
-                  >分派…</button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setMenu(null); removeItem(item); }}
-                    className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
-                  >删除</button>
-                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenu(null); openDetailFor(item); }}
+                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
+                >分派…</button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenu(null); removeItem(item); }}
+                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                >删除</button>
               </div>
             </>
           )}

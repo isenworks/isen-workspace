@@ -208,12 +208,14 @@ export default function InboxPage({ onCountChange }) {
         className={`relative flex items-center gap-2.5 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
-        {/* 主题色圆点（选中态实心，未选中空心；行内垂直居中） */}
+        {/* 主题色实心圆点：未选中浅实心（rgba ~40%），选中全值实心；
+             · 统一工作台各视图的彩色实心圆点风格，替代原空心边框
+             · 选中态仍通过圆点深浅 + 行背景双层反馈 */}
         <span
           className="flex-shrink-0 w-[8px] h-[8px] rounded-full transition-colors"
           style={isSelected
             ? { background: 'var(--s-main)' }
-            : { background: 'transparent', border: '1.5px solid rgba(var(--s-rgb),0.55)' }}
+            : { background: 'rgba(var(--s-rgb),0.40)' }}
         ></span>
 
         {/* 单行缩略：有分行展示第一行，无分行整条截断 */}

@@ -245,8 +245,8 @@ export default function InboxPage({ onCountChange }) {
           </span>
           {catInfo && (
               <span
-                className="flex-shrink-0 inline-flex items-center px-2 py-[1.5px] rounded-full text-[10px] font-semibold leading-none select-none"
-                style={{ color: catInfo.dot, background: hexToRgba(catInfo.dot, 0.08) }}
+                className="flex-shrink-0 inline-flex items-center justify-center px-1.5 rounded-[4px] text-[10px] font-extrabold leading-[16px] select-none"
+                style={{ color: catInfo.dot, background: hexToRgba(catInfo.dot, 0.10) }}
               >
                 {catInfo.label}
               </span>

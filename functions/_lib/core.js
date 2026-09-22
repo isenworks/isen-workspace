@@ -496,7 +496,10 @@ export async function ensureRecycleBinTable(env) {
 
 // ethan_inbox 收集箱：想法/备忘的快速捕获（无日期），空了再分派为日程/待办
 //   done=1 即离开待分派列表（就地完成或已分派）；processed_type 记录去向便于追溯
+//   首次调用时建表，后续请求跳过 DDL（模块级 flag 缓存，Worker isolate 复用）
+let _inboxTableReady = false;
 export async function ensureInboxTable(env) {
+  if (_inboxTableReady) return;
   try {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_inbox (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -510,13 +513,14 @@ export async function ensureInboxTable(env) {
       processed_id INTEGER,
       tag_id INTEGER
     )`).run();
-    // 懒迁移：旧表无 tag_id 列时补列
     try { await env.DB.prepare(`ALTER TABLE ethan_inbox ADD COLUMN tag_id INTEGER`).run(); } catch (_) {}
+    _inboxTableReady = true;
   } catch (_) {}
 }
 
-// 小记独立标签表（与工作台六大分类解耦，支持云端增删改）
+let _inboxTagsTableReady = false;
 export async function ensureInboxTagsTable(env) {
+  if (_inboxTagsTableReady) return;
   try {
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_inbox_tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -526,6 +530,7 @@ export async function ensureInboxTagsTable(env) {
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`).run();
+    _inboxTagsTableReady = true;
   } catch (_) {}
 }
 

@@ -145,18 +145,20 @@ export default function InboxPage({ onCountChange }) {
   }
 
   // ===== 修改标签 =====
+  // ===== 修改标签（optimistic update） =====
   async function setItemTag(item, tagId) {
-    markBusy(item.id, true);
+    setMenu(null);
+    const prevTagId = item.tag_id;
+    // 先改 UI，秒响应
+    setItems(prev => prev.map(it => it.id === item.id ? { ...it, tag_id: tagId } : it));
     try {
       await API.inbox.update(item.id, { tag_id: tagId });
-      setItems(prev => prev.map(it => it.id === item.id ? { ...it, tag_id: tagId } : it));
       const t = tagOf(tagId);
-      toast.success(t ? `已标记为「${t.name}」` : '已移除标签');
+      toast.success(t ? `已标记为「${t.name}」` : '已移除标签', { duration: 1200 });
     } catch (e) {
+      // API 失败回滚
+      setItems(prev => prev.map(it => it.id === item.id ? { ...it, tag_id: prevTagId } : it));
       toast.error(e.message || '修改标签失败');
-    } finally {
-      markBusy(item.id, false);
-      setMenu(null);
     }
   }
 
@@ -519,7 +521,7 @@ export default function InboxPage({ onCountChange }) {
         open={tagManagerOpen}
         tags={tags}
         onClose={() => setTagManagerOpen(false)}
-        onChange={loadTags}
+        setTags={setTags}
         toast={toast}
       />
     </div>
@@ -527,9 +529,10 @@ export default function InboxPage({ onCountChange }) {
 }
 
 // ==================== 标签管理弹窗（增删改） ====================
-function TagManagerModal({ open, tags, onClose, onChange, toast }) {
-  const [editing, setEditing] = useState(null); // { id?, name, color }
+function TagManagerModal({ open, tags, onClose, setTags, toast }) {
+  const [editing, setEditing] = useState(null); // { id?, name, color, _optimistic? }
   const [confirmDel, setConfirmDel] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (!open) { setEditing(null); setConfirmDel(null); } }, [open]);
 
@@ -541,30 +544,61 @@ function TagManagerModal({ open, tags, onClose, onChange, toast }) {
   }
 
   async function saveTag() {
-    if (!editing) return;
+    if (!editing || busy) return;
     const name = editing.name.trim();
     if (!name) { toast.error('标签名不能为空'); return; }
+    setBusy(true);
+    const isNew = !editing.id;
+    const placeholderId = isNew ? -Date.now() : editing.id;
+    const prevTags = tags;
+
+    // Optimistic: 先改本地 state
+    if (isNew) {
+      setTags(prev => [...prev, { id: placeholderId, name, color: editing.color, sort_order: 0, _optimistic: true }]);
+    } else {
+      setTags(prev => prev.map(t => t.id === editing.id ? { ...t, name, color: editing.color } : t));
+    }
+    setEditing(null);
+
     try {
-      if (editing.id) {
-        await API.inbox.tagUpdate(editing.id, { name, color: editing.color });
-        toast.success('已更新');
+      let result;
+      if (isNew) {
+        result = await API.inbox.tagCreate({ name, color: editing.color });
+        // 用真实 id 替换 optimistic placeholder
+        setTags(prev => prev.map(t => t.id === placeholderId ? result.tag : t));
+        toast.success('已创建', { duration: 1000 });
       } else {
-        await API.inbox.tagCreate({ name, color: editing.color });
-        toast.success('已创建');
+        await API.inbox.tagUpdate(editing.id, { name, color: editing.color });
+        toast.success('已更新', { duration: 1000 });
       }
-      setEditing(null);
-      onChange?.();
-    } catch (e) { toast.error(e.message || '保存失败'); }
+    } catch (e) {
+      // 回滚
+      setTags(prevTags);
+      toast.error(e.message || '保存失败');
+      setEditing({ id: isNew ? null : editing.id, name, color: editing.color });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function doDeleteTag() {
-    if (!confirmDel) return;
+    if (!confirmDel || busy) return;
+    setBusy(true);
+    const prevTags = tags;
+    const prevConfirm = confirmDel;
+    // Optimistic: 先删本地
+    setTags(prev => prev.filter(t => t.id !== confirmDel.id));
+    setConfirmDel(null);
+
     try {
-      await API.inbox.tagRemove(confirmDel.id);
-      toast.success('已删除');
-      setConfirmDel(null);
-      onChange?.();
-    } catch (e) { toast.error(e.message || '删除失败'); }
+      await API.inbox.tagRemove(prevConfirm.id);
+      toast.success('已删除', { duration: 1000 });
+    } catch (e) {
+      setTags(prevTags);
+      toast.error(e.message || '删除失败');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

@@ -24,7 +24,7 @@ const GROUP_META = {
   schedule: { label: '事项与目标', color: 'var(--s-main)' },
   task:     { label: '待办',       color: '#34C759' },
   habit:    { label: '习惯',       color: '#FF9500' },
-  inbox:    { label: '收集箱',     color: '#AF52DE' },
+  inbox:    { label: '小记',     color: '#AF52DE' },
 };
 
 // 「9月18日」式短日期；非法日期返回空串
@@ -203,7 +203,7 @@ export default function SearchPalette({ open, onClose, onPick }) {
             value={q}
             onChange={e => setQ(e.target.value)}
             onKeyDown={onKeydown}
-            placeholder="搜索事项、待办、习惯、收集箱…"
+            placeholder="搜索事项、待办、习惯、小记…"
             spellCheck={false}
           />
           {q && (

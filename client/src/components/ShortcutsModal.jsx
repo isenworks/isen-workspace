@@ -10,7 +10,7 @@ import Modal from './Modal.jsx';
 // 快捷键数据（与 Workspace.jsx / Sidebar.jsx 实际实现保持同步）
 const GLOBAL_SHORTCUTS = [
   { keys: ['N'], desc: '快速记录' },
-  { keys: ['Shift', 'N'], desc: '打开收集箱' },
+  { keys: ['Shift', 'N'], desc: '打开小记' },
   { keys: ['S'], desc: '新建事项' },
   { keys: ['G'], desc: '新建目标' },
   { keys: ['D'], desc: '今日总结' },

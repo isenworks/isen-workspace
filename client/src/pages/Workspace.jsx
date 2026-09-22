@@ -176,7 +176,7 @@ export default function Workspace({ user: propUser }) {
       toast.success('已转为日程');
     } catch (e) {
       // 日程已建好，仅回写失败：条目留在收集箱，用户可手动完成，避免产生重复日程
-      toast.error('日程已创建，但收集箱状态回写失败');
+      toast.error('日程已创建，但小记状态回写失败');
     }
   }
 
@@ -554,6 +554,14 @@ export default function Workspace({ user: propUser }) {
         </div>
       ) : activeMenu === 'inbox' ? (
         <InboxPage onCountChange={setInboxCount} />
+      ) : activeMenu === 'knowledge' ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>
+          </svg>
+          <div className="text-[15px] font-bold text-ink-900">知识库</div>
+          <div className="text-[12px] text-ink-400">即将上线，敬请期待</div>
+        </div>
       ) : activeMenu === 'recycle' ? (
         <RecycleBinPage />
       ) : activeMenu === 'calendar' ? (
@@ -1012,7 +1020,7 @@ export default function Workspace({ user: propUser }) {
       </Suspense>
 
       {/* ===== 快速捕获弹窗（快捷键 N / 侧边栏收集箱「＋」）===== */}
-      <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="快速记录到收集箱">
+      <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="快速记录到小记">
         <Suspense fallback={<ChunkFallback />}>
           <QuickCapture onSaved={loadInboxCount} onDispatch={openDispatchFor} />
         </Suspense>

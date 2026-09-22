@@ -187,7 +187,7 @@ export default function InboxPage({ onCountChange }) {
       toast.success('已转为日程');
     } catch (e) {
       // 日程已建好，仅回写失败：条目留在收集箱，用户可手动完成，避免产生重复日程
-      toast.error('日程已创建，但收集箱状态回写失败');
+      toast.error('日程已创建，但小记状态回写失败');
     }
   }
 
@@ -358,10 +358,9 @@ export default function InboxPage({ onCountChange }) {
       ) : items.length === 0 ? (
         <div className={`glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2 ${fill ? 'flex-1' : ''}`}>
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
-            <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+            <path d="M6 6h4a1.2 1.2 0 0 1 0 2.4v3.6a1.2 1.2 0 0 0 2.4 0V8.4a1.2 1.2 0 0 1 0-2.4h4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
           </svg>
-          <div className="text-[14px] font-semibold text-ink-900">收集箱是空的</div>
+          <div className="text-[14px] font-semibold text-ink-900">小记是空的</div>
           <div className="text-[12px] text-ink-400">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 可随时记录</div>
         </div>
       ) : (
@@ -384,7 +383,7 @@ export default function InboxPage({ onCountChange }) {
   const renderHeader = () => (
     <div className="flex items-center gap-3">
       <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
-      <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">收集箱</span>
+      <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
       {/* 布局切换：紧跟标题 */}
       <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
         <button

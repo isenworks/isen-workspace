@@ -251,7 +251,11 @@ export default function FocusPanel({
   const [contextMenu, setContextMenu] = useState(null); // { x, y, task } | null
   useEffect(() => {
     if (!contextMenu) return;
-    const onDown = (e) => { if (e.button !== 2) setContextMenu(null); };
+    // 关键：mousedown 会在 click 之前触发，若不排除菜单内部点击，
+    // setContextMenu(null) 会先把按钮卸载 → onClick 永远不执行。
+    const onDown = (e) => {
+      if (e.button !== 2 && !e.target.closest('.fp-ctx-menu')) setContextMenu(null);
+    };
     const onScroll = () => setContextMenu(null);
     const onKey = (e) => { if (e.key === 'Escape') setContextMenu(null); };
     document.addEventListener('mousedown', onDown);
@@ -804,7 +808,7 @@ export default function FocusPanel({
          · 跟随光标定位，自动避开视口右下边缘（菜单宽约 160 / 高约 90） */}
     {contextMenu && (
       <div
-        className="fixed z-[70] select-none"
+        className="fp-ctx-menu fixed z-[70] select-none"
         style={{
           left: Math.min(contextMenu.x, window.innerWidth - 172),
           top: Math.min(contextMenu.y, window.innerHeight - 110),

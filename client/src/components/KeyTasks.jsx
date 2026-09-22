@@ -173,20 +173,24 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const wA = CAT_PRIORITY[catA] ?? 99;
       const wB = CAT_PRIORITY[catB] ?? 99;
       if (wA !== wB) return wA - wB;
-      // 2) 同重要性：按 start_time 升序(无时间排后面)
+      // 2) 同重要性：先按 date 升序（跨天事项不能只看 start_time）
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      // 3) 同天：按 start_time 升序(无时间排后面)
       const ta = a.start_time || '99:99';
       const tb = b.start_time || '99:99';
       if (ta !== tb) return ta.localeCompare(tb);
-      // 3) 同分类同时间：未完成在前、已完成在后（视觉感受"位置不动"）
+      // 4) 同分类同时间：未完成在前、已完成在后（视觉感受"位置不动"）
       const doneA = a.is_done ? 1 : 0;
       const doneB = b.is_done ? 1 : 0;
       if (doneA !== doneB) return doneA - doneB;
-      // 4) 稳定兜底：ID 排序
+      // 5) 稳定兜底：ID 排序
       return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
   }
   function sortByTime(items) {
     return [...items].sort((a, b) => {
+      // 先按 date 升序，再按 start_time
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
       const ta = a.start_time || '99:99';
       const tb = b.start_time || '99:99';
       if (ta !== tb) return ta.localeCompare(tb);

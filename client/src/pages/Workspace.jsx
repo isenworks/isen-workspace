@@ -1022,7 +1022,7 @@ export default function Workspace({ user: propUser }) {
       </Suspense>
 
       {/* ===== 快速捕获弹窗（快捷键 N / 侧边栏收集箱「＋」）===== */}
-      <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="快速记录到小记">
+      <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="新建小记">
         <Suspense fallback={<ChunkFallback />}>
           <QuickCapture onSaved={loadInboxCount} onDispatch={openDispatchFor} />
         </Suspense>

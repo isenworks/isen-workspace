@@ -251,7 +251,7 @@ export default function InboxPage({ onCountChange }) {
              · 与左侧模块色圆点形成"感知→确认"视觉路径 */}
         {catInfo && (
             <span
-              className="flex-shrink-0 inline-flex items-center justify-center h-[18px] px-2.5 rounded-full text-[10px] font-semibold leading-none select-none"
+              className="flex-shrink-0 inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
               style={{ color: catInfo.dot, background: hexToRgba(catInfo.dot, 0.10) }}
             >
               {catInfo.label}

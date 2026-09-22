@@ -16,6 +16,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
   const [showTags, setShowTags] = useState(false);
   const [busy, setBusy] = useState(false);
   const [flashMsg, setFlashMsg] = useState('');
+  const [savedAt, setSavedAt] = useState(edit?.created_at || '');
   const [focused, setFocused] = useState(false);
   const flashTimer = useRef(null);
 
@@ -24,6 +25,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     if (editorRef.current) {
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
     }
+    setSavedAt(edit?.created_at || '');
   }, [edit]);
 
   useEffect(() => {
@@ -31,6 +33,19 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
   }, [autoFocus]);
 
   useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+
+  function fmtSavedTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const now = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const sameDay = a => a.getFullYear() === now.getFullYear() && a.getMonth() === now.getMonth() && a.getDate() === now.getDate();
+    if (sameDay(d)) return `${p(d.getHours())}:${p(d.getMinutes())}`;
+    const y = new Date(now); y.setDate(y.getDate() - 1);
+    if (sameDay(y)) return `昨天 ${p(d.getHours())}:${p(d.getMinutes())}`;
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
 
   function flash(msg) {
     setFlashMsg(msg);
@@ -59,12 +74,14 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     try {
       if (edit) {
         await API.inbox.update(edit.id, { content, tag_id: tagId });
+        setSavedAt(new Date().toISOString());
         flash('✓ 已保存');
         onUpdated?.();
       } else {
         await API.inbox.create({ content, tag_id: tagId });
         editorRef.current.innerHTML = '';
         setTagId(null);
+        setSavedAt('');
         flash('✓ 已收进');
         onSaved?.();
       }
@@ -233,6 +250,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
             {dispatchBtn}
             <div className="flex-1" />
             {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
+            {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
             <button
               onClick={save}
               disabled={busy || !getPlainText()}
@@ -256,6 +274,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
           {showTags && tagPicker}
           <div className="flex-1" />
           {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
+          {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
           <button
             onClick={save}
             disabled={busy || !getPlainText()}

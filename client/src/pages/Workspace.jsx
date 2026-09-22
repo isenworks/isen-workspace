@@ -556,9 +556,10 @@ export default function Workspace({ user: propUser }) {
         <InboxPage onCountChange={setInboxCount} />
       ) : activeMenu === 'knowledge' ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-          <svg width="48" height="48" viewBox="2 2 20 20" fill="none" stroke="#C7C7CC" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>
-            <path d="M12 4v2.5a.5.5 0 0 1-.5.5a1.5 1.5 0 0 0 0 3a.5.5 0 0 1 .5.5V12m0 0v1.5a.5.5 0 0 0 .5.5a1.5 1.5 0 0 1 0 3a.5.5 0 0 0-.5.5V20m8-8h-2.5a.5.5 0 0 1-.5-.5a1.5 1.5 0 0 0-3 0a.5.5 0 0 1-.5.5H12m0 0h-1.5a.5.5 0 0 0-.5.5a1.5 1.5 0 0 1-3 0a.5.5 0 0 0-.5-.5H4"/>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6.5 2H18a2.5 2.5 0 0 1 2.5 2.5v15A2.5 2.5 0 0 1 18 22H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>
+            <path d="M7.5 2v20"/>
+            <g transform="translate(3.59 3.03) scale(0.85)"><path d="m10.542 8.608l1.1-2.23a.678.678 0 0 1 1.216 0l1.1 2.23l2.461.357c.556.08.778.764.376 1.157l-1.78 1.735l.42 2.45a.678.678 0 0 1-.984.716l-2.201-1.157l-2.2 1.157a.678.678 0 0 1-.985-.715l.42-2.45l-1.78-1.736a.678.678 0 0 1 .376-1.157l2.461-.357z" fill="#C7C7CC" stroke="none"/></g>
           </svg>
           <div className="text-[15px] font-bold text-ink-900">知识库</div>
           <div className="text-[12px] text-ink-400">即将上线，敬请期待</div>

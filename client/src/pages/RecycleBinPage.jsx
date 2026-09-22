@@ -15,11 +15,11 @@ import { catToModule } from '../utils/categoryMapping.js';
 
 const TYPE_META = {
   task:          { label: '待办',     color: '#007AFF' },
-  schedule:      { label: '日程',     color: '#34C759' },
-  goal:          { label: '目标',     color: '#FF9500' },
-  habit:         { label: '习惯',     color: '#FF9F0A' },
+  schedule:      { label: '日程',     color: '#8E8E93' },
+  goal:          { label: '目标',     color: '#FF3B30' },
+  habit:         { label: '习惯',     color: '#34C759' },
   fixedSchedule: { label: '固定日程', color: '#5856D6' },
-  summary:       { label: '总结',     color: '#FF2D55' },
+  summary:       { label: '总结',     color: '#0A84FF' },
   inbox:         { label: '收集',     color: '#5AC8FA' },
   financeAccount:  { label: '财务账户', color: '#FF2D55' },
   financeCategory: { label: '收支分类', color: '#FF2D55' },

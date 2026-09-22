@@ -326,7 +326,11 @@ export default function InboxPage({ onCountChange }) {
         <button
           onClick={() => setFilterPopover(v => !v)}
           title={activeTag ? `筛选：${activeTag.name}` : '筛选标签'}
-          className="relative flex items-center gap-1 w-[32px] h-[24px] rounded-lg transition-all"
+          className={`relative flex items-center gap-1 w-[32px] h-[24px] rounded-lg transition-all ${
+            isActive
+              ? 'hover:brightness-95'
+              : 'hover:bg-black/[0.05] hover:text-ink-700'
+          } ${filterPopover ? 'ring-2 ring-[rgba(var(--s-rgb),0.25)]' : ''}`}
           style={isActive
             ? { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }
             : { background: 'transparent', color: '#8e8e93' }
@@ -404,15 +408,11 @@ export default function InboxPage({ onCountChange }) {
           </svg>
         </button>
       </div>
-      {renderFilterPopover()}
       <div className="flex-1" />
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="text-[11px] text-ink-400">快捷键</span>
-        <kbd className="px-1.5 py-0.5 rounded-md text-[11px] font-medium tabular-nums border border-ink-100 bg-white/70 text-ink-500">N</kbd>
-      </div>
+      {renderFilterPopover()}
       {isDuo && (
         <button onClick={() => setSelectedId(null)} title="新增记录"
-          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all"
+          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
           style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
         </button>
@@ -438,10 +438,11 @@ export default function InboxPage({ onCountChange }) {
           <div className="text-[13px] text-ink-400">该标签下暂无小记</div>
         </div>
       ) : (
-        <div className={`flex flex-col gap-3 ${fill ? 'flex-1 min-h-0' : ''}`}>
+        <div className={`glass-card rounded-2xl p-2.5 flex flex-col ${fill ? 'flex-1 min-h-0' : ''}`}>
           {groups.map((g, gi) => (
-            <div key={g.label} className={`glass-card rounded-2xl p-2 ${fill && gi === groups.length - 1 ? 'flex-1' : ''}`}>
-              <div className="flex items-center gap-2 px-2 pt-1.5 pb-1">
+            <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
+              {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}
+              <div className="flex items-center gap-2 px-1.5 pt-1 pb-0.5">
                 <span className="text-[11px] font-semibold text-ink-400 tracking-wide">{g.label}</span>
                 <span className="text-[11px] text-ink-300 tabular-nums">{g.list.length}</span>
               </div>

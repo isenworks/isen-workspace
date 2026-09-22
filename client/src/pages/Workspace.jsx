@@ -556,11 +556,9 @@ export default function Workspace({ user: propUser }) {
         <InboxPage onCountChange={setInboxCount} />
       ) : activeMenu === 'knowledge' ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-          <svg width="48" height="48" viewBox="0 0 36 36" fill="none" stroke="#C7C7CC" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M 0 0 L 15 0 L 15 15 L 12 15 A 4.5 4.5 0 0 0 3 15 L 0 15 Z"/>
-            <path d="M 21 0 L 36 0 L 36 15 L 21 15 L 21 12 A 4.5 4.5 0 0 0 21 3 Z"/>
-            <path d="M 0 21 L 15 21 L 15 24 A 4.5 4.5 0 0 1 15 33 L 15 36 L 0 36 Z"/>
-            <path d="M 21 21 L 24 21 A 4.5 4.5 0 0 1 33 21 L 36 21 L 36 36 L 21 36 Z"/>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>
+            <path d="M12 4v2.5a.5.5 0 0 1-.5.5a1.5 1.5 0 0 0 0 3a.5.5 0 0 1 .5.5V12m0 0v1.5a.5.5 0 0 0 .5.5a1.5 1.5 0 0 1 0 3a.5.5 0 0 0-.5.5V20m8-8h-2.5a.5.5 0 0 1-.5-.5a1.5 1.5 0 0 0-3 0a.5.5 0 0 1-.5.5H12m0 0h-1.5a.5.5 0 0 0-.5.5a1.5 1.5 0 0 1-3 0a.5.5 0 0 0-.5-.5H4"/>
           </svg>
           <div className="text-[15px] font-bold text-ink-900">知识库</div>
           <div className="text-[12px] text-ink-400">即将上线，敬请期待</div>

@@ -16,6 +16,7 @@ import { catToModule } from '../utils/categoryMapping.js';
 const TYPE_META = {
   task:          { label: '待办',     color: '#007AFF' },
   schedule:      { label: '日程',     color: '#34C759' },
+  goal:          { label: '目标',     color: '#FF9500' },
   habit:         { label: '习惯',     color: '#FF9F0A' },
   fixedSchedule: { label: '固定日程', color: '#5856D6' },
   summary:       { label: '总结',     color: '#FF2D55' },
@@ -25,6 +26,14 @@ const TYPE_META = {
   financeTx:       { label: '财务流水', color: '#FF2D55' },
   financeGoal:      { label: '攒钱目标', color: '#FF2D55' },
 };
+
+/* 目标与日程共用 ethan_schedules 表，靠 is_goal 区分；
+   回收站 source_type 统一为 'schedule'，需根据 payload.row.is_goal
+   将标签从「日程」覆盖为「目标」 */
+function resolveMeta(sourceType, payload) {
+  if (sourceType === 'schedule' && payload?.row?.is_goal) return TYPE_META.goal;
+  return TYPE_META[sourceType] || { label: sourceType, color: '#8E8E93' };
+}
 
 /* 左栏导航：按生活模块分类（与工作台六大模块一致），来源降级为右侧标签 */
 const MODULE_NAV = [
@@ -69,7 +78,7 @@ function describeItem(type, payload) {
         return { title: row.title || '未命名待办', sub: row.date || '' };
       case 'schedule': {
         const time = row.start_time ? ` · ${row.start_time}${row.end_time ? `–${row.end_time}` : ''}` : '';
-        return { title: row.title || '未命名日程', sub: `${row.date || ''}${time}` };
+        return { title: row.title || (row.is_goal ? '未命名目标' : '未命名日程'), sub: `${row.date || ''}${time}` };
       }
       case 'habit': {
         const logs = Array.isArray(payload?.logs) ? payload.logs.filter(l => l.done).length : 0;
@@ -192,7 +201,7 @@ export default function RecycleBinPage() {
 
   /* 永久删除（Modal 确认后执行） */
   function askRemove(it) {
-    const meta = TYPE_META[it.source_type] || { label: it.source_type };
+    const meta = resolveMeta(it.source_type, it._payload);
     const { title } = describeItem(it.source_type, it._payload);
     setConfirming({ kind: 'remove', id: it.id, title, typeLabel: meta.label });
   }
@@ -305,7 +314,7 @@ export default function RecycleBinPage() {
               {GROUP_LABELS[g.bucket]} · {g.rows.length}
             </div>
             {g.rows.map(it => {
-              const meta = TYPE_META[it.source_type] || { label: it.source_type, color: '#8E8E93' };
+              const meta = resolveMeta(it.source_type, it._payload);
               const { title, sub } = describeItem(it.source_type, it._payload);
               const busy = busyIds.has(it.id);
               return (

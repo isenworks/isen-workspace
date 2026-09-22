@@ -556,7 +556,7 @@ export default function Workspace({ user: propUser }) {
         <InboxPage onCountChange={setInboxCount} />
       ) : activeMenu === 'knowledge' ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="48" height="48" viewBox="2 2 20 20" fill="none" stroke="#C7C7CC" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>
             <path d="M12 4v2.5a.5.5 0 0 1-.5.5a1.5 1.5 0 0 0 0 3a.5.5 0 0 1 .5.5V12m0 0v1.5a.5.5 0 0 0 .5.5a1.5 1.5 0 0 1 0 3a.5.5 0 0 0-.5.5V20m8-8h-2.5a.5.5 0 0 1-.5-.5a1.5 1.5 0 0 0-3 0a.5.5 0 0 1-.5.5H12m0 0h-1.5a.5.5 0 0 0-.5.5a1.5 1.5 0 0 1-3 0a.5.5 0 0 0-.5-.5H4"/>
           </svg>

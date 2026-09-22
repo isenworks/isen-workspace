@@ -507,7 +507,24 @@ export async function ensureInboxTable(env) {
       done INTEGER NOT NULL DEFAULT 0,
       done_at TEXT,
       processed_type TEXT,
-      processed_id INTEGER
+      processed_id INTEGER,
+      tag_id INTEGER
+    )`).run();
+    // 懒迁移：旧表无 tag_id 列时补列
+    try { await env.DB.prepare(`ALTER TABLE ethan_inbox ADD COLUMN tag_id INTEGER`).run(); } catch (_) {}
+  } catch (_) {}
+}
+
+// 小记独立标签表（与工作台六大分类解耦，支持云端增删改）
+export async function ensureInboxTagsTable(env) {
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ethan_inbox_tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#8E8E93',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`).run();
   } catch (_) {}
 }

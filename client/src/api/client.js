@@ -150,6 +150,11 @@ export const API = {
     // 行内快速分派（原子）：单请求完成建日程/待办 + 标记已处理
     async process(data) { return fetchPages('/inbox/process', data); },
     async remove(id) { return fetchPages('/inbox/remove', { id }); },
+    // 小记独立标签
+    async tags() { return fetchPages('/inbox/tags', {}, 'GET'); },
+    async tagCreate(data) { return fetchPages('/inbox/tag/create', data); },
+    async tagUpdate(id, data) { return fetchPages('/inbox/tag/update', { id, ...data }); },
+    async tagRemove(id) { return fetchPages('/inbox/tag/remove', { id }); },
   },
 
   habits: {

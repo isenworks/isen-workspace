@@ -1091,3 +1091,19 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .hp-hcell-btn:not(.fut):not(:disabled):hover { box-shadow: 0 0 0 1.5px rgba(52, 199, 89, 0.6); }
 .hp-hcell-btn:not(.fut):not(:disabled):active { transform: scale(0.9); }
 
+/* ===== QuickCapture 富文本编辑器 ===== */
+.qc-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #8e8e93;
+  pointer-events: none;
+}
+.qc-editor h1 { font-size: 20px; font-weight: 700; line-height: 1.4; margin: 8px 0 4px; }
+.qc-editor h2 { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 6px 0 3px; }
+.qc-editor p { margin: 0 0 6px; }
+.qc-editor p:last-child { margin-bottom: 0; }
+.qc-editor ul, .qc-editor ol { margin: 4px 0; padding-left: 22px; }
+.qc-editor li { margin: 2px 0; }
+.qc-editor ul { list-style: disc; }
+.qc-editor ol { list-style: decimal; }
+.qc-editor b, .qc-editor strong { font-weight: 700; }
+

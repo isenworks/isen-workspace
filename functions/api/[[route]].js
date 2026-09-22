@@ -29,6 +29,7 @@ import {
 } from '../_lib/handlers/tasks.js';
 import {
   handleInboxList, handleInboxCreate, handleInboxUpdate, handleInboxProcess, handleInboxRemove,
+  handleInboxTagsList, handleInboxTagCreate, handleInboxTagUpdate, handleInboxTagRemove,
 } from '../_lib/handlers/inbox.js';
 import {
   handleSchedulesList, handleSchedulesGet, handleSchedulesCreate, handleSchedulesUpdate,
@@ -135,6 +136,12 @@ export async function onRequest(context) {
     if (path === '/api/inbox/update' && method === 'POST') return handleInboxUpdate(env, body);
     if (path === '/api/inbox/process' && method === 'POST') return handleInboxProcess(env, body);
     if (path === '/api/inbox/remove' && method === 'POST') return handleInboxRemove(env, body);
+
+    // 小记标签（独立标签体系）
+    if (path === '/api/inbox/tags' && (method === 'GET' || method === 'POST')) return handleInboxTagsList(env, qOrBody);
+    if (path === '/api/inbox/tag/create' && method === 'POST') return handleInboxTagCreate(env, body);
+    if (path === '/api/inbox/tag/update' && method === 'POST') return handleInboxTagUpdate(env, body);
+    if (path === '/api/inbox/tag/remove' && method === 'POST') return handleInboxTagRemove(env, body);
 
     // ------------------------------------------------------------
     // /api/schedules/*

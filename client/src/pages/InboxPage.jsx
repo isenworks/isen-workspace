@@ -6,12 +6,15 @@ import { today as getToday } from '../utils/date.js';
 import { hexToRgba } from '../utils/color.js';
 import QuickCapture from '../components/QuickCapture.jsx';
 import Modal from '../components/Modal.jsx';
-import ScheduleForm, { readCats } from '../components/forms/ScheduleForm.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import ScheduleForm from '../components/forms/ScheduleForm.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
-const LS_LAYOUT_KEY = 'inbox_layout'; // 'tri' 三分布局 | 'duo' 二分布局（默认）
+const LS_LAYOUT_KEY = 'inbox_layout';
 
-// D1 datetime('now') 是 UTC（'YYYY-MM-DD HH:MM:SS'），转本地 Date
+// 预设标签颜色（新建标签时可选）
+const TAG_COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#8E8E93'];
+
 function parseDbTime(s) {
   if (!s) return null;
   const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
@@ -19,21 +22,18 @@ function parseDbTime(s) {
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
-// 「2026-09-08」（左栏紧凑日期，hover 时 title 显示完整时间）
 function fmtDate(s) {
   const d = parseDbTime(s);
   if (!d) return '';
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
-// 「2026-09-08 10:01」（完整时间）
 function fmtFull(s) {
   const d = parseDbTime(s);
   if (!d) return '';
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
-// hover 完整时间（含相对时间提示）
 function fmtTooltip(s) {
   const d = parseDbTime(s);
   if (!d) return '';
@@ -47,15 +47,15 @@ function fmtTooltip(s) {
   return `${fmtFull(s)}（${rel}）`;
 }
 
-// 内容首行（分派转日程时作标题，其余行作正文）
-function splitContent(content) {
-  const s = String(content || '');
-  const idx = s.indexOf('\n');
-  if (idx === -1) return { title: s, body: '' };
-  return { title: s.slice(0, idx), body: s.slice(idx + 1).trim() || '' };
+// 从 HTML 内容提取纯文本首行（列表缩略）
+function plainFirstLine(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const text = (tmp.innerText || tmp.textContent || '').replace(/\s+/g, ' ').trim();
+  return text;
 }
 
-// 左栏分组：今天 / 昨天 / 更早
 function groupLabel(s) {
   const d = parseDbTime(s);
   if (!d) return '更早';
@@ -68,40 +68,31 @@ function groupLabel(s) {
 }
 const GROUP_ORDER = ['今天', '昨天', '更早'];
 
-/* ============================================================
- * InboxPage · 收集箱（两种布局，可切换、localStorage 记忆、二分布局默认）
- *   三分布局 tri：左栏（页头+快速捕获 / 时间分组想法流）+ 右栏编辑面板
- *   二分布局 duo（默认）：左侧纯事项列表铺满，右侧编辑面板
- *   记录不区分标题/正文：列表缩略展示首行（无分行整条截断），
- *   点击事项 → 右侧为「编辑记录」面板（与新增面板同构，仅预填内容）
- *   捕获：N 键或输入面板快速收进；分派：转为具体日期的日程
- * ============================================================ */
 export default function InboxPage({ onCountChange }) {
   const toast = useToast();
-  const [items, setItems] = useState(null);          // null=加载中
+  const [items, setItems] = useState(null);
+  const [tags, setTags] = useState([]);
   const [busyIds, setBusyIds] = useState(new Set());
-  const [selectedId, setSelectedId] = useState(null); // 右侧编辑面板对应的条目；null=新增记录
-  const [menu, setMenu] = useState(null); // 三个点菜单：{ id, cat } —— cat=true 时展开「标签」二级面板
-  const [detail, setDetail] = useState(null);        // 详细分派：ScheduleForm 预填
-  // 布局：duo（二分布局，默认）| tri（三分布局）；选择存 localStorage，跨登录/刷新记忆
+  const [selectedId, setSelectedId] = useState(null);
+  const [menu, setMenu] = useState(null); // { id, cat }
+  const [detail, setDetail] = useState(null);
+  const [filterTagId, setFilterTagId] = useState(null); // null=全部
+  const [tagManagerOpen, setTagManagerOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null); // 待删除的 item
+
   const [layout, setLayout] = useState(() => {
     try { return localStorage.getItem(LS_LAYOUT_KEY) === 'tri' ? 'tri' : 'duo'; } catch { return 'duo'; }
   });
-  // 左右分栏拖拽比例（共享 hook，两个布局共用一份记忆）
   const split = useSplitRatio('inbox_split_ratio');
-
-  const cats = readCats();
-  const catOf = (v) => cats.find(c => c.v === Number(v)) || null;
   const isDuo = layout === 'duo';
 
   function switchLayout(next) {
     setLayout(next);
     try { localStorage.setItem(LS_LAYOUT_KEY, next); } catch {}
-    // 切到二分布局：回到「新增面板」初始态（无选中）
     if (next === 'duo') setSelectedId(null);
   }
 
-  const load = useCallback(async () => {
+  const loadItems = useCallback(async () => {
     try {
       const r = await API.inbox.list();
       setItems(r.items || []);
@@ -112,9 +103,18 @@ export default function InboxPage({ onCountChange }) {
     }
   }, [toast, onCountChange]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadTags = useCallback(async () => {
+    try {
+      const r = await API.inbox.tags();
+      setTags(r.tags || []);
+    } catch (e) { /* 标签加载失败不阻断 */ }
+  }, []);
+
+  useEffect(() => { loadItems(); loadTags(); }, [loadItems, loadTags]);
 
   const selected = (items || []).find(it => it.id === selectedId) || null;
+  const tagMap = new Map((tags || []).map(t => [t.id, t]));
+  const tagOf = (id) => (id != null ? tagMap.get(Number(id)) || null : null);
 
   function markBusy(id, on) {
     setBusyIds(prev => {
@@ -124,9 +124,15 @@ export default function InboxPage({ onCountChange }) {
     });
   }
 
-  // ===== 删除（进回收站） =====
-  async function removeItem(item) {
-    if (!window.confirm(`删除「${item.content.slice(0, 20)}${item.content.length > 20 ? '…' : ''}」？删除后可在回收站恢复。`)) return;
+  // ===== 删除（进回收站）—— 用 ConfirmDialog 替代 window.confirm =====
+  function askRemove(item) {
+    setMenu(null);
+    setConfirmRemove(item);
+  }
+  async function doRemove() {
+    const item = confirmRemove;
+    if (!item) return;
+    setConfirmRemove(null);
     markBusy(item.id, true);
     try {
       await API.inbox.remove(item.id);
@@ -139,12 +145,13 @@ export default function InboxPage({ onCountChange }) {
   }
 
   // ===== 修改标签 =====
-  async function setItemCategory(item, catV) {
+  async function setItemTag(item, tagId) {
     markBusy(item.id, true);
     try {
-      await API.inbox.update(item.id, { category: catV });
-      setItems(prev => prev.map(it => it.id === item.id ? { ...it, category: catV } : it));
-      toast.success(catV ? `已标记为「${catOf(catV)?.label || ''}」` : '已移除标签');
+      await API.inbox.update(item.id, { tag_id: tagId });
+      setItems(prev => prev.map(it => it.id === item.id ? { ...it, tag_id: tagId } : it));
+      const t = tagOf(tagId);
+      toast.success(t ? `已标记为「${t.name}」` : '已移除标签');
     } catch (e) {
       toast.error(e.message || '修改标签失败');
     } finally {
@@ -153,7 +160,6 @@ export default function InboxPage({ onCountChange }) {
     }
   }
 
-  // 详细分派：ScheduleForm 预填（支持时长/重要性/重复等完整字段）；item 不传时用当前选中条目
   function openDetailFor(item) {
     const it = item || selected;
     if (!it) return;
@@ -161,16 +167,14 @@ export default function InboxPage({ onCountChange }) {
     setDetail({
       item: it,
       initial: {
-        title: splitContent(it.content).title,
-        content: splitContent(it.content).body,
-        category: it.category != null ? Number(it.category) : 3,
+        title: plainFirstLine(it.content).slice(0, 60),
+        content: plainFirstLine(it.content).slice(60),
         date: getToday(),
         start_time: '',
       },
     });
   }
 
-  // ScheduleForm 保存成功 → 回写收集箱条目分派去向
   async function onDetailSaved() {
     const item = detail?.item;
     setDetail(null);
@@ -186,16 +190,17 @@ export default function InboxPage({ onCountChange }) {
       store.broadcast({ type: 'reload' });
       toast.success('已转为日程');
     } catch (e) {
-      // 日程已建好，仅回写失败：条目留在收集箱，用户可手动完成，避免产生重复日程
       toast.error('日程已创建，但小记状态回写失败');
     }
   }
 
-  // 左栏按时间分组
+  // 过滤后的列表
+  const filteredItems = (items || []).filter(it => filterTagId == null || Number(it.tag_id) === Number(filterTagId));
+
   const groups = [];
-  if (items && items.length > 0) {
+  if (filteredItems.length > 0) {
     const map = new Map();
-    items.forEach(it => {
+    filteredItems.forEach(it => {
       const g = groupLabel(it.created_at);
       if (!map.has(g)) map.set(g, []);
       map.get(g).push(it);
@@ -203,21 +208,19 @@ export default function InboxPage({ onCountChange }) {
     GROUP_ORDER.forEach(g => { if (map.has(g)) groups.push({ label: g, list: map.get(g) }); });
   }
 
-  // 三分布局：默认选中第一条（二分布局初始无选中，右侧为新增面板）
   useEffect(() => {
-    if (!isDuo && selectedId == null && items && items.length > 0) {
-      setSelectedId(items[0].id);
+    if (!isDuo && selectedId == null && filteredItems.length > 0) {
+      setSelectedId(filteredItems[0].id);
     }
-  }, [items, selectedId, isDuo]);
+  }, [filteredItems, selectedId, isDuo]);
 
-  // ===== 左栏条目行（三分布局与二分布局共用）：单行缩略（首行），圆点+文字垂直居中 =====
   const renderRow = (item) => {
     const busy = busyIds.has(item.id);
     const isSelected = selectedId === item.id;
-    const catInfo = catOf(item.category);
+    const tagInfo = tagOf(item.tag_id);
     const menuFor = menu?.id === item.id;
     const catPickFor = menuFor && !!menu.cat;
-    const sc = splitContent(item.content);
+    const firstLine = plainFirstLine(item.content);
     return (
       <div
         key={item.id}
@@ -225,62 +228,28 @@ export default function InboxPage({ onCountChange }) {
         className={`relative flex items-center gap-2.5 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
-        {/* 分类色实心圆点：
-             · 已分派标签 → 对应模块色（catInfo.dot，如生活=紫、工作=红）
-             · 未分派 → fallback 全局主题色（与上次空心→实心改动对齐）
-             · 选中态用该模块色全值实心，未选中态用 40% 透明度 */}
         <span
           className="flex-shrink-0 w-[8px] h-[8px] rounded-full transition-colors"
           style={isSelected
-            ? { background: catInfo?.dot || 'var(--s-main)' }
-            : { background: catInfo
-                ? (() => {
-                    const c = catInfo.dot;
-                    // 兼容 CSS 变量（var(--m-xxx) → rgba(var(--m-xxx-rgb),0.40)）
-                    if (typeof c === 'string' && c.startsWith('var(')) {
-                      const inner = c.slice(4, -1);
-                      return `rgba(var(${inner}-rgb), 0.40)`;
-                    }
-                    // 兼容 hex（#RRGGBB → rgba）
-                    if (/^#[0-9a-fA-F]{6}$/.test(c)) {
-                      const r = parseInt(c.slice(1, 3), 16);
-                      const g = parseInt(c.slice(3, 5), 16);
-                      const b = parseInt(c.slice(5, 7), 16);
-                      return `rgba(${r},${g},${b},0.40)`;
-                    }
-                    return c;
-                  })()
-                : 'rgba(var(--s-rgb),0.40)'
-              }}
-        ></span>
-
-        {/* 单行缩略：有分行展示第一行，无分行整条截断
-             · 标签移出此容器，作为独立属性列放在日期左侧 */}
+            ? { background: tagInfo?.color || 'var(--s-main)' }
+            : { background: tagInfo ? hexToRgba(tagInfo.color, 0.4) : 'rgba(var(--s-rgb),0.40)' }
+          }
+        />
         <div className="flex-1 min-w-0 flex items-center">
           <span className="text-[13.5px] leading-snug font-medium text-ink-900 truncate">
-            {(sc.title || sc.body || '（空）').slice(0, 60)}
+            {(firstLine || '（空）').slice(0, 60)}
           </span>
         </div>
-
-        {/* 分类标签：胶囊形，独立属性列（日期左侧）
-             · 状态属性而非内容修饰 → 右对齐独立列，扫描效率高且不打断标题阅读
-             · 与左侧模块色圆点形成"感知→确认"视觉路径 */}
-        {catInfo && (
-            <span
-              className="flex-shrink-0 inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
-              style={{ color: catInfo.dot, background: hexToRgba(catInfo.dot, 0.10) }}
-            >
-              {catInfo.label}
-            </span>
+        {tagInfo && (
+          <span
+            className="flex-shrink-0 inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
+            style={{ color: tagInfo.color, background: hexToRgba(tagInfo.color, 0.10) }}
+          >{tagInfo.name}</span>
         )}
-
-        {/* 日期（最右，hover 显示完整时间） */}
         <span
           className="flex-shrink-0 text-[12px] text-ink-400 tabular-nums"
           title={fmtTooltip(item.created_at)}
         >{fmtDate(item.created_at)}</span>
-
-        {/* 纵向三个点：hover 显示完整时间 + 点击弹出删除/分派菜单 */}
         <div className="relative flex-shrink-0">
           <button
             onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}
@@ -294,39 +263,34 @@ export default function InboxPage({ onCountChange }) {
           {menuFor && (
             <>
               <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenu(null); }} />
-              {/* 单面板手风琴：点「标签」原位展开标签列表（箭头下/上 + 旋转过渡），不再另开面板 */}
               <div className="absolute right-0 top-7 z-[20] w-[120px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden">
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenu(m => ({ id: item.id, cat: !m?.cat })); }}
                   className={`w-full flex items-center px-3 py-1.5 text-[12.5px] transition-colors ${catPickFor ? 'bg-ink-50 text-ink-900 font-medium' : 'text-ink-700 hover:bg-ink-50'}`}
                 >
                   <span className="whitespace-nowrap">标签</span>
-                  <svg
-                    width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-                    className={`flex-shrink-0 ml-auto text-ink-400 transition-transform duration-200 ${catPickFor ? 'rotate-180' : ''}`}
-                  ><polyline points="6 9 12 15 18 9" /></svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                    className={`flex-shrink-0 ml-auto text-ink-400 transition-transform duration-200 ${catPickFor ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9" /></svg>
                 </button>
                 {catPickFor && (
                   <>
                     <div className="my-1 border-t border-ink-100/80" />
                     <button
-                      onClick={() => setItemCategory(item, null)}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] hover:bg-ink-50 transition-colors ${item.category == null ? 'text-ink-900 font-medium' : 'text-ink-500'}`}
+                      onClick={() => setItemTag(item, null)}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] hover:bg-ink-50 transition-colors ${item.tag_id == null ? 'text-ink-900 font-medium' : 'text-ink-500'}`}
                     >
                       <span className="flex-shrink-0 w-2 h-2 rounded-full border border-ink-200" />
                       <span className="whitespace-nowrap">无标签</span>
-                      {item.category == null && <span className="ml-auto text-ink-400">✓</span>}
+                      {item.tag_id == null && <span className="ml-auto text-ink-400">✓</span>}
                     </button>
-                    {cats.map(c => {
-                      const on = Number(item.category) === c.v;
+                    {tags.map(t => {
+                      const on = Number(item.tag_id) === t.id;
                       return (
-                        <button
-                          key={c.v}
-                          onClick={() => setItemCategory(item, c.v)}
+                        <button key={t.id} onClick={() => setItemTag(item, t.id)}
                           className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] hover:bg-ink-50 transition-colors ${on ? 'text-ink-900 font-medium' : 'text-ink-700'}`}
                         >
-                          <span className="flex-shrink-0 w-2 h-2 rounded-full" style={{ background: c.dot }} />
-                          <span className="whitespace-nowrap">{c.label}</span>
+                          <span className="flex-shrink-0 w-2 h-2 rounded-full" style={{ background: t.color }} />
+                          <span className="whitespace-nowrap">{t.name}</span>
                           {on && <span className="ml-auto text-ink-400">✓</span>}
                         </button>
                       );
@@ -339,7 +303,7 @@ export default function InboxPage({ onCountChange }) {
                   className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
                 >分派…</button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setMenu(null); removeItem(item); }}
+                  onClick={(e) => { e.stopPropagation(); askRemove(item); }}
                   className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
                 >删除</button>
               </div>
@@ -350,7 +314,43 @@ export default function InboxPage({ onCountChange }) {
     );
   };
 
-  // ===== 事项列表（分组卡片，两个布局共用） =====
+  // ===== 标签筛选条 =====
+  const renderFilterBar = () => (
+    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+      <button
+        onClick={() => setFilterTagId(null)}
+        className={`px-2.5 py-1 rounded-full text-[12px] transition-all ${
+          filterTagId == null ? 'bg-[var(--s-main)] text-white font-medium' : 'bg-ink-100 text-ink-600 hover:bg-ink-200/70'
+        }`}
+      >全部</button>
+      {tags.map(t => {
+        const on = filterTagId === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() => setFilterTagId(on ? null : t.id)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
+            style={{
+              background: on ? t.color : hexToRgba(t.color, 0.12),
+              color: on ? '#fff' : t.color,
+              fontWeight: on ? 600 : 400,
+            }}
+          >
+            <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: on ? '#fff' : t.color }} />
+            {t.name}
+          </button>
+        );
+      })}
+      <button
+        onClick={() => setTagManagerOpen(true)}
+        title="管理标签"
+        className="w-6 h-6 rounded-full flex items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-700 transition-colors flex-shrink-0"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+    </div>
+  );
+
   const renderList = (fill) => (
     <>
       {items === null ? (
@@ -363,6 +363,10 @@ export default function InboxPage({ onCountChange }) {
           </svg>
           <div className="text-[14px] font-semibold text-ink-900">小记是空的</div>
           <div className="text-[12px] text-ink-400">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 可随时记录</div>
+        </div>
+      ) : groups.length === 0 ? (
+        <div className={`glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2 ${fill ? 'flex-1' : ''}`}>
+          <div className="text-[13px] text-ink-400">该标签下暂无小记</div>
         </div>
       ) : (
         <div className={`flex flex-col gap-3 ${fill ? 'flex-1 min-h-0' : ''}`}>
@@ -380,38 +384,23 @@ export default function InboxPage({ onCountChange }) {
     </>
   );
 
-  // ===== 页头（色条 + 标题 + 切换器 + [二分布局的笔按钮] + 快捷键 N） =====
   const renderHeader = () => (
     <div className="flex items-center gap-3">
       <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
       <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
-      {/* 布局切换：紧跟标题 */}
       <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
-        <button
-          onClick={() => switchLayout('tri')}
-          title="三分布局"
+        <button onClick={() => switchLayout('tri')} title="三分布局"
           className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'tri'
-            ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
-            : { color: '#8e8e93' }}
-        >
+          style={layout === 'tri' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <line x1="9" y1="3" x2="9" y2="21" />
-            <line x1="15" y1="3" x2="15" y2="21" />
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
           </svg>
         </button>
-        <button
-          onClick={() => switchLayout('duo')}
-          title="二分布局"
+        <button onClick={() => switchLayout('duo')} title="二分布局"
           className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'duo'
-            ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
-            : { color: '#8e8e93' }}
-        >
+          style={layout === 'duo' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <line x1="12" y1="3" x2="12" y2="21" />
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
           </svg>
         </button>
       </div>
@@ -420,29 +409,22 @@ export default function InboxPage({ onCountChange }) {
         <span className="text-[11px] text-ink-400">快捷键</span>
         <kbd className="px-1.5 py-0.5 rounded-md text-[11px] font-medium tabular-nums border border-ink-100 bg-white/70 text-ink-500">N</kbd>
       </div>
-      {/* 笔按钮（仅二分布局）：回到新增面板，主题色实心 */}
       {isDuo && (
-        <button
-          onClick={() => setSelectedId(null)}
-          title="新增记录"
+        <button onClick={() => setSelectedId(null)} title="新增记录"
           className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all"
-          style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-        >
+          style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
         </button>
       )}
     </div>
   );
 
-  // ===== 右侧编辑面板（两个布局共用）：新增/编辑同构，仅预填内容与否的区别 =====
   const renderEditPanel = (emptyHint) => {
-    // 三分布局无选中：显示占位提示（三分布局的录入入口在左栏）
     if (!selected && emptyHint) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-8">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 11l3 3L22 4" />
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
           <div className="text-[13.5px] font-semibold text-ink-900">选择左侧一条想法</div>
           <div className="text-[12px] text-ink-400">在这里编辑内容或分派到具体日期的日程</div>
@@ -456,65 +438,53 @@ export default function InboxPage({ onCountChange }) {
           <span className="text-[15.5px] font-bold text-ink-900 leading-none">{selected ? '编辑记录' : '新增记录'}</span>
         </div>
         {selected ? (
-          <QuickCapture key={selected.id} edit={selected} onUpdated={load} onDispatch={openDetailFor} bare />
+          <QuickCapture key={selected.id} edit={selected} tags={tags} onUpdated={loadItems} onDispatch={openDetailFor} bare />
         ) : (
-          <QuickCapture onSaved={load} onDispatch={openDetailFor} bare />
+          <QuickCapture tags={tags} onSaved={loadItems} onDispatch={openDetailFor} bare />
         )}
       </div>
     );
   };
 
-  // 左右分栏样式 + 拖拽绑定（共享 hook）
   const { leftStyle, rightStyle, bindRoot, bindDivider } = split;
 
   return (
     <div {...bindRoot} className="flex-1 min-w-0 w-full flex items-stretch">
       {isDuo ? (
-        /* ===== 二分布局：左侧事项列表，右侧编辑面板（新增/编辑） ===== */
         <>
           <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
             <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
+              <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">{renderFilterBar()}</div>
             </div>
             {renderList(true)}
           </div>
-
           <SplitDivider bindDivider={bindDivider} />
-
-          {/* 右侧编辑面板：无选中 = 新增；有选中 = 编辑该条目（同一套面板） */}
           <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={rightStyle}>
             {renderEditPanel(false)}
           </div>
         </>
       ) : (
-        /* ===== 三分布局：左栏（页头+快速捕获 / 想法流）+ 右栏编辑面板 ===== */
         <>
           <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
-            {/* 页头 + 快速捕获 */}
             <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
               <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">
-                <QuickCapture onSaved={load} onDispatch={openDetailFor} />
+                <QuickCapture tags={tags} onSaved={loadItems} onDispatch={openDetailFor} />
+                <div className="mt-3">{renderFilterBar()}</div>
               </div>
             </div>
             {renderList(true)}
           </div>
-
           <SplitDivider bindDivider={bindDivider} />
-
-          {/* 右栏：编辑面板 */}
           <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={rightStyle}>
             {renderEditPanel(true)}
           </div>
         </>
       )}
 
-      {/* ===== 详细分派：复用 ScheduleForm（支持时长/重要性/重复） ===== */}
-      <Modal
-        open={!!detail}
-        onClose={() => setDetail(null)}
-        title="详细分派 · 新建日程"
-      >
+      {/* 详细分派 */}
+      <Modal open={!!detail} onClose={() => setDetail(null)} title="详细分派 · 新建日程">
         {detail && (
           <ScheduleForm
             initial={detail.initial}
@@ -524,6 +494,142 @@ export default function InboxPage({ onCountChange }) {
           />
         )}
       </Modal>
+
+      {/* 删除确认 */}
+      <ConfirmDialog
+        open={!!confirmRemove}
+        title="删除小记"
+        danger
+        confirmText="删除"
+        onConfirm={doRemove}
+        onCancel={() => setConfirmRemove(null)}
+      >
+        <div className="text-[13px] leading-relaxed">
+          <div className="text-ink-600">删除后可在回收站恢复。</div>
+          {confirmRemove && (
+            <div className="mt-2 font-semibold text-ink-900 break-words">
+              「{plainFirstLine(confirmRemove.content).slice(0, 40) || '（空）'}」
+            </div>
+          )}
+        </div>
+      </ConfirmDialog>
+
+      {/* 标签管理弹窗 */}
+      <TagManagerModal
+        open={tagManagerOpen}
+        tags={tags}
+        onClose={() => setTagManagerOpen(false)}
+        onChange={loadTags}
+        toast={toast}
+      />
     </div>
+  );
+}
+
+// ==================== 标签管理弹窗（增删改） ====================
+function TagManagerModal({ open, tags, onClose, onChange, toast }) {
+  const [editing, setEditing] = useState(null); // { id?, name, color }
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  useEffect(() => { if (!open) { setEditing(null); setConfirmDel(null); } }, [open]);
+
+  function startCreate() {
+    setEditing({ name: '', color: TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] });
+  }
+  function startEdit(t) {
+    setEditing({ id: t.id, name: t.name, color: t.color });
+  }
+
+  async function saveTag() {
+    if (!editing) return;
+    const name = editing.name.trim();
+    if (!name) { toast.error('标签名不能为空'); return; }
+    try {
+      if (editing.id) {
+        await API.inbox.tagUpdate(editing.id, { name, color: editing.color });
+        toast.success('已更新');
+      } else {
+        await API.inbox.tagCreate({ name, color: editing.color });
+        toast.success('已创建');
+      }
+      setEditing(null);
+      onChange?.();
+    } catch (e) { toast.error(e.message || '保存失败'); }
+  }
+
+  async function doDeleteTag() {
+    if (!confirmDel) return;
+    try {
+      await API.inbox.tagRemove(confirmDel.id);
+      toast.success('已删除');
+      setConfirmDel(null);
+      onChange?.();
+    } catch (e) { toast.error(e.message || '删除失败'); }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="管理标签" maxWidth={460}>
+      <div className="space-y-2">
+        {tags.length === 0 && <div className="text-[13px] text-ink-400 text-center py-6">暂无标签，点击下方按钮新建</div>}
+        {tags.map(t => (
+          <div key={t.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-ink-50 group">
+            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: t.color }} />
+            <span className="text-[13.5px] text-ink-800 flex-1">{t.name}</span>
+            <button onClick={() => startEdit(t)} className="text-[12px] text-ink-400 hover:text-ink-700 px-1.5 py-0.5">编辑</button>
+            <button onClick={() => setConfirmDel(t)} className="text-[12px] text-[#FF3B30] hover:bg-[#FF3B300F] px-1.5 py-0.5 rounded">删除</button>
+          </div>
+        ))}
+      </div>
+
+      {/* 新建/编辑表单 */}
+      {editing && (
+        <div className="mt-4 p-3 rounded-xl bg-ink-50/70 border border-ink-100">
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={editing.name}
+              onChange={e => setEditing({ ...editing, name: e.target.value })}
+              onKeyDown={e => { if (e.key === 'Enter') saveTag(); }}
+              maxLength={20}
+              placeholder="标签名称"
+              className="flex-1 px-3 py-1.5 rounded-lg text-[13px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none"
+            />
+            <button onClick={saveTag}
+              className="px-3 py-1.5 rounded-lg text-[12.5px] font-semibold text-white"
+              style={{ background: 'var(--s-main)' }}>保存</button>
+          </div>
+          <div className="flex items-center gap-1.5 mt-2.5">
+            {TAG_COLORS.map(c => (
+              <button
+                key={c}
+                onClick={() => setEditing({ ...editing, color: c })}
+                className={`w-6 h-6 rounded-full transition-transform ${editing.color === c ? 'ring-2 ring-offset-2 ring-ink-400 scale-110' : 'hover:scale-110'}`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!editing && (
+        <button onClick={startCreate}
+          className="mt-3 w-full py-2 rounded-lg text-[13px] font-medium text-[var(--s-main)] border border-dashed border-ink-200 hover:bg-ink-50 transition-colors">
+          + 新建标签
+        </button>
+      )}
+
+      <ConfirmDialog
+        open={!!confirmDel}
+        title="删除标签"
+        danger
+        confirmText="删除"
+        onConfirm={doDeleteTag}
+        onCancel={() => setConfirmDel(null)}
+      >
+        <div className="text-[13px] leading-relaxed">
+          删除标签「<span className="font-semibold text-ink-900">{confirmDel?.name}</span>」后，已使用该标签的小记将变为无标签，此操作不可撤销。
+        </div>
+      </ConfirmDialog>
+    </Modal>
   );
 }

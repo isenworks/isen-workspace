@@ -127,10 +127,14 @@ export default function Workspace({ user: propUser }) {
   }, [doAutoSync]);
 
   // ===== 收集箱待分派计数：挂载 + 全局刷新（refreshKey）时同步 =====
+  const [inboxTags, setInboxTags] = useState([]);
   const loadInboxCount = useCallback(() => {
     API.inbox.list().then(r => setInboxCount((r.items || []).length)).catch(() => {});
   }, []);
-  useEffect(() => { loadInboxCount(); }, [loadInboxCount, refreshKey]);
+  const loadInboxTags = useCallback(() => {
+    API.inbox.tags().then(r => setInboxTags(r.tags || [])).catch(() => {});
+  }, []);
+  useEffect(() => { loadInboxCount(); loadInboxTags(); }, [loadInboxCount, loadInboxTags, refreshKey]);
 
   // ===== 日历分块预取：高频页面，登录后空闲时后台拉取（含农历库），首次点击免「加载中」 =====
   // 与上方 lazy() 引用同一模块，预取后模块缓存命中，点击日历零网络等待
@@ -1024,7 +1028,7 @@ export default function Workspace({ user: propUser }) {
       {/* ===== 快速捕获弹窗（快捷键 N / 侧边栏收集箱「＋」）===== */}
       <Modal open={quickCaptureOpen} onClose={() => setQuickCaptureOpen(false)} title="新建小记">
         <Suspense fallback={<ChunkFallback />}>
-          <QuickCapture onSaved={loadInboxCount} onDispatch={openDispatchFor} />
+          <QuickCapture tags={inboxTags} onSaved={() => { loadInboxCount(); loadInboxTags(); }} onDispatch={openDispatchFor} />
         </Suspense>
       </Modal>
 

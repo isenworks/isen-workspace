@@ -124,7 +124,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
         onKeyDown={onKeyDown}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder={placeholder || '记录想法/待办'}
+        placeholder={placeholder}
         className={`mx-[1.5px] bg-transparent outline-none resize-none text-[14px] leading-[22px] text-[#1c1c1e] placeholder:text-ink-400 rounded-[9px] transition-all ${bare ? 'flex-1 min-h-0 w-auto' : 'w-[calc(100%_-_3px)]'}`}
         style={{
           background: '#ffffff',

@@ -88,35 +88,40 @@ export default function PlantingShelf() {
 
   useEffect(() => { loadPlants(); }, [loadPlants]);
 
-  // ---- 文件上传 ----
+  // ---- 文件上传（跳过 upload 校验接口，base64 直接 create）----
   const handleFileSelect = useCallback(async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     if (file.size > 2 * 1024 * 1024) { alert('图片不能超过 2MB'); return; }
     // 转 base64
     const reader = new FileReader();
-    const dataUrl = await new Promise((resolve, reject) => {
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-    // 校验
-    const { image } = await API.plants.upload(dataUrl);
-    // 创建植物，默认中心位置
+    let dataUrl;
+    try {
+      dataUrl = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } catch (e) { alert('读取图片失败'); return; }
+    // 直接创建植物，默认中心位置
     const z = zCounter.current++;
-    const { plant } = await API.plants.create({
-      name: '新植物',
-      image,
-      pos_x: 50,
-      pos_y: 30,
-      z_index: z,
-      planted_at: new Date().toISOString().slice(0, 10),
-      water_cycle_days: 7,
-      last_watered: new Date().toISOString().slice(0, 10),
-    });
-    setPlants(prev => [...prev, plant]);
-    // 自动选中新植物
-    setSelected(plant);
-    setShowInfo(true);
+    try {
+      const { plant } = await API.plants.create({
+        name: '新植物',
+        image: dataUrl,
+        pos_x: 50,
+        pos_y: 30,
+        z_index: z,
+        planted_at: new Date().toISOString().slice(0, 10),
+        water_cycle_days: 7,
+        last_watered: new Date().toISOString().slice(0, 10),
+      });
+      setPlants(prev => [...prev, plant]);
+      // 自动选中新植物
+      setSelected(plant);
+      setShowInfo(true);
+    } catch (e) {
+      alert('添加植物失败: ' + e.message + '\n请确认 Cloudflare Pages Functions 已部署最新版本');
+    }
   }, []);
 
   const onFileInputChange = (e) => {

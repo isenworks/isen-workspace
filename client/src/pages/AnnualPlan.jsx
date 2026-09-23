@@ -1060,7 +1060,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
 
   // 主内容
   const mainContent = (
-    <main key={view} className="flex-1 min-w-0 animate-fade-in">
+    <main key={view} className="flex-1 min-w-0 animate-fade-in flex flex-col h-full min-h-0">
       {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} finData={finData} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} onBookMove={(id, st) => bookOps.move(id, st)}
@@ -1247,7 +1247,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   //（图标+文字+加号，由 Workspace 透传 annualView/onAnnualView/onAnnualAdd/addRequest 驱动）
   if (!standalone) {
     return (
-      <div className="w-full">
+      <div className="w-full h-full flex flex-col min-h-0">
         {mainContent}
         {styles}
         {toastEl}
@@ -1259,13 +1259,13 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
 
   // 独立模式（沙盒 #annual 预览）：完整外壳 + 内部 Sidebar + 返回工作台
   return (
-    <div className="min-h-screen bg-surface-base px-3 md:px-6 py-4 md:py-6">
-      <div className="max-w-[1400px] mx-auto">
+    <div className="h-screen overflow-hidden bg-surface-base px-3 md:px-6 py-4 md:py-6 flex flex-col">
+      <div className="max-w-[1400px] mx-auto w-full flex-shrink-0">
         <NavBar onExport={handleExport} onImport={handleImport} onReset={handleReset} />
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start annual-root-layout">
-          <Sidebar active={view} onChange={setView} stats={stats} />
-          {mainContent}
-        </div>
+      </div>
+      <div className="max-w-[1400px] mx-auto w-full flex-1 min-h-0 flex flex-col lg:flex-row gap-4 lg:gap-5 annual-root-layout">
+        <Sidebar active={view} onChange={setView} stats={stats} />
+        {mainContent}
       </div>
       {styles}
       {toastEl}

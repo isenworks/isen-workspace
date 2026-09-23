@@ -53,7 +53,7 @@ export function Sidebar({ active, onChange, stats }) {
   const year = new Date().getFullYear();
   const yy = String(year).slice(-2);
   return (
-    <aside className="w-full lg:w-[260px] flex-shrink-0 flex lg:flex-col gap-2.5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] overflow-y-auto overflow-x-hidden annual-sidebar">
+    <aside className="w-full lg:w-[260px] flex-shrink-0 self-stretch flex lg:flex-col gap-2.5 lg:overflow-y-auto lg:overflow-x-hidden annual-sidebar">
       {/* Logo + 总进度环 · 宽屏完整 / 窄屏压缩为一行 */}
       <div className="glass-card p-4 lg:w-full">
         <div className="flex items-center gap-3 lg:w-full lg:mb-3">

@@ -179,6 +179,26 @@ db.exec(`
     FOREIGN KEY(account_id) REFERENCES finance_accounts(id) ON DELETE SET NULL
   );
   CREATE INDEX IF NOT EXISTS idx_fin_goals_user ON finance_goals(user_id, status);
+
+  -- ===== 种植花架模块（生活页 · 种植类目）=====
+  -- 图片用 base64 存 image 字段（透明 PNG，单张 ≤2MB）；生产环境可接 R2
+  CREATE TABLE IF NOT EXISTS plants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT DEFAULT '',
+    image TEXT,                    -- base64 data URL（透明背景植物图）
+    pos_x REAL DEFAULT 50,         -- 画布百分比坐标 0-100
+    pos_y REAL DEFAULT 50,
+    z_index INTEGER DEFAULT 0,
+    planted_at TEXT,               -- 种植日期 YYYY-MM-DD
+    traits TEXT DEFAULT '',        -- 特性
+    care_method TEXT DEFAULT '',    -- 养护方法
+    water_cycle_days INTEGER DEFAULT 7, -- 浇水周期（天）
+    last_watered TEXT,              -- 上次浇水日期 YYYY-MM-DD
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_plants_user ON plants(user_id);
 `);
 
 // 旧数据迁移：若 schedules 没有 category 列则添加，并基于 is_key + start_time 填充

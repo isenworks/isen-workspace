@@ -66,6 +66,9 @@ import { handleWereadSync, handleWereadSearch } from '../_lib/handlers/weread.js
 import { handleCoverSearch, handleCoverProxy } from '../_lib/handlers/cover.js';
 import { handleBirthdayMigrate, handleMigrate } from '../_lib/handlers/migrate.js';
 import { handleHeroUpload, handleHeroImg, handleHeroDelete } from '../_lib/handlers/hero.js';
+import {
+  handlePlantsList, handlePlantsCreate, handlePlantsUpdate, handlePlantsRemove, handlePlantsUpload,
+} from '../_lib/handlers/plants.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -262,6 +265,15 @@ export async function onRequest(context) {
       const key = path.slice('/api/hero/img/'.length);
       return handleHeroDelete(env, key);
     }
+
+    // ------------------------------------------------------------
+    // /api/plants/*  — 种植花架（生活页 · 种植类目）
+    // ------------------------------------------------------------
+    if (path === '/api/plants/list' && (method === 'GET' || method === 'POST')) return handlePlantsList(env, qOrBody);
+    if (path === '/api/plants/create' && method === 'POST') return handlePlantsCreate(env, body);
+    if (path === '/api/plants/update' && method === 'POST') return handlePlantsUpdate(env, body);
+    if (path === '/api/plants/remove' && method === 'POST') return handlePlantsRemove(env, body);
+    if (path === '/api/plants/upload' && method === 'POST') return handlePlantsUpload(env, body);
 
     // 404
     return json({ error: 'Not Found: ' + method + ' ' + path }, 404);

@@ -8,6 +8,7 @@ import { moduleColor, moduleRgba } from '../../utils/color.js'
 import { API } from '../../api/client.js'
 import lunarLib from '../../vendor/lunar.js';
 import EntryForm from '../forms/EntryForm.jsx'
+import PlantingShelf from './PlantingShelf.jsx'
 
 /* 农历生日胶囊文案：把存储的公历日期换算回农历，得「农历八月初一」；
  * 公历生日返回「公历」；换算失败回退「农历」 */
@@ -605,7 +606,9 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
 
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0" style={rightStyle}>
-            {lifeFilter === 'birthday' ? (
+            {selFilterCat?.lb === '种植' ? (
+              <PlantingShelf />
+            ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
                 <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
                   {bdLoading ? '正在加载生日…' : '还没有生日记录，点左侧「生日」行的 + 添加'}

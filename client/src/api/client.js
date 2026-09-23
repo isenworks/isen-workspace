@@ -263,6 +263,15 @@ export const API = {
     async unban(userId) { return fetchPages('/users/unban', { user_id: userId }); },
   },
 
+  // 种植花架（生活页 · 种植类目）：图片 base64 存后端，CRUD 对齐其他模块
+  plants: {
+    async list() { return fetchPages('/plants/list', {}, 'GET'); },
+    async create(data) { return fetchPages('/plants/create', data); },
+    async update(id, data) { return fetchPages('/plants/update', { id, ...data }); },
+    async remove(id) { return fetchPages('/plants/remove', { id }); },
+    async upload(dataUrl) { return fetchPages('/plants/upload', { file: dataUrl }); },
+  },
+
   // GitHub PAT 托管 + AI 推送授权（仅 owner，后端锁定 1429000825@qq.com）
   github: {
     // 托管状态：只返回掩码 / 授权开关 / 审计信息，永不返回 PAT 明文

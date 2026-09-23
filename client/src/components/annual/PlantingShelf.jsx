@@ -69,15 +69,23 @@ export default function PlantingShelf() {
   const [selected, setSelected] = useState(null);
   const [dragging, setDragging] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('planting_shelf_settings')) || {};
+    } catch { return {}; }
+  });
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
+  const bgInputRef = useRef(null);
   const dragOffset = useRef({ dx: 0, dy: 0 });
   const zCounter = useRef(1);
-  // ref 镜像，解决 useEffect 闭包陷阱（拖拽时 plants 频繁更新导致 mouseup 读到旧值）
   const draggingRef = useRef(null);
   const plantsRef = useRef([]);
   useEffect(() => { draggingRef.current = dragging; }, [dragging]);
   useEffect(() => { plantsRef.current = plants; }, [plants]);
+  // settings 持久化
+  useEffect(() => { localStorage.setItem('planting_shelf_settings', JSON.stringify(settings)); }, [settings]);
 
   // 加载植物列表
   const loadPlants = useCallback(async () => {
@@ -220,11 +228,20 @@ export default function PlantingShelf() {
     if (showInfo) { setShowInfo(false); setSelected(null); }
   };
 
+  // 默认 settings + 合并
+  const s = useMemo(() => ({
+    bg_type: 'solid',           // 'solid' | 'image'
+    bg_color: '#FFFFFF',
+    bg_image: '',                // base64
+    layer_colors: ['#B89F7D', '#9A7F5C', '#7C6445'], // 三层木板渐变 top→middle→bottom
+    ...settings,
+  }), [settings]);
+
   // 按层级排序
   const sortedPlants = useMemo(() => [...plants].sort((a, b) => (a.z_index || 0) - (b.z_index || 0)), [plants]);
 
   return (
-    <div className="planting-shelf-wrap relative h-full min-h-[500px] overflow-hidden rounded-2xl bg-white border border-ink-100">
+    <div className="planting-shelf-wrap relative h-full flex flex-col overflow-hidden">
       <style>{`
         /* 蜜蜂翅膀扇动 */
         .bee-wing { transform-origin: center; animation: wing-flap 0.15s ease-in-out infinite alternate; }
@@ -252,21 +269,29 @@ export default function PlantingShelf() {
 
       {/* 花架画布 */}
       <div ref={canvasRef}
-        className="relative w-full h-full bg-white"
+        className="relative w-full flex-1 min-h-0 overflow-hidden"
+        style={{
+          backgroundImage: s.bg_type === 'image' && s.bg_image ? `url(${s.bg_image})` : 'none',
+          backgroundSize: s.bg_type === 'image' ? 'cover' : 'auto',
+          backgroundPosition: s.bg_type === 'image' ? 'center' : 'auto',
+          backgroundColor: s.bg_type === 'solid' ? s.bg_color : undefined,
+        }}
         onClick={onCanvasClick}
         onDragOver={onCanvasDragOver}
         onDrop={onCanvasDrop}>
 
-        {/* 偏咖色木层板（z-index 高于植物，盖住花盆底部） */}
-        {[28, 56, 82].map((top, i) => (
-          <div key={i} className="absolute left-0 right-0" style={{
-            top: `${top}%`, height: '8px', zIndex: 4,
-            background: 'linear-gradient(180deg, #B89F7D 0%, #9A7F5C 45%, #7C6445 100%)',
-            boxShadow: 'inset 0 1px 0 rgba(255,245,228,0.35), inset 0 -1px 0 #604C33',
-            borderRadius: '2px',
-          }}>
-          </div>
-        ))}
+        {/* 三层木层板（z-index 高于植物，盖住花盆底部） */}
+        {[28, 56, 82].map((top, i) => {
+          const c = s.layer_colors[i] || '#9A7F5C';
+          return (
+            <div key={i} className="absolute left-0 right-0" style={{
+              top: `${top}%`, height: '8px', zIndex: 4,
+              background: `linear-gradient(180deg, ${c} 0%, ${c} 100%)`,
+              boxShadow: 'inset 0 1px 0 rgba(255,245,228,0.35), inset 0 -1px 0 rgba(0,0,0,0.12)',
+              borderRadius: '2px',
+            }} />
+          );
+        })}
 
         {/* 蜜蜂 */}
         <div className="absolute pointer-events-none" style={{ left: '5%', top: '6%', zIndex: 6 }}>
@@ -285,11 +310,20 @@ export default function PlantingShelf() {
         </div>
 
         {/* 顶部栏 */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 py-3.5" style={{ zIndex: 5 }}>
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 5 }}>
           <div className="flex items-baseline gap-2">
-            <span className="text-[15px] font-bold text-ink-900 tracking-tight">我的花架</span>
+            <span className="text-[14px] font-bold text-ink-900 tracking-tight">我的花架</span>
             <span className="text-[11px] text-ink-500">{plants.length} 株 · 3 层</span>
           </div>
+          <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
+            className="w-7 h-7 rounded-lg grid place-items-center border border-ink-100 bg-white/80 hover:bg-white transition"
+            style={{ backdropFilter: 'blur(8px)' }}
+            title="花架设置">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3a3a3c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
         </div>
 
         {/* 植物们 */}
@@ -389,6 +423,27 @@ export default function PlantingShelf() {
             onCanvasClick={onCanvasClick}
           />
         )}
+
+        {/* 设置面板 */}
+        {showSettings && (
+          <SettingsDrawer
+            settings={settings}
+            onChange={setSettings}
+            bgInputRef={bgInputRef}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+        <input ref={bgInputRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              setSettings(s => ({ ...s, bg_type: 'image', bg_image: reader.result }));
+            };
+            reader.readAsDataURL(f);
+            e.target.value = '';
+          }} />
       </div>
     </div>
   );
@@ -542,5 +597,137 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
         </div>
       </div>
     </>
+  );
+}
+
+// ============================================================
+// SettingsDrawer — 花架设置面板（右上角齿轮）
+//   背景：纯色 / 上传图片
+//   层板颜色：每层独立色 + 一键统一
+//   设置自动存 localStorage（实时预览）
+// ============================================================
+const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
+const PRESET_LAYER_COLORS = ['#B89F7D', '#9A7F5C', '#7C6445', '#C4A480', '#A68B6B', '#8A7050', '#8B6B4F', '#6B4E36'];
+
+function SettingsDrawer({ settings, onChange, bgInputRef, onClose }) {
+  const merge = (patch) => onChange({ ...settings, ...patch });
+  const updateLayer = (i, color) => {
+    const arr = [...(settings.layer_colors || ['#B89F7D', '#9A7F5C', '#7C6445'])];
+    arr[i] = color;
+    merge({ layer_colors: arr });
+  };
+  const unifyLayers = (color) => merge({ layer_colors: [color, color, color] });
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}
+      className="absolute top-10 right-4 w-[280px] overflow-hidden"
+      style={{
+        zIndex: 11,
+        background: 'rgba(255,255,255,0.97)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '14px',
+        border: '1px solid rgba(0,0,0,0.06)',
+        boxShadow: '0 16px 48px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.04)',
+        animation: 'drawer-slide-in 0.2s ease-out',
+      }}>
+      <style>{`@keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }`}</style>
+
+      {/* 头部 */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-ink-100">
+        <span className="text-[12px] font-bold text-ink-900">花架设置</span>
+        <button onClick={onClose} className="w-6 h-6 rounded-md grid place-items-center hover:bg-ink-100 text-ink-500">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <div className="px-4 py-3.5 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+
+        {/* 背景 */}
+        <div>
+          <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase mb-1.5">背景</div>
+          <div className="flex gap-2 mb-2">
+            <button onClick={() => merge({ bg_type: 'solid' })}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition ${settings.bg_type === 'solid' ? 'bg-[#3E7D3E] text-white' : 'bg-ink-100 text-ink-700'}`}>纯色</button>
+            <button onClick={() => merge({ bg_type: 'image' })}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition ${settings.bg_type === 'image' ? 'bg-[#3E7D3E] text-white' : 'bg-ink-100 text-ink-700'}`}>图片</button>
+            {settings.bg_type === 'image' && settings.bg_image && (
+              <button onClick={() => merge({ bg_type: 'solid', bg_image: '' })}
+                className="ml-auto text-[10px] text-ink-500 underline">清除</button>
+            )}
+          </div>
+
+          {settings.bg_type === 'solid' ? (
+            <>
+              <input type="color" value={settings.bg_color || '#FFFFFF'}
+                onChange={(e) => merge({ bg_color: e.target.value })}
+                className="w-full h-7 rounded-md border border-ink-100 cursor-pointer" />
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                {PRESET_BG_COLORS.map(c => (
+                  <button key={c} onClick={() => merge({ bg_color: c })}
+                    className="w-5 h-5 rounded-full border border-ink-200 transition hover:scale-110"
+                    style={{ background: c, outline: settings.bg_color === c ? '2px solid #3E7D3E' : 'none', outlineOffset: '1px' }} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={() => bgInputRef.current?.click()}
+                className="flex-1 px-2.5 py-2 rounded-md text-[10px] font-bold text-[#3E7D3E] border border-dashed border-[#3E7D3E] bg-[rgba(95,168,95,0.06)] hover:bg-[rgba(95,168,95,0.12)] transition">
+                {settings.bg_image ? '更换图片' : '上传图片'}
+              </button>
+              {settings.bg_image && (
+                <img src={settings.bg_image} alt="bg" className="w-9 h-9 rounded-md object-cover border border-ink-100" />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 层板颜色 */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase">层板颜色</div>
+            <div className="flex gap-1">
+              <button onClick={() => unifyLayers('#9A7F5C')} className="text-[9px] text-[#3E7D3E] font-bold hover:underline">默认</button>
+              <button onClick={() => unifyLayers('#888')} className="text-[9px] text-ink-500 font-bold hover:underline">统一灰</button>
+            </div>
+          </div>
+
+          {/* 每层独立 */}
+          <div className="space-y-1.5">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[10px] text-ink-700 w-8 flex-shrink-0">第 {i + 1} 层</span>
+                <input type="color" value={settings.layer_colors?.[i] || '#9A7F5C'}
+                  onChange={(e) => updateLayer(i, e.target.value)}
+                  className="w-6 h-5 rounded border border-ink-100 cursor-pointer flex-shrink-0" />
+                <div className="relative flex-1 h-2 rounded-sm overflow-hidden">
+                  {/* 层板预览条 */}
+                  <div className="absolute inset-x-0 top-0 h-[1px]" style={{ background: 'rgba(255,245,228,0.5)' }} />
+                  <div className="absolute inset-x-0 bottom-0 h-[1px]" style={{ background: 'rgba(0,0,0,0.15)' }} />
+                  <div className="absolute inset-0" style={{ background: settings.layer_colors?.[i] || '#9A7F5C' }} />
+                </div>
+                <span className="text-[9px] text-ink-400 w-14 text-right font-mono">{(settings.layer_colors?.[i] || '#9A7F5C').toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* 色板快速选 */}
+          <div className="flex gap-1.5 mt-2 flex-wrap">
+            {PRESET_LAYER_COLORS.map(c => (
+              <button key={c} onClick={() => unifyLayers(c)}
+                title={`统一为 ${c}`}
+                className="w-5 h-5 rounded border border-ink-200 transition hover:scale-110"
+                style={{ background: c }} />
+            ))}
+          </div>
+        </div>
+
+        {/* 重置 */}
+        <button onClick={() => onChange({ bg_type: 'solid', bg_color: '#FFFFFF', bg_image: '', layer_colors: ['#B89F7D', '#9A7F5C', '#7C6445'] })}
+          className="w-full py-1.5 rounded-lg text-[10px] font-bold text-ink-500 border border-ink-100 hover:bg-ink-50 transition">
+          恢复默认
+        </button>
+      </div>
+    </div>
   );
 }

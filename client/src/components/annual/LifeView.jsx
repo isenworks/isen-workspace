@@ -349,7 +349,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   }
 
   return (
-    <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch min-h-[560px]">
+    <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch h-full min-h-[480px]">
       {/* ===== 左列（38%）：卡①页头 + 卡②类目导航 ===== */}
       <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
         {/* 卡① 页头卡：色条 + 16px标题 + 链接按钮（与其他5模块页头同构；年度精选 CTA 已移至右卡首年份行） */}
@@ -609,9 +609,9 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       <SplitDivider bindDivider={bindDivider} />
 
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
-      <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0" style={rightStyle}>
+      <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0 flex flex-col overflow-hidden" style={rightStyle}>
             {selFilterCat?.lb === '种植' ? (
-              <PlantingShelf />
+              <div className="flex-1 min-h-0"><PlantingShelf /></div>
             ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
                 <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">

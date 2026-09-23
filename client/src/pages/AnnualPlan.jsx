@@ -1060,7 +1060,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
 
   // 主内容
   const mainContent = (
-    <main key={view} className="flex-1 min-w-0 animate-fade-in flex flex-col h-full min-h-0">
+    <main key={view} className="flex-1 min-w-0 animate-fade-in flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden nice-scroll">
       {view === 'overview'  && <OverviewView  onNav={setView} stats={stats} realHabits={mergedHabits} books={books} abilities={abilities} workGoals={workGoals} lifeData={lifeData} finData={finData} />}
       {view === 'energy'    && <EnergyView   realHabits={mergedHabits} loading={energyLoading} onAction={handleEnergyAction} onSetTarget={setHabitTarget} />}
       {view === 'cognition' && <CognitionView books={books} onBookAdd={onBookAdd} onBookEdit={onBookEdit} onBookMove={(id, st) => bookOps.move(id, st)}

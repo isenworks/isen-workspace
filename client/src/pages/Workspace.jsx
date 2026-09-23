@@ -553,7 +553,7 @@ export default function Workspace({ user: propUser }) {
           />
         </div>
       ) : activeMenu === 'annual' ? (
-        <div className="flex-1 min-w-0 h-full min-h-0 flex flex-col">
+        <div className="flex-1 min-w-0 md:h-[calc(100vh-48px)] min-h-0 flex flex-col">
           <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} addRequest={annualAdd} />
         </div>
       ) : activeMenu === 'inbox' ? (

@@ -349,7 +349,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   }
 
   return (
-    <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch h-full min-h-[480px]">
+    <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch min-h-[max(480px,100%)]">
       {/* ===== 左列（38%）：卡①页头 + 卡②类目导航 ===== */}
       <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
         {/* 卡① 页头卡：色条 + 16px标题 + 链接按钮（与其他5模块页头同构；年度精选 CTA 已移至右卡首年份行） */}
@@ -528,7 +528,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
         </div>
         </div>
         {/* 卡② 类目导航卡：拉伸铺满左列剩余高度（全部分类 / 各类目 / 新建模块） */}
-        <div className="bg-white rounded-2xl border border-ink-100 p-3 flex-1 flex flex-col gap-1">
+        <div className="bg-white rounded-2xl border border-ink-100 p-3 flex-1 min-h-0 overflow-y-auto nice-scroll flex flex-col gap-1">
             {/* 全部分类（默认）：与子类目同构（数字+18px加号占位 → 计数列严格对齐）；行尾 + 新建模块 */}
             <div
               className={`group flex items-center gap-2 px-2.5 h-9 rounded-lg text-sm transition text-left ${!lifeFilter ? 'font-bold bg-[rgba(var(--m-life-rgb),0.10)]' : 'font-medium text-ink-700 hover:bg-surface-soft'}`}

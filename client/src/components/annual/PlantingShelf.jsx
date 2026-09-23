@@ -66,13 +66,18 @@ function Butterfly({ size = 34, color = '#FFB347' }) {
 export default function PlantingShelf() {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);   // 右键选中的 plant
-  const [dragging, setDragging] = useState(null);    // 正在拖拽的 plant id
-  const [showInfo, setShowInfo] = useState(false);    // 是否显示信息面板
+  const [selected, setSelected] = useState(null);
+  const [dragging, setDragging] = useState(null);
+  const [showInfo, setShowInfo] = useState(false);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const dragOffset = useRef({ dx: 0, dy: 0 });
   const zCounter = useRef(1);
+  // ref 镜像，解决 useEffect 闭包陷阱（拖拽时 plants 频繁更新导致 mouseup 读到旧值）
+  const draggingRef = useRef(null);
+  const plantsRef = useRef([]);
+  useEffect(() => { draggingRef.current = dragging; }, [dragging]);
+  useEffect(() => { plantsRef.current = plants; }, [plants]);
 
   // 加载植物列表
   const loadPlants = useCallback(async () => {
@@ -155,19 +160,23 @@ export default function PlantingShelf() {
       const rect = canvas.getBoundingClientRect();
       const x = Math.max(0, Math.min(100, ((e.clientX - rect.left - dragOffset.current.dx) / rect.width) * 100));
       const y = Math.max(0, Math.min(100, ((e.clientY - rect.top - dragOffset.current.dy) / rect.height) * 100));
-      setPlants(prev => prev.map(p => p.id === dragging ? { ...p, pos_x: x, pos_y: y } : p));
+      const id = draggingRef.current;
+      if (id) {
+        setPlants(prev => prev.map(p => p.id === id ? { ...p, pos_x: x, pos_y: y } : p));
+      }
     };
-    const onUp = async () => {
-      const plant = plants.find(p => p.id === dragging);
+    const onUp = () => {
+      const id = draggingRef.current;
+      const plant = plantsRef.current.find(p => p.id === id);
       if (plant) {
-        try { await API.plants.update(plant.id, { pos_x: plant.pos_x, pos_y: plant.pos_y }); } catch {}
+        API.plants.update(id, { pos_x: plant.pos_x, pos_y: plant.pos_y }).catch(() => {});
       }
       setDragging(null);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [dragging, plants]);
+  }, [dragging]);
 
   // ---- 右键信息面板 ----
   const onPlantContextMenu = (e, plant) => {
@@ -215,8 +224,7 @@ export default function PlantingShelf() {
   const sortedPlants = useMemo(() => [...plants].sort((a, b) => (a.z_index || 0) - (b.z_index || 0)), [plants]);
 
   return (
-    <div className="planting-shelf-wrap relative h-full min-h-[500px] overflow-hidden rounded-2xl"
-      style={{ background: 'linear-gradient(172deg, #FFFFFF 0%, #FBFBF9 60%, #F6F5F1 100%)' }}>
+    <div className="planting-shelf-wrap relative h-full min-h-[500px] overflow-hidden rounded-2xl bg-white border border-ink-100">
       <style>{`
         /* 蜜蜂翅膀扇动 */
         .bee-wing { transform-origin: center; animation: wing-flap 0.15s ease-in-out infinite alternate; }
@@ -237,45 +245,26 @@ export default function PlantingShelf() {
         @keyframes bf-fly-1 { 0%{transform:translate(0,0)} 25%{transform:translate(-30px,-25px) rotate(-8deg)} 50%{transform:translate(50px,-15px) rotate(5deg)} 75%{transform:translate(20px,25px) rotate(-3deg)} 100%{transform:translate(0,0)} }
         .bf-fly-2 { animation: bf-fly-2 22s ease-in-out infinite; }
         @keyframes bf-fly-2 { 0%{transform:translate(0,0)} 30%{transform:translate(40px,-20px) rotate(6deg)} 60%{transform:translate(-20px,15px) rotate(-4deg)} 100%{transform:translate(0,0)} }
-        /* 光尘 */
-        .dust { animation: dust 14s ease-in-out infinite alternate; }
-        @keyframes dust { 0% { opacity: 0.15; transform: translateY(0); } 100% { opacity: 0.3; transform: translateY(-8px); } }
         @media (prefers-reduced-motion: reduce) {
-          .bee-wing, .bf-wing, .plant-sway, .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .dust { animation: none !important; }
+          .bee-wing, .bf-wing, .plant-sway, .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2 { animation: none !important; }
         }
       `}</style>
 
       {/* 花架画布 */}
       <div ref={canvasRef}
-        className="relative w-full h-full"
+        className="relative w-full h-full bg-white"
         onClick={onCanvasClick}
         onDragOver={onCanvasDragOver}
         onDrop={onCanvasDrop}>
 
-        {/* 光尘粒子 */}
-        <div className="absolute inset-0 pointer-events-none dust" style={{
-          backgroundImage: [
-            'radial-gradient(circle at 25% 30%, rgba(255,250,235,0.3) 1px, transparent 2px)',
-            'radial-gradient(circle at 60% 50%, rgba(255,250,235,0.2) 1px, transparent 2px)',
-            'radial-gradient(circle at 80% 20%, rgba(255,250,235,0.25) 1px, transparent 2px)',
-            'radial-gradient(circle at 15% 85%, rgba(255,250,235,0.2) 1px, transparent 2px)',
-            'radial-gradient(circle at 90% 60%, rgba(255,250,235,0.15) 1px, transparent 2px)',
-          ].join(','),
-        }} />
-
-        {/* 胡桃木层板（z-index 高于植物，盖住花盆底部） */}
+        {/* 偏咖色木层板（z-index 高于植物，盖住花盆底部） */}
         {[28, 56, 82].map((top, i) => (
           <div key={i} className="absolute left-0 right-0" style={{
             top: `${top}%`, height: '8px', zIndex: 4,
-            background: 'linear-gradient(180deg, #C4A480 0%, #A68B6B 45%, #8A7050 100%)',
-            boxShadow: '0 3px 6px rgba(106,84,53,0.3), inset 0 1px 0 rgba(255,240,220,0.4), inset 0 -1px 0 #6A5435',
+            background: 'linear-gradient(180deg, #B89F7D 0%, #9A7F5C 45%, #7C6445 100%)',
+            boxShadow: 'inset 0 1px 0 rgba(255,245,228,0.35), inset 0 -1px 0 #604C33',
             borderRadius: '2px',
           }}>
-            <div className="absolute left-0 right-0 top-full" style={{
-              height: '6px',
-              background: 'linear-gradient(180deg, rgba(106,84,53,0.2), transparent)',
-              filter: 'blur(3px)',
-            }} />
           </div>
         ))}
 
@@ -380,12 +369,12 @@ export default function PlantingShelf() {
           </div>
         )}
 
-        {/* 右下角 + 按钮 */}
+        {/* 右下角 + 按钮（小巧紧凑，不产生渐变） */}
         <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-          className="absolute right-4 bottom-4 w-11 h-11 rounded-[14px] grid place-items-center transition hover:scale-110 hover:rotate-90"
-          style={{ zIndex: 7, background: '#3E7D3E', color: '#fff', boxShadow: '0 6px 20px rgba(62,125,62,0.25)' }}
+          className="absolute right-3 bottom-3 w-9 h-9 rounded-xl grid place-items-center transition hover:scale-105"
+          style={{ zIndex: 7, background: '#3E7D3E', color: '#fff', boxShadow: '0 2px 8px rgba(62,125,62,0.18)' }}
           title="添加植物 · 支持 PNG 透明图">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
         </button>
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
           onChange={onFileInputChange} />

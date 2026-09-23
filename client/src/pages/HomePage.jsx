@@ -477,11 +477,11 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       return s.date >= viewWeekStartStr && s.date <= viewWeekEndStr;
     })
     .sort((a, b) => {
-      // 先按日期升序（跨天目标按 start_date 排），再按完成状态分组（未完成在前）
-      if (String(a.date) !== String(b.date)) return String(a.date).localeCompare(String(b.date));
-      const sa = a.is_done ? 2 : (a.is_failed ? 1 : 0);
-      const sb = b.is_done ? 2 : (b.is_failed ? 1 : 0);
-      return sa - sb;
+      // 状态分组优先：进行中 → 已完成 → 未完成(标记未完成)；同状态内按日期升序
+      const sa = a.is_done ? 1 : (a.is_failed ? 2 : 0);
+      const sb = b.is_done ? 1 : (b.is_failed ? 2 : 0);
+      if (sa !== sb) return sa - sb;
+      return String(a.date).localeCompare(String(b.date));
     }),
     [sched, viewWeekStartStr, viewWeekEndStr, weekOffset]);
   const weekKeyDone = weekKeys.filter(s => s.is_done).length;

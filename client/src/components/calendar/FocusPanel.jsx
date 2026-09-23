@@ -56,6 +56,13 @@ function isSingleTask(t) {
   );
 }
 
+/* 状态分组权重：进行中(0) → 已完成(1) → 未完成/标记未完成(2) */
+function statusWeight(t) {
+  if (t?.done) return 1;
+  if (t?.is_failed) return 2;
+  return 0;
+}
+
 /* 紧急状态：'overdue'=已逾期（日期早于今天）| 'urgent'=紧急（当天或明天）| null=普通 */
 function taskUrgency(t) {
   if (t?.done) return null;
@@ -187,10 +194,10 @@ export default function FocusPanel({
           const sb = isSingleTask(b) ? 0 : 1;
           if (sa !== sb) return sa - sb;
           if (sa === 0) {
-            // 单次事项：按日期升序，未完成在前
+            // 单次事项：按日期升序，同日内状态分组（进行中 → 已完成 → 未完成）
             const ka = taskTimeKey(a), kb = taskTimeKey(b);
             if (ka !== kb) return ka.localeCompare(kb);
-            const da = a.done ? 1 : 0, db = b.done ? 1 : 0;
+            const da = statusWeight(a), db = statusWeight(b);
             if (da !== db) return da - db;
             return String(a.id ?? '').localeCompare(String(b.id ?? ''));
           }
@@ -206,16 +213,26 @@ export default function FocusPanel({
     // 模块分组视图（默认）—— 主线面板（moduleGoalsOnly）只显示 is_goal 目标：聚合抓取的年度规划事项仅时间顺序视图可见
     // 其他/财务/自定义类型同样成组（其他类型目标也要进目标看板，不再被排除）
     const goalTasks = moduleGoalsOnly ? tasks.filter(t => t.is_goal) : tasks;
+    // 组内排序：状态分组（进行中 → 已完成 → 未完成）→ 日期升序；
+    // 稳定排序保留同状态同日期下的手动拖拽顺序
+    const sortByStatusDate = (arr) => [...arr].sort((a, b) => {
+      const wa = statusWeight(a), wb = statusWeight(b);
+      if (wa !== wb) return wa - wb;
+      const ka = taskTimeKey(a), kb = taskTimeKey(b);
+      if (ka !== kb) return ka.localeCompare(kb);
+      return 0;
+    });
     return MODULES.map(mod => {
       const raw = goalTasks.filter(t => t.moduleKey === mod.key);
       if (mod.key === 'energy') {
+        // 习惯按固定权重（作息→运动→喝水），不参与状态重排；非习惯事项按状态→日期排序
         const habits = raw.filter(t => t.isHabit).sort((a, b) =>
           (HABIT_ORDER_WEIGHT[a.habitKey] || 99) - (HABIT_ORDER_WEIGHT[b.habitKey] || 99)
         );
-        const nonHabits = raw.filter(t => !t.isHabit);
+        const nonHabits = sortByStatusDate(raw.filter(t => !t.isHabit));
         return { ...mod, items: [...nonHabits, ...habits] };
       }
-      return { ...mod, items: raw };
+      return { ...mod, items: sortByStatusDate(raw) };
     }).filter(g => g.items.length > 0);
   }, [tasks, sortBy, moduleGoalsOnly]);
 

@@ -459,14 +459,16 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                 style={{ cursor: 'pointer' }}
                 onClick={(e) => {
                   // 折叠态：点击发展规划 → 在图标右侧弹出二级导航浮层（再点一次关闭）
+                  // 注意：rect 必须在 handler 内同步读取——若放进 setState updater，
+                  // updater 被推迟到渲染阶段执行时 e.currentTarget 已为 null（DOM 规范），
+                  // 会抛 "Cannot read properties of null (reading 'getBoundingClientRect')"
                   if (collapsed && item.key === 'annual') {
-                    setAnnualFly(v => v ? null : {
-                      x: e.currentTarget.getBoundingClientRect().right + 10,
-                      y: Math.max(12, Math.min(
-                        e.currentTarget.getBoundingClientRect().top - 6,
-                        window.innerHeight - 320
-                      )),
-                    });
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const pos = {
+                      x: rect.right + 10,
+                      y: Math.max(12, Math.min(rect.top - 6, window.innerHeight - 320)),
+                    };
+                    setAnnualFly(v => v ? null : pos);
                     return;
                   }
                   setAnnualFly(null);

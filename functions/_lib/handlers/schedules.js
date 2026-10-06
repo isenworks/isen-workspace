@@ -35,7 +35,11 @@ export async function handleSchedulesList(env, q) {
   for (const m of masters) {
     const rule = REPEAT_RULES.includes(m.repeat_rule) ? m.repeat_rule : null;
     if (!rule) {
-      if (m.date >= from && m.date <= to) out.push({ ...m });
+      // 非重复事项按 [start_date, end_date] 与查询区间取交集：
+      // 跨月事项（如 9.29~10.5）锚点 date < 10 月的 from，仅按锚点过滤会在次月整条丢失
+      const s = m.start_date || m.date;
+      const e = m.end_date || m.date;
+      if (s <= to && e >= from) out.push({ ...m });
       continue;
     }
     let cur = m.date > from ? m.date : from;

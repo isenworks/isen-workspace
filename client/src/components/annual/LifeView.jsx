@@ -349,7 +349,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   }
 
   return (
-    <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch min-h-[max(480px,100%)]">
+    <div {...bindRoot} onClick={closeAllMenus} className="flex items-stretch min-h-[max(480px,100%)] flex-shrink-0">
       {/* ===== 左列（38%）：卡①页头 + 卡②类目导航 ===== */}
       <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
         {/* 卡① 页头卡：色条 + 16px标题 + 链接按钮（与其他5模块页头同构；年度精选 CTA 已移至右卡首年份行） */}

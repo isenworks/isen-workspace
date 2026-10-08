@@ -25,7 +25,7 @@ export async function handleInboxCreate(env, body) {
     ? toInt(body.category, null) : null;
   const tagId = body?.tag_id !== undefined && body?.tag_id !== null && body?.tag_id !== ''
     ? toInt(body.tag_id, null) : null;
-  const info = await env.DB.prepare(`INSERT INTO ethan_inbox (user_id,content,category,tag_id,created_at) VALUES (?,?,?,?,datetime('now'))`)
+  const info = await env.DB.prepare(`INSERT INTO ethan_inbox (user_id,content,category,tag_id,created_at,updated_at) VALUES (?,?,?,?,datetime('now'),datetime('now'))`)
     .bind(uid(env), content, cat, tagId).run();
   return json({ item: await dbFirst(env.DB, `SELECT * FROM ethan_inbox WHERE id=?`, [Number(info.meta.last_row_id)]) });
 }

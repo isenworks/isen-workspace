@@ -514,8 +514,17 @@ export async function ensureInboxTable(env) {
       processed_id INTEGER,
       tag_id INTEGER
     )`).run();
-    try { await env.DB.prepare(`ALTER TABLE ethan_inbox ADD COLUMN tag_id INTEGER`).run(); } catch (_) {}
-    try { await env.DB.prepare(`ALTER TABLE ethan_inbox ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`).run(); } catch (_) {}
+    // 兼容旧表补列：SQLite/D1 ALTER TABLE ADD COLUMN 不支持非常量 DEFAULT
+    // （如 datetime('now')），也不支持 NOT NULL 约束对已有行生效，统一用宽松定义
+    const inboxAlters = [
+      `ALTER TABLE ethan_inbox ADD COLUMN category INTEGER`,
+      `ALTER TABLE ethan_inbox ADD COLUMN done_at TEXT`,
+      `ALTER TABLE ethan_inbox ADD COLUMN processed_type TEXT`,
+      `ALTER TABLE ethan_inbox ADD COLUMN processed_id INTEGER`,
+      `ALTER TABLE ethan_inbox ADD COLUMN tag_id INTEGER`,
+      `ALTER TABLE ethan_inbox ADD COLUMN updated_at TEXT DEFAULT ''`,
+    ];
+    for (const a of inboxAlters) { try { await env.DB.prepare(a).run(); } catch (_) {} }
     _inboxTableReady = true;
   } catch (_) {}
 }

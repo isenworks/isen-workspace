@@ -107,17 +107,25 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   useEffect(() => { load(); }, [range.from, range.to, refreshSignal]);
 
-  // 订阅 patch：其他面板 toggle 时即时同步，无需重新 load
+  // 订阅 patch：其他面板 toggle / markFailed 时即时同步，无需重新 load
   useEffect(() => store.subscribe(patch => {
     if (patch.type === 'schedule' && patch.id !== undefined) {
       // patch.date 存在时仅更新该日期的实例（重复事项的虚拟实例按 id+date 定位）
       const matches = x => String(x.id) === String(patch.id) && (!patch.date || x.date === patch.date);
-      setList(ls => ls.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x));
+      setList(ls => ls.map(x => matches(x) ? {
+        ...x,
+        is_done: patch.is_done !== undefined ? patch.is_done : x.is_done,
+        is_failed: patch.is_failed !== undefined ? patch.is_failed : x.is_failed,
+      } : x));
       // 写穿缓存：任何面板（含本面板）的勾选同步进 2 分钟缓存，
       // 防止后续 load() 命中 TTL 内旧快照导致复选框回退（broadcast 会送达发起方自身）
       for (const ent of cacheRef.current.values()) {
         if (Array.isArray(ent?.value)) {
-          ent.value = ent.value.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x);
+          ent.value = ent.value.map(x => matches(x) ? {
+            ...x,
+            is_done: patch.is_done !== undefined ? patch.is_done : x.is_done,
+            is_failed: patch.is_failed !== undefined ? patch.is_failed : x.is_failed,
+          } : x);
         }
       }
     } else if (patch.type === 'reload') {
@@ -129,18 +137,20 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
   async function toggle(s) {
     const nextDone = s.is_done ? 0 : 1;
+    // 标记完成时清除"未完成"标记；取消完成时保留原 is_failed（通常为 false）
+    const nextFailed = nextDone ? false : !!s.is_failed;
     const pKey = `${s.id}|${s.date || ''}`;
-    setList(ls => ls.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: nextDone } : x));
-    store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: nextDone });
+    setList(ls => ls.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: nextDone, is_failed: nextFailed } : x));
+    store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: nextDone, is_failed: nextFailed });
     // 落库确认窗口兜底：登记本地编辑，load() 应用旧数据源前重放，防止覆盖
     pendingTogglesRef.current.set(pKey, nextDone);
     try {
       // 重复事项的虚拟实例：传 occurrence_date，后端把完成状态记到该日期（不影响整个序列）
-      await API.schedules.update(s.id, { is_done: nextDone, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
+      await API.schedules.update(s.id, { is_done: nextDone, is_failed: nextFailed, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
     } catch (e) {
       pendingTogglesRef.current.delete(pKey);
-      setList(ls => ls.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done } : x));
-      store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done });
+      setList(ls => ls.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done, is_failed: s.is_failed } : x));
+      store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done, is_failed: s.is_failed });
       toast.error(e.message);
     }
   }
@@ -350,23 +360,24 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          showContextMenu?.(e.clientX, e.clientY, 'schedule', s.id);
+          showContextMenu?.(e.clientX, e.clientY, 'schedule', s.id, s);
         }}
       >
         <input
           type="checkbox"
-          className={cbClass}
+          className={`${cbClass} ${s.is_failed && !s.is_done ? 'cb-failed' : ''}`}
           checked={!!s.is_done}
           onChange={() => {}}
-          style={{ '--cb-color': st.doneColor, '--cb-border': s.is_done ? st.doneColor : st.borderColor }}
+          style={{ '--cb-color': s.is_failed ? '#FF3B30' : st.doneColor, '--cb-border': s.is_failed ? '#FF3B30' : (s.is_done ? st.doneColor : st.borderColor) }}
           onClick={(e) => { e.stopPropagation(); toggle(s); }}
+          title={s.is_done ? '左键取消完成 · 右键菜单' : s.is_failed ? '左键标记完成 · 右键菜单' : '左键标记完成 · 右键菜单'}
         />
         <div className="flex-1 min-w-0">
-          <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+          <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[#8e8e93] line-through' : s.is_failed ? 'text-[#FF3B30] line-through' : 'text-[#1c1c1e]'}`}>
             <span className="truncate">{s.title}</span>
             <PTag p={s.priority} />
           </p>
-          <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>{formatTime(s)}</p>
+          <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : s.is_failed ? 'text-[#FF3B30]/70' : 'text-[#8e8e93]'}`}>{formatTime(s)}</p>
         </div>
         {/* 小圆点始终保留原色 */}
         <span className={`w-2 h-2 flex-shrink-0 self-center ${isHabitSchedule ? 'rounded-full' : 'rounded-[2px]'}`} style={{background: st.dotColor}}></span>

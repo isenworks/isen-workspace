@@ -506,7 +506,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   /* 右键标记目标事项为"未达成"（乐观更新 + API 持久化） */
   const markFailedWeekKey = async (s) => {
     const nextFailed = !s.is_failed;
-    const nextDone = nextFailed ? false : s.done;
+    const nextDone = nextFailed ? false : !!s.is_done;
     setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: nextFailed, is_done: nextDone } : x));
     try {
       const r = await API.schedules.update(s.id, { is_failed: nextFailed, is_done: nextDone });
@@ -869,22 +869,36 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <Bar value={todayPct} />
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0">
                 {todaySorted.map(s => (
-                  <div key={s.id} className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]">
+                  <div
+                    key={s.id}
+                    onContextMenu={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setWkContextMenu({ x: e.clientX, y: e.clientY, task: s });
+                    }}
+                    className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
+                  >
                     <button
                       onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
                       className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
-                      title={s.is_done ? '取消完成' : '标记完成'}
+                      title={s.is_done ? '左键取消完成 · 右键菜单' : s.is_failed ? '左键标记完成 · 右键菜单' : '左键标记完成 · 右键菜单'}
                       style={{
-                        background: s.is_done ? 'var(--s-main)' : 'transparent',
-                        borderColor: s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'
+                        background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
+                        borderColor: s.is_failed ? '#FF3B30' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
                       }}
                     >
                       {s.is_done ? (
                         <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      ) : s.is_failed ? (
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
                       ) : null}
                     </button>
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
-                      <span className={`text-[12.5px] font-semibold truncate ${s.is_done ? 'text-ink-300 line-through' : 'text-ink-800'}`}>{s.title || '（无标题）'}</span>
+                      <span className={`text-[12.5px] font-semibold truncate ${
+                        s.is_done ? 'text-ink-300 line-through' :
+                        s.is_failed ? 'text-[#FF3B30] line-through' :
+                        'text-ink-800'
+                      }`}>{s.title || '（无标题）'}</span>
                       <PTag p={s.priority} />
                       <span className={`text-[11.5px] font-semibold tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
                     </button>

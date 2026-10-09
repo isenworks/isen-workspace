@@ -275,9 +275,9 @@ export default function Workspace({ user: propUser }) {
   }, [user, refresh]);
 
   // ===== 跨组件动作（替代原 window.__* 全局函数）：通过 Context 注入给子组件 =====
-  const showContextMenu = useCallback((x, y, type, id) => {
+  const showContextMenu = useCallback((x, y, type, id, task) => {
     ctxMenuShownAt.current = Date.now();
-    setCtxMenu({ x, y, type, id });
+    setCtxMenu({ x, y, type, id, task });
   }, []);
   const openHabitModal = useCallback((habit) => {
     setModal(habit ? { type: 'habit', data: habit } : { type: 'habit', data: null });
@@ -363,8 +363,19 @@ export default function Workspace({ user: propUser }) {
   // ===== 上下文菜单操作 =====
   async function handleCtxAction(action) {
     if (!ctxMenu) return;
-    const { type, id } = ctxMenu;
+    const { type, id, task } = ctxMenu;
     setCtxMenu(null);
+
+    if (action === 'markFailed' && type === 'schedule') {
+      // 右键标记/取消"未完成"（is_failed），与 HomePage 本周重点同款三态语义
+      const nextFailed = !task?.is_failed;
+      try {
+        await API.schedules.update(id, { is_failed: nextFailed, is_done: false, ...(task?._repeat_occurrence ? { occurrence_date: task.date } : {}) });
+        store.broadcast({ type: 'schedule', id, date: task?.date, is_done: false, is_failed: nextFailed });
+        refresh();
+      } catch (e) { toast.error(e.message); }
+      return;
+    }
 
     if (action === 'edit') {
       if (type === 'schedule') {
@@ -833,6 +844,20 @@ export default function Workspace({ user: propUser }) {
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             onClick={() => handleCtxAction('edit')}
           >✏️ 编辑</div>
+          {ctxMenu.type === 'schedule' && ctxMenu.task && (
+            <div
+              style={{
+                padding: '8px 12px',
+                fontSize: '13px',
+                color: ctxMenu.task.is_failed ? 'var(--s-main)' : '#1c1c1e',
+                cursor: 'pointer',
+                borderRadius: '6px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.08)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              onClick={() => handleCtxAction('markFailed')}
+            >{ctxMenu.task.is_failed ? '↩ 取消未完成' : '✕ 标记未完成'}</div>
+          )}
           <div style={{ height: '1px', background: '#e5e5ea', margin: '4px 2px' }}></div>
           <div
             style={{

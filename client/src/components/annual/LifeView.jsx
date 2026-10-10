@@ -105,9 +105,33 @@ function LifeCatIcon({ catKey, lb, className, style }) {
 
 export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd, onBirthdayAdd, onBirthdayEdit, onBirthdayDelete, bdRefreshKey }) {
   const dynLife = lifeData || LIFE;
-  // 种植分类 count 不来自 entries，来自 plants API
+  // 种植分类 count 不来自 entries，来自 plants API（带重试，兜底 set 为 0 避免空态卡壳）
   const [plantCount, setPlantCount] = useState(null);
-  useEffect(() => { API.plants.list().then(r => setPlantCount((r.plants || []).length)).catch(() => setPlantCount(0)); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    let retries = 0;
+    const maxRetries = 3;
+    const tryLoad = () => {
+      API.plants.list()
+        .then(r => {
+          if (cancelled) return;
+          const n = (r?.plants || []).length;
+          setPlantCount(n);
+        })
+        .catch(err => {
+          if (cancelled) return;
+          if (retries < maxRetries) {
+            retries++;
+            setTimeout(tryLoad, 500 * retries);
+          } else {
+            console.warn('[LifeView] plants.list failed after retries:', err?.message || err);
+            setPlantCount(0);
+          }
+        });
+    };
+    tryLoad();
+    return () => { cancelled = true; };
+  }, []);
   // 给 planting 行覆写 count（统计条 / 左侧分类行共用）
   const lifeWithCount = useMemo(() => dynLife.map(c => c.key === 'planting' ? { ...c, count: plantCount ?? c.entries.length } : { ...c, count: c.entries.length }), [dynLife, plantCount]);
   const totalEntries = lifeWithCount.reduce((s, c) => s + c.count, 0);
@@ -616,7 +640,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0 flex flex-col overflow-hidden" style={rightStyle}>
             {selFilterCat?.lb === '种植' ? (
-              <div className="flex-1 min-h-0"><PlantingShelf /></div>
+              <div className="flex-1 min-h-0"><PlantingShelf onCountChange={setPlantCount} /></div>
             ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
                 <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">

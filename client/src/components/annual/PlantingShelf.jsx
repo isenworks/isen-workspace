@@ -535,6 +535,15 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
 
   const days = plantedDays(plant);
   const ws = waterStatus(plant);
+  // 原生日期选择器 ref，点击头部日期文字时调 showPicker()
+  const plantedDateRef = useRef(null);
+  const openDatePicker = () => {
+    const el = plantedDateRef.current;
+    if (!el) return;
+    // showPicker() 是标准 API；老浏览器回退 click()
+    if (typeof el.showPicker === 'function') el.showPicker();
+    else el.click();
+  };
 
   // 浇水快捷按钮：更新上次浇水为今天
   const markWatered = async () => {
@@ -587,22 +596,26 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
                 L{Math.ceil((plant.pos_y || 0) / 33) || 1}
               </span>
             </div>
-            {/* 可点击的已种植行：label 包裹隐藏的 date input，点击日期即弹系统日期选择器 */}
-            <label className="flex items-center gap-1.5 mt-1.5 text-[11px] select-none cursor-pointer group" style={{ color: '#6B6B70' }}>
+            {/* 可点击的已种植行：点击日期胶囊弹原生日期选择器 */}
+            <div className="flex items-center gap-1.5 mt-1.5 text-[11px]" style={{ color: '#6B6B70' }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               <span>已种植</span>
               <span className="font-bold tabular-nums" style={{ color: '#3E7D3E' }}>{days}</span>
               <span>天 · </span>
-              <span className="inline-flex items-center gap-0.5 font-medium tabular-nums px-1 -mx-1 rounded transition"
-                style={{ color: '#1c1c1e', background: 'rgba(95,168,95,0.08)' }}>
+              <button type="button" onClick={openDatePicker}
+                className="inline-flex items-center gap-0.5 font-medium tabular-nums px-1 -mx-1 rounded transition hover:brightness-95 active:scale-95"
+                style={{ color: '#1c1c1e', background: 'rgba(95,168,95,0.08)' }}
+                title="点击修改种植日期">
                 {form.planted_at || '点击选择日期'}
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#6B6B70" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
-              </span>
-              <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-                className="absolute opacity-0 pointer-events-none w-0 h-0" style={{ position: 'absolute' }} />
-            </label>
+              </button>
+              {/* 隐藏的原生 date input，ref 引用 + showPicker() 触发 */}
+              <input ref={plantedDateRef} type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
+                tabIndex={-1} aria-hidden="true"
+                style={{ position: 'fixed', left: -9999, top: -9999, opacity: 0, pointerEvents: 'none' }} />
+            </div>
           </div>
         </div>
 

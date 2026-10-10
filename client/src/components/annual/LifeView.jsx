@@ -105,13 +105,27 @@ function LifeCatIcon({ catKey, lb, className, style }) {
 
 export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd, onBirthdayAdd, onBirthdayEdit, onBirthdayDelete, bdRefreshKey }) {
   const dynLife = lifeData || LIFE;
-  // 种植分类 count 不来自 entries，来自 plants API（带重试，兜底 set 为 0 避免空态卡壳）
+  // 种植分类 count 不来自 entries，来自 plants API
+  //   问题根因：#annual 预览路由绕过 AuthProvider，LifeView 无登录态挂载
+  //   → 原代码无 token 时 3 次重试全败 → setPlantCount(0) 永久卡死
+  //   修复：先查 localStorage token，无 token 就跳过 API 调用，
+  //         用轮询 + storage 事件等待 token 出现；绝不因缺 token 就 setPlantCount(0)
   const [plantCount, setPlantCount] = useState(null);
   useEffect(() => {
     let cancelled = false;
+    let timer = null;
     let retries = 0;
-    const maxRetries = 3;
+    const MAX_RETRIES_AFTER_TOKEN = 3;
+    const pollInterval = 1500; // ms
+
     const tryLoad = () => {
+      const token = localStorage.getItem('pw_unlock_token');
+      if (!token) {
+        // 还没登录 → 等一会再试（轮询 + storage 事件双保险）
+        timer = setTimeout(tryLoad, pollInterval);
+        return;
+      }
+      // 有 token → 调 plants 列表
       API.plants.list()
         .then(r => {
           if (cancelled) return;
@@ -120,17 +134,35 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
         })
         .catch(err => {
           if (cancelled) return;
-          if (retries < maxRetries) {
+          if (retries < MAX_RETRIES_AFTER_TOKEN) {
             retries++;
-            setTimeout(tryLoad, 500 * retries);
+            timer = setTimeout(tryLoad, 500 * retries);
           } else {
-            console.warn('[LifeView] plants.list failed after retries:', err?.message || err);
+            console.warn('[LifeView] plants.list failed:', err?.message || err);
+            // API 真的失败（不是缺 token）才兜底 0
             setPlantCount(0);
           }
         });
     };
+
+    // 先试一次；如果 token 还没写入 localStorage，轮询兜底
     tryLoad();
-    return () => { cancelled = true; };
+
+    // storage 事件：另一个 tab 登录后立刻感知
+    const onStorage = (e) => {
+      if (e.key === 'pw_unlock_token' && e.newValue) {
+        retries = 0;
+        if (timer) { clearTimeout(timer); timer = null; }
+        tryLoad();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
   // 给 planting 行覆写 count（统计条 / 左侧分类行共用）
   const lifeWithCount = useMemo(() => dynLife.map(c => c.key === 'planting' ? { ...c, count: plantCount ?? c.entries.length } : { ...c, count: c.entries.length }), [dynLife, plantCount]);

@@ -153,6 +153,8 @@ export default function PlantingShelf({ onCountChange }) {
   const [resizing, setResizing] = useState(null);
   // 自动保存反馈：成功短暂轻提示，失败醒目提示
   const [saveToast, setSaveToast] = useState(null);
+  // 花架加载错误：API 挂/超时/网络异常
+  const [loadErr, setLoadErr] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState(() => {
@@ -182,13 +184,17 @@ export default function PlantingShelf({ onCountChange }) {
 
   // 加载植物列表
   const loadPlants = useCallback(async () => {
+    setLoadErr(null);
     try {
       const res = await API.plants.list();
       setPlants(res?.plants || []);
       // 更新 zCounter 为最大 z_index + 1
       const maxZ = (res?.plants || []).reduce((mx, p) => Math.max(mx, p.z_index || 0), 0);
       zCounter.current = maxZ + 1;
-    } catch (e) { /* 静默 */ }
+    } catch (e) {
+      setLoadErr(e?.message || '花架加载失败，请检查网络后刷新');
+      setPlants([]);
+    }
     setLoading(false);
   }, []);
 
@@ -578,8 +584,19 @@ export default function PlantingShelf({ onCountChange }) {
 
         {/* 加载状态 */}
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-[12px] text-ink-500" style={{ zIndex: 3 }}>
+          <div className="absolute inset-0 flex items-center justify-center text-[12px]" style={{ zIndex: 3, color: '#8e8e93' }}>
             正在加载花架…
+          </div>
+        )}
+        {/* 加载失败（API 挂/超时） */}
+        {!loading && loadErr && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{ zIndex: 3 }}>
+            <div className="text-[12px]" style={{ color: '#FF3B30' }}>{loadErr}</div>
+            <button onClick={loadPlants}
+              className="text-[11px] font-semibold px-3 py-1 rounded-md transition active:scale-95"
+              style={{ color: '#3E7D3E', background: 'rgba(95,168,95,0.12)', border: '1px solid rgba(95,168,95,0.25)' }}>
+              重试
+            </button>
           </div>
         )}
 

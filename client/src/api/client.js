@@ -12,7 +12,7 @@ function unlockToken() {
   return localStorage.getItem('pw_unlock_token') || '';
 }
 
-// 通用 fetch 包装
+// 通用 fetch 包装（8 秒超时兜底，避免 API 进程挂掉时 loading 永久卡死）
 async function fetchPages(path, body = {}, method = 'POST') {
   const isGET = String(method).toUpperCase() === 'GET';
   const hdrs = {
@@ -24,7 +24,16 @@ async function fetchPages(path, body = {}, method = 'POST') {
     headers: hdrs,
   };
   if (!isGET) init.body = JSON.stringify(body || {});
-  const res = await fetch('/api' + path, init);
+  // AbortController 超时兜底：8 秒
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  init.signal = ctl.signal;
+  let res;
+  try {
+    res = await fetch('/api' + path, init);
+  } finally {
+    clearTimeout(timer);
+  }
   let data;
   try { data = await res.json(); } catch { data = null; }
   if (!res.ok || data?.error) {

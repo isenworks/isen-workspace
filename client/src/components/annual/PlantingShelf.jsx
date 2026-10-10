@@ -63,6 +63,70 @@ function Butterfly({ size = 34, color = '#FFB347' }) {
   );
 }
 
+// ---- 可拖拽的蜜蜂 ----
+function BeeDrop({ pos, size, anim, onPosChange }) {
+  const ref = useRef(null);
+  const [drag, setDrag] = useState(null);
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e) => {
+      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
+      if (!canvas) return;
+      const r = canvas.getBoundingClientRect();
+      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
+      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
+      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
+    };
+    const onUp = () => setDrag(null);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [drag, onPosChange]);
+  return (
+    <div ref={ref} className="absolute cursor-grab active:cursor-grabbing"
+      style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
+      onMouseDown={(e) => {
+        e.stopPropagation(); e.preventDefault();
+        const r = ref.current.getBoundingClientRect();
+        setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
+      }}>
+      <div className={anim}><Bee size={size} /></div>
+    </div>
+  );
+}
+
+// ---- 可拖拽的蝴蝶 ----
+function BFDrop({ pos, size, color, anim, onPosChange }) {
+  const ref = useRef(null);
+  const [drag, setDrag] = useState(null);
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e) => {
+      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
+      if (!canvas) return;
+      const r = canvas.getBoundingClientRect();
+      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
+      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
+      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
+    };
+    const onUp = () => setDrag(null);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [drag, onPosChange]);
+  return (
+    <div ref={ref} className="absolute cursor-grab active:cursor-grabbing"
+      style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
+      onMouseDown={(e) => {
+        e.stopPropagation(); e.preventDefault();
+        const r = ref.current.getBoundingClientRect();
+        setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
+      }}>
+      <div className={anim}><Butterfly size={size} color={color} /></div>
+    </div>
+  );
+}
+
 export default function PlantingShelf() {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -267,7 +331,7 @@ export default function PlantingShelf() {
 
       {/* 花架画布 */}
       <div ref={canvasRef}
-        className="relative w-full flex-1 min-h-0 overflow-hidden"
+        className="relative w-full flex-1 min-h-0 overflow-hidden rounded-2xl"
         style={{
           backgroundImage: s.bg_type === 'image' && s.bg_image ? `url(${s.bg_image})` : 'none',
           backgroundSize: s.bg_type === 'image' ? 'cover' : 'auto',
@@ -291,33 +355,30 @@ export default function PlantingShelf() {
           );
         })}
 
-        {/* 蜜蜂 */}
-        <div className="absolute pointer-events-none" style={{ left: '5%', top: '6%', zIndex: 6 }}>
-          <div className="bee-fly-1"><Bee size={28} /></div>
-        </div>
-        <div className="absolute pointer-events-none" style={{ right: '12%', top: '68%', zIndex: 6 }}>
-          <div className="bee-fly-2"><Bee size={24} /></div>
-        </div>
+        {/* 蜜蜂（可拖拽） */}
+        {[{ id: 'bee1', size: 28, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
+          { id: 'bee2', size: 24, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } }].map(b => (
+          <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim}
+            onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
+        ))}
 
-        {/* 蝴蝶 */}
-        <div className="absolute pointer-events-none" style={{ right: '8%', top: '28%', zIndex: 6 }}>
-          <div className="bf-fly-1"><Butterfly size={34} color="#FFB347" /></div>
-        </div>
-        <div className="absolute pointer-events-none" style={{ left: '3%', top: '66%', zIndex: 6 }}>
-          <div className="bf-fly-2"><Butterfly size={26} color="#C77DFF" /></div>
-        </div>
+        {/* 蝴蝶（可拖拽） */}
+        {[{ id: 'bf1', size: 34, color: '#FFB347', anim: 'bf-fly-1', pos: s.bf1 || { left: '88%', top: '28%' } },
+          { id: 'bf2', size: 26, color: '#C77DFF', anim: 'bf-fly-2', pos: s.bf2 || { left: '3%', top: '66%' } }].map(b => (
+          <BFDrop key={b.id} id={b.id} pos={b.pos} size={b.size} color={b.color} anim={b.anim}
+            onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
+        ))}
 
         {/* 顶部栏 */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 5 }}>
           <div className="flex items-baseline gap-2">
-            <span className="text-[14px] font-bold text-ink-900 tracking-tight">我的花架</span>
-            <span className="text-[11px] text-ink-500">{plants.length} 株 · 3 层</span>
+            <span className="text-[15px] font-semibold text-[#1c1c1e] tracking-tight">我的花架</span>
+            <span className="text-[12px] text-[#8e8e93]">{plants.length} 株 · 3 层</span>
           </div>
           <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
-            className="w-7 h-7 rounded-lg grid place-items-center border border-ink-100 bg-white/80 hover:bg-white transition"
-            style={{ backdropFilter: 'blur(8px)' }}
+            className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
             title="花架设置">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3a3a3c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>

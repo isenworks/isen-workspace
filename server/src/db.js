@@ -197,13 +197,14 @@ db.exec(`
     last_watered TEXT,              -- 上次浇水日期 YYYY-MM-DD
     fert_cycle_days INTEGER DEFAULT 30, -- 施肥周期（天）
     last_fertilized TEXT,           -- 上次施肥日期 YYYY-MM-DD
+    size REAL DEFAULT 1,            -- 显示缩放系数（四角拉伸，0.4-2.5）
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
   CREATE INDEX IF NOT EXISTS idx_plants_user ON plants(user_id);
 `);
 
-// 旧数据迁移：plants 表补施肥两列（施肥周期 + 上次施肥日期）
+// 旧数据迁移：plants 表补施肥两列（施肥周期 + 上次施肥日期）+ 缩放系数
 try {
   const pcols = db.prepare("PRAGMA table_info(plants)").all();
   if (!pcols.some(c => c.name === 'fert_cycle_days')) {
@@ -211,6 +212,9 @@ try {
   }
   if (!pcols.some(c => c.name === 'last_fertilized')) {
     db.exec(`ALTER TABLE plants ADD COLUMN last_fertilized TEXT`);
+  }
+  if (!pcols.some(c => c.name === 'size')) {
+    db.exec(`ALTER TABLE plants ADD COLUMN size REAL DEFAULT 1`);
   }
 } catch (e) {
   console.warn('migrate plants fert warn:', e.message);

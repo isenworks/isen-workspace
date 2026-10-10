@@ -27,12 +27,12 @@ router.get('/list', (req, res) => {
 
 // POST /create  → { plant }
 router.post('/create', (req, res) => {
-  const { name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized } = req.body;
+  const { name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized, size } = req.body;
   if (!image) return res.status(400).json({ error: '缺少植物图片' });
 
   const info = db.prepare(
-    `INSERT INTO plants (user_id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO plants (user_id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized, size)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     req.user.id,
     (name || '').trim(),
@@ -46,7 +46,8 @@ router.post('/create', (req, res) => {
     water_cycle_days || 7,
     last_watered || null,
     fert_cycle_days || 30,
-    last_fertilized || null
+    last_fertilized || null,
+    size || 1
   );
   const plant = db.prepare('SELECT * FROM plants WHERE id = ?').get(info.lastInsertRowid);
   res.json({ plant });
@@ -54,7 +55,7 @@ router.post('/create', (req, res) => {
 
 // POST /update  → { plant }
 router.post('/update', (req, res) => {
-  const { id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized } = req.body;
+  const { id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized, size } = req.body;
   const existing = db.prepare('SELECT * FROM plants WHERE id = ? AND user_id = ?').get(id, req.user.id);
   if (!existing) return res.status(404).json({ error: '植物不存在' });
 
@@ -71,6 +72,7 @@ router.post('/update', (req, res) => {
   if (last_watered !== undefined) updates.last_watered = last_watered;
   if (fert_cycle_days !== undefined) updates.fert_cycle_days = fert_cycle_days;
   if (last_fertilized !== undefined) updates.last_fertilized = last_fertilized;
+  if (size !== undefined) updates.size = Math.max(0.4, Math.min(2.5, Number(size) || 1));
 
   const fields = Object.keys(updates);
   if (fields.length === 0) return res.json({ plant: existing });

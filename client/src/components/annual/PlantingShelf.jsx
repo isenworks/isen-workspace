@@ -150,6 +150,9 @@ export default function PlantingShelf({ onCountChange }) {
   }, [plants.length, onCountChange]);
   const [selected, setSelected] = useState(null);
   const [dragging, setDragging] = useState(null);
+  const [resizing, setResizing] = useState(null);
+  // 自动保存反馈：成功短暂轻提示，失败醒目提示
+  const [saveToast, setSaveToast] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState(() => {
@@ -166,6 +169,14 @@ export default function PlantingShelf({ onCountChange }) {
   const plantsRef = useRef([]);
   useEffect(() => { draggingRef.current = dragging; }, [dragging]);
   useEffect(() => { plantsRef.current = plants; }, [plants]);
+  // toast 自动消失
+  useEffect(() => {
+    if (!saveToast) return;
+    const t = setTimeout(() => setSaveToast(null), saveToast.type === 'ok' ? 1400 : 3500);
+    return () => clearTimeout(t);
+  }, [saveToast]);
+  const notifySaved = (msg) => setSaveToast({ type: 'ok', msg });
+  const notifySaveFail = (msg) => setSaveToast({ type: 'fail', msg });
   // settings 持久化
   useEffect(() => { localStorage.setItem('planting_shelf_settings', JSON.stringify(settings)); }, [settings]);
 
@@ -226,15 +237,18 @@ export default function PlantingShelf({ onCountChange }) {
   };
 
   // ---- 拖拽逻辑 ----
+  const hasMovedRef = useRef(false);
   const onPlantMouseDown = (e, plant) => {
     if (e.button !== 0) return; // 只响应左键
     e.preventDefault();
+    setSelected(plant); // 左键点选 → 显示四角缩放手柄
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const px = (plant.pos_x / 100) * rect.width;
     const py = (plant.pos_y / 100) * rect.height;
     dragOffset.current = { dx: e.clientX - rect.left - px, dy: e.clientY - rect.top - py };
+    hasMovedRef.current = false;
     setDragging(plant.id);
     // 置顶
     const newZ = zCounter.current++;
@@ -252,14 +266,20 @@ export default function PlantingShelf({ onCountChange }) {
       const y = Math.max(0, Math.min(100, ((e.clientY - rect.top - dragOffset.current.dy) / rect.height) * 100));
       const id = draggingRef.current;
       if (id) {
+        hasMovedRef.current = true;
         setPlants(prev => prev.map(p => p.id === id ? { ...p, pos_x: x, pos_y: y } : p));
       }
     };
     const onUp = () => {
       const id = draggingRef.current;
-      const plant = plantsRef.current.find(p => p.id === id);
-      if (plant) {
-        API.plants.update(id, { pos_x: plant.pos_x, pos_y: plant.pos_y }).catch(() => {});
+      // 松手自动保存位置（没移动则跳过，避免无效写库）
+      if (id && hasMovedRef.current) {
+        const plant = plantsRef.current.find(p => p.id === id);
+        if (plant) {
+          API.plants.update(id, { pos_x: plant.pos_x, pos_y: plant.pos_y })
+            .then(() => notifySaved('位置已保存'))
+            .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
+        }
       }
       setDragging(null);
     };
@@ -267,6 +287,42 @@ export default function PlantingShelf({ onCountChange }) {
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [dragging]);
+
+  // ---- 四角拉伸缩放（以植物中心为锚点，对角拖动等比缩放 0.4-2.5 倍）----
+  const onResizeMouseDown = (e, plant) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const box = e.currentTarget.parentElement;
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const startScale = plant.size || 1;
+    const startDist = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
+    let moved = false;
+    setResizing(plant.id);
+    const onMove = (ev) => {
+      const d = Math.hypot(ev.clientX - cx, ev.clientY - cy);
+      const ns = Math.max(0.4, Math.min(2.5, startScale * (d / startDist)));
+      moved = true;
+      setPlants(prev => prev.map(p => p.id === plant.id ? { ...p, size: ns } : p));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setResizing(null);
+      if (moved) {
+        const p = plantsRef.current.find(p => p.id === plant.id);
+        if (p) {
+          API.plants.update(p.id, { size: p.size })
+            .then(() => notifySaved('大小已保存'))
+            .catch(() => notifySaveFail('大小保存失败，刷新后可能回退'));
+        }
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   // ---- 右键信息面板 ----
   const onPlantContextMenu = (e, plant) => {
@@ -328,6 +384,8 @@ export default function PlantingShelf({ onCountChange }) {
         /* 蜜蜂翅膀扇动 */
         .bee-wing { transform-origin: center; animation: wing-flap 0.15s ease-in-out infinite alternate; }
         @keyframes wing-flap { 0% { transform: scaleY(1); } 100% { transform: scaleY(0.3); } }
+        /* 自动保存提示弹出 */
+        @keyframes toast-pop { 0% { opacity: 0; transform: translate(-50%, -4px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
         /* 蝴蝶翅膀开合 */
         .bf-wing { transform-origin: center; animation: b-wing 0.4s ease-in-out infinite alternate; }
         @keyframes b-wing { 0% { transform: scaleX(1); } 100% { transform: scaleX(0.6); } }
@@ -403,6 +461,21 @@ export default function PlantingShelf({ onCountChange }) {
           </button>
         </div>
 
+        {/* 自动保存轻提示（成功静默短暂显示，失败醒目常驻数秒） */}
+        {saveToast && (
+          <div key={saveToast.msg + saveToast.type}
+            className="absolute left-1/2 top-14 -translate-x-1/2 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap"
+            style={{
+              zIndex: 9,
+              background: saveToast.type === 'ok' ? 'rgba(62,125,62,0.94)' : 'rgba(255,59,48,0.96)',
+              color: '#fff',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.16)',
+              animation: 'toast-pop 0.18s ease-out',
+            }}>
+            {saveToast.type === 'ok' ? `✓ ${saveToast.msg}` : saveToast.msg}
+          </div>
+        )}
+
         {/* 植物们（独立层叠上下文 zIndex 2 < 木板层 4：无论 z_index 多大都在木板之下，
             植物间相互层叠用排序索引，容器 pointer-events:none 透传画布点击） */}
         <div className="absolute inset-0" style={{ zIndex: 2, pointerEvents: 'none' }}>
@@ -419,6 +492,7 @@ export default function PlantingShelf({ onCountChange }) {
                 transform: 'translate(-50%, -50%)',
                 transition: dragging === plant.id ? 'none' : 'transform 0.18s cubic-bezier(.34,1.56,.64,1)',
               }}
+              onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => onPlantMouseDown(e, plant)}
               onContextMenu={(e) => onPlantContextMenu(e, plant)}>
               {/* 绿色光晕 */}
@@ -428,14 +502,34 @@ export default function PlantingShelf({ onCountChange }) {
                 opacity: isSel || dragging === plant.id ? 1 : 0,
                 transition: 'opacity 0.2s',
               }} />
-              {/* 植物图片 */}
+              {/* 植物图片（maxWidth/maxHeight × size 实现真实布局缩放，命中区域随之变化） */}
               <img src={plant.image} alt={plant.name || '植物'}
-                className="block max-w-[140px] max-h-[160px] object-contain"
+                className="block object-contain"
                 draggable={false}
                 style={{
                   filter: 'drop-shadow(0 5px 6px rgba(80,60,30,0.15))',
                   pointerEvents: 'none',
+                  maxWidth: `${140 * (plant.size || 1)}px`,
+                  maxHeight: `${160 * (plant.size || 1)}px`,
                 }} />
+              {/* 四角缩放手柄（选中时显示，对角拖动等比缩放） */}
+              {isSel && resizing !== plant.id && (
+                <>
+                  {[['nw', '-top-1.5 -left-1.5', 'nwse-resize'], ['ne', '-top-1.5 -right-1.5', 'nesw-resize'],
+                    ['sw', '-bottom-1.5 -left-1.5', 'nesw-resize'], ['se', '-bottom-1.5 -right-1.5', 'nwse-resize']].map(([corner, pos, cur]) => (
+                    <div key={corner}
+                      className={`absolute ${pos} w-2.5 h-2.5 rounded-full z-10`}
+                      title="拖动缩放"
+                      style={{
+                        background: '#fff',
+                        border: '2px solid #3E7D3E',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                        cursor: cur,
+                      }}
+                      onMouseDown={(e) => onResizeMouseDown(e, plant)} />
+                  ))}
+                </>
+              )}
               {/* 名称气泡 */}
               <div className="absolute left-1/2 -bottom-5 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
                 style={{

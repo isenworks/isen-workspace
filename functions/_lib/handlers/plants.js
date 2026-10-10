@@ -25,15 +25,19 @@ export async function ensurePlantsTable(env) {
         last_watered TEXT,
         fert_cycle_days INTEGER DEFAULT 30,
         last_fertilized TEXT,
+        size REAL DEFAULT 1,
         created_at TEXT DEFAULT (datetime('now'))
       )
     `).run();
-    // 旧表迁移：补施肥两列（并发容错，已存在则忽略报错）
+    // 旧表迁移：补施肥两列 + 缩放系数（并发容错，已存在则忽略报错）
     try {
       await env.DB.prepare(`ALTER TABLE plants ADD COLUMN fert_cycle_days INTEGER DEFAULT 30`).run();
     } catch { /* 列已存在 */ }
     try {
       await env.DB.prepare(`ALTER TABLE plants ADD COLUMN last_fertilized TEXT`).run();
+    } catch { /* 列已存在 */ }
+    try {
+      await env.DB.prepare(`ALTER TABLE plants ADD COLUMN size REAL DEFAULT 1`).run();
     } catch { /* 列已存在 */ }
     try {
       await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_plants_user ON plants(user_id)`).run();
@@ -47,6 +51,12 @@ function clampPos(x, fallback = 50) {
   const n = Number(x);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(0, Math.min(100, n));
+}
+
+function clampSize(v, fallback = 1) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.max(0.4, Math.min(2.5, n));
 }
 
 function safeStr(v, fallback = '') {
@@ -77,8 +87,8 @@ export async function handlePlantsCreate(env, body) {
   const z = b.z_index ?? (Date.now() % 100000);
 
   const r = await env.DB.prepare(
-    `INSERT INTO plants (user_id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO plants (user_id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized, size)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     uid(env),
     safeStr(b.name, '新植物'),
@@ -93,6 +103,7 @@ export async function handlePlantsCreate(env, body) {
     b.last_watered ? safeStr(b.last_watered) : null,
     Number(b.fert_cycle_days) || 30,
     b.last_fertilized ? safeStr(b.last_fertilized) : null,
+    clampSize(b.size, 1),
   ).run();
 
   const id = r.meta?.last_row_id;
@@ -125,6 +136,7 @@ export async function handlePlantsUpdate(env, body) {
   push('last_watered', b.last_watered, v => v ? safeStr(v) : null);
   push('fert_cycle_days', b.fert_cycle_days, v => Number(v) || 30);
   push('last_fertilized', b.last_fertilized, v => v ? safeStr(v) : null);
+  push('size', b.size, v => clampSize(v));
 
   if (sets.length === 0) return json({ plant: existing });
 

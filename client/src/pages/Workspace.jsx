@@ -377,6 +377,19 @@ export default function Workspace({ user: propUser }) {
       return;
     }
 
+    if (action === 'moveToInbox' && type === 'schedule') {
+      // 右键"移入小记"：事项标题作为小记内容，自动带上"待办"标签
+      const title = String(task?.title || '').trim();
+      if (!title) { toast.error('事项标题为空，无法移入小记'); return; }
+      try {
+        const r = await API.inbox.tags();
+        const todoTag = (r.tags || []).find(t => t.name === '待办');
+        await API.inbox.create({ content: `<p>${title}</p>`, tag_id: todoTag ? todoTag.id : null });
+        toast.success(todoTag ? '已移入小记（待办）' : '已移入小记');
+      } catch (e) { toast.error(e.message || '移入小记失败'); }
+      return;
+    }
+
     if (action === 'edit') {
       if (type === 'schedule') {
         try {
@@ -857,6 +870,20 @@ export default function Workspace({ user: propUser }) {
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               onClick={() => handleCtxAction('markFailed')}
             >{ctxMenu.task.is_failed ? '↩ 取消未完成' : '✕ 标记未完成'}</div>
+          )}
+          {ctxMenu.type === 'schedule' && (
+            <div
+              style={{
+                padding: '8px 12px',
+                fontSize: '13px',
+                color: '#1c1c1e',
+                cursor: 'pointer',
+                borderRadius: '6px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.08)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              onClick={() => handleCtxAction('moveToInbox')}
+            >📝 移入小记</div>
           )}
           <div style={{ height: '1px', background: '#e5e5ea', margin: '4px 2px' }}></div>
           <div

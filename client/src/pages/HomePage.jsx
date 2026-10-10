@@ -554,6 +554,18 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     } catch { /* tombstone/乐观更新兜底；也可把条目加回 */ }
   };
 
+  /* 右键"移入小记"：把事项标题作为小记内容，自动带上"待办"标签 */
+  const moveToInbox = async (s) => {
+    const title = String(s?.title || '').trim();
+    if (!title) return toast.error('事项标题为空，无法移入小记');
+    try {
+      const r = await API.inbox.tags();
+      const todoTag = (r.tags || []).find(t => t.name === '待办');
+      await API.inbox.create({ content: `<p>${title}</p>`, tag_id: todoTag ? todoTag.id : null });
+      toast.success(todoTag ? '已移入小记（待办）' : '已移入小记（未找到「待办」标签，已无标签）');
+    } catch (e) { toast.error(e.message || '移入小记失败'); }
+  };
+
   /* ===== 即将到来：今日之后的事项（日程 + 生日 + 节日，30 天内），按日期升序滚动查看 ===== */
   const followUpList = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1361,6 +1373,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 : <path d="M18 6 6 18M6 6l12 12" />}
             </svg>
             {wkContextMenu.task.is_failed ? '取消未完成' : '标记未完成'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { moveToInbox(wkContextMenu.task); setWkContextMenu(null); }}
+            className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
+            style={{ color: '#1C1C1E' }}
+          >
+            <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11l5-5V5a2 2 0 0 0-2-2Z" />
+              <path d="M15 21v-4a2 2 0 0 1 2-2h4" />
+              <path d="M7 8h6M7 12h4" />
+            </svg>
+            移入小记
           </button>
           <button
             type="button"

@@ -23,9 +23,18 @@ export async function ensurePlantsTable(env) {
         care_method TEXT DEFAULT '',
         water_cycle_days INTEGER DEFAULT 7,
         last_watered TEXT,
+        fert_cycle_days INTEGER DEFAULT 30,
+        last_fertilized TEXT,
         created_at TEXT DEFAULT (datetime('now'))
       )
     `).run();
+    // 旧表迁移：补施肥两列（并发容错，已存在则忽略报错）
+    try {
+      await env.DB.prepare(`ALTER TABLE plants ADD COLUMN fert_cycle_days INTEGER DEFAULT 30`).run();
+    } catch { /* 列已存在 */ }
+    try {
+      await env.DB.prepare(`ALTER TABLE plants ADD COLUMN last_fertilized TEXT`).run();
+    } catch { /* 列已存在 */ }
     try {
       await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_plants_user ON plants(user_id)`).run();
     } catch { /* ignore */ }
@@ -68,8 +77,8 @@ export async function handlePlantsCreate(env, body) {
   const z = b.z_index ?? (Date.now() % 100000);
 
   const r = await env.DB.prepare(
-    `INSERT INTO plants (user_id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO plants (user_id, name, image, pos_x, pos_y, z_index, planted_at, traits, care_method, water_cycle_days, last_watered, fert_cycle_days, last_fertilized)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     uid(env),
     safeStr(b.name, '新植物'),
@@ -82,6 +91,8 @@ export async function handlePlantsCreate(env, body) {
     safeStr(b.care_method, ''),
     Number(b.water_cycle_days) || 7,
     b.last_watered ? safeStr(b.last_watered) : null,
+    Number(b.fert_cycle_days) || 30,
+    b.last_fertilized ? safeStr(b.last_fertilized) : null,
   ).run();
 
   const id = r.meta?.last_row_id;
@@ -112,6 +123,8 @@ export async function handlePlantsUpdate(env, body) {
   push('care_method', b.care_method, v => safeStr(v));
   push('water_cycle_days', b.water_cycle_days, v => Number(v) || 7);
   push('last_watered', b.last_watered, v => v ? safeStr(v) : null);
+  push('fert_cycle_days', b.fert_cycle_days, v => Number(v) || 30);
+  push('last_fertilized', b.last_fertilized, v => v ? safeStr(v) : null);
 
   if (sets.length === 0) return json({ plant: existing });
 

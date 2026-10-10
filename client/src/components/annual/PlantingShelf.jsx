@@ -8,25 +8,39 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { API } from '../../api/client.js';
 import { uid } from './utils.js';
 
-// ---- 浇水状态计算 ----
-// 绿=正常 / 橙=临期(距周期≤2天) / 红=超期(已过周期)
-function waterStatus(plant) {
-  if (!plant.last_watered || !plant.water_cycle_days) return null;
+// ---- 养护状态计算（浇水/施肥通用）----
+// 灰=无记录 / 绿=正常或今日已做 / 橙=临期(距周期≤2天) / 红=超期
+// 状态文案只做行动指引，周期数字不出现（避免与控制行的「周期」重复）
+function careStatus(last, cycle, unit) {
+  if (!last) return { level: 'none', color: '#8e8e93', text: `还没有${unit}记录` };
+  if (!cycle) return { level: 'none', color: '#8e8e93', text: `未设置${unit}周期` };
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const last = new Date(plant.last_watered); last.setHours(0, 0, 0, 0);
-  const days = Math.round((today - last) / 86400000);
-  const cycle = plant.water_cycle_days;
-  if (days >= cycle) return { level: 'alert', color: '#FF3B30', text: `已超期 ${days - cycle} 天，请尽快浇水`, days };
-  if (days >= cycle - 2) return { level: 'warn', color: '#FF9500', text: '建议今天浇水', days };
-  return { level: 'ok', color: '#5FA85F', text: `${cycle - days} 天后浇水`, days };
+  const l = new Date(last); l.setHours(0, 0, 0, 0);
+  const days = Math.round((today - l) / 86400000);
+  if (days <= 0) return { level: 'done', color: '#3E7D3E', text: `今日已${unit}`, days };
+  if (days >= cycle) return { level: 'alert', color: '#FF3B30', text: `已超期 ${days - cycle} 天`, days };
+  if (days >= cycle - 2) return { level: 'warn', color: '#FF9500', text: `建议今天${unit}`, days };
+  return { level: 'ok', color: '#3E7D3E', text: `${cycle - days} 天后${unit}`, days };
+}
+
+// 画布角标只关心浇水超期
+function waterStatus(plant) {
+  const s = careStatus(plant.last_watered, plant.water_cycle_days, '浇水');
+  return s.level === 'alert' ? s : null;
 }
 
 // ---- 已种植天数 ----
-function plantedDays(plant) {
-  if (!plant.planted_at) return 0;
+function plantedDays(dateStr) {
+  if (!dateStr) return 0;
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const p = new Date(plant.planted_at); p.setHours(0, 0, 0, 0);
+  const p = new Date(dateStr); p.setHours(0, 0, 0, 0);
   return Math.max(0, Math.round((today - p) / 86400000));
+}
+
+// N 天前的日期串（撤销打卡时回退一个周期用）
+function dateDaysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
 }
 
 // ---- 蜜蜂 SVG ----
@@ -519,7 +533,55 @@ export default function PlantingShelf({ onCountChange }) {
 
 // ============================================================
 // InfoDrawer — 植物信息面板（从右侧滑入）
+//   信息架构：状态行=行动指引 / 控制行=可编辑参数 / 打卡即时生效
 // ============================================================
+
+/* 养护卡片（浇水/施肥同构）：
+ * icon 状态 icon · status 状态对象 · doneToday 今日已打卡（按钮切换为撤销）
+ * last/cycle 及其 onChange 控制行参数 · cardBg/cardBorder 卡片配色 · markColor 打卡按钮色 */
+function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cycle, maxCycle, onLastChange, onCycleChange, cardBg, cardBorder, markColor }) {
+  return (
+    <div className="rounded-xl px-3 py-2.5" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+      {/* 状态行：行动指引 + 打卡按钮（今日已做可撤销） */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="flex-shrink-0" style={{ color: status.color }}>{icon}</span>
+          <span className="text-[12px] font-semibold truncate" style={{ color: status.color }}>{status.text}</span>
+        </div>
+        {doneToday ? (
+          <button onClick={onUndo} title="撤销今天的打卡，回退一个周期"
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition active:scale-95 flex-shrink-0"
+            style={{ color: '#8e8e93', background: 'rgba(120,120,128,0.08)', border: '1px solid rgba(120,120,128,0.16)' }}>
+            撤销
+          </button>
+        ) : (
+          <button onClick={onMark}
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition active:scale-95 flex-shrink-0"
+            style={{ color: '#fff', background: markColor, boxShadow: `0 1px 4px ${markColor}4D` }}>
+            ✓ {markLabel}
+          </button>
+        )}
+      </div>
+      {/* 控制行：上次日期（可改）+ 周期天数（可改） */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-1 bg-white/70 rounded-lg px-2 py-1 min-w-0" style={{ border: '1px solid rgba(0,0,0,0.05)' }}>
+          <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">上次</span>
+          <input type="date" value={last} onChange={(e) => onLastChange(e.target.value)}
+            className="dp text-[10.5px] min-w-0" style={{ width: 84 }} title="修改上次日期" />
+        </div>
+        <div className="flex items-center gap-1 bg-white/70 rounded-lg px-2 py-1 flex-shrink-0" style={{ border: '1px solid rgba(0,0,0,0.05)' }}>
+          <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">周期</span>
+          <input type="number" min={1} max={maxCycle} value={cycle}
+            onChange={(e) => onCycleChange(parseInt(e.target.value) || 1)}
+            className="w-8 text-[11.5px] text-center bg-transparent outline-none font-bold tabular-nums"
+            style={{ color: markColor }} />
+          <span className="text-[10px] text-[#8e8e93] font-medium">天</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function InfoDrawer({ plant, onSave, onRemove, onClose }) {
   const [form, setForm] = useState({
     name: plant.name || '',
@@ -528,28 +590,24 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
     care_method: plant.care_method || '',
     water_cycle_days: plant.water_cycle_days || 7,
     last_watered: plant.last_watered || '',
+    fert_cycle_days: plant.fert_cycle_days || 30,
+    last_fertilized: plant.last_fertilized || '',
   });
   const [dirty, setDirty] = useState(false);
 
   const update = (field, val) => { setForm(f => ({ ...f, [field]: val })); setDirty(true); };
 
-  const days = plantedDays(plant);
-  const ws = waterStatus(plant);
-  // 原生日期选择器 ref，点击头部日期文字时调 showPicker()
-  const plantedDateRef = useRef(null);
-  const openDatePicker = () => {
-    const el = plantedDateRef.current;
-    if (!el) return;
-    // showPicker() 是标准 API；老浏览器回退 click()
-    if (typeof el.showPicker === 'function') el.showPicker();
-    else el.click();
-  };
+  const days = plantedDays(form.planted_at);
+  const today = new Date().toISOString().slice(0, 10);
+  // 状态从 form 实时计算，编辑周期/日期时状态文案即时跟随
+  const ws = careStatus(form.last_watered, form.water_cycle_days, '浇水');
+  const fs = careStatus(form.last_fertilized, form.fert_cycle_days, '施肥');
 
-  // 浇水快捷按钮：更新上次浇水为今天
-  const markWatered = async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    update('last_watered', today);
-    onSave({ last_watered: today, name: form.name, planted_at: form.planted_at, traits: form.traits, care_method: form.care_method, water_cycle_days: form.water_cycle_days });
+  // 打卡类动作：合并补丁并立即保存（无需点保存按钮）
+  const commit = (patch) => {
+    const next = { ...form, ...patch };
+    setForm(next);
+    onSave(next);
     setDirty(false);
   };
 
@@ -557,6 +615,15 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
     onSave(form);
     setDirty(false);
   };
+
+  // 浇水卡配色随状态（绿/橙/红渐变）
+  const waterCard = ws.level === 'alert'
+    ? { bg: 'linear-gradient(135deg, rgba(255,59,48,0.08), rgba(255,149,0,0.05))', border: 'rgba(255,59,48,0.14)' }
+    : ws.level === 'warn'
+      ? { bg: 'linear-gradient(135deg, rgba(255,149,0,0.08), rgba(95,168,95,0.04))', border: 'rgba(255,149,0,0.14)' }
+      : ws.level === 'none'
+        ? { bg: 'rgba(120,120,128,0.05)', border: 'rgba(120,120,128,0.12)' }
+        : { bg: 'linear-gradient(135deg, rgba(95,168,95,0.08), rgba(95,168,95,0.02))', border: 'rgba(95,168,95,0.14)' };
 
   return (
     <>
@@ -577,6 +644,12 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
         }}>
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+          /* 原生日期输入内嵌化：去边框去底色，仅保留日历指示器暗示可点 */
+          .dp { appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
+            font: inherit; font-family: inherit; color: #1c1c1e; font-weight: 500; padding: 0; margin: 0;
+            cursor: pointer; font-variant-numeric: tabular-nums; }
+          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .45; padding: 0; margin-left: 1px; }
+          .dp::-webkit-datetime-edit { padding: 0; }
         `}</style>
 
         {/* 头部 */}
@@ -596,87 +669,57 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
                 L{Math.ceil((plant.pos_y || 0) / 33) || 1}
               </span>
             </div>
-            {/* 可点击的已种植行：点击日期胶囊弹原生日期选择器 */}
-            <div className="flex items-center gap-1.5 mt-1.5 text-[11px]" style={{ color: '#6B6B70' }}>
+            {/* 已种植天数 + 种植日期（原生 date 胶囊，点击即弹系统日历） */}
+            <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: '#6B6B70' }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               <span>已种植</span>
               <span className="font-bold tabular-nums" style={{ color: '#3E7D3E' }}>{days}</span>
-              <span>天 · </span>
-              <button type="button" onClick={openDatePicker}
-                className="inline-flex items-center gap-0.5 font-medium tabular-nums px-1 -mx-1 rounded transition hover:brightness-95 active:scale-95"
-                style={{ color: '#1c1c1e', background: 'rgba(95,168,95,0.08)' }}
-                title="点击修改种植日期">
-                {form.planted_at || '点击选择日期'}
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#6B6B70" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              {/* 隐藏的原生 date input，ref 引用 + showPicker() 触发 */}
-              <input ref={plantedDateRef} type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-                tabIndex={-1} aria-hidden="true"
-                style={{ position: 'fixed', left: -9999, top: -9999, opacity: 0, pointerEvents: 'none' }} />
+              <span>天 ·</span>
+              <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
+                className="dp text-[10.5px] rounded px-1 py-px" style={{ width: 92, background: 'rgba(95,168,95,0.08)' }}
+                title="修改种植日期" />
             </div>
           </div>
         </div>
 
         {/* 内容 */}
-        <div className="px-4 py-3.5 flex flex-col gap-3">
+        <div className="px-4 py-3 flex flex-col gap-2.5">
 
-          {/* 浇水状态卡（整合：状态+周期+上次浇水+快捷按钮） */}
-          <div className="rounded-xl px-3.5 py-3"
-            style={{
-              background: ws?.level === 'alert'
-                ? 'linear-gradient(135deg, rgba(255,59,48,0.08), rgba(255,149,0,0.05))'
-                : ws?.level === 'warn'
-                  ? 'linear-gradient(135deg, rgba(255,149,0,0.08), rgba(95,168,95,0.04))'
-                  : 'linear-gradient(135deg, rgba(95,168,95,0.08), rgba(95,168,95,0.02))',
-              border: `1px solid ${ws?.level === 'alert' ? 'rgba(255,59,48,0.14)' : ws?.level === 'warn' ? 'rgba(255,149,0,0.14)' : 'rgba(95,168,95,0.14)'}`,
-            }}>
-            {/* 状态行 */}
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center gap-2">
-                {/* 水滴 icon + 脉冲点 */}
-                <div className="relative">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ws?.color || '#8e8e93'} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                  </svg>
-                  {ws && ws.level !== 'ok' && (
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: ws.color }} />
-                  )}
-                </div>
-                <span className="text-[12px] font-semibold"
-                  style={{ color: ws?.color || '#8e8e93' }}>
-                  {ws ? ws.text : '未设置浇水周期'}
-                </span>
-              </div>
-              <button onClick={markWatered}
-                className="text-[11px] font-semibold px-2 py-1 rounded-md transition active:scale-95"
-                style={{
-                  color: '#fff',
-                  background: ws?.level === 'alert' ? '#FF3B30' : ws?.level === 'warn' ? '#FF9500' : '#3E7D3E',
-                  boxShadow: `0 1px 4px ${ws?.level === 'alert' ? 'rgba(255,59,48,0.3)' : ws?.level === 'warn' ? 'rgba(255,149,0,0.3)' : 'rgba(62,125,62,0.3)'}`,
-                }}>
-                ✓ 已浇水
-              </button>
-            </div>
-            {/* 设置行：周期 + 上次浇水，双列 */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-1.5 bg-white/60 rounded-lg px-2.5 py-1.5" style={{ border: '1px solid rgba(0,0,0,0.04)' }}>
-                <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">周期</span>
-                <input type="number" min={1} max={90} value={form.water_cycle_days}
-                  onChange={(e) => update('water_cycle_days', parseInt(e.target.value) || 7)}
-                  className="w-9 text-[12px] text-center bg-transparent outline-none font-bold tabular-nums"
-                  style={{ color: '#3E7D3E' }} />
-                <span className="text-[10px] text-[#8e8e93] font-medium">天</span>
-              </div>
-              <div className="flex-1 flex items-center gap-1.5 bg-white/60 rounded-lg px-2.5 py-1.5" style={{ border: '1px solid rgba(0,0,0,0.04)' }}>
-                <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">上次</span>
-                <span className="text-[11px] text-[#1c1c1e] font-medium tabular-nums truncate">
-                  {form.last_watered || '—'}
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* 浇水卡：状态行（行动指引）+ 控制行（上次日期/周期，均可改）+ 打卡/撤销 */}
+          <CareCard
+            icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>}
+            status={ws}
+            doneToday={form.last_watered === today}
+            markLabel="已浇水"
+            onMark={() => commit({ last_watered: today })}
+            onUndo={() => commit({ last_watered: dateDaysAgo(form.water_cycle_days || 7) })}
+            last={form.last_watered}
+            cycle={form.water_cycle_days}
+            maxCycle={90}
+            onLastChange={(v) => update('last_watered', v)}
+            onCycleChange={(v) => update('water_cycle_days', v)}
+            cardBg={waterCard.bg}
+            cardBorder={waterCard.border}
+            markColor={ws.level === 'alert' ? '#FF3B30' : ws.level === 'warn' ? '#FF9500' : '#3E7D3E'}
+          />
+
+          {/* 施肥卡：同构，暖土色固定配色 */}
+          <CareCard
+            icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z"/></svg>}
+            status={fs}
+            doneToday={form.last_fertilized === today}
+            markLabel="已施肥"
+            onMark={() => commit({ last_fertilized: today })}
+            onUndo={() => commit({ last_fertilized: dateDaysAgo(form.fert_cycle_days || 30) })}
+            last={form.last_fertilized}
+            cycle={form.fert_cycle_days}
+            maxCycle={365}
+            onLastChange={(v) => update('last_fertilized', v)}
+            onCycleChange={(v) => update('fert_cycle_days', v)}
+            cardBg="linear-gradient(135deg, rgba(191,152,102,0.10), rgba(191,152,102,0.03))"
+            cardBorder="rgba(176,137,86,0.18)"
+            markColor="#8B6B4F"
+          />
 
           {/* 特性 */}
           <div>

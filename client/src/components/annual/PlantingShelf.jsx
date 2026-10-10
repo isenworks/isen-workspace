@@ -662,16 +662,16 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
       </div>
       {/* 控制行：上次日期（可改）+ 周期天数（可改） */}
       <div className="flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-1 bg-white/70 rounded-lg px-2 py-1 min-w-0" style={{ border: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="flex-1 flex items-center gap-1.5 rounded-lg min-w-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">上次</span>
           <input type="date" value={last} onChange={(e) => onLastChange(e.target.value)}
-            className="dp text-[10.5px] min-w-0" style={{ width: 84 }} title="修改上次日期" />
+            className="dp text-[10px] min-w-0" style={{ width: 96 }} title="修改上次日期" />
         </div>
-        <div className="flex items-center gap-1 bg-white/70 rounded-lg px-2 py-1 flex-shrink-0" style={{ border: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="flex items-center gap-1 rounded-lg flex-shrink-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">周期</span>
           <input type="number" min={1} max={maxCycle} value={cycle}
             onChange={(e) => onCycleChange(parseInt(e.target.value) || 1)}
-            className="w-8 text-[11.5px] text-center bg-transparent outline-none font-bold tabular-nums"
+            className="w-8 text-[11px] text-center bg-transparent outline-none font-semibold tabular-nums"
             style={{ color: markColor }} />
           <span className="text-[10px] text-[#8e8e93] font-medium">天</span>
         </div>
@@ -744,10 +744,12 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
           /* 原生日期输入内嵌化：去边框去底色，仅保留日历指示器暗示可点 */
           .dp { appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
-            font: inherit; font-family: inherit; color: #1c1c1e; font-weight: 500; padding: 0; margin: 0;
-            cursor: pointer; font-variant-numeric: tabular-nums; }
-          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .45; padding: 0; margin-left: 1px; }
-          .dp::-webkit-datetime-edit { padding: 0; }
+            font: inherit; font-family: inherit; color: #1c1c1e; font-weight: 400; padding: 0; margin: 0;
+            cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.01em; }
+          /* WebKit 原生日期编辑区：强制压小字体权重，系统默认太粗 */
+          .dp::-webkit-datetime-edit { padding: 0; font-weight: 400; font-size: inherit; }
+          .dp::-webkit-datetime-edit-fields-wrapper { font-weight: 400; }
+          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .4; padding: 0; margin-left: 2px; transform: scale(0.85); }
         `}</style>
 
         {/* 头部 */}
@@ -769,12 +771,11 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
             </div>
             {/* 已种植天数 + 种植日期（原生 date 胶囊，点击即弹系统日历） */}
             <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: '#6B6B70' }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               <span>已种植</span>
               <span className="font-bold tabular-nums" style={{ color: '#3E7D3E' }}>{days}</span>
               <span>天 ·</span>
               <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-                className="dp text-[10.5px] rounded px-1 py-px" style={{ width: 92, background: 'rgba(95,168,95,0.08)' }}
+                className="dp text-[10.5px] rounded-lg" style={{ width: 100, padding: '2px 8px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)' }}
                 title="修改种植日期" />
             </div>
           </div>

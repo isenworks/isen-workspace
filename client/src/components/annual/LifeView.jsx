@@ -11,6 +11,14 @@ import lunarLib from '../../vendor/lunar.js';
 import EntryForm from '../forms/EntryForm.jsx'
 import PlantingShelf from './PlantingShelf.jsx'
 
+/* 种植行统一判定：key 或 label 任一匹配即视为种植类目。
+ * 用户持久化的 annual_life 数据可能来自旧版本/自建类目（key 是 uid 而非 'planting'），
+ * 花架挂载、侧边栏计数、统计条三处必须共用同一判定，
+ * 否则会出现「花架正常挂载有植物，但分类计数永远走 entries.length = 0」的失同步 bug */
+function isPlantRow(c) {
+  return !!c && (c.key === 'planting' || c.lb === '种植');
+}
+
 /* 农历生日胶囊文案：把存储的公历日期换算回农历，得「农历八月初一」；
  * 公历生日返回「公历」；换算失败回退「农历」 */
 function lunarBadgeText(b) {
@@ -178,7 +186,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     try { localStorage.setItem('annual_plant_count', String(n)); } catch { /* noop */ }
   }, []);
   // 给 planting 行覆写 count（统计条 / 左侧分类行共用）
-  const lifeWithCount = useMemo(() => dynLife.map(c => c.key === 'planting' ? { ...c, count: plantCount ?? c.entries.length } : { ...c, count: c.entries.length }), [dynLife, plantCount]);
+  const lifeWithCount = useMemo(() => dynLife.map(c => isPlantRow(c) ? { ...c, count: plantCount ?? c.entries.length } : { ...c, count: c.entries.length }), [dynLife, plantCount]);
   const totalEntries = lifeWithCount.reduce((s, c) => s + c.count, 0);
   // 生活模块完成率：有记录的类目数 / 总类目数 * 100（体验型鼓励每个类目都有内容）
   const lifePct = Math.round((lifeWithCount.filter(c => c.count > 0).length / lifeWithCount.length) * 100);
@@ -645,7 +653,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               const key = row.key;
               const isBd = key === 'birthday';
               const active = lifeFilter === key;
-              const cnt = isBd ? birthdays.length : (key === 'planting' ? (plantCount ?? 0) : row.entries.length);
+              const cnt = isBd ? birthdays.length : (isPlantRow(row) ? (plantCount ?? row.entries.length) : row.entries.length);
               return (
                 <div key={key}
                   draggable
@@ -684,7 +692,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
 
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0 flex flex-col overflow-hidden" style={rightStyle}>
-            {selFilterCat?.lb === '种植' ? (
+            {isPlantRow(selFilterCat) ? (
               <div className="flex-1 min-h-0"><PlantingShelf onCountChange={syncPlantCount} /></div>
             ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (

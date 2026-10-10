@@ -252,11 +252,14 @@ export default function FocusPanel({
        · 使用 confirmDialog state 取代原生 confirm()，避免 alert 弹窗打断体验 */
   const [confirmDialog, setConfirmDialog] = useState(null);
   const openDeleteConfirm = (task, sourceLabel) => {
+    const fromRecycle = sourceLabel === '回收站';
     setConfirmDialog({
-      title: sourceLabel === '回收站' ? '永久删除' : '删除事项',
-      message: `确定删除「${task.title}」吗？\n删除后不可恢复。`,
+      title: fromRecycle ? '永久删除' : '删除确认',
+      message: fromRecycle
+        ? `确定永久删除「${task.title}」吗？\n删除后不可恢复。`
+        : `确定删除「${task.title}」吗？\n删除后移入回收站，可恢复。`,
       danger: true,
-      confirmText: '删除',
+      confirmText: fromRecycle ? '永久删除' : '确认删除',
       onConfirm: () => { setConfirmDialog(null); onDeleteTask?.(task); },
       onCancel:  () => { setConfirmDialog(null); },
     });

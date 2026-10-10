@@ -352,10 +352,10 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
   function openDeleteConfirm() {
     if (!initial?.id) return;
     setConfirmDialog({
-      title: '删除日程',
-      message: `确定删除「${initial.title || '该日程'}」吗？\n删除后不可恢复。`,
+      title: '删除确认',
+      message: `确定删除「${initial.title || '该日程'}」吗？\n删除后移入回收站，可恢复。`,
       danger: true,
-      confirmText: '删除',
+      confirmText: '确认删除',
       onConfirm: doDelete,
       onCancel: () => setConfirmDialog(null),
     });

@@ -1380,7 +1380,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       <Modal
         open={!!wkConfirmDelete}
         onClose={() => setWkConfirmDelete(null)}
-        title="永久删除"
+        title="删除确认"
         maxWidth={420}
         footer={
           <>
@@ -1394,14 +1394,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               onClick={() => { deleteWeekKey(wkConfirmDelete.task); setWkConfirmDelete(null); }}
               className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#FF3B30] hover:brightness-105 active:scale-[0.98] transition-all"
             >
-              永久删除
+              确认删除
             </button>
           </>
         }
       >
         {wkConfirmDelete && (
           <div className="text-[13px] leading-relaxed">
-            <div className="text-ink-600">删除后不可恢复，确定删除这条目标事项吗？</div>
+            <div className="text-ink-600">删除后移入回收站，可恢复，确定删除这条目标事项吗？</div>
             <div className="mt-2 font-semibold text-ink-900 break-words">{wkConfirmDelete.task.title}</div>
           </div>
         )}

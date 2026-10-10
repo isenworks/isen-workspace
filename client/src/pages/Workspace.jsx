@@ -334,9 +334,9 @@ export default function Workspace({ user: propUser }) {
   }, [refresh, toast]);
   const deleteScheduleConfirm = useCallback((id, title) => {
     setConfirm({
-      title: '确认删除',
-      msg: `「${title}」删除后无法恢复，确定要删除吗？`,
-      okText: '确定删除',
+      title: '删除确认',
+      msg: `「${title}」删除后移入回收站，可恢复，确定删除吗？`,
+      okText: '确认删除',
       okColor: '#FF3B30',
       onOk: async () => {
         try {
@@ -401,9 +401,9 @@ export default function Workspace({ user: propUser }) {
     if (action === 'delete') {
       if (type === 'schedule') {
         setConfirm({
-          title: '确认删除',
-          msg: '删除后无法恢复，确定要删除该日程吗？',
-          okText: '确定删除',
+          title: '删除确认',
+          msg: '删除后移入回收站，可恢复，确定删除该日程吗？',
+          okText: '确认删除',
           okColor: '#FF3B30',
           onOk: async () => {
             try {
@@ -417,9 +417,9 @@ export default function Workspace({ user: propUser }) {
         });
       } else if (type === 'task') {
         setConfirm({
-          title: '删除该待办？',
-          msg: '删除后可在回收站恢复，确定要删除该待办吗？',
-          okText: '确定删除',
+          title: '删除确认',
+          msg: '删除后移入回收站，可恢复，确定删除该待办吗？',
+          okText: '确认删除',
           okColor: '#FF3B30',
           onOk: async () => {
             try {
@@ -472,9 +472,9 @@ export default function Workspace({ user: propUser }) {
 
   async function deleteHabit(id, name) {
     setConfirm({
-      title: '彻底删除？',
-      msg: `「${name}」及其所有打卡记录将被永久删除，无法恢复。`,
-      okText: '永久删除',
+      title: '删除确认',
+      msg: `「${name}」及其打卡记录将移入回收站，可恢复。`,
+      okText: '确认删除',
       okColor: '#FF3B30',
       onOk: async () => {
         try {

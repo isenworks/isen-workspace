@@ -367,9 +367,10 @@ export default function PlantingShelf({ onCountChange }) {
     if (file && file.type.startsWith('image/')) handleFileSelect(file);
   };
 
-  // 画布点击关闭信息面板
+  // 画布点击（空白处）：无条件取消选中植物（隐藏四角缩放手柄）+ 关闭信息面板
   const onCanvasClick = () => {
-    if (showInfo) { setShowInfo(false); setSelected(null); }
+    setSelected(null);
+    setShowInfo(false);
   };
 
   // 默认 settings + 合并
@@ -617,7 +618,6 @@ export default function PlantingShelf({ onCountChange }) {
             onSave={savePlant}
             onRemove={removePlant}
             onClose={() => { setShowInfo(false); setSelected(null); }}
-            onCanvasClick={onCanvasClick}
           />
         )}
 

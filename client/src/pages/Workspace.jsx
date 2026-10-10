@@ -378,13 +378,17 @@ export default function Workspace({ user: propUser }) {
     }
 
     if (action === 'moveToInbox' && type === 'schedule') {
-      // 右键"移入小记"：事项标题作为小记内容，自动带上"待办"标签
+      // 右键"移入小记"：事项标题作为小记内容，自动带上"待办"标签，然后删除原事项
       const title = String(task?.title || '').trim();
       if (!title) { toast.error('事项标题为空，无法移入小记'); return; }
       try {
         const r = await API.inbox.tags();
         const todoTag = (r.tags || []).find(t => t.name === '待办');
         await API.inbox.create({ content: `<p>${title}</p>`, tag_id: todoTag ? todoTag.id : null });
+        // 小记创建成功后删除原事项（软删入回收站 + 广播 reload）
+        await API.schedules.remove(id);
+        store.broadcast({ type: 'reload' });
+        refresh();
         toast.success(todoTag ? '已移入小记（待办）' : '已移入小记');
       } catch (e) { toast.error(e.message || '移入小记失败'); }
       return;

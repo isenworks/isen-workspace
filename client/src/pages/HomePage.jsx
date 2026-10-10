@@ -554,7 +554,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     } catch { /* tombstone/乐观更新兜底；也可把条目加回 */ }
   };
 
-  /* 右键"移入小记"：把事项标题作为小记内容，自动带上"待办"标签 */
+  /* 右键"移入小记"：把事项标题作为小记内容，自动带上"待办"标签，然后从卡片移除原事项 */
   const moveToInbox = async (s) => {
     const title = String(s?.title || '').trim();
     if (!title) return toast.error('事项标题为空，无法移入小记');
@@ -562,6 +562,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       const r = await API.inbox.tags();
       const todoTag = (r.tags || []).find(t => t.name === '待办');
       await API.inbox.create({ content: `<p>${title}</p>`, tag_id: todoTag ? todoTag.id : null });
+      // 小记创建成功后，从今日聚焦/本周重点卡片移除原事项（复用删除链路：乐观移除 + 广播 + 后端软删）
+      deleteWeekKey(s);
       toast.success(todoTag ? '已移入小记（待办）' : '已移入小记（未找到「待办」标签，已无标签）');
     } catch (e) { toast.error(e.message || '移入小记失败'); }
   };

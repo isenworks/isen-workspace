@@ -106,63 +106,76 @@ function LifeCatIcon({ catKey, lb, className, style }) {
 export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd, onBirthdayAdd, onBirthdayEdit, onBirthdayDelete, bdRefreshKey }) {
   const dynLife = lifeData || LIFE;
   // 种植分类 count 不来自 entries，来自 plants API
-  //   问题根因：#annual 预览路由绕过 AuthProvider，LifeView 无登录态挂载
-  //   → 原代码无 token 时 3 次重试全败 → setPlantCount(0) 永久卡死
-  //   修复：先查 localStorage token，无 token 就跳过 API 调用，
-  //         用轮询 + storage 事件等待 token 出现；绝不因缺 token 就 setPlantCount(0)
-  const [plantCount, setPlantCount] = useState(null);
+  // 历史 bug 链（三轮修复后的最终结论）：
+  //   v1: 挂载即调 API → 无 token 时 3 次重试全败 → setPlantCount(0) 钉死
+  //   v2: 等 token → 但 API 瞬时失败（如本地服务重启窗口）仍会快速重试 3 次后钉死 0
+  //   v3（当前，对齐本文件 realHabits 的「localStorage 写穿缓存」模式）：
+  //   ① 初始化同步读缓存 → 打开页面即显示上次数量，零 0 闪烁、零空白等待
+  //   ② API 成功后回写缓存校准
+  //   ③ 失败永不钉 0：指数退避无限重试（1s→2s→…→15s 封顶），服务恢复后自愈
+  //   ④ window focus 即时重拉（切回标签页自愈瞬断，无需刷新）
+  //   ⑤ 无 token 时轮询等待（#annual 预览路由 / 登录前挂载场景）
+  //   ⑥ PlantingShelf onCountChange：用户进入花架时实时校准（见 render）
+  const [plantCount, setPlantCount] = useState(() => {
+    const raw = localStorage.getItem('annual_plant_count');
+    const n = raw === null ? NaN : Number(raw);
+    return Number.isFinite(n) ? n : null;
+  });
+
   useEffect(() => {
     let cancelled = false;
     let timer = null;
-    let retries = 0;
-    const MAX_RETRIES_AFTER_TOKEN = 3;
-    const pollInterval = 1500; // ms
+    let backoff = 0;            // 连续失败退避
+    const POLL_NO_TOKEN = 1500; // 无 token 轮询间隔
+    const MAX_BACKOFF = 15000;
 
     const tryLoad = () => {
-      const token = localStorage.getItem('pw_unlock_token');
-      if (!token) {
-        // 还没登录 → 等一会再试（轮询 + storage 事件双保险）
-        timer = setTimeout(tryLoad, pollInterval);
+      if (cancelled) return;
+      if (!localStorage.getItem('pw_unlock_token')) {
+        timer = setTimeout(tryLoad, POLL_NO_TOKEN); // 未登录：等 token 出现
         return;
       }
-      // 有 token → 调 plants 列表
       API.plants.list()
         .then(r => {
           if (cancelled) return;
           const n = (r?.plants || []).length;
+          backoff = 0;
           setPlantCount(n);
+          try { localStorage.setItem('annual_plant_count', String(n)); } catch { /* 隐私模式等 */ }
         })
-        .catch(err => {
+        .catch(() => {
           if (cancelled) return;
-          if (retries < MAX_RETRIES_AFTER_TOKEN) {
-            retries++;
-            timer = setTimeout(tryLoad, 500 * retries);
-          } else {
-            console.warn('[LifeView] plants.list failed:', err?.message || err);
-            // API 真的失败（不是缺 token）才兜底 0
-            setPlantCount(0);
-          }
+          // 不放弃、不钉 0：退避后重试，服务恢复即自愈（保留上次已知值展示）
+          backoff = Math.min(backoff ? backoff * 2 : 1000, MAX_BACKOFF);
+          timer = setTimeout(tryLoad, backoff);
         });
     };
 
-    // 先试一次；如果 token 还没写入 localStorage，轮询兜底
     tryLoad();
 
-    // storage 事件：另一个 tab 登录后立刻感知
-    const onStorage = (e) => {
-      if (e.key === 'pw_unlock_token' && e.newValue) {
-        retries = 0;
-        if (timer) { clearTimeout(timer); timer = null; }
-        tryLoad();
-      }
+    const kick = () => { // 重置退避并立刻重试
+      if (timer) { clearTimeout(timer); timer = null; }
+      backoff = 0;
+      tryLoad();
     };
+    const onFocus = () => kick();                       // 切回标签页：瞬断自愈
+    const onStorage = (e) => {                           // 其他 tab 登录联动
+      if (e.key === 'pw_unlock_token' && e.newValue) kick();
+    };
+    window.addEventListener('focus', onFocus);
     window.addEventListener('storage', onStorage);
 
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      window.removeEventListener('focus', onFocus);
       window.removeEventListener('storage', onStorage);
     };
+  }, []);
+  // PlantingShelf 实时同步入口：更新 state 的同时写穿缓存（保持单一数据源）
+  const syncPlantCount = useCallback((n) => {
+    setPlantCount(n);
+    try { localStorage.setItem('annual_plant_count', String(n)); } catch { /* noop */ }
   }, []);
   // 给 planting 行覆写 count（统计条 / 左侧分类行共用）
   const lifeWithCount = useMemo(() => dynLife.map(c => c.key === 'planting' ? { ...c, count: plantCount ?? c.entries.length } : { ...c, count: c.entries.length }), [dynLife, plantCount]);
@@ -672,7 +685,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0 flex flex-col overflow-hidden" style={rightStyle}>
             {selFilterCat?.lb === '种植' ? (
-              <div className="flex-1 min-h-0"><PlantingShelf onCountChange={setPlantCount} /></div>
+              <div className="flex-1 min-h-0"><PlantingShelf onCountChange={syncPlantCount} /></div>
             ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
                 <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">

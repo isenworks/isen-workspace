@@ -491,109 +491,105 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
 
       {/* 抽屉卡片 */}
       <div onClick={(e) => e.stopPropagation()}
-        className="absolute top-12 right-4 w-[264px] overflow-hidden"
+        className="absolute top-12 right-4 w-[296px] overflow-hidden"
         style={{
           zIndex: 10,
-          background: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(20px)',
+          background: '#fff',
           borderRadius: '14px',
           border: '1px solid rgba(0,0,0,0.06)',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.04)',
+          boxShadow: '0 20px 56px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
           animation: 'drawer-slide-in 0.2s ease-out',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
         }}>
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
         `}</style>
 
         {/* 头部 */}
-        <div className="relative flex items-end gap-2.5 px-3.5 pb-2.5 pt-3"
-          style={{
-            background: 'linear-gradient(135deg, rgba(95,168,95,0.06), rgba(62,125,62,0.04))',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
-          }}>
-          <div className="w-12 h-12 rounded-xl grid place-items-center flex-shrink-0"
-            style={{ background: 'rgba(95,168,95,0.1)', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <div className="flex items-center gap-3 px-4 py-3"
+          style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <div className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(95,168,95,0.1)', border: '1px solid rgba(0,0,0,0.05)' }}>
             <img src={plant.image} alt="" className="w-7 h-7 object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <input value={form.name} onChange={(e) => update('name', e.target.value)}
               placeholder="植物名称"
-              className="text-[14px] font-bold text-ink-900 bg-transparent outline-none border-b border-transparent focus:border-[#3E7D3E] transition w-full" />
-            <div className="text-[10px] text-ink-500 mt-0.5">种植于 {form.planted_at || '未设置'}</div>
+              className="text-[15px] font-semibold text-[#1c1c1e] bg-transparent outline-none border-b border-transparent focus:border-[#3E7D3E] transition w-full leading-tight" />
+            <div className="text-[12px] text-[#8e8e93] mt-1">种植于 {form.planted_at || '未设置'}</div>
           </div>
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-full flex-shrink-0"
             style={{ color: '#3E7D3E', background: 'rgba(95,168,95,0.1)' }}>
             第 {Math.ceil((plant.pos_y || 0) / 33) || 1} 层
           </span>
         </div>
 
         {/* 内容 */}
-        <div className="px-3.5 py-3 flex flex-col gap-2.5">
+        <div className="px-4 py-3.5 flex flex-col gap-3.5">
           {/* 已种植天数 */}
-          <div>
-            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase mb-1">已种植</div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-[22px] font-extrabold" style={{ color: '#3E7D3E', lineHeight: 1 }}>{days}</span>
-              <span className="text-[11px] text-ink-500">天</span>
-            </div>
+          <div className="flex items-baseline gap-2 py-2.5 px-3 rounded-xl"
+            style={{ background: 'rgba(95,168,95,0.06)' }}>
+            <span className="text-[13px] text-[#8e8e93] font-medium">已种植</span>
+            <span className="text-[20px] font-bold" style={{ color: '#3E7D3E', lineHeight: 1 }}>{days}</span>
+            <span className="text-[13px] text-[#8e8e93] font-medium">天</span>
           </div>
 
           {/* 种植时间 */}
           <div>
-            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase mb-1">种植时间</div>
+            <div className="text-[11px] font-semibold text-[#8e8e93] mb-1.5">种植时间</div>
             <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-              className="w-full text-[11px] text-ink-700 bg-[rgba(120,120,128,0.05)] rounded-md px-2 py-1.5 outline-none border border-transparent focus:border-[#3E7D3E]" />
+              className="w-full text-[13px] text-[#1c1c1e] bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2 outline-none border border-transparent focus:border-[#3E7D3E] transition" />
           </div>
 
           {/* 特性 */}
           <div>
-            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase mb-1">特性</div>
+            <div className="text-[11px] font-semibold text-[#8e8e93] mb-1.5">特性</div>
             <textarea value={form.traits} onChange={(e) => update('traits', e.target.value)} placeholder="喜温暖湿润，耐阴…" rows={2}
-              className="w-full text-[11px] text-ink-700 bg-[rgba(120,120,128,0.05)] rounded-md px-2 py-1.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed" />
+              className="w-full text-[13px] text-[#1c1c1e] bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
           </div>
 
           {/* 养护方法 */}
           <div>
-            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase mb-1">养护方法</div>
+            <div className="text-[11px] font-semibold text-[#8e8e93] mb-1.5">养护方法</div>
             <textarea value={form.care_method} onChange={(e) => update('care_method', e.target.value)} placeholder="每周浇水 1 次…" rows={2}
-              className="w-full text-[11px] text-ink-700 bg-[rgba(120,120,128,0.05)] rounded-md px-2 py-1.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed" />
+              className="w-full text-[13px] text-[#1c1c1e] bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
           </div>
 
           {/* 浇水提醒 */}
           <div>
-            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase mb-1 flex items-center justify-between">
-              <span>浇水提醒</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="text-[11px] font-semibold text-[#8e8e93]">浇水提醒</div>
               <button onClick={markWatered}
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded transition"
-                style={{ color: '#3E7D3E', background: 'rgba(95,168,95,0.1)' }}>
+                className="text-[11px] font-semibold px-2 py-1 rounded-md transition hover:brightness-95"
+                style={{ color: '#3E7D3E', background: 'rgba(95,168,95,0.12)' }}>
                 ✓ 今日已浇
               </button>
             </div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <span>周期</span>
+            <div className="flex items-center gap-2 mb-1.5 text-[13px]">
+              <span className="text-[#8e8e93]">周期</span>
               <input type="number" min={1} max={90} value={form.water_cycle_days}
                 onChange={(e) => update('water_cycle_days', parseInt(e.target.value) || 7)}
-                className="w-12 text-[11px] text-center bg-[rgba(120,120,128,0.05)] rounded px-1.5 py-0.5 outline-none border border-transparent focus:border-[#3E7D3E]" />
-              <span className="text-[11px] text-ink-500">天</span>
+                className="w-14 text-[13px] text-center bg-[rgba(120,120,128,0.06)] rounded-md px-2 py-1 outline-none border border-transparent focus:border-[#3E7D3E] transition font-medium text-[#1c1c1e]" />
+              <span className="text-[#8e8e93]">天</span>
             </div>
             {ws && (
-              <div className="flex items-center gap-1.5 text-[10px]">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: ws.color }} />
-                <span className="text-ink-500">{ws.text}</span>
+              <div className="flex items-center gap-2 text-[12px]">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ws.color }} />
+                <span style={{ color: ws.level === 'alert' ? '#FF3B30' : ws.level === 'warn' ? '#FF9500' : '#8e8e93' }}>{ws.text}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* 底部操作 */}
-        <div className="flex gap-1.5 px-3.5 pb-3">
+        <div className="flex gap-2 px-4 pb-4">
           <button onClick={() => onRemove(plant.id)}
-            className="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition hover:brightness-95"
+            className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition hover:brightness-95"
             style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.12)' }}>
             移除
           </button>
           <button onClick={handleSave} disabled={!dirty}
-            className="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition hover:brightness-95 disabled:opacity-40"
+            className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: '#3E7D3E', color: '#fff', boxShadow: '0 2px 8px rgba(62,125,62,0.2)' }}>
             保存
           </button>

@@ -67,7 +67,7 @@ import { handleCoverSearch, handleCoverProxy } from '../_lib/handlers/cover.js';
 import { handleBirthdayMigrate, handleMigrate } from '../_lib/handlers/migrate.js';
 import { handleHeroUpload, handleHeroImg, handleHeroDelete } from '../_lib/handlers/hero.js';
 import {
-  handlePlantsList, handlePlantsCreate, handlePlantsUpdate, handlePlantsRemove, handlePlantsUpload,
+  handlePlantsList, handlePlantsCreate, handlePlantsUpdate, handlePlantsRemove, handlePlantsUpload, handlePlantsImage,
 } from '../_lib/handlers/plants.js';
 
 export async function onRequest(context) {
@@ -270,6 +270,8 @@ export async function onRequest(context) {
     // /api/plants/*  — 种植花架（生活页 · 种植类目）
     // ------------------------------------------------------------
     if (path === '/api/plants/list' && (method === 'GET' || method === 'POST')) return handlePlantsList(env, qOrBody);
+    // 单株图片（带 image_ver 版本号 URL，浏览器缓存 7 天）
+    if (path === '/api/plants/image' && (method === 'GET' || method === 'POST')) return handlePlantsImage(env, qOrBody);
     if (path === '/api/plants/create' && method === 'POST') return handlePlantsCreate(env, body);
     if (path === '/api/plants/update' && method === 'POST') return handlePlantsUpdate(env, body);
     if (path === '/api/plants/remove' && method === 'POST') return handlePlantsRemove(env, body);

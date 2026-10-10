@@ -37,6 +37,32 @@ function plantedDays(dateStr) {
   return Math.max(0, Math.round((today - p) / 86400000));
 }
 
+// ---- 图片压缩（canvas 缩到 maxDim 内 + WebP 导出，保留透明背景）----
+//   失败/反而变大时原样返回；花架展示最大 140×160×2.5≈350×400px，480px 采样绰绰有余
+function compressDataUrl(dataUrl, maxDim = 480) {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight, 1));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          // WebP 压缩率高且保透明；老浏览器不支持导出则回退 PNG
+          let out = cv.toDataURL('image/webp', 0.9);
+          if (!out || !out.startsWith('data:image/webp')) out = cv.toDataURL('image/png');
+          resolve(out && out.length < dataUrl.length ? out : dataUrl);
+        } catch { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    } catch { resolve(dataUrl); }
+  });
+}
+
 // N 天前的日期串（撤销打卡时回退一个周期用）
 function dateDaysAgo(n) {
   const d = new Date(); d.setDate(d.getDate() - n);
@@ -182,15 +208,40 @@ export default function PlantingShelf({ onCountChange }) {
   // settings 持久化
   useEffect(() => { localStorage.setItem('planting_shelf_settings', JSON.stringify(settings)); }, [settings]);
 
-  // 加载植物列表
+  // 老图自动瘦身（自愈）：压缩功能上线前的大图（>400KB base64）首次加载后
+  // 客户端 canvas 压成 WebP 存回 → image_ver+1 → URL 更新，之后每次打开都快。
+  // 失败静默，下次打开再试；只补丁 image/image_ver 两字段，不覆盖并发中的位置编辑
+  async function optimizeIfBig(id, image) {
+    try {
+      if (!image || image.length < 400 * 1024) return;
+      const out = await compressDataUrl(image, 480);
+      if (!out || out.length >= image.length * 0.7) return;
+      const { plant } = await API.plants.update(id, { image: out });
+      if (plant?.image) {
+        setPlants(prev => prev.map(q => q.id === id ? { ...q, image: plant.image, image_ver: plant.image_ver || 0 } : q));
+        notifySaved('图片已自动瘦身');
+      }
+    } catch { /* 静默：下次打开再试 */ }
+  }
+
+  // 加载植物列表：元数据先行（几 KB，花架结构秒出），图片并行补载（浏览器缓存 7 天）
   const loadPlants = useCallback(async () => {
     setLoadErr(null);
     try {
       const res = await API.plants.list();
-      setPlants(res?.plants || []);
+      const list = res?.plants || [];
+      setPlants(list);
       // 更新 zCounter 为最大 z_index + 1
-      const maxZ = (res?.plants || []).reduce((mx, p) => Math.max(mx, p.z_index || 0), 0);
+      const maxZ = list.reduce((mx, p) => Math.max(mx, p.z_index || 0), 0);
       zCounter.current = maxZ + 1;
+      // 图片懒加载：每株单独拉（URL 带 image_ver，命中浏览器缓存时零网络）
+      list.filter(p => p.has_image && !p.image).forEach(p => {
+        API.plants.image(p.id, p.image_ver).then(r => {
+          if (!r?.image) return;
+          setPlants(prev => prev.map(q => q.id === p.id ? { ...q, image: r.image } : q));
+          optimizeIfBig(p.id, r.image);
+        }).catch(() => { /* 单株失败不影响其他 */ });
+      });
     } catch (e) {
       setLoadErr(e?.message || '花架加载失败，请检查网络后刷新');
       setPlants([]);
@@ -200,10 +251,10 @@ export default function PlantingShelf({ onCountChange }) {
 
   useEffect(() => { loadPlants(); }, [loadPlants]);
 
-  // ---- 文件上传（跳过 upload 校验接口，base64 直接 create）----
+  // ---- 文件上传（跳过 upload 校验接口，base64 直接 create；入库前 canvas 压缩）----
   const handleFileSelect = useCallback(async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    if (file.size > 2 * 1024 * 1024) { alert('图片不能超过 2MB'); return; }
+    if (file.size > 8 * 1024 * 1024) { alert('图片不能超过 8MB'); return; }
     // 转 base64
     const reader = new FileReader();
     let dataUrl;
@@ -214,6 +265,9 @@ export default function PlantingShelf({ onCountChange }) {
         reader.readAsDataURL(file);
       });
     } catch (e) { alert('读取图片失败'); return; }
+    // 压缩（480px + WebP 保透明）：新图从源头就小，加载快
+    dataUrl = await compressDataUrl(dataUrl, 480);
+    if (dataUrl.length > 3 * 1024 * 1024) { alert('图片过大，请换一张'); return; }
     // 直接创建植物，默认中心位置
     const z = zCounter.current++;
     try {
@@ -509,16 +563,26 @@ export default function PlantingShelf({ onCountChange }) {
                 opacity: isSel || dragging === plant.id ? 1 : 0,
                 transition: 'opacity 0.2s',
               }} />
-              {/* 植物图片（maxWidth/maxHeight × size 实现真实布局缩放，命中区域随之变化） */}
-              <img src={plant.image} alt={plant.name || '植物'}
-                className="block object-contain"
-                draggable={false}
-                style={{
-                  filter: 'drop-shadow(0 5px 6px rgba(80,60,30,0.15))',
-                  pointerEvents: 'none',
-                  maxWidth: `${140 * (plant.size || 1)}px`,
-                  maxHeight: `${160 * (plant.size || 1)}px`,
-                }} />
+              {/* 植物图片（maxWidth/maxHeight × size 实现真实布局缩放，命中区域随之变化）；
+                  图片未加载完 → 绿色虚线占位圈（列表元数据秒开，图片并行补载） */}
+              {plant.image ? (
+                <img src={plant.image} alt={plant.name || '植物'}
+                  className="block object-contain"
+                  draggable={false}
+                  style={{
+                    filter: 'drop-shadow(0 5px 6px rgba(80,60,30,0.15))',
+                    pointerEvents: 'none',
+                    maxWidth: `${140 * (plant.size || 1)}px`,
+                    maxHeight: `${160 * (plant.size || 1)}px`,
+                  }} />
+              ) : (
+                <div className="animate-pulse rounded-full"
+                  style={{
+                    width: 64, height: 64, pointerEvents: 'none',
+                    border: '2px dashed rgba(95,168,95,0.35)',
+                    background: 'rgba(95,168,95,0.06)',
+                  }} />
+              )}
               {/* 四角缩放手柄（选中时显示，对角拖动等比缩放） */}
               {isSel && resizing !== plant.id && (
                 <>
@@ -774,7 +838,9 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
           style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <div className="w-12 h-12 rounded-xl grid place-items-center flex-shrink-0"
             style={{ background: 'rgba(95,168,95,0.08)', border: '1px solid rgba(0,0,0,0.04)' }}>
-            <img src={plant.image} alt="" className="w-8 h-8 object-contain" />
+            {plant.image
+              ? <img src={plant.image} alt="" className="w-8 h-8 object-contain" />
+              : <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(95,168,95,0.12)' }} />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">

@@ -1,13 +1,19 @@
 // ============================================================
 // /api/plants/* 植物花架 CRUD（Cloudflare Pages Functions · D1）
 //   图片以 base64 data URL 存 D1 plants.image 列（≤2MB）
+//   性能：list 不返回 image（只回 has_image 标记），图片走 /plants/image 单独拉取
+//   并带 Cache-Control（URL 含 image_ver 版本号，图片变了 URL 变，可安全长缓存）
 // ============================================================
 import { json, uid } from '../core.js';
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = /^data:image\/(png|jpeg|jpg|webp);base64,/;
 
+// 懒迁移完成标记（Worker isolate 内复用，避免每次请求都跑 5-6 条 DDL 往返）
+let _plantsTableReady = false;
+
 export async function ensurePlantsTable(env) {
+  if (_plantsTableReady) return;
   try {
     await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS plants (
@@ -42,6 +48,11 @@ export async function ensurePlantsTable(env) {
     try {
       await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_plants_user ON plants(user_id)`).run();
     } catch { /* ignore */ }
+    // 图片版本号（图片更新时 +1，前端把它拼进 /plants/image URL 做缓存键）
+    try {
+      await env.DB.prepare(`ALTER TABLE plants ADD COLUMN image_ver INTEGER DEFAULT 0`).run();
+    } catch { /* 列已存在 */ }
+    _plantsTableReady = true;
   } catch (e) {
     // 忽略表创建错误（可能并发）
   }
@@ -64,12 +75,31 @@ function safeStr(v, fallback = '') {
   return String(v).slice(0, 500);
 }
 
+// 列表只回元数据（不含 image 大字段，响应从数 MB 降到几 KB，花架秒开）
 export async function handlePlantsList(env, qOrBody) {
   await ensurePlantsTable(env);
   const r = await env.DB.prepare(
-    'SELECT * FROM plants WHERE user_id = ? ORDER BY z_index ASC, id ASC'
+    `SELECT id, name, pos_x, pos_y, z_index, planted_at, traits, care_method,
+            water_cycle_days, last_watered, fert_cycle_days, last_fertilized, size,
+            COALESCE(image_ver, 0) AS image_ver, (image IS NOT NULL) AS has_image
+     FROM plants WHERE user_id = ? ORDER BY z_index ASC, id ASC`
   ).bind(uid(env)).all();
   return json({ plants: r.results || [] });
+}
+
+// 单株图片：前端按 id+image_ver 拼 URL 拉取；图片只有更新时 ver 才变 → URL 变 → 可长缓存
+export async function handlePlantsImage(env, qOrBody) {
+  await ensurePlantsTable(env);
+  const q = qOrBody || {};
+  const id = Number(q.id);
+  if (!id) return json({ error: '缺少 id' }, 400);
+  const r = await env.DB.prepare(
+    'SELECT image, COALESCE(image_ver, 0) AS image_ver FROM plants WHERE id = ? AND user_id = ?'
+  ).bind(id, uid(env)).first();
+  if (!r) return json({ error: '植物不存在' }, 404);
+  return json({ id, image: r.image || null, image_ver: r.image_ver || 0 }, 200, {
+    'Cache-Control': 'private, max-age=604800', // 7 天（URL 含版本号，内容变即换 URL）
+  });
 }
 
 export async function handlePlantsCreate(env, body) {
@@ -126,6 +156,8 @@ export async function handlePlantsUpdate(env, body) {
   };
   push('name', b.name, v => safeStr(v, ''));
   push('image', b.image);
+  // 图片变更 → 版本号 +1（前端图片 URL 随之改变，缓存自动失效）
+  if (b.image !== undefined) { sets.push('image_ver'); vals.push((existing.image_ver || 0) + 1); }
   push('pos_x', b.pos_x, v => clampPos(v));
   push('pos_y', b.pos_y, v => clampPos(v));
   push('z_index', b.z_index, v => Number(v) || 0);

@@ -274,7 +274,9 @@ export const API = {
 
   // 种植花架（生活页 · 种植类目）：图片 base64 存后端，CRUD 对齐其他模块
   plants: {
+    // list 只回元数据（秒开）；image 按 id+ver 单独拉取，ver 变则 URL 变（浏览器缓存友好）
     async list() { return fetchPages('/plants/list', {}, 'GET'); },
+    async image(id, ver) { return fetchPages(`/plants/image?id=${id}&v=${ver || 0}`, {}, 'GET'); },
     async create(data) { return fetchPages('/plants/create', data); },
     async update(id, data) { return fetchPages('/plants/update', { id, ...data }); },
     async remove(id) { return fetchPages('/plants/remove', { id }); },

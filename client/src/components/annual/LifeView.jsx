@@ -105,9 +105,14 @@ function LifeCatIcon({ catKey, lb, className, style }) {
 
 export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd, onBirthdayAdd, onBirthdayEdit, onBirthdayDelete, bdRefreshKey }) {
   const dynLife = lifeData || LIFE;
-  const totalEntries = dynLife.reduce((s, c) => s + c.entries.length, 0);
+  // 种植分类 count 不来自 entries，来自 plants API
+  const [plantCount, setPlantCount] = useState(null);
+  useEffect(() => { API.plants.list().then(r => setPlantCount((r.plants || []).length)).catch(() => setPlantCount(0)); }, []);
+  // 给 planting 行覆写 count（统计条 / 左侧分类行共用）
+  const lifeWithCount = useMemo(() => dynLife.map(c => c.key === 'planting' ? { ...c, count: plantCount ?? c.entries.length } : { ...c, count: c.entries.length }), [dynLife, plantCount]);
+  const totalEntries = lifeWithCount.reduce((s, c) => s + c.count, 0);
   // 生活模块完成率：有记录的类目数 / 总类目数 * 100（体验型鼓励每个类目都有内容）
-  const lifePct = Math.round((dynLife.filter(c => c.entries.length > 0).length / dynLife.length) * 100);
+  const lifePct = Math.round((lifeWithCount.filter(c => c.count > 0).length / lifeWithCount.length) * 100);
   const hlCount = Array.isArray(highlightedIds) ? highlightedIds.length : 0;
 
   /* ===== 双面板布局：左类目导航（筛选器）+ 右时间流（唯一主视图） ===== */
@@ -571,7 +576,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               const key = row.key;
               const isBd = key === 'birthday';
               const active = lifeFilter === key;
-              const cnt = isBd ? birthdays.length : row.entries.length;
+              const cnt = isBd ? birthdays.length : (key === 'planting' ? (plantCount ?? 0) : row.entries.length);
               return (
                 <div key={key}
                   draggable

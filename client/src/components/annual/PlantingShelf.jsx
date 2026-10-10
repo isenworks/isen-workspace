@@ -249,9 +249,7 @@ export default function PlantingShelf() {
         /* 蝴蝶翅膀开合 */
         .bf-wing { transform-origin: center; animation: b-wing 0.4s ease-in-out infinite alternate; }
         @keyframes b-wing { 0% { transform: scaleX(1); } 100% { transform: scaleX(0.6); } }
-        /* 植物微摇 */
-        .plant-sway { transform-origin: bottom center; animation: plant-sway 4s ease-in-out infinite alternate; }
-        @keyframes plant-sway { 0% { transform: rotate(-1.5deg); } 100% { transform: rotate(1.5deg); } }
+        /* 植物微摇（已移除：用户反馈不喜欢摇晃效果） */
         /* 蜜蜂飞行 */
         .bee-fly-1 { animation: bee-fly-1 14s ease-in-out infinite; }
         @keyframes bee-fly-1 { 0%{transform:translate(0,0) rotate(-5deg)} 20%{transform:translate(40px,-20px) rotate(10deg)} 40%{transform:translate(80px,10px) rotate(-8deg)} 60%{transform:translate(30px,30px) rotate(5deg)} 80%{transform:translate(-20px,-15px) rotate(-12deg)} 100%{transform:translate(0,0) rotate(-5deg)} }
@@ -263,7 +261,7 @@ export default function PlantingShelf() {
         .bf-fly-2 { animation: bf-fly-2 22s ease-in-out infinite; }
         @keyframes bf-fly-2 { 0%{transform:translate(0,0)} 30%{transform:translate(40px,-20px) rotate(6deg)} 60%{transform:translate(-20px,15px) rotate(-4deg)} 100%{transform:translate(0,0)} }
         @media (prefers-reduced-motion: reduce) {
-          .bee-wing, .bf-wing, .plant-sway, .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2 { animation: none !important; }
+          .bee-wing, .bf-wing, .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2 { animation: none !important; }
         }
       `}</style>
 
@@ -350,7 +348,7 @@ export default function PlantingShelf() {
               }} />
               {/* 植物图片 */}
               <img src={plant.image} alt={plant.name || '植物'}
-                className="plant-sway block max-w-[140px] max-h-[160px] object-contain"
+                className="block max-w-[140px] max-h-[160px] object-contain"
                 draggable={false}
                 style={{
                   filter: 'drop-shadow(0 5px 6px rgba(80,60,30,0.15))',
@@ -370,10 +368,15 @@ export default function PlantingShelf() {
               </div>
               {/* 浇水超期角标 */}
               {ws?.level === 'alert' && (
-                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                  style={{ background: '#FF3B30', boxShadow: '0 1px 4px rgba(255,59,48,0.4)' }}>
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><path d="M12 5v8M12 17h.01"/></svg>
-                </div>
+                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center animate-pulse"
+                  style={{
+                    background: '#FF3B30',
+                    boxShadow: '0 2px 8px rgba(255,59,48,0.55), 0 0 0 2px #fff',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontWeight: '900',
+                    lineHeight: '1',
+                  }}>!</div>
               )}
             </div>
           );

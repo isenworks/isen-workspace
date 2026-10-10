@@ -587,14 +587,22 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
                 L{Math.ceil((plant.pos_y || 0) / 33) || 1}
               </span>
             </div>
-            {form.planted_at && (
-              <div className="flex items-center gap-1.5 mt-1.5 text-[11px]" style={{ color: '#6B6B70' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                <span>已种植</span>
-                <span className="font-bold tabular-nums" style={{ color: '#3E7D3E' }}>{days}</span>
-                <span>天 · {form.planted_at}</span>
-              </div>
-            )}
+            {/* 可点击的已种植行：label 包裹隐藏的 date input，点击日期即弹系统日期选择器 */}
+            <label className="flex items-center gap-1.5 mt-1.5 text-[11px] select-none cursor-pointer group" style={{ color: '#6B6B70' }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <span>已种植</span>
+              <span className="font-bold tabular-nums" style={{ color: '#3E7D3E' }}>{days}</span>
+              <span>天 · </span>
+              <span className="inline-flex items-center gap-0.5 font-medium tabular-nums px-1 -mx-1 rounded transition"
+                style={{ color: '#1c1c1e', background: 'rgba(95,168,95,0.08)' }}>
+                {form.planted_at || '点击选择日期'}
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#6B6B70" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+              <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
+                className="absolute opacity-0 pointer-events-none w-0 h-0" style={{ position: 'absolute' }} />
+            </label>
           </div>
         </div>
 
@@ -657,27 +665,18 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
             </div>
           </div>
 
-          {/* 种植日期 */}
-          <div className="flex items-center gap-2.5">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 ml-0.5">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-            </svg>
-            <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-              className="flex-1 text-[12px] text-[#1c1c1e] bg-[rgba(120,120,128,0.05)] rounded-lg px-2.5 py-1.5 outline-none border border-transparent focus:border-[#3E7D3E] transition" />
-          </div>
-
           {/* 特性 */}
           <div>
-            <div className="text-[10px] text-[#8e8e93] mb-1 font-medium">特性</div>
+            <div className="text-[11px] text-[#8e8e93] mb-1.5 font-semibold tracking-wide">特性</div>
             <textarea value={form.traits} onChange={(e) => update('traits', e.target.value)} placeholder="喜温暖湿润，耐阴…" rows={2}
-              className="w-full text-[12.5px] text-[#1c1c1e] bg-[rgba(120,120,128,0.04)] rounded-lg px-3 py-2 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
+              className="w-full text-[13.5px] text-[#1c1c1e] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
           </div>
 
           {/* 养护方法 */}
           <div>
-            <div className="text-[10px] text-[#8e8e93] mb-1 font-medium">养护方法</div>
+            <div className="text-[11px] text-[#8e8e93] mb-1.5 font-semibold tracking-wide">养护方法</div>
             <textarea value={form.care_method} onChange={(e) => update('care_method', e.target.value)} placeholder="每周浇水 1 次…" rows={2}
-              className="w-full text-[12.5px] text-[#1c1c1e] bg-[rgba(120,120,128,0.04)] rounded-lg px-3 py-2 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
+              className="w-full text-[13.5px] text-[#1c1c1e] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
           </div>
         </div>
 

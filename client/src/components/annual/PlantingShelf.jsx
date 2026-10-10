@@ -360,7 +360,7 @@ export default function PlantingShelf({ onCountChange }) {
         onDragOver={onCanvasDragOver}
         onDrop={onCanvasDrop}>
 
-        {/* 三层木层板（z-index 高于植物，盖住花盆底部） */}
+        {/* 三层木层板（独立层叠层 zIndex 4 > 植物层 2，永远盖住花盆底部） */}
         {[28, 56, 82].map((top, i) => {
           const c = s.layer_colors[i] || '#9A7F5C';
           return (
@@ -403,8 +403,10 @@ export default function PlantingShelf({ onCountChange }) {
           </button>
         </div>
 
-        {/* 植物们 */}
-        {sortedPlants.map(plant => {
+        {/* 植物们（独立层叠上下文 zIndex 2 < 木板层 4：无论 z_index 多大都在木板之下，
+            植物间相互层叠用排序索引，容器 pointer-events:none 透传画布点击） */}
+        <div className="absolute inset-0" style={{ zIndex: 2, pointerEvents: 'none' }}>
+        {sortedPlants.map((plant, i) => {
           const isSel = selected?.id === plant.id;
           const ws = waterStatus(plant);
           return (
@@ -412,7 +414,8 @@ export default function PlantingShelf({ onCountChange }) {
               className="absolute cursor-grab active:cursor-grabbing select-none"
               style={{
                 left: `${plant.pos_x}%`, top: `${plant.pos_y}%`,
-                zIndex: isSel ? 6 : (plant.z_index || 0),
+                zIndex: isSel ? sortedPlants.length + 1 : i + 1,
+                pointerEvents: 'auto',
                 transform: 'translate(-50%, -50%)',
                 transition: dragging === plant.id ? 'none' : 'transform 0.18s cubic-bezier(.34,1.56,.64,1)',
               }}
@@ -460,6 +463,7 @@ export default function PlantingShelf({ onCountChange }) {
             </div>
           );
         })}
+        </div>
 
         {/* 空状态 */}
         {plants.length === 0 && !loading && (

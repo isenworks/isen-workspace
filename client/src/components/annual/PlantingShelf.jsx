@@ -746,7 +746,7 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
         <div className="flex-1 flex items-center gap-1.5 rounded-lg min-w-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">上次</span>
           <input type="date" value={last} onChange={(e) => onLastChange(e.target.value)}
-            className="dp text-[10px] min-w-0" style={{ width: 96 }} title="修改上次日期" />
+            className="dp min-w-0 flex-1" title="修改上次日期" />
         </div>
         <div className="flex items-center gap-1 rounded-lg flex-shrink-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">周期</span>
@@ -823,14 +823,22 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
         }}>
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-          /* 原生日期输入内嵌化：去边框去底色，仅保留日历指示器暗示可点 */
+          /* 原生日期输入内嵌化：去边框去底色，仅保留日历指示器暗示可点。
+             font:inherit 会继承抽屉 16px 且压不住 WebKit date 内部默认尺寸 → 显式锁 10.5px */
           .dp { appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
-            font: inherit; font-family: inherit; color: #1c1c1e; font-weight: 400; padding: 0; margin: 0;
-            cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.01em; }
-          /* WebKit 原生日期编辑区：强制压小字体权重，系统默认太粗 */
-          .dp::-webkit-datetime-edit { padding: 0; font-weight: 400; font-size: inherit; }
-          .dp::-webkit-datetime-edit-fields-wrapper { font-weight: 400; }
-          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .4; padding: 0; margin-left: 2px; transform: scale(0.85); }
+            font-family: inherit; font-size: 10.5px; font-weight: 400; padding: 0; margin: 0;
+            color: #1c1c1e; cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1.15; letter-spacing: -0.01em; }
+          /* WebKit 日期编辑区：与外层同字号（缺这条 Chrome 会用内部默认字号渲染数字） */
+          .dp::-webkit-datetime-edit { padding: 0; font-size: 10.5px; font-weight: 400; }
+          .dp::-webkit-datetime-edit-fields-wrapper { font-size: 10.5px; font-weight: 400; }
+          .dp::-webkit-datetime-edit-text { font-size: 10.5px; padding: 0; }
+          /* 日历指示器：缩到 0.7 + 固定右侧留位，不再压住日期数字 */
+          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .38; padding: 0; margin: 0;
+            width: 12px; height: 12px; transform: scale(0.7); flex-shrink: 0; }
+          .dp::-webkit-datetime-edit-fields-wrapper { display: flex; }
+          .dp:not(.dp-lg) { width: 100%; }
+          /* Firefox：无指示器，纯文本即可 */
+          .dp::-moz-dateedit, .dp::-moz-calendar-picker-indicator { font-size: 10.5px; }
         `}</style>
 
         {/* 头部 */}
@@ -858,7 +866,7 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
               <span className="font-bold tabular-nums" style={{ color: '#3E7D3E' }}>{days}</span>
               <span>天 ·</span>
               <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-                className="dp text-[10.5px] rounded-lg" style={{ width: 100, padding: '2px 8px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)' }}
+                className="dp rounded-lg" style={{ width: 112, padding: '2px 8px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)' }}
                 title="修改种植日期" />
             </div>
           </div>

@@ -86,6 +86,7 @@ const AIChat = forwardRef(function AIChat({
   // 暴露 clear 方法给父组件（headerless 时由父组件触发）
   useImperativeHandle(ref, () => ({
     clear: () => {
+      msgsRef.current = [];
       setMessages([]);
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     },
@@ -246,13 +247,20 @@ const AIChat = forwardRef(function AIChat({
       return;
     }
 
-    setMessages(prev => [...prev, { id: genId(), role: 'user', content: text }]);
+    // 首条用户消息判定（必须在写入 ref 之前做）
+    const isFirstUser = !msgsRef.current.some(m => m.role === 'user');
+
+    // 同步写入 ref 与 state：runConversation 会立即读取 ref 构建请求体，
+    // 若只 setMessages 不更新 ref，本次请求会漏掉刚发出的用户消息，
+    // messages 只剩 system → 接口报「messages 参数非法」
+    msgsRef.current = [...msgsRef.current, { id: genId(), role: 'user', content: text }];
+    setMessages(msgsRef.current);
+
     setInput('');
     setStreaming(true);
     abortRef.current = new AbortController();
 
     // 通知父组件：首条用户消息用于派生会话标题
-    const isFirstUser = !msgsRef.current.some(m => m.role === 'user');
     onUserMessage?.(text, isFirstUser);
 
     try {
@@ -273,6 +281,7 @@ const AIChat = forwardRef(function AIChat({
   // ===== 清空消息（二次确认）=====
   const [confirmClear, setConfirmClear] = useState(false);
   const handleClear = useCallback(() => {
+    msgsRef.current = [];
     setMessages([]);
     setConfirmClear(false);
     try { localStorage.removeItem(storageKey); } catch { /* ignore */ }

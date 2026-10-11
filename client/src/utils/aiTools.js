@@ -9,6 +9,19 @@
 import { API } from '../api/client.js';
 import { today as getToday, toISODate, addDaysISO } from './date.js';
 
+// 相对日期兜底：模型偶尔仍会直接吐「明天」「后天」等自然语言，这里统一换算成 ISO，
+// 避免把非法日期丢给后端导致创建失败或建到错误日期。
+const RELATIVE_DAYS = {
+  '今天': 0, '今日': 0, '明天': 1, '明日': 1, '后天': 2,
+  '大后天': 3, '昨天': -1, '昨日': -1, '前天': -2,
+};
+function resolveDate(input) {
+  if (!input || typeof input !== 'string') return getToday();
+  const s = input.trim();
+  if (s in RELATIVE_DAYS) return addDaysISO(getToday(), RELATIVE_DAYS[s]);
+  return s; // 其余交给后端 normalizeDate 校验/规范化
+}
+
 // ===== 工具定义（OpenAI function calling 格式）=====
 export const aiToolDefinitions = [
   // ── 读数据工具 ──
@@ -16,16 +29,26 @@ export const aiToolDefinitions = [
     type: 'function',
     function: {
       name: 'get_today_schedules',
-      description: '获取今天的日程列表，包括标题、时间、是否完成、分类',
-      parameters: { type: 'object', properties: {} },
+      description: '获取指定日期（默认今天）的日程列表，包括标题、时间、是否完成、分类',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: '要查询的日期 YYYY-MM-DD，默认今天' },
+        },
+      },
     },
   },
   {
     type: 'function',
     function: {
       name: 'get_today_tasks',
-      description: '获取今天的待办任务列表，包括标题、优先级、是否完成',
-      parameters: { type: 'object', properties: {} },
+      description: '获取指定日期（默认今天）的待办任务列表，包括标题、优先级、是否完成。核对某天是否已创建任务时传入 date',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: '要查询的日期 YYYY-MM-DD，默认今天' },
+        },
+      },
     },
   },
   {
@@ -75,7 +98,7 @@ export const aiToolDefinitions = [
     type: 'function',
     function: {
       name: 'create_schedule',
-      description: '创建一条日程到日历/今日计划。创建前先向用户确认',
+      description: '创建一条日程到日历/今日计划。date 用 YYYY-MM-DD（明天/后天需按当前日期换算），默认今天。创建前先向用户确认',
       parameters: {
         type: 'object',
         properties: {
@@ -94,7 +117,7 @@ export const aiToolDefinitions = [
     type: 'function',
     function: {
       name: 'create_task',
-      description: '创建一条待办任务到今日计划。创建前先向用户确认',
+      description: '创建一条待办任务到今日计划。date 用 YYYY-MM-DD（明天/后天需按当前日期换算），默认今天。创建前先向用户确认',
       parameters: {
         type: 'object',
         properties: {
@@ -134,25 +157,25 @@ export async function executeTool(name, args = {}) {
   switch (name) {
     // ── 读数据 ──
     case 'get_today_schedules': {
-      const today = getToday();
-      const res = await API.schedules.list({ from: today, to: today });
+      const day = resolveDate(args.date);
+      const res = await API.schedules.list({ from: day, to: day });
       const items = (res?.schedules || res?.items || []).map(s => ({
         title: s.title,
         time: s.start_time ? `${s.start_time}${s.end_time ? '-' + s.end_time : ''}` : '全天',
         done: !!s.is_done,
         category: s.category || '',
       }));
-      return { date: today, count: items.length, schedules: items };
+      return { date: day, count: items.length, schedules: items };
     }
     case 'get_today_tasks': {
-      const today = getToday();
-      const res = await API.tasks.list({ from: today, to: today });
+      const day = resolveDate(args.date);
+      const res = await API.tasks.list({ from: day, to: day });
       const items = (res?.tasks || res?.items || []).map(t => ({
         title: t.title,
         priority: t.priority || 'medium',
         done: !!t.is_done,
       }));
-      return { date: today, count: items.length, tasks: items };
+      return { date: day, count: items.length, tasks: items };
     }
     case 'get_habits_stats': {
       const days = Math.max(1, Math.min(90, args.days || 7));
@@ -193,7 +216,7 @@ export async function executeTool(name, args = {}) {
     case 'create_schedule': {
       const data = {
         title: args.title,
-        date: args.date || getToday(),
+        date: resolveDate(args.date),
         start_time: args.start_time || '',
         end_time: args.end_time || '',
         category: args.category || '工作',
@@ -205,7 +228,7 @@ export async function executeTool(name, args = {}) {
     case 'create_task': {
       const data = {
         title: args.title,
-        date: args.date || getToday(),
+        date: resolveDate(args.date),
         priority: args.priority || 'medium',
       };
       const res = await API.tasks.create(data);

@@ -7,6 +7,7 @@
  *   · renderMarkdown：极简 Markdown → HTML（加粗/列表/代码/标题/链接）
  *   · buildSystemPrompt：根据模式构建系统提示词
  * ============================================================ */
+import { today as getToday, addDaysISO, fromISODate } from './date.js';
 
 // ===== 模型配置（方便以后加新模型）=====
 export const modelConfigs = {
@@ -76,6 +77,29 @@ export function saveAIConfig(config) {
 }
 
 // ===== 系统提示词构建 =====
+// 关键：必须显式注入「当前日期」，否则模型对「今天/明天/后天」等相对时间只能靠猜，
+// 会把任务建到错误日期上（工作台里看不到，模型的 today 查询也查不到）。
+function buildDateContext() {
+  const t = getToday();
+  const d = fromISODate(t);
+  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()];
+  return [
+    `【当前日期】今天是 ${t}（${week}）。`,
+    '用户提到「今天/明天/后天/昨天/本周/下周」等相对时间时，一律基于该日期换算为具体日期（格式 YYYY-MM-DD），禁止凭记忆编造日期。',
+    `例如：今天=${t}，明天=${addDaysISO(t, 1)}，后天=${addDaysISO(t, 2)}，昨天=${addDaysISO(t, -1)}。`,
+  ].join('\n');
+}
+
+// 工具使用规范（通用问答 / 知识库问答都适用）
+const TOOL_GUIDE = [
+  '【工具使用】',
+  '- 你可以调用工具查询与创建工作台的日程、待办、小记。用户让你「加/建/记一个待办或日程」时，应调用对应创建工具，而不是只回复文字。',
+  '- 创建日程/待办时必须给出准确 date（YYYY-MM-DD）；用户说「明天」就按上面换算出的日期填写，不确定就先询问。',
+  '- 执行创建类操作前，先用一两句话复述要点请求确认。',
+  '- 创建成功后，必须明确告知用户「已创建到 X 年 X 月 X 日」，不要只说「已添加」，以免用户找不到。',
+  '- 若用户反馈看不到，可调用查询工具按用户说的日期核对（查询工具支持传入 date 参数）。',
+].join('\n');
+
 export function buildSystemPrompt(mode, knowledgeBaseText) {
   if (mode === 'kb' && knowledgeBaseText) {
     return [
@@ -84,16 +108,26 @@ export function buildSystemPrompt(mode, knowledgeBaseText) {
       '【知识库内容】',
       knowledgeBaseText,
       '',
+      buildDateContext(),
+      '',
+      TOOL_GUIDE,
+      '',
       '回答规则：',
       '1. 仅基于上方知识库内容回答，不要编造知识库中没有的信息。',
-      '2. 如果知识库中没有相关内容，直接回答「这个问题我的知识库里没有，建议切换到通用问答模式询问。」',
+      '2. 如果知识库中没有相关内容，直接回答「这个问题我的知识库里没有，建议切换到通用问答模式询问。」（但用户要求创建日程/待办等工具操作时，正常执行工具）。',
       '3. 口吻亲切专业，简洁明了。',
       '4. 禁止使用绝对化用语（如"最""唯一""第一"等）。',
       '5. 如果引用了知识库条目，在回答末尾标注来源条目标题。',
     ].join('\n');
   }
   // 通用问答
-  return '你是一个智能助手，请准确回答用户问题。回答简洁明了，口吻亲切专业。';
+  return [
+    '你是一个智能助手，请准确回答用户问题。回答简洁明了，口吻亲切专业。',
+    '',
+    buildDateContext(),
+    '',
+    TOOL_GUIDE,
+  ].join('\n');
 }
 
 // ===== 流式调用核心（OpenAI 兼容格式，支持 function calling）=====

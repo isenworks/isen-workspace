@@ -200,3 +200,38 @@ export function IconRepeat({ size = 14, strokeWidth = 2 }) {
     <path d="M21 13v2a4 4 0 0 1-4 4H3" />
   </>);
 }
+
+// 文件夹（章节分组）
+export function IconFolder({ size = 14, strokeWidth = 2 }) {
+  return base(size, strokeWidth, <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />);
+}
+
+// 文档（正文条目）
+export function IconFile({ size = 14, strokeWidth = 2 }) {
+  return base(size, strokeWidth, <>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </>);
+}
+
+// 垃圾桶（删除）
+export function IconTrash({ size = 14, strokeWidth = 2 }) {
+  return base(size, strokeWidth, <>
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </>);
+}
+
+// 更多（更多操作）
+export function IconMore({ size = 14, strokeWidth = 2 }) {
+  return base(size, strokeWidth, <>
+    <circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none" />
+  </>);
+}
+
+// 右折角（展开指示）
+export function IconChevronRight({ size = 14, strokeWidth = 2.2 }) {
+  return base(size, strokeWidth, <polyline points="9 6 15 12 9 18" />);
+}

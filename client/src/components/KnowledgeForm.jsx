@@ -3,16 +3,19 @@ import Modal from './Modal.jsx';
 import { addKBEntry, updateKBEntry } from '../utils/aiKnowledgeBase.js';
 import { IconImport, IconPen, IconLink } from './aiIcons.jsx';
 
-/* KnowledgeForm · 知识条目编辑弹窗（富文本编辑器，风格对齐工作台 Modal）
+/* KnowledgeForm · 知识文档编辑弹窗（富文本编辑器，风格对齐工作台 Modal）
    Props:
      - open
      - onClose
      - entry  编辑目标（null=新建）
      - defaultSource  新建时的默认来源（manual/feishu/web）
+     - kbId   新建文档归属的知识库
+     - group  新建文档的默认分组（章节名）
 */
-export default function KnowledgeForm({ open, onClose, entry = null, defaultSource = 'manual' }) {
+export default function KnowledgeForm({ open, onClose, entry = null, defaultSource = 'manual', kbId = null, group = '' }) {
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
+  const [groupName, setGroupName] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [source, setSource] = useState('manual');
   const contentRef = useRef(null);
@@ -25,6 +28,7 @@ export default function KnowledgeForm({ open, onClose, entry = null, defaultSour
     if (entry) {
       setTitle(entry.title || '');
       setTags((entry.tags || []).join(', '));
+      setGroupName(entry.group || '');
       setSourceUrl(entry.sourceUrl || '');
       setSource(entry.source || 'manual');
       setTimeout(() => {
@@ -33,13 +37,14 @@ export default function KnowledgeForm({ open, onClose, entry = null, defaultSour
     } else {
       setTitle('');
       setTags('');
+      setGroupName(group || '');
       setSourceUrl('');
       setSource(defaultSource);
       setTimeout(() => {
         if (contentRef.current) contentRef.current.innerHTML = '';
       }, 0);
     }
-  }, [open, entry, defaultSource]);
+  }, [open, entry, defaultSource, group]);
 
   // 富文本工具栏命令
   const execCmd = (cmd, val = null) => {
@@ -59,11 +64,12 @@ export default function KnowledgeForm({ open, onClose, entry = null, defaultSour
       source,
       sourceUrl: sourceUrl.trim(),
       tags: tagArr,
+      group: groupName.trim(),
     };
     if (isEdit) {
       updateKBEntry(entry.id, data);
     } else {
-      addKBEntry(data);
+      addKBEntry({ ...data, kbId });
     }
     onClose?.();
   };
@@ -83,7 +89,7 @@ export default function KnowledgeForm({ open, onClose, entry = null, defaultSour
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? '编辑条目' : '新建条目'}
+      title={isEdit ? '编辑文档' : '新建文档'}
       maxWidth={560}
       footer={
         <>
@@ -143,6 +149,18 @@ export default function KnowledgeForm({ open, onClose, entry = null, defaultSour
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="如：思考, 阅读摘录, 产品案例"
+          className={inputCls}
+        />
+      </div>
+
+      {/* 分组（章节） */}
+      <div className="mb-3">
+        <label className={labelCls}>分组 <span className="font-normal text-ink-400">（章节名，留空则归入「未分组」）</span></label>
+        <input
+          type="text"
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+          placeholder="如：第一章 · 用户研究"
           className={inputCls}
         />
       </div>

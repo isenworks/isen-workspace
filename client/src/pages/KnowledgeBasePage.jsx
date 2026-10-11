@@ -184,11 +184,11 @@ export default function KnowledgeBasePage() {
   };
 
   return (
-    <div className="flex-1 min-w-0 w-full flex flex-col">
-      {/* ===== 外层大卡片 ===== */}
-      <div className="flex-1 min-h-0 bg-surface-base border border-ink-100/70 rounded-[18px] p-4 flex flex-col">
+    <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
+      {/* ===== 顶部横条卡 ===== */}
+      <div className="glass-card rounded-2xl p-2.5 flex-shrink-0">
         {/* 标题行 */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3">
           <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
           <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">知识库</span>
 
@@ -215,11 +215,10 @@ export default function KnowledgeBasePage() {
             新建知识库
           </button>
         </div>
+      </div>
 
-        <div className="my-3 h-px bg-ink-200/50 flex-shrink-0" />
-
-        {/* 主体：左书架卡 + 右（目录 + 正文）卡 */}
-        <div className="flex-1 min-h-0 flex gap-3 items-stretch">
+      {/* 主体：左书架卡 + 右（目录 + 正文）卡 */}
+      <div className="flex-1 min-h-0 flex gap-3 items-stretch">
           {/* ---- 左：知识库书架 ---- */}
           <div className="glass-card rounded-2xl w-[210px] flex-shrink-0 flex flex-col min-h-0 p-3">
             <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
@@ -473,7 +472,6 @@ export default function KnowledgeBasePage() {
               )}
             </div>
           </div>
-        </div>
       </div>
 
       {/* 新建 / 编辑文档 */}

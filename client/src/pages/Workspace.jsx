@@ -26,6 +26,8 @@ import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 const CalendarPage = lazy(() => import('./CalendarPage.jsx'));
 const HomePage = lazy(() => import('./HomePage.jsx'));
 const RecycleBinPage = lazy(() => import('./RecycleBinPage.jsx'));
+const KnowledgeBasePage = lazy(() => import('./KnowledgeBasePage.jsx'));
+const AIAssistantPage = lazy(() => import('./AIAssistantPage.jsx'));
 const InboxPage = lazy(() => import('./InboxPage.jsx'));
 const ScheduleForm = lazy(() => import('../components/forms/ScheduleForm.jsx'));
 const TaskForm = lazy(() => import('../components/forms/TaskForm.jsx'));
@@ -587,14 +589,9 @@ export default function Workspace({ user: propUser }) {
       ) : activeMenu === 'inbox' ? (
         <InboxPage onCountChange={setInboxCount} />
       ) : activeMenu === 'knowledge' ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-          </svg>
-          <div className="text-[15px] font-bold text-ink-900">知识库</div>
-          <div className="text-[12px] text-ink-400">即将上线，敬请期待</div>
-        </div>
+        <KnowledgeBasePage />
+      ) : activeMenu === 'ai' ? (
+        <AIAssistantPage />
       ) : activeMenu === 'recycle' ? (
         <RecycleBinPage />
       ) : activeMenu === 'calendar' ? (

@@ -3,256 +3,24 @@ import {
   getKBEntries, getKBTags, searchKB, removeKBEntry, syncKBFromCloud,
 } from '../utils/aiKnowledgeBase.js';
 import KnowledgeForm from '../components/KnowledgeForm.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import {
+  IconSearch, IconPlus, IconImport, IconClipboard, IconPen, IconLink, IconX, IconTag,
+} from '../components/aiIcons.jsx';
 
-/* 知识库页面：个人第二大脑
-   · 顶栏：搜索 + 飞书导入 + 粘贴 + 新建
-   · 左侧标签筛选（160px）
-   · 右侧条目卡片流
-   条目来源：手动 / 飞书 / 网页 */
-export default function KnowledgeBasePage() {
-  const [entries, setEntries] = useState([]);
-  const [tags, setTags] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTag, setActiveTag] = useState(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState(null);
-  const [defaultSource, setDefaultSource] = useState('manual');
-  const searchTimer = useRef(null);
+/* 知识库页面：个人第二大脑（风格对齐 InboxPage）
+   · 标题行：竖条 + 标题 + 工具按钮（搜索 / 飞书导入 / 粘贴 / 新建）
+   · 左侧标签筛选（glass-card 行式，InboxPage 同款交互）
+   · 右侧条目行式列表（glass-card + divide 分隔，高密度）
+   条目来源：manual / feishu / web */
 
-  // 刷新列表
-  const refresh = useCallback(() => {
-    setEntries(getKBEntries());
-    setTags(getKBTags());
-  }, []);
+// 来源元数据（图标 + 名称）
+const SOURCE_META = {
+  manual: { icon: IconPen, label: '手动' },
+  feishu: { icon: IconImport, label: '飞书' },
+  web:    { icon: IconLink, label: '网页' },
+};
 
-  // 加载 + 云端同步
-  useEffect(() => {
-    refresh();
-    syncKBFromCloud().then(() => refresh());
-  }, [refresh]);
-
-  // 搜索防抖（300ms）
-  const handleSearch = (val) => {
-    setSearchQuery(val);
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      const result = searchKB(val.trim(), activeTag);
-      setEntries(result);
-    }, 300);
-  };
-
-  // 标签筛选
-  const handleTagClick = (tag) => {
-    setActiveTag(tag);
-    const result = searchKB(searchQuery.trim(), tag);
-    setEntries(result);
-  };
-
-  // 新建
-  const handleNew = (source = 'manual') => {
-    setEditingEntry(null);
-    setDefaultSource(source);
-    setFormOpen(true);
-  };
-
-  // 编辑
-  const handleEdit = (entry) => {
-    setEditingEntry(entry);
-    setFormOpen(true);
-  };
-
-  // 删除
-  const handleDelete = (e, id) => {
-    e.stopPropagation();
-    if (!confirm('确定删除这条知识？')) return;
-    removeKBEntry(id);
-    refresh();
-  };
-
-  // 表单保存后刷新
-  const handleFormClose = () => {
-    setFormOpen(false);
-    setEditingEntry(null);
-    refresh();
-  };
-
-  // 条目来源图标
-  const sourceIcon = { manual: '💭', feishu: '📥', web: '🔗' };
-  const sourceLabel = { manual: '手动', feishu: '飞书', web: '网页' };
-
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* 顶栏 */}
-      <div style={{
-        display: 'flex', gap: '8px', alignItems: 'center',
-        padding: '0 0 12px',
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: '16px', fontWeight: '600', color: 'var(--s-text, #1c1c1e)', marginRight: '4px' }}>
-          📚 知识库
-        </span>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          placeholder="搜索标题、正文、标签..."
-          style={{
-            flex: 1, minWidth: 0,
-            padding: '8px 14px', borderRadius: '999px',
-            border: '1px solid rgba(60,60,67,0.18)',
-            fontSize: '13px', outline: 'none',
-            background: 'rgba(255,255,255,0.6)', color: '#1c1c1e',
-          }}
-        />
-        <button
-          onClick={() => handleNew('feishu')}
-          style={btnStyle(false)}
-        >📥 飞书导入</button>
-        <button
-          onClick={() => handleNew('web')}
-          style={btnStyle(false)}
-        >📋 粘贴</button>
-        <button
-          onClick={() => handleNew('manual')}
-          style={btnStyle(true)}
-        >+ 新建</button>
-      </div>
-
-      {/* 主体 */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: '12px' }}>
-        {/* 左侧标签栏 */}
-        <div style={{
-          width: '160px', flexShrink: 0,
-          display: 'flex', flexDirection: 'column', gap: '3px',
-          overflowY: 'auto',
-        }}>
-          <div style={{
-            fontSize: '11px', fontWeight: '600',
-            color: '#8e8e93', textTransform: 'uppercase',
-            letterSpacing: '0.05em', margin: '4px 6px 8px',
-          }}>筛选</div>
-          <TagItem
-            label="全部"
-            count={entries.length}
-            active={activeTag === null}
-            onClick={() => handleTagClick(null)}
-          />
-          {tags.map(t => (
-            <TagItem
-              key={t.name}
-              label={t.name}
-              count={t.count}
-              active={activeTag === t.name}
-              onClick={() => handleTagClick(t.name)}
-            />
-          ))}
-          <div
-            onClick={() => handleNew('manual')}
-            style={{
-              padding: '6px 10px', borderRadius: '8px',
-              fontSize: '12px', color: '#8e8e93', cursor: 'pointer',
-              marginTop: '4px',
-            }}
-          >+ 新建标签</div>
-        </div>
-
-        {/* 右侧条目列表 */}
-        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', paddingRight: '4px' }}>
-          {entries.length === 0 ? (
-            <div style={{
-              textAlign: 'center', padding: '60px 20px',
-              color: '#8e8e93',
-            }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
-              <div style={{ fontSize: '14px', marginBottom: '4px' }}>
-                {searchQuery || activeTag ? '没有匹配的知识条目' : '知识库还是空的'}
-              </div>
-              <div style={{ fontSize: '12px' }}>
-                {!searchQuery && !activeTag && '点击「新建」开始沉淀你的思考和阅读'}
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {entries.map(entry => {
-                const plainText = stripHtml(entry.content).slice(0, 100);
-                return (
-                  <div
-                    key={entry.id}
-                    onClick={() => handleEdit(entry)}
-                    style={{
-                      padding: '12px 14px', borderRadius: '12px',
-                      background: 'rgba(255,255,255,0.7)',
-                      border: '1px solid rgba(60,60,67,0.12)',
-                      cursor: 'pointer', transition: 'border-color .15s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(var(--s-rgb),0.3)'}
-                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(60,60,67,0.12)'}
-                  >
-                    {/* 第一行：图标 + 标题 + 来源 */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '14px' }}>{sourceIcon[entry.source] || '📝'}</span>
-                      <span style={{
-                        flex: 1, minWidth: 0,
-                        fontSize: '14px', fontWeight: '500', color: '#1c1c1e',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{entry.title}</span>
-                      <span style={{
-                        fontSize: '10px', color: '#8e8e93',
-                        background: 'rgba(120,120,128,0.08)',
-                        padding: '2px 6px', borderRadius: '999px',
-                        flexShrink: 0,
-                      }}>{sourceLabel[entry.source] || entry.source}</span>
-                      <button
-                        onClick={(e) => handleDelete(e, entry.id)}
-                        style={{
-                          border: 'none', background: 'transparent',
-                          color: '#c7c7cc', cursor: 'pointer',
-                          fontSize: '14px', padding: '2px 4px', flexShrink: 0,
-                        }}
-                        title="删除"
-                      >✕</button>
-                    </div>
-                    {/* 摘要 */}
-                    {plainText && (
-                      <div style={{
-                        fontSize: '12px', color: '#8e8e93', lineHeight: 1.5,
-                        marginBottom: '8px',
-                        display: '-webkit-box', WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                      }}>{plainText}</div>
-                    )}
-                    {/* 标签 chips */}
-                    {entry.tags && entry.tags.length > 0 && (
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {entry.tags.map(t => (
-                          <span key={t} style={{
-                            fontSize: '11px', color: 'var(--s-main)',
-                            background: 'rgba(var(--s-rgb),0.06)',
-                            padding: '2px 8px', borderRadius: '999px',
-                          }}>{t}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 编辑/新建弹窗 */}
-      <KnowledgeForm
-        open={formOpen}
-        onClose={handleFormClose}
-        entry={editingEntry}
-        defaultSource={defaultSource}
-      />
-    </div>
-  );
-}
-
-// HTML → 纯文本（摘要用）
 function stripHtml(html) {
   if (!html) return '';
   try {
@@ -264,34 +32,246 @@ function stripHtml(html) {
   }
 }
 
-// 标签项
-function TagItem({ label, count, active, onClick }) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
-        background: active ? 'rgba(var(--s-rgb),0.08)' : 'transparent',
-        fontSize: '13px', color: active ? 'var(--s-main)' : '#1c1c1e',
-        fontWeight: active ? '500' : '400',
-        transition: 'background .15s',
-      }}
-    >
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      <span style={{ fontSize: '11px', color: '#8e8e93', flexShrink: 0, marginLeft: '6px' }}>{count}</span>
-    </div>
-  );
+function fmtDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  if (sameDay) return '今天';
+  const p = n => String(n).padStart(2, '0');
+  const y = d.getFullYear() === now.getFullYear() ? '' : `${d.getFullYear()}-`;
+  return `${y}${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-// 按钮样式
-function btnStyle(primary) {
-  return {
-    padding: '7px 12px', borderRadius: '8px',
-    background: primary ? 'var(--s-grad-bg)' : 'rgba(255,255,255,0.7)',
-    color: primary ? '#fff' : '#1c1c1e',
-    border: primary ? 'none' : '1px solid rgba(60,60,67,0.18)',
-    fontWeight: '500', fontSize: '12px', cursor: 'pointer',
-    whiteSpace: 'nowrap',
+export default function KnowledgeBasePage() {
+  const [entries, setEntries] = useState(null); // null=加载中
+  const [tags, setTags] = useState([]);
+  const [searchText, setSearchText] = useState('');
+  const [activeTag, setActiveTag] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [defaultSource, setDefaultSource] = useState('manual');
+  const [confirmRemove, setConfirmRemove] = useState(null); // 待删除条目
+  const searchTimer = useRef(null);
+
+  const refresh = useCallback(() => {
+    setEntries(searchKB(searchText.trim(), activeTag));
+    setTags(getKBTags());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText, activeTag]);
+
+  // 加载 + 云端同步
+  useEffect(() => {
+    setEntries(searchKB('', null));
+    syncKBFromCloud().then(() => setEntries(searchKB('', null)));
+  }, []);
+
+  // 搜索 / 标签筛选（防抖 300ms）
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setEntries(searchKB(searchText.trim(), activeTag));
+    }, searchText ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [searchText, activeTag]);
+
+  const handleNew = (source = 'manual') => {
+    setEditingEntry(null);
+    setDefaultSource(source);
+    setFormOpen(true);
   };
+
+  const handleEdit = (entry) => {
+    setEditingEntry(entry);
+    setFormOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setFormOpen(false);
+    setEditingEntry(null);
+    setEntries(searchKB(searchText.trim(), activeTag));
+    setTags(getKBTags());
+  };
+
+  // 渲染标签行（InboxPage 筛选标签同款交互）
+  const renderTagRow = (label, count, active, onClick) => (
+    <button
+      key={label}
+      onClick={onClick}
+      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] rounded-lg transition-colors ${
+        active ? 'text-ink-900 font-semibold bg-ink-50' : 'text-ink-600 hover:bg-ink-50'
+      }`}
+    >
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-[var(--s-main)]' : 'bg-ink-300'}`} />
+      <span className="flex-1 text-left truncate">{label}</span>
+      <span className="text-[11px] text-ink-300 tabular-nums">{count}</span>
+    </button>
+  );
+
+  return (
+    <div className="flex-1 min-w-0 flex flex-col">
+      {/* ===== 标题行 ===== */}
+      <div className="flex items-center gap-3 mb-4 flex-shrink-0">
+        <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
+        <span className="text-[15.5px] font-bold text-ink-900 leading-none">知识库</span>
+
+        {/* 搜索框 */}
+        <div className="relative ml-2 flex-1 max-w-[260px]">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300">
+            <IconSearch size={13} />
+          </span>
+          <input
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="搜索标题、正文、标签"
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg text-[12.5px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors"
+          />
+        </div>
+
+        <div className="flex-1" />
+
+        {/* 飞书导入 */}
+        <button
+          onClick={() => handleNew('feishu')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] text-ink-700 bg-white border border-ink-200 hover:bg-ink-50 transition-colors flex-shrink-0"
+        >
+          <IconImport size={13} />
+          飞书导入
+        </button>
+        {/* 网页粘贴 */}
+        <button
+          onClick={() => handleNew('web')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] text-ink-700 bg-white border border-ink-200 hover:bg-ink-50 transition-colors flex-shrink-0"
+        >
+          <IconClipboard size={13} />
+          网页粘贴
+        </button>
+        {/* 新建（主按钮） */}
+        <button
+          onClick={() => handleNew('manual')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold text-white transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+          style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+        >
+          <IconPlus size={13} />
+          新建条目
+        </button>
+      </div>
+
+      {/* ===== 主体：左标签 + 右列表 ===== */}
+      <div className="flex-1 min-h-0 flex gap-4 items-stretch">
+        {/* 左侧标签栏 */}
+        <div className="w-[180px] flex-shrink-0 flex flex-col min-h-0">
+          <div className="glass-card rounded-2xl p-2 flex flex-col min-h-0 overflow-y-auto">
+            <div className="px-3 pt-1 pb-1.5 text-[11px] font-semibold text-ink-400 tracking-wide flex items-center gap-1.5">
+              <IconTag size={11} />
+              标签筛选
+            </div>
+            {renderTagRow('全部', entries?.length ?? 0, activeTag === null, () => setActiveTag(null))}
+            <div className="my-1 border-t border-ink-100/80" />
+            {tags.map(t => renderTagRow(t.name, t.count, activeTag === t.name, () => setActiveTag(activeTag === t.name ? null : t.name)))}
+            {tags.length === 0 && (
+              <div className="px-3 py-2 text-[12px] text-ink-300">暂无标签，条目打标签后自动生成</div>
+            )}
+          </div>
+        </div>
+
+        {/* 右侧条目列表 */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0">
+          {entries === null ? (
+            <div className="glass-card rounded-2xl p-10 flex items-center justify-center text-[13px] text-ink-400">加载中…</div>
+          ) : entries.length === 0 ? (
+            <div className="glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2 flex-1">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+              </svg>
+              <div className="text-[14px] font-semibold text-ink-900">
+                {searchText || activeTag ? '没有匹配的条目' : '知识库还是空的'}
+              </div>
+              <div className="text-[12px] text-ink-400">
+                {searchText || activeTag ? '换个关键词或标签试试' : '把你的思考和在网上看到的好内容沉淀在这里'}
+              </div>
+            </div>
+          ) : (
+            <div className="glass-card rounded-2xl p-2 flex flex-col flex-1 min-h-0 overflow-y-auto">
+              {entries.map((entry, i) => {
+                const meta = SOURCE_META[entry.source] || SOURCE_META.manual;
+                const SrcIcon = meta.icon;
+                const plain = stripHtml(entry.content);
+                return (
+                  <div key={entry.id} className={i > 0 ? 'border-t border-ink-100/70' : ''}>
+                    <div
+                      onClick={() => handleEdit(entry)}
+                      className="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-ink-50 transition-colors cursor-pointer"
+                    >
+                      {/* 来源图标 */}
+                      <span className="w-[28px] h-[28px] rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 text-ink-400"
+                        style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}>
+                        <SrcIcon size={14} />
+                      </span>
+
+                      {/* 中间：标题 + 摘要 + 标签 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-[13.5px] leading-snug font-medium text-ink-900 truncate">
+                            {entry.title}
+                          </span>
+                          <span className="text-[10.5px] text-ink-400 flex-shrink-0">{meta.label}</span>
+                          <span className="text-[10.5px] text-ink-300 flex-shrink-0 ml-auto pl-2">{fmtDate(entry.createdAt)}</span>
+                        </div>
+                        {plain && (
+                          <div className="text-[12px] text-ink-400 leading-relaxed truncate mt-0.5">{plain}</div>
+                        )}
+                        {entry.tags?.length > 0 && (
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {entry.tags.map(t => (
+                              <span key={t} className="px-1.5 py-px rounded-md text-[10.5px] bg-ink-50 text-ink-500 border border-ink-100">
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 删除（hover 显示） */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmRemove(entry); }}
+                        className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-all opacity-0 group-hover:opacity-100"
+                        title="删除"
+                      >
+                        <IconX size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 编辑 / 新建弹窗 */}
+      <KnowledgeForm
+        open={formOpen}
+        onClose={handleFormClose}
+        entry={editingEntry}
+        defaultSource={defaultSource}
+      />
+
+      {/* 删除确认（工作台 ConfirmDialog 同款） */}
+      <ConfirmDialog
+        open={!!confirmRemove}
+        title="删除条目"
+        message={`确定删除「${confirmRemove?.title || ''}」？删除后不可恢复。`}
+        confirmText="删除"
+        danger
+        onConfirm={() => {
+          if (confirmRemove) removeKBEntry(confirmRemove.id);
+          setConfirmRemove(null);
+          setEntries(searchKB(searchText.trim(), activeTag));
+          setTags(getKBTags());
+        }}
+        onCancel={() => setConfirmRemove(null)}
+      />
+    </div>
+  );
 }

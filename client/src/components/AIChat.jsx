@@ -7,19 +7,32 @@ import {
 } from '../utils/aiTools.js';
 import { getKBTextForPrompt } from '../utils/aiKnowledgeBase.js';
 import { store } from '../utils/store.js';
+import {
+  IconChat, IconGlobe, IconBook, IconGear, IconArrowUp, IconStop, IconRotate,
+  IconCheck, IconClock, IconBan, IconAlert, IconPen,
+} from './aiIcons.jsx';
 
-/* AIChat · 可复用对话组件
+/* AIChat · 可复用对话组件（风格对齐工作台）
    功能：流式渲染 / 工具调用可视化 / 写操作内联确认 / Markdown 渲染 / 消息持久化
    Props:
      - mode: 'general' | 'kb'  当前模式
      - onModeChange(mode)  模式切换回调
      - onConfigClick  点击模型配置的回调
      - storageKey  消息持久化 key（默认 'ai_messages_main'）
-     - compact  是否紧凑模式（默认 false）
+     - compact  是否紧凑模式（隐藏标题行）
 */
 
 function genId() {
   return 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+}
+
+// 工具状态 → 图标
+function ToolStatusIcon({ status }) {
+  if (status === 'running') return <span className="ai-spin"><IconClock size={12} /></span>;
+  if (status === 'done' || status === 'confirmed') return <IconCheck size={12} strokeWidth={2.4} />;
+  if (status === 'error') return <IconAlert size={12} />;
+  if (status === 'cancelled') return <IconBan size={12} />;
+  return <IconClock size={12} />;
 }
 
 export default function AIChat({
@@ -57,7 +70,6 @@ export default function AIChat({
   useEffect(() => {
     if (mode === 'kb') {
       const text = getKBTextForPrompt();
-      // 粗略计数：按 "---" 分隔的块数
       setKbCount(text ? text.split('\n\n---\n\n').length : 0);
     }
   }, [mode, messages.length]);
@@ -70,7 +82,6 @@ export default function AIChat({
 
   // ===== 构建 OpenAI 格式 messages =====
   const buildApiMessages = useCallback(() => {
-    // 系统提示词
     let kbText = '';
     if (mode === 'kb') {
       kbText = getKBTextForPrompt();
@@ -123,7 +134,6 @@ export default function AIChat({
     while (true) {
       const apiMessages = buildApiMessages();
       const assistantId = genId();
-      // 创建 placeholder assistant 消息
       setMessages(prev => [...prev, {
         id: assistantId, role: 'assistant', content: '', streaming: true,
       }]);
@@ -143,17 +153,16 @@ export default function AIChat({
       } catch (err) {
         if (err.name === 'AbortError') {
           setMessages(prev => prev.map(m =>
-            m.id === assistantId ? { ...m, content: '（已取消）', streaming: false } : m
+            m.id === assistantId ? { ...m, content: m.content ? m.content + '\n\n（已停止）' : '（已停止）', streaming: false } : m
           ));
         } else {
           setMessages(prev => prev.map(m =>
-            m.id === assistantId ? { ...m, content: `⚠️ ${err.message}`, streaming: false } : m
+            m.id === assistantId ? { ...m, content: m.content || `请求失败：${err.message}`, streaming: false, isError: true } : m
           ));
         }
         break;
       }
 
-      // 更新 assistant 消息
       setMessages(prev => prev.map(m =>
         m.id === assistantId ? {
           ...m, content: result.content, streaming: false,
@@ -175,7 +184,6 @@ export default function AIChat({
           }]);
           const confirmed = await confirmTool(confirmId);
           if (!confirmed) {
-            // 用户取消，追加 tool 消息告诉 AI
             setMessages(prev => [...prev, {
               id: genId(), role: 'tool', tool_call_id: tc.id || '',
               content: '用户取消了此操作。',
@@ -222,12 +230,9 @@ export default function AIChat({
       return;
     }
 
-    // 追加 user 消息
     setMessages(prev => [...prev, { id: genId(), role: 'user', content: text }]);
     setInput('');
     setStreaming(true);
-
-    // 创建 AbortController
     abortRef.current = new AbortController();
 
     try {
@@ -245,9 +250,11 @@ export default function AIChat({
     abortRef.current?.abort();
   }, []);
 
-  // ===== 清空消息 =====
+  // ===== 清空消息（二次确认）=====
+  const [confirmClear, setConfirmClear] = useState(false);
   const handleClear = useCallback(() => {
     setMessages([]);
+    setConfirmClear(false);
     try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
   }, [storageKey]);
 
@@ -259,130 +266,98 @@ export default function AIChat({
     }
   };
 
+  // 当前模型名（配置按钮显示用）
+  const config = getAIConfig();
+  const currentModelLabel = config?.apiKey
+    ? (config.provider === 'custom' ? (config.model || '自定义') : (modelLabel(config.provider)))
+    : '未配置';
+
   // ===== 渲染单条消息 =====
   const renderMessage = (m) => {
-    // 用户消息
+    // 用户消息（右对齐，主题渐变气泡）
     if (m.role === 'user') {
       return (
-        <div key={m.id} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{
-            maxWidth: '78%',
-            background: 'var(--s-grad-bg)', color: '#fff',
-            borderRadius: '14px', padding: '10px 14px',
-            fontSize: '13px', lineHeight: 1.6,
-            wordBreak: 'break-word',
-          }}>{m.content}</div>
+        <div key={m.id} className="flex justify-end">
+          <div className="max-w-[78%] px-3.5 py-2 rounded-2xl rounded-br-md text-white text-[13px] leading-relaxed break-words"
+            style={{ background: 'var(--s-grad-bg)' }}>
+            {m.content}
+          </div>
         </div>
       );
     }
 
-    // 工具消息（确认/执行步骤）
+    // 工具消息（确认卡片 / 执行步骤）
     if (m.role === 'tool') {
       const displayName = toolDisplayNames[m.toolName] || m.toolName || '工具';
+
       // 写操作确认卡片
       if (m.toolStatus === 'pending') {
         return (
-          <div key={m.id} style={{
-            display: 'flex', justifyContent: 'flex-start',
-          }}>
-            <div style={{
-              maxWidth: '82%',
-              background: '#fff',
-              border: '1px solid rgba(255,149,0,0.3)',
-              borderRadius: '12px', padding: '12px 14px',
-              fontSize: '13px', lineHeight: 1.5,
-            }}>
-              <div style={{ fontWeight: '600', color: '#FF9500', marginBottom: '8px', fontSize: '12px' }}>
-                ✏️ {displayName} · 需要确认
+          <div key={m.id} className="flex justify-start w-full">
+            <div className="w-[86%] max-w-[420px] bg-white rounded-2xl border border-ink-100 p-3.5"
+              style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.03)' }}>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="w-[22px] h-[22px] rounded-lg flex items-center justify-center text-white flex-shrink-0"
+                  style={{ background: '#FF9500' }}>
+                  <IconPen size={12} />
+                </span>
+                <span className="text-[12.5px] font-semibold text-ink-900">{displayName}</span>
+                <span className="text-[11px] text-ink-400">需要你确认</span>
               </div>
-              <div style={{ color: '#1c1c1e', marginBottom: '12px' }}>
+              <div className="rounded-xl bg-ink-50 px-3 py-2 mb-3">
                 {renderToolArgs(m.toolName, m.toolArgs)}
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="flex gap-2">
                 <button
                   onClick={() => handleConfirm(m.id, true)}
-                  style={{
-                    padding: '7px 16px', borderRadius: '8px',
-                    background: 'var(--s-grad-bg)', color: '#fff',
-                    border: 'none', fontWeight: '600', fontSize: '12px', cursor: 'pointer',
-                  }}
+                  className="px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-white transition-all active:scale-[0.97]"
+                  style={{ background: 'var(--s-grad-bg)' }}
                 >确认执行</button>
                 <button
                   onClick={() => handleConfirm(m.id, false)}
-                  style={{
-                    padding: '7px 16px', borderRadius: '8px',
-                    background: 'rgba(120,120,128,0.12)', color: '#1c1c1e',
-                    border: 'none', fontWeight: '600', fontSize: '12px', cursor: 'pointer',
-                  }}
+                  className="px-3.5 py-1.5 rounded-lg text-[12px] font-medium text-ink-600 bg-ink-100 hover:bg-ink-200/70 transition-colors"
                 >取消</button>
               </div>
             </div>
           </div>
         );
       }
+
       // 工具执行步骤条
-      const statusIcon = m.toolStatus === 'running' ? '⏳' :
-        m.toolStatus === 'done' ? '✓' :
-        m.toolStatus === 'error' ? '✕' :
-        m.toolStatus === 'cancelled' ? '⊘' :
-        m.toolStatus === 'confirmed' ? '✓' : '•';
-      const statusColor = m.toolStatus === 'done' || m.toolStatus === 'confirmed' ? '#34C759' :
-        m.toolStatus === 'error' ? '#FF3B30' :
-        m.toolStatus === 'cancelled' ? '#8e8e93' : '#8e8e93';
+      const statusColor =
+        m.toolStatus === 'done' || m.toolStatus === 'confirmed' ? '#34C759' :
+        m.toolStatus === 'error' ? '#FF3B30' : '#8a9491';
       return (
-        <div key={m.id} style={{ display: 'flex', justifyContent: 'flex-start' }}>
-          <div style={{
-            maxWidth: '82%',
-            background: 'rgba(var(--s-rgb),0.04)',
-            border: '1px solid rgba(var(--s-rgb),0.12)',
-            borderRadius: '10px', padding: '8px 12px',
-            fontSize: '12px', lineHeight: 1.5, color: '#1c1c1e',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: m.content && m.toolStatus === 'done' ? '4px' : 0 }}>
-              <span style={{ color: statusColor, fontWeight: '600' }}>{statusIcon}</span>
-              <span style={{ fontWeight: '500', color: statusColor }}>{displayName}</span>
-              {m.toolStatus === 'running' && <span style={{ color: '#8e8e93' }}>执行中...</span>}
-            </div>
-            {m.content && m.toolStatus === 'done' && (
-              <div style={{ color: '#8e8e93', fontSize: '11px', marginTop: '2px', whiteSpace: 'pre-wrap' }}>
-                {m.content.length > 200 ? m.content.slice(0, 200) + '...' : m.content}
-              </div>
-            )}
+        <div key={m.id} className="flex justify-start">
+          <div className="inline-flex items-center gap-1.5 max-w-[82%] px-2.5 py-1.5 rounded-full bg-white border border-ink-100">
+            <span style={{ color: statusColor }}><ToolStatusIcon status={m.toolStatus} /></span>
+            <span className="text-[11.5px] font-medium" style={{ color: statusColor }}>{displayName}</span>
+            {m.toolStatus === 'running' && <span className="text-[11px] text-ink-300">执行中…</span>}
+            {m.toolStatus === 'cancelled' && <span className="text-[11px] text-ink-300">已取消</span>}
           </div>
         </div>
       );
     }
 
-    // AI 消息
+    // AI 消息（左对齐白色气泡）
     if (m.role === 'assistant') {
-      // 正在思考（流式且 content 为空）
+      // 正在思考（流式且无内容）
       if (m.streaming && !m.content) {
         return (
-          <div key={m.id} style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <div style={{
-              background: '#fff', border: '1px solid rgba(60,60,67,0.12)',
-              borderRadius: '12px', padding: '10px 14px',
-              fontSize: '13px', color: '#8e8e93',
-              display: 'flex', alignItems: 'center', gap: '4px',
-            }}>
-              正在思考
-              <span className="ai-typing-dot">.</span>
-              <span className="ai-typing-dot">.</span>
-              <span className="ai-typing-dot">.</span>
+          <div key={m.id} className="flex justify-start">
+            <div className="inline-flex items-center gap-2 bg-white rounded-2xl rounded-bl-md border border-ink-100 px-3.5 py-2.5">
+              <span className="text-[var(--s-main)]"><IconChat size={13} /></span>
+              <span className="text-[12.5px] text-ink-400">正在思考</span>
+              <span className="ai-dots">
+                <i /><i /><i />
+              </span>
             </div>
           </div>
         );
       }
-      // 有内容的 AI 消息
       return (
-        <div key={m.id} style={{ display: 'flex', justifyContent: 'flex-start' }}>
-          <div style={{
-            maxWidth: '82%',
-            background: '#fff', border: '1px solid rgba(60,60,67,0.12)',
-            borderRadius: '14px', padding: '10px 14px',
-            fontSize: '13px', lineHeight: 1.6, color: '#1c1c1e',
-            wordBreak: 'break-word',
-          }}>
+        <div key={m.id} className="flex justify-start">
+          <div className={`max-w-[86%] px-3.5 py-2.5 rounded-2xl rounded-bl-md bg-white border text-[13px] leading-relaxed text-ink-900 break-words ${m.isError ? 'border-[#FF3B3033] bg-[#FF3B3008]' : 'border-ink-100'}`}>
             <div
               className="ai-md-body"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
@@ -397,26 +372,23 @@ export default function AIChat({
   // 渲染工具参数详情（确认卡片用）
   function renderToolArgs(name, args) {
     if (!args) return null;
-    const rows = Object.entries(args).map(([k, v]) => (
-      <div key={k} style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
-        <span style={{ color: '#8e8e93', minWidth: '60px', fontSize: '12px' }}>{k}:</span>
-        <span style={{ color: '#1c1c1e', fontSize: '12px', wordBreak: 'break-word' }}>{String(v)}</span>
+    return (
+      <div className="space-y-0.5">
+        {Object.entries(args).map(([k, v]) => (
+          <div key={k} className="flex gap-2 text-[12px] leading-relaxed">
+            <span className="text-ink-400 flex-shrink-0">{argLabel(k)}:</span>
+            <span className="text-ink-900 break-all">{String(v)}</span>
+          </div>
+        ))}
       </div>
-    ));
-    return <div>{rows}</div>;
+    );
   }
 
-  // 当前模型名（配置按钮显示用）
-  const config = getAIConfig();
-  const currentModelLabel = config?.provider
-    ? (config.provider === 'custom' ? (config.model || '自定义') : (config.model || modelLabel(config.provider)))
-    : '未配置';
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* Markdown + 打字动画样式 */}
+    <div className="flex flex-col h-full min-h-0">
+      {/* Markdown + 动画样式 */}
       <style>{`
-        .ai-md-body h3,.ai-md-body h4 { margin: 8px 0 4px; font-weight: 600; }
+        .ai-md-body h3,.ai-md-body h4 { margin: 8px 0 4px; font-weight: 600; color: var(--tw-prose-headings, #0f1f1c); }
         .ai-md-body h3 { font-size: 14px; }
         .ai-md-body h4 { font-size: 13px; }
         .ai-md-body p { margin: 0 0 6px; }
@@ -424,104 +396,125 @@ export default function AIChat({
         .ai-md-body ul,.ai-md-body ol { margin: 4px 0 6px; padding-left: 20px; }
         .ai-md-body li { margin-bottom: 2px; }
         .ai-md-body .ai-md-codeblock {
-          background: rgba(0,0,0,0.05); border-radius: 6px;
+          background: #f7f8f8; border: 1px solid #ebedec; border-radius: 8px;
           padding: 8px 10px; margin: 6px 0; overflow-x: auto;
-          font-size: 12px; font-family: ui-monospace, monospace;
+          font-size: 12px; font-family: ui-monospace, SFMono-Regular, monospace;
         }
         .ai-md-body .ai-md-code {
-          background: rgba(0,0,0,0.05); border-radius: 3px;
-          padding: 1px 4px; font-size: 12px; font-family: ui-monospace, monospace;
+          background: #f7f8f8; border-radius: 4px;
+          padding: 1px 4px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, monospace;
         }
-        .ai-md-body .ai-md-link { color: var(--s-main); text-decoration: underline; }
-        .ai-typing-dot { animation: ai-blink 1s infinite; }
-        .ai-typing-dot:nth-child(2) { animation-delay: 0.15s; }
-        .ai-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+        .ai-md-body .ai-md-link { color: var(--s-main); text-decoration: underline; text-underline-offset: 2px; }
+        .ai-dots { display: inline-flex; gap: 3px; align-items: center; }
+        .ai-dots i { width: 4px; height: 4px; border-radius: 50%; background: #b3bab8; animation: ai-blink 1s infinite; }
+        .ai-dots i:nth-child(2) { animation-delay: 0.15s; }
+        .ai-dots i:nth-child(3) { animation-delay: 0.3s; }
         @keyframes ai-blink { 0%,60%,100% { opacity: 0.3; } 30% { opacity: 1; } }
+        .ai-spin { display: inline-flex; animation: ai-rotate 1s linear infinite; }
+        @keyframes ai-rotate { to { transform: rotate(360deg); } }
       `}</style>
 
-      {/* 顶部栏 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: compact ? '6px' : '10px',
-        padding: compact ? '8px 12px' : '12px 16px',
-        borderBottom: '1px solid rgba(60,60,67,0.12)',
-        flexShrink: 0,
-      }}>
-        {!compact && <span style={{ fontSize: '16px', fontWeight: '600', color: '#1c1c1e' }}>🤖 AI 助手</span>}
-        {/* 模式切换 */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '3px', background: 'rgba(120,120,128,0.08)', borderRadius: '8px', padding: '3px' }}>
+      {/* ===== 顶部栏 ===== */}
+      <div className={`flex items-center gap-2.5 flex-shrink-0 ${compact ? 'pb-2' : 'pb-3'}`}>
+        {!compact && (
+          <>
+            <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
+            <span className="text-[15.5px] font-bold text-ink-900 leading-none">AI 助手</span>
+          </>
+        )}
+
+        {/* 模式切换（工作台分段控件风格） */}
+        <div className={`${compact ? '' : 'ml-auto'} flex items-center p-[2px] rounded-lg flex-shrink-0`} style={{ background: 'rgba(120,120,128,0.08)' }}>
           <button
             onClick={() => onModeChange?.('general')}
-            style={{
-              border: 'none', background: mode === 'general' ? '#fff' : 'transparent',
-              color: mode === 'general' ? '#1c1c1e' : '#8e8e93',
-              fontSize: '12px', fontWeight: '500',
-              padding: '5px 10px', borderRadius: '6px', cursor: 'pointer',
-              boxShadow: mode === 'general' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-            }}
-          >🌐 通用问答</button>
+            title="通用问答：直接使用模型知识回答"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
+            style={mode === 'general'
+              ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
+              : { color: '#8a9491' }}
+          >
+            <IconGlobe size={12} />
+            通用问答
+          </button>
           <button
             onClick={() => onModeChange?.('kb')}
-            style={{
-              border: 'none', background: mode === 'kb' ? '#fff' : 'transparent',
-              color: mode === 'kb' ? '#1c1c1e' : '#8e8e93',
-              fontSize: '12px', fontWeight: '500',
-              padding: '5px 10px', borderRadius: '6px', cursor: 'pointer',
-              boxShadow: mode === 'kb' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-            }}
-          >📚 知识库问答</button>
+            title="知识库问答：仅基于你沉淀的知识回答"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
+            style={mode === 'kb'
+              ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
+              : { color: '#8a9491' }}
+          >
+            <IconBook size={12} />
+            知识库问答
+          </button>
         </div>
-        {/* 模型配置快设 */}
+
+        {/* 模型配置 */}
         <button
           onClick={() => onConfigClick?.()}
-          style={{
-            border: '1px solid rgba(var(--s-rgb),0.3)',
-            background: config?.apiKey ? 'rgba(var(--s-rgb),0.06)' : '#fff',
-            color: config?.apiKey ? 'var(--s-main)' : '#8e8e93',
-            borderRadius: '999px', padding: '5px 10px',
-            fontSize: '12px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap',
-          }}
-        >⚙️ {currentModelLabel}</button>
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium flex-shrink-0 transition-colors ${
+            config?.apiKey ? 'text-ink-600 hover:bg-ink-50' : 'text-white'
+          }`}
+          style={config?.apiKey
+            ? { border: '1px solid #d4d9d8' }
+            : { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+          title="配置模型 API"
+        >
+          <IconGear size={12} />
+          {currentModelLabel}
+          {!config?.apiKey && <span className="ml-0.5">去配置</span>}
+        </button>
+
         {/* 清空 */}
         <button
-          onClick={handleClear}
-          style={{
-            border: '1px solid rgba(60,60,67,0.18)',
-            background: '#fff', color: '#8e8e93',
-            borderRadius: '999px', padding: '5px 10px',
-            fontSize: '11px', fontWeight: '500', cursor: 'pointer',
-          }}
-        >清空</button>
+          onClick={() => messages.length > 0 && setConfirmClear(true)}
+          disabled={messages.length === 0}
+          className="w-[26px] h-[26px] rounded-lg flex items-center justify-center flex-shrink-0 text-ink-400 hover:bg-ink-50 transition-colors disabled:opacity-30 disabled:cursor-default"
+          title="清空对话"
+        >
+          <IconRotate size={13} />
+        </button>
       </div>
 
-      {/* 知识库提示条 */}
+      {/* 知识库模式提示条 */}
       {mode === 'kb' && (
-        <div style={{
-          padding: '6px 16px',
-          background: 'rgba(var(--s-rgb),0.04)',
-          borderBottom: '1px solid rgba(var(--s-rgb),0.08)',
-          fontSize: '11px', color: 'var(--s-main)',
-          display: 'flex', alignItems: 'center', gap: '6px',
-          flexShrink: 0,
-        }}>
-          📚 知识库问答模式：基于你沉淀的 {kbCount} 条知识回答，未命中会提示切换通用问答
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2 flex-shrink-0"
+          style={{ background: 'rgba(var(--s-rgb),0.06)' }}>
+          <span className="text-[var(--s-main)] flex-shrink-0"><IconBook size={13} /></span>
+          <span className="text-[11.5px]" style={{ color: 'var(--s-deep, var(--s-main))' }}>
+            知识库问答模式：仅基于你沉淀的 {kbCount} 条知识回答，未命中会提示切换通用问答
+          </span>
         </div>
       )}
 
-      {/* 消息区 */}
-      <div ref={scrollRef} style={{
-        flex: 1, minHeight: 0, overflowY: 'auto',
-        padding: compact ? '10px 12px' : '16px',
-        display: 'flex', flexDirection: 'column', gap: compact ? '8px' : '12px',
-      }}>
+      {/* 清空确认（内联轻量确认） */}
+      {confirmClear && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2 flex-shrink-0 bg-[#FF3B300A] border border-[#FF3B3022]">
+          <span className="text-[#FF3B30] flex-shrink-0"><IconAlert size={13} /></span>
+          <span className="text-[11.5px] text-ink-700 flex-1">确定清空当前对话？清空后不可恢复。</span>
+          <button
+            onClick={handleClear}
+            className="px-2.5 py-1 rounded-md text-[11.5px] font-semibold text-white bg-[#FF3B30] transition-all active:scale-[0.97]"
+          >清空</button>
+          <button
+            onClick={() => setConfirmClear(false)}
+            className="px-2.5 py-1 rounded-md text-[11.5px] font-medium text-ink-600 bg-ink-100 hover:bg-ink-200/70 transition-colors"
+          >取消</button>
+        </div>
+      )}
+
+      {/* ===== 消息区 ===== */}
+      <div ref={scrollRef} className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${compact ? 'gap-2' : 'gap-3'} ${compact ? 'py-1' : 'py-2'}`}>
         {messages.length === 0 ? (
-          <div style={{
-            margin: 'auto 0', textAlign: 'center',
-            color: '#8e8e93', fontSize: '14px', lineHeight: 1.7,
-          }}>
-            <div style={{ fontSize: '28px', marginBottom: '8px' }}>💬</div>
-            问点什么吧
-            <div style={{ fontSize: '12px', color: '#8e8e93', marginTop: '4px' }}>
-              {mode === 'kb' ? '基于你的知识库回答' : '个人 AI 助手 · 基于你配置的大模型'}
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+            <span className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center mb-1"
+              style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
+              <IconChat size={24} strokeWidth={1.5} />
+            </span>
+            <div className="text-[14px] font-semibold text-ink-900">问点什么吧</div>
+            <div className="text-[12px] text-ink-400 leading-relaxed">
+              {mode === 'kb' ? '基于你在知识库沉淀的内容回答' : '个人 AI 助手 · 使用你配置的大模型'}
+              <br />还可以让它查询习惯打卡、创建日程待办
             </div>
           </div>
         ) : (
@@ -529,64 +522,59 @@ export default function AIChat({
         )}
       </div>
 
-      {/* 输入区 */}
-      <div style={{
-        display: 'flex', gap: '8px',
-        padding: compact ? '8px 12px' : '12px 16px',
-        borderTop: '1px solid rgba(60,60,67,0.12)',
-        alignItems: 'flex-end',
-        flexShrink: 0,
-      }}>
+      {/* ===== 输入区 ===== */}
+      <div className="flex items-end gap-2 pt-2 flex-shrink-0">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={streaming ? 'AI 正在回复...' : '输入问题，回车发送...'}
+          placeholder={streaming ? 'AI 正在回复…' : '输入问题，回车发送，Shift+回车换行'}
           disabled={streaming}
           rows={1}
-          style={{
-            flex: 1, border: '1px solid rgba(60,60,67,0.18)',
-            borderRadius: '10px', padding: '9px 12px',
-            fontSize: '13px', lineHeight: 1.5, color: '#1c1c1e',
-            background: '#fff', outline: 'none',
-            resize: 'none', minHeight: '38px', maxHeight: '120px',
-            opacity: streaming ? 0.6 : 1,
-          }}
+          className="flex-1 px-3.5 py-2.5 rounded-xl text-[13px] leading-relaxed text-ink-900 bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors resize-none disabled:opacity-60"
+          style={{ minHeight: '42px', maxHeight: '132px' }}
         />
         {streaming ? (
           <button
             onClick={handleStop}
-            style={{
-              border: 'none', background: 'rgba(255,59,48,0.1)',
-              color: '#FF3B30', borderRadius: '10px',
-              padding: '0 16px', height: '38px',
-              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-            }}
-          >停止</button>
+            className="w-[38px] h-[38px] rounded-xl flex items-center justify-center flex-shrink-0 text-[#FF3B30] bg-[#FF3B300F] hover:bg-[#FF3B301A] transition-all active:scale-95"
+            title="停止生成"
+          >
+            <IconStop size={14} />
+          </button>
         ) : (
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            style={{
-              border: 'none',
-              background: input.trim() ? 'var(--s-grad-bg)' : 'rgba(120,120,128,0.15)',
-              color: input.trim() ? '#fff' : '#8e8e93',
-              borderRadius: '10px',
-              padding: '0 16px', height: '38px',
-              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-            }}
-          >发送</button>
+            className="w-[38px] h-[38px] rounded-xl flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:cursor-default"
+            style={input.trim()
+              ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
+              : { background: '#b3bab8' }}
+            title="发送"
+          >
+            <IconArrowUp size={16} />
+          </button>
         )}
       </div>
     </div>
   );
 }
 
+// 参数 key → 中文标签
+function argLabel(k) {
+  const map = {
+    title: '标题', date: '日期', start_time: '开始', end_time: '结束',
+    category: '分类', notes: '备注', priority: '优先级',
+    content: '内容', tag: '标签', days: '范围',
+  };
+  return map[k] || k;
+}
+
 // 模型标签辅助
 function modelLabel(provider) {
   const labels = {
-    doubao: '豆包', deepseek: 'DeepSeek', qwen: '通义',
-    kimi: 'Kimi', glm: 'GLM', custom: '自定义',
+    doubao: '豆包', deepseek: 'DeepSeek', qwen: '通义千问',
+    kimi: 'Kimi', glm: '智谱 GLM', custom: '自定义',
   };
   return labels[provider] || provider;
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import { modelConfigs, getAIConfig, saveAIConfig, testConnection } from '../utils/aiLLM.js';
+import { IconGear, IconCheck, IconAlert, IconClock } from './aiIcons.jsx';
 
-/* 模型配置弹窗：选择模型 / 填 API Key / 测试连接 / 保存
-   复用 Modal 组件，风格统一 */
+/* 模型配置弹窗：选择模型 / 填 API Key / 测试连接 / 保存（风格对齐工作台 Modal） */
 export default function AIConfigModal({ open, onClose }) {
   const [provider, setProvider] = useState('doubao');
   const [apiKey, setApiKey] = useState('');
@@ -25,7 +25,6 @@ export default function AIConfigModal({ open, onClose }) {
       setModel(cfg.model);
       setEnableTools(cfg.enableTools !== false);
     } else {
-      // 默认值
       const def = modelConfigs.doubao;
       setProvider('doubao');
       setApiKey('');
@@ -55,11 +54,11 @@ export default function AIConfigModal({ open, onClose }) {
     if (!baseUrl) { setTestMsg('请填写 API 地址'); setTestOk(false); return; }
     if (!model) { setTestMsg('请填写模型名称'); setTestOk(false); return; }
     setTesting(true);
-    setTestMsg('正在测试连接...');
+    setTestMsg('正在测试连接…');
     setTestOk(null);
     try {
       const reply = await testConnection({ apiKey, baseUrl, model });
-      setTestMsg(`连接成功${reply ? '：' + reply.slice(0, 60) : ''}`);
+      setTestMsg(`连接成功${reply ? `：${reply.slice(0, 60)}` : ''}`);
       setTestOk(true);
     } catch (err) {
       setTestMsg(`连接失败：${err.message}`);
@@ -75,158 +74,139 @@ export default function AIConfigModal({ open, onClose }) {
     onClose?.();
   }
 
+  const inputCls = "w-full px-3 py-1.5 rounded-lg text-[13px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors";
+  const labelCls = "block text-[12.5px] font-semibold text-ink-700 mb-1.5";
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="⚙️ 模型配置"
-      maxWidth={460}
+      title="模型配置"
+      maxWidth={440}
       footer={
         <>
           <button
-            onClick={handleTest}
-            disabled={testing}
-            style={{
-              padding: '9px 16px', borderRadius: '10px',
-              background: 'rgba(120,120,128,0.12)',
-              color: testing ? '#8e8e93' : '#1c1c1e',
-              border: 'none', fontWeight: '600', fontSize: '14px',
-              cursor: testing ? 'not-allowed' : 'pointer',
-              marginRight: '8px',
-            }}
-          >{testing ? '测试中...' : '测试连接'}</button>
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-ink-600 bg-ink-100 hover:bg-ink-200/70 transition-colors"
+          >取消</button>
           <button
             onClick={handleSave}
-            style={{
-              padding: '9px 20px', borderRadius: '10px',
-              background: 'var(--s-grad-bg)', color: '#fff',
-              border: 'none', fontWeight: '600', fontSize: '14px',
-              cursor: 'pointer',
-            }}
+            className="px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-all active:scale-[0.98]"
+            style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
           >保存</button>
         </>
       }
     >
-      {/* 模型选择 */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '10px' }}>
-          选择模型
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {Object.entries(modelConfigs).map(([key, cfg]) => (
-            <label
-              key={key}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '9px 12px', borderRadius: '8px',
-                background: provider === key ? 'rgba(var(--s-rgb),0.08)' : 'transparent',
-                cursor: 'pointer', transition: 'background .15s',
-                border: provider === key ? '1px solid rgba(var(--s-rgb),0.3)' : '1px solid transparent',
-              }}
-            >
-              <input
-                type="radio"
-                name="provider"
-                checked={provider === key}
-                onChange={() => handleSelectProvider(key)}
-                style={{ accentColor: 'var(--s-main)' }}
-              />
-              <span style={{ fontSize: '13px', fontWeight: '500', color: '#1c1c1e' }}>{cfg.label}</span>
-              {key !== 'custom' && (
-                <span style={{ fontSize: '11px', color: '#8e8e93' }}>
-                  {cfg.model}
+      {/* 模型选择（工作台选择行风格） */}
+      <div className="mb-4">
+        <div className={labelCls}>选择模型</div>
+        <div className="rounded-xl border border-ink-100 bg-white overflow-hidden">
+          {Object.entries(modelConfigs).map(([key, cfg], i) => {
+            const active = provider === key;
+            return (
+              <button
+                key={key}
+                onClick={() => handleSelectProvider(key)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors ${i > 0 ? 'border-t border-ink-100/70' : ''} ${
+                  active ? 'bg-[rgba(var(--s-rgb),0.06)]' : 'hover:bg-ink-50'
+                }`}
+              >
+                {/* 选中圆点 */}
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? '' : 'bg-ink-200'}`}
+                  style={active ? { background: 'var(--s-main)' } : {}} />
+                <span className={`text-[12.5px] ${active ? 'text-ink-900 font-semibold' : 'text-ink-700'}`}>
+                  {cfg.label}
                 </span>
-              )}
-            </label>
-          ))}
+                {key !== 'custom' && (
+                  <span className="text-[10.5px] text-ink-300 truncate">{cfg.model}</span>
+                )}
+                {active && (
+                  <span className="ml-auto text-[var(--s-main)]"><IconCheck size={13} /></span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* API Key */}
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '6px' }}>
-          API Key
-        </label>
+      <div className="mb-3">
+        <label className={labelCls}>API Key</label>
         <input
           type="password"
           value={apiKey}
           onChange={(e) => { setApiKey(e.target.value); setTestMsg(''); setTestOk(null); }}
           placeholder="输入你的 API Key"
-          style={{
-            width: '100%', padding: '10px 12px', borderRadius: '10px',
-            border: '1px solid rgba(60,60,67,0.18)', fontSize: '13px',
-            outline: 'none', background: '#fff', color: '#1c1c1e',
-          }}
+          className={inputCls}
         />
       </div>
 
       {/* API 地址 */}
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '6px' }}>
-          API 地址
-        </label>
+      <div className="mb-3">
+        <label className={labelCls}>API 地址</label>
         <input
           type="text"
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
           placeholder="如 https://api.deepseek.com/v1"
-          style={{
-            width: '100%', padding: '10px 12px', borderRadius: '10px',
-            border: '1px solid rgba(60,60,67,0.18)', fontSize: '13px',
-            outline: 'none', background: '#fff', color: '#1c1c1e',
-          }}
+          className={inputCls}
         />
       </div>
 
       {/* 模型名称 */}
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1c1c1e', marginBottom: '6px' }}>
-          模型名称
-        </label>
+      <div className="mb-3">
+        <label className={labelCls}>模型名称</label>
         <input
           type="text"
           value={model}
           onChange={(e) => setModel(e.target.value)}
           placeholder="如 deepseek-chat"
-          style={{
-            width: '100%', padding: '10px 12px', borderRadius: '10px',
-            border: '1px solid rgba(60,60,67,0.18)', fontSize: '13px',
-            outline: 'none', background: '#fff', color: '#1c1c1e',
-          }}
+          className={inputCls}
         />
       </div>
 
       {/* 工具调用开关 */}
-      <label style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        padding: '10px 12px', borderRadius: '10px',
-        background: 'rgba(120,120,128,0.06)', cursor: 'pointer',
-        marginBottom: '16px',
-      }}>
+      <label className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-ink-50 cursor-pointer mb-3">
         <input
           type="checkbox"
           checked={enableTools}
           onChange={(e) => setEnableTools(e.target.checked)}
-          style={{ accentColor: 'var(--s-main)', width: '16px', height: '16px' }}
+          className="w-[15px] h-[15px] rounded accent-[var(--s-main)]"
         />
-        <span style={{ fontSize: '13px', color: '#1c1c1e', fontWeight: '500' }}>
-          启用 Agent 工具调用
-        </span>
-        <span style={{ fontSize: '11px', color: '#8e8e93' }}>
-          （允许 AI 查询/创建工作台数据）
-        </span>
+        <span className="text-[12.5px] font-medium text-ink-900">启用 Agent 工具调用</span>
+        <span className="text-[11px] text-ink-400">允许 AI 查询 / 创建工作台数据</span>
       </label>
 
-      {/* 测试结果 */}
-      {testMsg && (
-        <div style={{
-          padding: '10px 12px', borderRadius: '8px',
-          background: testOk === true ? 'rgba(52,199,89,0.1)' : testOk === false ? 'rgba(255,59,48,0.1)' : 'rgba(120,120,128,0.1)',
-          fontSize: '12px', color: testOk === true ? '#34C759' : testOk === false ? '#FF3B30' : '#8e8e93',
-        }}>
-          {testOk === true ? '✓ ' : testOk === false ? '✕ ' : '⏳ '}{testMsg}
-        </div>
-      )}
+      {/* 测试连接行 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleTest}
+          disabled={testing}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-ink-700 bg-white border border-ink-200 hover:bg-ink-50 transition-colors disabled:opacity-50"
+        >
+          {testing
+            ? <span className="ai-btn-spin"><IconClock size={12} /></span>
+            : <IconGear size={12} />}
+          {testing ? '测试中…' : '测试连接'}
+        </button>
+        {testMsg && (
+          <div className={`flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-[11.5px] truncate ${
+            testOk === true ? 'bg-[#34C75910] text-[#34C759]'
+              : testOk === false ? 'bg-[#FF3B300F] text-[#FF3B30]'
+              : 'bg-ink-50 text-ink-400'
+          }`}>
+            {testOk === true ? <IconCheck size={12} />
+              : testOk === false ? <IconAlert size={12} />
+              : <span className="ai-btn-spin"><IconClock size={12} /></span>}
+            <span className="truncate">{testMsg}</span>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        .ai-btn-spin { display: inline-flex; animation: ai-btn-rotate 1s linear infinite; }
+        @keyframes ai-btn-rotate { to { transform: rotate(360deg); } }
+      `}</style>
     </Modal>
   );
 }

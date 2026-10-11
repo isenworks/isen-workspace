@@ -60,6 +60,7 @@ const AIChat = forwardRef(function AIChat({
   const abortRef = useRef(null);
   const pendingConfirms = useRef(new Map()); // id → resolve(confirm)
   const scrollRef = useRef(null);
+  const taRef = useRef(null);
 
   // 保持 messages ref 最新（供异步循环读最新值）
   useEffect(() => { msgsRef.current = messages; }, [messages]);
@@ -82,6 +83,14 @@ const AIChat = forwardRef(function AIChat({
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  // 输入框随内容自动增高（上限 148px，超出后内部滚动）
+  useEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 148) + 'px';
+  }, [input]);
 
   // 暴露 clear 方法给父组件（headerless 时由父组件触发）
   useImperativeHandle(ref, () => ({
@@ -417,13 +426,16 @@ const AIChat = forwardRef(function AIChat({
     <div className="flex flex-col h-full min-h-0">
       {/* Markdown + 动画样式 */}
       <style>{`
+        .ai-md-body { line-height: 1.6; }
         .ai-md-body h3,.ai-md-body h4 { margin: 8px 0 4px; font-weight: 600; color: var(--tw-prose-headings, #0f1f1c); }
         .ai-md-body h3 { font-size: 14px; }
         .ai-md-body h4 { font-size: 13px; }
         .ai-md-body p { margin: 0 0 6px; }
         .ai-md-body p:last-child { margin-bottom: 0; }
-        .ai-md-body ul,.ai-md-body ol { margin: 4px 0 6px; padding-left: 20px; }
-        .ai-md-body li { margin-bottom: 2px; }
+        .ai-md-body ul,.ai-md-body ol { margin: 5px 0 7px; padding-left: 18px; }
+        .ai-md-body ul:last-child,.ai-md-body ol:last-child { margin-bottom: 0; }
+        .ai-md-body li { margin-bottom: 3px; }
+        .ai-md-body li:last-child { margin-bottom: 0; }
         .ai-md-body .ai-md-codeblock {
           background: #f7f8f8; border: 1px solid #ebedec; border-radius: 8px;
           padding: 8px 10px; margin: 6px 0; overflow-x: auto;
@@ -443,57 +455,16 @@ const AIChat = forwardRef(function AIChat({
         @keyframes ai-rotate { to { transform: rotate(360deg); } }
       `}</style>
 
-      {/* ===== 顶部栏 ===== */}
+      {/* ===== 顶部栏（模式切换 / 模型设置已移至输入框底部工具条）===== */}
       {!headerless && (
       <div className={`flex items-center gap-2.5 flex-shrink-0 ${compact ? 'pb-2' : 'pb-3'}`}>
         {!compact && (
           <>
             <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
-            <span className="text-[15.5px] font-bold text-ink-900 leading-none">AI 助手</span>
+            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1">AI 助手</span>
           </>
         )}
-
-        {/* 模式切换（工作台分段控件风格） */}
-        <div className={`${compact ? '' : 'ml-auto'} flex items-center p-[2px] rounded-lg flex-shrink-0`} style={{ background: 'rgba(120,120,128,0.08)' }}>
-          <button
-            onClick={() => onModeChange?.('general')}
-            title="通用问答：直接使用模型知识回答"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
-            style={mode === 'general'
-              ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
-              : { color: '#8a9491' }}
-          >
-            <IconGlobe size={12} />
-            通用问答
-          </button>
-          <button
-            onClick={() => onModeChange?.('kb')}
-            title="知识库问答：仅基于你沉淀的知识回答"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
-            style={mode === 'kb'
-              ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
-              : { color: '#8a9491' }}
-          >
-            <IconBook size={12} />
-            知识库问答
-          </button>
-        </div>
-
-        {/* 模型配置 */}
-        <button
-          onClick={() => onConfigClick?.()}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium flex-shrink-0 transition-colors ${
-            config?.apiKey ? 'text-ink-600 hover:bg-ink-50' : 'text-white'
-          }`}
-          style={config?.apiKey
-            ? { border: '1px solid #d4d9d8' }
-            : { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-          title="配置模型 API"
-        >
-          <IconGear size={12} />
-          {currentModelLabel}
-          {!config?.apiKey && <span className="ml-0.5">去配置</span>}
-        </button>
+        {compact && <span className="flex-1" />}
 
         {/* 清空 */}
         <button
@@ -553,39 +524,91 @@ const AIChat = forwardRef(function AIChat({
         )}
       </div>
 
-      {/* ===== 输入区 ===== */}
-      <div className="flex items-end gap-2 pt-2 flex-shrink-0 mx-auto w-full max-w-[820px]">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={streaming ? 'AI 正在回复…' : '输入问题，回车发送，Shift+回车换行'}
-          disabled={streaming}
-          rows={1}
-          className="flex-1 px-3.5 py-2.5 rounded-xl text-[13px] leading-relaxed text-ink-900 bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors resize-none disabled:opacity-60"
-          style={{ minHeight: '42px', maxHeight: '132px' }}
-        />
-        {streaming ? (
-          <button
-            onClick={handleStop}
-            className="w-[38px] h-[38px] rounded-xl flex items-center justify-center flex-shrink-0 text-[#FF3B30] bg-[#FF3B300F] hover:bg-[#FF3B301A] transition-all active:scale-95"
-            title="停止生成"
-          >
-            <IconStop size={14} />
-          </button>
-        ) : (
-          <button
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className="w-[38px] h-[38px] rounded-xl flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:cursor-default"
-            style={input.trim()
-              ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
-              : { background: '#b3bab8' }}
-            title="发送"
-          >
-            <IconArrowUp size={16} />
-          </button>
-        )}
+      {/* ===== 输入区（composer：文本框 + 底部工具条）===== */}
+      <div className="pt-2 flex-shrink-0 mx-auto w-full max-w-[820px]">
+        <div
+          className="rounded-2xl bg-white border border-ink-200 transition-colors focus-within:border-[var(--s-main)] px-3 pt-2.5 pb-2"
+          style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}
+        >
+          <textarea
+            ref={taRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={streaming ? 'AI 正在回复…' : '输入问题，回车发送，Shift + 回车换行'}
+            disabled={streaming}
+            rows={1}
+            className="w-full bg-transparent border-0 outline-none resize-none overflow-y-auto nice-scroll text-[13.5px] leading-[1.6] text-ink-900 placeholder:text-ink-300 disabled:opacity-60"
+            style={{ maxHeight: '148px' }}
+          />
+
+          {/* 工具条：左下角模式切换，右下角模型选择/设置 + 发送 */}
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+              <button
+                onClick={() => onModeChange?.('general')}
+                title="通用问答：直接使用模型知识回答"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
+                style={mode === 'general'
+                  ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
+                  : { color: '#8a9491' }}
+              >
+                <IconGlobe size={12} />
+                通用问答
+              </button>
+              <button
+                onClick={() => onModeChange?.('kb')}
+                title="知识库问答：仅基于你沉淀的知识回答"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
+                style={mode === 'kb'
+                  ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
+                  : { color: '#8a9491' }}
+              >
+                <IconBook size={12} />
+                知识库问答
+              </button>
+            </div>
+
+            <div className="flex-1 min-w-0" />
+
+            <button
+              onClick={() => onConfigClick?.()}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium flex-shrink-0 transition-colors ${
+                config?.apiKey ? 'text-ink-600 hover:bg-ink-50' : 'text-white'
+              }`}
+              style={config?.apiKey
+                ? { border: '1px solid #d4d9d8' }
+                : { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+              title="模型选择 / 设置"
+            >
+              <IconGear size={12} />
+              <span className="max-w-[110px] truncate">{currentModelLabel}</span>
+              {!config?.apiKey && <span>去配置</span>}
+            </button>
+
+            {streaming ? (
+              <button
+                onClick={handleStop}
+                className="w-[32px] h-[32px] rounded-lg flex items-center justify-center flex-shrink-0 text-[#FF3B30] bg-[#FF3B300F] hover:bg-[#FF3B301A] transition-all active:scale-95"
+                title="停止生成"
+              >
+                <IconStop size={14} />
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className="w-[32px] h-[32px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:cursor-default"
+                style={input.trim()
+                  ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
+                  : { background: '#b3bab8' }}
+                title="发送"
+              >
+                <IconArrowUp size={16} />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -258,12 +258,11 @@ export function renderMarkdown(text) {
 
   // 8. 无序列表项 - 或 *
   html = html.replace(/^[\-\*] (.+)$/gm, '<li class="ai-md-li">$1</li>');
-  // 把连续 <li> 包进 <ul>
-  html = html.replace(/(<li class="ai-md-li">[\s\S]*?<\/li>)(?:\n|$)+/g, (m) => `<ul class="ai-md-ul">${m}</ul>`);
+  html = groupConsecutiveList(html, 'ai-md-li', 'ul');
 
   // 9. 有序列表项 1.
   html = html.replace(/^\d+\. (.+)$/gm, '<li class="ai-md-oli">$1</li>');
-  html = html.replace(/(<li class="ai-md-oli">[\s\S]*?<\/li>)(?:\n|$)+/g, (m) => `<ol class="ai-md-ol">${m}</ol>`);
+  html = groupConsecutiveList(html, 'ai-md-oli', 'ol');
 
   // 10. 段落换行（连续两个换行 → 段落分隔；单换行 → <br>）
   html = html
@@ -277,4 +276,24 @@ export function renderMarkdown(text) {
     .join('\n');
 
   return html;
+}
+
+// 把连续的同类 <li> 行合并进同一个 <ul>/<ol>。
+// 注意：逐项包裹会让每个条目都带上列表的上下 margin，把行距撑得很大。
+function groupConsecutiveList(html, liClass, tag) {
+  const marker = `<li class="${liClass}">`;
+  const out = [];
+  let buf = [];
+  const flush = () => {
+    if (!buf.length) return;
+    // 前后留空行，保证第 10 步按独立块处理
+    out.push('', `<${tag} class="ai-md-${tag}">${buf.join('')}</${tag}>`, '');
+    buf = [];
+  };
+  for (const line of html.split('\n')) {
+    if (line.startsWith(marker)) buf.push(line);
+    else { flush(); out.push(line); }
+  }
+  flush();
+  return out.join('\n');
 }

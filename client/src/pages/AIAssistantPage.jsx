@@ -3,26 +3,17 @@ import AIChat from '../components/AIChat.jsx';
 import AIConfigModal from '../components/AIConfigModal.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
-  IconGlobe, IconBook, IconGear, IconRotate, IconPlus, IconSearch, IconPen, IconTrash, IconChat,
+  IconRotate, IconPlus, IconSearch, IconPen, IconTrash, IconChat,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
-import { getAIConfig } from '../utils/aiLLM.js';
 import {
   getSessions, createSession, renameSession, removeSession, touchSession,
   ensureSessions, sessionKey, deriveTitle, fmtSessionTime, isToday,
 } from '../utils/aiChatSessions.js';
 
-/* AI 助手主页面 · 三栏结构（顶部横条卡 + 左会话卡 + 右对话卡）
+/* AI 助手主页面 · 两张卡片（左会话卡 + 右对话卡）
    · 左栏管理多个历史对话（新建 / 切换 / 重命名 / 删除）
-   · 右栏为当前会话的对话窗口，消息仍限宽居中 */
-
-function modelLabel(provider) {
-  const labels = {
-    doubao: '豆包', deepseek: 'DeepSeek', qwen: '通义千问',
-    kimi: 'Kimi', glm: '智谱 GLM', custom: '自定义',
-  };
-  return labels[provider] || provider;
-}
+   · 右栏为当前会话的对话窗口，输入框底部工具条内含模式切换与模型设置 */
 
 // 内联输入（重命名会话）：Enter 提交、Esc / 失焦取消
 function InlineInput({ defaultValue = '', placeholder, onCommit, onCancel }) {
@@ -97,11 +88,6 @@ export default function AIAssistantPage() {
       .map(g => ({ label: g, list: map.get(g) }));
   }, [sessions, search]);
 
-  const config = getAIConfig();
-  const currentModelLabel = config?.apiKey
-    ? (config.provider === 'custom' ? (config.model || '自定义') : modelLabel(config.provider))
-    : '未配置';
-
   /* ---------------- 会话操作 ---------------- */
   const handleNewChat = () => {
     const s = createSession();
@@ -134,7 +120,7 @@ export default function AIAssistantPage() {
   }, [activeId, reloadSessions]);
 
   return (
-    <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
+    <div className="flex-1 min-w-0 w-full flex flex-col gap-3 md:h-[calc(100vh-48px)] md:min-h-0">
       {/* ===== 左会话卡 + 右对话卡，中间可拖拽调宽 ===== */}
       <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
         {/* ---- 左：页头 + 会话列表 ---- */}
@@ -153,51 +139,8 @@ export default function AIAssistantPage() {
             </button>
           </div>
 
-          {/* 模式切换（整行分段控件） */}
-          <div className="flex items-center p-[2px] rounded-lg mb-2 flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
-            <button
-              onClick={() => setMode('general')}
-              title="通用问答：直接使用模型知识回答"
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-md transition-all text-[12px] font-medium"
-              style={mode === 'general'
-                ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
-                : { color: '#8a9491' }}
-            >
-              <IconGlobe size={12} />
-              通用问答
-            </button>
-            <button
-              onClick={() => setMode('kb')}
-              title="知识库问答：仅基于你沉淀的知识回答"
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-md transition-all text-[12px] font-medium"
-              style={mode === 'kb'
-                ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
-                : { color: '#8a9491' }}
-            >
-              <IconBook size={12} />
-              知识库问答
-            </button>
-          </div>
-
-          {/* 模型配置（整行） */}
-          <button
-            onClick={() => setConfigOpen(true)}
-            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium mb-2.5 flex-shrink-0 transition-colors ${
-              config?.apiKey ? 'text-ink-600 hover:bg-ink-50' : 'text-white'
-            }`}
-            style={config?.apiKey
-              ? { border: '1px solid #d4d9d8' }
-              : { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-            title="配置模型 API"
-          >
-            <IconGear size={12} />
-            <span className="truncate">{currentModelLabel}</span>
-            <span className="flex-1" />
-            {!config?.apiKey && <span>去配置</span>}
-          </button>
-
           {/* 会话区标题：计数 + 新建对话 */}
-          <div className="flex items-center gap-1.5 px-1 pt-2.5 pb-2 border-t border-ink-100/70 flex-shrink-0">
+          <div className="flex items-center gap-1.5 px-1 pt-1 pb-2 flex-shrink-0">
             <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">会话</span>
             <span className="text-[11px] text-ink-300 tabular-nums">{sessions.length}</span>
             <button

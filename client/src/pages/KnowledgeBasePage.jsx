@@ -11,6 +11,7 @@ import {
   IconSearch, IconPlus, IconPen, IconLink, IconImport, IconBook,
   IconFolder, IconFile, IconTrash, IconX,
 } from '../components/aiIcons.jsx';
+import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
 /* 知识库页面 · 三级结构（知识库书架 → 目录 → 正文）
    · 外层一张大卡片，内部分左右两张白卡（左：知识库；右：目录 + 正文）
@@ -79,6 +80,10 @@ export default function KnowledgeBasePage() {
   const [searchText, setSearchText] = useState('');
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [tick, setTick] = useState(0);
+
+  // 左右分栏（书架 | 目录 + 正文）：可拖拽调宽，双击分隔条恢复默认
+  const split = useSplitRatio('kb_split_ratio', { min: 0.2, max: 0.45, def: 0.28, maxWidth: 460 });
+  const { leftStyle, rightStyle, bindRoot, bindDivider } = split;
 
   // 弹窗
   const [formOpen, setFormOpen] = useState(false);
@@ -185,8 +190,8 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
-      {/* ===== 顶部横条卡 ===== */}
-      <div className="glass-card rounded-2xl p-2.5 flex-shrink-0">
+      {/* ===== 顶部横条卡（内边距/色条间距对齐小记页）===== */}
+      <div className="glass-card rounded-2xl p-4 flex-shrink-0">
         {/* 标题行 */}
         <div className="flex items-center gap-3">
           <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
@@ -217,10 +222,10 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
-      {/* 主体：左书架卡 + 右（目录 + 正文）卡 */}
-      <div className="flex-1 min-h-0 flex gap-3 items-stretch">
+      {/* 主体：左书架卡 + 右（目录 + 正文）卡，中间可拖拽调宽 */}
+      <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
           {/* ---- 左：知识库书架 ---- */}
-          <div className="glass-card rounded-2xl w-[210px] flex-shrink-0 flex flex-col min-h-0 p-3">
+          <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
             <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
               <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">知识库</span>
               <span className="text-[11px] text-ink-300 tabular-nums">{books.length}</span>
@@ -298,8 +303,10 @@ export default function KnowledgeBasePage() {
             </button>
           </div>
 
+          <SplitDivider bindDivider={bindDivider} />
+
           {/* ---- 右：目录 + 正文（同一张卡）---- */}
-          <div className="glass-card rounded-2xl flex-1 min-w-0 min-h-0 flex items-stretch">
+          <div className="glass-card rounded-2xl min-w-0 min-h-0 flex items-stretch" style={rightStyle}>
             {/* 目录 */}
             <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3">
               <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">

@@ -5,6 +5,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
   IconGlobe, IconBook, IconGear, IconRotate, IconPlus, IconSearch, IconPen, IconTrash, IconChat,
 } from '../components/aiIcons.jsx';
+import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import { getAIConfig } from '../utils/aiLLM.js';
 import {
   getSessions, createSession, renameSession, removeSession, touchSession,
@@ -60,6 +61,10 @@ export default function AIAssistantPage() {
   const [confirmRemove, setConfirmRemove] = useState(null);
   const [messageCount, setMessageCount] = useState(0);
   const chatRef = useRef(null);
+
+  // 左右分栏（会话列表 | 对话窗口）：可拖拽调宽，双击分隔条恢复默认
+  const split = useSplitRatio('ai_split_ratio', { min: 0.2, max: 0.45, def: 0.28, maxWidth: 460 });
+  const { leftStyle, rightStyle, bindRoot, bindDivider } = split;
 
   // 重新读取会话列表（可指定保留的会话）
   const reloadSessions = useCallback((keepId) => {
@@ -130,9 +135,9 @@ export default function AIAssistantPage() {
 
   return (
     <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
-      {/* ===== 顶部横条卡 ===== */}
-      <div className="glass-card rounded-2xl p-2.5 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
+      {/* ===== 顶部横条卡（内边距/色条间距对齐小记页）===== */}
+      <div className="glass-card rounded-2xl p-4 flex-shrink-0">
+        <div className="flex items-center gap-3">
           <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
           <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">AI 助手</span>
 
@@ -190,10 +195,10 @@ export default function AIAssistantPage() {
         </div>
       </div>
 
-      {/* ===== 主体：左会话卡 + 右对话卡 ===== */}
-      <div className="flex-1 min-h-0 flex gap-3 items-stretch">
+      {/* ===== 主体：左会话卡 + 右对话卡，中间可拖拽调宽 ===== */}
+      <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
         {/* ---- 左：会话列表 ---- */}
-        <div className="glass-card rounded-2xl w-[210px] flex-shrink-0 flex flex-col min-h-0 p-3">
+        <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
           <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
             <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">会话</span>
             <span className="text-[11px] text-ink-300 tabular-nums">{sessions.length}</span>
@@ -283,8 +288,10 @@ export default function AIAssistantPage() {
           </button>
         </div>
 
+        <SplitDivider bindDivider={bindDivider} />
+
         {/* ---- 右：对话窗口 ---- */}
-        <div className="glass-card rounded-2xl flex-1 min-w-0 min-h-0 flex flex-col p-3">
+        <div className="glass-card rounded-2xl min-w-0 min-h-0 flex flex-col p-3" style={rightStyle}>
           {activeSession && (
             <div className="flex items-center gap-2 px-1 pb-2 flex-shrink-0">
               <span className="text-[12.5px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeSession.title}</span>

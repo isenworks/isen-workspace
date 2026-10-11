@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   callLLMStream, getAIConfig, buildSystemPrompt, renderMarkdown,
 } from '../utils/aiLLM.js';
@@ -35,13 +35,15 @@ function ToolStatusIcon({ status }) {
   return <IconClock size={12} />;
 }
 
-export default function AIChat({
+const AIChat = forwardRef(function AIChat({
   mode = 'general',
   onModeChange,
   onConfigClick,
   storageKey = 'ai_messages_main',
   compact = false,
-}) {
+  headerless = false,
+  onMessagesChange,
+}, ref) {
   const [messages, setMessages] = useState(() => {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -79,6 +81,19 @@ export default function AIChat({
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  // 暴露 clear 方法给父组件（headerless 时由父组件触发）
+  useImperativeHandle(ref, () => ({
+    clear: () => {
+      setMessages([]);
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+    },
+  }), [storageKey]);
+
+  // 通知父组件消息数量变化
+  useEffect(() => {
+    onMessagesChange?.(messages.length);
+  }, [messages.length, onMessagesChange]);
 
   // ===== 构建 OpenAI 格式 messages =====
   const buildApiMessages = useCallback(() => {
@@ -415,6 +430,7 @@ export default function AIChat({
       `}</style>
 
       {/* ===== 顶部栏 ===== */}
+      {!headerless && (
       <div className={`flex items-center gap-2.5 flex-shrink-0 ${compact ? 'pb-2' : 'pb-3'}`}>
         {!compact && (
           <>
@@ -475,6 +491,7 @@ export default function AIChat({
           <IconRotate size={13} />
         </button>
       </div>
+      )}
 
       {/* 知识库模式提示条 */}
       {mode === 'kb' && (
@@ -487,8 +504,8 @@ export default function AIChat({
         </div>
       )}
 
-      {/* 清空确认（内联轻量确认） */}
-      {confirmClear && (
+      {/* 清空确认（内联轻量确认，headerless 时由父组件 ConfirmDialog 处理） */}
+      {!headerless && confirmClear && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2 flex-shrink-0 bg-[#FF3B300A] border border-[#FF3B3022]">
           <span className="text-[#FF3B30] flex-shrink-0"><IconAlert size={13} /></span>
           <span className="text-[11.5px] text-ink-700 flex-1">确定清空当前对话？清空后不可恢复。</span>
@@ -504,7 +521,7 @@ export default function AIChat({
       )}
 
       {/* ===== 消息区 ===== */}
-      <div ref={scrollRef} className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${compact ? 'gap-2' : 'gap-3'} ${compact ? 'py-1' : 'py-2'}`}>
+      <div ref={scrollRef} className={`flex-1 min-h-0 overflow-y-auto flex flex-col mx-auto w-full max-w-[820px] ${compact ? 'gap-2' : 'gap-3'} ${compact ? 'py-1' : 'py-2'}`}>
         {messages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
             <span className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center mb-1"
@@ -523,7 +540,7 @@ export default function AIChat({
       </div>
 
       {/* ===== 输入区 ===== */}
-      <div className="flex items-end gap-2 pt-2 flex-shrink-0">
+      <div className="flex items-end gap-2 pt-2 flex-shrink-0 mx-auto w-full max-w-[820px]">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -558,7 +575,9 @@ export default function AIChat({
       </div>
     </div>
   );
-}
+});
+
+export default AIChat;
 
 // 参数 key → 中文标签
 function argLabel(k) {

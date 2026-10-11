@@ -135,18 +135,30 @@ export default function AIAssistantPage() {
 
   return (
     <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
-      {/* ===== 顶部横条卡（内边距/色条间距对齐小记页）===== */}
-      <div className="glass-card rounded-2xl p-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
-          <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">AI 助手</span>
+      {/* ===== 左会话卡 + 右对话卡，中间可拖拽调宽 ===== */}
+      <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
+        {/* ---- 左：页头 + 会话列表 ---- */}
+        <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
+          {/* 页头：色条 + 标题 + 清空 */}
+          <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
+            <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
+            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">AI 助手</span>
+            <button
+              onClick={() => messageCount > 0 && setConfirmClear(true)}
+              disabled={messageCount === 0}
+              className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-ink-400 hover:bg-ink-50 transition-colors disabled:opacity-30 disabled:cursor-default"
+              title="清空当前对话"
+            >
+              <IconRotate size={13} />
+            </button>
+          </div>
 
-          {/* 模式切换（工作台分段控件风格） */}
-          <div className="ml-auto flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+          {/* 模式切换（整行分段控件） */}
+          <div className="flex items-center p-[2px] rounded-lg mb-2 flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
             <button
               onClick={() => setMode('general')}
               title="通用问答：直接使用模型知识回答"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-md transition-all text-[12px] font-medium"
               style={mode === 'general'
                 ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
                 : { color: '#8a9491' }}
@@ -157,7 +169,7 @@ export default function AIAssistantPage() {
             <button
               onClick={() => setMode('kb')}
               title="知识库问答：仅基于你沉淀的知识回答"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-md transition-all text-[12px] font-medium"
               style={mode === 'kb'
                 ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
                 : { color: '#8a9491' }}
@@ -167,10 +179,10 @@ export default function AIAssistantPage() {
             </button>
           </div>
 
-          {/* 模型配置 */}
+          {/* 模型配置（整行） */}
           <button
             onClick={() => setConfigOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium flex-shrink-0 transition-colors ${
+            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium mb-2.5 flex-shrink-0 transition-colors ${
               config?.apiKey ? 'text-ink-600 hover:bg-ink-50' : 'text-white'
             }`}
             style={config?.apiKey
@@ -179,29 +191,23 @@ export default function AIAssistantPage() {
             title="配置模型 API"
           >
             <IconGear size={12} />
-            {currentModelLabel}
-            {!config?.apiKey && <span className="ml-0.5">去配置</span>}
+            <span className="truncate">{currentModelLabel}</span>
+            <span className="flex-1" />
+            {!config?.apiKey && <span>去配置</span>}
           </button>
 
-          {/* 清空当前会话 */}
-          <button
-            onClick={() => messageCount > 0 && setConfirmClear(true)}
-            disabled={messageCount === 0}
-            className="w-[26px] h-[26px] rounded-lg flex items-center justify-center flex-shrink-0 text-ink-400 hover:bg-ink-50 transition-colors disabled:opacity-30 disabled:cursor-default"
-            title="清空当前对话"
-          >
-            <IconRotate size={13} />
-          </button>
-        </div>
-      </div>
-
-      {/* ===== 主体：左会话卡 + 右对话卡，中间可拖拽调宽 ===== */}
-      <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
-        {/* ---- 左：会话列表 ---- */}
-        <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
-          <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
+          {/* 会话区标题：计数 + 新建对话 */}
+          <div className="flex items-center gap-1.5 px-1 pt-2.5 pb-2 border-t border-ink-100/70 flex-shrink-0">
             <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">会话</span>
             <span className="text-[11px] text-ink-300 tabular-nums">{sessions.length}</span>
+            <button
+              onClick={handleNewChat}
+              className="w-[22px] h-[22px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+              title="新建对话"
+            >
+              <IconPlus size={12} />
+            </button>
           </div>
 
           <div className="relative mb-2 flex-shrink-0">
@@ -279,14 +285,7 @@ export default function AIAssistantPage() {
             ))}
           </div>
 
-          <button
-            onClick={handleNewChat}
-            className="mt-2 flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[12px] font-medium text-[var(--s-main)] border border-dashed border-ink-200 hover:bg-ink-50 transition-colors flex-shrink-0"
-          >
-            <IconPlus size={12} />
-            新建对话
-          </button>
-        </div>
+          </div>
 
         <SplitDivider bindDivider={bindDivider} />
 

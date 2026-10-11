@@ -190,45 +190,37 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
-      {/* ===== 顶部横条卡（内边距/色条间距对齐小记页）===== */}
-      <div className="glass-card rounded-2xl p-4 flex-shrink-0">
-        {/* 标题行 */}
-        <div className="flex items-center gap-3">
-          <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
-          <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">知识库</span>
-
-          <div className="relative ml-2 flex-1 max-w-[280px]">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300">
-              <IconSearch size={13} />
-            </span>
-            <input
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="搜索文档标题 / 正文 / 标签"
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg text-[12.5px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors"
-            />
-          </div>
-
-          <div className="flex-1" />
-
-          <button
-            onClick={() => { setNewBook(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold text-white transition-all hover:scale-105 active:scale-95 flex-shrink-0"
-            style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-          >
-            <IconPlus size={13} />
-            新建知识库
-          </button>
-        </div>
-      </div>
-
       {/* 主体：左书架卡 + 右（目录 + 正文）卡，中间可拖拽调宽 */}
       <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
-          {/* ---- 左：知识库书架 ---- */}
+          {/* ---- 左：页头 + 知识库书架 ---- */}
           <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
-            <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
-              <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">知识库</span>
-              <span className="text-[11px] text-ink-300 tabular-nums">{books.length}</span>
+            {/* 页头：色条 + 标题 + 计数 + 新建 */}
+            <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
+              <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
+              <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">知识库</span>
+              <span className="text-[11px] text-ink-300 tabular-nums flex-shrink-0">{books.length}</span>
+              <div className="flex-1" />
+              <button
+                onClick={() => { setNewBook(true); }}
+                className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
+                style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+                title="新建知识库"
+              >
+                <IconPlus size={13} />
+              </button>
+            </div>
+
+            {/* 搜索 */}
+            <div className="relative mb-2 flex-shrink-0">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300">
+                <IconSearch size={13} />
+              </span>
+              <input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="搜索文档标题 / 正文 / 标签"
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg text-[12.5px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors"
+              />
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">
@@ -294,14 +286,7 @@ export default function KnowledgeBasePage() {
               )}
             </div>
 
-            <button
-              onClick={() => setNewBook(true)}
-              className="mt-2 flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[12px] font-medium text-[var(--s-main)] border border-dashed border-ink-200 hover:bg-ink-50 transition-colors flex-shrink-0"
-            >
-              <IconPlus size={12} />
-              新建知识库
-            </button>
-          </div>
+            </div>
 
           <SplitDivider bindDivider={bindDivider} />
 

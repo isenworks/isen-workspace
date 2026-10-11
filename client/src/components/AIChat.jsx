@@ -43,6 +43,7 @@ const AIChat = forwardRef(function AIChat({
   compact = false,
   headerless = false,
   onMessagesChange,
+  onUserMessage,
 }, ref) {
   const [messages, setMessages] = useState(() => {
     try {
@@ -250,6 +251,10 @@ const AIChat = forwardRef(function AIChat({
     setStreaming(true);
     abortRef.current = new AbortController();
 
+    // 通知父组件：首条用户消息用于派生会话标题
+    const isFirstUser = !msgsRef.current.some(m => m.role === 'user');
+    onUserMessage?.(text, isFirstUser);
+
     try {
       await runConversation();
     } catch (err) {
@@ -258,7 +263,7 @@ const AIChat = forwardRef(function AIChat({
       setStreaming(false);
       abortRef.current = null;
     }
-  }, [input, streaming, onConfigClick, runConversation]);
+  }, [input, streaming, onConfigClick, runConversation, onUserMessage]);
 
   // ===== 取消流式 =====
   const handleStop = useCallback(() => {

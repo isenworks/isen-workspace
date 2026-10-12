@@ -190,14 +190,20 @@ export default function KnowledgeBasePage() {
   const [dragGroup, setDragGroup] = useState(null);
   const [dropHint, setDropHint] = useState(null); // { type:'doc'|'group'|'groupSort', key }
 
-  // 正文 / 标题 · 直接点击编辑（失焦自动保存）
+  // 正文 / 标题 · 直接点击编辑（输入防抖自动保存 + 失焦 / 切换文档 / 关闭页面兜底）
   const titleRef = useRef(null);
   const contentRef = useRef(null);
   const [savedFlash, setSavedFlash] = useState('');
   const [dirty, setDirty] = useState(false);       // 正文是否有未保存改动
   const [charCount, setCharCount] = useState(0);   // 正文字数
   const saveHintTimer = useRef(null);
-  useEffect(() => () => { if (saveHintTimer.current) clearTimeout(saveHintTimer.current); }, []);
+  const autosaveTimer = useRef(null);              // 输入防抖自动保存定时器
+  const editingDocIdRef = useRef(null);            // 当前编辑中的文档 id（同步值，兜底保存用）
+  const draftRef = useRef(null);                   // 最近一次输入 { id, title, content }
+  useEffect(() => () => {
+    if (saveHintTimer.current) clearTimeout(saveHintTimer.current);
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+  }, []);
 
   const flashSaved = () => {
     setSavedFlash('✓ 已保存');
@@ -210,6 +216,8 @@ export default function KnowledgeBasePage() {
     contentRef.current?.focus();
     try { document.execCommand(cmd, false, val); } catch { /* ignore */ }
     setDirty(true);
+    captureDraft();
+    scheduleAutosave();
   };
 
   const reload = useCallback(() => {
@@ -219,6 +227,65 @@ export default function KnowledgeBasePage() {
     setActiveKbId(prev => (prev && bs.some(b => b.id === prev) ? prev : (bs[0]?.id || null)));
     setTick(t => t + 1);
   }, []);
+
+  // 把一条草稿落到 localStorage（纯数据操作、不依赖 DOM，切换 / 关闭时也能兜底）
+  const persistEntry = useCallback((id, title, html) => {
+    if (!id) return null;
+    const entry = getKBEntries().find(e => e.id === id);
+    if (!entry) return null;
+    const content = stripHtml(html) ? (html || '') : ''; // 空内容归一为空串，避免存入空标签
+    const t = (title || '').replace(/\s+/g, ' ').trim() || '无标题';
+    const patch = {};
+    if (t !== (entry.title || '')) patch.title = t;
+    if (content !== (entry.content || '')) patch.content = content;
+    let changed = Object.keys(patch).length > 0;
+    if (changed) updateKBEntry(id, patch);
+    // 未命名笔记：用正文首行补标题（与旧新建弹窗一致的行为）
+    let finalTitle = patch.title !== undefined ? patch.title : entry.title;
+    if ((!finalTitle || finalTitle === '无标题') && content) {
+      const first = stripHtml(content).trim().slice(0, 30);
+      if (first) { updateKBEntry(id, { title: first }); finalTitle = first; changed = true; }
+    }
+    return { changed, finalTitle };
+  }, []);
+
+  // 落库草稿：自动保存 / 失焦 / 切换文档 / 关闭页面 的统一入口；quiet=true 不动 UI（离开时用）
+  const commitDraft = useCallback((quiet = false) => {
+    const d = draftRef.current;
+    if (!d?.id) return;
+    draftRef.current = null;
+    const r = persistEntry(d.id, d.title, d.content);
+    if (!r?.changed) return;
+    if (d.id === editingDocIdRef.current && titleRef.current) titleRef.current.innerText = r.finalTitle;
+    if (!quiet) { setDirty(false); reload(); flashSaved(); }
+  }, [persistEntry, reload]);
+  const commitDraftRef = useRef(commitDraft);
+  commitDraftRef.current = commitDraft;
+
+  // 输入防抖：停止输入 1.2s 后自动保存
+  const scheduleAutosave = () => {
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => { autosaveTimer.current = null; commitDraftRef.current?.(); }, 1200);
+  };
+
+  // 记录草稿（标题 / 正文任一改动都更新；切换或关闭时用它兜底）
+  const captureDraft = () => {
+    draftRef.current = {
+      id: editingDocIdRef.current,
+      title: titleRef.current?.innerText || '',
+      content: contentRef.current?.innerHTML || '',
+    };
+  };
+
+  // 关闭 / 刷新页面时兜底保存（localStorage 同步写，能赶上）
+  useEffect(() => {
+    const onLeave = () => commitDraftRef.current?.(true);
+    window.addEventListener('beforeunload', onLeave);
+    return () => window.removeEventListener('beforeunload', onLeave);
+  }, []);
+
+  // 组件卸载时兜底保存
+  useEffect(() => () => { commitDraftRef.current?.(true); }, []);
 
   // 加载 + 云端同步 + 旧数据迁移
   useEffect(() => {
@@ -273,46 +340,17 @@ export default function KnowledgeBasePage() {
   // 无自建分组时平铺文档（不显示「未分组」标题）；有分组时才按章节分组展示
   const flatDocs = (tree.length === 1 && tree[0].group === '') ? tree[0].docs : null;
 
-  // 标题 / 正文：仅在「切换文档」时同步 DOM，避免失焦保存后重渲染打断光标
+  // 标题 / 正文：切换文档前先把上一篇落库，再同步新文档内容到 DOM
   useEffect(() => {
+    commitDraftRef.current?.();   // 保存上一篇（草稿基于 ref，不依赖 DOM，切换不丢）
+    if (autosaveTimer.current) { clearTimeout(autosaveTimer.current); autosaveTimer.current = null; }
+    editingDocIdRef.current = selectedDocId;
     if (titleRef.current) titleRef.current.innerText = selectedDoc?.title || '无标题';
     if (contentRef.current) contentRef.current.innerHTML = selectedDoc?.content || '';
     setDirty(false);
     setCharCount(stripHtml(selectedDoc?.content || '').length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDoc?.id]);
-
-  const commitTitle = () => {
-    if (!selectedDocId || !titleRef.current) return;
-    const next = (titleRef.current.innerText || '').replace(/\s+/g, ' ').trim() || '无标题';
-    titleRef.current.innerText = next;
-    if (next === (selectedDoc?.title || '')) return;
-    updateKBEntry(selectedDocId, { title: next });
-    reload();
-    flashSaved();
-  };
-
-  const commitContent = () => {
-    if (!selectedDocId || !contentRef.current) return;
-    const html = contentRef.current.innerHTML;
-    const next = stripHtml(html) ? html : ''; // 空内容归一为空串，避免存入空标签
-    if (next === '') contentRef.current.innerHTML = '';
-    setCharCount(stripHtml(next).length);
-    if (next === (selectedDoc?.content || '')) { setDirty(false); return; }
-    updateKBEntry(selectedDocId, { content: next });
-    // 新建笔记未命名时，用正文首行补一个标题（与旧新建弹窗一致的行为）
-    const cur = (selectedDoc?.title || '').trim();
-    if (!cur || cur === '无标题') {
-      const first = stripHtml(next).trim().slice(0, 30);
-      if (first) {
-        updateKBEntry(selectedDocId, { title: first });
-        if (titleRef.current) titleRef.current.innerText = first;
-      }
-    }
-    setDirty(false);
-    reload();
-    flashSaved();
-  };
 
   // 选中标题全文（「重命名」菜单用）
   const focusTitle = () => {
@@ -761,7 +799,8 @@ export default function KnowledgeBasePage() {
                       contentEditable
                       suppressContentEditableWarning
                       data-placeholder="无标题"
-                      onBlur={commitTitle}
+                      onInput={() => { captureDraft(); scheduleAutosave(); }}
+                      onBlur={() => commitDraft()}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur(); } }}
                       className="kb-inline flex-1 min-w-0 text-[20px] font-bold text-ink-900 leading-snug break-words rounded-md px-1.5 -ml-1.5 py-0.5 hover:bg-[rgba(0,0,0,0.035)] focus:bg-[rgba(0,0,0,0.035)] transition-colors"
                     />
@@ -843,10 +882,12 @@ export default function KnowledgeBasePage() {
                       onInput={() => {
                         setDirty(true);
                         setCharCount(stripHtml(contentRef.current?.innerHTML || '').length);
+                        captureDraft();
+                        scheduleAutosave();
                       }}
-                      onBlur={commitContent}
+                      onBlur={() => commitDraft()}
                       onKeyDown={(e) => {
-                        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); commitContent(); }
+                        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); commitDraft(); }
                       }}
                       className="kb-inline kb-prose flex-1 min-h-0 overflow-y-auto px-0.5 py-3"
                     />
@@ -863,7 +904,7 @@ export default function KnowledgeBasePage() {
                             ? <span className="text-[11px] text-ink-400 tabular-nums">{fmtSavedTime(selectedDoc.updatedAt)}</span>
                             : null}
                       <button
-                        onClick={commitContent}
+                        onClick={() => commitDraft()}
                         disabled={!dirty}
                         className="h-[26px] px-3 rounded-lg text-[12px] font-semibold transition-all focus:outline-none disabled:cursor-default"
                         style={dirty

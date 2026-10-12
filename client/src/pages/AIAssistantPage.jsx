@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import AIChat from '../components/AIChat.jsx';
 import AIConfigModal from '../components/AIConfigModal.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import ExpandingSearch from '../components/ExpandingSearch.jsx';
 import {
-  IconPlus, IconSearch, IconPen, IconTrash, IconChat,
+  IconPlus, IconPen, IconTrash, IconChat,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import {
@@ -121,10 +122,11 @@ export default function AIAssistantPage() {
       <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
         {/* ---- 左：页头 + 会话列表 ---- */}
         <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
-          {/* 页头：色条 + 标题 + 删除当前会话 / 新建对话 */}
+          {/* 页头：色条 + 标题 + 搜索 / 删除当前会话 / 新建对话 */}
           <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
             <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
             <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">小亦</span>
+            <ExpandingSearch value={search} onChange={setSearch} placeholder="搜索历史对话" />
             <button
               onClick={() => activeSession && setConfirmRemove(activeSession)}
               disabled={!activeSession}
@@ -141,18 +143,6 @@ export default function AIAssistantPage() {
             >
               <IconPlus size={13} />
             </button>
-          </div>
-
-          <div className="relative mb-2 flex-shrink-0">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300">
-              <IconSearch size={12} />
-            </span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜索历史对话"
-              className="w-full pl-7 pr-2 py-1.5 rounded-lg text-[12px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors"
-            />
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">

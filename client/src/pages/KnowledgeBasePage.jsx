@@ -7,8 +7,9 @@ import {
 } from '../utils/aiKnowledgeBase.js';
 import KnowledgeForm from '../components/KnowledgeForm.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import ExpandingSearch from '../components/ExpandingSearch.jsx';
 import {
-  IconSearch, IconPlus, IconPen, IconLink, IconImport, IconBook,
+  IconPen, IconLink, IconImport, IconBook,
   IconFolder, IconFile, IconTrash, IconX,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
@@ -194,12 +195,13 @@ export default function KnowledgeBasePage() {
       <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
           {/* ---- 左：页头 + 知识库书架 ---- */}
           <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
-            {/* 页头：色条 + 标题 + 计数 + 新建 */}
+            {/* 页头：色条 + 标题 + 计数 + 搜索 / 新建 */}
             <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
               <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
               <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">知识库</span>
               <span className="text-[11px] text-ink-300 tabular-nums flex-shrink-0">{books.length}</span>
               <div className="flex-1" />
+              <ExpandingSearch value={searchText} onChange={setSearchText} placeholder="搜索标题 / 正文 / 标签" />
               <button
                 onClick={() => { setNewBook(true); }}
                 className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
@@ -208,19 +210,6 @@ export default function KnowledgeBasePage() {
               >
                 <IconPlus size={13} />
               </button>
-            </div>
-
-            {/* 搜索 */}
-            <div className="relative mb-2 flex-shrink-0">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300">
-                <IconSearch size={13} />
-              </span>
-              <input
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="搜索文档标题 / 正文 / 标签"
-                className="w-full pl-8 pr-3 py-1.5 rounded-lg text-[12.5px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors"
-              />
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">

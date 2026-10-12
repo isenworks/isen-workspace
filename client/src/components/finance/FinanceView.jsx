@@ -498,7 +498,6 @@ export default function FinanceView({
         {filteredTxs.length === 0 ? (
           <div className="rounded-xl border border-dashed border-ink-200 py-8 flex flex-col items-center gap-1.5 text-ink-400">
             <span className="text-[12.5px] font-semibold">{txs.length === 0 ? '暂无交易记录' : '该类型暂无记录'}</span>
-            <span className="text-[11px]">点上方「记一笔」开始记录</span>
           </div>
         ) : (
           <div className="flex flex-col divide-y divide-ink-100/70 -mx-1 pr-[17px]">

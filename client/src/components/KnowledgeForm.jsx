@@ -136,14 +136,14 @@ export default function KnowledgeForm({ open, onClose, entry = null, defaultSour
           ref={contentRef}
           contentEditable
           suppressContentEditableWarning
-          data-placeholder="记录你的思考、摘录或笔记…（支持从飞书 / 网页直接粘贴富文本）"
+          data-placeholder="开始记录…"
           className="min-h-[180px] max-h-[320px] overflow-y-auto px-3 py-2.5 rounded-b-lg text-[13.5px] leading-relaxed text-ink-900 bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none"
         />
       </div>
 
       {/* 标签 */}
       <div className="mb-3">
-        <label className={labelCls}>标签 <span className="font-normal text-ink-400">（逗号分隔，用于筛选和知识库问答）</span></label>
+        <label className={labelCls}>标签 <span className="font-normal text-ink-400">（逗号分隔）</span></label>
         <input
           type="text"
           value={tags}

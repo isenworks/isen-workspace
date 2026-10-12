@@ -189,7 +189,6 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
         {mstones.length === 0 ? (
           <div className="py-4 text-center rounded-xl" style={{ background: 'rgba(15,23,42,0.03)' }}>
             <div className="text-[12px] font-semibold text-ink-400">还没有 KR</div>
-            <div className="text-[11px] text-ink-400 mt-1 opacity-80">点击右上角 + 添加</div>
           </div>
         ) : (
           <div className="flex flex-col max-h-[240px] overflow-y-auto">

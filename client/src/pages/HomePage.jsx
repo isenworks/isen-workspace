@@ -831,7 +831,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               )}
             </div>
             {heroImgs.length === 0 && (
-              <div className="text-[11px] text-ink-300 mt-1.5">最多 {HERO_IMG_MAX} 张轮播 · 按 Hero 卡片实际比例取景裁剪，成品图 100% 像素用于展示</div>
+              <div className="text-[11px] text-ink-300 mt-1.5">最多 {HERO_IMG_MAX} 张轮播</div>
             )}
 
             {/* 轮播设置（≥2 张时显示） */}

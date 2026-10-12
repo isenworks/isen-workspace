@@ -306,7 +306,6 @@ export default function RecycleBinPage() {
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
             <div className="text-[14px] font-semibold text-ink-900">{items.length === 0 ? '回收站是空的' : '该分类下暂无内容'}</div>
-            <div className="text-[12px] text-ink-400">删除的待办、日程、习惯、收集等会出现在这里</div>
           </div>
         ) : grouped.map((g, gi) => (
           <div key={g.bucket}>

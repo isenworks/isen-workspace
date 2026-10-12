@@ -1586,7 +1586,6 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             {detailEvents.length === 0 ? (
               <div className="py-8 text-center">
                 <div className="text-[14px] font-semibold text-[#1C1C1E]">当日还没有安排</div>
-                <div className="text-[12px] text-[#8E8E93] mt-1">点击右下角「+ 新增当日事项」即可创建</div>
               </div>
             ) : (
               <FocusPanel

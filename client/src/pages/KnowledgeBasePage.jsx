@@ -787,7 +787,6 @@ export default function KnowledgeBasePage() {
                     <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                   </svg>
                   <div className="text-[13.5px] font-semibold text-ink-900">选择左侧一篇文档</div>
-                  <div className="text-[12px] text-ink-400">在这里阅读或编辑内容</div>
                 </div>
               ) : (
                 <>
@@ -878,7 +877,7 @@ export default function KnowledgeBasePage() {
                       ref={contentRef}
                       contentEditable
                       suppressContentEditableWarning
-                      data-placeholder="点这里开始记录你的思考、摘录或笔记…"
+                      data-placeholder="开始记录…"
                       onInput={() => {
                         setDirty(true);
                         setCharCount(stripHtml(contentRef.current?.innerHTML || '').length);

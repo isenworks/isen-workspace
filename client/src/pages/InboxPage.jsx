@@ -489,7 +489,6 @@ export default function InboxPage({ onCountChange }) {
             <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
           <div className="text-[13.5px] font-semibold text-ink-900">选择左侧一条想法</div>
-          <div className="text-[12px] text-ink-400">在这里编辑内容或分派到具体日期的日程</div>
         </div>
       );
     }

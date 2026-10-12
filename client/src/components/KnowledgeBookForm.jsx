@@ -77,7 +77,7 @@ export default function KnowledgeBookForm({ open, onClose, book = null, onSave }
             maxLength={NAME_MAX}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-            placeholder="输入知识库名称，例如：写作灵感库"
+            placeholder="知识库名称"
             className={`${fieldCls} pr-16`}
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-ink-400 tabular-nums">
@@ -95,7 +95,7 @@ export default function KnowledgeBookForm({ open, onClose, book = null, onSave }
             maxLength={DESC_MAX}
             onChange={(e) => setDesc(e.target.value)}
             rows={3}
-            placeholder="描述下你的知识库，例如：收集日常观察、有趣的对话、突发奇想"
+            placeholder="一句话描述（可选）"
             className={`${fieldCls} resize-none pb-6`}
           />
           <span className="absolute right-3 bottom-2 text-[11px] text-ink-400 tabular-nums">

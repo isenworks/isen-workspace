@@ -82,7 +82,6 @@ export default function FixedSchedulesPanel({ onEdit }) {
         }}>
           <div style={{ fontSize: '28px', marginBottom: '6px' }}>📌</div>
           还没有固定日程
-          <div style={{ fontSize: '12px', marginTop: '4px' }}>点击右上角「新增」开始创建</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

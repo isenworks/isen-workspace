@@ -358,7 +358,6 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
       return (
         <div className="py-4 text-center rounded-xl mt-2" style={{ background: 'rgba(15,23,42,0.03)' }}>
           <div className="text-[12px] font-semibold text-ink-400">还没有 KR</div>
-          <div className="text-[11px] text-ink-400 mt-1 opacity-80">点击右上角 + 添加</div>
         </div>
       );
     }

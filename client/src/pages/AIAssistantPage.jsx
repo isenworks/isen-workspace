@@ -202,12 +202,12 @@ export default function AIAssistantPage() {
                       >
                         <IconChat size={12} />
                       </span>
-                      <span className="flex-1 min-w-0">
+                      <span className="flex-1 min-w-0 flex items-center gap-1.5">
                         <span
-                          className={`block text-[12.5px] leading-tight truncate ${active ? 'font-semibold' : 'font-medium'}`}
+                          className={`flex-1 min-w-0 text-[12.5px] leading-tight truncate ${active ? 'font-semibold' : 'font-medium'}`}
                           style={active ? { color: 'var(--s-main)' } : { color: '#0f1f1c' }}
                         >{s.title}</span>
-                        <span className="block text-[10.5px] text-ink-400 mt-0.5">{fmtSessionTime(s.updatedAt)}</span>
+                        <span className="text-[10.5px] text-ink-300 flex-shrink-0 tabular-nums">{fmtSessionTime(s.updatedAt)}</span>
                       </span>
                       <span className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button

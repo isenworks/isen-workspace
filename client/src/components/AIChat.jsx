@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
-  callLLMStream, getAIConfig, buildSystemPrompt, renderMarkdown,
+  callLLMStream, getAIConfig, saveAIConfig, modelConfigs, buildSystemPrompt, renderMarkdown,
 } from '../utils/aiLLM.js';
 import {
   aiToolDefinitions, executeTool, isWriteTool, formatToolResult, toolDisplayNames,
@@ -9,7 +9,7 @@ import { getKBTextForPrompt } from '../utils/aiKnowledgeBase.js';
 import { store } from '../utils/store.js';
 import {
   IconChat, IconGlobe, IconBook, IconGear, IconArrowUp, IconStop, IconRotate,
-  IconCheck, IconClock, IconBan, IconAlert, IconPen,
+  IconCheck, IconClock, IconBan, IconAlert, IconPen, IconMic, IconChevronDown,
 } from './aiIcons.jsx';
 
 /* AIChat · 可复用对话组件（风格对齐工作台）
@@ -25,6 +25,10 @@ import {
 function genId() {
   return 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
 }
+
+// 浏览器是否支持原生语音识别（Chrome/Edge 的 Web Speech API）
+const speechSupported = typeof window !== 'undefined'
+  && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
 // 工具状态 → 图标
 function ToolStatusIcon({ status }) {
@@ -55,12 +59,18 @@ const AIChat = forwardRef(function AIChat({
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [kbCount, setKbCount] = useState(0);
+  const [modelMenuOpen, setModelMenuOpen] = useState(false); // Trae Work 式模型选择浮层
+  const [listening, setListening] = useState(false);         // 语音输入进行中
+  const [voiceHint, setVoiceHint] = useState('');            // 语音错误提示（短暂显示）
 
   const msgsRef = useRef(messages);
   const abortRef = useRef(null);
   const pendingConfirms = useRef(new Map()); // id → resolve(confirm)
   const scrollRef = useRef(null);
   const taRef = useRef(null);
+  const recRef = useRef(null);        // SpeechRecognition 实例
+  const voiceBaseRef = useRef('');    // 开始录音时的输入内容（识别结果追加在其后）
+  const voiceHintTimer = useRef(null);
 
   // 保持 messages ref 最新（供异步循环读最新值）
   useEffect(() => { msgsRef.current = messages; }, [messages]);
@@ -112,7 +122,7 @@ const AIChat = forwardRef(function AIChat({
     if (mode === 'kb') {
       kbText = getKBTextForPrompt();
       if (!kbText) {
-        kbText = '（知识库暂无内容，请告知用户先去知识库添加条目，或切换到通用问答模式。）';
+        kbText = '（知识库暂无内容，请告知用户先去知识库添加条目，或切换到通用模式。）';
       }
     }
     const systemPrompt = buildSystemPrompt(mode, kbText);
@@ -287,6 +297,69 @@ const AIChat = forwardRef(function AIChat({
     abortRef.current?.abort();
   }, []);
 
+  // ===== 语音输入（Web Speech API：识别文字实时打进输入框）=====
+  const showVoiceHint = useCallback((msg) => {
+    setVoiceHint(msg);
+    clearTimeout(voiceHintTimer.current);
+    voiceHintTimer.current = setTimeout(() => setVoiceHint(''), 3200);
+  }, []);
+
+  const toggleVoice = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) { recRef.current?.stop(); return; }
+    try {
+      const rec = new SR();
+      rec.lang = 'zh-CN';
+      rec.continuous = true;     // 持续听写，直到再次点击停止或浏览器判定静音结束
+      rec.interimResults = true; // 中间结果实时上屏
+      voiceBaseRef.current = input;
+      rec.onresult = (e) => {
+        let finalText = '', interim = '';
+        for (let i = 0; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) finalText += t; else interim += t;
+        }
+        setInput(((voiceBaseRef.current || '') + finalText + interim).replace(/\s+/g, ' '));
+      };
+      rec.onerror = (e) => {
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          showVoiceHint('麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风');
+        } else if (e.error === 'network') {
+          showVoiceHint('语音识别服务不可用，请检查网络');
+        }
+      };
+      rec.onend = () => { setListening(false); recRef.current = null; };
+      recRef.current = rec;
+      rec.start();
+      setListening(true);
+    } catch {
+      showVoiceHint('当前浏览器不支持语音输入，建议使用 Chrome / Edge');
+    }
+  }, [input, listening, showVoiceHint]);
+
+  // 卸载时停止录音、清理提示计时器
+  useEffect(() => () => {
+    try { recRef.current?.stop(); } catch { /* ignore */ }
+    clearTimeout(voiceHintTimer.current);
+  }, []);
+
+  // ===== 模型选择（Trae Work 式：胶囊按钮 → 上拉菜单，选中即存即生效）=====
+  const handlePickModel = useCallback((key) => {
+    const cfg = modelConfigs[key] || {};
+    const cur = getAIConfig() || {};
+    saveAIConfig({
+      provider: key,
+      apiKey: cur.apiKey || '',
+      baseUrl: cfg.baseUrl || cur.baseUrl || '',
+      model: cfg.model || cur.model || '',
+      enableTools: cur.enableTools !== false,
+    });
+    setModelMenuOpen(false);
+    // 尚未配置 Key：选完模型直接打开设置弹窗补 Key，一步到位
+    if (!cur.apiKey) onConfigClick?.();
+  }, [onConfigClick]);
+
   // ===== 清空消息（二次确认）=====
   const [confirmClear, setConfirmClear] = useState(false);
   const handleClear = useCallback(() => {
@@ -456,6 +529,14 @@ const AIChat = forwardRef(function AIChat({
         @keyframes ai-blink { 0%,60%,100% { opacity: 0.3; } 30% { opacity: 1; } }
         .ai-spin { display: inline-flex; animation: ai-rotate 1s linear infinite; }
         @keyframes ai-rotate { to { transform: rotate(360deg); } }
+        /* 输入框聚焦态：浅蓝描边 + 蓝色光环与投影（参考 Google Inputs / Notion 聚焦语言） */
+        .ai-composer { border-color: #e2e6e5; box-shadow: 0 1px 3px rgba(0,0,0,0.03); transition: border-color .18s ease, box-shadow .18s ease; }
+        .ai-composer:focus-within {
+          border-color: #A8C7FA;
+          box-shadow: 0 0 0 3px rgba(96,150,248,0.12), 0 2px 12px rgba(96,150,248,0.12);
+        }
+        /* 语音识别中：红色脉冲光环 */
+        @keyframes ai-pulse { 0% { box-shadow: 0 0 0 0 rgba(255,59,48,0.35); } 100% { box-shadow: 0 0 0 9px rgba(255,59,48,0); } }
       `}</style>
 
       {/* ===== 顶部栏（模式切换 / 模型设置已移至输入框底部工具条）===== */}
@@ -487,7 +568,7 @@ const AIChat = forwardRef(function AIChat({
           style={{ background: 'rgba(var(--s-rgb),0.06)' }}>
           <span className="text-[var(--s-main)] flex-shrink-0"><IconBook size={13} /></span>
           <span className="text-[11.5px]" style={{ color: 'var(--s-deep, var(--s-main))' }}>
-            知识库问答模式：仅基于你沉淀的 {kbCount} 条知识回答，未命中会提示切换通用问答
+            知识库模式：仅基于你沉淀的 {kbCount} 条知识回答，未命中会提示切换通用
           </span>
         </div>
       )}
@@ -529,65 +610,126 @@ const AIChat = forwardRef(function AIChat({
 
       {/* ===== 输入区（composer：文本框 + 底部工具条）===== */}
       <div className="pt-2 flex-shrink-0 mx-auto w-full max-w-[820px]">
-        <div
-          className="rounded-2xl bg-white border border-ink-200 transition-colors focus-within:border-[var(--s-main)] px-3 pt-2.5 pb-2"
-          style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}
-        >
+        <div className="ai-composer rounded-2xl bg-white border px-3 pt-2.5 pb-2">
           <textarea
             ref={taRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={streaming ? 'AI 正在回复…' : '输入问题，回车发送，Shift + 回车换行'}
+            placeholder={listening ? '正在聆听，请说话…' : streaming ? 'AI 正在回复…' : '输入问题，回车发送，Shift + 回车换行'}
             disabled={streaming}
             rows={1}
             className="w-full bg-transparent border-0 outline-none resize-none overflow-y-auto nice-scroll text-[13.5px] leading-[1.6] text-ink-900 placeholder:text-ink-300 disabled:opacity-60"
             style={{ maxHeight: '148px' }}
           />
 
-          {/* 工具条：左下角模式切换，右下角模型选择/设置 + 发送 */}
+          {/* 语音识别异常提示（短暂显示） */}
+          {voiceHint && (
+            <div className="text-[11px] text-[#FF3B30] mt-1">{voiceHint}</div>
+          )}
+
+          {/* 工具条：左下角模式切换，右下角语音 + 模型选择 + 发送 */}
           <div className="flex items-center gap-2 mt-2">
             <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
               <button
                 onClick={() => onModeChange?.('general')}
-                title="通用问答：直接使用模型知识回答"
+                title="通用：直接使用模型知识回答"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
                 style={mode === 'general'
                   ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
                   : { color: '#8a9491' }}
               >
                 <IconGlobe size={12} />
-                通用问答
+                通用
               </button>
               <button
                 onClick={() => onModeChange?.('kb')}
-                title="知识库问答：仅基于你沉淀的知识回答"
+                title="知识库：仅基于你沉淀的知识回答"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
                 style={mode === 'kb'
                   ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
                   : { color: '#8a9491' }}
               >
                 <IconBook size={12} />
-                知识库问答
+                知识库
               </button>
             </div>
 
             <div className="flex-1 min-w-0" />
 
-            <button
-              onClick={() => onConfigClick?.()}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium flex-shrink-0 transition-colors ${
-                config?.apiKey ? 'text-ink-600 hover:bg-ink-50' : 'text-white'
-              }`}
-              style={config?.apiKey
-                ? { border: '1px solid #d4d9d8' }
-                : { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-              title="模型选择 / 设置"
-            >
-              <IconGear size={12} />
-              <span className="max-w-[110px] truncate">{currentModelLabel}</span>
-              {!config?.apiKey && <span>去配置</span>}
-            </button>
+            {/* 语音输入（浏览器不支持时自动隐藏） */}
+            {speechSupported && (
+              <button
+                onClick={toggleVoice}
+                disabled={streaming}
+                className={`w-[28px] h-[28px] rounded-lg flex items-center justify-center flex-shrink-0 transition-all active:scale-95 disabled:opacity-40 ${listening ? 'text-white' : 'text-ink-400 hover:bg-ink-50 hover:text-ink-600'}`}
+                style={listening ? { background: '#FF3B30', animation: 'ai-pulse 1.2s ease-out infinite' } : {}}
+                title={listening ? '停止语音输入' : '语音输入'}
+              >
+                <IconMic size={14} />
+              </button>
+            )}
+
+            {/* 模型选择（Trae Work 式：胶囊按钮 → 上拉菜单） */}
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setModelMenuOpen(v => !v)}
+                className={`flex items-center gap-1 px-2 py-[5px] rounded-lg text-[12px] font-medium transition-colors ${
+                  config?.apiKey ? 'text-ink-600 bg-white border border-ink-200 hover:bg-ink-50' : 'text-white'
+                }`}
+                style={!config?.apiKey
+                  ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
+                  : {}}
+                title="选择模型"
+              >
+                <span className="max-w-[110px] truncate">{currentModelLabel}</span>
+                <IconChevronDown size={11} />
+              </button>
+
+              {modelMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setModelMenuOpen(false)} />
+                  <div
+                    className="absolute bottom-[calc(100%+8px)] right-0 z-50 w-[236px] rounded-xl bg-white border border-ink-100 overflow-hidden"
+                    style={{ boxShadow: '0 10px 32px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.06)' }}
+                  >
+                    <div className="px-3 pt-2.5 pb-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">选择模型</div>
+                    {Object.entries(modelConfigs).map(([key, cfg]) => {
+                      const active = (config?.provider || 'doubao') === key;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => handlePickModel(key)}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-ink-50"
+                        >
+                          <span
+                            className="flex-1 min-w-0 truncate text-[12.5px]"
+                            style={active ? { color: 'var(--s-main)', fontWeight: 600 } : { color: '#0f1f1c' }}
+                          >{cfg.label}</span>
+                          {key !== 'custom' && (
+                            <span className="text-[10.5px] text-ink-300 truncate max-w-[86px]">{cfg.model}</span>
+                          )}
+                          {active && (
+                            <span className="flex-shrink-0" style={{ color: 'var(--s-main)' }}><IconCheck size={12} /></span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => { setModelMenuOpen(false); onConfigClick?.(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-ink-50 border-t border-ink-100/70"
+                    >
+                      <span className="text-ink-400"><IconGear size={12} /></span>
+                      <span className="text-[12px] text-ink-600">模型设置…</span>
+                      {!config?.apiKey && (
+                        <span className="ml-auto px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-white"
+                          style={{ background: 'var(--s-grad-bg)' }}>待配置</span>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
 
             {streaming ? (
               <button

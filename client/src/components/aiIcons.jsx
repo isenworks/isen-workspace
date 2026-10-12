@@ -9,16 +9,6 @@ const base = (size, sw, children) => (
   </svg>
 );
 
-// 对话气泡 + 思考点（AI logo / 空状态）
-export function IconChat({ size = 14, strokeWidth = 2 }) {
-  return base(size, strokeWidth, <>
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    <circle cx="9" cy="11.5" r="0.6" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="11.5" r="0.6" fill="currentColor" stroke="none" />
-    <circle cx="15" cy="11.5" r="0.6" fill="currentColor" stroke="none" />
-  </>);
-}
-
 // 星芒（小亦Ai · AI 身份标识，Copilot/Gemini 语言：大四角星 + 实心小星）
 // 路径按 24 视窗居中放大，与日历/主页等导航图标视觉重量一致
 export function IconSparkle({ size = 14, strokeWidth = 1.8 }) {

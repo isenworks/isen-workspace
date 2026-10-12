@@ -4,7 +4,7 @@ import AIConfigModal from '../components/AIConfigModal.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import SearchPopover from '../components/SearchPopover.jsx';
 import {
-  IconPlus, IconPen, IconTrash, IconChat,
+  IconPlus, IconPen, IconTrash, IconSparkle,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import {
@@ -177,7 +177,7 @@ export default function AIAssistantPage() {
                         className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 ${active ? '' : 'text-ink-400'}`}
                         style={active ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' } : { background: 'rgba(var(--s-rgb),0.05)' }}
                       >
-                        <IconChat size={12} />
+                        <IconSparkle size={12} strokeWidth={1.8} />
                       </span>
                       <span className="flex-1 min-w-0 flex items-center gap-1.5 pr-0.5">
                         <span

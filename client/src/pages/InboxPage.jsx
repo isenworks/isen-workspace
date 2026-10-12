@@ -500,9 +500,9 @@ export default function InboxPage({ onCountChange }) {
           <span className="text-[15.5px] font-bold text-ink-900 leading-none">{selected ? '编辑记录' : '新增记录'}</span>
         </div>
         {selected ? (
-          <QuickCapture key={selected.id} edit={selected} tags={tags} onUpdated={loadItems} onDispatch={openDetailFor} onTagsChange={loadTags} bare />
+          <QuickCapture key={selected.id} edit={selected} tags={tags} onUpdated={loadItems} onDispatch={openDetailFor} onManageTags={() => setTagManagerOpen(true)} bare />
         ) : (
-          <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onTagsChange={loadTags} bare />
+          <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onManageTags={() => setTagManagerOpen(true)} bare />
         )}
       </div>
     );
@@ -531,7 +531,7 @@ export default function InboxPage({ onCountChange }) {
             <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
               <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">
-                <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onTagsChange={loadTags} />
+                <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onManageTags={() => setTagManagerOpen(true)} />
               </div>
             </div>
             {renderList(true)}

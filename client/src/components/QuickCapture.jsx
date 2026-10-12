@@ -7,7 +7,7 @@ import { hexToRgba } from '../utils/color.js';
  * QuickCapture · 小记输入框（新建与编辑统一同构）
  *  - 富文本编辑：contenteditable + execCommand（标题/加粗/斜体/有序无序列表/清除格式）
  *  - 内容存 HTML；空内容判断取 innerText
- *  - 标签：使用小记独立标签（tags prop，可多选）；支持就地新建标签
+ *  - 标签：使用小记独立标签（tags prop，可多选）；新建/管理复用「管理标签」面板
  * ============================================================ */
 
 // 解析小记的标签列表：优先 tag_ids（JSON 数组），兼容旧的单值 tag_id
@@ -23,16 +23,10 @@ export function parseItemTagIds(it) {
   return it?.tag_id != null ? [Number(it.tag_id)] : [];
 }
 
-// 新建标签时的自动配色（按已有数量轮换）
-const TAG_PALETTE = ['#FF9500', '#34C759', '#007AFF', '#AF52DE', '#FF2D55', '#5AC8FA', '#FFCC00', '#FF6B81'];
-
-export default function QuickCapture({ onSaved, onUpdated, onDispatch, onTagsChange, autoFocus = true, placeholder, bare, edit, tags }) {
+export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageTags, autoFocus = true, placeholder, bare, edit, tags }) {
   const toast = useToast();
   const editorRef = useRef(null);
   const [tagIds, setTagIds] = useState(() => parseItemTagIds(edit));
-  const [extraTags, setExtraTags] = useState([]);   // 就地新建的标签（合并进可选列表）
-  const [addingTag, setAddingTag] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
   const [showTags, setShowTags] = useState(false);
   const [busy, setBusy] = useState(false);
   const [flashMsg, setFlashMsg] = useState('');
@@ -201,16 +195,8 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onTagsCha
     }
   }
 
-  // 可选标签 = 父级下发 + 就地新建，去重
-  const tagList = useMemo(() => {
-    const seen = new Set();
-    return [...(tags || []), ...extraTags].filter(t => {
-      const n = Number(t.id);
-      if (seen.has(n)) return false;
-      seen.add(n);
-      return true;
-    });
-  }, [tags, extraTags]);
+  // 可选标签（父级下发，新建/管理统一走「管理标签」面板）
+  const tagList = tags || [];
   const tagMap = useMemo(() => new Map(tagList.map(t => [Number(t.id), t])), [tagList]);
   const selectedTags = tagIds.map(id => tagMap.get(id)).filter(Boolean);
   const tagLabel = selectedTags.length === 0
@@ -221,26 +207,6 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onTagsCha
     const n = Number(id);
     setTagIds(prev => (prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]));
     scheduleAutosave();
-  }
-
-  async function createTag() {
-    const name = newTagName.trim();
-    if (!name) return;
-    try {
-      const color = TAG_PALETTE[tagList.length % TAG_PALETTE.length];
-      const r = await API.inbox.tagCreate({ name, color });
-      const t = r?.tag;
-      if (t) {
-        setExtraTags(prev => [...prev, t]);
-        setTagIds(prev => (prev.includes(Number(t.id)) ? prev : [...prev, Number(t.id)]));
-        onTagsChange?.();
-        scheduleAutosave();
-      }
-      setNewTagName('');
-      setAddingTag(false);
-    } catch (e) {
-      toast.error(e.message || '新建标签失败');
-    }
   }
 
   const dispatchBtn = onDispatch && (
@@ -287,7 +253,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onTagsCha
     </div>
   );
 
-  // 标签选择器（多选 + 就地新建）
+  // 标签选择器（多选；新建/管理复用「管理标签」面板）
   const tagPicker = (
     <div>
       <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">
@@ -314,35 +280,16 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onTagsCha
             </button>
           );
         })}
-        {addingTag ? (
-          <span className="inline-flex items-center gap-1">
-            <input
-              autoFocus
-              value={newTagName}
-              onChange={e => setNewTagName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { e.preventDefault(); createTag(); }
-                if (e.key === 'Escape') { setAddingTag(false); setNewTagName(''); }
-              }}
-              placeholder="标签名"
-              maxLength={20}
-              className="w-[96px] px-2.5 py-1 rounded-full text-[12px] border border-ink-200 outline-none focus:border-[var(--s-main)] bg-white"
-            />
-            <button
-              onClick={createTag}
-              className="text-[12px] font-semibold px-2.5 py-1 rounded-full transition-colors"
-              style={{ background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' }}
-            >添加</button>
-          </span>
-        ) : (
-          <button
-            onClick={() => setAddingTag(true)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] text-ink-500 border border-dashed border-ink-200 hover:border-ink-300 hover:text-ink-700 transition-colors"
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            新建标签
-          </button>
+        {tagList.length === 0 && (
+          <span className="text-[12px] text-ink-400">暂无标签</span>
         )}
+        <button
+          onClick={() => onManageTags?.()}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] text-ink-500 border border-dashed border-ink-200 hover:border-ink-300 hover:text-ink-700 transition-colors"
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          管理标签
+        </button>
       </div>
     </div>
   );

@@ -418,11 +418,10 @@ export default function KnowledgeBasePage() {
                 <button
                   onClick={() => setNewMenuOpen(v => !v)}
                   disabled={!activeKbId}
-                  className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 transition-colors focus:outline-none disabled:opacity-40 hover:brightness-95"
-                  style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                  className="w-[22px] h-[22px] rounded-lg flex items-center justify-center flex-shrink-0 text-[var(--s-main)] hover:bg-[rgba(var(--s-rgb),0.12)] active:bg-[rgba(var(--s-rgb),0.18)] transition-colors focus:outline-none disabled:opacity-40"
                   title="新建文档 / 新建分组"
                 >
-                  <IconPlus size={14} strokeWidth={2.4} />
+                  <IconPlus size={13} strokeWidth={2.4} />
                 </button>
 
                 {newMenuOpen && (

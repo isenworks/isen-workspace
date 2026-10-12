@@ -412,11 +412,11 @@ const AIChat = forwardRef(function AIChat({
 
   // ===== 渲染单条消息 =====
   const renderMessage = (m) => {
-    // 用户消息（右对齐，主题渐变气泡）
+    // 用户消息（右对齐，豆包式统一大圆角，无小角尾巴）
     if (m.role === 'user') {
       return (
         <div key={m.id} className="flex justify-end">
-          <div className="max-w-[78%] px-3.5 py-2 rounded-2xl rounded-br-md text-white text-[13px] leading-relaxed break-words"
+          <div className="max-w-[78%] px-4 py-2.5 rounded-[18px] text-white text-[14px] leading-[1.65] break-words"
             style={{ background: 'var(--s-grad-bg)' }}>
             {m.content}
           </div>
@@ -467,28 +467,28 @@ const AIChat = forwardRef(function AIChat({
         m.toolStatus === 'error' ? '#FF3B30' : '#8a9491';
       return (
         <div key={m.id} className="flex justify-start">
-          <div className="inline-flex items-center gap-1.5 max-w-[82%] px-2.5 py-1.5 rounded-full bg-white border border-ink-100">
+          <div className="inline-flex items-center gap-1.5 max-w-[82%] px-2.5 py-1.5 rounded-full bg-ink-50">
             <span style={{ color: statusColor }}><ToolStatusIcon status={m.toolStatus} /></span>
-            <span className="text-[11.5px] font-medium" style={{ color: statusColor }}>{displayName}</span>
+            <span className="text-[12px] font-medium" style={{ color: statusColor }}>{displayName}</span>
             {m.toolStatus === 'done' && m.toolResult?.date && (
-              <span className="text-[11px] text-ink-300">· {m.toolResult.date}</span>
+              <span className="text-[11.5px] text-ink-300">· {m.toolResult.date}</span>
             )}
-            {m.toolStatus === 'running' && <span className="text-[11px] text-ink-300">执行中…</span>}
-            {m.toolStatus === 'cancelled' && <span className="text-[11px] text-ink-300">已取消</span>}
+            {m.toolStatus === 'running' && <span className="text-[11.5px] text-ink-300">执行中…</span>}
+            {m.toolStatus === 'cancelled' && <span className="text-[11.5px] text-ink-300">已取消</span>}
           </div>
         </div>
       );
     }
 
-    // AI 消息（左对齐白色气泡）
+    // AI 消息（豆包式：无气泡无边框，正文直接铺在卡片上，阅读动线更顺）
     if (m.role === 'assistant') {
       // 正在思考（流式且无内容）
       if (m.streaming && !m.content) {
         return (
           <div key={m.id} className="flex justify-start">
-            <div className="inline-flex items-center gap-2 bg-white rounded-2xl rounded-bl-md border border-ink-100 px-3.5 py-2.5">
+            <div className="inline-flex items-center gap-2 rounded-full bg-ink-50 px-3.5 py-2">
               <span className="text-[var(--s-main)]"><IconChat size={13} /></span>
-              <span className="text-[12.5px] text-ink-400">正在思考</span>
+              <span className="text-[13px] text-ink-400">正在思考</span>
               <span className="ai-dots">
                 <i /><i /><i />
               </span>
@@ -498,7 +498,7 @@ const AIChat = forwardRef(function AIChat({
       }
       return (
         <div key={m.id} className="flex justify-start">
-          <div className={`max-w-[86%] px-3.5 py-2.5 rounded-2xl rounded-bl-md bg-white border text-[13px] leading-relaxed text-ink-900 break-words ${m.isError ? 'border-[#FF3B3033] bg-[#FF3B3008]' : 'border-ink-100'}`}>
+          <div className={`max-w-[88%] w-fit text-[14px] leading-[1.7] text-ink-900 break-words ${m.isError ? 'text-[#d93025]' : ''}`}>
             <div
               className="ai-md-body"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
@@ -529,24 +529,24 @@ const AIChat = forwardRef(function AIChat({
     <div className="flex flex-col h-full min-h-0">
       {/* Markdown + 动画样式 */}
       <style>{`
-        .ai-md-body { line-height: 1.6; }
-        .ai-md-body h3,.ai-md-body h4 { margin: 8px 0 4px; font-weight: 600; color: var(--tw-prose-headings, #0f1f1c); }
-        .ai-md-body h3 { font-size: 14px; }
-        .ai-md-body h4 { font-size: 13px; }
-        .ai-md-body p { margin: 0 0 6px; }
+        .ai-md-body { line-height: 1.7; font-size: 14px; }
+        .ai-md-body h3,.ai-md-body h4 { margin: 10px 0 5px; font-weight: 600; color: var(--tw-prose-headings, #0f1f1c); }
+        .ai-md-body h3 { font-size: 15px; }
+        .ai-md-body h4 { font-size: 14px; }
+        .ai-md-body p { margin: 0 0 8px; }
         .ai-md-body p:last-child { margin-bottom: 0; }
-        .ai-md-body ul,.ai-md-body ol { margin: 5px 0 7px; padding-left: 18px; }
+        .ai-md-body ul,.ai-md-body ol { margin: 6px 0 9px; padding-left: 20px; }
         .ai-md-body ul:last-child,.ai-md-body ol:last-child { margin-bottom: 0; }
-        .ai-md-body li { margin-bottom: 3px; }
+        .ai-md-body li { margin-bottom: 4px; }
         .ai-md-body li:last-child { margin-bottom: 0; }
         .ai-md-body .ai-md-codeblock {
           background: #f7f8f8; border: 1px solid #ebedec; border-radius: 8px;
-          padding: 8px 10px; margin: 6px 0; overflow-x: auto;
-          font-size: 12px; font-family: ui-monospace, SFMono-Regular, monospace;
+          padding: 9px 12px; margin: 8px 0; overflow-x: auto;
+          font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, monospace;
         }
         .ai-md-body .ai-md-code {
           background: #f7f8f8; border-radius: 4px;
-          padding: 1px 4px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, monospace;
+          padding: 1px 5px; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, monospace;
         }
         .ai-md-body .ai-md-link { color: var(--s-main); text-decoration: underline; text-underline-offset: 2px; }
         .ai-dots { display: inline-flex; gap: 3px; align-items: center; }
@@ -616,28 +616,31 @@ const AIChat = forwardRef(function AIChat({
         </div>
       )}
 
-      {/* ===== 消息区 ===== */}
-      <div ref={scrollRef} className={`flex-1 min-h-0 overflow-y-auto flex flex-col mx-auto w-full max-w-[820px] ${compact ? 'gap-2' : 'gap-3'} ${compact ? 'py-1' : 'py-2'}`}>
-        {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
-            <span className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center mb-1"
-              style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
-              <IconChat size={24} strokeWidth={1.5} />
-            </span>
-            <div className="text-[14px] font-semibold text-ink-900">问点什么吧</div>
-            <div className="text-[12px] text-ink-400 leading-relaxed">
-              {mode === 'kb' ? '基于你在知识库沉淀的内容回答' : '个人 AI 助手 · 使用你配置的大模型'}
-              <br />还可以让它记待办、建日程，会同步到重点事项与日历
+      {/* ===== 消息区（滚动容器占满卡片宽度，滚动条贴卡片右缘；
+               内容居中限宽并留出右padding，气泡与滚动条不再重合）===== */}
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto nice-scroll">
+        <div className={`min-h-full flex flex-col mx-auto w-full max-w-[820px] px-4 ${compact ? 'gap-2 py-1' : 'gap-3 py-2'}`}>
+          {messages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+              <span className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center mb-1"
+                style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
+                <IconChat size={24} strokeWidth={1.5} />
+              </span>
+              <div className="text-[14px] font-semibold text-ink-900">问点什么吧</div>
+              <div className="text-[12.5px] text-ink-400 leading-relaxed">
+                {mode === 'kb' ? '基于你在知识库沉淀的内容回答' : '个人 AI 助手 · 使用你配置的大模型'}
+                <br />还可以让它记待办、建日程，会同步到重点事项与日历
+              </div>
             </div>
-          </div>
-        ) : (
-          messages.map(renderMessage)
-        )}
+          ) : (
+            messages.map(renderMessage)
+          )}
+        </div>
       </div>
 
       {/* ===== 输入区（composer：文本框 + 底部工具条）===== */}
       <div className="pt-2 flex-shrink-0 mx-auto w-full max-w-[820px]">
-        <div className="ai-composer rounded-2xl bg-white border px-3 pt-2.5 pb-2">
+        <div className="ai-composer rounded-[22px] bg-white border px-4 pt-3 pb-2.5">
           <textarea
             ref={taRef}
             value={input}
@@ -646,7 +649,7 @@ const AIChat = forwardRef(function AIChat({
             placeholder={listening ? '正在聆听，请说话…' : streaming ? 'AI 正在回复…' : '输入问题，回车发送，Shift + 回车换行'}
             disabled={streaming}
             rows={1}
-            className="w-full bg-transparent border-0 outline-none resize-none overflow-y-auto nice-scroll text-[13.5px] leading-[1.6] text-ink-900 placeholder:text-ink-300 disabled:opacity-60"
+            className="w-full bg-transparent border-0 outline-none resize-none overflow-y-auto nice-scroll text-[14px] leading-[1.65] text-ink-900 placeholder:text-ink-300 disabled:opacity-60"
             style={{ maxHeight: '148px' }}
           />
 

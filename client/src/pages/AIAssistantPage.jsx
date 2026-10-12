@@ -143,12 +143,6 @@ export default function AIAssistantPage() {
             </button>
           </div>
 
-          {/* 会话区标题：计数 */}
-          <div className="flex items-center gap-1.5 px-1 pt-1 pb-2 flex-shrink-0">
-            <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">会话</span>
-            <span className="text-[11px] text-ink-300 tabular-nums">{sessions.length}</span>
-          </div>
-
           <div className="relative mb-2 flex-shrink-0">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300">
               <IconSearch size={12} />
@@ -203,12 +197,12 @@ export default function AIAssistantPage() {
                           className={`flex-1 min-w-0 text-[12.5px] leading-tight truncate ${active ? 'font-semibold' : 'font-medium'}`}
                           style={active ? { color: 'var(--s-main)' } : { color: '#0f1f1c' }}
                         >{s.title}</span>
-                        <span className="text-[10.5px] text-ink-300 flex-shrink-0 tabular-nums">{fmtSessionTime(s.updatedAt)}</span>
+                        <span className="text-[10.5px] text-ink-300 flex-shrink-0 tabular-nums transition-opacity duration-150 group-hover:opacity-0">{fmtSessionTime(s.updatedAt)}</span>
                       </span>
-                      {/* hover 悬浮操作：遮盖时间，不占布局（时间得以紧贴卡片右缘） */}
+                      {/* hover 悬浮操作：时间淡出 + 实底深色遮盖，双重保证不与时间重影 */}
                       <span
-                        className={`absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 pl-2 pr-0.5 py-0.5 rounded-md ${active ? '' : 'bg-ink-50'}`}
-                        style={active ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
+                        className={`absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 pl-2 pr-0.5 py-0.5 rounded-md ${active ? '' : 'bg-ink-100'}`}
+                        style={active ? { background: 'rgba(var(--s-rgb),0.16)' } : undefined}
                       >
                         <button
                           onClick={(e) => { e.stopPropagation(); setRenamingId(s.id); }}

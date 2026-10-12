@@ -485,7 +485,7 @@ export default function KnowledgeBasePage() {
                           </div>
                         ) : (
                           <>
-                            <span className="flex-1 min-w-0 text-[13px] font-medium text-ink-400 truncate">
+                            <span className="flex-1 min-w-0 text-[13px] font-semibold text-ink-500 truncate">
                               {group || '未分组'}
                             </span>
                             <span className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">

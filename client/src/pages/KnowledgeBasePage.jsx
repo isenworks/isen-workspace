@@ -7,7 +7,7 @@ import {
 } from '../utils/aiKnowledgeBase.js';
 import KnowledgeForm from '../components/KnowledgeForm.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import ExpandingSearch from '../components/ExpandingSearch.jsx';
+import SearchPopover from '../components/SearchPopover.jsx';
 import {
   IconPlus, IconPen, IconLink, IconImport, IconBook,
   IconFolder, IconFile, IconTrash, IconX,
@@ -78,7 +78,6 @@ export default function KnowledgeBasePage() {
   const [books, setBooks] = useState([]);
   const [entries, setEntries] = useState([]);
   const [activeKbId, setActiveKbId] = useState(null);
-  const [searchText, setSearchText] = useState('');
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [tick, setTick] = useState(0);
 
@@ -127,10 +126,25 @@ export default function KnowledgeBasePage() {
   }, [activeKbId, tick]);
 
   const tree = useMemo(
-    () => (activeKbId ? getKBTree(activeKbId, searchText) : []),
+    () => (activeKbId ? getKBTree(activeKbId) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeKbId, searchText, tick],
+    [activeKbId, tick],
   );
+
+  // 搜索弹窗数据源：全部知识库的文档（标题 / 正文 / 标签），meta 显示所属知识库
+  const searchItems = useMemo(() => {
+    const nameOf = new Map(books.map(b => [b.id, b.name]));
+    return entries
+      .slice()
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .map(e => ({
+        id: e.id,
+        title: e.title || '未命名文档',
+        meta: nameOf.get(e.kbId) || '',
+        kbId: e.kbId,
+        hay: `${e.title || ''} ${String(e.content || '').replace(/<[^>]+>/g, ' ')} ${(e.tags || []).join(' ')}`.toLowerCase(),
+      }));
+  }, [entries, books]);
 
   const bookStats = useMemo(() => {
     const m = new Map();
@@ -151,9 +165,16 @@ export default function KnowledgeBasePage() {
   const selectBook = (id) => {
     if (id === activeKbId) return;
     setActiveKbId(id);
-    setSearchText('');
     setNewGroup(false);
     setRenamingGroup(null);
+  };
+
+  // 搜索弹窗选中：切到该文档所属知识库并选中它
+  const handleSearchPick = (docId) => {
+    const target = entries.find(e => e.id === docId);
+    if (!target) return;
+    if (target.kbId !== activeKbId) setActiveKbId(target.kbId);
+    setSelectedDocId(docId);
   };
 
   const commitNewBook = (name) => {
@@ -201,7 +222,12 @@ export default function KnowledgeBasePage() {
               <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">知识库</span>
               <span className="text-[11px] text-ink-300 tabular-nums flex-shrink-0">{books.length}</span>
               <div className="flex-1" />
-              <ExpandingSearch value={searchText} onChange={setSearchText} placeholder="搜索标题 / 正文 / 标签" />
+              <SearchPopover
+                results={searchItems}
+                onPick={handleSearchPick}
+                placeholder="搜索标题 / 正文 / 标签"
+                emptyText="没有匹配的文档"
+              />
               <button
                 onClick={() => { setNewBook(true); }}
                 className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
@@ -296,7 +322,7 @@ export default function KnowledgeBasePage() {
               <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">
                 {tree.length === 0 && (
                   <div className="px-2 py-3 text-[12px] text-ink-300 leading-relaxed">
-                    {searchText ? '没有匹配的文档' : '还没有文档，点下方新建'}
+                    还没有文档，点下方新建
                   </div>
                 )}
 

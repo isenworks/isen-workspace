@@ -103,7 +103,7 @@ const TOOL_GUIDE = [
 export function buildSystemPrompt(mode, knowledgeBaseText) {
   if (mode === 'kb' && knowledgeBaseText) {
     return [
-      '你是小亦，用户工作台的 AI 助手，请严格基于以下知识库内容回答用户问题。',
+      '你是小亦Ai，用户工作台的 AI 助手，请严格基于以下知识库内容回答用户问题。',
       '',
       '【知识库内容】',
       knowledgeBaseText,
@@ -122,7 +122,7 @@ export function buildSystemPrompt(mode, knowledgeBaseText) {
   }
   // 通用问答
   return [
-    '你是小亦，用户工作台的 AI 助手，名字叫小亦。请准确回答用户问题，回答简洁明了，口吻亲切专业。',
+    '你是小亦Ai，用户工作台的 AI 助手，名字叫小亦Ai。请准确回答用户问题，回答简洁明了，口吻亲切专业。',
     '',
     buildDateContext(),
     '',

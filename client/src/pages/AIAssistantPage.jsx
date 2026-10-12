@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import AIChat from '../components/AIChat.jsx';
 import AIConfigModal from '../components/AIConfigModal.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import ExpandingSearch from '../components/ExpandingSearch.jsx';
+import SearchPopover from '../components/SearchPopover.jsx';
 import {
   IconPlus, IconPen, IconTrash, IconChat,
 } from '../components/aiIcons.jsx';
@@ -47,7 +47,6 @@ export default function AIAssistantPage() {
   const [configOpen, setConfigOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
-  const [search, setSearch] = useState('');
   const [renamingId, setRenamingId] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(null);
 
@@ -71,12 +70,10 @@ export default function AIAssistantPage() {
 
   const activeSession = sessions.find(s => s.id === activeId) || null;
 
-  // 左侧列表：按 今天 / 更早 分组，支持标题搜索
+  // 左侧列表：按 今天 / 更早 分组
   const groups = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const list = sessions.filter(s => !q || (s.title || '').toLowerCase().includes(q));
     const map = new Map();
-    for (const s of list) {
+    for (const s of sessions) {
       const g = isToday(s.updatedAt) ? '今天' : '更早';
       if (!map.has(g)) map.set(g, []);
       map.get(g).push(s);
@@ -84,12 +81,17 @@ export default function AIAssistantPage() {
     return ['今天', '更早']
       .filter(g => map.has(g))
       .map(g => ({ label: g, list: map.get(g) }));
-  }, [sessions, search]);
+  }, [sessions]);
+
+  // 搜索弹窗数据源：会话标题 + 更新时间
+  const searchItems = useMemo(
+    () => sessions.map(s => ({ id: s.id, title: s.title || '新对话', meta: fmtSessionTime(s.updatedAt) })),
+    [sessions],
+  );
 
   /* ---------------- 会话操作 ---------------- */
   const handleNewChat = () => {
     const s = createSession();
-    setSearch('');
     reloadSessions(s.id);
   };
 
@@ -122,19 +124,16 @@ export default function AIAssistantPage() {
       <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
         {/* ---- 左：页头 + 会话列表 ---- */}
         <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
-          {/* 页头：色条 + 标题 + 搜索 / 删除当前会话 / 新建对话 */}
+          {/* 页头：色条 + 标题 + 搜索（弹窗） / 新建对话 */}
           <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
             <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
-            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">小亦</span>
-            <ExpandingSearch value={search} onChange={setSearch} placeholder="搜索历史对话" />
-            <button
-              onClick={() => activeSession && setConfirmRemove(activeSession)}
-              disabled={!activeSession}
-              className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-ink-400 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors disabled:opacity-30 disabled:cursor-default"
-              title="删除当前会话"
-            >
-              <IconTrash size={13} />
-            </button>
+            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">小亦Ai</span>
+            <SearchPopover
+              results={searchItems}
+              onPick={(id) => reloadSessions(id)}
+              placeholder="搜索历史对话"
+              emptyText="没有匹配的对话"
+            />
             <button
               onClick={handleNewChat}
               className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
@@ -147,9 +146,7 @@ export default function AIAssistantPage() {
 
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">
             {groups.length === 0 && (
-              <div className="px-2 py-3 text-[12px] text-ink-300">
-                {search ? '没有匹配的对话' : '还没有对话'}
-              </div>
+              <div className="px-2 py-3 text-[12px] text-ink-300">还没有对话</div>
             )}
 
             {groups.map(g => (

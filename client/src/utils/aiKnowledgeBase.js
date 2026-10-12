@@ -268,21 +268,28 @@ export function getKBBooks() {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt || 0) - (b.createdAt || 0));
 }
 
-export function addKBBook({ name }) {
+export function addKBBook({ name, desc, icon, color }) {
   const books = getRawBooks();
   const now = Date.now();
   const order = books.length ? Math.max(...books.map(b => b.order ?? 0)) + 1 : 0;
-  const book = { id: genId('kbk_'), name: (name || '').trim() || '未命名知识库', order, groups: [], createdAt: now, updatedAt: now };
+  const book = {
+    id: genId('kbk_'), name: (name || '').trim() || '未命名知识库',
+    desc: (desc || '').trim(), icon: icon || '', color: color || '',
+    order, groups: [], createdAt: now, updatedAt: now,
+  };
   books.push(book);
   persistBooks(books);
   return book;
 }
 
-export function updateKBBook(id, { name }) {
+export function updateKBBook(id, { name, desc, icon, color }) {
   const books = getRawBooks();
   const idx = books.findIndex(b => b.id === id);
   if (idx === -1) return null;
   if (name !== undefined) books[idx].name = (name || '').trim() || books[idx].name;
+  if (desc !== undefined) books[idx].desc = (desc || '').trim();
+  if (icon !== undefined) books[idx].icon = icon || '';
+  if (color !== undefined) books[idx].color = color || '';
   books[idx].updatedAt = Date.now();
   persistBooks(books);
   return books[idx];

@@ -1225,7 +1225,7 @@ function GithubTab() {
           </div>
         ) : !grantOn ? (
           <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7 }}>
-            打开开关生成授权码，点「复制推送指令」发给 AI 助手，即可在全新沙盒完成 git push；
+            打开开关生成授权码，点「复制推送指令」发给小亦，即可在全新沙盒完成 git push；
             推送完成后关闭开关立即断电。
           </div>
         ) : (

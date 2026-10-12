@@ -19,6 +19,14 @@ export function IconChat({ size = 14, strokeWidth = 2 }) {
   </>);
 }
 
+// 星芒（小亦 · AI 身份标识，Copilot/Gemini 语言：大四角星 + 实心小星）
+export function IconSparkle({ size = 14, strokeWidth = 1.8 }) {
+  return base(size, strokeWidth, <>
+    <path d="M10 3.5c.95 4.35 2.7 6.1 7.05 7.05-4.35.95-6.1 2.7-7.05 7.05-.95-4.35-2.7-6.1-7.05-7.05 4.35-.95 6.1-2.7 7.05-7.05z" />
+    <path d="M18 14.5c.4 1.85 1.15 2.6 3 3-1.85.4-2.6 1.15-3 3-.4-1.85-1.15-2.6-3-3 1.85-.4 2.6-1.15 3-3z" fill="currentColor" stroke="none" />
+  </>);
+}
+
 // 地球（通用问答）
 export function IconGlobe({ size = 14, strokeWidth = 2 }) {
   return base(size, strokeWidth, <>

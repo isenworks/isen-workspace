@@ -124,7 +124,7 @@ export default function AIAssistantPage() {
           {/* 页头：色条 + 标题 + 删除当前会话 / 新建对话 */}
           <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
             <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
-            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">AI 助手</span>
+            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">小亦</span>
             <button
               onClick={() => activeSession && setConfirmRemove(activeSession)}
               disabled={!activeSession}

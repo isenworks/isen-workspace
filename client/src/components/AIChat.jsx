@@ -8,8 +8,8 @@ import {
 import { getKBTextForPrompt } from '../utils/aiKnowledgeBase.js';
 import { store } from '../utils/store.js';
 import {
-  IconChat, IconGlobe, IconBook, IconGear, IconArrowUp, IconStop, IconRotate,
-  IconCheck, IconClock, IconBan, IconAlert, IconPen, IconMic, IconChevronDown,
+  IconGlobe, IconBook, IconGear, IconArrowUp, IconStop, IconRotate,
+  IconCheck, IconClock, IconBan, IconAlert, IconPen, IconMic, IconChevronDown, IconSparkle,
 } from './aiIcons.jsx';
 
 /* AIChat · 可复用对话组件（风格对齐工作台）
@@ -487,8 +487,8 @@ const AIChat = forwardRef(function AIChat({
         return (
           <div key={m.id} className="flex justify-start">
             <div className="inline-flex items-center gap-2 rounded-full bg-ink-50 px-3.5 py-2">
-              <span className="text-[var(--s-main)]"><IconChat size={13} /></span>
-              <span className="text-[13px] text-ink-400">正在思考</span>
+              <span className="text-[var(--s-main)]"><IconSparkle size={13} /></span>
+              <span className="text-[13px] text-ink-400">小亦思考中</span>
               <span className="ai-dots">
                 <i /><i /><i />
               </span>
@@ -572,7 +572,7 @@ const AIChat = forwardRef(function AIChat({
         {!compact && (
           <>
             <span className="w-[5px] h-[20px] rounded-full flex-shrink-0" style={{ background: 'var(--s-grad-bg)' }} />
-            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1">AI 助手</span>
+            <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1">小亦</span>
           </>
         )}
         {compact && <span className="flex-1" />}
@@ -624,12 +624,12 @@ const AIChat = forwardRef(function AIChat({
             <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
               <span className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center mb-1"
                 style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}>
-                <IconChat size={24} strokeWidth={1.5} />
+                <IconSparkle size={26} strokeWidth={1.5} />
               </span>
-              <div className="text-[14px] font-semibold text-ink-900">问点什么吧</div>
+              <div className="text-[14px] font-semibold text-ink-900">你好，我是小亦</div>
               <div className="text-[12.5px] text-ink-400 leading-relaxed">
-                {mode === 'kb' ? '基于你在知识库沉淀的内容回答' : '个人 AI 助手 · 使用你配置的大模型'}
-                <br />还可以让它记待办、建日程，会同步到重点事项与日历
+                {mode === 'kb' ? '基于你在知识库沉淀的内容回答' : '你的个人 AI 伙伴 · 使用你配置的大模型'}
+                <br />还可以让我记待办、建日程，会同步到重点事项与日历
               </div>
             </div>
           ) : (

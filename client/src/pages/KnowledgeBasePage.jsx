@@ -116,7 +116,7 @@ export default function KnowledgeBasePage() {
 
   // 内联编辑状态
   const [bookFormOpen, setBookFormOpen] = useState(false);
-  const [renamingBookId, setRenamingBookId] = useState(null);
+  const [editingBook, setEditingBook] = useState(null);
   const [newGroup, setNewGroup] = useState(false);
   const [renamingGroup, setRenamingGroup] = useState(null);
 
@@ -278,6 +278,19 @@ export default function KnowledgeBasePage() {
     setActiveKbId(book.id);
   };
 
+  // 新建 / 编辑知识库：编辑时走 updateKBBook
+  const saveBook = (data) => {
+    if (editingBook) {
+      updateKBBook(editingBook.id, data);
+      reload();
+    } else {
+      createBook(data);
+    }
+    setEditingBook(null);
+  };
+
+  const openCreateBook = () => { setEditingBook(null); setBookFormOpen(true); };
+
   /* ---------------- 文档 ---------------- */
   const openNewDoc = (group = '') => {
     setEditingDoc(null);
@@ -333,7 +346,7 @@ export default function KnowledgeBasePage() {
                 emptyText="没有匹配的文档"
               />
               <button
-                onClick={() => { setBookFormOpen(true); }}
+                onClick={() => { openCreateBook(); }}
                 className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
                 style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
                 title="新建知识库"
@@ -346,45 +359,31 @@ export default function KnowledgeBasePage() {
               {books.map(b => {
                 const active = b.id === activeKbId;
                 const stat = bookStats.get(b.id) || { count: 0, updatedAt: 0 };
-                if (renamingBookId === b.id) {
-                  return (
-                    <div key={b.id} className="px-1 py-0.5">
-                      <InlineInput
-                        defaultValue={b.name}
-                        placeholder="知识库名称"
-                        onCommit={(name) => { updateKBBook(b.id, { name }); setRenamingBookId(null); reload(); }}
-                        onCancel={() => setRenamingBookId(null)}
-                      />
-                    </div>
-                  );
-                }
                 return (
                   <div
                     key={b.id}
                     onClick={() => selectBook(b.id)}
-                    className={`group flex items-center gap-2.5 px-2 min-h-[56px] rounded-xl cursor-pointer transition-colors ${active ? '' : 'hover:bg-ink-50'}`}
+                    className={`group flex items-center gap-3 px-2.5 min-h-[68px] rounded-xl cursor-pointer transition-colors ${active ? '' : 'hover:bg-ink-50'}`}
                     style={active ? { background: b.color ? tint(b.color, 0.08) : 'rgba(var(--s-rgb),0.08)' } : undefined}
                   >
-                    <span className="w-[26px] h-[26px] rounded-lg flex items-center justify-center flex-shrink-0 text-[15px] leading-none"
-                      style={b.color
-                        ? { background: tint(b.color, active ? 0.16 : 0.1), color: b.color }
-                        : (active ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' } : { background: 'rgba(var(--s-rgb),0.05)', color: '#8a9491' })}>
-                      {b.icon || <IconBook size={14} />}
+                    <span className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0 text-[18px] leading-none text-white"
+                      style={{ background: b.color || 'var(--s-main)' }}>
+                      {b.icon || <IconBook size={17} />}
                     </span>
                     <span className="flex-1 min-w-0">
-                      <span className={`block text-[13.5px] leading-snug truncate ${active ? 'font-semibold' : 'font-medium'}`}
+                      <span className={`block text-[14px] leading-snug truncate ${active ? 'font-semibold' : 'font-medium'}`}
                         style={active ? { color: b.color || 'var(--s-main)' } : { color: '#0f1f1c' }}>
                         {b.name}
                       </span>
-                      <span className="block text-[11px] leading-snug text-ink-400 tabular-nums mt-1 truncate">
+                      <span className="block text-[11.5px] leading-snug text-ink-400 tabular-nums mt-1 truncate">
                         {stat.count} 篇{stat.updatedAt ? ` · ${fmtDate(stat.updatedAt)}` : ''}
                       </span>
                     </span>
                     <span className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={(e) => { e.stopPropagation(); setRenamingBookId(b.id); }}
+                        onClick={(e) => { e.stopPropagation(); setEditingBook(b); setBookFormOpen(true); }}
                         className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-black/[0.05] transition-colors"
-                        title="重命名"
+                        title="编辑知识库"
                       ><IconPen size={12} /></button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmRemoveBook(b); }}
@@ -409,12 +408,10 @@ export default function KnowledgeBasePage() {
               {/* 页头：知识库图标 + 名称 + 新建（新建文档 / 新建分组） */}
               <div className="relative flex items-center gap-2 px-1 pt-0.5 pb-2 flex-shrink-0">
                 <span
-                  className="w-[20px] h-[20px] rounded-[7px] flex items-center justify-center flex-shrink-0 text-[13px] leading-none"
-                  style={activeBook?.color
-                    ? { background: tint(activeBook.color, 0.12), color: activeBook.color }
-                    : { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                  className="w-[22px] h-[22px] rounded-[7px] flex items-center justify-center flex-shrink-0 text-[13px] leading-none text-white"
+                  style={{ background: activeBook?.color || 'var(--s-main)' }}
                 >
-                  {activeBook?.icon || <IconBook size={12} strokeWidth={2} />}
+                  {activeBook?.icon || <IconBook size={13} strokeWidth={2} />}
                 </span>
                 <span className="text-[13.5px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeBook?.name || '目录'}</span>
                 <button
@@ -700,11 +697,12 @@ export default function KnowledgeBasePage() {
         group={formGroup}
       />
 
-      {/* 新建知识库 */}
+      {/* 新建 / 编辑知识库 */}
       <KnowledgeBookForm
         open={bookFormOpen}
-        onClose={() => setBookFormOpen(false)}
-        onSave={createBook}
+        onClose={() => { setBookFormOpen(false); setEditingBook(null); }}
+        book={editingBook}
+        onSave={saveBook}
       />
 
       {/* 删除文档确认 */}

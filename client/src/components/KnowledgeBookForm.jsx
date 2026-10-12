@@ -43,6 +43,8 @@ export default function KnowledgeBookForm({ open, onClose, book = null, onSave }
 
   const labelCls = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
   const fieldCls = 'w-full px-3 py-1.5 rounded-lg text-[13px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors';
+  // 是否使用了预设之外的自定义颜色
+  const isCustom = !!color && !COLORS.includes(color);
 
   return (
     <Modal
@@ -138,15 +140,36 @@ export default function KnowledgeBookForm({ open, onClose, book = null, onSave }
                 key={c || 'default'}
                 type="button"
                 onClick={() => setColor(c)}
-                className={`w-7 h-7 rounded-full transition-transform ${active ? 'scale-110' : 'hover:scale-105'}`}
+                className={`w-5 h-5 rounded-full transition-transform ${active ? 'scale-110' : 'hover:scale-110'}`}
                 style={{
                   background: fill,
-                  boxShadow: active ? `0 0 0 2px #fff, 0 0 0 4px ${fill}` : 'none',
+                  boxShadow: active ? `0 0 0 2px #fff, 0 0 0 3.5px ${fill}` : 'inset 0 0 0 1px rgba(60,60,67,0.12)',
                 }}
                 title={c || '跟随主题色'}
               />
             );
           })}
+
+          {/* 自定义颜色（取色器） */}
+          <label
+            className={`relative w-5 h-5 rounded-full cursor-pointer flex-shrink-0 transition-transform ${isCustom ? 'scale-110' : 'hover:scale-110'}`}
+            title="自定义颜色"
+          >
+            <span className="absolute inset-0 rounded-full"
+              style={{ background: 'conic-gradient(#FF3B30,#FF9500,#FFCC00,#34C759,#007AFF,#AF52DE,#FF3B30)' }} />
+            <span className="absolute rounded-full"
+              style={{ inset: 3, background: isCustom ? color : '#fff' }} />
+            {isCustom && (
+              <span className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ boxShadow: `0 0 0 2px #fff, 0 0 0 3.5px ${color}` }} />
+            )}
+            <input
+              type="color"
+              value={isCustom ? color : '#34C759'}
+              onChange={(e) => setColor(e.target.value)}
+              className="sr-only"
+            />
+          </label>
         </div>
       </div>
     </Modal>

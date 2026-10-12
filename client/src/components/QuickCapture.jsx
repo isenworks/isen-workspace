@@ -84,39 +84,28 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     document.execCommand(cmd, false, val);
   }
 
-  // 手动保存：编辑态=更新；新建态=收进（若已自动落库则更新同一条，不重复创建）
+  // 手动保存：编辑态=更新，新建态=收录；都不清空编辑区，保持显示已保存内容
+  //  - 已自动落库的新建记录会复用同一 id，避免重复创建
+  //  - 新建时把记录回传给父级，父级可据此选中它（编辑区随之为「已保存」态）
   async function save() {
     const content = getContent();
     if (!getPlainText() || busy) return;
     setBusy(true);
     try {
       const targetId = edit?.id ?? activeIdRef.current;
+      let r;
       if (targetId) {
-        const r = await API.inbox.update(targetId, { content, tag_id: tagId });
-        if (edit) {
-          setSavedAt(r?.item?.updated_at || new Date().toISOString());
-          flash('✓ 已保存');
-          onUpdated?.();
-        } else {
-          // 新建（可能已自动落库）：收尾为「已收进」，清空编辑器
-          activeIdRef.current = null;
-          editorRef.current.innerHTML = '';
-          draftRef.current = { content: '', plain: '' };
-          setTagId(null);
-          setSavedAt('');
-          flash('✓ 已收进');
-          onSaved?.();
-        }
+        r = await API.inbox.update(targetId, { content, tag_id: tagId });
+        activeIdRef.current = targetId;
+        onUpdated?.();
       } else {
-        await API.inbox.create({ content, tag_id: tagId });
-        activeIdRef.current = null;
-        editorRef.current.innerHTML = '';
-        draftRef.current = { content: '', plain: '' };
-        setTagId(null);
-        setSavedAt('');
-        flash('✓ 已收进');
-        onSaved?.();
+        r = await API.inbox.create({ content, tag_id: tagId });
+        activeIdRef.current = r?.item?.id ?? null;
       }
+      setSavedAt(r?.item?.updated_at || new Date().toISOString());
+      draftRef.current = { content: '', plain: '' };
+      flash('✓ 已保存');
+      if (!edit) onSaved?.(r?.item);
     } catch (e) {
       toast.error(e.message || '保存失败');
     } finally {
@@ -141,8 +130,8 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
         const r = await API.inbox.create({ content, tag_id: tagIdRef.current });
         if (r?.item?.id != null) activeIdRef.current = r.item.id;
         setSavedAt(r?.item?.updated_at || new Date().toISOString());
-        // 不在此处刷新列表：新建态列表刷新可能触发自动选中并重挂编辑器、打断输入；
-        // 记录已落库，底栏保存时间会随之更新，手动「保存/分派」时再刷新列表。
+        // 自动收录：刷新列表让左侧卡片立即出现（不带记录，避免自动选中重挂打断输入）
+        onSaved?.();
       }
       // 期间没有新输入则视为已落库，清掉草稿标记（卸载时不再重复提交）
       if (draftRef.current.content === content) draftRef.current = { content: '', plain: '' };

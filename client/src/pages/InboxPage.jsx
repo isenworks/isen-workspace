@@ -113,6 +113,14 @@ export default function InboxPage({ onCountChange }) {
 
   useEffect(() => { loadItems(); loadTags(); }, [loadItems, loadTags]);
 
+  // 小记保存后：刷新列表让左侧卡片即时出现；
+  // 手动保存会带回记录（item），此时选中它，让编辑区保持显示已保存的内容；
+  // 自动保存不带记录，只刷列表、不改选中，避免打断正在输入的光标。
+  const handleCaptureSaved = useCallback(async (item) => {
+    await loadItems();
+    if (item?.id != null) setSelectedId(item.id);
+  }, [loadItems]);
+
   const selected = (items || []).find(it => it.id === selectedId) || null;
   const tagMap = new Map((tags || []).map(t => [t.id, t]));
   const tagOf = (id) => (id != null ? tagMap.get(Number(id)) || null : null);
@@ -475,7 +483,7 @@ export default function InboxPage({ onCountChange }) {
         {selected ? (
           <QuickCapture key={selected.id} edit={selected} tags={tags} onUpdated={loadItems} onDispatch={openDetailFor} bare />
         ) : (
-          <QuickCapture tags={tags} onSaved={loadItems} onDispatch={openDetailFor} bare />
+          <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} bare />
         )}
       </div>
     );
@@ -504,7 +512,7 @@ export default function InboxPage({ onCountChange }) {
             <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
               <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">
-                <QuickCapture tags={tags} onSaved={loadItems} onDispatch={openDetailFor} />
+                <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} />
               </div>
             </div>
             {renderList(true)}

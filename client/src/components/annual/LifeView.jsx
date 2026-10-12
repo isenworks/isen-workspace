@@ -782,16 +782,16 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                           {/* 月份列（组首行）：pl-3.5 与年份缩进同源，左缘与年份大字严格对齐；补零后月份等宽，右缘也自然整齐 */}
                           <div className="w-12 flex-shrink-0">
                             {label && (
-                              <div className="h-5 flex items-center justify-start pl-3.5">
+                              <div className="h-7 flex items-center justify-start pl-3.5">
                                 <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{label}</span>
                               </div>
                             )}
                           </div>
-                          <div className="w-6 flex-shrink-0 h-5 flex items-center justify-end">
+                          <div className="w-6 flex-shrink-0 h-7 flex items-center justify-end">
                             <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{b.day ? String(b.day).padStart(2, '0') : '--'}</span>
                           </div>
                           <div className="flex flex-col items-center flex-shrink-0">
-                            <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
+                            <span className="h-7 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
                             {!isLast && <span className="flex-1 w-px bg-ink-100" />}
                           </div>
                           <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
@@ -853,18 +853,18 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                   {/* 月份列（组首行）：pl-3.5 与年份缩进同源，左缘与年份大字严格对齐；补零后月份等宽，右缘也自然整齐 */}
                   <div className="w-12 flex-shrink-0">
                     {ri === 0 && (
-                      <div className="h-5 flex items-center justify-start pl-3.5">
+                      <div className="h-7 flex items-center justify-start pl-3.5">
                         <span className="text-sm font-bold text-ink-700 leading-none whitespace-nowrap">{g.label}</span>
                       </div>
                     )}
                   </div>
                   {/* 日期列（DD 两位补零）：移至时间线左侧，与标题行垂直居中 */}
-                  <div className="w-6 flex-shrink-0 h-5 flex items-center justify-end">
+                  <div className="w-6 flex-shrink-0 h-7 flex items-center justify-end">
                     <span className="text-[12px] font-semibold text-ink-400 tabular-nums leading-none">{r.day ? String(r.day).padStart(2, '0') : '--'}</span>
                   </div>
-                  {/* 时间轴列：圆点容器与标题行严格等高(h-5)居中；颜色统一生活主题紫 */}
+                  {/* 时间轴列：圆点容器与标题行等高(h-7)，圆点与标题文字中线对齐；颜色统一生活主题紫 */}
                   <div className="flex flex-col items-center flex-shrink-0">
-                    <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
+                    <span className="h-7 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
                     {!isLast && <span className="flex-1 w-px bg-ink-100" />}
                   </div>
                   {/* 内容列：标题行（灰底胶囊）+ 备注（标题下方摘要行）；行距挂在整列上，让备注也计入条目间距 */}

@@ -10,6 +10,7 @@ import { store } from '../utils/store.js';
 import {
   IconGlobe, IconBook, IconGear, IconArrowUp, IconStop, IconRotate,
   IconCheck, IconClock, IconBan, IconAlert, IconPen, IconMic, IconChevronDown, IconSparkle,
+  IconTrash, IconCopy, IconUndo,
 } from './aiIcons.jsx';
 
 /* AIChat · 可复用对话组件（风格对齐工作台）
@@ -396,6 +397,46 @@ const AIChat = forwardRef(function AIChat({
     try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
   }, [storageKey]);
 
+  // ===== 用户消息操作（复制 / 回退 / 删除）=====
+  // 复制：优先 Clipboard API，降级 execCommand（http 环境 / 老浏览器）
+  const handleCopyMessage = useCallback(async (m) => {
+    const text = m.content || '';
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  // 回退：把该条内容填回输入框，并截断该条及其之后的消息（保持对话上下文一致，可重新编辑再发送）
+  const handleRollbackMessage = useCallback((m) => {
+    if (streaming) return;
+    const idx = msgsRef.current.findIndex(x => x.id === m.id);
+    if (idx === -1) return;
+    const next = msgsRef.current.slice(0, idx);
+    msgsRef.current = next;
+    setMessages(next);
+    setInput(m.content || '');
+    setTimeout(() => taRef.current?.focus(), 0);
+  }, [streaming]);
+
+  // 删除：仅移除当前这一条
+  const handleDeleteMessage = useCallback((m) => {
+    if (streaming) return;
+    const next = msgsRef.current.filter(x => x.id !== m.id);
+    msgsRef.current = next;
+    setMessages(next);
+  }, [streaming]);
+
   // ===== 回车发送 =====
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -412,13 +453,45 @@ const AIChat = forwardRef(function AIChat({
 
   // ===== 渲染单条消息 =====
   const renderMessage = (m) => {
-    // 用户消息（右对齐，豆包式统一大圆角，无小角尾巴）
+    // 用户消息（右对齐，豆包式统一大圆角，无小角尾巴；hover 气泡下方浮出操作条）
     if (m.role === 'user') {
       return (
-        <div key={m.id} className="flex justify-end">
+        <div key={m.id} className="group relative flex justify-end">
           <div className="max-w-[78%] px-4 py-2.5 rounded-[18px] text-white text-[14px] leading-[1.65] break-words"
             style={{ background: 'var(--s-grad-bg)' }}>
             {m.content}
+          </div>
+          {/* hover 操作条：复制 / 回退（填回输入框）/ 删除；绝对定位浮于气泡下方，不占位、无跳动 */}
+          <div
+            className="absolute top-full right-1 mt-1.5 z-10 flex items-center gap-0.5 p-0.5 rounded-xl bg-white border border-ink-100
+              opacity-0 translate-y-[-2px] pointer-events-none
+              group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
+              transition-all duration-150"
+            style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+          >
+            <button
+              onClick={() => handleCopyMessage(m)}
+              title="复制"
+              className="w-[26px] h-[26px] rounded-[9px] flex items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-800 transition-colors"
+            >
+              <IconCopy size={13.5} />
+            </button>
+            <button
+              onClick={() => handleRollbackMessage(m)}
+              disabled={streaming}
+              title="回退到输入框"
+              className="w-[26px] h-[26px] rounded-[9px] flex items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-800 transition-colors disabled:opacity-30"
+            >
+              <IconUndo size={13.5} />
+            </button>
+            <button
+              onClick={() => handleDeleteMessage(m)}
+              disabled={streaming}
+              title="删除"
+              className="w-[26px] h-[26px] rounded-[9px] flex items-center justify-center text-ink-400 hover:bg-[#FF3B300F] hover:text-[#FF3B30] transition-colors disabled:opacity-30"
+            >
+              <IconTrash size={13.5} />
+            </button>
           </div>
         </div>
       );

@@ -112,6 +112,22 @@ export function IconClipboard({ size = 14, strokeWidth = 2 }) {
   </>);
 }
 
+// 复制（重叠文档）
+export function IconCopy({ size = 14, strokeWidth = 2 }) {
+  return base(size, strokeWidth, <>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </>);
+}
+
+// 回退（逆时针弯曲箭头，内容退回输入框）
+export function IconUndo({ size = 14, strokeWidth = 2 }) {
+  return base(size, strokeWidth, <>
+    <polyline points="9 14 4 9 9 4" />
+    <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+  </>);
+}
+
 // 文档下载（飞书导入）
 export function IconImport({ size = 14, strokeWidth = 2 }) {
   return base(size, strokeWidth, <>

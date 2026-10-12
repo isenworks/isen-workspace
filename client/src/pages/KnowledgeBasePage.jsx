@@ -5,12 +5,11 @@ import {
   removeKBEntry, updateKBEntry, renameKBGroup, removeKBGroup, addKBGroup, reorderKBDoc, setKBGroupOrder,
   syncKBFromCloud,
 } from '../utils/aiKnowledgeBase.js';
-import KnowledgeForm from '../components/KnowledgeForm.jsx';
 import KnowledgeBookForm from '../components/KnowledgeBookForm.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import SearchPopover from '../components/SearchPopover.jsx';
 import {
-  IconPlus, IconPen, IconLink, IconImport, IconBook,
+  IconPlus, IconPen, IconLink, IconImport, IconBook, IconMarkdown,
   IconFolder, IconFile, IconTrash, IconX, IconDots,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
@@ -54,6 +53,52 @@ function fmtDate(ts) {
   const p = n => String(n).padStart(2, '0');
   const y = d.getFullYear() === now.getFullYear() ? '' : `${d.getFullYear()}-`;
   return `${y}${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// 极简 Markdown → HTML（导入 .md 用）：标题 / 粗斜体 / 行内码 / 列表 / 引用 / 分割线 / 链接 / 代码块
+function mdToHtml(md) {
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = t => esc(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+
+  const out = [];
+  let list = null;       // 'ul' | 'ol'
+  let inCode = false;
+  let codeBuf = [];
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  const flushCode = () => { out.push(`<pre><code>${esc(codeBuf.join('\n'))}</code></pre>`); codeBuf = []; };
+
+  for (const raw of String(md).replace(/\r\n?/g, '\n').split('\n')) {
+    if (/^```/.test(raw.trim())) {
+      if (inCode) { flushCode(); inCode = false; } else { closeList(); inCode = true; }
+      continue;
+    }
+    if (inCode) { codeBuf.push(raw); continue; }
+
+    const t = raw.trim();
+    if (!t) { closeList(); continue; }
+    let m;
+    if ((m = /^(#{1,3})\s+(.*)$/.exec(t))) {
+      closeList(); const lv = m[1].length; out.push(`<h${lv}>${inline(m[2])}</h${lv}>`); continue;
+    }
+    if (/^(-{3,}|\*{3,})$/.test(t)) { closeList(); out.push('<hr>'); continue; }
+    if (/^>\s?/.test(t)) { closeList(); out.push(`<blockquote>${inline(t.replace(/^>\s?/, ''))}</blockquote>`); continue; }
+    if ((m = /^[-*+]\s+(.*)$/.exec(t))) {
+      if (list !== 'ul') { closeList(); out.push('<ul>'); list = 'ul'; }
+      out.push(`<li>${inline(m[1])}</li>`); continue;
+    }
+    if ((m = /^\d+[.)]\s+(.*)$/.exec(t))) {
+      if (list !== 'ol') { closeList(); out.push('<ol>'); list = 'ol'; }
+      out.push(`<li>${inline(m[1])}</li>`); continue;
+    }
+    closeList(); out.push(`<p>${inline(t)}</p>`);
+  }
+  closeList();
+  if (inCode && codeBuf.length) flushCode();
+  return out.join('');
 }
 
 // 内联输入（新建 / 重命名）：Enter 提交、Esc / 失焦取消
@@ -107,12 +152,11 @@ export default function KnowledgeBasePage() {
   const split = useSplitRatio('kb_split_ratio', { min: 0.2, max: 0.45, def: 0.28, maxWidth: 460 });
   const { leftStyle, rightStyle, bindRoot, bindDivider } = split;
 
-  // 弹窗
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingDoc, setEditingDoc] = useState(null);
-  const [formGroup, setFormGroup] = useState('');
+  // 弹窗 / 浮层
   const [confirmRemoveDoc, setConfirmRemoveDoc] = useState(null);
   const [confirmRemoveBook, setConfirmRemoveBook] = useState(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
 
   // 内联编辑状态
   const [bookFormOpen, setBookFormOpen] = useState(false);
@@ -123,6 +167,9 @@ export default function KnowledgeBasePage() {
   // 目录顶部「＋新建」浮层 / 正文标题「⋯」菜单
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const [docMenuOpen, setDocMenuOpen] = useState(false);
+
+  // 导入 Markdown 的文件选择器
+  const mdInputRef = useRef(null);
 
   // 拖拽排序（文档 + 分组）
   const [dragId, setDragId] = useState(null);
@@ -239,6 +286,15 @@ export default function KnowledgeBasePage() {
     setCharCount(stripHtml(next).length);
     if (next === (selectedDoc?.content || '')) { setDirty(false); return; }
     updateKBEntry(selectedDocId, { content: next });
+    // 新建笔记未命名时，用正文首行补一个标题（与旧新建弹窗一致的行为）
+    const cur = (selectedDoc?.title || '').trim();
+    if (!cur || cur === '无标题') {
+      const first = stripHtml(next).trim().slice(0, 30);
+      if (first) {
+        updateKBEntry(selectedDocId, { title: first });
+        if (titleRef.current) titleRef.current.innerText = first;
+      }
+    }
     setDirty(false);
     reload();
     flashSaved();
@@ -292,15 +348,56 @@ export default function KnowledgeBasePage() {
   const openCreateBook = () => { setEditingBook(null); setBookFormOpen(true); };
 
   /* ---------------- 文档 ---------------- */
-  const openNewDoc = (group = '') => {
-    setEditingDoc(null);
-    setFormGroup(group);
-    setFormOpen(true);
-  };
-  const closeForm = () => {
-    setFormOpen(false);
-    setEditingDoc(null);
+  // 新建笔记：直接在当前分组落一篇空文档，右侧进入编辑态（标题区/正文可直接写）
+  const createNote = (group = '') => {
+    if (!activeKbId) return;
+    const doc = addKBEntry({ title: '', content: '', source: 'manual', sourceUrl: '', tags: [], kbId: activeKbId, group });
     reload();
+    setSelectedDocId(doc.id);
+    // 等正文区挂载后聚焦，用户可直接输入
+    setTimeout(() => contentRef.current?.focus(), 0);
+  };
+
+  // 粘贴链接：生成一篇「网页」来源的书签笔记
+  const submitLink = () => {
+    const raw = linkUrl.trim();
+    if (!raw || !activeKbId) return;
+    const full = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    let host = full;
+    try { host = new URL(full).hostname.replace(/^www\./, '') || full; } catch { /* 非法 URL 时保留原文 */ }
+    const doc = addKBEntry({
+      title: host,
+      content: `<p><a href="${full}" target="_blank" rel="noreferrer">${full}</a></p>`,
+      source: 'web',
+      sourceUrl: full,
+      tags: [],
+      kbId: activeKbId,
+      group: selectedDoc?.group || '',
+    });
+    setLinkUrl('');
+    setLinkOpen(false);
+    reload();
+    setSelectedDocId(doc.id);
+  };
+
+  // 导入 Markdown：读本地 .md，转成富文本存入当前分组
+  const importMarkdown = (file) => {
+    if (!file || !activeKbId) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const doc = addKBEntry({
+        title: file.name.replace(/\.(md|markdown|txt)$/i, ''),
+        content: mdToHtml(reader.result),
+        source: 'manual',
+        sourceUrl: '',
+        tags: [],
+        kbId: activeKbId,
+        group: selectedDoc?.group || '',
+      });
+      reload();
+      setSelectedDocId(doc.id);
+    };
+    reader.readAsText(file);
   };
 
   /* ---------------- 拖拽排序 ---------------- */
@@ -403,8 +500,8 @@ export default function KnowledgeBasePage() {
 
           {/* ---- 右：目录 + 正文（同一张卡）---- */}
           <div className="glass-card rounded-2xl min-w-0 min-h-0 flex items-stretch" style={rightStyle}>
-            {/* 目录列：中性冷灰微渐变（去黄绿偏色，顶浅底深哑光层次），与正文靠底色 + 通高细线区分 */}
-            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3 rounded-l-2xl" style={{ background: 'linear-gradient(180deg, #F8F8F9 0%, #F2F3F5 100%)' }}>
+            {/* 目录列：纯白，与正文同底、仅靠一条通高发丝线区分（去掉双层灰，避免与画布灰糊在一起） */}
+            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3 rounded-l-2xl bg-white">
               {/* 页头：知识库图标 + 名称 + 新建（新建文档 / 新建分组） */}
               <div className="relative flex items-center gap-2 px-1 pt-0.5 pb-2 flex-shrink-0">
                 <span
@@ -427,20 +524,85 @@ export default function KnowledgeBasePage() {
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setNewMenuOpen(false)} />
                     <div
-                      className="absolute right-1 top-[calc(100%-2px)] z-40 w-[152px] rounded-xl bg-white border border-ink-100 py-1"
+                      className="absolute right-1 top-[calc(100%-2px)] z-40 w-[176px] rounded-xl bg-white border border-ink-100 py-1"
                       style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)' }}
                     >
+                      {/* 新建 */}
                       <button
-                        onClick={() => { setNewMenuOpen(false); openNewDoc(selectedDoc?.group || ''); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
-                      ><IconFile size={13} className="text-ink-400 flex-shrink-0" />新建文档</button>
+                        onClick={() => { setNewMenuOpen(false); createNote(selectedDoc?.group || ''); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
+                      ><IconPen size={13} className="text-ink-400 flex-shrink-0" />新建笔记</button>
+                      <button
+                        onClick={() => { setNewMenuOpen(false); setLinkUrl(''); setLinkOpen(true); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
+                      ><IconLink size={13} className="text-ink-400 flex-shrink-0" />粘贴链接</button>
+
+                      {/* 导入 */}
+                      <div className="h-px bg-ink-100 mx-2 my-1" />
+                      <button
+                        onClick={() => { setNewMenuOpen(false); mdInputRef.current?.click(); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
+                      ><IconMarkdown size={13} className="text-ink-400 flex-shrink-0" />导入 Markdown</button>
+
+                      {/* 组织 */}
+                      <div className="h-px bg-ink-100 mx-2 my-1" />
                       <button
                         onClick={() => { setNewMenuOpen(false); setNewGroup(true); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
                       ><IconFolder size={13} className="text-ink-400 flex-shrink-0" />新建分组</button>
                     </div>
                   </>
                 )}
+
+                {/* 粘贴链接：链接输入浮层 */}
+                {linkOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setLinkOpen(false)} />
+                    <div
+                      className="absolute right-1 top-[calc(100%-2px)] z-40 w-[268px] rounded-xl bg-white border border-ink-100 p-2.5"
+                      style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)' }}
+                    >
+                      <div className="text-[12px] font-semibold text-ink-700 mb-1.5">粘贴链接</div>
+                      <input
+                        autoFocus
+                        type="text"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') submitLink();
+                          if (e.key === 'Escape') setLinkOpen(false);
+                        }}
+                        placeholder="https://example.com/article"
+                        className="w-full px-2.5 py-1.5 rounded-lg text-[12.5px] bg-white border border-ink-200 focus:border-[var(--s-main)] focus:outline-none transition-colors"
+                      />
+                      <div className="flex items-center justify-end gap-1.5 mt-2">
+                        <button
+                          onClick={() => setLinkOpen(false)}
+                          className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-ink-600 bg-ink-100 hover:bg-ink-200/70 transition-colors"
+                        >取消</button>
+                        <button
+                          onClick={submitLink}
+                          disabled={!linkUrl.trim()}
+                          className="px-3 py-1 rounded-lg text-[12px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+                        >添加</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* 导入 Markdown 的文件选择器（隐藏） */}
+                <input
+                  ref={mdInputRef}
+                  type="file"
+                  accept=".md,.markdown,.txt,text/markdown"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = '';
+                    if (f) importMarkdown(f);
+                  }}
+                />
               </div>
 
               {/* 标题下分割线：固定页头与可滚动目录列表分离，结构更清晰 */}
@@ -516,8 +678,8 @@ export default function KnowledgeBasePage() {
                             onDragOver={(e) => { if (dragId && dragId !== doc.id) { e.preventDefault(); setDropHint({ type: 'doc', key: doc.id }); } }}
                             onDrop={(e) => { e.preventDefault(); handleDrop({ targetId: doc.id }); }}
                             onClick={() => setSelectedDocId(doc.id)}
-                            className={`group flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg cursor-pointer border transition-colors ${active ? 'bg-white border-ink-100' : 'border-transparent hover:bg-ink-50'} ${isDropTarget ? 'ring-1 ring-[rgba(var(--s-rgb),0.4)]' : ''}`}
-                            style={active ? { boxShadow: '0 1px 2px rgba(15,31,28,0.05)' } : undefined}
+                            className={`group flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg cursor-pointer border border-transparent transition-colors ${active ? '' : 'hover:bg-ink-50'} ${isDropTarget ? 'ring-1 ring-[rgba(var(--s-rgb),0.4)]' : ''}`}
+                            style={active ? { background: 'rgba(var(--s-rgb),0.09)' } : undefined}
                           >
                             <IconFile size={12} className="flex-shrink-0" style={{ color: active ? 'var(--s-main)' : '#C2C9C6' }} />
                             <span className={`flex-1 min-w-0 text-[12.5px] truncate ${active ? 'font-semibold text-ink-900' : 'text-ink-700'}`}>
@@ -687,15 +849,6 @@ export default function KnowledgeBasePage() {
             </div>
           </div>
       </div>
-
-      {/* 新建 / 编辑文档 */}
-      <KnowledgeForm
-        open={formOpen}
-        onClose={closeForm}
-        entry={editingDoc}
-        kbId={activeKbId}
-        group={formGroup}
-      />
 
       {/* 新建 / 编辑知识库 */}
       <KnowledgeBookForm

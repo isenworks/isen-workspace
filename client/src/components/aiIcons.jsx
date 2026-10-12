@@ -122,6 +122,16 @@ export function IconImport({ size = 14, strokeWidth = 2 }) {
   </>);
 }
 
+// Markdown（导入 .md）
+export function IconMarkdown({ size = 14, strokeWidth = 1.8 }) {
+  return base(size, strokeWidth, <>
+    <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+    <path d="M6.5 14.5v-5l2 2.4 2-2.4v5" />
+    <path d="M15.5 9.5v5" />
+    <path d="M13.6 12.6 15.5 14.5 17.4 12.6" />
+  </>);
+}
+
 // 钢笔（手动记录 / 编辑）
 export function IconPen({ size = 14, strokeWidth = 2 }) {
   return base(size, strokeWidth, <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />);

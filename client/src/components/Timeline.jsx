@@ -56,6 +56,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const [hasData, setHasData] = useState(false);
   const [dragOverY, setDragOverY] = useState(null);
   const [resizingEvent, setResizingEvent] = useState(null);
+  // 时间线内容列宽度（ResizeObserver 实时测量）：用于重叠分栏「窄列降级折叠」判定
+  const [tlColW, setTlColW] = useState(0);
+  // 已展开的重叠分组（groupId → 强制并排分栏）；默认折叠，点击 +N 展开
+  const [tlExpandedGroups, setTlExpandedGroups] = useState(() => new Set());
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
   const contentColRef = useRef(null);
@@ -110,6 +114,30 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       } catch {}
     });
   }, []);
+
+  // 时间线内容列宽度测量：分栏降级判定依赖真实列宽（面板拖拽/窗口缩放实时更新）
+  useEffect(() => {
+    const el = contentColRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      const w = el.clientWidth;
+      setTlColW(prev => (Math.abs(prev - w) > 1 ? w : prev));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [view, loading, hasData]);
+
+  // 重叠分组展开/收起（窄列降级折叠时使用）
+  const toggleOverlapGroup = (groupKey) => {
+    setTlExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
 
   const saveDocLinks = (links) => {
     setDocLinks(links);
@@ -873,14 +901,78 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       };
     });
 
-    // —— 重叠检测（简单版：相同时间范围的事件 right 偏移） ——
+    // —— 重叠排版：连通分组 → 组内贪心分列 → 窄列降级为「主事件 + +N 折叠」 ——
+    const COL_GAP = 6;       // 分栏间距（px）
+    const MIN_COL_W = 110;   // 单列最小可用宽度；低于此值降级折叠
     events.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
-    const placed = [];
-    events.forEach(ev => {
-      const overlaps = placed.filter(p => ev.startMin < p.endMin && ev.endMin > p.startMin);
-      ev.overlapIndex = overlaps.length;
-      ev.rightOffsetPx = overlaps.length > 0 ? overlaps.length * 14 : 0;
-      placed.push(ev);
+
+    // 1) 连通分组：时间区间相交的事项归为一组
+    const overlapGroups = [];
+    let curGroup = [];
+    let curGroupEnd = -Infinity;
+    for (const ev of events) {
+      if (curGroup.length && ev.startMin >= curGroupEnd) {
+        overlapGroups.push(curGroup);
+        curGroup = [];
+        curGroupEnd = -Infinity;
+      }
+      curGroup.push(ev);
+      curGroupEnd = Math.max(curGroupEnd, ev.endMin);
+    }
+    if (curGroup.length) overlapGroups.push(curGroup);
+
+    const overlapBadges = [];
+    overlapGroups.forEach((group) => {
+      const groupKey = group[0].id;
+      if (group.length === 1) {
+        const ev = group[0];
+        ev.colIndex = 0; ev.colCount = 1; ev.hidden = false; ev.slim = false; ev.hasBadge = false;
+        ev.leftCss = 0; ev.rightCss = 0;
+        return;
+      }
+
+      // 2) 组内贪心分列：放入最早腾空（不重叠）的列
+      const colEnds = [];
+      for (const ev of group) {
+        let c = colEnds.findIndex(end => end <= ev.startMin);
+        if (c === -1) { c = colEnds.length; colEnds.push(ev.endMin); }
+        else colEnds[c] = ev.endMin;
+        ev.colIndex = c;
+      }
+      const colCount = colEnds.length;
+      const colW = tlColW > 0 ? (tlColW - (colCount - 1) * COL_GAP) / colCount : Infinity;
+      const forceExpanded = tlExpandedGroups.has(groupKey);
+      const degraded = colCount > 1 && tlColW > 0 && colW < MIN_COL_W && !forceExpanded;
+
+      if (degraded) {
+        // 降级折叠：仅主事件（最早开始）占满整行，其余折叠为右侧 +N
+        group.forEach((ev, i) => {
+          ev.colIndex = 0; ev.colCount = 1; ev.slim = false;
+          ev.hidden = i > 0;
+          ev.hasBadge = i === 0;
+          ev.leftCss = 0; ev.rightCss = 0;
+        });
+        overlapBadges.push({
+          key: 'badge-' + groupKey, groupKey, mode: 'expand',
+          top: group[0].top, hPx: group[0].hPx, count: group.length - 1,
+        });
+      } else {
+        // 并排分栏：left/right 用 calc 保留列间缝隙（总占满整列宽）
+        group.forEach((ev) => {
+          ev.colCount = colCount; ev.hidden = false; ev.slim = colCount > 1; ev.hasBadge = false;
+          const c = ev.colIndex, n = colCount;
+          ev.leftCss = c > 0 ? `calc(${(c / n) * 100}% + ${COL_GAP / 2}px)` : 0;
+          ev.rightCss = c < n - 1 ? `calc(${((n - 1 - c) / n) * 100}% + ${COL_GAP / 2}px)` : 0;
+        });
+        // 窄列被手动展开时，保留一个「收起」入口
+        if (forceExpanded && colW < MIN_COL_W) {
+          group[0].hasBadge = true;
+          overlapBadges.push({
+            key: 'badge-' + groupKey, groupKey, mode: 'collapse',
+            top: group[0].top, hPx: group[0].hPx, count: group.length - 1,
+          });
+        }
+      }
     });
 
     // —— 底部"列表型"内容：待办 / 未定时 / 全天习惯 ——
@@ -979,19 +1071,20 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
             {/* 事件色块（绝对定位） */}
             {events.map(ev => {
-              const { item, done, theme, isSquareCheckbox, clsCat, subText, top, hPx, rightOffsetPx, isFixed } = ev;
+              if (ev.hidden) return null;
+              const { item, done, theme, isSquareCheckbox, clsCat, subText, top, hPx, leftCss, rightCss, slim, hasBadge, isFixed } = ev;
 
               // === 固定日程：极简柔化样式（无标签/无边框，通过透明度建立层级） ===
               if (isFixed) {
                 return (
                   <div
                     key={ev.id}
-                    className={`tl-event tl-fixed-schedule ${hPx < 48 ? 'compact' : ''}`}
+                    className={`tl-event tl-fixed-schedule ${hPx < 48 ? 'compact' : ''} ${slim ? 'tl-event--col' : ''} ${hasBadge ? 'tl-event--badged' : ''}`}
                     style={{
                       top: `${top}px`,
                       height: `${hPx}px`,
-                      left: 0,
-                      right: `${rightOffsetPx}px`,
+                      left: leftCss || 0,
+                      right: rightCss || 0,
                       backgroundImage: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
                       borderRadius: 'min(12px, 50%)',
                     }}
@@ -1053,12 +1146,12 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               return (
                 <div
                   key={ev.id}
-                  className={`tl-event cat-${clsCat} ${done ? 'done' : ''} ${hPx < 48 ? 'compact' : ''}`}
+                  className={`tl-event cat-${clsCat} ${done ? 'done' : ''} ${hPx < 48 ? 'compact' : ''} ${slim ? 'tl-event--col' : ''} ${hasBadge ? 'tl-event--badged' : ''}`}
                   style={{
                     top: `${displayTop}px`,
                     height: `${displayH}px`,
-                    left: 0,
-                    right: `${rightOffsetPx}px`,
+                    left: leftCss || 0,
+                    right: rightCss || 0,
                     backgroundImage: inlineBg,
                     cursor: canDragBlock ? 'grab' : 'default',
                   }}
@@ -1147,6 +1240,24 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 </div>
               );
             })}
+
+            {/* 重叠折叠标记：窄列时主事件右侧的 +N / 收起 入口 */}
+            {overlapBadges.map(b => (
+              <button
+                key={b.key}
+                type="button"
+                className="tl-overlap-badge"
+                style={{ top: `${b.top + Math.max(0, (b.hPx - 20) / 2)}px` }}
+                title={b.mode === 'expand' ? `展开 ${b.count} 个重叠事项` : '折叠重叠事项'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleOverlapGroup(b.groupKey);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {b.mode === 'expand' ? `+${b.count}` : '−'}
+              </button>
+            ))}
           </div>
         </div>
 

@@ -404,6 +404,40 @@ body {
 .tl-event.compact .tl-event-sub { display: none; }
 .tl-event.compact .tl-event-content { gap: 10px; }
 
+/* 并排分栏（重叠事项）：收窄内边距、隐藏尾部圆点，为窄列让出文字空间 */
+.tl-event--col { padding-right: 8px; }
+.tl-event--col .tl-event-line { margin-left: 8px; }
+.tl-event--col .tl-event-content { padding-left: 8px; gap: 8px; }
+.tl-event--col .tl-event-dot { display: none; }
+/* 折叠态主事件：右侧预留 +N 标记空间，避免文字被压 */
+.tl-event--badged { padding-right: 44px; }
+
+/* 重叠折叠标记（+N 展开 / − 收起） */
+.tl-overlap-badge {
+  position: absolute;
+  right: 8px;
+  z-index: 5;
+  height: 20px;
+  min-width: 20px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(60,60,67,0.10);
+  color: #6c6c70;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.tl-overlap-badge:hover { background: rgba(60,60,67,0.18); color: #48484a; }
+
 /* 分类渐变背景（沿用工作台风格，与 HabitsPanel 保持一致：70% 淡出） */
 .tl-event.cat-1 { background-image: linear-gradient(90deg, #FFEEED 0%, transparent 70%); }
 .tl-event.cat-2 { background-image: linear-gradient(90deg, #fff4d8 0%, transparent 70%); }

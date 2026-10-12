@@ -3,7 +3,7 @@ import AIChat from '../components/AIChat.jsx';
 import AIConfigModal from '../components/AIConfigModal.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
-  IconRotate, IconPlus, IconSearch, IconPen, IconTrash, IconChat,
+  IconPlus, IconSearch, IconPen, IconTrash, IconChat,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import {
@@ -48,10 +48,7 @@ export default function AIAssistantPage() {
   const [activeId, setActiveId] = useState(null);
   const [search, setSearch] = useState('');
   const [renamingId, setRenamingId] = useState(null);
-  const [confirmClear, setConfirmClear] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null);
-  const [messageCount, setMessageCount] = useState(0);
-  const chatRef = useRef(null);
 
   // 左右分栏（会话列表 | 对话窗口）：可拖拽调宽，双击分隔条恢复默认
   const split = useSplitRatio('ai_split_ratio', { min: 0.2, max: 0.45, def: 0.28, maxWidth: 460 });
@@ -93,7 +90,6 @@ export default function AIAssistantPage() {
     const s = createSession();
     setSearch('');
     reloadSessions(s.id);
-    setMessageCount(0);
   };
 
   const handleRename = (id, name) => {
@@ -125,32 +121,32 @@ export default function AIAssistantPage() {
       <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
         {/* ---- 左：页头 + 会话列表 ---- */}
         <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
-          {/* 页头：色条 + 标题 + 清空 */}
+          {/* 页头：色条 + 标题 + 删除当前会话 / 新建对话 */}
           <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
             <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
             <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">AI 助手</span>
             <button
-              onClick={() => messageCount > 0 && setConfirmClear(true)}
-              disabled={messageCount === 0}
-              className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-ink-400 hover:bg-ink-50 transition-colors disabled:opacity-30 disabled:cursor-default"
-              title="清空当前对话"
+              onClick={() => activeSession && setConfirmRemove(activeSession)}
+              disabled={!activeSession}
+              className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-ink-400 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors disabled:opacity-30 disabled:cursor-default"
+              title="删除当前会话"
             >
-              <IconRotate size={13} />
+              <IconTrash size={13} />
             </button>
-          </div>
-
-          {/* 会话区标题：计数 + 新建对话 */}
-          <div className="flex items-center gap-1.5 px-1 pt-1 pb-2 flex-shrink-0">
-            <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">会话</span>
-            <span className="text-[11px] text-ink-300 tabular-nums">{sessions.length}</span>
             <button
               onClick={handleNewChat}
-              className="w-[22px] h-[22px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
+              className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 text-white transition-all hover:scale-105 active:scale-95"
               style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
               title="新建对话"
             >
-              <IconPlus size={12} />
+              <IconPlus size={13} />
             </button>
+          </div>
+
+          {/* 会话区标题：计数 */}
+          <div className="flex items-center gap-1.5 px-1 pt-1 pb-2 flex-shrink-0">
+            <span className="text-[11px] font-semibold text-ink-400 tracking-wide flex-1">会话</span>
+            <span className="text-[11px] text-ink-300 tabular-nums">{sessions.length}</span>
           </div>
 
           <div className="relative mb-2 flex-shrink-0">
@@ -193,7 +189,7 @@ export default function AIAssistantPage() {
                     <div
                       key={s.id}
                       onClick={() => setActiveId(s.id)}
-                      className={`group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${active ? '' : 'hover:bg-ink-50'}`}
+                      className={`group relative flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${active ? '' : 'hover:bg-ink-50'}`}
                       style={active ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
                     >
                       <span
@@ -202,14 +198,18 @@ export default function AIAssistantPage() {
                       >
                         <IconChat size={12} />
                       </span>
-                      <span className="flex-1 min-w-0 flex items-center gap-1.5">
+                      <span className="flex-1 min-w-0 flex items-center gap-1.5 pr-0.5">
                         <span
                           className={`flex-1 min-w-0 text-[12.5px] leading-tight truncate ${active ? 'font-semibold' : 'font-medium'}`}
                           style={active ? { color: 'var(--s-main)' } : { color: '#0f1f1c' }}
                         >{s.title}</span>
                         <span className="text-[10.5px] text-ink-300 flex-shrink-0 tabular-nums">{fmtSessionTime(s.updatedAt)}</span>
                       </span>
-                      <span className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* hover 悬浮操作：遮盖时间，不占布局（时间得以紧贴卡片右缘） */}
+                      <span
+                        className={`absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 pl-2 pr-0.5 py-0.5 rounded-md ${active ? '' : 'bg-ink-50'}`}
+                        style={active ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
+                      >
                         <button
                           onClick={(e) => { e.stopPropagation(); setRenamingId(s.id); }}
                           className="w-[20px] h-[20px] rounded-md flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-black/[0.05] transition-colors"
@@ -245,13 +245,11 @@ export default function AIAssistantPage() {
             {activeId ? (
               <AIChat
                 key={activeId}
-                ref={chatRef}
                 mode={mode}
                 onModeChange={setMode}
                 onConfigClick={() => setConfigOpen(true)}
                 storageKey={sessionKey(activeId)}
                 headerless
-                onMessagesChange={setMessageCount}
                 onUserMessage={handleUserMessage}
               />
             ) : null}
@@ -260,22 +258,6 @@ export default function AIAssistantPage() {
       </div>
 
       <AIConfigModal open={configOpen} onClose={() => setConfigOpen(false)} />
-
-      {/* 清空当前会话确认 */}
-      <ConfirmDialog
-        open={confirmClear}
-        title="清空对话"
-        message="确定清空当前对话？清空后不可恢复。"
-        confirmText="清空"
-        danger
-        onConfirm={() => {
-          chatRef.current?.clear();
-          if (activeId) { touchSession(activeId); reloadSessions(activeId); }
-          setConfirmClear(false);
-          setMessageCount(0);
-        }}
-        onCancel={() => setConfirmClear(false)}
-      />
 
       {/* 删除会话确认 */}
       <ConfirmDialog

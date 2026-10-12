@@ -46,7 +46,6 @@ const AIChat = forwardRef(function AIChat({
   storageKey = 'ai_messages_main',
   compact = false,
   headerless = false,
-  onMessagesChange,
   onUserMessage,
 }, ref) {
   const [messages, setMessages] = useState(() => {
@@ -68,9 +67,11 @@ const AIChat = forwardRef(function AIChat({
   const pendingConfirms = useRef(new Map()); // id → resolve(confirm)
   const scrollRef = useRef(null);
   const taRef = useRef(null);
-  const recRef = useRef(null);        // SpeechRecognition 实例
+  const recRef = useRef(null);        // SpeechRecognition 实例（录音中的唯一标识）
   const voiceBaseRef = useRef('');    // 开始录音时的输入内容（识别结果追加在其后）
   const voiceHintTimer = useRef(null);
+  const voiceTimerRef = useRef(null);     // 60s 防挂起
+  const noResultTimerRef = useRef(null);  // 8s 无结果提示
 
   // 保持 messages ref 最新（供异步循环读最新值）
   useEffect(() => { msgsRef.current = messages; }, [messages]);
@@ -110,11 +111,6 @@ const AIChat = forwardRef(function AIChat({
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     },
   }), [storageKey]);
-
-  // 通知父组件消息数量变化
-  useEffect(() => {
-    onMessagesChange?.(messages.length);
-  }, [messages.length, onMessagesChange]);
 
   // ===== 构建 OpenAI 格式 messages =====
   const buildApiMessages = useCallback(() => {
@@ -297,51 +293,82 @@ const AIChat = forwardRef(function AIChat({
     abortRef.current?.abort();
   }, []);
 
-  // ===== 语音输入（Web Speech API：识别文字实时打进输入框）=====
+  // ===== 语音输入（Web Speech API，参考豆包/Trae 的「点击开始 · 点击停止」模式）
+  // 稳健性设计：实例引用单一来源（recRef）/ 停止时 stop+abort 双保险 /
+  // 状态立即回落不等 onend 回调 / 迟到结果丢弃 / 60s 防挂起 / 8s 无结果提示
   const showVoiceHint = useCallback((msg) => {
     setVoiceHint(msg);
     clearTimeout(voiceHintTimer.current);
     voiceHintTimer.current = setTimeout(() => setVoiceHint(''), 3200);
   }, []);
 
-  const toggleVoice = useCallback(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    if (listening) { recRef.current?.stop(); return; }
-    try {
-      const rec = new SR();
-      rec.lang = 'zh-CN';
-      rec.continuous = true;     // 持续听写，直到再次点击停止或浏览器判定静音结束
-      rec.interimResults = true; // 中间结果实时上屏
-      voiceBaseRef.current = input;
-      rec.onresult = (e) => {
-        let finalText = '', interim = '';
-        for (let i = 0; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
-          if (e.results[i].isFinal) finalText += t; else interim += t;
-        }
-        setInput(((voiceBaseRef.current || '') + finalText + interim).replace(/\s+/g, ' '));
-      };
-      rec.onerror = (e) => {
-        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-          showVoiceHint('麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风');
-        } else if (e.error === 'network') {
-          showVoiceHint('语音识别服务不可用，请检查网络');
-        }
-      };
-      rec.onend = () => { setListening(false); recRef.current = null; };
-      recRef.current = rec;
-      rec.start();
-      setListening(true);
-    } catch {
-      showVoiceHint('当前浏览器不支持语音输入，建议使用 Chrome / Edge');
+  // 停止并复位（幂等）：无论正常结束、手动停止还是异常路径都走这里
+  const stopVoiceCore = useCallback(() => {
+    const rec = recRef.current;
+    recRef.current = null;
+    setListening(false);
+    clearTimeout(voiceTimerRef.current);
+    clearTimeout(noResultTimerRef.current);
+    if (rec) {
+      try { rec.stop(); } catch { /* ignore */ }
+      try { rec.abort(); } catch { /* ignore */ }
     }
-  }, [input, listening, showVoiceHint]);
+  }, []);
 
-  // 卸载时停止录音、清理提示计时器
+  const startVoice = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showVoiceHint('当前浏览器不支持语音输入，建议使用 Chrome / Edge'); return; }
+    if (recRef.current) return; // 已在录音
+    let rec;
+    try { rec = new SR(); } catch { showVoiceHint('语音功能初始化失败，请重试'); return; }
+    rec.lang = 'zh-CN';
+    rec.continuous = true;     // 持续听写，直到手动停止或浏览器判定结束
+    rec.interimResults = true; // 中间结果实时上屏
+    voiceBaseRef.current = input;
+    rec.onresult = (e) => {
+      if (!recRef.current) return; // 已停止：丢弃迟到结果
+      let finalText = '', interim = '';
+      for (let i = 0; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t; else interim += t;
+      }
+      if (!finalText && !interim) return;
+      setInput(((voiceBaseRef.current || '') + finalText + interim).replace(/\s+/g, ' '));
+      clearTimeout(noResultTimerRef.current);
+    };
+    rec.onerror = (e) => {
+      if (!recRef.current) return;
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        showVoiceHint('麦克风权限被拒绝，请在浏览器地址栏允许使用麦克风');
+        stopVoiceCore();
+      } else if (e.error === 'network') {
+        showVoiceHint('语音服务连接失败，请检查网络后重试');
+      }
+      // no-speech / aborted 等静默，由 onend 收尾
+    };
+    rec.onend = () => stopVoiceCore();
+    recRef.current = rec;
+    try { rec.start(); } catch { recRef.current = null; showVoiceHint('启动失败，请稍后重试'); return; }
+    setListening(true);
+    // 防挂起：8s 无结果提示；60s 上限自动停止
+    noResultTimerRef.current = setTimeout(() => {
+      if (recRef.current) showVoiceHint('未识别到语音，请检查麦克风是否可用');
+    }, 8000);
+    voiceTimerRef.current = setTimeout(() => stopVoiceCore(), 60000);
+  }, [input, showVoiceHint, stopVoiceCore]);
+
+  const toggleVoice = useCallback(() => {
+    if (recRef.current) stopVoiceCore(); else startVoice();
+  }, [startVoice, stopVoiceCore]);
+
+  // 卸载时停止录音、清理计时器
   useEffect(() => () => {
-    try { recRef.current?.stop(); } catch { /* ignore */ }
+    const rec = recRef.current;
+    recRef.current = null;
+    if (rec) { try { rec.stop(); } catch { /* ignore */ } try { rec.abort(); } catch { /* ignore */ } }
     clearTimeout(voiceHintTimer.current);
+    clearTimeout(voiceTimerRef.current);
+    clearTimeout(noResultTimerRef.current);
   }, []);
 
   // ===== 模型选择（Trae Work 式：胶囊按钮 → 上拉菜单，选中即存即生效）=====
@@ -529,11 +556,11 @@ const AIChat = forwardRef(function AIChat({
         @keyframes ai-blink { 0%,60%,100% { opacity: 0.3; } 30% { opacity: 1; } }
         .ai-spin { display: inline-flex; animation: ai-rotate 1s linear infinite; }
         @keyframes ai-rotate { to { transform: rotate(360deg); } }
-        /* 输入框聚焦态：浅蓝描边 + 蓝色光环与投影（参考 Google Inputs / Notion 聚焦语言） */
-        .ai-composer { border-color: #e2e6e5; box-shadow: 0 1px 3px rgba(0,0,0,0.03); transition: border-color .18s ease, box-shadow .18s ease; }
+        /* 输入框聚焦态：浅蓝描边 + 弥散式蓝调投影（大 blur 低透明度，不使用实心光环） */
+        .ai-composer { border-color: #e2e6e5; box-shadow: 0 1px 3px rgba(0,0,0,0.03); transition: border-color .18s ease, box-shadow .25s ease; }
         .ai-composer:focus-within {
           border-color: #A8C7FA;
-          box-shadow: 0 0 0 3px rgba(96,150,248,0.12), 0 2px 12px rgba(96,150,248,0.12);
+          box-shadow: 0 4px 20px rgba(96,150,248,0.16), 0 1px 4px rgba(96,150,248,0.08);
         }
         /* 语音识别中：红色脉冲光环 */
         @keyframes ai-pulse { 0% { box-shadow: 0 0 0 0 rgba(255,59,48,0.35); } 100% { box-shadow: 0 0 0 9px rgba(255,59,48,0); } }
@@ -657,25 +684,12 @@ const AIChat = forwardRef(function AIChat({
 
             <div className="flex-1 min-w-0" />
 
-            {/* 语音输入（浏览器不支持时自动隐藏） */}
-            {speechSupported && (
-              <button
-                onClick={toggleVoice}
-                disabled={streaming}
-                className={`w-[28px] h-[28px] rounded-lg flex items-center justify-center flex-shrink-0 transition-all active:scale-95 disabled:opacity-40 ${listening ? 'text-white' : 'text-ink-400 hover:bg-ink-50 hover:text-ink-600'}`}
-                style={listening ? { background: '#FF3B30', animation: 'ai-pulse 1.2s ease-out infinite' } : {}}
-                title={listening ? '停止语音输入' : '语音输入'}
-              >
-                <IconMic size={14} />
-              </button>
-            )}
-
-            {/* 模型选择（Trae Work 式：胶囊按钮 → 上拉菜单） */}
+            {/* 模型选择（Trae Work 式：胶囊按钮 → 上拉菜单，无边框） */}
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setModelMenuOpen(v => !v)}
                 className={`flex items-center gap-1 px-2 py-[5px] rounded-lg text-[12px] font-medium transition-colors ${
-                  config?.apiKey ? 'text-ink-600 bg-white border border-ink-200 hover:bg-ink-50' : 'text-white'
+                  config?.apiKey ? 'text-ink-600 hover:bg-ink-50' : 'text-white'
                 }`}
                 style={!config?.apiKey
                   ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
@@ -730,6 +744,19 @@ const AIChat = forwardRef(function AIChat({
                 </>
               )}
             </div>
+
+            {/* 语音输入（置于模型与发送之间；浏览器不支持时自动隐藏） */}
+            {speechSupported && (
+              <button
+                onClick={toggleVoice}
+                disabled={streaming}
+                className={`w-[28px] h-[28px] rounded-lg flex items-center justify-center flex-shrink-0 transition-all active:scale-95 disabled:opacity-40 ${listening ? 'text-white' : 'text-ink-400 hover:bg-ink-50 hover:text-ink-600'}`}
+                style={listening ? { background: '#FF3B30', animation: 'ai-pulse 1.2s ease-out infinite' } : {}}
+                title={listening ? '停止语音输入' : '语音输入'}
+              >
+                <IconMic size={14} />
+              </button>
+            )}
 
             {streaming ? (
               <button

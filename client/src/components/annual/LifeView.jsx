@@ -867,24 +867,27 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     <span className="h-5 flex items-center"><span className="w-[7px] h-[7px] rounded-full" style={{ background: 'var(--m-life)' }} /></span>
                     {!isLast && <span className="flex-1 w-px bg-ink-100" />}
                   </div>
-                  {/* 内容列：标题 + 右侧类目标签（工作台搜索框同款灰底小圆角长方形） */}
-                  <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
-                    {hl && (
-                      <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
-                        style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: `0 1px 3px ${moduleRgba('life', 0.35)}` }}
-                        title="年度精选">
-                        <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                      </div>
-                    )}
-                    <span className="text-sm font-normal text-[#1c1c1e] truncate">{r.e.t}</span>
-                    {/* 类目标签：紧跟标题（内容左聚，不钉死最右） */}
-                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
-                      style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba(r.cat.color, 0.85) }}>
-                      {r.cat.lb}
-                    </span>
+                  {/* 内容列：标题行（灰底胶囊）+ 备注（标题下方摘要行）；行距挂在整列上，让备注也计入条目间距 */}
+                  <div className={`flex-1 min-w-0 ${isLast ? '' : 'mb-4'}`}>
+                    <div className="relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)]">
+                      {hl && (
+                        <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
+                          style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: `0 1px 3px ${moduleRgba('life', 0.35)}` }}
+                          title="年度精选">
+                          <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        </div>
+                      )}
+                      {/* 标题：semibold 加粗，与下方灰色备注形成「字重 + 明度」双轴层级 */}
+                      <span className="text-sm font-semibold text-[#1c1c1e] truncate">{r.e.t}</span>
+                      {/* 类目标签：紧跟标题（内容左聚，不钉死最右）；保持常规字重不抢层级 */}
+                      <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
+                        style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba(r.cat.color, 0.85) }}>
+                        {r.cat.lb}
+                      </span>
+                    </div>
+                    {/* 备注：置于胶囊外、标题下方，px-2.5 让左缘与标题严格对齐；多行自然下延 */}
+                    {r.e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1 px-2.5 max-w-[620px]">{r.e.n}</div>}
                   </div>
-                  {/* 备注：与标题行中轴对齐（mt-1 补偿 text-xs/leading-relaxed 与 h-7 标题行的行高差），多行时首行对齐、后续自然下延；避免顶端对齐造成的「上飘」 */}
-                  {r.e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1 max-w-[620px]">{r.e.n}</div>}
                 </div>
               );
                   })}

@@ -535,12 +535,19 @@ export default function KnowledgeBasePage() {
                 </div>
               ) : (
                 <>
-                  {/* 面包屑 + ⋯（重命名 / 删除） */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="flex-1 min-w-0 text-[11.5px] text-ink-400 truncate">
-                      {activeBook?.name || ''}{selectedDoc.group ? ` / ${selectedDoc.group}` : ''}
-                    </span>
-                    <div className="relative flex-shrink-0">
+                  {/* 标题行：标题（点击即编辑） + ⋯（文档信息 / 重命名 / 删除）
+                      面包屑与更新/来源信息已并入 ⋯ 菜单，保持正文画布简洁 */}
+                  <div className="flex items-start gap-2 flex-shrink-0">
+                    <div
+                      ref={titleRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      data-placeholder="无标题"
+                      onBlur={commitTitle}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur(); } }}
+                      className="kb-inline flex-1 min-w-0 text-[20px] font-bold text-ink-900 leading-snug break-words rounded-md px-1.5 -ml-1.5 py-0.5 hover:bg-[rgba(0,0,0,0.035)] focus:bg-[rgba(0,0,0,0.035)] transition-colors"
+                    />
+                    <div className="relative flex-shrink-0 mt-0.5">
                       <button
                         onClick={() => setDocMenuOpen(v => !v)}
                         className="w-[26px] h-[26px] rounded-lg flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-ink-50 transition-colors focus:outline-none"
@@ -550,9 +557,23 @@ export default function KnowledgeBasePage() {
                         <>
                           <div className="fixed inset-0 z-30" onClick={() => setDocMenuOpen(false)} />
                           <div
-                            className="absolute right-0 top-[calc(100%+4px)] z-40 w-[132px] rounded-xl bg-white border border-ink-100 py-1"
+                            className="absolute right-0 top-[calc(100%+4px)] z-40 w-[190px] rounded-xl bg-white border border-ink-100 py-1"
                             style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)' }}
                           >
+                            {/* 文档信息（只读）：更新于 / 来源 / 标签 */}
+                            <div className="px-3 pt-1 pb-2">
+                              <div className="text-[11px] text-ink-400 leading-relaxed whitespace-nowrap">
+                                更新于 {fmtDate(selectedDoc.updatedAt)} · 来源：{SOURCE_META[selectedDoc.source]?.label || '手动'}
+                              </div>
+                              {selectedDoc.tags?.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {selectedDoc.tags.map(t => (
+                                    <span key={t} className="px-1.5 py-px rounded-md text-[10.5px] bg-ink-50 text-ink-500">{t}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="h-px bg-ink-100 mx-1 my-0.5" />
                             <button
                               onClick={() => { setDocMenuOpen(false); focusTitle(); }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
@@ -568,27 +589,8 @@ export default function KnowledgeBasePage() {
                     </div>
                   </div>
 
-                  {/* 标题：点击即可编辑 */}
-                  <div
-                    ref={titleRef}
-                    contentEditable
-                    suppressContentEditableWarning
-                    data-placeholder="无标题"
-                    onBlur={commitTitle}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur(); } }}
-                    className="kb-inline mt-2 text-[20px] font-bold text-ink-900 leading-snug break-words rounded-md px-1.5 -ml-1.5 py-0.5 hover:bg-[rgba(0,0,0,0.035)] focus:bg-[rgba(0,0,0,0.035)] transition-colors flex-shrink-0"
-                  />
-                  <div className="flex items-center gap-2 mt-1.5 mb-3 flex-wrap text-[11.5px] text-ink-400 flex-shrink-0">
-                    <span>更新于 {fmtDate(selectedDoc.updatedAt)}</span>
-                    <span className="text-ink-300">·</span>
-                    <span>来源：{SOURCE_META[selectedDoc.source]?.label || '手动'}</span>
-                    {selectedDoc.tags?.map(t => (
-                      <span key={t} className="px-1.5 py-px rounded-md text-[10.5px] bg-ink-50 text-ink-500">{t}</span>
-                    ))}
-                  </div>
-
                   {/* 正文编辑区：圆角卡片 + 格式工具栏 + 保存 */}
-                  <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-ink-100 bg-white overflow-hidden">
+                  <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-ink-100 bg-white overflow-hidden mt-4">
                     {/* 格式工具栏 */}
                     <div className="flex items-center gap-0.5 px-1.5 py-1 border-b border-ink-100 flex-shrink-0 flex-wrap">
                       <ToolBtn title="标题1" onClick={() => exec('formatBlock', 'H1')}><span className="font-bold text-[12px]">H1</span></ToolBtn>
@@ -607,7 +609,7 @@ export default function KnowledgeBasePage() {
                       </ToolBtn>
                       <span className="w-px h-4 bg-ink-150 mx-1" />
                       <ToolBtn title="引用" onClick={() => exec('formatBlock', 'BLOCKQUOTE')}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 7H3v5h5V9" /><path d="M15 7h-3v5h5V9" /></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" /></svg>
                       </ToolBtn>
                       <ToolBtn title="清除格式" onClick={() => exec('removeFormat')}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7V4h16v3" /><path d="M9 20h6" /><path d="M12 4v16" /></svg>
@@ -689,9 +691,12 @@ export default function KnowledgeBasePage() {
       <style>{`
         .kb-prose { font-size: 13.5px; line-height: 1.75; color: #0f1f1c; }
         .kb-prose p { margin: 0 0 10px; }
-        .kb-prose h1, .kb-prose h2, .kb-prose h3 { font-size: 14.5px; font-weight: 600; margin: 16px 0 8px; }
+        .kb-prose h1 { font-size: 18px; font-weight: 700; line-height: 1.5; margin: 18px 0 8px; }
+        .kb-prose h2 { font-size: 15.5px; font-weight: 600; line-height: 1.5; margin: 15px 0 8px; }
+        .kb-prose h3 { font-size: 14px; font-weight: 600; margin: 13px 0 6px; }
         .kb-prose ul { list-style: disc; padding-left: 20px; margin: 0 0 10px; }
         .kb-prose ol { list-style: decimal; padding-left: 20px; margin: 0 0 10px; }
+        .kb-prose blockquote { margin: 0 0 10px; padding: 3px 0 3px 12px; border-left: 3px solid rgba(var(--s-rgb),0.5); color: #4d5a57; }
         .kb-prose a { color: var(--s-main); text-decoration: underline; }
         .kb-prose b, .kb-prose strong { font-weight: 600; }
         .kb-prose img { max-width: 100%; border-radius: 8px; }

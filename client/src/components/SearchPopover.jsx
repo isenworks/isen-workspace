@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { IconSearch, IconX } from './aiIcons.jsx';
 
 /* 搜索弹窗（锚定式浮层）：
    收起时是 26px 胶囊按钮；点击在按钮下方弹出浮层（输入框 + 实时结果列表）；
+   浮层左缘与按钮左端对齐（浮层直接落在按钮正下方，鼠标下移即可进入输入框）；
    支持关键词高亮、↑↓ 选择、Enter 打开、Esc / 点击外部关闭。
    Props:
      - results      [{ id, title, meta }]  待检索数据源（由父组件提供）
@@ -14,9 +15,23 @@ export default function SearchPopover({ results = [], onPick, placeholder = '搜
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
+  const [shiftX, setShiftX] = useState(0); // 视口内防溢出位移
   const inputRef = useRef(null);
+  const rootRef = useRef(null);
+  const PANEL_W = 292;
 
   useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
+
+  // 浮层左缘对齐按钮左端；若右侧将超出视口，则整体左移仅够贴边（不越界）
+  useLayoutEffect(() => {
+    if (!open) { setShiftX(0); return; }
+    const el = rootRef.current;
+    if (!el) return;
+    const left = el.getBoundingClientRect().left;
+    const margin = 8;
+    const overflow = left + PANEL_W - (window.innerWidth - margin);
+    setShiftX(overflow > 0 ? -overflow : 0);
+  }, [open]);
 
   const close = () => { setOpen(false); setQ(''); setSel(0); };
 
@@ -39,7 +54,7 @@ export default function SearchPopover({ results = [], onPick, placeholder = '搜
   };
 
   return (
-    <div className="relative flex-shrink-0">
+    <div ref={rootRef} className="relative flex-shrink-0">
       <button
         onClick={() => (open ? close() : setOpen(true))}
         className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-ink-400 hover:bg-ink-50 hover:text-ink-600 transition-colors"
@@ -52,8 +67,8 @@ export default function SearchPopover({ results = [], onPick, placeholder = '搜
         <>
           <div className="fixed inset-0 z-30" onClick={close} />
           <div
-            className="absolute top-[calc(100%+6px)] right-0 z-40 w-[292px] rounded-xl bg-white border border-ink-100 overflow-hidden"
-            style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)' }}
+            className="absolute top-[calc(100%+6px)] left-0 z-40 w-[292px] max-w-[calc(100vw-16px)] rounded-xl bg-white border border-ink-100 overflow-hidden"
+            style={{ transform: `translateX(${shiftX}px)`, boxShadow: '0 12px 36px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)' }}
           >
             {/* 搜索输入 */}
             <div className="flex items-center gap-2 px-3 py-2.5 border-b border-ink-100/80">

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   getKBBooks, getKBEntries, getKBTree, getKBDocs,
   addKBBook, updateKBBook, removeKBBook, ensureKBBooks,
-  removeKBEntry, updateKBEntry, renameKBGroup, removeKBGroup, addKBGroup, reorderKBDoc, setKBGroupOrder,
+  addKBEntry, removeKBEntry, updateKBEntry, renameKBGroup, removeKBGroup, addKBGroup, reorderKBDoc, setKBGroupOrder,
   syncKBFromCloud,
 } from '../utils/aiKnowledgeBase.js';
 import KnowledgeBookForm from '../components/KnowledgeBookForm.jsx';

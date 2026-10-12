@@ -640,9 +640,9 @@ export default function PlantingShelf({ onCountChange }) {
               <path d="M36 48 C36 36 36 22 36 8 C36 22 36 36 36 48 Z" fill="#3E7D3E" opacity="0.6" />
             </svg>
             <div className="text-center">
-              <div className="text-sm font-semibold text-ink-700">还没有植物</div>
-              <div className="text-[11px] mt-1">点右下角 + 添加你的第一株植物</div>
-              <div className="text-[10px] mt-0.5 text-ink-400">推荐上传透明背景 PNG</div>
+              <div className="text-sm font-semibold text-ink-400">还没有植物</div>
+              <div className="text-[11px] mt-1 text-ink-300">点右下角 + 添加你的第一株植物</div>
+              <div className="text-[10px] mt-0.5 text-ink-300">推荐上传透明背景 PNG</div>
             </div>
           </div>
         )}

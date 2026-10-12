@@ -305,7 +305,7 @@ export default function RecycleBinPage() {
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
-            <div className="text-[14px] font-semibold text-ink-900">{items.length === 0 ? '回收站是空的' : '该分类下暂无内容'}</div>
+            <div className="text-[14px] font-medium text-ink-300">{items.length === 0 ? '回收站是空的' : '该分类下暂无内容'}</div>
           </div>
         ) : grouped.map((g, gi) => (
           <div key={g.bucket}>

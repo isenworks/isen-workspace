@@ -48,8 +48,8 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
             <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <p className="text-sm font-bold text-ink-900">还没有精力类习惯</p>
-            <p className="text-xs text-ink-500 max-w-sm">前往工作台「习惯」面板创建睡眠、喝水、运动等打卡习惯，<br/>这里会自动同步年度打卡数据</p>
+            <p className="text-sm font-semibold text-ink-400">还没有精力类习惯</p>
+            <p className="text-xs text-ink-300 max-w-sm">前往工作台「习惯」面板创建睡眠、喝水、运动等打卡习惯，<br/>这里会自动同步年度打卡数据</p>
           </div>
         </div>
       </div>

@@ -959,8 +959,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
           <div className="w-full flex flex-col gap-4">
             {activeMain.length === 0 ? (
               <div className="w-full glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center">
-                <div className="text-[14px] font-semibold text-[#1d1d1f] mb-1">暂无主业目标</div>
-                <div className="text-[12px] text-[#8e8e93]">点右上角 +，分组选「主业」后保存</div>
+                <div className="text-[14px] font-medium text-ink-400 mb-1">暂无主业目标</div>
+                <div className="text-[12px] text-ink-300">点右上角 +，分组选「主业」后保存</div>
               </div>
             ) : activeMain.map(entry => renderFullCard(entry, 'active'))}
           </div>
@@ -968,8 +968,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
           <div className="w-full flex flex-col gap-4">
             {activeSide.length === 0 ? (
               <div className="w-full glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center">
-                <div className="text-[14px] font-semibold text-[#1d1d1f] mb-1">暂无副业目标</div>
-                <div className="text-[12px] text-[#8e8e93]">点右上角 +，分组选「副业」后保存</div>
+                <div className="text-[14px] font-medium text-ink-400 mb-1">暂无副业目标</div>
+                <div className="text-[12px] text-ink-300">点右上角 +，分组选「副业」后保存</div>
               </div>
             ) : activeSide.map(entry => renderFullCard(entry, 'active'))}
           </div>
@@ -980,8 +980,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
       {workTab === 'done' && (
         partitionedGoals.done.length === 0 ? (
           <div className="w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center">
-            <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无已完成目标</div>
-            <div className="text-[12.5px] text-[#8e8e93]">任意目标右上角 ⋮ → 已完成</div>
+            <div className="text-[15px] font-medium text-ink-400 mb-1">暂无已完成目标</div>
+            <div className="text-[12.5px] text-ink-300">任意目标右上角 ⋮ → 已完成</div>
           </div>
         ) : (
         <div className="w-full grid grid-cols-2 gap-4 items-start">
@@ -1030,8 +1030,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
         <div className="w-full grid grid-cols-1 min-[1100px]:grid-cols-2 gap-4">
           {partitionedGoals.shelf.length === 0 ? (
             <div className="w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center col-span-full">
-              <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无已归档目标</div>
-              <div className="text-[12.5px] text-[#8e8e93]">任意目标右上角 ⋮ → 已归档，或超期自动进入</div>
+              <div className="text-[15px] font-medium text-ink-400 mb-1">暂无已归档目标</div>
+              <div className="text-[12.5px] text-ink-300">任意目标右上角 ⋮ → 已归档，或超期自动进入</div>
             </div>
           ) : partitionedGoals.shelf.map(entry => (
             <div key={'shelf-' + (entry.o.id || entry.o.title + entry.goalIdx)}>

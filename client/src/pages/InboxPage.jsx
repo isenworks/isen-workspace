@@ -457,8 +457,8 @@ export default function InboxPage({ onCountChange }) {
             <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11l5-5V5a2 2 0 0 0-2-2Z" />
             <path d="M15 21v-4a2 2 0 0 1 2-2h4" />
           </svg>
-          <div className="text-[14px] font-semibold text-ink-900">小记是空的</div>
-          <div className="text-[12px] text-ink-400">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 可随时记录</div>
+          <div className="text-[14px] font-medium text-ink-400">小记是空的</div>
+          <div className="text-[12px] text-ink-300">按 <kbd className="px-1 py-px rounded text-[11px] border border-ink-100 bg-white/70">N</kbd> 可随时记录</div>
         </div>
       ) : groups.length === 0 ? (
         <div className={`glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2 ${fill ? 'flex-1' : ''}`}>
@@ -488,7 +488,7 @@ export default function InboxPage({ onCountChange }) {
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
-          <div className="text-[13.5px] font-semibold text-ink-900">选择左侧一条想法</div>
+          <div className="text-[13.5px] font-medium text-ink-300">选择左侧一条想法</div>
         </div>
       );
     }

@@ -339,8 +339,8 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
           {partitioned.done.map(en => renderCard(en.a, en.as))}
           {partitioned.done.length === 0 && (
             <div className="col-span-full w-full glass-card rounded-2xl p-10 flex flex-col items-center justify-center text-center">
-              <div className="text-[15px] font-semibold text-[#1d1d1f] mb-1">暂无已完成能力</div>
-              <div className="text-[12.5px] text-[#8e8e93]">任意能力卡片右上角 ⋮ → 标记完成</div>
+              <div className="text-[15px] font-medium text-ink-400 mb-1">暂无已完成能力</div>
+              <div className="text-[12.5px] text-ink-300">任意能力卡片右上角 ⋮ → 标记完成</div>
             </div>
           )}
         </div>

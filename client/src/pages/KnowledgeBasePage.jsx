@@ -786,7 +786,7 @@ export default function KnowledgeBasePage() {
                     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                     <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                   </svg>
-                  <div className="text-[13.5px] font-semibold text-ink-900">选择左侧一篇文档</div>
+                  <div className="text-[13.5px] font-medium text-ink-300">选择左侧一篇文档</div>
                 </div>
               ) : (
                 <>

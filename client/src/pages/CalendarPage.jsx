@@ -1585,7 +1585,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
           <div className="flex flex-col gap-4">
             {detailEvents.length === 0 ? (
               <div className="py-8 text-center">
-                <div className="text-[14px] font-semibold text-[#1C1C1E]">当日还没有安排</div>
+                <div className="text-[14px] font-medium text-ink-300">当日还没有安排</div>
               </div>
             ) : (
               <FocusPanel

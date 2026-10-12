@@ -696,7 +696,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               <div className="flex-1 min-h-0"><PlantingShelf onCountChange={syncPlantCount} /></div>
             ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
-                <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
+                <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-400">
                   {bdLoading ? '正在加载生日…' : '还没有生日记录，点左侧「生日」行的 + 添加'}
                 </div>
               ) : bdView === 'person' ? (
@@ -815,7 +815,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 </React.Fragment>
               )
             ) : timeGroups.length === 0 ? (
-              <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-500">
+              <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-400">
                 {selFilterCat ? `「${selFilterCat.lb}」还没有记录，点左侧类目行的 + 添加` : '还没有生活记录，点左侧类目行的 + 添加'}
               </div>
             ) : (

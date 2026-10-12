@@ -1158,8 +1158,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4">
-                <span className="text-[12.5px] font-semibold text-ink-600">还没有精力类习惯</span>
-                <span className="text-[11px] text-ink-400">去习惯面板创建睡眠、运动等打卡</span>
+                <span className="text-[12.5px] font-medium text-ink-400">还没有精力类习惯</span>
+                <span className="text-[11px] text-ink-300">去习惯面板创建睡眠、运动等打卡</span>
               </div>
             )}
           </div>
@@ -1249,8 +1249,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               ))}
               {abilRows.length === 0 && (
                 <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                  <span className="text-[12.5px] font-semibold text-ink-600">还没有能力目标</span>
-                  <span className="text-[11px] text-ink-400">去能力页添加第一个成长目标</span>
+                  <span className="text-[12.5px] font-medium text-ink-400">还没有能力目标</span>
+                  <span className="text-[11px] text-ink-300">去能力页添加第一个成长目标</span>
                 </div>
               )}
             </div>
@@ -1276,8 +1276,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               ))}
               {workRows.length === 0 && (
                 <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                  <span className="text-[12.5px] font-semibold text-ink-600">暂无进行中的工作目标</span>
-                  <span className="text-[11px] text-ink-400">去工作页建立你的 OKR</span>
+                  <span className="text-[12.5px] font-medium text-ink-400">暂无进行中的工作目标</span>
+                  <span className="text-[11px] text-ink-300">去工作页建立你的 OKR</span>
                 </div>
               )}
             </div>

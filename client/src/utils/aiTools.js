@@ -22,15 +22,37 @@ function resolveDate(input) {
   return s; // 其余交给后端 normalizeDate 校验/规范化
 }
 
-// priority 文本 → DB 整数（ethan_tasks.priority 为 INTEGER：1=高 2=中 3=低）。
-// 后端 toInt 对非数字字符串会静默回退默认值 2，'high' 会丢优先级，这里前置换算。
-function prioToInt(v) {
-  const map = { high: 1, medium: 2, low: 3, '1': 1, '2': 2, '3': 3, 高: 1, 中: 2, 低: 3 };
-  const n = map[String(v ?? '').trim().toLowerCase()] ?? Number(v);
-  return [1, 2, 3].includes(n) ? n : 2;
+// 分类名 → schedule.category（与 categoryMapping BASE_MODULES 对齐：1工作 2能力 3其他 5生活 6精力 7知力 8财务）
+const CAT_BY_NAME = {
+  '工作': 1, work: 1,
+  '能力': 2, '学习': 2, ability: 2, study: 2, learning: 2,
+  '其他': 3, other: 3, others: 3,
+  '生活': 5, life: 5,
+  '精力': 6, energy: 6,
+  '知力': 7, cognition: 7,
+  '财务': 8, finance: 8,
+};
+const CAT_LABEL = { 1: '工作', 2: '能力', 3: '其他', 5: '生活', 6: '精力', 7: '知力', 8: '财务' };
+function resolveCategory(v) {
+  if (v == null) return 1;
+  const byName = CAT_BY_NAME[String(v).trim().toLowerCase()];
+  if (byName) return byName;
+  const n = Number(v);
+  return [1, 2, 3, 5, 6, 7, 8].includes(n) ? n : 1;
 }
-export function priorityLabel(v) {
-  return { 1: '高', 2: '中', 3: '低' }[v] || String(v ?? '');
+
+// 新建事项 + 回读校验（AI 创建统一走 ethan_schedules，与手动「新建事项」同链路，
+// 出现在重点事项卡/主页今日/日历/时间线，且天然支持点击编辑、右键删除、勾选完成）
+async function createItemAndVerify(data) {
+  const res = await API.schedules.create(data);
+  const id = res?.id || res?.schedule?.id;
+  if (!id) throw new Error('创建接口未返回事项 id，可能未真正写入');
+  const check = await API.schedules.get(id);
+  if (!check?.schedule) throw new Error(`写入校验失败：事项 #${id} 回读不到，数据可能未落库`);
+  if (check.schedule.date !== data.date) {
+    throw new Error(`写入校验失败：日期不一致（期望 ${data.date}，实际 ${check.schedule.date}）`);
+  }
+  return id;
 }
 
 // ===== 工具定义（OpenAI function calling 格式）=====
@@ -109,32 +131,15 @@ export const aiToolDefinitions = [
     type: 'function',
     function: {
       name: 'create_schedule',
-      description: '创建一条日程到日历/今日计划。date 用 YYYY-MM-DD（明天/后天需按当前日期换算），默认今天。创建前先向用户确认',
+      description: '新建一条事项到工作台（日程/待办统一入口，与手动「新建事项」效果一致：出现在重点事项卡、主页今日、日历和时间线，且可点击编辑/右键删除）。有明确时间传 start_time/end_time；纯待办（无明确时间）就不要传时间字段。date 用 YYYY-MM-DD（明天/后天需按当前日期换算），默认今天。创建前先向用户确认',
       parameters: {
         type: 'object',
         properties: {
-          title: { type: 'string', description: '日程标题' },
+          title: { type: 'string', description: '事项标题' },
           date: { type: 'string', description: '日期，格式 YYYY-MM-DD，默认今天' },
-          start_time: { type: 'string', description: '开始时间，格式 HH:MM' },
-          end_time: { type: 'string', description: '结束时间，格式 HH:MM' },
-          category: { type: 'string', description: '分类：工作/生活/学习/其他' },
-          notes: { type: 'string', description: '备注' },
-        },
-        required: ['title'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'create_task',
-      description: '创建一条待办任务到今日计划。date 用 YYYY-MM-DD（明天/后天需按当前日期换算），默认今天。创建前先向用户确认',
-      parameters: {
-        type: 'object',
-        properties: {
-          title: { type: 'string', description: '待办标题' },
-          date: { type: 'string', description: '日期，格式 YYYY-MM-DD，默认今天' },
-          priority: { type: 'string', description: '优先级：high/medium/low' },
+          start_time: { type: 'string', description: '开始时间，格式 HH:MM，可选；无明确时间不要传' },
+          end_time: { type: 'string', description: '结束时间，格式 HH:MM，可选' },
+          category: { type: 'string', description: '分类：工作/能力/学习/生活/精力/知力/财务/其他，默认工作' },
         },
         required: ['title'],
       },
@@ -228,38 +233,24 @@ export async function executeTool(name, args = {}) {
       const data = {
         title: args.title,
         date: resolveDate(args.date),
-        start_time: args.start_time || '',
-        end_time: args.end_time || '',
-        category: args.category || '工作',
-        notes: args.notes || '',
+        start_time: args.start_time || null,
+        end_time: args.end_time || null,
+        category: resolveCategory(args.category),
       };
-      const res = await API.schedules.create(data);
-      const id = res?.id || res?.schedule?.id;
-      if (!id) throw new Error('创建接口未返回日程 id，可能未真正写入');
-      // 回读：确认日程真实落库且日期无误
-      const check = await API.schedules.get(id);
-      if (!check?.schedule) throw new Error(`写入校验失败：日程 #${id} 回读不到，数据可能未落库`);
-      if (check.schedule.date !== data.date) {
-        throw new Error(`写入校验失败：日期不一致（期望 ${data.date}，实际 ${check.schedule.date}）`);
-      }
-      return { success: true, id, title: data.title, date: data.date, start_time: data.start_time, category: data.category };
+      const id = await createItemAndVerify(data);
+      return { success: true, id, title: data.title, date: data.date, start_time: data.start_time, end_time: data.end_time, category: data.category };
     }
     case 'create_task': {
+      // 旧工具别名（历史会话可能仍发出）：落为「无时间事项」，与手动新建事项同链路
       const data = {
         title: args.title,
         date: resolveDate(args.date),
-        priority: prioToInt(args.priority),
+        start_time: null,
+        end_time: null,
+        category: 1,
       };
-      const res = await API.tasks.create(data);
-      const id = res?.id || res?.task?.id;
-      if (!id) throw new Error('创建接口未返回任务 id，可能未真正写入');
-      // 回读：确认任务真实落库且日期无误
-      const check = await API.tasks.get(id);
-      if (!check?.task) throw new Error(`写入校验失败：任务 #${id} 回读不到，数据可能未落库`);
-      if (check.task.date !== data.date) {
-        throw new Error(`写入校验失败：日期不一致（期望 ${data.date}，实际 ${check.task.date}）`);
-      }
-      return { success: true, id, title: data.title, date: data.date, priority: data.priority };
+      const id = await createItemAndVerify(data);
+      return { success: true, id, title: data.title, date: data.date, category: data.category };
     }
     case 'create_inbox': {
       const data = { content: args.content };
@@ -297,9 +288,12 @@ export function formatToolResult(name, result) {
       return `每日总结（${result.range}）共 ${result.count} 条：` +
         result.summaries.map(s => `\n- ${s.date}: ${s.content}`).join('');
     case 'create_schedule':
-      return `已创建日程「${result.title}」→ ${result.date}${result.start_time ? ' ' + result.start_time : ''}，分类${result.category}（#${result.id}，已回读校验落库成功）`;
-    case 'create_task':
-      return `已创建待办「${result.title}」→ ${result.date}，优先级${priorityLabel(result.priority)}（#${result.id}，已回读校验落库成功）`;
+    case 'create_task': {
+      const time = result.start_time
+        ? ` ${result.start_time}${result.end_time ? '-' + result.end_time : ''}`
+        : '（无时间 · 待办型，进「未定时事项」）';
+      return `已新建事项「${result.title}」→ ${result.date}${time}，分类${CAT_LABEL[result.category] || result.category}（#${result.id}，已回读校验落库；重点事项卡、主页今日、日历、时间线均可见，可点击编辑）`;
+    }
     case 'create_inbox':
       return `已创建小记「${result.content}」${result.tag ? '，标签' + result.tag : ''}（#${result.id}）`;
     default:
@@ -315,7 +309,7 @@ export const toolDisplayNames = {
   get_habits_list: '查询习惯列表',
   get_inbox_list: '查询小记列表',
   get_summaries_range: '查询每日总结',
-  create_schedule: '创建日程',
-  create_task: '创建待办',
+  create_schedule: '新建事项',
+  create_task: '新建事项',
   create_inbox: '创建小记',
 };

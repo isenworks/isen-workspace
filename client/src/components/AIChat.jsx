@@ -519,7 +519,7 @@ const AIChat = forwardRef(function AIChat({
             <div className="text-[14px] font-semibold text-ink-900">问点什么吧</div>
             <div className="text-[12px] text-ink-400 leading-relaxed">
               {mode === 'kb' ? '基于你在知识库沉淀的内容回答' : '个人 AI 助手 · 使用你配置的大模型'}
-              <br />还可以让它查询习惯打卡、创建日程待办
+              <br />还可以让它记待办、建日程，会同步到重点事项与日历
             </div>
           </div>
         ) : (

@@ -5,6 +5,7 @@ import { store } from '../utils/store.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 import PTag from './PTag.jsx';
+import ConfirmAlert from './ConfirmAlert.jsx';
 import { inferGrowthType, GROWTH_TYPES } from '../utils/uiConstants.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
@@ -47,6 +48,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const [hasData, setHasData] = useState(false);
   // sortBy: priority(按重要性) | time(按时间顺序)。默认按重要性
   const [sortBy, setSortBy] = useState('priority');
+  const [confirmDel, setConfirmDel] = useState(null);
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
   // 勾选编辑缓冲：`id|date` → 新 is_done
@@ -159,14 +161,17 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     if (deleteScheduleConfirm) {
       deleteScheduleConfirm(s.id, s.title);
     } else {
-      if (!confirm(`删除「${s.title}」？`)) return;
-      API.schedules.remove(s.id).then(() => {
-        cacheClear(cacheRef, 'kt:');
-        store.broadcast({ type: 'reload' });
-        onChange?.();
-        load();
-      }).catch(e => toast.error(e.message));
+      setConfirmDel(s);
     }
+  }
+
+  function doRemove(s) {
+    API.schedules.remove(s.id).then(() => {
+      cacheClear(cacheRef, 'kt:');
+      store.broadcast({ type: 'reload' });
+      onChange?.();
+      load();
+    }).catch(e => toast.error(e.message));
   }
 
   const done = list.filter(s => s.is_done).length;
@@ -519,6 +524,17 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         </div>
       ) : (
         view === 'today' ? renderTodayView() : renderGroupedView()
+      )}
+
+      {confirmDel && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message={`删除「${confirmDel.title}」？`}
+          confirmText="删除"
+          onCancel={() => setConfirmDel(null)}
+          onConfirm={() => { const s = confirmDel; setConfirmDel(null); doRemove(s); }}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
+import ConfirmAlert from './ConfirmAlert.jsx';
 import { formatDuration, calcDurationMin } from '../utils/date.js';
 
 // 固定日程管理面板（在 Modal 内打开，提供列表 + 新增按钮，点击每行可编辑/删除）
@@ -8,6 +9,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
   const toast = useToast();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmDel, setConfirmDel] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -22,8 +24,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
 
   useEffect(() => { load(); }, []);
 
-  async function handleRemove(id, name) {
-    if (!confirm(`确认删除固定日程「${name}」？`)) return;
+  async function doRemove(id) {
     try {
       await API.fixedSchedules.remove(id);
       toast.success('已删除');
@@ -113,7 +114,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
                   </div>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleRemove(s.id, s.name); }}
+                  onClick={(e) => { e.stopPropagation(); setConfirmDel({ id: s.id, name: s.name }); }}
                   title="删除"
                   style={{
                     width: '26px', height: '26px', flexShrink: 0,
@@ -136,6 +137,17 @@ export default function FixedSchedulesPanel({ onEdit }) {
             );
           })}
         </div>
+      )}
+
+      {confirmDel && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message={`确认删除固定日程「${confirmDel.name}」？`}
+          confirmText="删除"
+          onCancel={() => setConfirmDel(null)}
+          onConfirm={() => { const id = confirmDel.id; setConfirmDel(null); doRemove(id); }}
+        />
       )}
     </div>
   );

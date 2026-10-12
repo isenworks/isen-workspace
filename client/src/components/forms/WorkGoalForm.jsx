@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* 工作 Objective 新增/编辑弹窗 —— 视觉对齐 AbilityForm/BookForm（iOS Red 主题 SectionCard） */
 const RED = '#FF3B30';
@@ -47,7 +49,9 @@ const MODES = [
 ];
 
 export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
     title: initial?.title || '',
     core: initial?.core !== undefined ? !!initial.core : true,
@@ -62,7 +66,7 @@ export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
   useFormSubmit(submit);
 
   function submit() {
-    if (!form.title.trim()) return alert('请输入目标标题');
+    if (!form.title.trim()) return toast.warn('请输入目标标题');
     onSaved?.({
       ...form,
       title: form.title.trim(),
@@ -75,8 +79,11 @@ export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
 
   function del() {
     if (!isEdit) return;
-    const n = initial?.krs?.length || 0;
-    if (!confirm(`确认删除这个目标？其下 ${n} 条 KR 也会删除`)) return;
+    setConfirmOpen(true);
+  }
+
+  function doDelete() {
+    setConfirmOpen(false);
     onDelete?.(initial.id);
   }
 
@@ -173,6 +180,17 @@ export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message={`确认删除这个目标？其下 ${initial?.krs?.length || 0} 条 KR 也会删除`}
+          confirmText="删除"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

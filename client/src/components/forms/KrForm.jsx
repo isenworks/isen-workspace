@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 
 const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
 const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: '#FF3B30', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(255,59,48,0.25)' };
@@ -13,7 +15,9 @@ const STATUSES = [
 ];
 
 export default function KrForm({ initial, onSaved, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
     t: initial?.t || '',
     v: initial?.v ?? 0,
@@ -27,7 +31,7 @@ export default function KrForm({ initial, onSaved, onCancel, onDelete }) {
   useFormSubmit(submit);
 
   function submit() {
-    if (!form.t.trim()) return alert('请输入 KR 标题');
+    if (!form.t.trim()) return toast.warn('请输入 KR 标题');
     onSaved?.({
       t: form.t.trim(), v: Number(form.v) || 0, tgt: Number(form.tgt) || 100,
       u: form.u, st: form.st,
@@ -37,7 +41,11 @@ export default function KrForm({ initial, onSaved, onCancel, onDelete }) {
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这个 KR？')) return;
+    setConfirmOpen(true);
+  }
+
+  function doDelete() {
+    setConfirmOpen(false);
     onDelete?.({ workIdx: initial.workIdx, krIdx: initial.krIdx });
   }
 
@@ -95,6 +103,17 @@ export default function KrForm({ initial, onSaved, onCancel, onDelete }) {
           <button onClick={submit} style={BTN_PRIMARY}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message="确定删除这个 KR 吗？"
+          confirmText="删除"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

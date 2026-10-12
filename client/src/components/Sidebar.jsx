@@ -5,6 +5,7 @@ import { syncCloudNow, syncKey, cloudPush } from '../utils/cloudKV.js';
 import { trySubmitTopForm } from '../utils/formSubmitBus.js';
 import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
+import ConfirmDialog from './ConfirmDialog.jsx';
 import { CategoryIcon } from './annual/ui.jsx';
 
 const ICONS = {
@@ -168,6 +169,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
   const [uploading, setUploading] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [cropFile, setCropFile] = useState(null); // 选中待裁剪的原文件
+  const [confirmLogout, setConfirmLogout] = useState(false); // 退出登录二次确认（无 onBeforeLogout 时的兜底）
 
   function handleAvatarChange(e) {
     const file = e.target.files?.[0];
@@ -263,8 +265,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
   function handleLogoutClick() {
     if (onBeforeLogout) {
       onBeforeLogout();
-    } else if (confirm('确定要退出登录吗？')) {
-      onLogout?.();
+    } else {
+      setConfirmLogout(true);
     }
   }
 
@@ -701,6 +703,16 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
       file={cropFile}
       onClose={() => setCropFile(null)}
       onConfirm={handleCropConfirm}
+    />
+
+    <ConfirmDialog
+      open={confirmLogout}
+      danger
+      title="退出登录？"
+      message="退出后需要重新输入账号密码才能登录。"
+      confirmText="确认退出"
+      onCancel={() => setConfirmLogout(false)}
+      onConfirm={() => { setConfirmLogout(false); onLogout?.(); }}
     />
     </>
   );

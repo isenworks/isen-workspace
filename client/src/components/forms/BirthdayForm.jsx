@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import lunarLib from '../../vendor/lunar.js';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* ============================================================
  * 生日表单 · 复用日历 ScheduleForm 的字段结构与视觉规范
@@ -92,6 +93,7 @@ export default function BirthdayForm({ initial, onSaved, onCancel, onDelete }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -220,7 +222,7 @@ export default function BirthdayForm({ initial, onSaved, onCancel, onDelete }) {
         <div>
           {isEdit && (
             <button type="button"
-              onClick={() => { if (confirm('确定删除这条生日吗？删除后不可恢复。')) onDelete?.(parsed); }}
+              onClick={() => setConfirmOpen(true)}
               style={BTN_DANGER}>
               删除
             </button>
@@ -234,6 +236,17 @@ export default function BirthdayForm({ initial, onSaved, onCancel, onDelete }) {
           </button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message="确定删除这条生日吗？删除后不可恢复。"
+          confirmText="删除"
+          onConfirm={() => { setConfirmOpen(false); onDelete?.(parsed); }}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </form>
   );
 }

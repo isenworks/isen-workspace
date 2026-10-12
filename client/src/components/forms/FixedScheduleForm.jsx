@@ -3,6 +3,7 @@ import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { API } from '../../api/client.js';
 import { store } from '../../utils/store.js';
 import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 import FriendlyTimeInput from '../FriendlyTimeInput.jsx';
 import { calcDurationMin, formatDuration } from '../../utils/date.js';
 
@@ -65,6 +66,7 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
     end_time: initial?.end_time || '',
   });
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -98,7 +100,12 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
 
   async function remove() {
     if (!initial?.id) return;
-    if (!confirm('确认删除该固定日程？')) return;
+    setConfirmOpen(true);
+  }
+
+  async function doRemove() {
+    if (!initial?.id) return;
+    setConfirmOpen(false);
     setBusy(true);
     try {
       await API.fixedSchedules.remove(initial.id);
@@ -217,6 +224,17 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
           </button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message={`确认删除固定日程「${initial?.name || ''}」？`}
+          confirmText="删除"
+          onConfirm={doRemove}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

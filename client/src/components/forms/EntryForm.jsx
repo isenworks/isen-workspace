@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 
 const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
 const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'var(--m-life)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(var(--m-life-rgb),0.25)' };
@@ -10,7 +12,9 @@ const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px',
 const ACCENT = 'var(--m-life)';
 
 export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, onDelete, lifeCategories, onAddCategory }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   // initial.d 可能是 M.D / M.D-M.D / YYYY-MM-DD 等混合格式 → 拆为开始/结束日期回填（结束日期可选）
   const initialRange = (() => {
@@ -63,9 +67,9 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
   useFormSubmit(submit);
 
   function submit() {
-    if (!form.t.trim()) { alert('请输入标题'); return; }
-    if (!isEdit && !selectedKey) { alert('请先选择一个模块，或点「+ 新建模块」创建新模块后再记录'); return; }
-    if (form.dEnd && form.dEnd < form.d) { alert('结束日期不能早于开始日期'); return; }
+    if (!form.t.trim()) { toast.warn('请输入标题'); return; }
+    if (!isEdit && !selectedKey) { toast.warn('请先选择一个模块，或点「+ 新建模块」创建新模块后再记录'); return; }
+    if (form.dEnd && form.dEnd < form.d) { toast.warn('结束日期不能早于开始日期'); return; }
     const dStr = form.dEnd && form.dEnd !== form.d
       ? `${normalizeDate(form.d)}-${normalizeDate(form.dEnd)}`
       : normalizeDate(form.d);
@@ -80,13 +84,17 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这条记录？')) return;
+    setConfirmOpen(true);
+  }
+
+  function doDelete() {
+    setConfirmOpen(false);
     onDelete?.({ lifeKey: initial.lifeKey, entryIdx: initial.entryIdx });
   }
 
   function createCategory() {
     const lb = newCatLb.trim();
-    if (!lb) { alert('请输入模块名，如「健康」「运动」「书单」'); return; }
+    if (!lb) { toast.warn('请输入模块名，如「健康」「运动」「书单」'); return; }
     const res = onAddCategory?.({ lb });
     // onAddCategory 约定：成功后返回 { key }；若返回 undefined，则父组件会自动回写 lifeCategories，本组件此处只关闭面板
     if (res && res.key) {
@@ -256,6 +264,17 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
           </button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message="确认删除这条记录？"
+          confirmText="删除"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

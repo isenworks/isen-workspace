@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* 能力新增/编辑弹窗 —— 视觉规格对齐 BookForm（SectionCard 分组 + 圆角输入 + 橙色主题） */
 const AB = '#FF9500';          // 主题橙
@@ -41,7 +43,9 @@ function FieldRow({ label, children }) {
 }
 
 export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
     title: initial?.title || '',
     daily: initial?.daily || '',
@@ -55,7 +59,7 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
   useFormSubmit(submit);
 
   function submit() {
-    if (!form.title.trim()) return alert('请输入能力名称');
+    if (!form.title.trim()) return toast.warn('请输入能力名称');
     onSaved?.({
       ...form,
       title: form.title.trim(),
@@ -67,7 +71,11 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这个能力？其下所有 KR 也会删除')) return;
+    setConfirmOpen(true);
+  }
+
+  function doDelete() {
+    setConfirmOpen(false);
     onDelete?.(initial.id);
   }
 
@@ -137,6 +145,17 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message="确认删除这个能力？其下所有 KR 也会删除"
+          confirmText="删除"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

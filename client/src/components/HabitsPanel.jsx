@@ -9,6 +9,7 @@ import { store } from '../utils/store.js';
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
+import ConfirmAlert from './ConfirmAlert.jsx';
 
 // 精力状态（3档）— 颜色统一用 iOS 系统色，弹窗按钮与行内 chip 共用
 const ENERGY_STATES = [
@@ -55,6 +56,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [sleepPopover, setSleepPopover] = useState(null);
+  const [confirmArchive, setConfirmArchive] = useState(null);
   const popoverRef = useRef(null);
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
@@ -180,14 +182,17 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     if (archiveHabitConfirm) {
       archiveHabitConfirm(h.id, h.name);
     } else {
-      if (!confirm(`归档习惯「${h.name}」？`)) return;
-      API.habits.archive(h.id).then(() => {
-        cacheClear(cacheRef, 'hp:');
-        store.broadcast({ type: 'reload' });
-        onChange?.();
-        load();
-      }).catch(e => toast.error(e.message));
+      setConfirmArchive(h);
     }
+  }
+
+  function doArchive(h) {
+    API.habits.archive(h.id).then(() => {
+      cacheClear(cacheRef, 'hp:');
+      store.broadcast({ type: 'reload' });
+      onChange?.();
+      load();
+    }).catch(e => toast.error(e.message));
   }
 
   // ==== 量化打卡 ====
@@ -877,6 +882,17 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       </div>,
       document.body
     )}
+
+      {confirmArchive && (
+        <ConfirmAlert
+          danger
+          title="归档确认"
+          message={`归档习惯「${confirmArchive.name}」？`}
+          confirmText="归档"
+          onCancel={() => setConfirmArchive(null)}
+          onConfirm={() => { const h = confirmArchive; setConfirmArchive(null); doArchive(h); }}
+        />
+      )}
     </>
   );
 }

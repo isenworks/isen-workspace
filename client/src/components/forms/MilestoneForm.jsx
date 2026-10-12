@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* KR 新增/编辑弹窗 —— 复选框语义（勾/未勾二态）+ dueBy 字段，视觉对齐 AbilityForm/BookForm */
 const AB = '#FF9500';
@@ -40,7 +42,9 @@ function FieldRow({ label, children }) {
 }
 
 export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
       lb: initial?.lb || '',
       startDate: initial?.startDate || '',
@@ -54,7 +58,7 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
   useFormSubmit(submit);
 
   function submit() {
-    if (!form.lb.trim()) return alert('请输入里程碑标题');
+    if (!form.lb.trim()) return toast.warn('请输入里程碑标题');
     const pct = form.st === 'done' ? 100 : form.st === 'doing' ? (Number(form.pct) || 0) : 0;
     onSaved?.({
       ...form,
@@ -69,7 +73,11 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这条里程碑？')) return;
+    setConfirmOpen(true);
+  }
+
+  function doDelete() {
+    setConfirmOpen(false);
     onDelete?.({ abilityIdx: initial.abilityIdx, msIdx: initial.msIdx });
   }
 
@@ -165,6 +173,17 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message="确认删除这条里程碑？"
+          confirmText="删除"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

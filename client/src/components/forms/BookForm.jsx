@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { INPUT_STYLE } from '../../utils/uiConstants.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* 面板归属知力模块：文字/标签/强调色统一跟随知力主题色（var(--m-cognition)）；
    结构性按钮（保存/添加）保持全局主题蓝不变，见 SAVE_BG */
@@ -36,7 +38,9 @@ const TABS = [
 ];
 
 export default function BookForm({ initial, onSaved, onCancel, onDelete, initialTab }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || 'basic');
   const [form, setForm] = useState({
     t: initial?.t || '',
@@ -155,7 +159,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
   useFormSubmit(submit);
 
   function submit() {
-    if (!form.t.trim()) return alert('请输入书名');
+    if (!form.t.trim()) return toast.warn('请输入书名');
     const cleanInsights = form.insights
       .filter(i => i.text?.trim() && i.scene?.trim())
       .map(i => ({ ...i, text: i.text.trim(), scene: i.scene.trim() }));
@@ -187,14 +191,18 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这本书？')) return;
+    setConfirmOpen(true);
+  }
+
+  function doDelete() {
+    setConfirmOpen(false);
     onDelete?.(initial.id);
   }
 
   const isEbook = form.src === '电子书';
 
   async function searchCover() {
-    if (!form.t.trim()) return alert('请先输入书名');
+    if (!form.t.trim()) return toast.warn('请先输入书名');
     setCoverFetching(true);
     try {
       const params = new URLSearchParams({ q: form.t.trim() });
@@ -205,9 +213,9 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
         setForm(f => ({ ...f, coverUrl: data.coverUrl, coverSource: data.source || 'douban' }));
         return;
       }
-      alert(data?.error || '暂无匹配封面，请手动粘贴URL');
+      toast.info(data?.error || '暂无匹配封面，请手动粘贴URL');
     } catch (e) {
-      alert('搜索失败：' + (e.message || e));
+      toast.error('搜索失败：' + (e.message || e));
     } finally {
       setCoverFetching(false);
     }
@@ -370,6 +378,17 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
+
+      {confirmOpen && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message="确认删除这本书？"
+          confirmText="删除"
+          onConfirm={doDelete}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -55,6 +55,20 @@ function fmtDate(ts) {
   return `${y}${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+// 已保存时间（与小记一致：今天 HH:MM、昨天带「昨天」、更早带日期+时间）
+function fmtSavedTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
+  const now = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const sameDay = a => a.getFullYear() === now.getFullYear() && a.getMonth() === now.getMonth() && a.getDate() === now.getDate();
+  if (sameDay(d)) return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  const y = new Date(now); y.setDate(y.getDate() - 1);
+  if (sameDay(y)) return `昨天 ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 // 极简 Markdown → HTML（导入 .md 用）：标题 / 粗斜体 / 行内码 / 列表 / 引用 / 分割线 / 链接 / 代码块
 function mdToHtml(md) {
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -186,7 +200,7 @@ export default function KnowledgeBasePage() {
   useEffect(() => () => { if (saveHintTimer.current) clearTimeout(saveHintTimer.current); }, []);
 
   const flashSaved = () => {
-    setSavedFlash('已保存');
+    setSavedFlash('✓ 已保存');
     if (saveHintTimer.current) clearTimeout(saveHintTimer.current);
     saveHintTimer.current = setTimeout(() => setSavedFlash(''), 1500);
   };
@@ -793,8 +807,8 @@ export default function KnowledgeBasePage() {
                     </div>
                   </div>
 
-                  {/* 正文编辑区：圆角卡片 + 格式工具栏 + 保存 */}
-                  <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-ink-100 bg-white overflow-hidden mt-4">
+                  {/* 正文编辑区：无边框画布 + 格式工具栏 + 底栏（去掉卡中卡边框，书写面更干净、更接近 Notion/小记） */}
+                  <div className="flex-1 min-h-0 flex flex-col mt-4">
                     {/* 格式工具栏 */}
                     <div className="flex items-center gap-0.5 px-1.5 py-1 border-b border-ink-100 flex-shrink-0 flex-wrap">
                       <ToolBtn title="标题1" onClick={() => exec('formatBlock', 'H1')}><span className="font-bold text-[12px]">H1</span></ToolBtn>
@@ -834,16 +848,20 @@ export default function KnowledgeBasePage() {
                       onKeyDown={(e) => {
                         if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); commitContent(); }
                       }}
-                      className="kb-inline kb-prose flex-1 min-h-0 overflow-y-auto px-3.5 py-3"
+                      className="kb-inline kb-prose flex-1 min-h-0 overflow-y-auto px-0.5 py-3"
                     />
 
-                    {/* 底栏：字数 + 保存 */}
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-ink-100 flex-shrink-0">
+                    {/* 底栏：字数 + 保存状态（未保存 / ✓ 已保存 / 保存时间）+ 保存 */}
+                    <div className="flex items-center gap-2 px-1.5 py-1.5 border-t border-ink-100 flex-shrink-0">
                       <span className="text-[11px] text-ink-300 tabular-nums">{charCount} 字</span>
                       <span className="flex-1" />
-                      {savedFlash
-                        ? <span className="text-[11.5px] font-medium" style={{ color: 'var(--s-main)' }}>{savedFlash}</span>
-                        : dirty && <span className="text-[11.5px] text-ink-300">未保存</span>}
+                      {dirty
+                        ? <span className="text-[11.5px] text-ink-300">未保存</span>
+                        : savedFlash
+                          ? <span className="text-[11.5px] font-medium" style={{ color: 'var(--s-main)' }}>{savedFlash}</span>
+                          : selectedDoc?.updatedAt
+                            ? <span className="text-[11px] text-ink-400 tabular-nums">{fmtSavedTime(selectedDoc.updatedAt)}</span>
+                            : null}
                       <button
                         onClick={commitContent}
                         disabled={!dirty}

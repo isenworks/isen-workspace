@@ -32,8 +32,18 @@ const SPECS = [
 
 const TABLE_BY_KEY = Object.fromEntries(SPECS.map(([k, t]) => [k, t]));
 
+// 受保护键：既不写进备份文件，还原时也不清除——避免密钥外泄，也避免还原后密钥丢失
+const PROTECTED = { userSettings: ['weread_api_key'] };
+
 const isIdent = (s) => typeof s === 'string' && /^[A-Za-z_][A-Za-z0-9_]*$/.test(s);
 const CHUNK = 100;
+
+// 生成「排除受保护键」的 SQL 片段与绑定参数
+function protectedClause(key) {
+  const list = PROTECTED[key];
+  if (!list || !list.length) return { sql: '', args: [] };
+  return { sql: ` AND k NOT IN (${list.map(() => '?').join(',')})`, args: list };
+}
 
 // ---------------- 导出 ----------------
 export async function handleBackupExport(env) {
@@ -43,7 +53,12 @@ export async function handleBackupExport(env) {
 
   await Promise.all(SPECS.map(async ([key, table, order]) => {
     try {
-      tables[key] = await dbAll(env.DB, `SELECT * FROM ${table} WHERE user_id=? ORDER BY ${order}`, [userId]);
+      const p = protectedClause(key);
+      tables[key] = await dbAll(
+        env.DB,
+        `SELECT * FROM ${table} WHERE user_id=?${p.sql} ORDER BY ${order}`,
+        [userId, ...p.args]
+      );
     } catch (e) {
       errors.push({ table: key, message: String((e && e.message) || e) });
     }
@@ -76,10 +91,14 @@ export async function handleBackupRestore(env, body) {
     if (!Array.isArray(rows)) { errors.push({ table: key, message: '该表数据不是数组，已跳过' }); continue; }
 
     // 先把全部行转成语句，任一行不合法就整表跳过，避免清空后写不回去
-    const stmts = [db.prepare(`DELETE FROM ${table} WHERE user_id=?`).bind(userId)];
+    // 清空时保留受保护键（如 weread_api_key），它们在备份里本就不存在，删了就找不回来
+    const p = protectedClause(key);
+    const stmts = [db.prepare(`DELETE FROM ${table} WHERE user_id=?${p.sql}`).bind(userId, ...p.args)];
     let bad = null;
     for (const row of rows) {
       if (!row || typeof row !== 'object' || Array.isArray(row)) { bad = '存在非对象行'; break; }
+      // 若旧备份里混进了受保护键，直接跳过不写
+      if (PROTECTED[key] && typeof row.k === 'string' && PROTECTED[key].includes(row.k)) continue;
       const cols = Object.keys(row).filter((c) => isIdent(c) && c !== 'user_id' && row[c] !== undefined);
       if (!cols.length) { bad = '存在空行'; break; }
       const values = cols.map((c) => row[c]);

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   getKBBooks, getKBEntries, getKBTree, getKBDocs,
   addKBBook, updateKBBook, removeKBBook, ensureKBBooks,
-  removeKBEntry, updateKBEntry, renameKBGroup, removeKBGroup, addKBGroup, reorderKBDoc,
+  removeKBEntry, updateKBEntry, renameKBGroup, removeKBGroup, addKBGroup, reorderKBDoc, setKBGroupOrder,
   syncKBFromCloud,
 } from '../utils/aiKnowledgeBase.js';
 import KnowledgeForm from '../components/KnowledgeForm.jsx';
@@ -116,9 +116,10 @@ export default function KnowledgeBasePage() {
   const [newMenuOpen, setNewMenuOpen] = useState(false);
   const [docMenuOpen, setDocMenuOpen] = useState(false);
 
-  // 拖拽排序
+  // 拖拽排序（文档 + 分组）
   const [dragId, setDragId] = useState(null);
-  const [dropHint, setDropHint] = useState(null); // { type:'doc'|'group', key }
+  const [dragGroup, setDragGroup] = useState(null);
+  const [dropHint, setDropHint] = useState(null); // { type:'doc'|'group'|'groupSort', key }
 
   // 正文 / 标题 · 直接点击编辑（失焦自动保存）
   const titleRef = useRef(null);
@@ -291,6 +292,21 @@ export default function KnowledgeBasePage() {
     reload();
   };
 
+  // 分组排序：把 dragGroup 移到目标分组之前
+  const handleGroupDrop = (targetGroup) => {
+    const from = dragGroup;
+    setDragGroup(null);
+    setDropHint(null);
+    if (!from || from === targetGroup) return;
+    const names = tree.map(t => t.group).filter(g => g !== '');
+    const fi = names.indexOf(from);
+    const ti = names.indexOf(targetGroup);
+    if (fi === -1 || ti === -1) return;
+    names.splice(ti, 0, names.splice(fi, 1)[0]);
+    setKBGroupOrder(activeKbId, names);
+    reload();
+  };
+
   return (
     <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
       {/* 主体：左书架卡 + 右（目录 + 正文）卡，中间可拖拽调宽 */}
@@ -388,10 +404,10 @@ export default function KnowledgeBasePage() {
 
           {/* ---- 右：目录 + 正文（同一张卡）---- */}
           <div className="glass-card rounded-2xl min-w-0 min-h-0 flex items-stretch" style={rightStyle}>
-            {/* 目录列：柔和高级灰（极低饱和 + 顶浅底深的微渐变，营造哑光层次），与正文靠底色 + 通高细线区分 */}
-            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3 rounded-l-2xl" style={{ background: 'linear-gradient(180deg, #F7F8F8 0%, #F1F3F2 100%)' }}>
-              {/* 页头：知识库图标 + 名称 + ＋新建（新建文档 / 新建分组） */}
-              <div className="relative flex items-center gap-2 px-1 pt-0.5 pb-2.5 flex-shrink-0">
+            {/* 目录列：中性冷灰微渐变（去黄绿偏色，顶浅底深哑光层次），与正文靠底色 + 通高细线区分 */}
+            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3 rounded-l-2xl" style={{ background: 'linear-gradient(180deg, #F8F8F9 0%, #F2F3F5 100%)' }}>
+              {/* 页头：知识库图标 + 名称 + 新建（新建文档 / 新建分组） */}
+              <div className="relative flex items-center gap-2 px-1 pt-0.5 pb-2 flex-shrink-0">
                 <span
                   className="w-[20px] h-[20px] rounded-[7px] flex items-center justify-center flex-shrink-0"
                   style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
@@ -402,11 +418,11 @@ export default function KnowledgeBasePage() {
                 <button
                   onClick={() => setNewMenuOpen(v => !v)}
                   disabled={!activeKbId}
-                  className="flex items-center gap-0.5 h-[24px] pl-2 pr-2 rounded-full text-[11.5px] font-semibold flex-shrink-0 transition-colors focus:outline-none disabled:opacity-40"
+                  className="w-[24px] h-[24px] rounded-lg flex items-center justify-center flex-shrink-0 transition-colors focus:outline-none disabled:opacity-40 hover:brightness-95"
                   style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
                   title="新建文档 / 新建分组"
                 >
-                  <IconPlus size={11} strokeWidth={2.6} />新建
+                  <IconPlus size={14} strokeWidth={2.4} />
                 </button>
 
                 {newMenuOpen && (
@@ -429,10 +445,13 @@ export default function KnowledgeBasePage() {
                 )}
               </div>
 
+              {/* 标题下分割线：固定页头与可滚动目录列表分离，结构更清晰 */}
+              <div className="h-px flex-shrink-0 mb-2 mx-0.5" style={{ background: 'rgba(15,31,28,0.07)' }} />
+
               <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">
                 {tree.length === 0 && (
                   <div className="px-2 py-3 text-[12px] text-ink-300 leading-relaxed">
-                    还没有文档，点右上角「＋新建」
+                    还没有文档，点右上角「＋」新建
                   </div>
                 )}
 
@@ -443,9 +462,18 @@ export default function KnowledgeBasePage() {
                     <div key={group || '__none__'} className="flex flex-col">
                       {!hideHeader && (
                       <div
-                        onDragOver={(e) => { if (dragId) { e.preventDefault(); setDropHint({ type: 'group', key: group }); } }}
-                        onDrop={(e) => { e.preventDefault(); handleDrop({ group }); }}
-                        className={`group flex items-center gap-1.5 pl-4 pr-2 pt-2 pb-1 rounded-md ${dropHint?.type === 'group' && dropHint?.key === group ? 'bg-[rgba(var(--s-rgb),0.06)]' : ''}`}
+                        draggable={group !== '' && !isRenamingGroup}
+                        onDragStart={(e) => { e.stopPropagation(); setDragGroup(group); setDragId(null); }}
+                        onDragEnd={() => { setDragGroup(null); setDropHint(null); }}
+                        onDragOver={(e) => {
+                          if (dragGroup) { e.preventDefault(); setDropHint({ type: 'groupSort', key: group }); }
+                          else if (dragId) { e.preventDefault(); setDropHint({ type: 'group', key: group }); }
+                        }}
+                        onDrop={(e) => { e.preventDefault(); if (dragGroup) handleGroupDrop(group); else handleDrop({ group }); }}
+                        className={`group flex items-center gap-1.5 pl-4 pr-2 pt-2 pb-1 rounded-md transition-colors ${group !== '' && !isRenamingGroup ? 'cursor-grab active:cursor-grabbing' : ''} ${
+                          (dropHint?.type === 'groupSort' && dropHint?.key === group) ? 'bg-[rgba(var(--s-rgb),0.1)]'
+                          : (dropHint?.type === 'group' && dropHint?.key === group) ? 'bg-[rgba(var(--s-rgb),0.06)]' : ''
+                        }`}
                       >
                         {isRenamingGroup ? (
                           <div className="flex-1 min-w-0">
@@ -485,7 +513,7 @@ export default function KnowledgeBasePage() {
                           <div
                             key={doc.id}
                             draggable
-                            onDragStart={() => setDragId(doc.id)}
+                            onDragStart={() => { setDragId(doc.id); setDragGroup(null); }}
                             onDragEnd={() => { setDragId(null); setDropHint(null); }}
                             onDragOver={(e) => { if (dragId && dragId !== doc.id) { e.preventDefault(); setDropHint({ type: 'doc', key: doc.id }); } }}
                             onDrop={(e) => { e.preventDefault(); handleDrop({ targetId: doc.id }); }}

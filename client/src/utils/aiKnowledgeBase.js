@@ -227,6 +227,22 @@ export function reorderKBDoc(kbId, dragId, { targetId = null, group = null } = {
   return true;
 }
 
+// 分组排序：按给定名称顺序重写知识库的显式分组（空字符串「未分组」不参与，恒置末尾）
+//   非空分组若尚未显式声明，会被补入声明数组（隐式分组实体化为显式分组）
+export function setKBGroupOrder(kbId, orderedNames) {
+  const names = (orderedNames || []).filter(g => g && g !== '');
+  const books = getRawBooks();
+  const idx = books.findIndex(b => b.id === kbId);
+  if (idx === -1) return false;
+  const existing = Array.isArray(books[idx].groups) ? books[idx].groups.filter(g => g && g !== '') : [];
+  const merged = [...names];
+  for (const g of existing) if (!merged.includes(g)) merged.push(g);
+  books[idx].groups = merged;
+  books[idx].updatedAt = Date.now();
+  persistBooks(books);
+  return true;
+}
+
 /* ------------------------------ 知识库（书架） ------------------------------ */
 
 function getRawBooks() {

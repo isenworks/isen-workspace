@@ -80,6 +80,15 @@ export function IconPlus({ size = 14, strokeWidth = 2.2 }) {
   </>);
 }
 
+// 更多（⋯ 横向三点）
+export function IconDots({ size = 14, strokeWidth = 2 }) {
+  return base(size, strokeWidth, <>
+    <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+  </>);
+}
+
 // 麦克风（语音输入）
 export function IconMic({ size = 14, strokeWidth = 2 }) {
   return base(size, strokeWidth, <>

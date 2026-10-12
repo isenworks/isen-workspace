@@ -10,7 +10,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import SearchPopover from '../components/SearchPopover.jsx';
 import {
   IconPlus, IconPen, IconLink, IconImport, IconBook,
-  IconFolder, IconFile, IconTrash, IconX,
+  IconFolder, IconFile, IconTrash, IconX, IconDots,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
@@ -74,6 +74,20 @@ function InlineInput({ defaultValue = '', placeholder, onCommit, onCancel }) {
   );
 }
 
+// 格式工具栏按钮：onMouseDown 阻止默认行为，避免点击时编辑区失焦（复用小记交互）
+function ToolBtn({ active, onClick, title, children }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      title={title}
+      className={`w-7 h-7 rounded-md flex items-center justify-center text-[13px] transition-colors ${
+        active ? 'bg-[rgba(var(--s-rgb),0.15)] text-[var(--s-main)]' : 'text-ink-500 hover:bg-black/5 hover:text-ink-800'
+      }`}
+    >{children}</button>
+  );
+}
+
 export default function KnowledgeBasePage() {
   const [books, setBooks] = useState([]);
   const [entries, setEntries] = useState([]);
@@ -98,6 +112,10 @@ export default function KnowledgeBasePage() {
   const [newGroup, setNewGroup] = useState(false);
   const [renamingGroup, setRenamingGroup] = useState(null);
 
+  // 目录顶部「＋新建」浮层 / 正文标题「⋯」菜单
+  const [newMenuOpen, setNewMenuOpen] = useState(false);
+  const [docMenuOpen, setDocMenuOpen] = useState(false);
+
   // 拖拽排序
   const [dragId, setDragId] = useState(null);
   const [dropHint, setDropHint] = useState(null); // { type:'doc'|'group', key }
@@ -106,6 +124,8 @@ export default function KnowledgeBasePage() {
   const titleRef = useRef(null);
   const contentRef = useRef(null);
   const [savedFlash, setSavedFlash] = useState('');
+  const [dirty, setDirty] = useState(false);       // 正文是否有未保存改动
+  const [charCount, setCharCount] = useState(0);   // 正文字数
   const saveHintTimer = useRef(null);
   useEffect(() => () => { if (saveHintTimer.current) clearTimeout(saveHintTimer.current); }, []);
 
@@ -113,6 +133,13 @@ export default function KnowledgeBasePage() {
     setSavedFlash('已保存');
     if (saveHintTimer.current) clearTimeout(saveHintTimer.current);
     saveHintTimer.current = setTimeout(() => setSavedFlash(''), 1500);
+  };
+
+  // 富文本格式操作（保留编辑器焦点，避免失焦保存打断）
+  const exec = (cmd, val) => {
+    contentRef.current?.focus();
+    try { document.execCommand(cmd, false, val); } catch { /* ignore */ }
+    setDirty(true);
   };
 
   const reload = useCallback(() => {
@@ -180,6 +207,8 @@ export default function KnowledgeBasePage() {
   useEffect(() => {
     if (titleRef.current) titleRef.current.innerText = selectedDoc?.title || '无标题';
     if (contentRef.current) contentRef.current.innerHTML = selectedDoc?.content || '';
+    setDirty(false);
+    setCharCount(stripHtml(selectedDoc?.content || '').length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDoc?.id]);
 
@@ -198,10 +227,24 @@ export default function KnowledgeBasePage() {
     const html = contentRef.current.innerHTML;
     const next = stripHtml(html) ? html : ''; // 空内容归一为空串，避免存入空标签
     if (next === '') contentRef.current.innerHTML = '';
-    if (next === (selectedDoc?.content || '')) return;
+    setCharCount(stripHtml(next).length);
+    if (next === (selectedDoc?.content || '')) { setDirty(false); return; }
     updateKBEntry(selectedDocId, { content: next });
+    setDirty(false);
     reload();
     flashSaved();
+  };
+
+  // 选中标题全文（「重命名」菜单用）
+  const focusTitle = () => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
   };
 
   /* ---------------- 知识库（书架） ---------------- */
@@ -345,21 +388,45 @@ export default function KnowledgeBasePage() {
 
           {/* ---- 右：目录 + 正文（同一张卡）---- */}
           <div className="glass-card rounded-2xl min-w-0 min-h-0 flex items-stretch" style={rightStyle}>
-            {/* 目录 */}
-            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3">
-              <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
+            {/* 目录列：极浅底色，与正文靠底色 + 通高细线区分 */}
+            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3 rounded-l-2xl" style={{ background: 'rgba(15,31,28,0.022)' }}>
+              {/* 页头：知识库名 + ＋新建（新建文档 / 新建分组） */}
+              <div className="relative flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
                 <span className="text-[13px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeBook?.name || '目录'}</span>
                 <button
-                  onClick={() => setNewGroup(true)}
-                  className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-ink-400 hover:text-[var(--s-main)] hover:bg-ink-50 transition-colors flex-shrink-0"
-                  title="新建分组"
-                ><IconFolder size={13} /></button>
+                  onClick={() => setNewMenuOpen(v => !v)}
+                  disabled={!activeKbId}
+                  className="flex items-center gap-0.5 h-[24px] pl-2 pr-2 rounded-full text-[11.5px] font-semibold flex-shrink-0 transition-colors focus:outline-none disabled:opacity-40"
+                  style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                  title="新建文档 / 新建分组"
+                >
+                  <IconPlus size={11} strokeWidth={2.6} />新建
+                </button>
+
+                {newMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setNewMenuOpen(false)} />
+                    <div
+                      className="absolute right-1 top-[calc(100%-2px)] z-40 w-[152px] rounded-xl bg-white border border-ink-100 py-1"
+                      style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)' }}
+                    >
+                      <button
+                        onClick={() => { setNewMenuOpen(false); openNewDoc(selectedDoc?.group || ''); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
+                      ><IconFile size={13} className="text-ink-400 flex-shrink-0" />新建文档</button>
+                      <button
+                        onClick={() => { setNewMenuOpen(false); setNewGroup(true); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
+                      ><IconFolder size={13} className="text-ink-400 flex-shrink-0" />新建分组</button>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">
                 {tree.length === 0 && (
                   <div className="px-2 py-3 text-[12px] text-ink-300 leading-relaxed">
-                    还没有文档，点右上角 + 新建
+                    还没有文档，点右上角「＋新建」
                   </div>
                 )}
 
@@ -418,12 +485,11 @@ export default function KnowledgeBasePage() {
                             onDragOver={(e) => { if (dragId && dragId !== doc.id) { e.preventDefault(); setDropHint({ type: 'doc', key: doc.id }); } }}
                             onDrop={(e) => { e.preventDefault(); handleDrop({ targetId: doc.id }); }}
                             onClick={() => setSelectedDocId(doc.id)}
-                            className={`group flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg cursor-pointer transition-colors ${active ? '' : 'hover:bg-ink-50'} ${isDropTarget ? 'ring-1 ring-[rgba(var(--s-rgb),0.4)]' : ''}`}
-                            style={active ? { background: 'rgba(var(--s-rgb),0.08)', boxShadow: 'inset 2px 0 0 var(--s-main)' } : undefined}
+                            className={`group flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg cursor-pointer border transition-colors ${active ? 'bg-white border-ink-100' : 'border-transparent hover:bg-ink-50'} ${isDropTarget ? 'ring-1 ring-[rgba(var(--s-rgb),0.4)]' : ''}`}
+                            style={active ? { boxShadow: '0 1px 2px rgba(15,31,28,0.05)' } : undefined}
                           >
-                            <IconFile size={12} className="flex-shrink-0 text-ink-300" />
-                            <span className={`flex-1 min-w-0 text-[12.5px] truncate ${active ? 'font-semibold' : ''}`}
-                              style={active ? { color: 'var(--s-main)' } : { color: '#0f1f1c' }}>
+                            <IconFile size={12} className="flex-shrink-0" style={{ color: active ? 'var(--s-main)' : '#C2C9C6' }} />
+                            <span className={`flex-1 min-w-0 text-[12.5px] truncate ${active ? 'font-semibold text-ink-900' : 'text-ink-700'}`}>
                               {doc.title || '无标题'}
                             </span>
                             <button
@@ -467,67 +533,122 @@ export default function KnowledgeBasePage() {
                   </svg>
                   <div className="text-[13.5px] font-semibold text-ink-900">选择左侧一篇文档</div>
                   <div className="text-[12px] text-ink-400">在这里阅读或编辑内容</div>
-                  <button
-                    onClick={() => openNewDoc('')}
-                    className="mt-1.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold transition-colors focus:outline-none"
-                    style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-                  ><IconPlus size={13} />新建文档</button>
                 </div>
               ) : (
                 <>
-                  {/* 标题行：标题 / 正文均可直接点击编辑；右侧 新建 + 删除 */}
-                  <div className="flex items-start gap-3 flex-shrink-0">
-                    <div className="flex-1 min-w-0">
-                      <div
-                        ref={titleRef}
-                        contentEditable
-                        suppressContentEditableWarning
-                        data-placeholder="无标题"
-                        onBlur={commitTitle}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur(); } }}
-                        className="kb-inline text-[17px] font-bold text-ink-900 leading-snug break-words rounded-md px-1.5 -ml-1.5 py-0.5 hover:bg-[rgba(0,0,0,0.035)] focus:bg-[rgba(0,0,0,0.035)] transition-colors"
-                      />
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap text-[11.5px] text-ink-400">
-                        <span className="truncate max-w-[180px]">{activeBook?.name || ''}{selectedDoc.group ? ` / ${selectedDoc.group}` : ''}</span>
-                        <span className="text-ink-300">·</span>
-                        <span>更新于 {fmtDate(selectedDoc.updatedAt)}</span>
-                        <span className="text-ink-300">·</span>
-                        <span>来源：{SOURCE_META[selectedDoc.source]?.label || '手动'}</span>
-                        {selectedDoc.tags?.map(t => (
-                          <span key={t} className="px-1.5 py-px rounded-md text-[10.5px] bg-ink-50 text-ink-500">{t}</span>
-                        ))}
-                        {savedFlash && <span className="font-medium" style={{ color: 'var(--s-main)' }}>{savedFlash}</span>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* 面包屑 + ⋯（重命名 / 删除） */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="flex-1 min-w-0 text-[11.5px] text-ink-400 truncate">
+                      {activeBook?.name || ''}{selectedDoc.group ? ` / ${selectedDoc.group}` : ''}
+                    </span>
+                    <div className="relative flex-shrink-0">
                       <button
-                        onClick={() => openNewDoc(selectedDoc.group || '')}
-                        className="w-[28px] h-[28px] rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:brightness-[0.97] focus:outline-none"
-                        style={{ background: 'rgba(var(--s-rgb),0.09)', color: 'var(--s-main)' }}
-                        title="新建文档"
-                      ><IconPlus size={14} /></button>
-                      <button
-                        onClick={() => setConfirmRemoveDoc(selectedDoc)}
-                        className="w-[28px] h-[28px] rounded-lg flex items-center justify-center text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors focus:outline-none"
-                        title="删除文档"
-                      ><IconTrash size={13} /></button>
+                        onClick={() => setDocMenuOpen(v => !v)}
+                        className="w-[26px] h-[26px] rounded-lg flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-ink-50 transition-colors focus:outline-none"
+                        title="更多"
+                      ><IconDots size={14} /></button>
+                      {docMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-30" onClick={() => setDocMenuOpen(false)} />
+                          <div
+                            className="absolute right-0 top-[calc(100%+4px)] z-40 w-[132px] rounded-xl bg-white border border-ink-100 py-1"
+                            style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)' }}
+                          >
+                            <button
+                              onClick={() => { setDocMenuOpen(false); focusTitle(); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors text-left"
+                            ><IconPen size={13} className="text-ink-400 flex-shrink-0" />重命名</button>
+                            <button
+                              onClick={() => { setDocMenuOpen(false); setConfirmRemoveDoc(selectedDoc); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] transition-colors text-left hover:bg-[#FF3B300F]"
+                              style={{ color: '#FF3B30' }}
+                            ><IconTrash size={13} className="flex-shrink-0" />删除文档</button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  <div className="my-3 h-px bg-ink-100 flex-shrink-0" />
-
-                  {/* 正文：点击即可编辑，失焦自动保存（Ctrl/⌘+S 立即保存） */}
+                  {/* 标题：点击即可编辑 */}
                   <div
-                    ref={contentRef}
+                    ref={titleRef}
                     contentEditable
                     suppressContentEditableWarning
-                    data-placeholder="点这里开始记录你的思考、摘录或笔记…"
-                    onBlur={commitContent}
-                    onKeyDown={(e) => {
-                      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); commitContent(); }
-                    }}
-                    className="kb-inline kb-prose flex-1 min-h-0 overflow-y-auto rounded-lg px-1.5 -mx-1.5 py-1 hover:bg-[rgba(0,0,0,0.015)] focus:bg-[rgba(0,0,0,0.015)] transition-colors"
+                    data-placeholder="无标题"
+                    onBlur={commitTitle}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur(); } }}
+                    className="kb-inline mt-2 text-[20px] font-bold text-ink-900 leading-snug break-words rounded-md px-1.5 -ml-1.5 py-0.5 hover:bg-[rgba(0,0,0,0.035)] focus:bg-[rgba(0,0,0,0.035)] transition-colors flex-shrink-0"
                   />
+                  <div className="flex items-center gap-2 mt-1.5 mb-3 flex-wrap text-[11.5px] text-ink-400 flex-shrink-0">
+                    <span>更新于 {fmtDate(selectedDoc.updatedAt)}</span>
+                    <span className="text-ink-300">·</span>
+                    <span>来源：{SOURCE_META[selectedDoc.source]?.label || '手动'}</span>
+                    {selectedDoc.tags?.map(t => (
+                      <span key={t} className="px-1.5 py-px rounded-md text-[10.5px] bg-ink-50 text-ink-500">{t}</span>
+                    ))}
+                  </div>
+
+                  {/* 正文编辑区：圆角卡片 + 格式工具栏 + 保存 */}
+                  <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-ink-100 bg-white overflow-hidden">
+                    {/* 格式工具栏 */}
+                    <div className="flex items-center gap-0.5 px-1.5 py-1 border-b border-ink-100 flex-shrink-0 flex-wrap">
+                      <ToolBtn title="标题1" onClick={() => exec('formatBlock', 'H1')}><span className="font-bold text-[12px]">H1</span></ToolBtn>
+                      <ToolBtn title="标题2" onClick={() => exec('formatBlock', 'H2')}><span className="font-bold text-[11.5px]">H2</span></ToolBtn>
+                      <ToolBtn title="正文" onClick={() => exec('formatBlock', 'P')}><span className="text-[11.5px]">正文</span></ToolBtn>
+                      <span className="w-px h-4 bg-ink-150 mx-1" />
+                      <ToolBtn title="加粗 (Ctrl+B)" onClick={() => exec('bold')}><span className="font-bold">B</span></ToolBtn>
+                      <ToolBtn title="斜体 (Ctrl+I)" onClick={() => exec('italic')}><span className="italic">I</span></ToolBtn>
+                      <ToolBtn title="下划线 (Ctrl+U)" onClick={() => exec('underline')}><span className="underline">U</span></ToolBtn>
+                      <span className="w-px h-4 bg-ink-150 mx-1" />
+                      <ToolBtn title="无序列表" onClick={() => exec('insertUnorderedList')}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none" /><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none" /></svg>
+                      </ToolBtn>
+                      <ToolBtn title="有序列表" onClick={() => exec('insertOrderedList')}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="10" y1="6" x2="21" y2="6" /><line x1="10" y1="12" x2="21" y2="12" /><line x1="10" y1="18" x2="21" y2="18" /><path d="M4 6h1v4" strokeLinejoin="round" /><path d="M4 10h2" /><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" /></svg>
+                      </ToolBtn>
+                      <span className="w-px h-4 bg-ink-150 mx-1" />
+                      <ToolBtn title="引用" onClick={() => exec('formatBlock', 'BLOCKQUOTE')}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 7H3v5h5V9" /><path d="M15 7h-3v5h5V9" /></svg>
+                      </ToolBtn>
+                      <ToolBtn title="清除格式" onClick={() => exec('removeFormat')}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7V4h16v3" /><path d="M9 20h6" /><path d="M12 4v16" /></svg>
+                      </ToolBtn>
+                    </div>
+
+                    {/* 正文（点击即可编辑） */}
+                    <div
+                      ref={contentRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      data-placeholder="点这里开始记录你的思考、摘录或笔记…"
+                      onInput={() => {
+                        setDirty(true);
+                        setCharCount(stripHtml(contentRef.current?.innerHTML || '').length);
+                      }}
+                      onBlur={commitContent}
+                      onKeyDown={(e) => {
+                        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); commitContent(); }
+                      }}
+                      className="kb-inline kb-prose flex-1 min-h-0 overflow-y-auto px-3.5 py-3"
+                    />
+
+                    {/* 底栏：字数 + 保存 */}
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-ink-100 flex-shrink-0">
+                      <span className="text-[11px] text-ink-300 tabular-nums">{charCount} 字</span>
+                      <span className="flex-1" />
+                      {savedFlash
+                        ? <span className="text-[11.5px] font-medium" style={{ color: 'var(--s-main)' }}>{savedFlash}</span>
+                        : dirty && <span className="text-[11.5px] text-ink-300">未保存</span>}
+                      <button
+                        onClick={commitContent}
+                        disabled={!dirty}
+                        className="h-[26px] px-3 rounded-lg text-[12px] font-semibold transition-all focus:outline-none disabled:cursor-default"
+                        style={dirty
+                          ? { background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
+                          : { background: 'rgba(15,31,28,0.05)', color: '#9AA5A2' }}
+                      >保存</button>
+                    </div>
+                  </div>
                 </>
               )}
             </div>

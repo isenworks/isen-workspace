@@ -255,6 +255,12 @@ export const API = {
     async run(payload) { return fetchPages('/migrate', payload); },
   },
 
+  // 全量数据导出（只读）：服务端按表返回当前用户全部业务数据，供「设置 → 备份与迁移」一键备份
+  //   返回 { ok, exportedAt, userId, counts, tables, errors }
+  backup: {
+    async export() { return fetchPages('/backup/export', {}, 'GET'); },
+  },
+
   // 邀请码管理（仅 owner 可调用，后端校验权限）
   inviteCodes: {
     async create() { return fetchPages('/inviteCodes/create', {}); },

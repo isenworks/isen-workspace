@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, saveThemeOrder, isValidHex } from '../utils/theme.js';
 import { MODULE_COLORS, getModuleColors, saveModuleColor, resetModuleColor, resetAllModuleColors, applyModuleColors, isValidHex as isValidModuleHex } from '../utils/moduleTheme.js';
+import { exportFullBackup } from '../utils/backup.js';
 
 const ADMIN_EMAIL = '1429000825@qq.com';
 
@@ -207,9 +208,9 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
 
         {!isAdmin && (
           <>
-            {/* Tabs（非管理员仅展示外观设置） */}
+            {/* Tabs（非管理员：外观 + 数据备份） */}
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
-              {[{ key: 'appearance', label: '外观' }].map(t => (
+              {[{ key: 'appearance', label: '外观' }, { key: 'backup', label: '数据备份' }].map(t => (
                 <button key={t.key} onClick={() => setTab(t.key)} style={{
                   flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
                   cursor: 'pointer', fontSize: '14px',
@@ -221,7 +222,9 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               ))}
             </div>
             <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
-              <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />
+              {tab === 'backup'
+                ? <BackupSection />
+                : <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />}
             </div>
           </>
         )}
@@ -234,7 +237,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 { key: 'appearance', label: '外观' },
                 { key: 'admin', label: '邀请与用户' },
                 { key: 'github', label: 'AI 推送授权' },
-                { key: 'migrate', label: 'D1 数据迁移' },
+                { key: 'migrate', label: '备份与迁移' },
               ].filter(Boolean).map(t => (
                 <button key={t.key} onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }} style={{
                   flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
@@ -287,13 +290,17 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               ) : tab === 'github' ? (
                 <GithubTab />
               ) : (
-                <MigrateTab
-                  value={migrate}
-                  onChange={setMigrate}
-                  busy={migrateBusy}
-                  result={migrateResult}
-                  onRun={handleMigrateRun}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <BackupSection />
+                  <div style={{ height: '1px', background: '#e5e5ea' }} />
+                  <MigrateTab
+                    value={migrate}
+                    onChange={setMigrate}
+                    busy={migrateBusy}
+                    result={migrateResult}
+                    onRun={handleMigrateRun}
+                  />
+                </div>
               )}
             </div>
           </>
@@ -1378,6 +1385,71 @@ function GithubTab() {
           1. <b style={{ color: '#3c3c43' }}>加密存储</b>：PAT 以 AES-GCM 密文落库，密钥在 Cloudflare Secrets，拖库拿到的只是密文；<br />
           2. <b style={{ color: '#3c3c43' }}>时限授权码</b>：发给 AI 的是有时效的随机授权码，过期或关闭开关立即作废（即使对话泄露，过时即废）；<br />
           3. <b style={{ color: '#3c3c43' }}>最小权限兜底</b>：建议 fine-grained PAT 仅授权本仓库 + Contents 读写，最坏情况泄露影响面可控。
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BackupSection() {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [last, setLast] = useState(null);
+
+  const handleExport = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await exportFullBackup();
+      setLast(r);
+      const total = Object.values(r.serverCounts).reduce((s, n) => s + n, 0);
+      if (r.errors.length) {
+        toast.error(`备份已导出，但有 ${r.errors.length} 张表读取失败（详见浏览器控制台）`);
+        console.warn('[备份] 未能导出的项：', r.errors);
+      } else {
+        toast.success(`备份已导出：服务端 ${total} 条记录 · 本地 ${r.localCount} 项设置`);
+      }
+    } catch (e) {
+      toast.error('备份失败：' + ((e && e.message) || '未知错误'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const total = last ? Object.values(last.serverCounts).reduce((s, n) => s + n, 0) : 0;
+
+  return (
+    <div style={{
+      padding: '16px', borderRadius: '12px', background: '#fff',
+      border: '1px solid #e5e5ea',
+    }}>
+      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1c1c1e', marginBottom: '6px' }}>
+        导出全量备份
+      </div>
+      <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7, marginBottom: '14px' }}>
+        把服务端全部业务数据（日程 · 习惯与打卡 · 收集箱 · 每日复盘 · 回收站 · 财务 · 种植）
+        与浏览器本地设置（主题 · 模块色 · 年度规划 · AI 数据 · 布局偏好）打包成一个 JSON 文件下载。
+        只读取，不会修改任何数据。
+      </div>
+      <button
+        onClick={handleExport}
+        disabled={busy}
+        style={{
+          padding: '9px 18px', borderRadius: '9px', border: 'none',
+          background: busy ? 'rgba(120,120,128,0.15)' : 'var(--s-main)',
+          color: busy ? '#8e8e93' : '#fff',
+          fontSize: '13px', fontWeight: '600',
+          cursor: busy ? 'default' : 'pointer',
+          transition: 'all 0.15s',
+        }}
+      >
+        {busy ? '正在导出…' : '导出全量备份'}
+      </button>
+      {last && (
+        <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '10px', lineHeight: 1.6 }}>
+          已导出 <b style={{ color: '#3c3c43' }}>{last.fileName}</b>
+          <br />
+          服务端 {total} 条记录 · 本地 {last.localCount} 项设置
         </div>
       )}
     </div>

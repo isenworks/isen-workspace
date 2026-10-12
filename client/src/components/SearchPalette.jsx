@@ -4,25 +4,23 @@ import { API } from '../api/client.js';
 import { catToModule } from '../utils/categoryMapping.js';
 
 /* ============ 全局搜索命令面板（Spotlight 式） ============
- * - 空查询：打开时并行拉取最近条目（事项/待办各200、习惯、收集箱），本地展示
+ * - 空查询：打开时并行拉取最近条目（事项200、习惯、收集箱），本地展示
  * - 有关键词：300ms 防抖后调 /api/search/all 服务端全量 LIKE 查询（覆盖全部历史，不受 200 条窗口限制）
- * - 分组：事项与目标 / 待办 / 习惯 / 收集箱；每组限量，避免长列表
+ * - 分组：事项与目标 / 习惯 / 收集箱；每组限量，避免长列表
  * - 键盘：↑↓ 选择 · Enter 打开 · Esc 关闭（Modal 自带）
- * - 匹配文字高亮；习惯→计划总结页，收集箱→收集箱页，事项/待办/目标→打开编辑弹窗
+ * - 匹配文字高亮；习惯→计划总结页，收集箱→收集箱页，事项/目标→打开编辑弹窗
  */
 
 // 类型图标（与侧栏 Feather 线条风格同款：strokeWidth 2 · 圆角线帽）
 const TYPE_ICONS = {
   schedule: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>),
   goal: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>),
-  task: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>),
   habit: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>),
   inbox: (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>),
 };
 
 const GROUP_META = {
   schedule: { label: '事项与目标', color: 'var(--s-main)' },
-  task:     { label: '待办',       color: '#34C759' },
   habit:    { label: '习惯',       color: '#FF9500' },
   inbox:    { label: '小记',     color: '#AF52DE' },
 };
@@ -50,7 +48,7 @@ function hilite(text, q) {
 
 export default function SearchPalette({ open, onClose, onPick }) {
   const [q, setQ] = useState('');
-  const [data, setData] = useState(null);   // { schedules, tasks, habits, inbox }
+  const [data, setData] = useState(null);   // { schedules, habits, inbox }
   const [sel, setSel] = useState(0);
   const inputRef = useRef(null);
   const listRef = useRef(null);
@@ -63,16 +61,14 @@ export default function SearchPalette({ open, onClose, onPick }) {
     setData(null);
     let alive = true;
     (async () => {
-      const [rS, rT, rH, rI] = await Promise.allSettled([
+      const [rS, rH, rI] = await Promise.allSettled([
         API.schedules.list({}),
-        API.tasks.list({}),
         API.habits.list({}),
         API.inbox.list(),
       ]);
       if (!alive) return;
       setData({
         schedules: rS.status === 'fulfilled' ? (rS.value?.schedules || []) : [],
-        tasks:     rT.status === 'fulfilled' ? (rT.value?.tasks || []) : [],
         habits:    rH.status === 'fulfilled' ? (rH.value?.habits || []) : [],
         inbox:     rI.status === 'fulfilled' ? (rI.value?.items || []) : [],
       });
@@ -95,9 +91,9 @@ export default function SearchPalette({ open, onClose, onPick }) {
     const timer = setTimeout(async () => {
       try {
         const r = await API.search.all(kw);
-        if (alive) setRemote(r || { schedules: [], tasks: [], habits: [], inbox: [] });
+        if (alive) setRemote(r || { schedules: [], habits: [], inbox: [] });
       } catch {
-        if (alive) setRemote({ schedules: [], tasks: [], habits: [], inbox: [] });
+        if (alive) setRemote({ schedules: [], habits: [], inbox: [] });
       } finally {
         if (alive) setSearching(false);
       }
@@ -117,14 +113,11 @@ export default function SearchPalette({ open, onClose, onPick }) {
 
     const scheds = src.schedules
       .map(s => ({ type: s.is_goal ? 'goal' : 'schedule', it: s }));
-    // 服务端搜索可搜到已完成待办（找历史）；本地最近视图只看未完成
-    const tasks = mk('task', src.tasks.filter(t => useServer || !t.is_done));
     const habits = mk('habit', src.habits);
     const inboxItems = mk('inbox', src.inbox);
 
     const byGroup = {
       schedule: scheds.slice(0, LIMIT),
-      task: tasks,
       habit: habits,
       inbox: inboxItems,
     };
@@ -203,7 +196,7 @@ export default function SearchPalette({ open, onClose, onPick }) {
             value={q}
             onChange={e => setQ(e.target.value)}
             onKeyDown={onKeydown}
-            placeholder="搜索事项、待办、习惯、小记…"
+            placeholder="搜索事项、习惯、小记…"
             spellCheck={false}
           />
           {q && (

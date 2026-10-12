@@ -1389,9 +1389,8 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
     { key: 'habits', label: '① ethan_habits（习惯，8 条）', placeholder: '粘贴从 Supabase 导出的 habits JSON 数组' },
     { key: 'habit_logs', label: '② ethan_habit_logs（习惯打卡，109 条）', placeholder: '粘贴 habit_logs JSON 数组（7月 / 8月分段的可一次性合并粘贴）' },
     { key: 'schedules', label: '③ ethan_schedules（日程，40 条）', placeholder: '粘贴 schedules JSON 数组' },
-    { key: 'tasks', label: '④ ethan_tasks（任务，1 条）', placeholder: '粘贴 tasks JSON 数组' },
-    { key: 'summaries', label: '⑤ ethan_summaries（日记/复盘，18 条）', placeholder: '粘贴 summaries JSON 数组' },
-    { key: 'fixed_schedules', label: '⑥ ethan_fixed_schedules（固定日程，4 条）', placeholder: '粘贴 fixed_schedules JSON 数组' },
+    { key: 'summaries', label: '④ ethan_summaries（日记/复盘，18 条）', placeholder: '粘贴 summaries JSON 数组' },
+    { key: 'fixed_schedules', label: '⑤ ethan_fixed_schedules（固定日程，4 条）', placeholder: '粘贴 fixed_schedules JSON 数组' },
   ];
 
   const setField = (k, v) => onChange(prev => ({ ...prev, [k]: v }));

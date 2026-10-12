@@ -30,7 +30,6 @@ const KnowledgeBasePage = lazy(() => import('./KnowledgeBasePage.jsx'));
 const AIAssistantPage = lazy(() => import('./AIAssistantPage.jsx'));
 const InboxPage = lazy(() => import('./InboxPage.jsx'));
 const ScheduleForm = lazy(() => import('../components/forms/ScheduleForm.jsx'));
-const TaskForm = lazy(() => import('../components/forms/TaskForm.jsx'));
 const FixedScheduleForm = lazy(() => import('../components/forms/FixedScheduleForm.jsx'));
 const FixedSchedulesPanel = lazy(() => import('../components/FixedSchedulesPanel.jsx'));
 const SummaryPanel = lazy(() => import('../components/SummaryPanel.jsx'));
@@ -409,11 +408,6 @@ export default function Workspace({ user: propUser }) {
           const h = r.habits.find(x => x.id === id);
           if (h) openHabitModal(h);
         } catch (e) { toast.error(e.message); }
-      } else if (type === 'task') {
-        try {
-          const r = await API.tasks.get(id);
-          if (r?.task) setModal({ type: 'task', data: r.task });
-        } catch (e) { toast.error(e.message); }
       }
     }
 
@@ -427,22 +421,6 @@ export default function Workspace({ user: propUser }) {
           onOk: async () => {
             try {
               await API.schedules.remove(id);
-              store.broadcast({ type: 'reload' });
-              refresh();
-              setConfirm(null);
-            } catch (e) { toast.error(e.message); }
-          },
-          onCancel: () => setConfirm(null)
-        });
-      } else if (type === 'task') {
-        setConfirm({
-          title: '删除确认',
-          msg: '删除后移入回收站，可恢复，确定删除该待办吗？',
-          okText: '确认删除',
-          okColor: '#FF3B30',
-          onOk: async () => {
-            try {
-              await API.tasks.remove(id);
               store.broadcast({ type: 'reload' });
               refresh();
               setConfirm(null);
@@ -789,14 +767,6 @@ export default function Workspace({ user: propUser }) {
             onDelete={() => { setModal(null); refresh(); }}
           />
         )}
-        {modal?.type === 'task' && (
-          <TaskForm
-            initial={modal?.data}
-            defaultDate={selectedDate}
-            onSaved={() => { setModal(null); refresh(); }}
-            onCancel={() => setModal(null)}
-          />
-        )}
         {(modal?.type === 'habit') && (
           <HabitForm
             initial={modal?.data}
@@ -1068,9 +1038,8 @@ export default function Workspace({ user: propUser }) {
           open={searchOpen}
           onClose={() => setSearchOpen(false)}
           onPick={(type, it) => {
-            // 事项/目标/待办 → 打开对应编辑弹窗；习惯 → 计划总结页（习惯面板所在）；收集箱 → 收集箱页
+            // 事项/目标 → 打开编辑弹窗；习惯 → 计划总结页（习惯面板所在）；收集箱 → 收集箱页
             if (type === 'schedule' || type === 'goal') setModal({ type: 'schedule', data: it });
-            else if (type === 'task') setModal({ type: 'task', data: it });
             else if (type === 'habit') setActiveMenu('plan');
             else if (type === 'inbox') setActiveMenu('inbox');
           }}

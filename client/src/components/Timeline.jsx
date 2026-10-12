@@ -50,7 +50,6 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const toast = useToast();
   const { showContextMenu } = useWorkspaceActions();
   const [schedules, setSchedules] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [habits, setHabits] = useState([]);
   const [fixedSchedules, setFixedSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -65,28 +64,28 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   // 拉伸刚结束标记：mouseup 后浏览器会在方块上合成 click（mousedown/mouseup 公共祖先），
   // 用此标记吞掉该 click，实现「拖拽只调时间、点击才开面板」；下一个宏任务复位，不影响后续真实点击
   const justResizedRef = useRef(false);
-  // 勾选/打卡编辑缓冲：`s|id|date`(日程) / `t|id`(待办) / `h|id`(习惯) → 新值
+  // 勾选/打卡编辑缓冲：`s|id|date`(日程) / `h|id`(习惯) → 新值
   // 兜底三条回退路径：① 飞行中的旧请求迟到 ② 落库窗口内被 reload 触发的旧数据覆盖 ③ 缓存写穿失败
   // load() 应用任何数据源（缓存/服务器）前重放未确认的编辑，数据源返回一致值时自动确认清除
   const pendingTogglesRef = useRef(new Map());
 
   function applyPendingToggles(r) {
     if (!pendingTogglesRef.current.size || !r) return r;
-    let sched = r.sched, tasks = r.tasks, habits = r.habits;
+    let sched = r.sched, habits = r.habits;
     for (const [key, val] of [...pendingTogglesRef.current]) {
       const parts = key.split('|');
       const type = parts[0], id = parts[1], date = parts[2] || '';
       const field = type === 'h' ? 'done_today' : 'is_done';
-      const arr = type === 's' ? sched : type === 't' ? tasks : habits;
+      const arr = type === 's' ? sched : habits;
       if (!Array.isArray(arr)) continue;
       const idx = arr.findIndex(x => String(x.id) === id && (!date || !x.date || x.date === date));
       if (idx < 0) continue; // 该数据源不含此项（不同日期）：保留待确认
       if (!!arr[idx][field] === !!val) { pendingTogglesRef.current.delete(key); continue; } // 服务器已确认
       const copy = [...arr];
       copy[idx] = { ...copy[idx], [field]: val };
-      if (type === 's') sched = copy; else if (type === 't') tasks = copy; else habits = copy;
+      if (type === 's') sched = copy; else habits = copy;
     }
-    return { ...r, sched, tasks, habits };
+    return { ...r, sched, habits };
   }
 
   // ==== 总结下拉菜单（位于"全部事项"标题旁） ====
@@ -167,7 +166,6 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     if (peeked) {
       const r = applyPendingToggles(peeked.value);
       setSchedules(r.sched);
-      setTasks(r.tasks);
       setHabits(r.habits);
       setHasData(true);
       return;
@@ -176,16 +174,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     gate.require();
 
     cachedLoad(cacheKey, async () => {
-      const [s, t, h] = await Promise.all([
+      const [s, h] = await Promise.all([
         API.schedules.list({ from: range.from, to: range.to }),
-        API.tasks.list({ from: range.from, to: range.to }),
         API.habits.list({ date })
       ]);
-      return { sched: s.schedules, tasks: t.tasks, habits: h.habits };
+      return { sched: s.schedules, habits: h.habits };
     }, inFlightRef, cacheRef, CACHE_TTL).then(r => {
       const m = applyPendingToggles(r);
       setSchedules(m.sched);
-      setTasks(m.tasks);
       setHabits(m.habits);
       setHasData(true);
       gate.done();
@@ -229,12 +225,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         }
       }
     } else if (patch.type === 'task' && patch.id !== undefined) {
-      setTasks(ts => ts.map(x => x.id === patch.id ? { ...x, is_done: patch.is_done } : x));
-      for (const ent of cacheRef.current.values()) {
-        if (ent?.value && Array.isArray(ent.value.tasks)) {
-          ent.value = { ...ent.value, tasks: ent.value.tasks.map(x => x.id === patch.id ? { ...x, is_done: patch.is_done } : x) };
-        }
-      }
+      // 兼容：旧版待办 patch（功能已下线），仅忽略
     } else if (patch.type === 'reload') {
       cacheClear(cacheRef, 'tl:');
       load();
@@ -257,22 +248,6 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
       pendingTogglesRef.current.delete(pKey);
       setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done } : x));
       store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done });
-      toast.error(e.message);
-    }
-  }
-
-  async function toggleTask(t) {
-    const nextDone = t.is_done ? 0 : 1;
-    const pKey = `t|${t.id}`;
-    setTasks(ts => ts.map(x => x.id === t.id ? { ...x, is_done: nextDone } : x));
-    store.broadcast({ type: 'task', id: t.id, is_done: nextDone });
-    pendingTogglesRef.current.set(pKey, nextDone);
-    try {
-      await API.tasks.update(t.id, { is_done: nextDone });
-    } catch (e) {
-      pendingTogglesRef.current.delete(pKey);
-      setTasks(ts => ts.map(x => x.id === t.id ? { ...x, is_done: t.is_done } : x));
-      store.broadcast({ type: 'task', id: t.id, is_done: t.is_done });
       toast.error(e.message);
     }
   }
@@ -405,7 +380,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         };
         const result = await API.schedules.create(newSchedule);
         if (result?.schedule) {
-          setSchedules(ss => [...ss, { ...result.schedule, isHabit: false, isTask: false }]);
+          setSchedules(ss => [...ss, { ...result.schedule, isHabit: false }]);
           // 写穿缓存
           for (const ent of cacheRef.current.values()) {
             if (ent?.value && Array.isArray(ent.value.sched)) {
@@ -589,7 +564,6 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   function useSquareCheckbox(item) {
     if (item.isHabit) return false;
-    if (item.isTask) return true;
     const cat = getCat(item);
     return cat !== 4;
   }
@@ -745,12 +719,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   // === Today 视图：绝对定位时间轴（1min=1px 精确映射） ===
   function renderTodayView() {
-    const todaySchedules = schedules.filter(s => s.date === date && !s.is_goal).map(s => ({ ...s, isHabit: false, isTask: false, isFixed: false }));
-    const todayTasks = tasks.filter(t => t.date === date).map(t => ({ ...t, isHabit: false, isTask: true, isFixed: false }));
+    const todaySchedules = schedules.filter(s => s.date === date && !s.is_goal).map(s => ({ ...s, isHabit: false, isFixed: false }));
     const todayHabits = habits.map(h => ({
       ...h,
       isHabit: true,
-      isTask: false,
       isFixed: false,
       is_done: h.done_today ? 1 : 0,
       title: h.name,
@@ -762,7 +734,6 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     const todayFixed = fixedSchedules.map(s => ({
       ...s,
       isHabit: false,
-      isTask: false,
       isFixed: true,
       title: s.name,
       date: date,
@@ -1077,7 +1048,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 ? `${resizingEvent.tempStart || subText.split('–')[0].trim()} – ${resizingEvent.tempEnd || subText.split('–')[1].trim().split('·')[0].trim()} · ${Math.round(displayH)}m`
                 : subText;
 
-              const canDragBlock = !isFixed && !item.isHabit && !item.isTask;
+              const canDragBlock = !isFixed && !item.isHabit;
 
               return (
                 <div
@@ -1179,51 +1150,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           </div>
         </div>
 
-        {/* ============ 下方列表：待办 / 未定时事项 / 全天习惯 ============ */}
-        {todayTasks.length > 0 && (
-          <>
-            <div className="hairline my-3"></div>
-            <div className="tl-list-section-label px-3 mb-2">待办</div>
-            <div className="space-y-1.5 px-3">
-              {todayTasks.map(t => {
-                const done = !!t.is_done;
-                const doneColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
-                const borderColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
-                const dotColor = t.priority === 1 ? '#FF3B30' : '#8e8e93';
-                const rowBg = t.priority === 1
-                  ? 'linear-gradient(90deg,#FFEEED 0%,transparent 70%)'
-                  : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)';
-                return (
-                  <div
-                    key={t.id}
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row"
-                    style={{background: rowBg}}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      showContextMenu?.(e.clientX, e.clientY, 'task', t.id);
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className="cb-square"
-                      checked={done}
-                      onChange={() => {}}
-                      style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
-                      onClick={(e) => { e.stopPropagation(); toggleTask(t); }}
-                    />
-                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
-                      {t.title}
-                    </span>
-                    <span className={`w-2 h-2 flex-shrink-0 rounded-[2px]`} style={{background: dotColor}}></span>
-                    {t.due_time && <span className="text-[12px] text-[#8e8e93]">{t.due_time}</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
+        {/* ============ 下方列表：未定时事项 / 全天习惯 ============ */}
         {untimedSchedules.length > 0 && (
           <>
             <div className="hairline my-3"></div>
@@ -1292,7 +1219,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           </>
         )}
 
-        {todaySchedules.length === 0 && todayTasks.length === 0 && todayHabits.length === 0 && (
+        {todaySchedules.length === 0 && todayHabits.length === 0 && (
           <div className="text-center py-8 text-sm text-[#8e8e93]">
             <svg className="w-6 h-6 mx-auto mb-2 text-[#c7c7cc]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="9"></circle>
@@ -1311,11 +1238,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     schedules.forEach(s => {
       if (s.is_goal) return; // 目标事项只归属主线面板，不在时间线展示
       if (!groups[s.date]) groups[s.date] = [];
-      groups[s.date].push({ ...s, isHabit: false, isTask: false });
-    });
-    tasks.forEach(t => {
-      if (!groups[t.date]) groups[t.date] = [];
-      groups[t.date].push({ ...t, isHabit: false, isTask: true });
+      groups[s.date].push({ ...s, isHabit: false });
     });
     // 习惯只有今日视图展示（简化处理），周/月视图不展示习惯
     const sortedDates = Object.keys(groups).sort();
@@ -1354,30 +1277,26 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
               <div className="space-y-0.5">
                 {sortedItems.map(item => {
-                  const isSched = !item.isTask && (!!item.start_time || !!item.is_key || !item.priority);
-                  const color = isSched ? getColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
-                  const lineColor = isSched ? getLineColor(item) : (item.priority === 1 ? '#FF8E85' : '#c7c7cc');
-                  const rowBg = isSched ? getRowBg(item) : (item.is_done
-                    ? 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)'
-                    : color === '#FF3B30'
-                    ? 'linear-gradient(90deg,#FFEEED 0%,transparent 70%)'
-                    : 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)');
-                  const squareCb = isSched ? useSquareCheckbox(item) : true;
+                  const isSched = true; // 待办功能已下线，时间线只剩事项与习惯
+                  const color = getColor(item);
+                  const lineColor = getLineColor(item);
+                  const rowBg = getRowBg(item);
+                  const squareCb = useSquareCheckbox(item);
                   const cbType = squareCb ? 'cb-square' : 'cb-round';
-                  const timeLabel = isSched ? formatTimeLabel(item) : (item.due_time || '');
-                  const lineHeight = isSched ? getLineHeight(item) : 16;
-                  const rowMinHeight = isSched ? getRowMinHeight(item) : undefined;
+                  const timeLabel = formatTimeLabel(item);
+                  const lineHeight = getLineHeight(item);
+                  const rowMinHeight = getRowMinHeight(item);
                   const done = !!item.is_done;
-                  const doneColor = isSched ? getDoneColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
-                  const borderColor = isSched ? getBorderColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
-                  const timeColor = isSched ? getTimeColor(item) : (item.priority === 1 ? '#FF3B30' : '#8e8e93');
+                  const doneColor = getDoneColor(item);
+                  const borderColor = getBorderColor(item);
+                  const timeColor = getTimeColor(item);
 
                   return (
                     <div
                       key={item.id}
                       className="timeline-row rounded-xl"
                       style={{background: rowBg, ...(rowMinHeight ? {minHeight: `${rowMinHeight}px`} : {})}}
-                      onClick={() => isSched && onEdit?.(item)}
+                      onClick={() => onEdit?.(item)}
                     >
                       <div className="time-label">
                         {item.start_time ? item.start_time.split('-')[0] : ''}
@@ -1392,7 +1311,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                           style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            isSched ? toggleSchedule(item) : toggleTask(item);
+                            toggleSchedule(item);
                           }}
                         />
                         <div className="flex-1">

@@ -147,16 +147,7 @@ export const API = {
     async sync(date, items) { return fetchPages('/schedules/sync', { date, items }); },
   },
 
-  tasks: {
-    async list(params) { return fetchPages('/tasks/list', params || {}); },
-    // 按 id 取单条：替代「list 全表再 find」的编辑路径
-    async get(id) { return fetchPages('/tasks/get', { id }); },
-    async create(data) { return fetchPages('/tasks/create', data); },
-    async update(id, data) { return fetchPages('/tasks/update', { id, ...data }); },
-    async remove(id) { return fetchPages('/tasks/remove', { id }); },
-  },
-
-  // 收集箱：想法/备忘快速捕获（无日期），空了再分派为日程/待办
+  // 收集箱：想法/备忘快速捕获（无日期），空了再分派为事项
   inbox: {
     async list() { return fetchPages('/inbox/list', {}, 'GET'); },
     async create(data) { return fetchPages('/inbox/create', data); },

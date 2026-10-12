@@ -25,9 +25,6 @@ import {
   handleHabitsLogSleep, handleHabitsLogCount, handleHabitsStats,
 } from '../_lib/handlers/habits.js';
 import {
-  handleTasksList, handleTasksGet, handleTasksCreate, handleTasksUpdate, handleTasksRemove,
-} from '../_lib/handlers/tasks.js';
-import {
   handleInboxList, handleInboxCreate, handleInboxUpdate, handleInboxProcess, handleInboxRemove,
   handleInboxTagsList, handleInboxTagCreate, handleInboxTagUpdate, handleInboxTagRemove,
 } from '../_lib/handlers/inbox.js';
@@ -101,8 +98,8 @@ export async function onRequest(context) {
     if (path === '/api/auth/updateMe' && method === 'POST') return handleAuthUpdateMe(env, body, currentUser);
 
     // ------------------------------------------------------------
-    // /api/migrate  — 批量写入 6 表（Supabase→D1 一次性）
-    // 入参：{ ethan_habits: [], ethan_habit_logs: [], ethan_schedules: [], ethan_tasks: [], ethan_summaries: [], ethan_fixed_schedules: [] }
+    // /api/migrate  — 批量写入 5 表（Supabase→D1 一次性）
+    // 入参：{ ethan_habits: [], ethan_habit_logs: [], ethan_schedules: [], ethan_summaries: [], ethan_fixed_schedules: [] }
     // ------------------------------------------------------------
     if (path === '/api/migrate' && method === 'POST') return handleMigrate(env, body);
 
@@ -121,15 +118,6 @@ export async function onRequest(context) {
     if (path === '/api/habits/logSleep' && method === 'POST') return handleHabitsLogSleep(env, body);
     if (path === '/api/habits/logCount' && method === 'POST') return handleHabitsLogCount(env, body);
     if (path === '/api/habits/stats' && (method === 'GET' || method === 'POST')) return handleHabitsStats(env, qOrBody);
-
-    // ------------------------------------------------------------
-    // /api/tasks/*
-    // ------------------------------------------------------------
-    if (path === '/api/tasks/list' && (method === 'GET' || method === 'POST')) return handleTasksList(env, qOrBody);
-    if (path === '/api/tasks/get' && (method === 'GET' || method === 'POST')) return handleTasksGet(env, qOrBody);
-    if (path === '/api/tasks/create' && method === 'POST') return handleTasksCreate(env, body);
-    if (path === '/api/tasks/update' && method === 'POST') return handleTasksUpdate(env, body);
-    if (path === '/api/tasks/remove' && method === 'POST') return handleTasksRemove(env, body);
 
     // ------------------------------------------------------------
     // /api/inbox/*  — 收集箱（想法/备忘快速捕获，空了再分派）

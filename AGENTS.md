@@ -104,7 +104,6 @@ isen-workspace/
 │   │   └── handlers/                # 业务 handler（每个文件对应一组 /api/<resource>/* 接口）
 │   │       ├── auth.js              # /api/auth/*        登录/注册/bootstrapOwner
 │   │       ├── habits.js            # /api/habits/*      习惯 CRUD + 打卡 + stats（聚合查询）
-│   │       ├── tasks.js             # /api/tasks/*
 │   │       ├── schedules.js         # /api/schedules/*  日程（含农历重复）
 │   │       ├── fixedSchedules.js    # /api/fixedSchedules/*
 │   │       ├── summaries.js         # /api/summaries/*   每日复盘

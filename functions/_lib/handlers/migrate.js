@@ -73,14 +73,13 @@ export async function handleBirthdayMigrate(env) {
   });
 }
 
-// ----------------------------- migrate（一次性批量写入 6 表，前端点按钮调用）
-// 入参：{ ethan_habits: [], ethan_habit_logs: [], ethan_schedules: [], ethan_tasks: [], ethan_summaries: [], ethan_fixed_schedules: [] }
+// ----------------------------- migrate（一次性批量写入 5 表，前端点按钮调用）
+// 入参：{ ethan_habits: [], ethan_habit_logs: [], ethan_schedules: [], ethan_summaries: [], ethan_fixed_schedules: [] }
 export async function handleMigrate(env, body) {
   const userId = uid(env);
   const tables = [
     { key: 'ethan_habits', aliases: ['habits'], insert: insertHabitRow },
     { key: 'ethan_schedules', aliases: ['schedules'], insert: insertScheduleRow },
-    { key: 'ethan_tasks', aliases: ['tasks'], insert: insertTaskRow },
     { key: 'ethan_habit_logs', aliases: ['habit_logs'], insert: insertLogRow, order: 2 },
     { key: 'ethan_summaries', aliases: ['summaries'], insert: insertSummaryRow },
     { key: 'ethan_fixed_schedules', aliases: ['fixed_schedules'], insert: insertFixedScheduleRow },
@@ -162,29 +161,6 @@ function insertScheduleRow(db, userId, r) {
       toInt(r.is_key, 0),
       toInt(r.category, 3),
       toInt(r.is_done, 0),
-      toInt(r.sort_order, 0),
-      r.created_at || nowIso()
-    )
-    .run();
-}
-
-function insertTaskRow(db, userId, r) {
-  const date = normalizeDate(r.date);
-  if (!date) throw new Error(`无效日期格式: ${r.date}`);
-  return db
-    .prepare(
-      `INSERT OR REPLACE INTO ethan_tasks
-       (id,user_id,title,date,priority,is_done,due_time,sort_order,created_at)
-       VALUES (?,?,?,?,?,?,?,?,?)`
-    )
-    .bind(
-      Number(r.id),
-      r.user_id || userId,
-      r.title,
-      date,
-      toInt(r.priority, 2),
-      toInt(r.is_done, 0),
-      r.due_time || null,
       toInt(r.sort_order, 0),
       r.created_at || nowIso()
     )

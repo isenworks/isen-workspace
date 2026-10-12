@@ -74,19 +74,6 @@ export const aiToolDefinitions = [
   {
     type: 'function',
     function: {
-      name: 'get_today_tasks',
-      description: '获取指定日期（默认今天）的待办任务列表，包括标题、优先级、是否完成。核对某天是否已创建任务时传入 date',
-      parameters: {
-        type: 'object',
-        properties: {
-          date: { type: 'string', description: '要查询的日期 YYYY-MM-DD，默认今天' },
-        },
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
       name: 'get_habits_stats',
       description: '获取习惯打卡统计，支持查指定日期范围。返回每个习惯的打卡率、连续天数',
       parameters: {
@@ -163,7 +150,7 @@ export const aiToolDefinitions = [
 ];
 
 // 写操作工具集合（需用户确认）
-const WRITE_TOOLS = new Set(['create_schedule', 'create_task', 'create_inbox']);
+const WRITE_TOOLS = new Set(['create_schedule', 'create_inbox']);
 export function isWriteTool(name) {
   return WRITE_TOOLS.has(name);
 }
@@ -182,16 +169,6 @@ export async function executeTool(name, args = {}) {
         category: s.category || '',
       }));
       return { date: day, count: items.length, schedules: items };
-    }
-    case 'get_today_tasks': {
-      const day = resolveDate(args.date);
-      const res = await API.tasks.list({ from: day, to: day });
-      const items = (res?.tasks || res?.items || []).map(t => ({
-        title: t.title,
-        priority: t.priority || 'medium',
-        done: !!t.is_done,
-      }));
-      return { date: day, count: items.length, tasks: items };
     }
     case 'get_habits_stats': {
       const days = Math.max(1, Math.min(90, args.days || 7));
@@ -240,18 +217,6 @@ export async function executeTool(name, args = {}) {
       const id = await createItemAndVerify(data);
       return { success: true, id, title: data.title, date: data.date, start_time: data.start_time, end_time: data.end_time, category: data.category };
     }
-    case 'create_task': {
-      // 旧工具别名（历史会话可能仍发出）：落为「无时间事项」，与手动新建事项同链路
-      const data = {
-        title: args.title,
-        date: resolveDate(args.date),
-        start_time: null,
-        end_time: null,
-        category: 1,
-      };
-      const id = await createItemAndVerify(data);
-      return { success: true, id, title: data.title, date: data.date, category: data.category };
-    }
     case 'create_inbox': {
       const data = { content: args.content };
       if (args.tag) data.tag_name = args.tag;
@@ -273,9 +238,6 @@ export function formatToolResult(name, result) {
     case 'get_today_schedules':
       return `今日（${result.date}）共 ${result.count} 条日程：` +
         result.schedules.map(s => `\n- ${s.time} ${s.title}${s.done ? '（已完成）' : ''} [${s.category}]`).join('');
-    case 'get_today_tasks':
-      return `今日（${result.date}）共 ${result.count} 条待办：` +
-        result.tasks.map(t => `\n- ${t.title}（优先级:${t.priority}）${t.done ? '（已完成）' : ''}`).join('');
     case 'get_habits_stats':
       return `习惯打卡统计（${result.range}）：\n` + JSON.stringify(result.stats, null, 2);
     case 'get_habits_list':
@@ -287,8 +249,7 @@ export function formatToolResult(name, result) {
     case 'get_summaries_range':
       return `每日总结（${result.range}）共 ${result.count} 条：` +
         result.summaries.map(s => `\n- ${s.date}: ${s.content}`).join('');
-    case 'create_schedule':
-    case 'create_task': {
+    case 'create_schedule': {
       const time = result.start_time
         ? ` ${result.start_time}${result.end_time ? '-' + result.end_time : ''}`
         : '（无时间 · 待办型，进「未定时事项」）';
@@ -304,12 +265,10 @@ export function formatToolResult(name, result) {
 // 工具友好显示名（用于对话区步骤条）
 export const toolDisplayNames = {
   get_today_schedules: '查询今日日程',
-  get_today_tasks: '查询今日待办',
   get_habits_stats: '查询习惯统计',
   get_habits_list: '查询习惯列表',
   get_inbox_list: '查询小记列表',
   get_summaries_range: '查询每日总结',
   create_schedule: '新建事项',
-  create_task: '新建事项',
   create_inbox: '创建小记',
 };

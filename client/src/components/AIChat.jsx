@@ -535,10 +535,15 @@ const AIChat = forwardRef(function AIChat({
         .ai-md-body h4 { font-size: 14px; }
         .ai-md-body p { margin: 0 0 8px; }
         .ai-md-body p:last-child { margin-bottom: 0; }
-        .ai-md-body ul,.ai-md-body ol { margin: 6px 0 9px; padding-left: 20px; }
+        .ai-md-body ul { list-style: disc; }
+        .ai-md-body ol { list-style: decimal; }
+        .ai-md-body ul,.ai-md-body ol { margin: 6px 0 9px; padding-left: 22px; }
         .ai-md-body ul:last-child,.ai-md-body ol:last-child { margin-bottom: 0; }
-        .ai-md-body li { margin-bottom: 4px; }
+        .ai-md-body li { margin-bottom: 4px; padding-left: 2px; }
         .ai-md-body li:last-child { margin-bottom: 0; }
+        .ai-md-body li::marker { color: #9aa5a2; }
+        .ai-md-body ul ul,.ai-md-body ul ol,.ai-md-body ol ul,.ai-md-body ol ol { margin: 4px 0 0; }
+        .ai-md-body .ai-md-hr { border: 0; border-top: 1px solid #ebedec; margin: 12px 0; }
         .ai-md-body .ai-md-codeblock {
           background: #f7f8f8; border: 1px solid #ebedec; border-radius: 8px;
           padding: 9px 12px; margin: 8px 0; overflow-x: auto;

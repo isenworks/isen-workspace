@@ -284,26 +284,29 @@ export function renderMarkdown(text) {
   // 5. 链接 [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="ai-md-link">$1</a>');
 
-  // 6. 加粗 **text**
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // 6. 加粗 **text**（不允许跨行，避免吞掉下一行的列表标记）
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
 
-  // 7. 斜体 *text*
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+  // 7. 斜体 *text*（同样不跨行；负向断言避开 ** 与行首列表标记）
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
 
-  // 8. 无序列表项 - 或 *
-  html = html.replace(/^[\-\*] (.+)$/gm, '<li class="ai-md-li">$1</li>');
+  // 8. 分隔线 --- / *** / ___
+  html = html.replace(/^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm, '<hr class="ai-md-hr">');
+
+  // 9. 无序列表项：兼容 - * + 以及 • · ‧ ・ ◦ ▪ 等常见项目符号，允许行首缩进
+  html = html.replace(/^[ \t]*[-*+•·‧・◦▪‣]\s+(.+)$/gm, '<li class="ai-md-li">$1</li>');
   html = groupConsecutiveList(html, 'ai-md-li', 'ul');
 
-  // 9. 有序列表项 1.
-  html = html.replace(/^\d+\. (.+)$/gm, '<li class="ai-md-oli">$1</li>');
+  // 10. 有序列表项：1. / 1) / 1、/ (1) / （1），允许行首缩进
+  html = html.replace(/^[ \t]*(?:\d+[.)]\s+|\d+、\s*|\(\d+\)\s*|（\d+）\s*)(.+)$/gm, '<li class="ai-md-oli">$1</li>');
   html = groupConsecutiveList(html, 'ai-md-oli', 'ol');
 
-  // 10. 段落换行（连续两个换行 → 段落分隔；单换行 → <br>）
+  // 11. 段落换行（连续两个换行 → 段落分隔；单换行 → <br>）
   html = html
     .split(/\n{2,}/)
     .map(block => {
       // 不包裹已包裹的块级元素
-      if (/^\s*<(h[34]|ul|ol|pre|li)/.test(block)) return block.trim();
+      if (/^\s*<(h[34]|ul|ol|pre|li|hr)/.test(block)) return block.trim();
       const trimmed = block.trim();
       return trimmed ? `<p class="ai-md-p">${trimmed.replace(/\n/g, '<br>')}</p>` : '';
     })

@@ -22,11 +22,12 @@ function parseDbTime(s) {
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 function fmtDate(s) {
   const d = parseDbTime(s);
   if (!d) return '';
   const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${WEEKDAYS[d.getDay()]}`;
 }
 function fmtFull(s) {
   const d = parseDbTime(s);
@@ -247,7 +248,7 @@ export default function InboxPage({ onCountChange }) {
           }
         />
         <div className="flex-1 min-w-0 flex items-center">
-          <span className="text-[13.5px] leading-snug font-medium text-ink-900 truncate">
+          <span className="text-[14px] leading-snug font-medium text-ink-900 truncate">
             {(firstLine || '（空）').slice(0, 60)}
           </span>
         </div>

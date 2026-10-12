@@ -737,7 +737,7 @@ export default function KnowledgeBasePage() {
                             {isLink
                               ? <IconLink size={12} className="flex-shrink-0" style={{ color: active ? 'var(--s-main)' : '#C2C9C6' }} />
                               : <IconFile size={12} className="flex-shrink-0" style={{ color: active ? 'var(--s-main)' : '#C2C9C6' }} />}
-                            <span className={`flex-1 min-w-0 text-[12.5px] truncate ${active ? 'font-semibold text-ink-900' : 'text-ink-700'}`}>
+                            <span className={`flex-1 min-w-0 text-[14px] truncate ${active ? 'font-semibold text-ink-900' : 'text-ink-700'}`}>
                               {doc.title || '无标题'}
                             </span>
                             {isLink && (
@@ -951,7 +951,7 @@ export default function KnowledgeBasePage() {
 
       {/* 正文排版 */}
       <style>{`
-        .kb-prose { font-size: 13.5px; line-height: 1.75; color: #0f1f1c; }
+        .kb-prose { font-size: 14px; line-height: 1.78; color: #0f1f1c; }
         .kb-prose p { margin: 0 0 10px; }
         .kb-prose h1 { font-size: 18px; font-weight: 700; line-height: 1.5; margin: 18px 0 8px; }
         .kb-prose h2 { font-size: 15.5px; font-weight: 600; line-height: 1.5; margin: 15px 0 8px; }

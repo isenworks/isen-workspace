@@ -651,7 +651,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   // 生活·记录（类目匹配用 c.key === data.lifeKey；旧实现 i===data.lifeKey 会把 'relation' 当成 number index 永远 false）
   const entryOps = {
     add: (data) => {
-      if (!data.lifeKey) { alert('请选择一个模块'); return; }
+      if (!data.lifeKey) { showToast('请选择一个模块'); return; }
       setLifeData(prev => prev.map(c => c.key === data.lifeKey ? { ...c, entries: [...c.entries, { ...data, id: uid() }] } : c));
       showToast('记录已添加');
     },
@@ -1081,7 +1081,14 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
           const pick = opts[idx - 1];
           if (pick.k === 'edit') onBookEdit(b);
           else if (pick.k === 'delete') {
-            if (confirm(`确定删除《${b.t}》？`)) bookOps.remove(b.id);
+            setConfirmDialog({
+              title: '删除书籍',
+              message: `确定删除《${b.t}》？`,
+              confirmText: '删除',
+              danger: true,
+              onConfirm: () => { bookOps.remove(b.id); setConfirmDialog(null); },
+              onCancel: () => setConfirmDialog(null),
+            });
           } else bookOps.move(b.id, pick.k);
         }}
         objective={cogObjective} onObjectiveChange={setCogObjective}

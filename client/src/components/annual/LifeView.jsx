@@ -7,6 +7,8 @@ import { usePersistentState } from './hooks.js';
 import { useSplitRatio, SplitDivider } from '../useSplitRatio.jsx'
 import { moduleColor, moduleRgba } from '../../utils/color.js'
 import { API } from '../../api/client.js'
+import { useToast } from '../../context/ToastContext.jsx'
+import ConfirmDialog from '../ConfirmDialog.jsx'
 import lunarLib from '../../vendor/lunar.js';
 import EntryForm from '../forms/EntryForm.jsx'
 import PlantingShelf from './PlantingShelf.jsx'
@@ -112,6 +114,8 @@ function LifeCatIcon({ catKey, lb, className, style }) {
 }
 
 export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights, highlightedIds, docLinks, onDocLinksChange, onCatAdd, onBirthdayAdd, onBirthdayEdit, onBirthdayDelete, bdRefreshKey }) {
+  const toast = useToast();
+  const [confirmLinkDel, setConfirmLinkDel] = useState(null);
   const dynLife = lifeData || LIFE;
   // 种植分类 count 不来自 entries，来自 plants API
   // 历史 bug 链（三轮修复后的最终结论）：
@@ -412,19 +416,18 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   }
   // 更新链接列表操作（增/删/改）
   function addLink() {
-    if (!linkForm.url.trim()) { alert('请输入链接地址'); return; }
+    if (!linkForm.url.trim()) { toast.warn('请输入链接地址'); return; }
     onDocLinksChange?.([...links, { id: uid(), title: linkForm.title.trim() || linkForm.url.trim(), url: linkForm.url.trim() }]);
     setLinkForm({ title: '', url: '' });
     closeAllMenus();
   }
   function updateLink(id) {
-    if (!linkForm.url.trim()) { alert('请输入链接地址'); return; }
+    if (!linkForm.url.trim()) { toast.warn('请输入链接地址'); return; }
     onDocLinksChange?.(links.map(l => l.id === id ? { ...l, title: linkForm.title.trim() || linkForm.url.trim(), url: linkForm.url.trim() } : l));
     setLinkForm({ title: '', url: '' });
     closeAllMenus();
   }
   function deleteLink(id) {
-    if (!confirm('确认删除此文档链接？')) return;
     onDocLinksChange?.(links.filter(l => l.id !== id));
     setLinkForm({ title: '', url: '' });
     closeAllMenus();
@@ -501,7 +504,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                       </svg>
                     </button>
                     {/* 删除按钮 */}
-                    <button title="删除" onClick={() => deleteLink(l.id)}
+                    <button title="删除" onClick={() => { closeAllMenus(); setConfirmLinkDel(l.id); }}
                       style={{
                         width: '22px', height: '22px', borderRadius: '6px', border: 'none',
                         background: 'transparent', color: '#8e8e93', cursor: 'pointer',
@@ -913,6 +916,12 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
           </div>
         </div>
       )}
+
+      {/* 页面级二次确认（替代原生 confirm） */}
+      <ConfirmDialog open={!!confirmLinkDel} danger title="删除链接" message="确认删除此文档链接？"
+        confirmText="删除"
+        onCancel={() => setConfirmLinkDel(null)}
+        onConfirm={() => { deleteLink(confirmLinkDel); setConfirmLinkDel(null); }} />
     </div>
   );
 }

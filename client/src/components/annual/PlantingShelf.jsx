@@ -6,6 +6,8 @@
 // ============================================================
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { API } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmDialog from '../ConfirmDialog.jsx';
 import { uid } from './utils.js';
 
 // ---- 养护状态计算（浇水/施肥通用）----
@@ -168,6 +170,7 @@ function BFDrop({ pos, size, color, anim, onPosChange }) {
 }
 
 export default function PlantingShelf({ onCountChange }) {
+  const toast = useToast();
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   // 加载完成后把 plants 数量同步给父组件（LifeView 的左侧分类计数）
@@ -183,6 +186,7 @@ export default function PlantingShelf({ onCountChange }) {
   const [loadErr, setLoadErr] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null); // 待移除的植物 id
   const [settings, setSettings] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('planting_shelf_settings')) || {};
@@ -254,7 +258,7 @@ export default function PlantingShelf({ onCountChange }) {
   // ---- 文件上传（跳过 upload 校验接口，base64 直接 create；入库前 canvas 压缩）----
   const handleFileSelect = useCallback(async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    if (file.size > 8 * 1024 * 1024) { alert('图片不能超过 8MB'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.warn('图片不能超过 8MB'); return; }
     // 转 base64
     const reader = new FileReader();
     let dataUrl;
@@ -264,10 +268,10 @@ export default function PlantingShelf({ onCountChange }) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-    } catch (e) { alert('读取图片失败'); return; }
+    } catch (e) { toast.error('读取图片失败'); return; }
     // 压缩（480px + WebP 保透明）：新图从源头就小，加载快
     dataUrl = await compressDataUrl(dataUrl, 480);
-    if (dataUrl.length > 3 * 1024 * 1024) { alert('图片过大，请换一张'); return; }
+    if (dataUrl.length > 3 * 1024 * 1024) { toast.warn('图片过大，请换一张'); return; }
     // 直接创建植物，默认中心位置
     const z = zCounter.current++;
     try {
@@ -286,9 +290,9 @@ export default function PlantingShelf({ onCountChange }) {
       setSelected(plant);
       setShowInfo(true);
     } catch (e) {
-      alert('添加植物失败: ' + e.message + '\n请确认 Cloudflare Pages Functions 已部署最新版本');
+      toast.error('添加植物失败: ' + e.message + '\n请确认 Cloudflare Pages Functions 已部署最新版本');
     }
-  }, []);
+  }, [toast]);
 
   const onFileInputChange = (e) => {
     const file = e.target.files?.[0];
@@ -399,18 +403,21 @@ export default function PlantingShelf({ onCountChange }) {
       const { plant } = await API.plants.update(selected.id, data);
       setPlants(prev => prev.map(p => p.id === selected.id ? plant : p));
       setSelected(plant);
-    } catch (e) { alert('保存失败: ' + e.message); }
+    } catch (e) { toast.error('保存失败: ' + e.message); }
   };
 
   // ---- 删除植物 ----
-  const removePlant = async (id) => {
-    if (!confirm('确认移除这株植物？')) return;
+  const doRemovePlant = async (id) => {
     try {
       await API.plants.remove(id);
       setPlants(prev => prev.filter(p => p.id !== id));
       setShowInfo(false);
       setSelected(null);
-    } catch (e) { alert('删除失败: ' + e.message); }
+    } catch (e) { toast.error('删除失败: ' + e.message); }
+  };
+
+  const removePlant = (id) => {
+    setConfirmRemove(id);
   };
 
   // ---- 画布拖拽上传 ----
@@ -706,6 +713,16 @@ export default function PlantingShelf({ onCountChange }) {
             e.target.value = '';
           }} />
       </div>
+
+      <ConfirmDialog
+        open={confirmRemove != null}
+        danger
+        title="移除确认"
+        message="确认移除这株植物？"
+        confirmText="移除"
+        onCancel={() => setConfirmRemove(null)}
+        onConfirm={() => { const id = confirmRemove; setConfirmRemove(null); doRemovePlant(id); }}
+      />
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { EditableTitle, InlineEdit } from './ui.jsx';
 import { usePersistentState } from './hooks.js';
 import { moduleColor, moduleRgba } from '../../utils/color.js'
 import { API } from '../../api/client.js'
+import { useToast } from '../../context/ToastContext.jsx'
+import ConfirmDialog from '../ConfirmDialog.jsx'
+import ConfirmAlert from '../ConfirmAlert.jsx'
 import Modal from '../Modal.jsx'
 import BookForm from '../forms/BookForm.jsx'
 import DualMarkerBar from '../DualMarkerBar.jsx'
@@ -252,6 +255,7 @@ function KrFormFields({ lb, tgt, u, sub, onChange }) {
 
 /* ---------- 7.5 表单 · 行动改变（承诺本）---------- */
 function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
   const doneBooks = (books || []).filter(b => b.st === 'done' && b.insights?.length);
   const allInsights = doneBooks.flatMap(b => (b.insights || []).map(i => ({ ...i, bookId: b.id, bookTitle: b.t })));
@@ -330,7 +334,7 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
         <div>{isEdit && <button onClick={() => onDelete?.(initial.id)} style={BTN_D}>删除</button>}</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onCancel} style={BTN_G}>取消</button>
-          <button onClick={() => { if (!form.text.trim()) return alert('请描述你的改变'); onSave?.({ ...form, text: form.text.trim(), id: initial?.id }); }} style={BTN_P}>{isEdit ? '保存' : '添加'}</button>
+          <button onClick={() => { if (!form.text.trim()) return toast.warn('请描述你的改变'); onSave?.({ ...form, text: form.text.trim(), id: initial?.id }); }} style={BTN_P}>{isEdit ? '保存' : '添加'}</button>
         </div>
       </div>
     </div>
@@ -339,6 +343,7 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
 
 /* ---------- 7.6 表单 · 改变（结果区）---------- */
 function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
+  const toast = useToast();
   // 旧标签迁移：一次性决策 → 认知更新，已固化SOP → 已内化
   const migrateTag = (t) => (t === 'decision' ? 'cognition' : t === 'sop' ? 'internalized' : (t || 'cognition'));
   const [form, setForm] = useState({
@@ -465,7 +470,7 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onCancel} style={BTN_G}>取消</button>
           <button onClick={() => {
-            if (!form.text.trim()) return alert('请填写改变名称');
+            if (!form.text.trim()) return toast.warn('请填写改变名称');
             onSave?.({ ...form, text: form.text.trim(), id: initial.id });
           }} style={BTN_P}>保存</button>
         </div>
@@ -542,9 +547,15 @@ export function CognitionView({
   reviews, onReviewUpdate, onReviewRemove,
   showToast,
 }) {
+  const toast = useToast();
   const [editingObj, setEditingObj] = useState(false);
   const [objDraft, setObjDraft] = useState('');
   const [addingKr, setAddingKr] = useState(false);
+  // 二次确认浮层状态（替代原生 confirm）：弹窗内用 ConfirmAlert，页面级用 ConfirmDialog
+  const [confirmKrDel, setConfirmKrDel] = useState(false);
+  const [confirmLinkDel, setConfirmLinkDel] = useState(null);
+  const [confirmChangeDel, setConfirmChangeDel] = useState(null);
+  const [confirmReviewDel, setConfirmReviewDel] = useState(null);
   const [newKr, setNewKr] = useState({ lb: '', tgt: 12, val: 0, u: '本', sub: '' });
   const [editingKrModal, setEditingKrModal] = useState(null);
   // 读后思考/思后行动/行后改变 三卡标题：右键可编辑（usePersistentState 持久化，清空回落默认）
@@ -605,19 +616,18 @@ export function CognitionView({
     setWereadLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
   }
   function addWereadLink() {
-    if (!wereadLinkForm.url.trim()) { alert('请输入链接地址'); return; }
+    if (!wereadLinkForm.url.trim()) { toast.warn('请输入链接地址'); return; }
     setWereadLinks([...wereadLinks, { id: uid(), title: wereadLinkForm.title.trim() || wereadLinkForm.url.trim(), url: wereadLinkForm.url.trim() }]);
     setWereadLinkForm({ title: '', url: '' });
     closeWereadMenus();
   }
   function updateWereadLink(id) {
-    if (!wereadLinkForm.url.trim()) { alert('请输入链接地址'); return; }
+    if (!wereadLinkForm.url.trim()) { toast.warn('请输入链接地址'); return; }
     setWereadLinks(wereadLinks.map(l => l.id === id ? { ...l, title: wereadLinkForm.title.trim() || wereadLinkForm.url.trim(), url: wereadLinkForm.url.trim() } : l));
     setWereadLinkForm({ title: '', url: '' });
     closeWereadMenus();
   }
   function deleteWereadLink(id) {
-    if (!confirm('确认删除此链接？')) return;
     setWereadLinks(wereadLinks.filter(l => l.id !== id));
     setWereadLinkForm({ title: '', url: '' });
     closeWereadMenus();
@@ -665,7 +675,7 @@ export function CognitionView({
 
   const doWereadSave = async () => {
     const k = wereadKey.trim();
-    if (!k.startsWith('wrk-')) return alert('API Key 需要以 wrk- 开头（登录 weread.qq.com/r/weread-skills 申请）');
+    if (!k.startsWith('wrk-')) return toast.warn('API Key 需要以 wrk- 开头（登录 weread.qq.com/r/weread-skills 申请）');
     try {
       const r = await fetch('/api/userSettings/set', {
         method: 'POST',
@@ -681,7 +691,7 @@ export function CognitionView({
       setShowWereadSettings(false);
       showToast?.('微信读书 Key 已保存');
     } catch (e) {
-      alert('保存失败：' + (e.message || e));
+      toast.error('保存失败：' + (e.message || e));
     }
   };
 
@@ -1012,7 +1022,7 @@ export function CognitionView({
         (noBookIdFinal ? ` · ${noBookIdFinal} 本待手动设置链接` : '') +
         (missingCurr.length ? ` · 正在补封面…` : ''));
     } catch (e) {
-      alert('同步失败：' + (e.message || e));
+      toast.error('同步失败：' + (e.message || e));
     } finally {
       setWereadSyncing(false);
     }
@@ -1567,7 +1577,7 @@ export function CognitionView({
                           </svg>
                         </button>
                         {/* 删除按钮 */}
-                        <button title="删除" onClick={() => deleteWereadLink(l.id)}
+                        <button title="删除" onClick={() => { closeWereadMenus(); setConfirmLinkDel(l.id); }}
                           style={{
                             width: '22px', height: '22px', borderRadius: '6px', border: 'none',
                             background: 'transparent', color: '#8e8e93', cursor: 'pointer',
@@ -2113,7 +2123,7 @@ export function CognitionView({
         <Modal open onClose={() => setEditingKrModal(null)} title="编辑 KR"
           footer={
             <>
-              <button onClick={() => { if (editingKrModal.kr && confirm('确定删除此 KR？')) { onKrRemove?.(editingKrModal.kr.id); setEditingKrModal(null); } }}
+              <button onClick={() => { if (editingKrModal.kr) setConfirmKrDel(true); }}
                 className="px-4 py-1.5 text-[13px] rounded-[10px] transition"
                 style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.25)', color: '#FF3B30' }}>删除</button>
               <div className="flex-1"></div>
@@ -2128,6 +2138,12 @@ export function CognitionView({
           <KrFormFields
             lb={editingKrModal.draft.lb} tgt={editingKrModal.draft.tgt} u={editingKrModal.draft.u} sub={editingKrModal.draft.sub}
             onChange={(patch) => setEditingKrModal(prev => ({ ...prev, draft: { ...prev.draft, ...patch } }))} />
+          {confirmKrDel && (
+            <ConfirmAlert danger title="删除 KR" message="确定删除此 KR？"
+              confirmText="删除"
+              onCancel={() => setConfirmKrDel(false)}
+              onConfirm={() => { setConfirmKrDel(false); onKrRemove?.(editingKrModal.kr.id); setEditingKrModal(null); }} />
+          )}
         </Modal>
       )}
 
@@ -2290,7 +2306,7 @@ export function CognitionView({
                               {c.text}
                             </span>
                             {!fromBook && (
-                              <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条行动？')) onChangeRemove?.(c.id); }}
+                              <button onClick={(e) => { e.stopPropagation(); setConfirmChangeDel(c.id); }}
                                 className="text-ink-300 hover:text-accent-red transition flex-shrink-0"
                                 title="删除">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -2376,7 +2392,7 @@ export function CognitionView({
                         }}>
                           {tm.lb}
                         </span>
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除这条改变？')) onReviewRemove?.(r.id); }}
+                        <button onClick={(e) => { e.stopPropagation(); setConfirmReviewDel(r.id); }}
                           className="text-ink-300 hover:text-accent-red transition"
                           title="删除">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -2480,6 +2496,20 @@ export function CognitionView({
           </div>
         </Modal>
       )}
+
+      {/* 页面级二次确认（替代原生 confirm） */}
+      <ConfirmDialog open={!!confirmLinkDel} danger title="删除链接" message="确认删除此链接？"
+        confirmText="删除"
+        onCancel={() => setConfirmLinkDel(null)}
+        onConfirm={() => { deleteWereadLink(confirmLinkDel); setConfirmLinkDel(null); }} />
+      <ConfirmDialog open={!!confirmChangeDel} danger title="删除行动" message="确定删除这条行动？"
+        confirmText="删除"
+        onCancel={() => setConfirmChangeDel(null)}
+        onConfirm={() => { onChangeRemove?.(confirmChangeDel); setConfirmChangeDel(null); }} />
+      <ConfirmDialog open={!!confirmReviewDel} danger title="删除改变" message="确定删除这条改变？"
+        confirmText="删除"
+        onCancel={() => setConfirmReviewDel(null)}
+        onConfirm={() => { onReviewRemove?.(confirmReviewDel); setConfirmReviewDel(null); }} />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { API } from '../../api/client.js';
 import { useFormSubmit } from '../../utils/formSubmitBus.js';
 import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ConfirmAlert from '../ConfirmAlert.jsx';
 import { finFmt } from './FinanceView.jsx';
 import { moduleRgba } from '../../utils/color.js';
 
@@ -60,6 +62,7 @@ function autoDeadline(targetAmt, monthlyAmt, baseDateStr) {
    ① 记一笔 / 编辑流水（支出 · 收入 · 转账）
    ============================================================ */
 export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
   const [type, setType] = useState(initial?.type || 'expense');
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
@@ -69,16 +72,17 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
   const [date, setDate] = useState(initial?.date || todayISO());
   const [note, setNote] = useState(initial?.note || '');
   const [busy, setBusy] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const typeCats = useMemo(() => (categories || []).filter(c => c.type === type), [categories, type]);
 
   async function submit() {
     const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) { alert('请输入正确的金额（大于 0）'); return; }
-    if (type !== 'transfer' && !accountId) { alert('请选择账户'); return; }
+    if (!Number.isFinite(amt) || amt <= 0) { toast.warn('请输入正确的金额（大于 0）'); return; }
+    if (type !== 'transfer' && !accountId) { toast.warn('请选择账户'); return; }
     if (type === 'transfer') {
-      if (!accountId || !toAccountId) { alert('转账需要转出与转入账户'); return; }
-      if (accountId === toAccountId) { alert('转出与转入账户不能相同'); return; }
+      if (!accountId || !toAccountId) { toast.warn('转账需要转出与转入账户'); return; }
+      if (accountId === toAccountId) { toast.warn('转出与转入账户不能相同'); return; }
     }
     const payload = {
       type, amount: amt, date, note: note.trim(),
@@ -90,14 +94,13 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
       if (isEdit) await API.finance.txUpdate(initial.id, payload);
       else await API.finance.txCreate(payload);
       onSaved?.(payload);
-    } catch (e) { alert(e.message || '保存失败'); } finally { setBusy(false); }
+    } catch (e) { toast.error(e.message || '保存失败'); } finally { setBusy(false); }
   }
   useFormSubmit(submit);
 
   function del() {
     if (!isEdit) return;
-    if (!confirm('确认删除这笔流水？')) return;
-    onDelete?.(initial);
+    setConfirmDel(true);
   }
 
   const TYPE_TABS = [
@@ -211,6 +214,17 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
           <button type="button" onClick={submit} disabled={busy} style={BTN_PRIMARY}>{isEdit ? '保存修改' : '记一笔'}</button>
         </div>
       </div>
+
+      {confirmDel && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message="确认删除这笔流水？"
+          confirmText="删除"
+          onCancel={() => setConfirmDel(false)}
+          onConfirm={() => { setConfirmDel(false); onDelete?.(initial); }}
+        />
+      )}
     </div>
   );
 }
@@ -222,6 +236,7 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
    · 资金存放账户：下拉 + 内联增删改（新增/编辑/删除当前选中账户）
    ============================================================ */
 export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
   const [name, setName] = useState(initial?.name || '');
   const [targetAmount, setTargetAmount] = useState(initial?.target_amount != null ? String(initial.target_amount) : '');
@@ -230,6 +245,8 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
   const [deadlineManual, setDeadlineManual] = useState(false); // 手动调整后锁定，不再自动推算
   const [accountId, setAccountId] = useState(initial?.account_id != null ? initial.account_id : (accounts[0]?.id ?? null));
   const [busy, setBusy] = useState(false);
+  const [confirmAccDel, setConfirmAccDel] = useState(false);
+  const [confirmGoalDel, setConfirmGoalDel] = useState(false);
 
   // 自动推算基准日：新建=今天；编辑=目标创建日（created_at "YYYY-MM-DD HH:MM:SS"）
   const baseDate = (isEdit && /^\d{4}-\d{2}-\d{2}/.test(initial?.created_at || '')) ? initial.created_at.slice(0, 10) : todayISO();
@@ -253,7 +270,7 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
 
   async function saveAccount() {
     const n = accName.trim();
-    if (!n) { alert('请输入账户名称'); return; }
+    if (!n) { toast.warn('请输入账户名称'); return; }
     setAccBusy(true);
     try {
       if (accEdit?.mode === 'add') {
@@ -269,12 +286,11 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
         setAccList(prev => prev.map(a => a.id === accEdit.id ? { ...a, name: n, type: accType } : a));
       }
       setAccEdit(null);
-    } catch (e) { alert(e.message || '保存失败'); } finally { setAccBusy(false); }
+    } catch (e) { toast.error(e.message || '保存失败'); } finally { setAccBusy(false); }
   }
 
-  async function removeAccount() {
+  async function doRemoveAccount() {
     if (!selectedAcc) return;
-    if (!confirm(`确认删除账户「${selectedAcc.name}」？\n关联流水将变为未指定账户。`)) return;
     setAccBusy(true);
     try {
       await API.finance.accountRemove(selectedAcc.id);
@@ -282,13 +298,18 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
       setAccList(next);
       setAccountId(next[0]?.id ?? null);
       setAccEdit(null);
-    } catch (e) { alert(e.message || '删除失败'); } finally { setAccBusy(false); }
+    } catch (e) { toast.error(e.message || '删除失败'); } finally { setAccBusy(false); }
+  }
+
+  function removeAccount() {
+    if (!selectedAcc) return;
+    setConfirmAccDel(true);
   }
 
   async function submit() {
-    if (!name.trim()) { alert('请输入目标名称'); return; }
+    if (!name.trim()) { toast.warn('请输入目标名称'); return; }
     const tgt = Number(targetAmount);
-    if (!Number.isFinite(tgt) || tgt <= 0) { alert('请输入正确的目标金额（大于 0）'); return; }
+    if (!Number.isFinite(tgt) || tgt <= 0) { toast.warn('请输入正确的目标金额（大于 0）'); return; }
     const payload = { name: name.trim(), targetAmount: tgt, deadline, accountId };
     const mp = Number(monthlyPlan);
     if (monthlyPlan !== '' && Number.isFinite(mp) && mp > 0) payload.monthlyPlan = mp;
@@ -297,14 +318,13 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
       if (isEdit) await API.finance.goalUpdate(initial.id, payload);
       else await API.finance.goalCreate(payload);
       onSaved?.(payload);
-    } catch (e) { alert(e.message || '保存失败'); } finally { setBusy(false); }
+    } catch (e) { toast.error(e.message || '保存失败'); } finally { setBusy(false); }
   }
   useFormSubmit(submit);
 
   function del() {
     if (!isEdit) return;
-    if (!confirm(`确认删除目标「${initial.name}」？此操作不可撤销。`)) return;
-    onDelete?.(initial);
+    setConfirmGoalDel(true);
   }
 
   const miniBtn = (disabled) => ({
@@ -406,6 +426,27 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
           <button type="button" onClick={submit} disabled={busy} style={BTN_PRIMARY}>{isEdit ? '保存修改' : '创建目标'}</button>
         </div>
       </div>
+
+      {confirmAccDel && (
+        <ConfirmAlert
+          danger
+          title="删除账户"
+          message={`确认删除账户「${selectedAcc?.name || ''}」？\n关联流水将变为未指定账户。`}
+          confirmText="删除"
+          onCancel={() => setConfirmAccDel(false)}
+          onConfirm={() => { setConfirmAccDel(false); doRemoveAccount(); }}
+        />
+      )}
+      {confirmGoalDel && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message={`确认删除目标「${initial?.name || ''}」？此操作不可撤销。`}
+          confirmText="删除"
+          onCancel={() => setConfirmGoalDel(false)}
+          onConfirm={() => { setConfirmGoalDel(false); onDelete?.(initial); }}
+        />
+      )}
     </div>
   );
 }
@@ -414,6 +455,7 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
    ③ 目标存入（生成一笔指向目标账户的转账）
    ============================================================ */
 export function FinanceDepositForm({ goal, accounts, onSaved, onCancel }) {
+  const toast = useToast();
   const [amount, setAmount] = useState('');
   const [fromAccountId, setFromAccountId] = useState(accounts[0]?.id ?? null);
   const [date, setDate] = useState(todayISO());
@@ -423,12 +465,12 @@ export function FinanceDepositForm({ goal, accounts, onSaved, onCancel }) {
 
   async function submit() {
     const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) { alert('请输入正确的存入金额（大于 0）'); return; }
+    if (!Number.isFinite(amt) || amt <= 0) { toast.warn('请输入正确的存入金额（大于 0）'); return; }
     setBusy(true);
     try {
       await API.finance.goalDeposit({ goalId: goal.id, amount: amt, fromAccountId, date, note: note.trim() });
       onSaved?.();
-    } catch (e) { alert(e.message || '存入失败'); } finally { setBusy(false); }
+    } catch (e) { toast.error(e.message || '存入失败'); } finally { setBusy(false); }
   }
   useFormSubmit(submit);
 
@@ -488,31 +530,36 @@ export function FinanceDepositForm({ goal, accounts, onSaved, onCancel }) {
    ④ 管理收支分类（需求6：如新增「副业」收入项）
    ============================================================ */
 export function FinanceManageForm({ categories, onSaved, onCancel }) {
+  const toast = useToast();
   const [tab, setTab] = useState('income'); // 先看收入：副业场景
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirmCat, setConfirmCat] = useState(null);
   const list = (categories || []).filter(c => c.type === tab);
 
   async function addCategory() {
     const name = newName.trim();
-    if (!name) { alert('请输入分类名称'); return; }
-    if (list.some(c => c.name === name)) { alert('该分类已存在'); return; }
+    if (!name) { toast.warn('请输入分类名称'); return; }
+    if (list.some(c => c.name === name)) { toast.warn('该分类已存在'); return; }
     setBusy(true);
     try {
       await API.finance.categoryCreate({ name, type: tab, icon: newIcon.trim() || (tab === 'income' ? '✨' : '🏷️') });
       setNewName(''); setNewIcon('');
       onSaved?.(false); // 不关弹窗，继续管理
-    } catch (e) { alert(e.message || '添加失败'); } finally { setBusy(false); }
+    } catch (e) { toast.error(e.message || '添加失败'); } finally { setBusy(false); }
   }
 
-  async function removeCategory(c) {
-    if (!confirm(`确认删除分类「${c.name}」？\n已使用该分类的流水将变为「未分类」。`)) return;
+  async function doRemoveCategory(c) {
     setBusy(true);
     try {
       await API.finance.categoryRemove(c.id);
       onSaved?.(false);
-    } catch (e) { alert(e.message || '删除失败'); } finally { setBusy(false); }
+    } catch (e) { toast.error(e.message || '删除失败'); } finally { setBusy(false); }
+  }
+
+  function removeCategory(c) {
+    setConfirmCat(c);
   }
 
   return (
@@ -575,6 +622,17 @@ export function FinanceManageForm({ categories, onSaved, onCancel }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '2px' }}>
         <button type="button" onClick={onCancel} style={BTN_GHOST}>完成</button>
       </div>
+
+      {confirmCat && (
+        <ConfirmAlert
+          danger
+          title="删除分类"
+          message={`确认删除分类「${confirmCat.name}」？\n已使用该分类的流水将变为「未分类」。`}
+          confirmText="删除"
+          onCancel={() => setConfirmCat(null)}
+          onConfirm={() => { const c = confirmCat; setConfirmCat(null); doRemoveCategory(c); }}
+        />
+      )}
     </div>
   );
 }
@@ -583,6 +641,7 @@ export function FinanceManageForm({ categories, onSaved, onCancel }) {
    ⑤ 新建 / 编辑账户
    ============================================================ */
 export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
+  const toast = useToast();
   const isEdit = !!(initial && initial.id);
   const [name, setName] = useState(initial?.name || '');
   const [type, setType] = useState(initial?.type || 'debit');
@@ -590,10 +649,11 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
   const [initialBalance, setInitialBalance] = useState(initial?.initial_balance != null ? String(initial.initial_balance) : '');
   const [includeInNetWorth, setIncludeInNetWorth] = useState(initial ? initial.include_in_net_worth !== 0 && initial.include_in_net_worth !== false : true);
   const [busy, setBusy] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
   const isLiability = type === 'credit' || type === 'debt';
 
   async function submit() {
-    if (!name.trim()) { alert('请输入账户名称'); return; }
+    if (!name.trim()) { toast.warn('请输入账户名称'); return; }
     const payload = {
       name: name.trim(), type,
       icon: icon.trim() || ACCOUNT_TYPES.find(t => t.k === type)?.icon,
@@ -610,14 +670,13 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
       if (isEdit) await API.finance.accountUpdate(initial.id, payload);
       else await API.finance.accountCreate(payload);
       onSaved?.(payload);
-    } catch (e) { alert(e.message || '保存失败'); } finally { setBusy(false); }
+    } catch (e) { toast.error(e.message || '保存失败'); } finally { setBusy(false); }
   }
   useFormSubmit(submit);
 
   function del() {
     if (!isEdit) return;
-    if (!confirm(`确认删除账户「${initial.name}」？\n关联流水将失去账户信息，此操作不可撤销。`)) return;
-    onDelete?.(initial);
+    setConfirmDel(true);
   }
 
   return (
@@ -670,6 +729,17 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
           <button type="button" onClick={submit} disabled={busy} style={BTN_PRIMARY}>{isEdit ? '保存修改' : '创建账户'}</button>
         </div>
       </div>
+
+      {confirmDel && (
+        <ConfirmAlert
+          danger
+          title="删除确认"
+          message={`确认删除账户「${initial?.name || ''}」？\n关联流水将失去账户信息，此操作不可撤销。`}
+          confirmText="删除"
+          onCancel={() => setConfirmDel(false)}
+          onConfirm={() => { setConfirmDel(false); onDelete?.(initial); }}
+        />
+      )}
     </div>
   );
 }

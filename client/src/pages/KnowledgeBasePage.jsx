@@ -10,7 +10,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import SearchPopover from '../components/SearchPopover.jsx';
 import {
   IconPlus, IconPen, IconLink, IconImport, IconBook, IconMarkdown,
-  IconFolder, IconFile, IconTrash, IconX, IconDots,
+  IconFolder, IconFile, IconTrash, IconX, IconDots, IconArrowUpRight,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
@@ -707,7 +707,7 @@ export default function KnowledgeBasePage() {
                                 onClick={(e) => { e.stopPropagation(); window.open(doc.sourceUrl, '_blank', 'noopener,noreferrer'); }}
                                 className="w-[20px] h-[20px] rounded-md flex items-center justify-center flex-shrink-0 text-ink-300 hover:text-[var(--s-main)] hover:bg-[rgba(var(--s-rgb),0.1)] opacity-0 group-hover:opacity-100 transition-opacity"
                                 title="打开链接"
-                              ><IconLink size={12} /></button>
+                              ><IconArrowUpRight size={12} /></button>
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); setConfirmRemoveDoc(doc); }}

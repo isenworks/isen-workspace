@@ -669,6 +669,7 @@ export default function KnowledgeBasePage() {
                       {docs.map(doc => {
                         const active = doc.id === selectedDocId;
                         const isDropTarget = dropHint?.type === 'doc' && dropHint?.key === doc.id;
+                        const isLink = doc.source === 'web' && !!doc.sourceUrl; // 网页来源：左侧用链接图标 + 右侧可跳转
                         return (
                           <div
                             key={doc.id}
@@ -681,10 +682,19 @@ export default function KnowledgeBasePage() {
                             className={`group flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg cursor-pointer border border-transparent transition-colors ${active ? '' : 'hover:bg-ink-50'} ${isDropTarget ? 'ring-1 ring-[rgba(var(--s-rgb),0.4)]' : ''}`}
                             style={active ? { background: 'rgba(var(--s-rgb),0.09)' } : undefined}
                           >
-                            <IconFile size={12} className="flex-shrink-0" style={{ color: active ? 'var(--s-main)' : '#C2C9C6' }} />
+                            {isLink
+                              ? <IconLink size={12} className="flex-shrink-0" style={{ color: active ? 'var(--s-main)' : '#C2C9C6' }} />
+                              : <IconFile size={12} className="flex-shrink-0" style={{ color: active ? 'var(--s-main)' : '#C2C9C6' }} />}
                             <span className={`flex-1 min-w-0 text-[12.5px] truncate ${active ? 'font-semibold text-ink-900' : 'text-ink-700'}`}>
                               {doc.title || '无标题'}
                             </span>
+                            {isLink && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); window.open(doc.sourceUrl, '_blank', 'noopener,noreferrer'); }}
+                                className="w-[20px] h-[20px] rounded-md flex items-center justify-center flex-shrink-0 text-ink-300 hover:text-[var(--s-main)] hover:bg-[rgba(var(--s-rgb),0.1)] opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="打开链接"
+                              ><IconLink size={12} /></button>
+                            )}
                             <button
                               onClick={(e) => { e.stopPropagation(); setConfirmRemoveDoc(doc); }}
                               className="w-[20px] h-[20px] rounded-md flex items-center justify-center flex-shrink-0 text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] opacity-0 group-hover:opacity-100 transition-opacity"

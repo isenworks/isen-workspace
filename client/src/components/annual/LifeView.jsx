@@ -240,7 +240,8 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     const currentYear = new Date().getFullYear();
     (lifeFilter ? dynLife.filter(c => c.key === lifeFilter) : dynLife || []).forEach(c => (c.entries || []).forEach((e, i) => {
       const m = String(e.d || '').match(/(\d{1,2})\s*[./]\s*(\d{1,2})/);
-      rows.push({ cat: c, e, idx: i, mo: m ? +m[1] : 0, day: m ? +m[2] : 0, yr: e.y || currentYear });
+      // dTxt：原始日期串（如 8.24 / 9.29-10.5），供右侧日期列展示完整区间（含结束日）
+      rows.push({ cat: c, e, idx: i, mo: m ? +m[1] : 0, day: m ? +m[2] : 0, yr: e.y || currentYear, dTxt: String(e.d || '').trim() });
     }));
     rows.sort((a, b) => (b.yr - a.yr) || (b.mo - a.mo) || (b.day - a.day));
     const groups = [];
@@ -891,6 +892,13 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     {/* 备注：置于胶囊外、标题下方，px-2.5 让左缘与标题严格对齐；多行自然下延 */}
                     {r.e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1 px-2.5 max-w-[620px]">{r.e.n}</div>}
                   </div>
+                  {/* 日期列：独立右栏（月.日 / 起-止），h-7 + 中轴对齐 → 与标题行垂直居中，不贴顶「上飘」；
+                      与左侧日期列同色同权重（ink-400 / tabular-nums），形成对称的时间轴语言 */}
+                  {r.dTxt && (
+                    <div className="w-[72px] flex-shrink-0 self-start h-7 flex items-center justify-end">
+                      <span className="text-[11px] font-semibold text-ink-400 tabular-nums leading-none whitespace-nowrap">{r.dTxt}</span>
+                    </div>
+                  )}
                 </div>
               );
                   })}

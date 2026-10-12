@@ -9,7 +9,7 @@ import KnowledgeForm from '../components/KnowledgeForm.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import ExpandingSearch from '../components/ExpandingSearch.jsx';
 import {
-  IconPen, IconLink, IconImport, IconBook,
+  IconPlus, IconPen, IconLink, IconImport, IconBook,
   IconFolder, IconFile, IconTrash, IconX,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';

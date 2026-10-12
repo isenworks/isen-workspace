@@ -439,9 +439,8 @@ export default function KnowledgeBasePage() {
                       <div
                         onDragOver={(e) => { if (dragId) { e.preventDefault(); setDropHint({ type: 'group', key: group }); } }}
                         onDrop={(e) => { e.preventDefault(); handleDrop({ group }); }}
-                        className={`group flex items-center gap-1.5 px-2 pt-1.5 pb-1 rounded-md ${dropHint?.type === 'group' && dropHint?.key === group ? 'bg-[rgba(var(--s-rgb),0.06)]' : ''}`}
+                        className={`group flex items-center gap-1.5 pl-4 pr-2 pt-2 pb-1 rounded-md ${dropHint?.type === 'group' && dropHint?.key === group ? 'bg-[rgba(var(--s-rgb),0.06)]' : ''}`}
                       >
-                        <IconFolder size={12} className="flex-shrink-0 text-ink-300" />
                         {isRenamingGroup ? (
                           <div className="flex-1 min-w-0">
                             <InlineInput
@@ -453,7 +452,7 @@ export default function KnowledgeBasePage() {
                           </div>
                         ) : (
                           <>
-                            <span className="flex-1 min-w-0 text-[11px] font-semibold text-ink-400 tracking-wide truncate">
+                            <span className="flex-1 min-w-0 text-[13px] font-medium text-ink-400 truncate">
                               {group || '未分组'}
                             </span>
                             <span className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">

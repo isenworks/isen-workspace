@@ -461,36 +461,37 @@ const AIChat = forwardRef(function AIChat({
             style={{ background: 'var(--s-grad-bg)' }}>
             {m.content}
           </div>
-          {/* hover 操作条：复制 / 回退（填回输入框）/ 删除；绝对定位浮于气泡下方，不占位、无跳动 */}
+          {/* hover 操作条：复制 / 回退（填回输入框）/ 删除
+              绝对定位 + 全宽透明过渡带（pt-1.5）填补气泡与按钮间的空隙，
+              避免鼠标下移过程中离开 hover 区域导致操作条消失；无边框/背景/阴影，纯图标（对齐豆包） */}
           <div
-            className="absolute top-full right-1 mt-1.5 z-10 flex items-center gap-0.5 p-0.5 rounded-xl bg-white border border-ink-100
-              opacity-0 translate-y-[-2px] pointer-events-none
-              group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
-              transition-all duration-150"
-            style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+            className="absolute top-full left-0 right-0 z-10 flex items-center justify-end gap-1 pr-0.5 pt-1.5
+              opacity-0 pointer-events-none
+              group-hover:opacity-100 group-hover:pointer-events-auto
+              transition-opacity duration-150"
           >
             <button
               onClick={() => handleCopyMessage(m)}
               title="复制"
-              className="w-[26px] h-[26px] rounded-[9px] flex items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-800 transition-colors"
+              className="p-1.5 flex items-center justify-center text-ink-400 hover:text-ink-800 transition-colors"
             >
-              <IconCopy size={13.5} />
+              <IconCopy size={14} />
             </button>
             <button
               onClick={() => handleRollbackMessage(m)}
               disabled={streaming}
               title="回退到输入框"
-              className="w-[26px] h-[26px] rounded-[9px] flex items-center justify-center text-ink-400 hover:bg-ink-100 hover:text-ink-800 transition-colors disabled:opacity-30"
+              className="p-1.5 flex items-center justify-center text-ink-400 hover:text-ink-800 transition-colors disabled:opacity-30"
             >
-              <IconUndo size={13.5} />
+              <IconUndo size={14} />
             </button>
             <button
               onClick={() => handleDeleteMessage(m)}
               disabled={streaming}
               title="删除"
-              className="w-[26px] h-[26px] rounded-[9px] flex items-center justify-center text-ink-400 hover:bg-[#FF3B300F] hover:text-[#FF3B30] transition-colors disabled:opacity-30"
+              className="p-1.5 flex items-center justify-center text-ink-400 hover:text-[#FF3B30] transition-colors disabled:opacity-30"
             >
-              <IconTrash size={13.5} />
+              <IconTrash size={14} />
             </button>
           </div>
         </div>

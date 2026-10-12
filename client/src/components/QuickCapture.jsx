@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { hexToRgba } from '../utils/color.js';
@@ -7,12 +7,32 @@ import { hexToRgba } from '../utils/color.js';
  * QuickCapture · 小记输入框（新建与编辑统一同构）
  *  - 富文本编辑：contenteditable + execCommand（标题/加粗/斜体/有序无序列表/清除格式）
  *  - 内容存 HTML；空内容判断取 innerText
- *  - 标签：使用小记独立标签（tags prop，tag_id）
+ *  - 标签：使用小记独立标签（tags prop，可多选）；支持就地新建标签
  * ============================================================ */
-export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus = true, placeholder, bare, edit, tags }) {
+
+// 解析小记的标签列表：优先 tag_ids（JSON 数组），兼容旧的单值 tag_id
+export function parseItemTagIds(it) {
+  const raw = it?.tag_ids;
+  if (Array.isArray(raw)) return raw.map(Number).filter(n => !Number.isNaN(n));
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const p = JSON.parse(raw);
+      if (Array.isArray(p)) return p.map(Number).filter(n => !Number.isNaN(n));
+    } catch { /* ignore */ }
+  }
+  return it?.tag_id != null ? [Number(it.tag_id)] : [];
+}
+
+// 新建标签时的自动配色（按已有数量轮换）
+const TAG_PALETTE = ['#FF9500', '#34C759', '#007AFF', '#AF52DE', '#FF2D55', '#5AC8FA', '#FFCC00', '#FF6B81'];
+
+export default function QuickCapture({ onSaved, onUpdated, onDispatch, onTagsChange, autoFocus = true, placeholder, bare, edit, tags }) {
   const toast = useToast();
   const editorRef = useRef(null);
-  const [tagId, setTagId] = useState(edit && edit.tag_id != null ? Number(edit.tag_id) : null);
+  const [tagIds, setTagIds] = useState(() => parseItemTagIds(edit));
+  const [extraTags, setExtraTags] = useState([]);   // 就地新建的标签（合并进可选列表）
+  const [addingTag, setAddingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
   const [showTags, setShowTags] = useState(false);
   const [busy, setBusy] = useState(false);
   const [flashMsg, setFlashMsg] = useState('');
@@ -22,8 +42,8 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
   const autoTimer = useRef(null);                      // 输入防抖自动保存定时器
   const draftRef = useRef({ content: '', plain: '' }); // 最近一次输入（卸载兜底用）
   const activeIdRef = useRef(edit?.id ?? null);        // 当前记录 id：编辑=edit.id；新建首次自动保存后回填
-  const tagIdRef = useRef(tagId);                      // 标签同步值（供异步自动保存读最新）
-  tagIdRef.current = tagId;
+  const tagIdsRef = useRef(tagIds);                    // 标签同步值（供异步自动保存读最新）
+  tagIdsRef.current = tagIds;
 
   // 初始化编辑器内容（HTML）：仅在「切换记录」时同步，避免自动保存后重渲染打断光标
   useEffect(() => {
@@ -31,6 +51,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
     }
     draftRef.current = { content: '', plain: '' };
+    setTagIds(parseItemTagIds(edit));
     setSavedAt(edit?.updated_at || edit?.created_at || '');
   }, [edit?.id]);
 
@@ -44,7 +65,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     // 卸载时若有未保存内容，立即落库（fire-and-forget），避免切走丢失
     const d = draftRef.current;
     if (d.plain) {
-      const payload = { content: d.content, tag_id: tagIdRef.current };
+      const payload = { content: d.content, tag_ids: tagIdsRef.current };
       if (activeIdRef.current) API.inbox.update(activeIdRef.current, payload).catch(() => {});
       else API.inbox.create(payload).catch(() => {});
     }
@@ -95,11 +116,11 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
       const targetId = edit?.id ?? activeIdRef.current;
       let r;
       if (targetId) {
-        r = await API.inbox.update(targetId, { content, tag_id: tagId });
+        r = await API.inbox.update(targetId, { content, tag_ids: tagIds });
         activeIdRef.current = targetId;
         onUpdated?.();
       } else {
-        r = await API.inbox.create({ content, tag_id: tagId });
+        r = await API.inbox.create({ content, tag_ids: tagIds });
         activeIdRef.current = r?.item?.id ?? null;
       }
       setSavedAt(r?.item?.updated_at || new Date().toISOString());
@@ -123,11 +144,11 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     try {
       if (edit?.id ?? activeIdRef.current) {
         const id = edit?.id ?? activeIdRef.current;
-        const r = await API.inbox.update(id, { content, tag_id: tagIdRef.current });
+        const r = await API.inbox.update(id, { content, tag_ids: tagIdsRef.current });
         setSavedAt(r?.item?.updated_at || new Date().toISOString());
         onUpdated?.();
       } else {
-        const r = await API.inbox.create({ content, tag_id: tagIdRef.current });
+        const r = await API.inbox.create({ content, tag_ids: tagIdsRef.current });
         if (r?.item?.id != null) activeIdRef.current = r.item.id;
         setSavedAt(r?.item?.updated_at || new Date().toISOString());
         // 自动收录：刷新列表让左侧卡片立即出现（不带记录，避免自动选中重挂打断输入）
@@ -154,15 +175,15 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     try {
       const id = edit?.id ?? activeIdRef.current;   // 复用自动落库的记录，避免重复创建
       if (id) {
-        await API.inbox.update(id, { content, tag_id: tagId });
+        await API.inbox.update(id, { content, tag_ids: tagIds });
         onUpdated?.();
-        onDispatch?.({ ...(edit || { id }), content, tag_id: tagId });
+        onDispatch?.({ ...(edit || { id }), content, tag_ids: tagIds });
       } else {
-        const r = await API.inbox.create({ content, tag_id: tagId });
+        const r = await API.inbox.create({ content, tag_ids: tagIds });
         activeIdRef.current = null;
         editorRef.current.innerHTML = '';
         draftRef.current = { content: '', plain: '' };
-        setTagId(null);
+        setTagIds([]);
         onSaved?.();
         onDispatch?.(r.item);
       }
@@ -180,8 +201,47 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     }
   }
 
-  const tagList = tags || [];
-  const currentTag = tagList.find(t => t.id === tagId) || null;
+  // 可选标签 = 父级下发 + 就地新建，去重
+  const tagList = useMemo(() => {
+    const seen = new Set();
+    return [...(tags || []), ...extraTags].filter(t => {
+      const n = Number(t.id);
+      if (seen.has(n)) return false;
+      seen.add(n);
+      return true;
+    });
+  }, [tags, extraTags]);
+  const tagMap = useMemo(() => new Map(tagList.map(t => [Number(t.id), t])), [tagList]);
+  const selectedTags = tagIds.map(id => tagMap.get(id)).filter(Boolean);
+  const tagLabel = selectedTags.length === 0
+    ? '标签'
+    : (selectedTags.length === 1 ? selectedTags[0].name : `${selectedTags[0].name} +${selectedTags.length - 1}`);
+
+  function toggleTag(id) {
+    const n = Number(id);
+    setTagIds(prev => (prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]));
+    scheduleAutosave();
+  }
+
+  async function createTag() {
+    const name = newTagName.trim();
+    if (!name) return;
+    try {
+      const color = TAG_PALETTE[tagList.length % TAG_PALETTE.length];
+      const r = await API.inbox.tagCreate({ name, color });
+      const t = r?.tag;
+      if (t) {
+        setExtraTags(prev => [...prev, t]);
+        setTagIds(prev => (prev.includes(Number(t.id)) ? prev : [...prev, Number(t.id)]));
+        onTagsChange?.();
+        scheduleAutosave();
+      }
+      setNewTagName('');
+      setAddingTag(false);
+    } catch (e) {
+      toast.error(e.message || '新建标签失败');
+    }
+  }
 
   const dispatchBtn = onDispatch && (
     <button
@@ -227,19 +287,19 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
     </div>
   );
 
-  // 标签选择器
+  // 标签选择器（多选 + 就地新建）
   const tagPicker = (
     <div>
-      <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">标签</div>
+      <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">
+        标签{tagIds.length > 0 ? `（已选 ${tagIds.length}）` : ''}
+      </div>
       <div className="flex items-center gap-1.5 flex-wrap">
-        {tagList.length === 0 ? (
-          <span className="text-[12px] text-ink-400">暂无标签，可在左侧栏管理</span>
-        ) : tagList.map(t => {
-          const on = tagId === t.id;
+        {tagList.map(t => {
+          const on = tagIds.includes(Number(t.id));
           return (
             <button
               key={t.id}
-              onClick={() => { setTagId(on ? null : t.id); scheduleAutosave(); }}
+              onClick={() => toggleTag(t.id)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
               style={{
                 background: on ? hexToRgba(t.color, 0.14) : 'rgba(120,120,128,0.06)',
@@ -250,9 +310,39 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
             >
               <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: t.color }} />
               {t.name}
+              {on && <span className="text-[10px] leading-none">✓</span>}
             </button>
           );
         })}
+        {addingTag ? (
+          <span className="inline-flex items-center gap-1">
+            <input
+              autoFocus
+              value={newTagName}
+              onChange={e => setNewTagName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); createTag(); }
+                if (e.key === 'Escape') { setAddingTag(false); setNewTagName(''); }
+              }}
+              placeholder="标签名"
+              maxLength={20}
+              className="w-[96px] px-2.5 py-1 rounded-full text-[12px] border border-ink-200 outline-none focus:border-[var(--s-main)] bg-white"
+            />
+            <button
+              onClick={createTag}
+              className="text-[12px] font-semibold px-2.5 py-1 rounded-full transition-colors"
+              style={{ background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' }}
+            >添加</button>
+          </span>
+        ) : (
+          <button
+            onClick={() => setAddingTag(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] text-ink-500 border border-dashed border-ink-200 hover:border-ink-300 hover:text-ink-700 transition-colors"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            新建标签
+          </button>
+        )}
       </div>
     </div>
   );
@@ -299,7 +389,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
               {showTags ? '收起' : (
                 <>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                  {currentTag ? currentTag.name : '标签'}
+                  {tagLabel}
                 </>
               )}
             </button>
@@ -324,7 +414,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, autoFocus
             style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            {currentTag ? currentTag.name : '标签'}
+            {tagLabel}
           </button>
           {dispatchBtn}
           {showTags && tagPicker}

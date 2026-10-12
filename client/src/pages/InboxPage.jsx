@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
 import { today as getToday } from '../utils/date.js';
 import { hexToRgba } from '../utils/color.js';
-import QuickCapture from '../components/QuickCapture.jsx';
+import QuickCapture, { parseItemTagIds } from '../components/QuickCapture.jsx';
 import Modal from '../components/Modal.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import ScheduleForm from '../components/forms/ScheduleForm.jsx';
@@ -124,7 +124,8 @@ export default function InboxPage({ onCountChange }) {
 
   const selected = (items || []).find(it => it.id === selectedId) || null;
   const tagMap = new Map((tags || []).map(t => [t.id, t]));
-  const tagOf = (id) => (id != null ? tagMap.get(Number(id)) || null : null);
+  // 一条小记的标签列表（多选）：tag_ids 优先，兼容旧的单值 tag_id
+  const tagsOfItem = (it) => parseItemTagIds(it).map(id => tagMap.get(id)).filter(Boolean);
 
   function markBusy(id, on) {
     setBusyIds(prev => {
@@ -154,22 +155,28 @@ export default function InboxPage({ onCountChange }) {
     } finally { markBusy(item.id, false); }
   }
 
-  // ===== 修改标签 =====
-  // ===== 修改标签（optimistic update） =====
-  async function setItemTag(item, tagId) {
-    setMenu(null);
-    const prevTagId = item.tag_id;
-    // 先改 UI，秒响应
-    setItems(prev => prev.map(it => it.id === item.id ? { ...it, tag_id: tagId } : it));
+  // ===== 修改标签（多选，optimistic update） =====
+  async function setItemTags(item, nextIds) {
+    const clean = [...new Set(nextIds.map(Number))].filter(n => !Number.isNaN(n));
+    const prev = parseItemTagIds(item);
+    const patch = it => it.id === item.id
+      ? { ...it, tag_ids: clean.length ? JSON.stringify(clean) : null, tag_id: clean[0] ?? null }
+      : it;
+    setItems(list => list.map(patch));
     try {
-      await API.inbox.update(item.id, { tag_id: tagId });
-      const t = tagOf(tagId);
-      toast.success(t ? `已标记为「${t.name}」` : '已移除标签', { duration: 1200 });
+      await API.inbox.update(item.id, { tag_ids: clean });
     } catch (e) {
-      // API 失败回滚
-      setItems(prev => prev.map(it => it.id === item.id ? { ...it, tag_id: prevTagId } : it));
+      const rollback = it => it.id === item.id
+        ? { ...it, tag_ids: prev.length ? JSON.stringify(prev) : null, tag_id: prev[0] ?? null }
+        : it;
+      setItems(list => list.map(rollback));
       toast.error(e.message || '修改标签失败');
     }
+  }
+  function toggleItemTag(item, tagId) {
+    const cur = parseItemTagIds(item);
+    const n = Number(tagId);
+    setItemTags(item, cur.includes(n) ? cur.filter(x => x !== n) : [...cur, n]);
   }
 
   function openDetailFor(item) {
@@ -206,8 +213,8 @@ export default function InboxPage({ onCountChange }) {
     }
   }
 
-  // 过滤后的列表
-  const filteredItems = (items || []).filter(it => filterTagId == null || Number(it.tag_id) === Number(filterTagId));
+  // 过滤后的列表（多标签：命中任一标签即展示）
+  const filteredItems = (items || []).filter(it => filterTagId == null || parseItemTagIds(it).includes(Number(filterTagId)));
 
   const groups = [];
   if (filteredItems.length > 0) {
@@ -229,7 +236,9 @@ export default function InboxPage({ onCountChange }) {
   const renderRow = (item) => {
     const busy = busyIds.has(item.id);
     const isSelected = selectedId === item.id;
-    const tagInfo = tagOf(item.tag_id);
+    const itemTags = tagsOfItem(item);
+    const firstTag = itemTags[0] || null;
+    const selectedIds = parseItemTagIds(item).map(Number);
     const menuFor = menu?.id === item.id;
     const catPickFor = menuFor && !!menu.cat;
     const firstLine = plainFirstLine(item.content);
@@ -237,90 +246,99 @@ export default function InboxPage({ onCountChange }) {
       <div
         key={item.id}
         onClick={() => !menuFor && setSelectedId(item.id)}
-        className={`relative flex items-center gap-2.5 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+        className={`relative flex items-center justify-between gap-2 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
-        <span
-          className="flex-shrink-0 w-[8px] h-[8px] rounded-full transition-colors"
-          style={isSelected
-            ? { background: tagInfo?.color || 'var(--s-main)' }
-            : { background: tagInfo ? hexToRgba(tagInfo.color, 0.4) : 'rgba(var(--s-rgb),0.40)' }
-          }
-        />
-        <div className="flex-1 min-w-0 flex items-center">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span
+            className="flex-shrink-0 w-[8px] h-[8px] rounded-full transition-colors"
+            style={isSelected
+              ? { background: firstTag?.color || 'var(--s-main)' }
+              : { background: firstTag ? hexToRgba(firstTag.color, 0.4) : 'rgba(var(--s-rgb),0.40)' }
+            }
+          />
           <span className="text-[14px] leading-snug font-medium text-ink-900 truncate">
             {(firstLine || '（空）').slice(0, 60)}
           </span>
         </div>
-        {tagInfo && (
+        <div className="flex-shrink-0 flex items-center gap-1.5">
+          {itemTags.map(t => (
+            <span
+              key={t.id}
+              className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
+              style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
+            >{t.name}</span>
+          ))}
           <span
-            className="flex-shrink-0 inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
-            style={{ color: tagInfo.color, background: hexToRgba(tagInfo.color, 0.10) }}
-          >{tagInfo.name}</span>
-        )}
-        <span
-          className="flex-shrink-0 text-[12px] text-ink-400 tabular-nums"
-          title={fmtTooltip(item.created_at)}
-        >{fmtDate(item.created_at)}</span>
-        <div className="relative flex-shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}
+            className="text-[12px] text-ink-400 tabular-nums"
             title={fmtTooltip(item.created_at)}
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-ink-300 hover:text-ink-600 hover:bg-black/[0.04] transition-colors"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
-            </svg>
-          </button>
-          {menuFor && (
-            <>
-              <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenu(null); }} />
-              <div className="absolute right-0 top-7 z-[20] w-[120px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenu(m => ({ id: item.id, cat: !m?.cat })); }}
-                  className={`w-full flex items-center px-3 py-1.5 text-[12.5px] transition-colors ${catPickFor ? 'bg-ink-50 text-ink-900 font-medium' : 'text-ink-700 hover:bg-ink-50'}`}
-                >
-                  <span className="whitespace-nowrap">标签</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-                    className={`flex-shrink-0 ml-auto text-ink-400 transition-transform duration-200 ${catPickFor ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9" /></svg>
-                </button>
-                {catPickFor && (
-                  <>
-                    <div className="my-1 border-t border-ink-100/80" />
-                    <button
-                      onClick={() => setItemTag(item, null)}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] hover:bg-ink-50 transition-colors ${item.tag_id == null ? 'text-ink-900 font-medium' : 'text-ink-500'}`}
-                    >
-                      <span className="flex-shrink-0 w-2 h-2 rounded-full border border-ink-200" />
-                      <span className="whitespace-nowrap">无标签</span>
-                      {item.tag_id == null && <span className="ml-auto text-ink-400">✓</span>}
-                    </button>
-                    {tags.map(t => {
-                      const on = Number(item.tag_id) === t.id;
-                      return (
-                        <button key={t.id} onClick={() => setItemTag(item, t.id)}
-                          className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] hover:bg-ink-50 transition-colors ${on ? 'text-ink-900 font-medium' : 'text-ink-700'}`}
+          >{fmtDate(item.created_at)}</span>
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}
+              title={fmtTooltip(item.created_at)}
+              className="w-6 h-6 -mr-1 rounded-lg flex items-center justify-center text-ink-300 hover:text-ink-600 hover:bg-black/[0.04] transition-colors"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
+              </svg>
+            </button>
+            {menuFor && (
+              <>
+                <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenu(null); }} />
+                <div className="absolute right-0 top-7 z-[20] w-[130px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMenu(m => ({ id: item.id, cat: !m?.cat })); }}
+                    className={`w-full flex items-center px-3 py-1.5 text-[12.5px] transition-colors ${catPickFor ? 'bg-ink-50 text-ink-900 font-medium' : 'text-ink-700 hover:bg-ink-50'}`}
+                  >
+                    <span className="whitespace-nowrap">标签</span>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                      className={`flex-shrink-0 ml-auto text-ink-400 transition-transform duration-200 ${catPickFor ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9" /></svg>
+                  </button>
+                  {catPickFor && (
+                    <>
+                      <div className="my-1 border-t border-ink-100/80" />
+                      {selectedIds.length > 0 && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setItemTags(item, []); }}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] text-ink-500 hover:bg-ink-50 transition-colors"
                         >
-                          <span className="flex-shrink-0 w-2 h-2 rounded-full" style={{ background: t.color }} />
-                          <span className="whitespace-nowrap">{t.name}</span>
-                          {on && <span className="ml-auto text-ink-400">✓</span>}
+                          <span className="flex-shrink-0 w-2 h-2 rounded-full border border-ink-200" />
+                          <span className="whitespace-nowrap">清除标签</span>
                         </button>
-                      );
-                    })}
-                    <div className="my-1 border-t border-ink-100/80" />
-                  </>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenu(null); openDetailFor(item); }}
-                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
-                >分派…</button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); askRemove(item); }}
-                  className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
-                >删除</button>
-              </div>
-            </>
-          )}
+                      )}
+                      {tags.length === 0 && (
+                        <div className="px-3 py-1.5 text-[12px] text-ink-400 whitespace-nowrap">暂无标签</div>
+                      )}
+                      {tags.map(t => {
+                        const on = selectedIds.includes(Number(t.id));
+                        return (
+                          <button key={t.id} onClick={(e) => { e.stopPropagation(); toggleItemTag(item, t.id); }}
+                            className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] hover:bg-ink-50 transition-colors ${on ? 'text-ink-900 font-medium' : 'text-ink-700'}`}
+                          >
+                            <span className="flex-shrink-0 w-2 h-2 rounded-full" style={{ background: on ? t.color : hexToRgba(t.color, 0.35) }} />
+                            <span className="whitespace-nowrap">{t.name}</span>
+                            <span className={`ml-auto flex-shrink-0 w-3.5 h-3.5 rounded-[4px] flex items-center justify-center text-[9px] leading-none ${on ? 'text-white' : 'border border-ink-200'}`}
+                              style={on ? { background: t.color } : undefined}
+                            >{on ? '✓' : ''}</span>
+                          </button>
+                        );
+                      })}
+                      <div className="my-1 border-t border-ink-100/80" />
+                    </>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMenu(null); openDetailFor(item); }}
+                    className="w-full text-left px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
+                  >分派…</button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); askRemove(item); }}
+                    className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                  >删除</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -482,9 +500,9 @@ export default function InboxPage({ onCountChange }) {
           <span className="text-[15.5px] font-bold text-ink-900 leading-none">{selected ? '编辑记录' : '新增记录'}</span>
         </div>
         {selected ? (
-          <QuickCapture key={selected.id} edit={selected} tags={tags} onUpdated={loadItems} onDispatch={openDetailFor} bare />
+          <QuickCapture key={selected.id} edit={selected} tags={tags} onUpdated={loadItems} onDispatch={openDetailFor} onTagsChange={loadTags} bare />
         ) : (
-          <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} bare />
+          <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onTagsChange={loadTags} bare />
         )}
       </div>
     );
@@ -513,7 +531,7 @@ export default function InboxPage({ onCountChange }) {
             <div className="glass-card rounded-2xl p-4">
               {renderHeader()}
               <div className="mt-3.5 pt-3.5 border-t border-ink-100/80">
-                <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} />
+                <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onTagsChange={loadTags} />
               </div>
             </div>
             {renderList(true)}

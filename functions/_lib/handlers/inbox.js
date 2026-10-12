@@ -16,16 +16,39 @@ export async function handleInboxList(env) {
   return json({ items });
 }
 
+// 归一化标签 id 列表：兼容 tag_ids（数组/JSON 字符串）与旧的单值 tag_id
+//   返回去重后的整数数组；tag_ids 优先于 tag_id
+function normalizeTagIds(body) {
+  let raw = body?.tag_ids;
+  if (typeof raw === 'string' && raw.trim()) {
+    try { const p = JSON.parse(raw); raw = Array.isArray(p) ? p : [raw]; } catch { raw = [raw]; }
+  }
+  let arr;
+  if (Array.isArray(raw)) arr = raw;
+  else if (body?.tag_id !== undefined) arr = (body.tag_id === null || body.tag_id === '') ? [] : [body.tag_id];
+  else arr = [];
+  const out = [];
+  for (const v of arr) {
+    const n = toInt(v, null);
+    if (n != null && !out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
+// 落库用：主标签取首个（保持 tag_id 向后兼容），tag_ids 存 JSON
+function tagColumns(ids) {
+  return { tagId: ids[0] ?? null, tagJson: ids.length ? JSON.stringify(ids) : null };
+}
+
 export async function handleInboxCreate(env, body) {
   await ensureInboxTable(env);
   const content = String(body?.content || '').slice(0, 10000);
   if (!content.trim()) return json({ error: '内容不能为空' }, 400);
   const cat = body?.category !== undefined && body?.category !== null && body?.category !== ''
     ? toInt(body.category, null) : null;
-  const tagId = body?.tag_id !== undefined && body?.tag_id !== null && body?.tag_id !== ''
-    ? toInt(body.tag_id, null) : null;
-  const info = await env.DB.prepare(`INSERT INTO ethan_inbox (user_id,content,category,tag_id,created_at,updated_at) VALUES (?,?,?,?,datetime('now'),datetime('now'))`)
-    .bind(uid(env), content, cat, tagId).run();
+  const { tagId, tagJson } = tagColumns(normalizeTagIds(body));
+  const info = await env.DB.prepare(`INSERT INTO ethan_inbox (user_id,content,category,tag_id,tag_ids,created_at,updated_at) VALUES (?,?,?,?,?,datetime('now'),datetime('now'))`)
+    .bind(uid(env), content, cat, tagId, tagJson).run();
   return json({ item: await dbFirst(env.DB, `SELECT * FROM ethan_inbox WHERE id=?`, [Number(info.meta.last_row_id)]) });
 }
 
@@ -46,9 +69,10 @@ export async function handleInboxUpdate(env, body) {
     sets.push('category=?');
     params.push(body.category === null || body.category === '' ? null : toInt(body.category, null));
   }
-  if (body.tag_id !== undefined) {
-    sets.push('tag_id=?');
-    params.push(body.tag_id === null || body.tag_id === '' ? null : toInt(body.tag_id, null));
+  if (body.tag_ids !== undefined || body.tag_id !== undefined) {
+    const { tagId, tagJson } = tagColumns(normalizeTagIds(body));
+    sets.push('tag_id=?', 'tag_ids=?');
+    params.push(tagId, tagJson);
   }
   if (body.is_done !== undefined) {
     sets.push('done=?', 'done_at=?');
@@ -151,7 +175,16 @@ export async function handleInboxTagRemove(env, body) {
   if (!id) return json({ error: '缺少 id' }, 400);
   await ensureInboxTagsTable(env);
   await env.DB.prepare(`DELETE FROM ethan_inbox_tags WHERE id=? AND user_id=?`).bind(id, uid(env)).run();
-  // 解绑已使用该标签的小记
+  // 解绑已使用该标签的小记：旧的单值列 + 新的多值 JSON 列都要清理
   await env.DB.prepare(`UPDATE ethan_inbox SET tag_id=NULL WHERE tag_id=? AND user_id=?`).bind(id, uid(env)).run();
+  const rows = await dbAll(env.DB, `SELECT id, tag_ids FROM ethan_inbox WHERE user_id=? AND tag_ids IS NOT NULL`, [uid(env)]);
+  for (const r of rows) {
+    let arr = [];
+    try { arr = JSON.parse(r.tag_ids) || []; } catch { arr = []; }
+    if (!Array.isArray(arr) || !arr.map(Number).includes(Number(id))) continue;
+    const next = arr.map(Number).filter(n => n !== Number(id));
+    await env.DB.prepare(`UPDATE ethan_inbox SET tag_id=?, tag_ids=? WHERE id=?`)
+      .bind(next[0] ?? null, next.length ? JSON.stringify(next) : null, r.id).run();
+  }
   return json({ ok: true });
 }

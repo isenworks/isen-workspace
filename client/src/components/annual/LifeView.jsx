@@ -883,7 +883,8 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                       {r.cat.lb}
                     </span>
                   </div>
-                  {r.e.n && <div className="text-xs text-ink-500 leading-relaxed -mt-1 mb-3 max-w-[620px]">{r.e.n}</div>}
+                  {/* 备注：与标题行中轴对齐（mt-1 补偿 text-xs/leading-relaxed 与 h-7 标题行的行高差），多行时首行对齐、后续自然下延；避免顶端对齐造成的「上飘」 */}
+                  {r.e.n && <div className="text-xs text-ink-500 leading-relaxed mt-1 max-w-[620px]">{r.e.n}</div>}
                 </div>
               );
                   })}

@@ -6,8 +6,11 @@
 // ============================================================
 import { API } from '../api/client.js';
 
-// 不入备份 / 不写回的键：登录凭证与第三方密钥
-const SKIP_LS_KEYS = new Set(['pw_unlock_token', 'weread_api_key']);
+// 不入备份 / 不写回的键：
+//   pw_unlock_token  登录凭证（云端数据走接口鉴权，凭证不需要也不应该进文件）
+//   pw_user          登录态缓存（含头像 base64，体积大且登录时会重新拉取，还原旧值只会带来陈旧信息）
+//   weread_api_key   第三方密钥
+const SKIP_LS_KEYS = new Set(['pw_unlock_token', 'pw_user', 'weread_api_key']);
 
 // 导出字段名 → 界面展示名（还原预览用）
 export const TABLE_LABELS = {

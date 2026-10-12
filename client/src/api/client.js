@@ -36,6 +36,11 @@ async function fetchPages(path, body = {}, method = 'POST') {
   }
   let data;
   try { data = await res.json(); } catch { data = null; }
+  // 200 但响应体不是 JSON（如 Functions 路由缺失时被 SPA 兜底 `/* /index.html 200` 接管）：
+  // 此时 data 为 null，若不显式抛错，写操作会拿到 null 却误报「创建成功」
+  if (data === null || typeof data !== 'object') {
+    throw new Error(`接口响应异常（HTTP ${res.status}，非 JSON），请刷新页面重试，若持续出现请联系排查`);
+  }
   if (!res.ok || data?.error) {
     const msg = data?.error || (data?.message) || `请求失败 (${res.status})`;
     if (res.status === 401) {

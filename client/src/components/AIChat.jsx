@@ -370,6 +370,9 @@ const AIChat = forwardRef(function AIChat({
           <div className="inline-flex items-center gap-1.5 max-w-[82%] px-2.5 py-1.5 rounded-full bg-white border border-ink-100">
             <span style={{ color: statusColor }}><ToolStatusIcon status={m.toolStatus} /></span>
             <span className="text-[11.5px] font-medium" style={{ color: statusColor }}>{displayName}</span>
+            {m.toolStatus === 'done' && m.toolResult?.date && (
+              <span className="text-[11px] text-ink-300">· {m.toolResult.date}</span>
+            )}
             {m.toolStatus === 'running' && <span className="text-[11px] text-ink-300">执行中…</span>}
             {m.toolStatus === 'cancelled' && <span className="text-[11px] text-ink-300">已取消</span>}
           </div>

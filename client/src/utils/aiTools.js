@@ -22,6 +22,17 @@ function resolveDate(input) {
   return s; // 其余交给后端 normalizeDate 校验/规范化
 }
 
+// priority 文本 → DB 整数（ethan_tasks.priority 为 INTEGER：1=高 2=中 3=低）。
+// 后端 toInt 对非数字字符串会静默回退默认值 2，'high' 会丢优先级，这里前置换算。
+function prioToInt(v) {
+  const map = { high: 1, medium: 2, low: 3, '1': 1, '2': 2, '3': 3, 高: 1, 中: 2, 低: 3 };
+  const n = map[String(v ?? '').trim().toLowerCase()] ?? Number(v);
+  return [1, 2, 3].includes(n) ? n : 2;
+}
+export function priorityLabel(v) {
+  return { 1: '高', 2: '中', 3: '低' }[v] || String(v ?? '');
+}
+
 // ===== 工具定义（OpenAI function calling 格式）=====
 export const aiToolDefinitions = [
   // ── 读数据工具 ──
@@ -212,7 +223,7 @@ export async function executeTool(name, args = {}) {
       }));
       return { range: `${from} ~ ${to}`, count: items.length, summaries: items };
     }
-    // ── 写数据 ──
+    // ── 写数据（写入后回读校验，杜绝「假成功」：接口 200 但未真正落库）──
     case 'create_schedule': {
       const data = {
         title: args.title,
@@ -223,22 +234,40 @@ export async function executeTool(name, args = {}) {
         notes: args.notes || '',
       };
       const res = await API.schedules.create(data);
-      return { success: true, id: res?.id || res?.schedule?.id, ...data };
+      const id = res?.id || res?.schedule?.id;
+      if (!id) throw new Error('创建接口未返回日程 id，可能未真正写入');
+      // 回读：确认日程真实落库且日期无误
+      const check = await API.schedules.get(id);
+      if (!check?.schedule) throw new Error(`写入校验失败：日程 #${id} 回读不到，数据可能未落库`);
+      if (check.schedule.date !== data.date) {
+        throw new Error(`写入校验失败：日期不一致（期望 ${data.date}，实际 ${check.schedule.date}）`);
+      }
+      return { success: true, id, title: data.title, date: data.date, start_time: data.start_time, category: data.category };
     }
     case 'create_task': {
       const data = {
         title: args.title,
         date: resolveDate(args.date),
-        priority: args.priority || 'medium',
+        priority: prioToInt(args.priority),
       };
       const res = await API.tasks.create(data);
-      return { success: true, id: res?.id || res?.task?.id, ...data };
+      const id = res?.id || res?.task?.id;
+      if (!id) throw new Error('创建接口未返回任务 id，可能未真正写入');
+      // 回读：确认任务真实落库且日期无误
+      const check = await API.tasks.get(id);
+      if (!check?.task) throw new Error(`写入校验失败：任务 #${id} 回读不到，数据可能未落库`);
+      if (check.task.date !== data.date) {
+        throw new Error(`写入校验失败：日期不一致（期望 ${data.date}，实际 ${check.task.date}）`);
+      }
+      return { success: true, id, title: data.title, date: data.date, priority: data.priority };
     }
     case 'create_inbox': {
       const data = { content: args.content };
       if (args.tag) data.tag_name = args.tag;
       const res = await API.inbox.create(data);
-      return { success: true, id: res?.id, content: args.content, tag: args.tag || '' };
+      const id = res?.id || res?.item?.id;
+      if (!id) throw new Error('创建接口未返回小记 id，可能未真正写入');
+      return { success: true, id, content: args.content, tag: args.tag || '' };
     }
     default:
       return { error: `未知工具: ${name}` };
@@ -268,11 +297,11 @@ export function formatToolResult(name, result) {
       return `每日总结（${result.range}）共 ${result.count} 条：` +
         result.summaries.map(s => `\n- ${s.date}: ${s.content}`).join('');
     case 'create_schedule':
-      return `已创建日程「${result.title}」，日期${result.date}${result.start_time ? ' ' + result.start_time : ''}，分类${result.category}`;
+      return `已创建日程「${result.title}」→ ${result.date}${result.start_time ? ' ' + result.start_time : ''}，分类${result.category}（#${result.id}，已回读校验落库成功）`;
     case 'create_task':
-      return `已创建待办「${result.title}」，日期${result.date}，优先级${result.priority}`;
+      return `已创建待办「${result.title}」→ ${result.date}，优先级${priorityLabel(result.priority)}（#${result.id}，已回读校验落库成功）`;
     case 'create_inbox':
-      return `已创建小记「${result.content}」${result.tag ? '，标签' + result.tag : ''}`;
+      return `已创建小记「${result.content}」${result.tag ? '，标签' + result.tag : ''}（#${result.id}）`;
     default:
       return JSON.stringify(result);
   }

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   getKBBooks, getKBEntries, getKBTree, getKBDocs,
   addKBBook, updateKBBook, removeKBBook, ensureKBBooks,
-  removeKBEntry, renameKBGroup, removeKBGroup, addKBGroup, reorderKBDoc,
+  removeKBEntry, updateKBEntry, renameKBGroup, removeKBGroup, addKBGroup, reorderKBDoc,
   syncKBFromCloud,
 } from '../utils/aiKnowledgeBase.js';
 import KnowledgeForm from '../components/KnowledgeForm.jsx';
@@ -102,6 +102,19 @@ export default function KnowledgeBasePage() {
   const [dragId, setDragId] = useState(null);
   const [dropHint, setDropHint] = useState(null); // { type:'doc'|'group', key }
 
+  // 正文 / 标题 · 直接点击编辑（失焦自动保存）
+  const titleRef = useRef(null);
+  const contentRef = useRef(null);
+  const [savedFlash, setSavedFlash] = useState('');
+  const saveHintTimer = useRef(null);
+  useEffect(() => () => { if (saveHintTimer.current) clearTimeout(saveHintTimer.current); }, []);
+
+  const flashSaved = () => {
+    setSavedFlash('已保存');
+    if (saveHintTimer.current) clearTimeout(saveHintTimer.current);
+    saveHintTimer.current = setTimeout(() => setSavedFlash(''), 1500);
+  };
+
   const reload = useCallback(() => {
     const bs = getKBBooks();
     setBooks(bs);
@@ -158,8 +171,38 @@ export default function KnowledgeBasePage() {
   }, [entries]);
 
   const activeBook = books.find(b => b.id === activeKbId) || null;
-  const activeDomainCount = activeKbId ? getKBDocs(activeKbId).length : 0;
   const selectedDoc = useMemo(() => entries.find(e => e.id === selectedDocId) || null, [entries, selectedDocId]);
+
+  // 无自建分组时平铺文档（不显示「未分组」标题）；有分组时才按章节分组展示
+  const flatDocs = (tree.length === 1 && tree[0].group === '') ? tree[0].docs : null;
+
+  // 标题 / 正文：仅在「切换文档」时同步 DOM，避免失焦保存后重渲染打断光标
+  useEffect(() => {
+    if (titleRef.current) titleRef.current.innerText = selectedDoc?.title || '无标题';
+    if (contentRef.current) contentRef.current.innerHTML = selectedDoc?.content || '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDoc?.id]);
+
+  const commitTitle = () => {
+    if (!selectedDocId || !titleRef.current) return;
+    const next = (titleRef.current.innerText || '').replace(/\s+/g, ' ').trim() || '无标题';
+    titleRef.current.innerText = next;
+    if (next === (selectedDoc?.title || '')) return;
+    updateKBEntry(selectedDocId, { title: next });
+    reload();
+    flashSaved();
+  };
+
+  const commitContent = () => {
+    if (!selectedDocId || !contentRef.current) return;
+    const html = contentRef.current.innerHTML;
+    const next = stripHtml(html) ? html : ''; // 空内容归一为空串，避免存入空标签
+    if (next === '') contentRef.current.innerHTML = '';
+    if (next === (selectedDoc?.content || '')) return;
+    updateKBEntry(selectedDocId, { content: next });
+    reload();
+    flashSaved();
+  };
 
   /* ---------------- 知识库（书架） ---------------- */
   const selectBook = (id) => {
@@ -188,11 +231,6 @@ export default function KnowledgeBasePage() {
   const openNewDoc = (group = '') => {
     setEditingDoc(null);
     setFormGroup(group);
-    setFormOpen(true);
-  };
-  const openEditDoc = (doc) => {
-    setEditingDoc(doc);
-    setFormGroup(doc.group || '');
     setFormOpen(true);
   };
   const closeForm = () => {
@@ -311,7 +349,6 @@ export default function KnowledgeBasePage() {
             <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3">
               <div className="flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
                 <span className="text-[13px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeBook?.name || '目录'}</span>
-                <span className="text-[11px] text-ink-300 tabular-nums flex-shrink-0">{activeDomainCount}</span>
                 <button
                   onClick={() => setNewGroup(true)}
                   className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-ink-400 hover:text-[var(--s-main)] hover:bg-ink-50 transition-colors flex-shrink-0"
@@ -322,14 +359,16 @@ export default function KnowledgeBasePage() {
               <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">
                 {tree.length === 0 && (
                   <div className="px-2 py-3 text-[12px] text-ink-300 leading-relaxed">
-                    还没有文档，点下方新建
+                    还没有文档，点右上角 + 新建
                   </div>
                 )}
 
                 {tree.map(({ group, docs }) => {
                   const isRenamingGroup = renamingGroup !== null && renamingGroup === group;
+                  const hideHeader = flatDocs !== null; // 无自建分组：平铺，不出现「未分组」标题
                   return (
                     <div key={group || '__none__'} className="flex flex-col">
+                      {!hideHeader && (
                       <div
                         onDragOver={(e) => { if (dragId) { e.preventDefault(); setDropHint({ type: 'group', key: group }); } }}
                         onDrop={(e) => { e.preventDefault(); handleDrop({ group }); }}
@@ -350,7 +389,6 @@ export default function KnowledgeBasePage() {
                             <span className="flex-1 min-w-0 text-[11px] font-semibold text-ink-400 tracking-wide truncate">
                               {group || '未分组'}
                             </span>
-                            <span className="text-[10.5px] text-ink-300 tabular-nums flex-shrink-0">{docs.length}</span>
                             <span className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => setRenamingGroup(group)}
@@ -366,6 +404,7 @@ export default function KnowledgeBasePage() {
                           </>
                         )}
                       </div>
+                      )}
 
                       {docs.map(doc => {
                         const active = doc.id === selectedDocId;
@@ -413,20 +452,10 @@ export default function KnowledgeBasePage() {
                   </div>
                 )}
               </div>
-
-              <button
-                onClick={() => openNewDoc('')}
-                className="mt-2 flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[12px] font-medium text-[var(--s-main)] border border-dashed border-ink-200 hover:bg-ink-50 transition-colors flex-shrink-0"
-              >
-                <IconPlus size={12} />
-                新建文档
-              </button>
             </div>
 
-            {/* 内部短分割线 */}
-            <div className="w-4 flex-shrink-0 flex items-center justify-center">
-              <span className="w-px h-16 rounded-full bg-ink-200/70" />
-            </div>
+            {/* 目录 / 正文分割线：整条通高、极浅灰，柔和而不抢眼（参考语雀） */}
+            <div className="w-px flex-shrink-0 self-stretch" style={{ background: 'rgba(15,31,28,0.07)' }} />
 
             {/* 正文 */}
             <div className="flex-1 min-w-0 flex flex-col min-h-0 p-5">
@@ -438,12 +467,26 @@ export default function KnowledgeBasePage() {
                   </svg>
                   <div className="text-[13.5px] font-semibold text-ink-900">选择左侧一篇文档</div>
                   <div className="text-[12px] text-ink-400">在这里阅读或编辑内容</div>
+                  <button
+                    onClick={() => openNewDoc('')}
+                    className="mt-1.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold transition-colors focus:outline-none"
+                    style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                  ><IconPlus size={13} />新建文档</button>
                 </div>
               ) : (
                 <>
+                  {/* 标题行：标题 / 正文均可直接点击编辑；右侧 新建 + 删除 */}
                   <div className="flex items-start gap-3 flex-shrink-0">
                     <div className="flex-1 min-w-0">
-                      <div className="text-[17px] font-bold text-ink-900 leading-snug break-words">{selectedDoc.title}</div>
+                      <div
+                        ref={titleRef}
+                        contentEditable
+                        suppressContentEditableWarning
+                        data-placeholder="无标题"
+                        onBlur={commitTitle}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.blur(); } }}
+                        className="kb-inline text-[17px] font-bold text-ink-900 leading-snug break-words rounded-md px-1.5 -ml-1.5 py-0.5 hover:bg-[rgba(0,0,0,0.035)] focus:bg-[rgba(0,0,0,0.035)] transition-colors"
+                      />
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap text-[11.5px] text-ink-400">
                         <span className="truncate max-w-[180px]">{activeBook?.name || ''}{selectedDoc.group ? ` / ${selectedDoc.group}` : ''}</span>
                         <span className="text-ink-300">·</span>
@@ -451,18 +494,21 @@ export default function KnowledgeBasePage() {
                         <span className="text-ink-300">·</span>
                         <span>来源：{SOURCE_META[selectedDoc.source]?.label || '手动'}</span>
                         {selectedDoc.tags?.map(t => (
-                          <span key={t} className="px-1.5 py-px rounded-md text-[10.5px] bg-ink-50 text-ink-500 border border-ink-100">{t}</span>
+                          <span key={t} className="px-1.5 py-px rounded-md text-[10.5px] bg-ink-50 text-ink-500">{t}</span>
                         ))}
+                        {savedFlash && <span className="font-medium" style={{ color: 'var(--s-main)' }}>{savedFlash}</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
-                        onClick={() => openEditDoc(selectedDoc)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-ink-600 bg-ink-50 hover:bg-ink-100 transition-colors"
-                      ><IconPen size={12} />编辑</button>
+                        onClick={() => openNewDoc(selectedDoc.group || '')}
+                        className="w-[28px] h-[28px] rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:brightness-[0.97] focus:outline-none"
+                        style={{ background: 'rgba(var(--s-rgb),0.09)', color: 'var(--s-main)' }}
+                        title="新建文档"
+                      ><IconPlus size={14} /></button>
                       <button
                         onClick={() => setConfirmRemoveDoc(selectedDoc)}
-                        className="w-[28px] h-[28px] rounded-lg flex items-center justify-center text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                        className="w-[28px] h-[28px] rounded-lg flex items-center justify-center text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors focus:outline-none"
                         title="删除文档"
                       ><IconTrash size={13} /></button>
                     </div>
@@ -470,11 +516,18 @@ export default function KnowledgeBasePage() {
 
                   <div className="my-3 h-px bg-ink-100 flex-shrink-0" />
 
-                  <div className="flex-1 min-h-0 overflow-y-auto">
-                    {stripHtml(selectedDoc.content)
-                      ? <div className="kb-prose" dangerouslySetInnerHTML={{ __html: selectedDoc.content }} />
-                      : <div className="text-[12.5px] text-ink-300">这篇文档还没有内容，点「编辑」补充吧。</div>}
-                  </div>
+                  {/* 正文：点击即可编辑，失焦自动保存（Ctrl/⌘+S 立即保存） */}
+                  <div
+                    ref={contentRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    data-placeholder="点这里开始记录你的思考、摘录或笔记…"
+                    onBlur={commitContent}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); commitContent(); }
+                    }}
+                    className="kb-inline kb-prose flex-1 min-h-0 overflow-y-auto rounded-lg px-1.5 -mx-1.5 py-1 hover:bg-[rgba(0,0,0,0.015)] focus:bg-[rgba(0,0,0,0.015)] transition-colors"
+                  />
                 </>
               )}
             </div>
@@ -522,6 +575,14 @@ export default function KnowledgeBasePage() {
         .kb-prose a { color: var(--s-main); text-decoration: underline; }
         .kb-prose b, .kb-prose strong { font-weight: 600; }
         .kb-prose img { max-width: 100%; border-radius: 8px; }
+        /* 标题 / 正文 · 直接点击编辑：去掉浏览器默认蓝色聚焦框，仅保留柔和底色 */
+        .kb-inline[contenteditable] { outline: none; }
+        .kb-inline[contenteditable]:focus { outline: none; box-shadow: none; }
+        .kb-inline[data-placeholder]:empty::before {
+          content: attr(data-placeholder);
+          color: #b3bab8;
+          pointer-events: none;
+        }
       `}</style>
     </div>
   );

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, saveThemeOrder, isValidHex } from '../utils/theme.js';
 import { MODULE_COLORS, getModuleColors, saveModuleColor, resetModuleColor, resetAllModuleColors, applyModuleColors, isValidHex as isValidModuleHex } from '../utils/moduleTheme.js';
-import { exportFullBackup } from '../utils/backup.js';
+import { exportFullBackup, parseBackupFile, restoreFullBackup, TABLE_LABELS } from '../utils/backup.js';
 
 const ADMIN_EMAIL = '1429000825@qq.com';
 
@@ -223,7 +223,12 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
             </div>
             <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
               {tab === 'backup'
-                ? <BackupSection />
+                ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                    <BackupSection />
+                    <RestoreSection />
+                  </div>
+                )
                 : <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />}
             </div>
           </>
@@ -292,6 +297,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   <BackupSection />
+                  <div style={{ height: '1px', background: '#e5e5ea' }} />
+                  <RestoreSection />
                   <div style={{ height: '1px', background: '#e5e5ea' }} />
                   <MigrateTab
                     value={migrate}
@@ -1450,6 +1457,160 @@ function BackupSection() {
           已导出 <b style={{ color: '#3c3c43' }}>{last.fileName}</b>
           <br />
           服务端 {total} 条记录 · 本地 {last.localCount} 项设置
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RestoreSection() {
+  const toast = useToast();
+  const fileRef = useRef(null);
+  const [payload, setPayload] = useState(null);
+  const [fileName, setFileName] = useState('');
+  const [current, setCurrent] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [acked, setAcked] = useState(false);
+
+  const bakTables = (payload && payload.server && payload.server.tables) || {};
+  const keys = Object.keys(bakTables);
+  const curCounts = current || null;
+  const changed = keys.filter((k) => !curCounts || (bakTables[k] || []).length !== (curCounts[k] || 0));
+  const localCount = payload && payload.localStorage ? Object.keys(payload.localStorage).length : 0;
+
+  const onFile = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    setPayload(null); setCurrent(null); setAcked(false); setFileName('');
+    let text = '';
+    try { text = await f.text(); } catch { toast.error('文件读取失败'); return; }
+    const parsed = parseBackupFile(text);
+    if (parsed.error) { toast.error(parsed.error); return; }
+    setPayload(parsed.data);
+    setFileName(f.name);
+    try {
+      const cur = await API.backup.export();
+      setCurrent((cur && cur.counts) || {});
+    } catch { setCurrent(null); }
+  };
+
+  const run = async () => {
+    if (!payload || !acked || busy) return;
+    setBusy(true);
+    try {
+      // 还原前自动留档，覆盖前先给一份「后悔药」
+      const snap = await exportFullBackup();
+      toast.info(`已自动留档当前数据：${snap.fileName}`);
+      const r = await restoreFullBackup(payload);
+      if (r.errors.length) {
+        toast.error(`还原完成，但 ${r.errors.length} 张表失败（详见浏览器控制台）`);
+        console.warn('[还原] 失败项：', r.errors);
+      } else {
+        const total = r.restored.reduce((s, x) => s + (x.rows || 0), 0);
+        toast.success(`还原完成：服务端 ${total} 条记录 · 本地 ${r.localCount} 项设置，正在刷新…`);
+      }
+      setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+      toast.error('还原失败：' + ((e && e.message) || '未知错误'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const secondaryBtn = {
+    padding: '9px 18px', borderRadius: '9px', border: '1px solid #e5e5ea',
+    background: '#fff', color: '#1c1c1e', fontSize: '13px', fontWeight: '600',
+    cursor: busy ? 'default' : 'pointer',
+  };
+
+  return (
+    <div style={{ padding: '16px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e5ea' }}>
+      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1c1c1e', marginBottom: '6px' }}>
+        从备份还原
+      </div>
+      <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7, marginBottom: '14px' }}>
+        选择之前导出的备份文件，把服务端数据与本地设置还原到备份时的状态。
+        <b style={{ color: '#FF3B30' }}>这是覆盖式还原，当前数据会被替换掉</b>；
+        还原前系统会自动先导出一份当前数据留档。
+      </div>
+
+      <input ref={fileRef} type="file" accept=".json,application/json" onChange={onFile} style={{ display: 'none' }} />
+      <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy} style={secondaryBtn}>
+        选择备份文件
+      </button>
+
+      {payload && (
+        <div style={{ marginTop: '14px' }}>
+          <div style={{ fontSize: '11px', color: '#8e8e93', lineHeight: 1.7, marginBottom: '10px' }}>
+            文件：<b style={{ color: '#3c3c43' }}>{fileName}</b>
+            <br />
+            导出时间：
+            {payload.meta.exportedAt ? new Date(payload.meta.exportedAt).toLocaleString('zh-CN') : '未知'}
+            {payload.meta.user && payload.meta.user.email ? ` · 来自 ${payload.meta.user.email}` : ''}
+          </div>
+
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            fontSize: '12px', color: '#3c3c43', fontWeight: '600', padding: '0 10px 8px',
+          }}>
+            <span>内容对比</span>
+            <span style={{ color: '#8e8e93', fontWeight: '400' }}>
+              {curCounts ? `${changed.length} 张表有变化` : '未能读取当前数据'}
+            </span>
+          </div>
+
+          <div style={{ maxHeight: '190px', overflowY: 'auto', border: '1px solid #e5e5ea', borderRadius: '9px' }}>
+            {keys.map((k) => {
+              const bak = (bakTables[k] || []).length;
+              const cur = curCounts ? (curCounts[k] || 0) : null;
+              const diff = cur !== null && cur !== bak;
+              return (
+                <div key={k} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
+                  padding: '7px 10px', borderBottom: '1px solid #f2f2f7', fontSize: '12px',
+                }}>
+                  <span style={{ color: '#3c3c43' }}>{TABLE_LABELS[k] || k}</span>
+                  <span style={{ color: '#8e8e93', fontVariantNumeric: 'tabular-nums' }}>
+                    备份 <b style={{ color: '#1c1c1e' }}>{bak}</b>
+                    {cur !== null && <> · 当前 <b style={{ color: diff ? '#1c1c1e' : '#8e8e93' }}>{cur}</b></>}
+                  </span>
+                </div>
+              );
+            })}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
+              padding: '7px 10px', fontSize: '12px',
+            }}>
+              <span style={{ color: '#3c3c43' }}>本地设置</span>
+              <span style={{ color: '#8e8e93', fontVariantNumeric: 'tabular-nums' }}>
+                备份 <b style={{ color: '#1c1c1e' }}>{localCount}</b> 项
+              </span>
+            </div>
+          </div>
+
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '8px', margin: '14px 0',
+            fontSize: '12px', color: '#3c3c43', cursor: 'pointer',
+          }}>
+            <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} style={{ width: '16px', height: '16px' }} />
+            我已知晓会覆盖当前全部数据
+          </label>
+
+          <button
+            onClick={run}
+            disabled={!acked || busy}
+            style={{
+              padding: '9px 18px', borderRadius: '9px', border: 'none',
+              background: !acked || busy ? 'rgba(120,120,128,0.15)' : '#FF3B30',
+              color: !acked || busy ? '#8e8e93' : '#fff',
+              fontSize: '13px', fontWeight: '600',
+              cursor: !acked || busy ? 'default' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {busy ? '正在还原…' : '确认还原'}
+          </button>
         </div>
       )}
     </div>

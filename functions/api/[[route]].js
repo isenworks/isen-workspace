@@ -55,7 +55,7 @@ import {
 } from '../_lib/handlers/inviteCodes.js';
 import { handleUsersList, handleUsersBan } from '../_lib/handlers/users.js';
 import { handleUserSettingsGet, handleUserSettingsSet } from '../_lib/handlers/userSettings.js';
-import { handleBackupExport } from '../_lib/handlers/backup.js';
+import { handleBackupExport, handleBackupRestore } from '../_lib/handlers/backup.js';
 import {
   handleGithubSetToken, handleGithubStatus, handleGithubToggleGrant,
   handleGithubIssueGrant, handleGithubClearToken,
@@ -215,9 +215,10 @@ export async function onRequest(context) {
     if (path === '/api/userSettings/set' && method === 'POST') return handleUserSettingsSet(env, body);
 
     // ------------------------------------------------------------
-    // /api/backup/*  — 全量数据导出（只读，供「设置 → 备份与迁移」一键备份）
+    // /api/backup/*  — 全量数据导出（只读）/ 覆盖式还原，供「设置 → 备份与迁移」使用
     // ------------------------------------------------------------
     if (path === '/api/backup/export' && (method === 'GET' || method === 'POST')) return handleBackupExport(env);
+    if (path === '/api/backup/restore' && method === 'POST') return handleBackupRestore(env, body);
 
     // ------------------------------------------------------------
     // /api/github/*  — GitHub PAT 托管 + AI 推送授权（仅 owner，且锁定指定账号，见 github.js）

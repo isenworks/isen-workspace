@@ -259,6 +259,8 @@ export const API = {
   //   返回 { ok, exportedAt, userId, counts, tables, errors }
   backup: {
     async export() { return fetchPages('/backup/export', {}, 'GET'); },
+    // 覆盖式还原：tables 为导出文件里的 server.tables，confirm 为服务端二次确认标记
+    async restore(tables) { return fetchPages('/backup/restore', { tables, confirm: true }); },
   },
 
   // 邀请码管理（仅 owner 可调用，后端校验权限）

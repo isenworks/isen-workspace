@@ -173,9 +173,12 @@ export default function AIAssistantPage() {
                       className={`group relative flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${active ? '' : 'hover:bg-ink-50'}`}
                       style={active ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
                     >
+                      {/* 图标胶囊：选中 → 实底主题色 + 白色图标（品牌印记，与「新建对话」按钮一致）；未选中 → 浅色底 + 灰色图标，后退以保持列表层次 */}
                       <span
-                        className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 ${active ? '' : 'text-ink-400'}`}
-                        style={active ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)' } : { background: 'rgba(var(--s-rgb),0.05)' }}
+                        className={`w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 ${active ? 'text-white' : 'text-ink-400'}`}
+                        style={active
+                          ? { background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
+                          : { background: 'rgba(var(--s-rgb),0.05)' }}
                       >
                         <IconSparkle size={12} strokeWidth={1.8} />
                       </span>

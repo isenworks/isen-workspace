@@ -388,11 +388,17 @@ export default function KnowledgeBasePage() {
 
           {/* ---- 右：目录 + 正文（同一张卡）---- */}
           <div className="glass-card rounded-2xl min-w-0 min-h-0 flex items-stretch" style={rightStyle}>
-            {/* 目录列：极浅底色，与正文靠底色 + 通高细线区分 */}
-            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3 rounded-l-2xl" style={{ background: 'rgba(15,31,28,0.022)' }}>
-              {/* 页头：知识库名 + ＋新建（新建文档 / 新建分组） */}
-              <div className="relative flex items-center gap-1.5 px-1 pt-0.5 pb-2 flex-shrink-0">
-                <span className="text-[13px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeBook?.name || '目录'}</span>
+            {/* 目录列：柔和高级灰（极低饱和 + 顶浅底深的微渐变，营造哑光层次），与正文靠底色 + 通高细线区分 */}
+            <div className="w-[232px] flex-shrink-0 flex flex-col min-h-0 p-3 rounded-l-2xl" style={{ background: 'linear-gradient(180deg, #F7F8F8 0%, #F1F3F2 100%)' }}>
+              {/* 页头：知识库图标 + 名称 + ＋新建（新建文档 / 新建分组） */}
+              <div className="relative flex items-center gap-2 px-1 pt-0.5 pb-2.5 flex-shrink-0">
+                <span
+                  className="w-[20px] h-[20px] rounded-[7px] flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
+                >
+                  <IconBook size={12} strokeWidth={2} />
+                </span>
+                <span className="text-[13.5px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeBook?.name || '目录'}</span>
                 <button
                   onClick={() => setNewMenuOpen(v => !v)}
                   disabled={!activeKbId}

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { WORK } from './data.js';
 import { IOS_SANS, calcRisk, calcTimeAnchor, daysLabel, formatRemainDuration, inferMode, parseDate, pct, uid } from './utils.js';
 import { AddButton, ProgressBar } from './ui.jsx';
-import { moduleColor, moduleRgba } from '../../utils/color.js'
+import { moduleColor, moduleRgba, hexToRgba } from '../../utils/color.js'
 import Modal from '../Modal.jsx'
 import DualMarkerBar from '../DualMarkerBar.jsx'
 import { useLongPress } from '../useLongPress.js'
@@ -560,7 +560,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   </div>
                   <button
                     className="text-[9.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap transition flex-shrink-0"
-                    style={{ background: rm.color + '1A', color: rm.color }}
+                    style={{ background: hexToRgba(rm.color, 0.102), color: rm.color }}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (canBreakdown) onRiskTagClick?.(goalIdx, i, kr, { title: o.title, deadline: o.deadline, createdAt: o.createdAt }, rm);
@@ -925,7 +925,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                       boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
                     }}>
                     <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{ background: active ? 'rgba(255,255,255,0.25)' : (t.col + '22') }}>
+                      style={{ background: active ? 'rgba(255,255,255,0.25)' : hexToRgba(t.col, 0.133) }}>
                       <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? '#ffffff' : t.col }}></span>
                     </span>
                     <span>{t.lb}</span>

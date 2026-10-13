@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { LIFE } from './data.js';
 import { uid } from './utils.js';
-import { moduleColor, moduleRgba } from '../../utils/color.js'
+import { moduleColor, moduleRgba, hexToRgba } from '../../utils/color.js'
 
 export function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCancel }) {
   const curYM = new Date().toISOString().slice(0, 7);
@@ -199,9 +199,9 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 风险诊断头 */}
-      <div style={{ padding: '12px', borderRadius: 12, background: `${riskInfo.color}0d`, border: `1px solid ${riskInfo.color}26`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ padding: '12px', borderRadius: 12, background: hexToRgba(riskInfo.color, 0.051), border: `1px solid ${hexToRgba(riskInfo.color, 0.149)}`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 10, background: `${riskInfo.color}1a`, color: riskInfo.color,
+          width: 36, height: 36, borderRadius: 10, background: hexToRgba(riskInfo.color, 0.102), color: riskInfo.color,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -210,7 +210,7 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 11.5, fontWeight: 800, letterSpacing: .3,
-              padding: '3px 8px', borderRadius: 7, background: `${riskInfo.color}1a`, color: riskInfo.color,
+              padding: '3px 8px', borderRadius: 7, background: hexToRgba(riskInfo.color, 0.102), color: riskInfo.color,
             }}>{riskInfo.label} · 完成{riskInfo.kPct}% vs 时间{riskInfo.timePct}%</span>
             <span style={{ fontSize: 11.5, fontWeight: 600, color: '#804B00' }}>
               差距 <b style={{ color: riskInfo.color }}>—{Math.abs(riskInfo.diff)}%</b>，剩余 <b>{riskInfo.daysLeft}</b> 天
@@ -232,8 +232,8 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
             type="button"
             onClick={() => onKrProgressAdd?.(quickBoost)}
             style={{
-              padding: '5px 10px', borderRadius: 8, border: `1px solid ${riskInfo.color}33`,
-              background: `${riskInfo.color}0d`, color: riskInfo.color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+              padding: '5px 10px', borderRadius: 8, border: `1px solid ${hexToRgba(riskInfo.color, 0.2)}`,
+              background: hexToRgba(riskInfo.color, 0.051), color: riskInfo.color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
             }}>
             +{quickBoost} 快速推进进度
           </button>

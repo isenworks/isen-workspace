@@ -4,7 +4,7 @@ import { pct, uid } from './utils.js';
 import { EditableTitle, InlineEdit } from './ui.jsx';
 import { usePersistentState } from './hooks.js';
 import { useLongPress } from '../useLongPress.js';
-import { moduleColor, moduleRgba } from '../../utils/color.js'
+import { moduleColor, moduleRgba, hexToRgba } from '../../utils/color.js'
 import { API } from '../../api/client.js'
 import { useToast } from '../../context/ToastContext.jsx'
 import ConfirmDialog from '../ConfirmDialog.jsx'
@@ -17,7 +17,7 @@ function CoverImg({ src, bookId, coverSource, onPersist, catCol, fallbackChar })
   const [err, setErr] = React.useState(false);
   if (!src || err) {
     return (
-      <span style={{ color: catCol, fontSize: '22px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22`, lineHeight: 1 }}>
+      <span style={{ color: catCol, fontSize: '22px', fontWeight: 900, textShadow: `0 1px 2px ${hexToRgba(catCol, 0.133)}`, lineHeight: 1 }}>
         {fallbackChar}
       </span>
     );
@@ -1788,7 +1788,7 @@ export function CognitionView({
                 border: isDragOver
                   ? `2px dashed ${g.col}`
                   : '1px solid rgba(15,23,42,0.05)',
-                boxShadow: isDragOver ? `0 0 0 4px ${g.col}12` : undefined,
+                boxShadow: isDragOver ? `0 0 0 4px ${hexToRgba(g.col, 0.071)}` : undefined,
                 padding: isDragOver ? '10px 8px' : '10px 9px',
                 borderRadius: '14px',
                 transition: 'all 200ms ease',
@@ -1814,8 +1814,8 @@ export function CognitionView({
                   <div className="col-span-full flex items-center justify-center py-6 text-[12px] rounded-lg transition-all"
                     style={{
                       color: isDragOver ? g.col : '#a3a3a3',
-                      border: isDragOver ? `1.5px dashed ${g.col}90` : '1px dashed rgba(15,23,42,0.10)',
-                      background: isDragOver ? `${g.col}10` : 'transparent',
+                      border: isDragOver ? `1.5px dashed ${hexToRgba(g.col, 0.565)}` : '1px dashed rgba(15,23,42,0.10)',
+                      background: isDragOver ? hexToRgba(g.col, 0.063) : 'transparent',
                       fontWeight: isDragOver ? 700 : 500,
                     }}>
                     {isDragOver ? '松手放到这里' : '暂无书籍'}
@@ -1864,7 +1864,7 @@ export function CognitionView({
                         case '人际沟通': return 'linear-gradient(135deg,#faf5ff,#ede9fe)';
                         case '商业职场': return 'linear-gradient(135deg,#fff7ed,#FFE4CC)';
                         case '人文叙事': return 'linear-gradient(135deg,#EDFAF1,#ADE5C2)';
-                        default: return `linear-gradient(135deg, ${catCol}1A, ${catCol}33)`;
+                        default: return `linear-gradient(135deg, ${hexToRgba(catCol, 0.102)}, ${hexToRgba(catCol, 0.2)})`;
                       }
                     })();
                     return (
@@ -1892,7 +1892,7 @@ export function CognitionView({
                             {/* 封面 48×64 */}
                             <div style={{
                               width:'48px', height:'64px', borderRadius:'7px', overflow:'hidden', flex:'0 0 48px',
-                              border: `1px solid ${catCol}33`,
+                              border: `1px solid ${hexToRgba(catCol, 0.2)}`,
                               background: realCover ? 'var(--surface-card)' : coverInitBg,
                               boxShadow: '0 2px 6px rgba(15,23,42,0.07)',
                               display: 'flex', alignItems:'center', justifyContent:'center',
@@ -1911,7 +1911,7 @@ export function CognitionView({
                                   fallbackChar={(b.t||'书').charAt(0)}
                                 />
                               ) : (
-                                <span style={{ color: catCol, fontSize: '22px', fontWeight: 900, textShadow: `0 1px 2px ${catCol}22`, lineHeight: 1 }}>
+                                <span style={{ color: catCol, fontSize: '22px', fontWeight: 900, textShadow: `0 1px 2px ${hexToRgba(catCol, 0.133)}`, lineHeight: 1 }}>
                                   {(b.t||'书').charAt(0)}
                                 </span>
                               )}

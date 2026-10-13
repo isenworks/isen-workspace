@@ -3,7 +3,7 @@ import { ABILITY } from './data.js';
 import { calcRisk, calcTimeAnchor, daysLabel, pct } from './utils.js';
 import { EditableTitle } from './ui.jsx';
 import { usePersistentState } from './hooks.js';
-import { moduleColor, moduleRgba } from '../../utils/color.js'
+import { moduleColor, moduleRgba, hexToRgba } from '../../utils/color.js'
 import DualMarkerBar from '../DualMarkerBar.jsx'
 
 export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAbilityAdd, onAbilityEdit, onAbilityRemove, onAbilityMarkDone, onAbilityRestore, scoreHistory, onStartAssessment }) {
@@ -228,7 +228,7 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
                       {/* 需求 3：状态徽章 */}
                       <span
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 select-none"
-                        style={{ background: `${STATUS_META.color}15`, color: STATUS_META.color }}
+                        style={{ background: hexToRgba(STATUS_META.color, 0.082), color: STATUS_META.color }}
                       >
                         {STATUS_META.label}{isDoing && m.pct != null ? ` ${Math.round(Number(m.pct))}%` : ''}
                       </span>
@@ -283,7 +283,7 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
                       boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
                     }}>
                     <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{ background: active ? 'rgba(255,255,255,0.25)' : (t.col + '22') }}>
+                      style={{ background: active ? 'rgba(255,255,255,0.25)' : hexToRgba(t.col, 0.133) }}>
                       <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? '#ffffff' : t.col }}></span>
                     </span>
                     <span>{t.lb}</span>

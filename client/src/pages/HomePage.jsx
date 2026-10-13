@@ -1295,10 +1295,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
         </div>
 
-        {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ========== */}
+        {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ==========
+            吸底渐隐须淡入当前画布色 --surface-canvas，才能与页面背景融为一体；
+            切勿再写死旧页面渐变底色（如 #E8E8ED），否则会显出一块灰色方形。 */}
         <div
           className="grid grid-cols-1 sm:grid-cols-4 gap-3 md:sticky md:bottom-0 md:shrink-0 z-10"
-          style={{ background: 'linear-gradient(180deg, rgba(232,232,237,0), rgba(232,232,237,0.92) 46%)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
+          style={{ background: 'linear-gradient(180deg, rgba(247,248,250,0) 0%, var(--surface-canvas) 58%)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
         >
           <button
             onClick={() => onNewSchedule?.()}

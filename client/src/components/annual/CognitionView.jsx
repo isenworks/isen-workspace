@@ -215,7 +215,7 @@ function ReadingFunnel({
 function KrFormFields({ lb, tgt, u, sub, onChange }) {
   const BLUE_DARK = '#0062CC';
   const inputCls = "w-full px-2.5 py-1.5 text-[12.5px] rounded-[10px] focus:outline-none transition";
-  const inputStyle = { background: '#fff', border: '1px solid rgba(15,23,42,0.08)' };
+  const inputStyle = { background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)' };
   const SectionCard = ({ title, children }) => (
     <div style={{ padding: '10px 12px', background: 'rgba(240,244,248,0.5)', border: '1px solid rgba(15,23,42,0.08)', borderRadius: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '11px', fontWeight: 700, color: BLUE_DARK, letterSpacing: '0.06em' }}>
@@ -229,18 +229,18 @@ function KrFormFields({ lb, tgt, u, sub, onChange }) {
     <div className="flex flex-col gap-2.5">
       <SectionCard title="KR 设置">
         <div className="flex flex-col gap-1.5">
-          <span className="text-[10.5px] font-semibold" style={{ color: '#1c1c1e', opacity: 0.55 }}>KR 描述</span>
+          <span className="text-[10.5px] font-semibold" style={{ color: 'var(--text-1)', opacity: 0.55 }}>KR 描述</span>
           <input value={lb} onChange={(e) => onChange({ lb: e.target.value })}
             placeholder="如：读完12本书" className={inputCls} style={inputStyle} />
         </div>
         <div className="grid grid-cols-2 gap-2 mt-2.5">
           <div className="flex flex-col gap-1">
-            <span className="text-[10.5px] font-semibold" style={{ color: '#1c1c1e', opacity: 0.55 }}>目标值</span>
+            <span className="text-[10.5px] font-semibold" style={{ color: 'var(--text-1)', opacity: 0.55 }}>目标值</span>
             <input type="number" value={tgt} onChange={(e) => onChange({ tgt: Number(e.target.value) })}
               placeholder="12" className={inputCls + " tabular-nums"} style={inputStyle} />
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-[10.5px] font-semibold" style={{ color: '#1c1c1e', opacity: 0.55 }}>单位</span>
+            <span className="text-[10.5px] font-semibold" style={{ color: 'var(--text-1)', opacity: 0.55 }}>单位</span>
             <input value={u} onChange={(e) => onChange({ u: e.target.value })}
               placeholder="本" className={inputCls} style={inputStyle} />
           </div>
@@ -284,11 +284,11 @@ function ChangeForm({ initial, books, onSave, onCancel, onDelete }) {
     }
   };
 
-  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
-  const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: '#fff' };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--s-main)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#FF3B30', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const LABEL = { fontSize: 13, fontWeight: 600, color: 'var(--text-1)', display: 'block', marginBottom: 4 };
+  const INPUT = { width: '100%', padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 13, outline: 'none', background: 'var(--surface-card)' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--s-main)', color: 'var(--surface-card)', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: 'var(--text-3)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: 'var(--surface-card)', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -367,13 +367,13 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
         .slice(0, 5)
     : [];
 
-  const LABEL = { fontSize: 12, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 3 };
-  const INPUT = { width: '100%', padding: '6px 9px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 12.5, outline: 'none', background: '#fff', lineHeight: 1.5 };
-  const INPUT_TITLE = { ...INPUT, fontSize: 14, fontWeight: 600, color: '#1c1c1e', padding: '9px 12px', border: '1.5px solid rgba(var(--s-rgb),0.35)', boxShadow: '0 0 0 3px rgba(var(--s-rgb),0.06)' };
+  const LABEL = { fontSize: 12, fontWeight: 600, color: 'var(--text-1)', display: 'block', marginBottom: 3 };
+  const INPUT = { width: '100%', padding: '6px 9px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)', fontSize: 12.5, outline: 'none', background: 'var(--surface-card)', lineHeight: 1.5 };
+  const INPUT_TITLE = { ...INPUT, fontSize: 14, fontWeight: 600, color: 'var(--text-1)', padding: '9px 12px', border: '1.5px solid rgba(var(--s-rgb),0.35)', boxShadow: '0 0 0 3px rgba(var(--s-rgb),0.06)' };
   const INPUT_OPT = { ...INPUT, border: '1px dashed rgba(148,163,184,0.5)', background: 'rgba(248,250,252,0.6)' };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--s-main)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
-  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(255,59,48,0.25)', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--s-main)', color: 'var(--surface-card)', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: 'var(--text-3)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const BTN_D = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'rgba(var(--danger-rgb),0.08)', color: 'var(--danger)', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
   const TAGS = [
     { v: 'cognition', lb: '认知更新' },
@@ -402,7 +402,7 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
           {bookSuggestions.length > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 4,
-              background: '#fff', borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)',
+              background: 'var(--surface-card)', borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)',
               boxShadow: '0 8px 24px rgba(0,0,0,0.10)', overflow: 'hidden',
             }}>
               {bookSuggestions.map(b => (
@@ -413,8 +413,8 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
                     padding: '8px 10px', background: 'transparent', border: 'none',
                     cursor: 'pointer', textAlign: 'left',
                   }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: '#1c1c1e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.t}</span>
-                  {b.author && <span style={{ flexShrink: 0, fontSize: 11, color: '#8e8e93' }}>{b.author}</span>}
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.t}</span>
+                  {b.author && <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-3)' }}>{b.author}</span>}
                 </button>
               ))}
             </div>
@@ -459,7 +459,7 @@ function ReviewForm({ initial, books, onSave, onCancel, onDelete }) {
               style={{
                 flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 12, fontWeight: 600,
                 background: form.tag === t.v ? `rgba(var(--s-rgb),0.10)` : 'rgba(120,120,128,0.08)',
-                color: form.tag === t.v ? "var(--s-main)" : '#8e8e93',
+                color: form.tag === t.v ? "var(--s-main)" : 'var(--text-3)',
                 border: form.tag === t.v ? `1px solid rgba(var(--s-rgb),0.25)` : '1px solid transparent',
                 cursor: 'pointer',
               }}>{t.lb}</button>
@@ -500,7 +500,7 @@ function BookPickerModal({ mode, books, onPick, onAddNew, onClose }) {
         </div>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="搜索书名…"
           className="px-3 py-2 text-[13px] rounded-[10px] focus:outline-none transition"
-          style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }} />
+          style={{ background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)' }} />
         {list.length === 0 ? (
           <div className="py-8 text-center text-[12px] text-ink-400"
             style={{ background: 'rgba(15,23,42,0.032)', borderRadius: 12, border: '1px dashed rgba(148,163,184,0.35)' }}>
@@ -515,12 +515,12 @@ function BookPickerModal({ mode, books, onPick, onAddNew, onClose }) {
               return (
                 <button key={b.id} onClick={() => onPick(b)}
                   className="flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] transition text-left hover:bg-[rgba(var(--s-rgb),0.05)]"
-                  style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}>
+                  style={{ background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)' }}>
                   <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="var(--s-main)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   </svg>
-                  <span className="text-[13px] font-semibold text-[#48484A] truncate flex-1 min-w-0">{b.t}</span>
+                  <span className="text-[13px] font-semibold text-[var(--ink-700)] truncate flex-1 min-w-0">{b.t}</span>
                   {b.author && <span className="text-[11px] text-ink-400 flex-shrink-0 truncate max-w-[90px]">{b.author}</span>}
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                     style={{ background: 'rgba(var(--s-rgb),0.10)', color: 'var(--s-main)' }}>
@@ -1368,7 +1368,7 @@ export function CognitionView({
                       style={{ color: BLUE }}>{padNum}</span>
                     <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
                       <div onClick={() => openEditKrModal(kr)} className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-[13px] font-semibold text-[#48484A] truncate leading-none group-hover:text-ink-900">{cleanLb}</span>
+                        <span className="text-[13px] font-semibold text-[var(--ink-700)] truncate leading-none group-hover:text-ink-900">{cleanLb}</span>
                         <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
                           {kr.tgt}{kr.u}
                         </span>
@@ -1386,7 +1386,7 @@ export function CognitionView({
                             width: `${pctWidth}%`,
                             minWidth: `${minPxWidth}px`,
                             background: isDone
-                              ? '#34C759'
+                              ? 'var(--success)'
                               : `${BLUE}`,
                             boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px rgba(${S_RGB},0.15)`,
                           }}>
@@ -1407,7 +1407,7 @@ export function CognitionView({
 
                   {/* 右侧：完成率（删除当前/目标列，节省 64px 让漏斗条更宽） */}
                   <span className="text-[14px] font-extrabold tabular-nums leading-none w-[48px] text-right flex-shrink-0"
-                    style={{ color: isDone ? '#111827' : (isBehind ? '#FF3B30' : BLUE) }}>
+                    style={{ color: isDone ? '#111827' : (isBehind ? 'var(--danger)' : BLUE) }}>
                     {p}<span className="text-[11px] font-bold">%</span>
                   </span>
                 </div>
@@ -1427,7 +1427,7 @@ export function CognitionView({
                       <div className="flex-1 flex items-center justify-center min-w-0">
                         <span
                           className="font-bold tabular-nums"
-                          style={{ color: lowConv ? '#FF3B30' : '#8a9491' }}>
+                          style={{ color: lowConv ? 'var(--danger)' : '#8a9491' }}>
                           {conv ?? 0}%
                         </span>
                       </div>
@@ -1479,7 +1479,7 @@ export function CognitionView({
                   从「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.from}</span>」
                   到「<span style={{ color: BLUE, fontWeight: 700 }}>{minConv.to}</span>」
                   转化率
-                  <span style={{ color: '#FF3B30', fontWeight: 800 }}> {minConv.rate}% </span>
+                  <span style={{ color: 'var(--danger)', fontWeight: 800 }}> {minConv.rate}% </span>
                   — {suggestions[0]}
                 </span>
               </div>
@@ -1544,11 +1544,11 @@ export function CognitionView({
                     // 右边界钳制：书架在右列，菜单 230px 需防止溢出视口
                     left: Math.max(8, Math.min(wereadLinkMenu.x, window.innerWidth - 246)), zIndex: 'var(--z-popover)',
                     minWidth: '230px', padding: '6px', borderRadius: '12px',
-                    background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                    background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)',
                     boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
                   }}>
                     {wereadLinks.length === 0 && (
-                      <div style={{ padding: '6px 10px', fontSize: '11px', color: '#8e8e93', fontWeight: 600 }}>
+                      <div style={{ padding: '6px 10px', fontSize: '11px', color: 'var(--text-3)', fontWeight: 600 }}>
                         暂无微信读书链接，下面添加一条
                       </div>
                     )}
@@ -1560,7 +1560,7 @@ export function CognitionView({
                         onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${S_RGB},0.08)`; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                         <span style={{
-                          flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                          flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: 'var(--text-1)',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           cursor: 'pointer',
                         }}
@@ -1572,11 +1572,11 @@ export function CognitionView({
                         <button title="编辑" onClick={() => { setWereadLinkMenu({ ...wereadLinkMenu, editingId: l.id }); setWereadLinkForm({ title: l.title, url: l.url }); }}
                           style={{
                             width: '22px', height: '22px', borderRadius: '6px', border: 'none',
-                            background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                            background: 'transparent', color: 'var(--text-3)', cursor: 'pointer',
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                           }}
                           onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${S_RGB},0.14)`; e.currentTarget.style.color = BLUE; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-3)'; }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                           </svg>
@@ -1585,11 +1585,11 @@ export function CognitionView({
                         <button title="删除" onClick={() => { closeWereadMenus(); setConfirmLinkDel(l.id); }}
                           style={{
                             width: '22px', height: '22px', borderRadius: '6px', border: 'none',
-                            background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                            background: 'transparent', color: 'var(--text-3)', cursor: 'pointer',
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.14)'; e.currentTarget.style.color = '#FF3B30'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--danger-rgb),0.14)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-3)'; }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
                             <path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
@@ -1611,14 +1611,14 @@ export function CognitionView({
                           onChange={(e) => setWereadLinkForm(f => ({ ...f, title: e.target.value }))}
                           style={{
                             fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
-                            border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                            border: '1px solid rgba(15,23,42,0.10)', background: 'var(--surface-card)', outline: 'none',
                             fontWeight: 500,
                           }} />
                         <input placeholder="链接地址（如：https://weread.qq.com）" value={wereadLinkForm.url}
                           onChange={(e) => setWereadLinkForm(f => ({ ...f, url: e.target.value }))}
                           style={{
                             fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
-                            border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                            border: '1px solid rgba(15,23,42,0.10)', background: 'var(--surface-card)', outline: 'none',
                             fontWeight: 500,
                           }} />
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
@@ -1626,13 +1626,13 @@ export function CognitionView({
                             style={{
                               padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
                               border: 'none', cursor: 'pointer',
-                              background: 'rgba(120,120,128,0.12)', color: '#1c1c1e',
+                              background: 'rgba(120,120,128,0.12)', color: 'var(--text-1)',
                             }}>取消</button>
                           <button onClick={() => wereadLinkMenu.editingId ? updateWereadLink(wereadLinkMenu.editingId) : addWereadLink()}
                             style={{
                               padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
                               border: 'none', cursor: 'pointer',
-                              background: BLUE, color: '#fff',
+                              background: BLUE, color: 'var(--surface-card)',
                               boxShadow: `0 1px 4px rgba(${S_RGB},0.28)`,
                             }}>{wereadLinkMenu.editingId ? '保存' : '添加'}</button>
                         </div>
@@ -1664,10 +1664,10 @@ export function CognitionView({
                     position: 'fixed', top: wereadLinkPopup.y,
                     left: Math.max(8, Math.min(wereadLinkPopup.x, window.innerWidth - 236)), zIndex: 'var(--z-popover)',
                     minWidth: '220px', padding: '6px', borderRadius: '12px',
-                    background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                    background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)',
                     boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
                   }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#8e8e93', letterSpacing: '0.04em', padding: '4px 8px' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-3)', letterSpacing: '0.04em', padding: '4px 8px' }}>
                       选择要打开的链接
                     </div>
                     {wereadLinks.map(l => (
@@ -1676,11 +1676,11 @@ export function CognitionView({
                           display: 'block', width: '100%', textAlign: 'left',
                           padding: '7px 10px', borderRadius: '8px', border: 'none',
                           background: 'transparent', cursor: 'pointer',
-                          fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                          fontSize: '12px', fontWeight: 600, color: 'var(--text-1)',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}
                         onMouseEnter={(e) => { e.currentTarget.style.background = `rgba(${S_RGB},0.08)`; e.currentTarget.style.color = BLUE; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1c1c1e'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-1)'; }}
                         title={l.url}>
                         {l.title}
                       </button>
@@ -1743,20 +1743,20 @@ export function CognitionView({
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150`}
                       style={{
                         background: active ? BLUE : 'transparent',
-                        color: active ? '#ffffff' : '#64748b',
+                        color: active ? 'var(--surface-card)' : '#64748b',
                         fontWeight: active ? 700 : 500,
                         fontSize: '11.5px',
                         boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
                       }}>
                       <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
                         style={{ background: active ? 'rgba(255,255,255,0.25)' : 'rgba(148,163,184,0.22)' }}>
-                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? '#ffffff' : '#8a9491' }}></span>
+                        <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? 'var(--surface-card)' : '#8a9491' }}></span>
                       </span>
                       <span>{t.lb}</span>
                       <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
                         style={{
                           background: active ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.05)',
-                          color: active ? '#ffffff' : '#64748b',
+                          color: active ? 'var(--surface-card)' : '#64748b',
                         }}>
                         {t.books.length}
                       </span>
@@ -1832,7 +1832,7 @@ export function CognitionView({
                         statusDot = { col: BLUE, solid: true, pulse: true, lb: '阅读中' };
                         break;
                       case 'done':
-                        statusDot = { col: '#34C759', solid: true, pulse: false, lb: '已读完' };
+                        statusDot = { col: 'var(--success)', solid: true, pulse: false, lb: '已读完' };
                         break;
                       case 'abandoned':
                         statusDot = { col: '#64748b', solid: false, pulse: false, strike: false, lb: '已归档' };
@@ -1893,7 +1893,7 @@ export function CognitionView({
                             <div style={{
                               width:'48px', height:'64px', borderRadius:'7px', overflow:'hidden', flex:'0 0 48px',
                               border: `1px solid ${catCol}33`,
-                              background: realCover ? '#fff' : coverInitBg,
+                              background: realCover ? 'var(--surface-card)' : coverInitBg,
                               boxShadow: '0 2px 6px rgba(15,23,42,0.07)',
                               display: 'flex', alignItems:'center', justifyContent:'center',
                             }}>
@@ -1922,7 +1922,7 @@ export function CognitionView({
                               <div className="flex items-start justify-between gap-2 min-w-0">
                                 <div className="min-w-0 flex-1">
                                   <div className={`min-w-0 truncate text-[15px] leading-[1.3] ${statusDot.strike ? 'line-through' : ''}`}
-                                    style={{ fontWeight: 600, color: isDone ? '#8E8E93' : '#48484A', letterSpacing: '0.1px' }}>
+                                    style={{ fontWeight: 600, color: isDone ? 'var(--text-3)' : 'var(--ink-700)', letterSpacing: '0.1px' }}>
                                     {b.t}
                                   </div>
                                 </div>
@@ -1947,7 +1947,7 @@ export function CognitionView({
                                       onMouseEnter={(e) => {
                                         if (!hasEbookLink) return;
                                         e.currentTarget.style.background = BLUE;
-                                        e.currentTarget.style.color = '#fff';
+                                        e.currentTarget.style.color = 'var(--surface-card)';
                                       }}
                                       onMouseLeave={(e) => {
                                         e.currentTarget.style.background = 'transparent';
@@ -1980,11 +1980,11 @@ export function CognitionView({
                               {/* 进度：% + bar */}
                               <div className="flex items-center gap-[8px] min-w-0">
                                 <span className="text-[12px] font-bold tabular-nums leading-none flex-shrink-0"
-                                  style={{ color: b.st==='done' ? '#34C759' : statusDot.col }}>{pct}%</span>
+                                  style={{ color: b.st==='done' ? 'var(--success)' : statusDot.col }}>{pct}%</span>
                                 <div style={{ width: '100%', height:'5px', borderRadius:'999px', background:'#e2e8f0', overflow:'hidden', flex: '1 1 auto' }}>
                                   <div style={{
                                     width: `${Math.max(0, pct)}%`, height: '100%', borderRadius:'999px',
-                                    background: b.st === 'done' ? '#34C759' : b.st === 'abandoned' ? '#8a9491' : pct <= 0 ? 'transparent' : statusDot.col,
+                                    background: b.st === 'done' ? 'var(--success)' : b.st === 'abandoned' ? '#8a9491' : pct <= 0 ? 'transparent' : statusDot.col,
                                     transition: 'width 300ms ease-out',
                                   }}/>
                                 </div>
@@ -2054,7 +2054,7 @@ export function CognitionView({
                             {hasIns && (
                               <div className="flex items-center gap-[5px]">
                                 <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                  style={{ background: '#34C759' }}>
+                                  style={{ background: 'var(--success)' }}>
                                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                 </div>
                                 <span className="text-[11px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
@@ -2063,7 +2063,7 @@ export function CognitionView({
                             {hasAct && (
                               <div className="flex items-center gap-[5px]">
                                 <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                  style={{ background: '#34C759' }}>
+                                  style={{ background: 'var(--success)' }}>
                                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                 </div>
                                 <span className="text-[11px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
@@ -2075,7 +2075,7 @@ export function CognitionView({
                               return (
                                 <div className="flex items-center gap-[5px]">
                                   <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
-                                    style={{ background: '#34C759' }}>
+                                    style={{ background: 'var(--success)' }}>
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                   </div>
                                   <span className="text-[11px] font-semibold text-ink-600 leading-none">改变 {changeCount} 个</span>
@@ -2131,7 +2131,7 @@ export function CognitionView({
             <>
               <button onClick={() => { if (editingKrModal.kr) setConfirmKrDel(true); }}
                 className="px-4 py-1.5 text-[13px] rounded-[10px] transition"
-                style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.25)', color: '#FF3B30' }}>删除</button>
+                style={{ background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.25)', color: 'var(--danger)' }}>删除</button>
               <div className="flex-1"></div>
               <button onClick={() => setEditingKrModal(null)}
                 className="px-4 py-1.5 text-[13px] rounded-[10px] transition"
@@ -2188,7 +2188,7 @@ export function CognitionView({
                 return (
                   <div key={b.id}
                     className="rounded-xl p-2.5 transition-all hover:shadow-md cursor-pointer"
-                    style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
+                    style={{ background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)' }}
                     onClick={() => onBookEdit?.(b, 'insights')}>
                     {/* 分组标题行：实心灯泡 ③ + 书名 · X组 */}
                     <div className="flex items-center gap-1.5 pb-1 mb-1 border-b border-dashed" style={{ borderColor: 'rgba(15,23,42,0.1)' }}>
@@ -2264,7 +2264,7 @@ export function CognitionView({
                   ).map(([bookKey, actions]) => (
                     <div key={bookKey}
                       className="rounded-xl p-2.5 transition-all hover:shadow-md"
-                      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}>
+                      style={{ background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)' }}>
                       {/* 分组标题：实心灯泡 + 书名（独立行动则不显示书名） */}
                       {bookKey !== '__独立__' && (
                         <div className="flex items-center gap-1.5 pb-1 mb-1 border-b border-dashed" style={{ borderColor: 'rgba(15,23,42,0.1)' }}>
@@ -2288,7 +2288,7 @@ export function CognitionView({
                               onClick={(e) => { e.stopPropagation(); onChangeToggleComplete?.(c.id); }}
                               className="flex-shrink-0 mt-[1px] w-[16px] h-[16px] rounded-full flex items-center justify-center transition"
                               style={{
-                                background: isCompleted ? BLUE : '#fff',
+                                background: isCompleted ? BLUE : 'var(--surface-card)',
                                 border: `1.5px solid ${BLUE}`,
                               }}
                               title={isCompleted ? '点击取消完成' : '点击标记完成'}>
@@ -2379,22 +2379,22 @@ export function CognitionView({
                 const tagMeta = {
                   cognition:    { lb: '认知更新', color: BLUE, bg: `rgba(${S_RGB},0.06)`, bd: `rgba(${S_RGB},0.15)` },
                   habit:        { lb: '长期习惯', color: BLUE, bg: `rgba(${S_RGB},0.16)`, bd: `rgba(${S_RGB},0.27)` },
-                  internalized: { lb: '已内化', color: '#fff', bg: BLUE, bd: BLUE, solid: true },
+                  internalized: { lb: '已内化', color: 'var(--surface-card)', bg: BLUE, bd: BLUE, solid: true },
                   decision:     { lb: '认知更新', color: BLUE, bg: `rgba(${S_RGB},0.06)`, bd: `rgba(${S_RGB},0.15)` },
-                  sop:          { lb: '已内化', color: '#fff', bg: BLUE, bd: BLUE, solid: true },
+                  sop:          { lb: '已内化', color: 'var(--surface-card)', bg: BLUE, bd: BLUE, solid: true },
                 };
                 const tm = tagMeta[r.tag] || tagMeta.cognition;
                 return (
                   <div key={r.id}
                     className="rounded-xl p-2.5 hover:shadow-md transition-all cursor-pointer"
-                    style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
+                    style={{ background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)' }}
                     onClick={() => setEditingReview(r)}>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-[12px] font-semibold text-[#48484A] leading-snug line-clamp-2 flex-1 min-w-0">{r.text || '未命名改变'}</div>
+                      <div className="text-[12px] font-semibold text-[var(--ink-700)] leading-snug line-clamp-2 flex-1 min-w-0">{r.text || '未命名改变'}</div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{
                           background: tm.bg, border: `1px solid ${tm.bd}`,
-                          color: tm.solid ? '#fff' : tm.color,
+                          color: tm.solid ? 'var(--surface-card)' : tm.color,
                         }}>
                           {tm.lb}
                         </span>
@@ -2497,7 +2497,7 @@ export function CognitionView({
               onChange={(e) => setWereadKey(e.target.value)}
               placeholder="粘贴 API Key，如：wrk_xxxxxxxxxxxxxxxx"
               className="px-3 py-2 text-[13px] rounded-[10px] focus:outline-none font-mono transition"
-              style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
+              style={{ background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)' }}
             />
           </div>
         </Modal>

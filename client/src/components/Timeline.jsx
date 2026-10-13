@@ -726,10 +726,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   // 今日视图的日期标签跟随选中日（dateScopeLabel：今天→「今日」，其余→「9.10」等），修复标题与数据脱节
   const titleText = view === 'today'
-    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">{dateScopeLabel(date)}</span></>
+    ? <>全部事项 <span className="text-[var(--ink-300)] font-medium">·</span> <span className="text-[color:var(--s-main)]">{dateScopeLabel(date)}</span></>
     : view === 'week'
-    ? <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">本周</span></>
-    : <>全部事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">本月</span></>;
+    ? <>全部事项 <span className="text-[var(--ink-300)] font-medium">·</span> <span className="text-[color:var(--s-main)]">本周</span></>
+    : <>全部事项 <span className="text-[var(--ink-300)] font-medium">·</span> <span className="text-[color:var(--s-main)]">本月</span></>;
 
   // 计算事项在 [hHour:00, hHour+1:00) 半开区间内占用的分钟数（用于分段行高）
   function minutesInHour(item, hHour) {
@@ -1033,7 +1033,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               >
                 <span
                   className="absolute right-2 -translate-y-full text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                  style={{ background: 'var(--s-main)', color: '#fff' }}
+                  style={{ background: 'var(--s-main)', color: 'var(--surface-card)' }}
                 >
                   {fmtHHMM(snapMin(pxToMin(dragOverY)))}
                 </span>
@@ -1109,7 +1109,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'rgba(142,142,147,0.35)' }} />
                       </span>
                       <div className="tl-event-text">
-                        <div className="tl-event-title" style={{ color: '#8e8e93', fontWeight: '400' }}>
+                        <div className="tl-event-title" style={{ color: 'var(--text-3)', fontWeight: '400' }}>
                           {item.emoji ? item.emoji + ' ' : ''}{item.title}
                         </div>
                         {hPx >= 48 && (
@@ -1292,7 +1292,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
                       onClick={(e) => { e.stopPropagation(); toggleSchedule(s); }}
                     />
-                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+                    <span className={`text-[14px] flex-1 ${done ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
                       {s.title}
                     </span>
                     <span className={`w-2 h-2 flex-shrink-0 ${square ? 'rounded-[2px]' : 'rounded-full'}`} style={{background: color}}></span>
@@ -1324,7 +1324,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
                       onClick={(e) => { e.stopPropagation(); toggleHabit(h); }}
                     />
-                    <span className={`text-[14px] flex-1 ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+                    <span className={`text-[14px] flex-1 ${done ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
                       {h.emoji} {h.name}
                     </span>
                     <span
@@ -1339,8 +1339,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         )}
 
         {todaySchedules.length === 0 && todayHabits.length === 0 && (
-          <div className="text-center py-8 text-sm text-[#8e8e93]">
-            <svg className="w-6 h-6 mx-auto mb-2 text-[#c7c7cc]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <div className="text-center py-8 text-sm text-[var(--text-3)]">
+            <svg className="w-6 h-6 mx-auto mb-2 text-[var(--ink-300)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="9"></circle>
               <polyline points="12 7 12 12 15.5 14"></polyline>
             </svg>
@@ -1364,8 +1364,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
     if (sortedDates.length === 0) {
       return (
-        <div className="text-center py-8 text-sm text-[#8e8e93]">
-          <svg className="w-6 h-6 mx-auto mb-2 text-[#c7c7cc]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <div className="text-center py-8 text-sm text-[var(--text-3)]">
+          <svg className="w-6 h-6 mx-auto mb-2 text-[var(--ink-300)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="9"></circle>
             <polyline points="12 7 12 12 15.5 14"></polyline>
           </svg>
@@ -1389,9 +1389,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           return (
             <div key={d} className="mb-2">
               <div className="flex items-center gap-2 mb-1.5 px-1 sticky top-0 bg-white/60 backdrop-blur-sm py-1.5 z-10 rounded">
-                <div className="w-2 h-2 rounded-[2px] bg-[#1c1c1e] shrink-0"></div>
-                <p className="text-[13px] font-semibold text-[#1c1c1e]">{label}</p>
-                <span className="text-[11px] text-[#8e8e93]">{items.length} 项 · 已完成 {doneCount}</span>
+                <div className="w-2 h-2 rounded-[2px] bg-[var(--text-1)] shrink-0"></div>
+                <p className="text-[13px] font-semibold text-[var(--text-1)]">{label}</p>
+                <span className="text-[11px] text-[var(--text-3)]">{items.length} 项 · 已完成 {doneCount}</span>
               </div>
 
               <div className="space-y-0.5">
@@ -1434,11 +1434,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                           }}
                         />
                         <div className="flex-1">
-                          <p className={`text-[14px] ${done ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+                          <p className={`text-[14px] ${done ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
                             {item.emoji ? item.emoji + ' ' : ''}{item.title}
                           </p>
                           {timeLabel && (
-                            <p className={`text-[12px] mt-0.5 ${done ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>{timeLabel}</p>
+                            <p className={`text-[12px] mt-0.5 ${done ? 'text-[#aeaeae]' : 'text-[var(--text-3)]'}`}>{timeLabel}</p>
                           )}
                         </div>
                         <span
@@ -1476,7 +1476,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 fontWeight: showSummary ? 600 : 500,
                 ...(showSummary ? {
                   background: 'var(--s-main)',
-                  color: '#fff',
+                  color: 'var(--surface-card)',
                   border: 'none',
                   boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25), 0 1px 1px rgba(0,0,0,0.04)',
                 } : {}),
@@ -1499,14 +1499,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             borderRadius: '8px',
             fontSize: '12px',
             fontWeight: '500',
-            color: '#8e8e93',
+            color: 'var(--text-3)',
             background: 'rgba(142,142,147,0.10)',
             border: 'none',
             cursor: 'pointer',
             transition: 'all .15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#6c6c70'; e.currentTarget.style.background = 'rgba(142,142,147,0.18)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#8e8e93'; e.currentTarget.style.background = 'rgba(142,142,147,0.10)'; }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'rgba(142,142,147,0.18)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'rgba(142,142,147,0.10)'; }}
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{flexShrink:0}}>
             <path d="M12 17v5"></path>
@@ -1603,7 +1603,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             <span style={{
               fontSize: '10px', fontWeight: 700,
               padding: '2px 7px', borderRadius: '4px',
-              background: 'var(--s-main)', color: '#fff',
+              background: 'var(--s-main)', color: 'var(--surface-card)',
               letterSpacing: '0.02em',
             }}>已打开</span>
           )}
@@ -1643,7 +1643,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         {docLinks.length === 0 && !editingDoc && (
           <div style={{
             padding: '6px 12px 10px',
-            fontSize: '12px', color: '#c7c7cc',
+            fontSize: '12px', color: 'var(--ink-300)',
             textAlign: 'center',
             lineHeight: 1.6,
           }}>
@@ -1660,7 +1660,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               display: 'flex', alignItems: 'center', gap: '12px',
               padding: '7px 10px', borderRadius: '8px',
               cursor: 'pointer', fontSize: '13px',
-              color: '#1c1c1e',
+              color: 'var(--text-1)',
               transition: 'background .12s',
               minHeight: '34px',
             }}
@@ -1706,7 +1706,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 fontSize: '12.5px',
                 borderRadius: '8px',
                 border: '1px solid rgba(0,0,0,0.1)',
-                background: '#fff',
+                background: 'var(--surface-card)',
                 outline: 'none',
                 width: '100%',
                 boxSizing: 'border-box',
@@ -1722,7 +1722,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 fontSize: '12.5px',
                 borderRadius: '8px',
                 border: '1px solid rgba(0,0,0,0.1)',
-                background: '#fff',
+                background: 'var(--surface-card)',
                 outline: 'none',
                 width: '100%',
                 boxSizing: 'border-box',
@@ -1734,7 +1734,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 style={{
                   padding: '5px 12px', borderRadius: '8px',
                   border: 'none',
-                  background: 'rgba(120,120,128,0.12)', color: '#3c3c43',
+                  background: 'rgba(120,120,128,0.12)', color: 'var(--text-2)',
                   fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   transition: 'background .12s',
                 }}
@@ -1757,7 +1757,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 style={{
                   padding: '5px 12px', borderRadius: '8px', border: 'none',
                   background: (!editingDoc.name?.trim() || !editingDoc.url?.trim() || !/^https?:\/\//i.test(editingDoc.url || '')) ? 'rgba(var(--s-rgb),0.4)' : 'var(--s-main)',
-                  color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  color: 'var(--surface-card)', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   transition: 'all .12s',
                 }}
                 onMouseEnter={(e) => {

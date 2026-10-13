@@ -820,7 +820,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
             });
           });
         }
-      } catch (_) { if (!cancelled) setApiSchedules([]); }
+      } catch (_) {
+        // 读取/注入失败（移动端网络抖动、8s 超时、非 JSON 兜底，或后续注入过程异常）：
+        // 保留上一份 apiSchedules，不清空日历事件源 —— 与主页同款修复，只有成功响应才覆盖
+      }
 
       if (!cancelled) setTick(v => v + 1);
     })();

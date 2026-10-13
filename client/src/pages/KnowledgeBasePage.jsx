@@ -13,6 +13,7 @@ import {
   IconFolder, IconFile, IconTrash, IconX, IconDots, IconArrowUpRight,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
+import { store } from '../utils/store.js';
 
 /* 知识库页面 · 三级结构（知识库书架 → 目录 → 正文）
    · 外层一张大卡片，内部分左右两张白卡（左：知识库；右：目录 + 正文）
@@ -293,6 +294,12 @@ export default function KnowledgeBasePage() {
     reload();
     syncKBFromCloud().then(() => { ensureKBBooks(); reload(); });
   }, [reload]);
+
+  // 全局同步信号：自动/手动同步广播 reload → 重新从云端拉取并重读（跨设备知识库即时展示）
+  useEffect(() => store.subscribe(msg => {
+    if (msg?.type !== 'reload') return;
+    syncKBFromCloud().then(() => { ensureKBBooks(); reload(); });
+  }), [reload]);
 
   // 切换知识库时，自动选中该库首篇文档
   useEffect(() => {

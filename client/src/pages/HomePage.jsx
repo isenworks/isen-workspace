@@ -672,7 +672,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative md:shrink-0">
         <div
-          className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group md:h-[168px]"
+          className="relative overflow-hidden px-5 py-6 sm:px-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6 rounded-[18px] group md:h-[168px]"
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
           {...lp.bind(() => setHeroEditOpen(v => !v))}
@@ -726,14 +726,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             <span className="text-[12px] font-semibold tracking-wide" style={{ color: 'rgba(255,255,255,0.72)' }}>
               {`${now.getMonth() + 1}月${now.getDate()}日 周${'日一二三四五六'[now.getDay()]} · 余${daysLeftInYear}天`}
             </span>
-            <span className="text-[28px] font-extrabold text-white tracking-tight">{greeting}，{name}</span>
+            <span className="text-[22px] sm:text-[28px] font-extrabold text-white tracking-tight">{greeting}，{name}</span>
             <span className="text-[13.5px] font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
               {hour < 12 ? '新的一天，从最重要的事开始' : hour < 18 ? '午后时光，保持节奏' : '回顾一下今天的收获吧'}
             </span>
           </div>
 
           {/* 右：签名 / 座右铭（点击编辑，回车/失焦保存） */}
-          <div className="relative z-[2] flex items-center gap-2 min-w-0 max-w-[440px]">
+          <div className="relative z-[2] flex items-center gap-2 min-w-0 w-full sm:w-auto sm:max-w-[440px]">
             {sigEditing ? (
               <input
                 autoFocus

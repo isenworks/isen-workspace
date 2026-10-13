@@ -136,44 +136,62 @@ export default function Workspace({ user: propUser }) {
   // 2) 定时轮询兜底（防止一直停在页面没切走）
   const [syncSignal, setSyncSignal] = useState(0);
 
-  const doAutoSync = useCallback(() => {
+  // 统一自动同步：refreshKey 驱动「API 面板」（首页/今日计划）重拉，
+  // store 广播 reload 驱动其余视图（日历/知识库/年度等订阅方）重读数据 —— 二者缺一，
+  // 就会出现「只有某些页面同步、某些页面怎么点都没反应」
+  const doAutoSync = useCallback((force = false) => {
     const now = Date.now();
-    // 至少间隔 15 秒，避免频繁切换标签页导致 API 风暴
-    if (now - lastSyncRef.current < 15000) return;
+    // 常规轮询 15s 防抖；force（切回前台 / 网络恢复 / 冷启动）仅 1s 节流，确保移动端切回即刷新
+    const minGap = force ? 1000 : 15000;
+    if (now - lastSyncRef.current < minGap) return;
     lastSyncRef.current = now;
     refresh();
     setSyncSignal(s => s + 1);
+    store.broadcast({ type: 'reload' }); // 全局：日历/知识库/年度等订阅方重读
   }, [refresh]);
 
-  // 切回标签页时自动同步
+  // 手动同步（侧边栏 / 首页同步按钮）：无条件刷新全部面板，不受防抖限制
+  const doManualSync = useCallback(() => {
+    lastSyncRef.current = Date.now();
+    refresh();
+    setSyncSignal(s => s + 1);
+    store.broadcast({ type: 'reload' });
+  }, [refresh]);
+
+  // 切回标签页 / 窗口重获焦点 / 网络恢复：强制同步（移动端最常见路径，切回即更新）
   useEffect(() => {
-    function onVisibility() {
-      if (document.visibilityState === 'visible') {
-        doAutoSync();
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    function onVisible() { if (document.visibilityState === 'visible') doAutoSync(true); }
+    function onOnline() { doAutoSync(true); }
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    window.addEventListener('online', onOnline);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+      window.removeEventListener('online', onOnline);
+    };
   }, [doAutoSync]);
 
-  // 首次进入：冷启动没有 visibilitychange 事件，主动同步一次，确保首页/各面板拿到最新数据
-  // （此前只依赖 120s 轮询与手动同步，导致「打开后要点一下同步按钮才出内容」）
-  const bootSyncedRef = useRef(false);
+  // 冷启动主动同步：无 visibilitychange 事件，需主动拉一次；
+  // 多次重试（300ms / 1.8s）覆盖鉴权 token、网络就绪的延迟，避免「打开后空白要点同步」
   useEffect(() => {
-    if (bootSyncedRef.current) return;
-    bootSyncedRef.current = true;
-    const t = setTimeout(() => doAutoSync(), 350);
-    return () => clearTimeout(t);
+    const timers = [300, 1800].map(ms => setTimeout(() => doAutoSync(true), ms));
+    return () => timers.forEach(clearTimeout);
   }, [doAutoSync]);
 
-  // 定时轮询：每 120 秒自动刷新一次（仅当页面可见时）
+  // 定时轮询兜底：每 120 秒刷新一次（仅当页面可见时）
   useEffect(() => {
     const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        doAutoSync();
-      }
+      if (document.visibilityState === 'visible') doAutoSync(false);
     }, 120000);
     return () => clearInterval(timer);
+  }, [doAutoSync]);
+
+  // 云端 KV 拉取完成（跨设备数据落到本地）→ 立即全局重读，令日历/知识库等同步展示
+  useEffect(() => {
+    const onCloud = (e) => { if (e.detail?.status === 'pulled') doAutoSync(true); };
+    window.addEventListener('cloudkv', onCloud);
+    return () => window.removeEventListener('cloudkv', onCloud);
   }, [doAutoSync]);
 
   // ===== 收集箱待分派计数：挂载 + 全局刷新（refreshKey）时同步 =====
@@ -567,11 +585,7 @@ export default function Workspace({ user: propUser }) {
         onShortcutsClick={() => { setShortcutsOpen(true); setMobileNavOpen(false); }}
         onSearchClick={() => { setSearchOpen(true); setMobileNavOpen(false); }}
         syncSignal={syncSignal}
-        onSync={async () => {
-          // 手动同步：立即刷新所有面板
-          lastSyncRef.current = Date.now();
-          refresh();
-        }}
+        onSync={doManualSync}
         onUserUpdate={(updatedUser) => {
           updateUser({ avatar: updatedUser.avatar });
         }}
@@ -618,11 +632,7 @@ export default function Workspace({ user: propUser }) {
             onEditBook={(book) => setModal({ type: 'book', initial: book, tab: 'basic' })}
             onQuickCapture={() => setQuickCaptureOpen(true)}
             onOpenSummary={openDailySummary}
-            onSync={() => {
-              // 与侧边栏手动同步同款：刷新全部面板数据
-              lastSyncRef.current = Date.now();
-              refresh();
-            }}
+            onSync={doManualSync}
           />
         </div>
       ) : activeMenu === 'annual' ? (

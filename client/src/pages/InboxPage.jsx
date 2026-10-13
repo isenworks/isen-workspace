@@ -114,6 +114,12 @@ export default function InboxPage({ onCountChange }) {
 
   useEffect(() => { loadItems(); loadTags(); }, [loadItems, loadTags]);
 
+  // 全局同步信号：自动/手动同步广播 reload → 重拉小记列表与标签（跨设备即时展示）
+  useEffect(() => store.subscribe(msg => {
+    if (msg?.type !== 'reload') return;
+    loadItems(); loadTags();
+  }), [loadItems, loadTags]);
+
   // 小记保存后：刷新列表让左侧卡片即时出现；
   // 手动保存会带回记录（item），此时选中它，让编辑区保持显示已保存的内容；
   // 自动保存不带记录，只刷列表、不改选中，避免打断正在输入的光标。

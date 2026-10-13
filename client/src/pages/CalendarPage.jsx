@@ -592,6 +592,11 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   // 强制刷新月历事件 done 态引用
   const [tick, setTick] = useState(0);
 
+  // 全局同步信号：自动/手动同步广播 reload 时 +1，驱动本页「重拉 API + 重读 localStorage 年度数据」
+  // （此前日历未订阅同步，导致跨设备数据已到本地但页面不刷新）
+  const [syncTick, setSyncTick] = useState(0);
+  useEffect(() => store.subscribe(msg => { if (msg?.type === 'reload') setSyncTick(t => t + 1); }), []);
+
   // 需求 4：当日详情弹层 Modal —— 点击日格空白/日期/今日/热力点/+更多 打开
   const [dayDetail, setDayDetail] = useState(null); // { date } | null
 
@@ -820,7 +825,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       if (!cancelled) setTick(v => v + 1);
     })();
     return () => { cancelled = true; };
-  }, [year, month, computeInitialMonthTasks]);
+  }, [year, month, computeInitialMonthTasks, syncTick]);
 
   /* ===== 跨组件同步：ScheduleForm 保存/删除事项后，实时注入或移除主线对应条目
        · 全分类放行：五大模块 + 其他/财务/自定义类型事项都进主线（时间顺序视图显示所有事项）

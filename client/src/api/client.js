@@ -12,7 +12,12 @@ function unlockToken() {
   return localStorage.getItem('pw_unlock_token') || '';
 }
 
-// 通用 fetch 包装（8 秒超时兜底，避免 API 进程挂掉时 loading 永久卡死）
+// 通用 fetch 包装（8 秒超时兜底 + 瞬时故障单次自动重试）
+//   瞬时故障：网络错误、或 Cloudflare 边缘 502 / 503 / 504（部署切换、边缘抖动、容量抖动）。
+//   这类响应通常代表请求未进入业务处理，重试安全，可避免移动端偶发「HTTP 503，非 JSON」直接失败。
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function fetchPages(path, body = {}, method = 'POST') {
   const isGET = String(method).toUpperCase() === 'GET';
   const hdrs = {
@@ -24,16 +29,29 @@ async function fetchPages(path, body = {}, method = 'POST') {
     headers: hdrs,
   };
   if (!isGET) init.body = JSON.stringify(body || {});
-  // AbortController 超时兜底：8 秒
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 8000);
-  init.signal = ctl.signal;
+
   let res;
-  try {
-    res = await fetch('/api' + path, init);
-  } finally {
-    clearTimeout(timer);
+  for (let attempt = 0; ; attempt++) {
+    // 每次尝试用独立的 AbortController：8 秒超时
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
+    let netErr = null;
+    try {
+      res = await fetch('/api' + path, { ...init, signal: ctl.signal });
+    } catch (e) {
+      netErr = e;
+    } finally {
+      clearTimeout(timer);
+    }
+    // 判定是否可重试：网络错误可重试（超时中断除外，避免总等待翻倍）；边缘 5xx 可重试
+    const retryable = netErr
+      ? netErr.name !== 'AbortError'
+      : RETRYABLE_STATUS.has(res.status);
+    if (retryable && attempt === 0) { await sleep(600); continue; }
+    if (netErr) throw netErr;
+    break;
   }
+
   let data;
   try { data = await res.json(); } catch { data = null; }
   // 200 但响应体不是 JSON（如 Functions 路由缺失时被 SPA 兜底 `/* /index.html 200` 接管）：

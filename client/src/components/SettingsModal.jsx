@@ -174,28 +174,28 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
       zIndex: 'var(--z-modal)'
     }} onClick={onClose}>
       <div style={{
-        background: '#fff', borderRadius: '14px', width: '680px', maxWidth: '94vw',
+        background: 'var(--surface-card)', borderRadius: '14px', width: '680px', maxWidth: '94vw',
         maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
       }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={{
-          padding: '18px 20px', borderBottom: '1px solid #e5e5ea',
+          padding: '18px 20px', borderBottom: '1px solid var(--ink-100)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1c1c1e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>
             </svg>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1c1c1e' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text-1)' }}>
               系统设置
             </h3>
           </div>
           <button onClick={onClose} style={{
             width: '28px', height: '28px', borderRadius: '50%', border: 'none',
             background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
-            fontSize: '16px', color: '#8e8e93', display: 'flex',
+            fontSize: '16px', color: 'var(--text-3)', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
             transition: 'all 0.15s'
           }}>
@@ -209,13 +209,13 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
         {!isAdmin && (
           <>
             {/* Tabs（非管理员：外观 + 数据备份） */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--ink-100)' }}>
               {[{ key: 'appearance', label: '外观' }, { key: 'backup', label: '数据备份' }].map(t => (
                 <button key={t.key} onClick={() => setTab(t.key)} style={{
                   flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
                   cursor: 'pointer', fontSize: '14px',
                   fontWeight: tab === t.key ? '600' : '400',
-                  color: tab === t.key ? 'var(--s-main)' : '#8e8e93',
+                  color: tab === t.key ? 'var(--s-main)' : 'var(--text-3)',
                   borderBottom: tab === t.key ? '2px solid var(--s-main)' : '2px solid transparent',
                   transition: 'all 0.15s'
                 }}>{t.label}</button>
@@ -237,7 +237,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
         {isAdmin && (
           <>
             {/* Tabs（4 Tab → 3 Tab：邀请码管理 + 用户管理 合并为「邀请与用户」） */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #e5e5ea' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--ink-100)' }}>
               {[
                 { key: 'appearance', label: '外观' },
                 { key: 'admin', label: '邀请与用户' },
@@ -248,7 +248,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                   flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
                   cursor: 'pointer', fontSize: '14px',
                   fontWeight: tab === t.key ? '600' : '400',
-                  color: tab === t.key ? 'var(--s-main)' : '#8e8e93',
+                  color: tab === t.key ? 'var(--s-main)' : 'var(--text-3)',
                   borderBottom: tab === t.key ? '2px solid var(--s-main)' : '2px solid transparent',
                   transition: 'all 0.15s'
                 }}>{t.label}</button>
@@ -261,10 +261,10 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 margin: '12px 20px 0', 
                 padding: '10px 14px', 
                 fontSize: '13px', 
-                color: '#FF3B30', 
-                background: '#FFEEED',
+                color: 'var(--danger)', 
+                background: 'var(--danger-soft)',
                 borderRadius: '8px',
-                border: '1px solid #FFD9D6',
+                border: '1px solid var(--danger-border)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -297,9 +297,9 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   <BackupSection />
-                  <div style={{ height: '1px', background: '#e5e5ea' }} />
+                  <div style={{ height: '1px', background: 'var(--ink-100)' }} />
                   <RestoreSection />
-                  <div style={{ height: '1px', background: '#e5e5ea' }} />
+                  <div style={{ height: '1px', background: 'var(--ink-100)' }} />
                   <MigrateTab
                     value={migrate}
                     onChange={setMigrate}
@@ -322,18 +322,18 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
             zIndex: 10, borderRadius: '14px'
           }} onClick={() => setConfirmBan(null)}>
             <div style={{
-              background: '#fff', borderRadius: '16px', width: '340px', padding: '28px 24px',
+              background: 'var(--surface-card)', borderRadius: '16px', width: '340px', padding: '28px 24px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
             }} onClick={(e) => e.stopPropagation()}>
               <div style={{ 
                 textAlign: 'center', 
                 marginBottom: '16px',
                 width: '48px', height: '48px', borderRadius: '50%',
-                background: '#FFEEED', display: 'flex',
+                background: 'var(--danger-soft)', display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px'
               }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="12"></line>
                   <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -342,19 +342,19 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               <div style={{ fontSize: '17px', fontWeight: '600', textAlign: 'center', marginBottom: '8px' }}>
                 禁用该用户？
               </div>
-              <div style={{ fontSize: '13px', color: '#8e8e93', textAlign: 'center', marginBottom: '24px', lineHeight: 1.5 }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-3)', textAlign: 'center', marginBottom: '24px', lineHeight: 1.5 }}>
                 禁用后该用户将无法登录工作台。<br/>此操作可随时恢复。
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setConfirmBan(null)} style={{
                   flex: 1, padding: '11px', borderRadius: '10px',
-                  background: '#f5f5f7', color: '#1c1c1e',
+                  background: 'var(--surface-fill)', color: 'var(--text-1)',
                   border: 'none', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
                   transition: 'all 0.15s'
                 }}>取消</button>
                 <button onClick={() => handleBanUser(confirmBan.userId)} disabled={busy} style={{
                   flex: 1, padding: '11px', borderRadius: '10px',
-                  background: busy ? '#ccc' : '#FF3B30', color: '#fff',
+                  background: busy ? 'var(--ink-disabled)' : 'var(--danger)', color: 'var(--surface-card)',
                   border: 'none', fontWeight: '600', fontSize: '14px', cursor: busy ? 'not-allowed' : 'pointer',
                   transition: 'all 0.15s'
                 }}>{busy ? '处理中...' : '确认禁用'}</button>
@@ -424,12 +424,12 @@ function AppearanceTab({ themeKey, onSelect }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>主题颜色</div>
-          <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>点击切换配色，拖拽卡片可自定义排序，自动保存</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-1)' }}>主题颜色</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>点击切换配色，拖拽卡片可自定义排序，自动保存</div>
         </div>
         <button onClick={() => setEditing({ mode: 'add', hex: '#007AFF', label: '' })} style={{
           padding: '6px 14px', borderRadius: '8px', border: 'none',
-          background: 'var(--s-main)', color: '#fff', fontSize: '12px', fontWeight: '600',
+          background: 'var(--s-main)', color: 'var(--surface-card)', fontSize: '12px', fontWeight: '600',
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
           boxShadow: '0 1px 4px rgba(var(--s-rgb),0.3)', transition: 'all 0.15s',
         }}>
@@ -455,7 +455,7 @@ function AppearanceTab({ themeKey, onSelect }) {
               onClick={() => handleSelect(t.key)} style={{
               display: 'flex', flexDirection: 'column', gap: '4px',
               padding: '6px 6px', borderRadius: '8px',
-              background: active ? 'rgba(var(--s-rgb),0.06)' : '#f5f5f7',
+              background: active ? 'rgba(var(--s-rgb),0.06)' : 'var(--surface-fill)',
               border: dropping ? '1.5px dashed var(--s-main)' : active ? '1.5px solid var(--s-main)' : '1.5px solid transparent',
               cursor: 'grab', transition: 'all 0.15s', position: 'relative',
               opacity: dragging ? 0.4 : 1,
@@ -467,10 +467,10 @@ function AppearanceTab({ themeKey, onSelect }) {
                   background: `linear-gradient(135deg, ${t.gradFrom} 0%, ${t.gradTo} 100%)`,
                   boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.3)',
                 }} />
-                <span style={{ fontSize: '11.5px', fontWeight: '600', color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span>
+                <span style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span>
               </div>
               {/* hex 码 */}
-              <span style={{ fontSize: '11px', color: '#8e8e93', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t.gradFrom === t.gradTo ? t.main.toUpperCase() : `${t.gradFrom.toUpperCase()}→${t.gradTo.toUpperCase()}`}
               </span>
               {/* 自定义操作按钮：右上角 */}
@@ -479,14 +479,14 @@ function AppearanceTab({ themeKey, onSelect }) {
                   <button onClick={(e) => { e.stopPropagation(); setEditing({ mode: 'edit', key: t.key, hex: t.main, label: t.label }); }} style={{
                     width: '18px', height: '18px', borderRadius: '4px', border: 'none',
                     background: 'rgba(120,120,128,0.15)', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)',
                   }} title="编辑">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
                   <button onClick={(e) => { e.stopPropagation(); setConfirmDel(t.key); }} style={{
                     width: '18px', height: '18px', borderRadius: '4px', border: 'none',
-                    background: 'rgba(255,59,48,0.12)', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF3B30',
+                    background: 'rgba(var(--danger-rgb),0.12)', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)',
                   }} title="删除">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   </button>
@@ -503,17 +503,17 @@ function AppearanceTab({ themeKey, onSelect }) {
 
       {/* 效果预览 */}
       <div style={{
-        borderRadius: '10px', background: '#f5f5f7', padding: '10px 14px',
+        borderRadius: '10px', background: 'var(--surface-fill)', padding: '10px 14px',
         display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
       }}>
-        <span style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93' }}>预览</span>
+        <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-3)' }}>预览</span>
         <span style={{
           padding: '5px 14px', borderRadius: '8px', background: 'var(--s-grad-bg)',
-          color: '#fff', fontSize: '12px', fontWeight: '600',
+          color: 'var(--surface-card)', fontSize: '12px', fontWeight: '600',
           boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)',
         }}>主按钮</span>
         <span style={{ fontSize: '12px', color: 'var(--s-main)', fontWeight: '500' }}>链接</span>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#1c1c1e', cursor: 'pointer' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-1)', cursor: 'pointer' }}>
           <input type="checkbox" className="cb-square" defaultChecked readOnly />
           复选框
         </label>
@@ -545,19 +545,19 @@ function AppearanceTab({ themeKey, onSelect }) {
           zIndex: 10, borderRadius: '14px',
         }} onClick={() => setConfirmDel(null)}>
           <div style={{
-            background: '#fff', borderRadius: '14px', padding: '24px 20px', width: '300px',
+            background: 'var(--surface-card)', borderRadius: '14px', padding: '24px 20px', width: '300px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: '15px', fontWeight: '600', textAlign: 'center', marginBottom: '8px' }}>删除该主题色？</div>
-            <div style={{ fontSize: '12px', color: '#8e8e93', textAlign: 'center', marginBottom: '18px' }}>删除后不可恢复</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-3)', textAlign: 'center', marginBottom: '18px' }}>删除后不可恢复</div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setConfirmDel(null)} style={{
                 flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
-                background: '#f5f5f7', color: '#1c1c1e', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                background: 'var(--surface-fill)', color: 'var(--text-1)', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
               }}>取消</button>
               <button onClick={() => handleDelete(confirmDel)} style={{
                 flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
-                background: '#FF3B30', color: '#fff', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                background: 'var(--danger)', color: 'var(--surface-card)', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
               }}>确认删除</button>
             </div>
           </div>
@@ -587,14 +587,14 @@ function ModuleColorSection({ onEdit }) {
 
   return (
     <div style={{
-      borderTop: '1px solid #e5e5ea', paddingTop: '12px', marginTop: '4px',
+      borderTop: '1px solid var(--ink-100)', paddingTop: '12px', marginTop: '4px',
       display: 'flex', flexDirection: 'column', gap: '8px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1c1c1e' }}>模块颜色</div>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-1)' }}>模块颜色</div>
         <button onClick={handleResetAll} style={{
           padding: '4px 10px', borderRadius: '7px', border: 'none',
-          background: 'rgba(120,120,128,0.12)', color: '#8e8e93',
+          background: 'rgba(120,120,128,0.12)', color: 'var(--text-3)',
           fontSize: '11px', fontWeight: '500', cursor: 'pointer',
         }}>全部重置</button>
       </div>
@@ -606,16 +606,16 @@ function ModuleColorSection({ onEdit }) {
           return (
             <div key={m.key} onClick={() => onEdit(m.hex, m.label, m.key)} style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
-              padding: '6px 4px', borderRadius: '8px', background: '#f5f5f7',
+              padding: '6px 4px', borderRadius: '8px', background: 'var(--surface-fill)',
               cursor: 'pointer', transition: 'all 0.15s', position: 'relative',
             }}>
               <div style={{
                 width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0,
                 background: m.hex, boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.25)',
               }} />
-              <span style={{ fontSize: '11px', fontWeight: '600', color: '#1c1c1e' }}>{m.label}</span>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-1)' }}>{m.label}</span>
               <span style={{
-                fontSize: '10.5px', color: '#8e8e93',
+                fontSize: '10.5px', color: 'var(--text-3)',
                 whiteSpace: 'nowrap',
               }}>{m.hex.toUpperCase()}</span>
               {/* 非默认色：右上角重置点 */}
@@ -624,7 +624,7 @@ function ModuleColorSection({ onEdit }) {
                   position: 'absolute', top: '2px', right: '2px',
                   width: '14px', height: '14px', borderRadius: '50%', border: 'none',
                   background: 'rgba(120,120,128,0.2)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)',
                 }} title="重置">
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                 </button>
@@ -643,8 +643,8 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
   const [label, setLabel] = useState(initialLabel || '');
   const valid = isValidHex(hex);
   // 派生预览色（内联，不依赖 theme.js 内部函数）
-  const previewBg = valid ? `linear-gradient(135deg, ${hex} 0%, ${hex} 100%)` : '#ccc';
-  const previewMain = valid ? hex : '#ccc';
+  const previewBg = valid ? `linear-gradient(135deg, ${hex} 0%, ${hex} 100%)` : 'var(--ink-disabled)';
+  const previewMain = valid ? hex : 'var(--ink-disabled)';
   const previewRgb = valid ? (() => {
     const h = hex.replace('#', '');
     return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`;
@@ -663,7 +663,7 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
       zIndex: 10, borderRadius: '14px',
     }} onClick={onClose}>
       <div style={{
-        background: '#fff', borderRadius: '14px', padding: '22px 20px', width: '380px',
+        background: 'var(--surface-card)', borderRadius: '14px', padding: '22px 20px', width: '380px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -671,7 +671,7 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
           <button onClick={onClose} style={{
             width: '24px', height: '24px', borderRadius: '50%', border: 'none',
             background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)',
           }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -679,7 +679,7 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
 
         {/* 颜色码输入 + 取色器 */}
         <div style={{ marginBottom: '12px' }}>
-          <label style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93', display: 'block', marginBottom: '5px' }}>颜色码</label>
+          <label style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-3)', display: 'block', marginBottom: '5px' }}>颜色码</label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input
               value={hex}
@@ -687,14 +687,14 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
               placeholder="#007AFF"
               style={{
                 flex: 1, padding: '8px 10px', borderRadius: '8px',
-                border: valid ? '1px solid #e5e5ea' : '1.5px solid #FF3B30',
+                border: valid ? '1px solid var(--ink-100)' : '1.5px solid var(--danger)',
                 fontSize: '14px',
-                outline: 'none', color: '#1c1c1e', background: '#fafafa',
+                outline: 'none', color: 'var(--text-1)', background: 'var(--surface-sunken)',
               }}
             />
             <div style={{
               width: '34px', height: '34px', borderRadius: '8px',
-              border: '1px solid #e5e5ea', overflow: 'hidden', flexShrink: 0,
+              border: '1px solid var(--ink-100)', overflow: 'hidden', flexShrink: 0,
             }}>
               <input
                 type="color"
@@ -708,21 +708,21 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
               />
             </div>
           </div>
-          {!valid && <div style={{ fontSize: '11px', color: '#FF3B30', marginTop: '4px' }}>格式无效，需 # + 6位十六进制</div>}
+          {!valid && <div style={{ fontSize: '11px', color: 'var(--danger)', marginTop: '4px' }}>格式无效，需 # + 6位十六进制</div>}
         </div>
 
         {/* 名称输入（模块色模式隐藏） */}
         {!moduleKey && (
         <div style={{ marginBottom: '14px' }}>
-          <label style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93', display: 'block', marginBottom: '5px' }}>名称</label>
+          <label style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-3)', display: 'block', marginBottom: '5px' }}>名称</label>
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="如：克莱因蓝"
             style={{
               width: '100%', padding: '8px 10px', borderRadius: '8px',
-              border: '1px solid #e5e5ea', fontSize: '13px',
-              outline: 'none', color: '#1c1c1e', background: '#fafafa',
+              border: '1px solid var(--ink-100)', fontSize: '13px',
+              outline: 'none', color: 'var(--text-1)', background: 'var(--surface-sunken)',
             }}
           />
         </div>
@@ -730,13 +730,13 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
 
         {/* 效果预览（跟随输入 hex 实时渲染） */}
         <div style={{
-          borderRadius: '10px', background: '#f5f5f7', padding: '12px 14px',
+          borderRadius: '10px', background: 'var(--surface-fill)', padding: '12px 14px',
           marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
         }}>
-          <span style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93' }}>预览</span>
+          <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-3)' }}>预览</span>
           <span style={{
             padding: '5px 14px', borderRadius: '8px', background: previewBg,
-            color: '#fff', fontSize: '12px', fontWeight: '600',
+            color: 'var(--surface-card)', fontSize: '12px', fontWeight: '600',
             boxShadow: `0 2px 6px rgba(${previewRgb},0.25)`,
           }}>主按钮</span>
           <span style={{ fontSize: '12px', color: previewMain, fontWeight: '500' }}>链接</span>
@@ -744,7 +744,7 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
             width: '16px', height: '16px', borderRadius: '50%',
             background: previewMain, display: 'inline-flex',
             alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontSize: '10px', fontWeight: '700',
+            color: 'var(--surface-card)', fontSize: '10px', fontWeight: '700',
           }}>✓</span>
         </div>
 
@@ -752,14 +752,14 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={onClose} style={{
             flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
-            background: '#f5f5f7', color: '#1c1c1e', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+            background: 'var(--surface-fill)', color: 'var(--text-1)', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
           }}>取消</button>
           <button
             onClick={() => onSave(hex, label || hex.toUpperCase(), editKey)}
             disabled={!valid}
             style={{
               flex: 1, padding: '9px', borderRadius: '9px', border: 'none',
-              background: valid ? previewMain : '#ccc', color: '#fff',
+              background: valid ? previewMain : 'var(--ink-disabled)', color: 'var(--surface-card)',
               fontWeight: '600', fontSize: '13px', cursor: valid ? 'pointer' : 'not-allowed',
             }}
           >{mode === 'edit' ? '保存' : '确认添加'}</button>
@@ -775,21 +775,21 @@ function AdminTab({
 }) {
   // ====== 共用：卡片外壳（每张"邀请码管理/注册用户"外框） ======
   const card = {
-    border: '1px solid #e5e5ea',
+    border: '1px solid var(--ink-100)',
     borderRadius: '12px',
-    background: '#ffffff',
+    background: 'var(--surface-card)',
     overflow: 'hidden',
   };
   const header = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '12px 16px', borderBottom: '1px solid #e5e5ea',
-    background: '#fafafa',
+    padding: '12px 16px', borderBottom: '1px solid var(--ink-100)',
+    background: 'var(--surface-sunken)',
   };
-  const title = { fontSize: '14px', fontWeight: '600', color: '#1c1c1e' };
+  const title = { fontSize: '14px', fontWeight: '600', color: 'var(--text-1)' };
   const primaryBtn = {
     padding: '8px 14px', borderRadius: '8px',
-    background: busy ? '#ccc' : 'var(--s-main)',
-    color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px',
+    background: busy ? 'var(--ink-disabled)' : 'var(--s-main)',
+    color: 'var(--surface-card)', border: 'none', fontWeight: '600', fontSize: '13px',
     cursor: busy ? 'not-allowed' : 'pointer',
     boxShadow: busy ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.28)',
     transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -797,42 +797,42 @@ function AdminTab({
   const thRow = {
     display: 'grid', alignItems: 'center', justifyItems: 'center',
     padding: '8px 16px',
-    fontSize: '12px', color: '#8e8e93', fontWeight: '500',
-    background: '#fafafa', borderBottom: '1px solid #f0f0f2',
+    fontSize: '12px', color: 'var(--text-3)', fontWeight: '500',
+    background: 'var(--surface-sunken)', borderBottom: '1px solid var(--hairline-faint)',
     textAlign: 'center',
   };
   const tr = {
     display: 'grid', alignItems: 'center', justifyItems: 'center',
     padding: '10px 16px',
-    borderBottom: '1px solid #f4f4f6',
-    fontSize: '13px', color: '#1c1c1e',
+    borderBottom: '1px solid var(--hairline-faint)',
+    fontSize: '13px', color: 'var(--text-1)',
     transition: 'background .12s',
     textAlign: 'center',
   };
   const codeMono = { fontFamily: 'SF Mono, Menlo, Consolas, monospace', fontWeight: 600, letterSpacing: '0.04em' };
   const pill = (color) => ({
     display: 'inline-flex', alignItems: 'center',
-    fontSize: '11px', fontWeight: 600, color: '#fff',
+    fontSize: '11px', fontWeight: 600, color: 'var(--surface-card)',
     padding: '3px 10px', borderRadius: '999px', background: color,
   });
   const dangerBtn = {
     padding: '5px 12px', borderRadius: '7px', border: 'none',
-    background: 'rgba(255,59,48,0.09)', color: '#FF3B30',
+    background: 'rgba(var(--danger-rgb),0.09)', color: 'var(--danger)',
     fontSize: '12px', fontWeight: '600', cursor: 'pointer',
     transition: 'all 0.15s',
   };
   const successBtn = {
     padding: '5px 12px', borderRadius: '7px', border: 'none',
-    background: 'rgba(52,199,89,0.10)', color: '#34C759',
+    background: 'rgba(var(--success-rgb),0.10)', color: 'var(--success)',
     fontSize: '12px', fontWeight: '600', cursor: 'pointer',
     transition: 'all 0.15s',
   };
   const disabledBtn = {
     ...dangerBtn,
-    opacity: 0.4, cursor: 'not-allowed', background: '#f5f5f7', color: '#8e8e93',
+    opacity: 0.4, cursor: 'not-allowed', background: 'var(--surface-fill)', color: 'var(--text-3)',
   };
   const empty = (emoji, line1, line2) => ({
-    padding: '32px 24px', textAlign: 'center', color: '#8e8e93', fontSize: '13px',
+    padding: '32px 24px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13px',
   });
 
   return (
@@ -845,7 +845,7 @@ function AdminTab({
         <div style={header}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
             <span style={title}>邀请码管理</span>
-            <span style={{ fontSize: '12px', color: '#8e8e93' }}>共 {invites.length} 条</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>共 {invites.length} 条</span>
           </div>
           <button onClick={onCreate} disabled={busy} style={primaryBtn}>
             {busy ? '生成中...' : '+ 生成邀请码'}
@@ -855,25 +855,25 @@ function AdminTab({
         {/* 新邀请码成功条（压缩高度：padding 12px，字号 20px，紧跟 Header 下方） */}
         {newCode && (
           <div style={{
-            padding: '12px 16px', background: '#EDFAF1',
-            borderBottom: '1px solid #DCF5E4',
+            padding: '12px 16px', background: 'var(--success-soft)',
+            borderBottom: '1px solid var(--success-border)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             gap: '12px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
               <span style={{
-                fontSize: '12px', color: '#34C759', fontWeight: 700, flexShrink: 0,
+                fontSize: '12px', color: 'var(--success)', fontWeight: 700, flexShrink: 0,
               }}>✨ 新邀请码 · 一次有效</span>
               <code style={{
-                fontSize: '20px', fontWeight: 700, color: '#1c1c1e',
+                fontSize: '20px', fontWeight: 700, color: 'var(--text-1)',
                 letterSpacing: '3px',
                 fontFamily: 'SF Mono, Menlo, monospace',
                 whiteSpace: 'nowrap',
               }}>{newCode}</code>
             </div>
             <button onClick={() => onCopy(newCode)} style={{
-              padding: '5px 12px', borderRadius: '7px', background: '#fff',
-              border: '1px solid #34C759', color: '#34C759',
+              padding: '5px 12px', borderRadius: '7px', background: 'var(--surface-card)',
+              border: '1px solid var(--success)', color: 'var(--success)',
               fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
             }}>{copied === newCode ? '✓ 已复制' : '复制'}</button>
           </div>
@@ -883,8 +883,8 @@ function AdminTab({
         {invites.length === 0 ? (
           <div style={empty()}>
             <div style={{ fontSize: '28px', marginBottom: '6px' }}>🎟️</div>
-            <div style={{ fontWeight: 500, color: '#3c3c43' }}>还没有邀请码</div>
-            <div style={{ marginTop: '4px', fontSize: '12px', color: '#8e8e93' }}>
+            <div style={{ fontWeight: 500, color: 'var(--text-2)' }}>还没有邀请码</div>
+            <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--text-3)' }}>
               点击右上角「+ 生成邀请码」开始邀请朋友注册
             </div>
           </div>
@@ -901,23 +901,23 @@ function AdminTab({
               const isUsed = !!c.is_used;
               const isDisabled = !!c.is_disabled;
               const statusLabel = isDisabled ? '已禁用' : isUsed ? '已使用' : '未使用';
-              const statusColor = isDisabled ? '#8e8e93' : isUsed ? '#007AFF' : '#34C759';
+              const statusColor = isDisabled ? 'var(--text-3)' : isUsed ? 'var(--s-main)' : 'var(--success)';
               return (
                 <div
                   key={c.id}
                   style={{ ...tr, gridTemplateColumns: '1.1fr 0.7fr 1.4fr 1fr 0.6fr' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#fafafa')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-sunken)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface-card)')}
                 >
                   <code style={codeMono}>{c.code}</code>
                   <div><span style={pill(statusColor)}>{statusLabel}</span></div>
                   <div style={{
-                    fontSize: '12px', color: c.used_by_email ? '#1c1c1e' : '#c7c7cc',
+                    fontSize: '12px', color: c.used_by_email ? 'var(--text-1)' : 'var(--ink-300)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {c.used_by_email || '—'}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#8e8e93' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
                     {c.created_at
                       ? new Date(c.created_at).toLocaleString('zh-CN', {
                           month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
@@ -928,8 +928,8 @@ function AdminTab({
                     {!isUsed && !isDisabled
                       ? <button onClick={() => onDisable(c.id)} style={dangerBtn}>禁用</button>
                       : isDisabled
-                        ? <span style={{ fontSize: '12px', color: '#8e8e93' }}>—</span>
-                        : <span style={{ fontSize: '12px', color: '#8e8e93' }}>—</span>}
+                        ? <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>—</span>
+                        : <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>—</span>}
                   </div>
                 </div>
               );
@@ -945,15 +945,15 @@ function AdminTab({
         <div style={header}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
             <span style={title}>注册用户</span>
-            <span style={{ fontSize: '12px', color: '#8e8e93' }}>共 {users.length} 人</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>共 {users.length} 人</span>
           </div>
         </div>
 
         {users.length === 0 ? (
           <div style={empty()}>
             <div style={{ fontSize: '28px', marginBottom: '6px' }}>👥</div>
-            <div style={{ fontWeight: 500, color: '#3c3c43' }}>还没有注册用户</div>
-            <div style={{ marginTop: '4px', fontSize: '12px', color: '#8e8e93' }}>
+            <div style={{ fontWeight: 500, color: 'var(--text-2)' }}>还没有注册用户</div>
+            <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--text-3)' }}>
               先在上方生成邀请码，朋友注册后会自动出现在这里
             </div>
           </div>
@@ -977,25 +977,25 @@ function AdminTab({
                   style={{
                     ...tr,
                     gridTemplateColumns: '36px 1.3fr 1fr 1fr 0.6fr 0.7fr',
-                    background: banned ? 'rgba(255,59,48,0.04)' : '#fff',
+                    background: banned ? 'rgba(var(--danger-rgb),0.04)' : 'var(--surface-card)',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = banned ? 'rgba(255,59,48,0.06)' : '#fafafa')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = banned ? 'rgba(255,59,48,0.04)' : '#fff')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = banned ? 'rgba(var(--danger-rgb),0.06)' : 'var(--surface-sunken)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = banned ? 'rgba(var(--danger-rgb),0.04)' : 'var(--surface-card)')}
                 >
                   <div style={{
                     width: '28px', height: '28px', borderRadius: '999px',
-                    background: banned ? '#8e8e93' : 'var(--s-main)',
-                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: banned ? 'var(--text-3)' : 'var(--s-main)',
+                    color: 'var(--surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '12px', fontWeight: 700,
                   }}>{initial}</div>
                   <div style={{ minWidth: 0, width: '100%' }}>
                     <span style={{
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
-                      fontWeight: 500, color: '#1c1c1e',
+                      fontWeight: 500, color: 'var(--text-1)',
                     }}>{u.email}</span>
                   </div>
-                  <div style={{ minWidth: 0, width: '100%', overflow: 'hidden', fontSize: '12px', color: '#8e8e93' }}>
-                    <div style={{ color: '#3c3c43', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ minWidth: 0, width: '100%', overflow: 'hidden', fontSize: '12px', color: 'var(--text-3)' }}>
+                    <div style={{ color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {u.username || '—'}
                     </div>
                     <div>
@@ -1006,7 +1006,7 @@ function AdminTab({
                         : '—'}
                     </div>
                   </div>
-                  <div style={{ fontSize: '12px', color: '#8e8e93', width: '100%' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)', width: '100%' }}>
                     {u.last_login
                       ? new Date(u.last_login).toLocaleString('zh-CN', {
                           month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
@@ -1015,10 +1015,10 @@ function AdminTab({
                   </div>
                   <div>
                     {isOwner
-                      ? <span style={pill('#FF9500')}>所有者</span>
+                      ? <span style={pill('var(--warning)')}>所有者</span>
                       : banned
-                        ? <span style={pill('#FF3B30')}>已禁用</span>
-                        : <span style={pill('#34C759')}>正常</span>}
+                        ? <span style={pill('var(--danger)')}>已禁用</span>
+                        : <span style={pill('var(--success)')}>正常</span>}
                   </div>
                   <div style={{ textAlign: 'center', width: '100%' }}>
                     {isOwner
@@ -1174,14 +1174,14 @@ function GithubTab() {
 
   const inputStyle = {
     flex: 1, padding: '9px 12px', borderRadius: '9px', minWidth: 0,
-    border: '1px solid #e5e5ea', fontSize: '13px',
-    outline: 'none', color: '#1c1c1e', background: '#fff',
+    border: '1px solid var(--ink-100)', fontSize: '13px',
+    outline: 'none', color: 'var(--text-1)', background: 'var(--surface-card)',
     fontFamily: 'SF Mono, Menlo, monospace',
   };
   const saveBtnStyle = (disabled) => ({
     padding: '8px 16px', borderRadius: '9px', border: 'none', flexShrink: 0,
-    background: disabled ? '#ccc' : 'var(--s-main)',
-    color: '#fff', fontWeight: 600, fontSize: '13px',
+    background: disabled ? 'var(--ink-disabled)' : 'var(--s-main)',
+    color: 'var(--surface-card)', fontWeight: 600, fontSize: '13px',
     cursor: disabled ? 'not-allowed' : 'pointer',
   });
   const linkBtnStyle = {
@@ -1198,19 +1198,19 @@ function GithubTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {err && (
         <div style={{
-          padding: '10px 14px', fontSize: '13px', color: '#FF3B30',
-          background: '#FFEEED', borderRadius: '8px', border: '1px solid #FFD9D6',
+          padding: '10px 14px', fontSize: '13px', color: 'var(--danger)',
+          background: 'var(--danger-soft)', borderRadius: '8px', border: '1px solid var(--danger-border)',
         }}>{err}</div>
       )}
 
       {/* ============ 主卡：AI 推送授权（日常高频，置顶） ============ */}
       <div style={{
         border: '1.5px solid var(--s-main)', borderRadius: '12px',
-        background: '#fff', padding: '16px',
+        background: 'var(--surface-card)', padding: '16px',
         display: 'flex', flexDirection: 'column', gap: '12px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: '#1c1c1e' }}>AI 推送授权</span>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-1)' }}>AI 推送授权</span>
           {/* Switch：状态即操作，替代「开启中」标签 + 「关闭授权」按钮的组合 */}
           <button
             role="switch" aria-checked={grantOn}
@@ -1220,33 +1220,33 @@ function GithubTab() {
             style={{
               position: 'relative', width: '44px', height: '26px', borderRadius: '999px',
               border: 'none', padding: 0, flexShrink: 0,
-              background: grantOn ? 'var(--s-main)' : '#e5e5ea',
+              background: grantOn ? 'var(--s-main)' : 'var(--ink-100)',
               opacity: !configured || busy ? 0.5 : 1,
               cursor: !configured || busy ? 'not-allowed' : 'pointer',
               transition: 'background .12s',
             }}>
             <span style={{
               position: 'absolute', top: '3px', left: grantOn ? '21px' : '3px',
-              width: '20px', height: '20px', borderRadius: '50%', background: '#fff',
+              width: '20px', height: '20px', borderRadius: '50%', background: 'var(--surface-card)',
               boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .12s',
             }} />
           </button>
         </div>
 
         {!configured ? (
-          <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7 }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.7 }}>
             先在下方保存 GitHub PAT，再回到这里开启推送授权。
           </div>
         ) : !grantOn ? (
-          <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7 }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.7 }}>
             打开开关生成授权码，点「复制推送指令」发给小亦Ai，即可在全新沙盒完成 git push；
             推送完成后关闭开关立即断电。
           </div>
         ) : (
           <>
             {/* 状态行（含审计） */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#1c1c1e' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34C759', display: 'inline-block', flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-1)' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)', display: 'inline-block', flexShrink: 0 }} />
               授权中
               {grantCode && !expired ? ` · 剩余 ${fmtRemain(remainMs)}` : ''}
               {status?.grant?.issued_count > 0 ? ` · 已签发 ${status.grant.issued_count} 次` : ''}
@@ -1256,27 +1256,27 @@ function GithubTab() {
               <>
                 {/* 推送指令预览：所见即所复制（授权码已内嵌话术），剪贴板被拦截时可手动选中 */}
                 <div style={{
-                  padding: '10px 12px', borderRadius: '8px', background: '#fff8e6', border: '1px solid #f1d47a',
+                  padding: '10px 12px', borderRadius: '8px', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)',
                   fontFamily: 'SF Mono, Menlo, monospace', fontSize: '11px', lineHeight: 1.7,
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#3c3c43',
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: 'var(--text-2)',
                 }}>
                   {buildGithubInstruction(grantCode.code)}
                 </div>
-                <div style={{ fontSize: '10px', color: '#7a5b00', fontWeight: 600, textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', color: 'var(--warning-text)', fontWeight: 600, textAlign: 'center' }}>
                   ⏳ {fmtRemain(remainMs)}内有效 · 关闭开关立即作废 · 生成时已自动复制
                 </div>
 
                 {/* 有效期选择（切换将重新生成授权码） */}
                 <div>
-                  <div style={{ fontSize: '11px', color: '#8e8e93', marginBottom: '6px' }}>授权码有效期（切换将重新生成授权码）</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '6px' }}>授权码有效期（切换将重新生成授权码）</div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {TTL_OPTIONS.map((o) => (
                       <button key={o.hours} onClick={() => o.hours !== ttlHours && handleToggleGrant(true, o.hours)}
                         disabled={busy} style={{
                           flex: 1, padding: '6px 0', borderRadius: '8px',
-                          border: o.hours === ttlHours ? 'none' : '1px solid #e5e5ea',
-                          background: o.hours === ttlHours ? 'var(--s-main)' : '#fff',
-                          color: o.hours === ttlHours ? '#fff' : '#3c3c43',
+                          border: o.hours === ttlHours ? 'none' : '1px solid var(--ink-100)',
+                          background: o.hours === ttlHours ? 'var(--s-main)' : 'var(--surface-card)',
+                          color: o.hours === ttlHours ? 'var(--surface-card)' : 'var(--text-2)',
                           fontSize: '12px', fontWeight: 600,
                           cursor: busy ? 'not-allowed' : 'pointer',
                         }}>{o.label}</button>
@@ -1287,19 +1287,19 @@ function GithubTab() {
                 {/* 全页唯一主按钮：推送指令已内含授权码，无需单独复制 code */}
                 <button onClick={() => copyText(buildGithubInstruction(grantCode.code))} style={{
                   padding: '10px 16px', borderRadius: '10px', border: 'none',
-                  background: 'var(--s-main)', color: '#fff', fontWeight: 600, fontSize: '13px',
+                  background: 'var(--s-main)', color: 'var(--surface-card)', fontWeight: 600, fontSize: '13px',
                   cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--s-rgb),0.28)',
                 }}>{copied ? '✓ 已复制，发给 AI 即可' : '复制推送指令发给 AI'}</button>
               </>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7 }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.7 }}>
                   {expired ? '授权码已过期。' : '授权开启中，但授权码只在开启那一刻生成，不会重现；新会话的 AI 需要新授权码才能推送。'}
                 </div>
                 {/* 一键重新生成（等价于关→开，但免去两步操作），成功后自动复制推送指令 */}
                 <button onClick={() => handleToggleGrant(true, ttlHours)} disabled={busy} style={{
                   padding: '10px 16px', borderRadius: '10px', border: 'none',
-                  background: 'var(--s-main)', color: '#fff', fontWeight: 600, fontSize: '13px',
+                  background: 'var(--s-main)', color: 'var(--surface-card)', fontWeight: 600, fontSize: '13px',
                   cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
                 }}>{busy ? '生成中…' : '重新生成授权码'}</button>
               </div>
@@ -1310,12 +1310,12 @@ function GithubTab() {
 
       {/* ============ 次卡：GitHub PAT 托管（一次性配置，压缩为一行） ============ */}
       <div style={{
-        border: '1px solid #e5e5ea', borderRadius: '12px',
-        background: '#fff', padding: '16px',
+        border: '1px solid var(--ink-100)', borderRadius: '12px',
+        background: 'var(--surface-card)', padding: '16px',
         display: 'flex', flexDirection: 'column', gap: '10px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#1c1c1e' }}>
+          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-1)' }}>
             GitHub PAT{configured ? ' · 已托管' : ''}
           </span>
           {configured && (
@@ -1327,7 +1327,7 @@ function GithubTab() {
                 onClick={() => { if (!confirmClear) { setConfirmClear(true); setTimeout(() => setConfirmClear(false), 3000); } else handleClearPat(); }}
                 disabled={busy} style={{
                   ...linkBtnStyle,
-                  color: confirmClear ? '#FF3B30' : 'rgba(255,59,48,0.75)',
+                  color: confirmClear ? 'var(--danger)' : 'rgba(var(--danger-rgb),0.75)',
                   fontWeight: confirmClear ? 700 : 600,
                 }}>{confirmClear ? '确认删除？' : '删除'}</button>
             </div>
@@ -1337,8 +1337,8 @@ function GithubTab() {
         {configured ? (
           <>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
-              <code style={{ fontSize: '13px', fontWeight: 600, color: '#1c1c1e', fontFamily: 'SF Mono, Menlo, monospace' }}>{status.mask}</code>
-              <span style={{ fontSize: '11px', color: '#8e8e93' }}>
+              <code style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)', fontFamily: 'SF Mono, Menlo, monospace' }}>{status.mask}</code>
+              <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>
                 {status.pat_login || '—'}{status.updated_at ? ` · ${fmtDate(status.updated_at)} 保存` : ''}
               </span>
             </div>
@@ -1367,7 +1367,7 @@ function GithubTab() {
                 {busy ? '验证中...' : '验证并保存'}
               </button>
             </div>
-            <div style={{ fontSize: '11px', color: '#8e8e93', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-3)', lineHeight: 1.6 }}>
               保存后经 GitHub 验证并 AES-GCM 加密落库（密钥在 Cloudflare Secrets），界面只显示掩码。
             </div>
           </>
@@ -1377,7 +1377,7 @@ function GithubTab() {
       {/* ============ 脚注：三层防护（一行 + 可展开详情） ============ */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
-        padding: '0 4px', fontSize: '11px', color: '#8e8e93',
+        padding: '0 4px', fontSize: '11px', color: 'var(--text-3)',
       }}>
         <span>🔒 三层防护：加密存储 · 时限授权码 · 最小权限兜底</span>
         <button onClick={() => setShowDetails(v => !v)} style={{ ...linkBtnStyle, fontSize: '11px', flexShrink: 0 }}>
@@ -1386,12 +1386,12 @@ function GithubTab() {
       </div>
       {showDetails && (
         <div style={{
-          padding: '12px 14px', borderRadius: '10px', background: '#f5f5f7',
-          fontSize: '11px', color: '#6b7280', lineHeight: 1.8,
+          padding: '12px 14px', borderRadius: '10px', background: 'var(--surface-fill)',
+          fontSize: '11px', color: 'var(--text-3)', lineHeight: 1.8,
         }}>
-          1. <b style={{ color: '#3c3c43' }}>加密存储</b>：PAT 以 AES-GCM 密文落库，密钥在 Cloudflare Secrets，拖库拿到的只是密文；<br />
-          2. <b style={{ color: '#3c3c43' }}>时限授权码</b>：发给 AI 的是有时效的随机授权码，过期或关闭开关立即作废（即使对话泄露，过时即废）；<br />
-          3. <b style={{ color: '#3c3c43' }}>最小权限兜底</b>：建议 fine-grained PAT 仅授权本仓库 + Contents 读写，最坏情况泄露影响面可控。
+          1. <b style={{ color: 'var(--text-2)' }}>加密存储</b>：PAT 以 AES-GCM 密文落库，密钥在 Cloudflare Secrets，拖库拿到的只是密文；<br />
+          2. <b style={{ color: 'var(--text-2)' }}>时限授权码</b>：发给 AI 的是有时效的随机授权码，过期或关闭开关立即作废（即使对话泄露，过时即废）；<br />
+          3. <b style={{ color: 'var(--text-2)' }}>最小权限兜底</b>：建议 fine-grained PAT 仅授权本仓库 + Contents 读写，最坏情况泄露影响面可控。
         </div>
       )}
     </div>
@@ -1427,13 +1427,13 @@ function BackupSection() {
 
   return (
     <div style={{
-      padding: '16px', borderRadius: '12px', background: '#fff',
-      border: '1px solid #e5e5ea',
+      padding: '16px', borderRadius: '12px', background: 'var(--surface-card)',
+      border: '1px solid var(--ink-100)',
     }}>
-      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1c1c1e', marginBottom: '6px' }}>
+      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-1)', marginBottom: '6px' }}>
         导出全量备份
       </div>
-      <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7, marginBottom: '14px' }}>
+      <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.7, marginBottom: '14px' }}>
         把服务端全部业务数据（日程 · 习惯与打卡 · 收集箱 · 每日复盘 · 回收站 · 财务 · 种植）
         与浏览器本地设置（主题 · 模块色 · 年度规划 · AI 数据 · 布局偏好）打包成一个 JSON 文件下载。
         只读取，不会修改任何数据。
@@ -1444,7 +1444,7 @@ function BackupSection() {
         style={{
           padding: '9px 18px', borderRadius: '9px', border: 'none',
           background: busy ? 'rgba(120,120,128,0.15)' : 'var(--s-main)',
-          color: busy ? '#8e8e93' : '#fff',
+          color: busy ? 'var(--text-3)' : 'var(--surface-card)',
           fontSize: '13px', fontWeight: '600',
           cursor: busy ? 'default' : 'pointer',
           transition: 'all 0.15s',
@@ -1453,8 +1453,8 @@ function BackupSection() {
         {busy ? '正在导出…' : '导出全量备份'}
       </button>
       {last && (
-        <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '10px', lineHeight: 1.6 }}>
-          已导出 <b style={{ color: '#3c3c43' }}>{last.fileName}</b>
+        <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '10px', lineHeight: 1.6 }}>
+          已导出 <b style={{ color: 'var(--text-2)' }}>{last.fileName}</b>
           <br />
           服务端 {total} 条记录 · 本地 {last.localCount} 项设置
         </div>
@@ -1519,19 +1519,19 @@ function RestoreSection() {
   };
 
   const secondaryBtn = {
-    padding: '9px 18px', borderRadius: '9px', border: '1px solid #e5e5ea',
-    background: '#fff', color: '#1c1c1e', fontSize: '13px', fontWeight: '600',
+    padding: '9px 18px', borderRadius: '9px', border: '1px solid var(--ink-100)',
+    background: 'var(--surface-card)', color: 'var(--text-1)', fontSize: '13px', fontWeight: '600',
     cursor: busy ? 'default' : 'pointer',
   };
 
   return (
-    <div style={{ padding: '16px', borderRadius: '12px', background: '#fff', border: '1px solid #e5e5ea' }}>
-      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1c1c1e', marginBottom: '6px' }}>
+    <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--surface-card)', border: '1px solid var(--ink-100)' }}>
+      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-1)', marginBottom: '6px' }}>
         从备份还原
       </div>
-      <div style={{ fontSize: '12px', color: '#8e8e93', lineHeight: 1.7, marginBottom: '14px' }}>
+      <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.7, marginBottom: '14px' }}>
         选择之前导出的备份文件，把服务端数据与本地设置还原到备份时的状态。
-        <b style={{ color: '#FF3B30' }}>这是覆盖式还原，当前数据会被替换掉</b>；
+        <b style={{ color: 'var(--danger)' }}>这是覆盖式还原，当前数据会被替换掉</b>；
         还原前系统会自动先导出一份当前数据留档。
       </div>
 
@@ -1542,8 +1542,8 @@ function RestoreSection() {
 
       {payload && (
         <div style={{ marginTop: '14px' }}>
-          <div style={{ fontSize: '11px', color: '#8e8e93', lineHeight: 1.7, marginBottom: '10px' }}>
-            文件：<b style={{ color: '#3c3c43' }}>{fileName}</b>
+          <div style={{ fontSize: '11px', color: 'var(--text-3)', lineHeight: 1.7, marginBottom: '10px' }}>
+            文件：<b style={{ color: 'var(--text-2)' }}>{fileName}</b>
             <br />
             导出时间：
             {payload.meta.exportedAt ? new Date(payload.meta.exportedAt).toLocaleString('zh-CN') : '未知'}
@@ -1552,15 +1552,15 @@ function RestoreSection() {
 
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            fontSize: '12px', color: '#3c3c43', fontWeight: '600', padding: '0 10px 8px',
+            fontSize: '12px', color: 'var(--text-2)', fontWeight: '600', padding: '0 10px 8px',
           }}>
             <span>内容对比</span>
-            <span style={{ color: '#8e8e93', fontWeight: '400' }}>
+            <span style={{ color: 'var(--text-3)', fontWeight: '400' }}>
               {curCounts ? `${changed.length} 张表有变化` : '未能读取当前数据'}
             </span>
           </div>
 
-          <div style={{ maxHeight: '190px', overflowY: 'auto', border: '1px solid #e5e5ea', borderRadius: '9px' }}>
+          <div style={{ maxHeight: '190px', overflowY: 'auto', border: '1px solid var(--ink-100)', borderRadius: '9px' }}>
             {keys.map((k) => {
               const bak = (bakTables[k] || []).length;
               const cur = curCounts ? (curCounts[k] || 0) : null;
@@ -1568,12 +1568,12 @@ function RestoreSection() {
               return (
                 <div key={k} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
-                  padding: '7px 10px', borderBottom: '1px solid #f2f2f7', fontSize: '12px',
+                  padding: '7px 10px', borderBottom: '1px solid var(--hairline-faint)', fontSize: '12px',
                 }}>
-                  <span style={{ color: '#3c3c43' }}>{TABLE_LABELS[k] || k}</span>
-                  <span style={{ color: '#8e8e93', fontVariantNumeric: 'tabular-nums' }}>
-                    备份 <b style={{ color: '#1c1c1e' }}>{bak}</b>
-                    {cur !== null && <> · 当前 <b style={{ color: diff ? '#1c1c1e' : '#8e8e93' }}>{cur}</b></>}
+                  <span style={{ color: 'var(--text-2)' }}>{TABLE_LABELS[k] || k}</span>
+                  <span style={{ color: 'var(--text-3)', fontVariantNumeric: 'tabular-nums' }}>
+                    备份 <b style={{ color: 'var(--text-1)' }}>{bak}</b>
+                    {cur !== null && <> · 当前 <b style={{ color: diff ? 'var(--text-1)' : 'var(--text-3)' }}>{cur}</b></>}
                   </span>
                 </div>
               );
@@ -1582,16 +1582,16 @@ function RestoreSection() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
               padding: '7px 10px', fontSize: '12px',
             }}>
-              <span style={{ color: '#3c3c43' }}>本地设置</span>
-              <span style={{ color: '#8e8e93', fontVariantNumeric: 'tabular-nums' }}>
-                备份 <b style={{ color: '#1c1c1e' }}>{localCount}</b> 项
+              <span style={{ color: 'var(--text-2)' }}>本地设置</span>
+              <span style={{ color: 'var(--text-3)', fontVariantNumeric: 'tabular-nums' }}>
+                备份 <b style={{ color: 'var(--text-1)' }}>{localCount}</b> 项
               </span>
             </div>
           </div>
 
           <label style={{
             display: 'flex', alignItems: 'center', gap: '8px', margin: '14px 0',
-            fontSize: '12px', color: '#3c3c43', cursor: 'pointer',
+            fontSize: '12px', color: 'var(--text-2)', cursor: 'pointer',
           }}>
             <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} style={{ width: '16px', height: '16px' }} />
             我已知晓会覆盖当前全部数据
@@ -1602,8 +1602,8 @@ function RestoreSection() {
             disabled={!acked || busy}
             style={{
               padding: '9px 18px', borderRadius: '9px', border: 'none',
-              background: !acked || busy ? 'rgba(120,120,128,0.15)' : '#FF3B30',
-              color: !acked || busy ? '#8e8e93' : '#fff',
+              background: !acked || busy ? 'rgba(120,120,128,0.15)' : 'var(--danger)',
+              color: !acked || busy ? 'var(--text-3)' : 'var(--surface-card)',
               fontSize: '13px', fontWeight: '600',
               cursor: !acked || busy ? 'default' : 'pointer',
               transition: 'all 0.15s',
@@ -1632,8 +1632,8 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <div style={{
-        padding: '14px 16px', borderRadius: '10px', background: '#fff8e6',
-        border: '1px solid #f1d47a', fontSize: '13px', color: '#7a5b00', lineHeight: 1.55,
+        padding: '14px 16px', borderRadius: '10px', background: 'var(--warning-soft)',
+        border: '1px solid var(--warning-border)', fontSize: '13px', color: 'var(--warning-text)', lineHeight: 1.55,
       }}>
         <b>说明：</b>把之前从 Supabase SQL Editor 导出的 6 段 JSON，分别粘贴到下面对应的文本框中，
         再点「一键迁移写入 D1」即可。若某表为空可以留空（不会覆盖已有数据）。
@@ -1647,10 +1647,10 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               marginBottom: '6px',
             }}>
-              <label style={{ fontSize: '12px', fontWeight: '600', color: '#1c1c1e' }}>{t.label}</label>
+              <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-1)' }}>{t.label}</label>
               {value[t.key] && (
                 <button onClick={() => setField(t.key, '')} style={{
-                  fontSize: '11px', color: '#8e8e93', background: 'none', border: 'none',
+                  fontSize: '11px', color: 'var(--text-3)', background: 'none', border: 'none',
                   cursor: 'pointer', textDecoration: 'underline',
                 }}>清空</button>
               )}
@@ -1661,13 +1661,13 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
               placeholder={t.placeholder}
               style={{
                 width: '100%', minHeight: '72px', padding: '10px 12px',
-                border: '1px solid #e5e5ea', borderRadius: '10px',
+                border: '1px solid var(--ink-100)', borderRadius: '10px',
                 fontFamily: 'SF Mono, Menlo, monospace', fontSize: '12px',
-                lineHeight: 1.5, resize: 'vertical', color: '#1c1c1e',
-                background: '#fafafa', outline: 'none',
+                lineHeight: 1.5, resize: 'vertical', color: 'var(--text-1)',
+                background: 'var(--surface-sunken)', outline: 'none',
               }}
-              onFocus={(e) => e.target.style.background = '#fff'}
-              onBlur={(e) => e.target.style.background = '#fafafa'}
+              onFocus={(e) => e.target.style.background = 'var(--surface-card)'}
+              onBlur={(e) => e.target.style.background = 'var(--surface-sunken)'}
             />
           </div>
         ))}
@@ -1675,24 +1675,24 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
 
       {result && (
         <div style={{
-          padding: '14px 16px', borderRadius: '10px', background: '#EDFAF1',
-          border: '1px solid #34C759',
+          padding: '14px 16px', borderRadius: '10px', background: 'var(--success-soft)',
+          border: '1px solid var(--success)',
         }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759', marginBottom: '8px' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--success)', marginBottom: '8px' }}>
             ✅ 迁移成功（总 {result.total || 0} 条）
           </div>
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '6px 14px', fontSize: '12px', color: '#333',
+            gap: '6px 14px', fontSize: '12px', color: 'var(--text-2)',
           }}>
             {Object.entries(result.counts || {}).sort().map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#666' }}>{k}</span>
-                <b style={{ color: '#34C759' }}>{v}</b>
+                <span style={{ color: 'var(--text-3)' }}>{k}</span>
+                <b style={{ color: 'var(--success)' }}>{v}</b>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '8px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '8px' }}>
             下一步：刷新页面后进入工作台，验证精力页 8 个习惯、打卡热力图、任务/日程、复盘日记、固定日程都能正常显示。
           </div>
         </div>
@@ -1700,8 +1700,8 @@ function MigrateTab({ value, onChange, busy, result, onRun }) {
 
       <button onClick={onRun} disabled={busy || !hasAny} style={{
         padding: '13px 22px', borderRadius: '10px',
-        background: busy ? '#ccc' : (!hasAny ? '#B5D4FF' : 'var(--s-main)'),
-        color: '#fff', border: 'none', fontWeight: '600', fontSize: '14px',
+        background: busy ? 'var(--ink-disabled)' : (!hasAny ? 'var(--brand-disabled)' : 'var(--s-main)'),
+        color: 'var(--surface-card)', border: 'none', fontWeight: '600', fontSize: '14px',
         cursor: busy || !hasAny ? 'not-allowed' : 'pointer',
         transition: 'all 0.15s',
         boxShadow: busy || !hasAny ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.3)',

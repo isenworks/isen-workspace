@@ -72,10 +72,32 @@
   --ink-300: #c7c7cc;
   --ink-200: #d1d1d6;
   --ink-100: #e5e5ea;
+  --ink-disabled: #cccccc;
 
   /* 发丝分隔线 */
   --hairline: rgba(60, 60, 67, 0.12);
   --hairline-soft: rgba(60, 60, 67, 0.08);
+  --hairline-faint: #f0f0f2;
+
+  /* 中性填充（次级按钮 / 输入底 / 浅色块） */
+  --surface-fill: #f5f5f7;
+  --surface-sunken: #fafafa;
+
+  /* 语义状态色：含义固定，不随模块色变化。
+     注意 --danger 与「工作」模块默认红同值，但语义独立——改模块色时危险操作仍须为红 */
+  --danger: #FF3B30;   --danger-rgb: 255, 59, 48;
+  --danger-soft: #FFEEED;
+  --danger-border: #FFD9D6;
+  --success: #34C759;  --success-rgb: 52, 199, 89;
+  --success-soft: #EDFAF1;
+  --success-border: #DCF5E4;
+  --warning: #FF9500;  --warning-rgb: 255, 149, 0;
+  --warning-soft: #fff8e6;
+  --warning-border: #f1d47a;
+  --warning-text: #7a5b00;
+
+  /* 主色禁用态（浅品牌蓝） */
+  --brand-disabled: #B5D4FF;
 }
 
 html, body { min-height: 100%; }

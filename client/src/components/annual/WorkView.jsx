@@ -44,7 +44,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
         avgPct, rm, days, timePct, risks,
         dl: daysLabel(days),
         label: o.label || (o.core ? '主业' : '副业'),
-        color: RED, // 工作页统一红色系：主业 & 副业卡片都用 RED（档A结构色·原副业#FF9500已统一）
+        color: RED, // 工作页统一红色系：主业 & 副业卡片都用 RED（档A结构色·原副业var(--warning)已统一）
       };
     });
   }, [dynWk]);
@@ -205,9 +205,9 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
               </button>
             )}
             {/* ④ 删除 — 分割线 + 红色 */}
-            <div className="h-px bg-[#e5e5ea] my-1"/>
+            <div className="h-px bg-[var(--ink-100)] my-1"/>
             <button onClick={() => { closeDrop(); onGoalRemove(goalIdx); }}
-              className="w-full text-left px-3.5 py-2 text-[13px] text-[#FF3B30] hover:bg-[#fff0f0] hover:rounded-md transition-colors">
+              className="w-full text-left px-3.5 py-2 text-[13px] text-[var(--m-work)] hover:bg-[#fff0f0] hover:rounded-md transition-colors">
               删除
             </button>
           </div>
@@ -244,9 +244,9 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
       balance:   { lb: '平衡雷达',   icon: (<><polygon points="12,3 20,9 17,19 7,19 4,9"/><circle cx="12" cy="12" r="2"/></>) },
     };
     const m = modeMeta[gs.mode] || modeMeta.funnel;
-    const topRisk = (gs.risks.risk || 0) > 0 ? { n: gs.risks.risk, c: '#FF3B30', l: '落后' }
-      : (gs.risks.warn || 0) > 0 ? { n: gs.risks.warn, c: '#FF9500', l: '预警' }
-      : (gs.risks.done === krTotal && krTotal > 0) ? { n: null, c: '#34C759', l: '已达成' }
+    const topRisk = (gs.risks.risk || 0) > 0 ? { n: gs.risks.risk, c: 'var(--m-work)', l: '落后' }
+      : (gs.risks.warn || 0) > 0 ? { n: gs.risks.warn, c: 'var(--warning)', l: '预警' }
+      : (gs.risks.done === krTotal && krTotal > 0) ? { n: null, c: 'var(--success)', l: '已达成' }
       : null;
     // R3 已收敛：m/topRisk 不再参与卡片渲染（范式子渲染器自有逻辑），留变量防引用错误
     // eslint-disable-next-line no-unused-vars
@@ -262,7 +262,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
     let pace = null;
     if (paceDiff !== null) {
       if (paceDiff === 0) pace = { t: '节奏匹配', bg: `${moduleRgba('work', 0.10)}`, fg: color };
-      else if (paceAhead) pace = { t: `超前 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(52,199,89,0.10)', fg: '#34C759' };
+      else if (paceAhead) pace = { t: `超前 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: 'rgba(52,199,89,0.10)', fg: 'var(--success)' };
       else pace = { t: `落后 ${paceDiff}%${paceRemainTxt ? ' · ' + paceRemainTxt : ''}`, bg: `${moduleRgba('work', 0.10)}`, fg: RED_RISK };
     }
     /* 工作页 renderObjective：容器级 px-1 pt-2 已移除，顶部/左右二次压缩消除，与能力页卡壳 p-3.5 像素级一致：
@@ -390,7 +390,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                     style={{ color: RED }}>{padNum}</span>
                   <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
                     <div onClick={() => onKrEdit?.(goalIdx, i, kr)} title="点击编辑 KR" className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
-                      <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[#48484A]">{kr.t}</span>
+                      <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[var(--ink-700)]">{kr.t}</span>
                       <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
                         {kr.tgt}{kr.u}
                       </span>
@@ -407,7 +407,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                         style={{
                           width: `${pctWidth}%`,
                           minWidth: `${minPxWidth}px`,
-                          background: isDone ? '#34C759' : COLOR,
+                          background: isDone ? 'var(--success)' : COLOR,
                           boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${moduleRgba('work', 0.15)}`,
                         }}>
                         {p >= 15 && (
@@ -488,7 +488,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
             行高 15.4px → 中心 = 7.7px；SVG 14px → 自身中心 7px；偏移差 = 0.7px，
             用 mt-[0.5px] 再微调 0.5px 到 ~7.5px 中心，与「关/键/瓶/颈」四字笔画中心像素对齐 */}
         <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[0.5px]" fill={RED} viewBox="0 0 24 24">
-          <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="var(--surface-card)" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
         <div className="min-w-0 flex-1 text-[11px] leading-[1.4]">
           <span className="font-bold text-ink-700">关键瓶颈：</span>
@@ -556,7 +556,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: rm.color }}></span>
-                    <span className="text-[11.5px] font-semibold text-[#48484A] truncate leading-tight">{kr.t}</span>
+                    <span className="text-[11.5px] font-semibold text-[var(--ink-700)] truncate leading-tight">{kr.t}</span>
                   </div>
                   <button
                     className="text-[9.5px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap transition flex-shrink-0"
@@ -657,8 +657,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   className="w-6 h-6 rounded-full grid place-items-center font-extrabold text-[10px] flex-shrink-0"
                   style={{
                     background: isDone ? 'rgba(52,199,89,0.13)' : `${moduleRgba('work', 0.08)}`,
-                    color: isDone ? '#34C759' : rmColor,
-                    border: `1.5px solid ${isDone ? '#34C759' : rmColor}`,
+                    color: isDone ? 'var(--success)' : rmColor,
+                    border: `1.5px solid ${isDone ? 'var(--success)' : rmColor}`,
                   }}
                 >
                   {isDone ? (
@@ -668,7 +668,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
               </div>
               {/* 里程碑标题（O 的阶段子项） */}
               <div className="flex-1 min-w-0 pl-1">
-                <div className={`text-[11.5px] font-semibold truncate leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-[#48484A]'}`}>
+                <div className={`text-[11.5px] font-semibold truncate leading-tight ${isDone ? 'text-ink-400 line-through' : 'text-[var(--ink-700)]'}`}>
                   {kr.t}
                 </div>
                 {!isDone && kr.v !== undefined && kr.tgt && (
@@ -680,7 +680,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
               {/* 阶段进度条（简单，因为门控是布尔通过/不通过，进度为中间值） */}
               <div className="w-[60px] grid place-items-center">
                 <div className="w-[52px] h-1.5 rounded-full bg-ink-100 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${krPct}%`, background: isDone ? '#34C759' : rmColor }}></div>
+                  <div className="h-full rounded-full" style={{ width: `${krPct}%`, background: isDone ? 'var(--success)' : rmColor }}></div>
                 </div>
               </div>
               {/* 验收门结果 */}
@@ -740,8 +740,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
     const timePct = Math.max(0, Math.min(100, gs.timePct || 0));
     const cleanLabel = (s) => String(s || '').replace(new RegExp(String.raw`^\s*[\u{1F300}-\u{1FAFF}✅📌🎯💡🚀🔥⭐💰🏆📖🧠❤️⚡️🔑🎨📊⏰📝🔍🌱✨]\s*`, 'gu'), '');
     const statusPill = st === 'done'
-      ? { txt: '已完成', bg: 'rgba(52,199,89,0.10)', fg: '#34C759' }
-      : { txt: '搁置', bg: 'rgba(142,142,147,0.12)', fg: '#8e8e93' };
+      ? { txt: '已完成', bg: 'rgba(52,199,89,0.10)', fg: 'var(--success)' }
+      : { txt: '搁置', bg: 'rgba(142,142,147,0.12)', fg: 'var(--text-muted)' };
     return (
       <div
         onClick={() => setDetailGoal(entry)}
@@ -757,7 +757,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
               <span className="shrink-0 text-[10.5px] font-medium rounded-full px-1.5 py-[1px]"
                 style={{ background: statusPill.bg, color: statusPill.fg }}>{statusPill.txt}</span>
             </div>
-            <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[10.5px] text-[#8e8e93] leading-none">
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[10.5px] text-[var(--text-muted)] leading-none">
               <span className="font-medium text-[#1d1d1f] tabular-nums">{avgPct}%</span>
               <span className="opacity-40">·</span>
               <span className="tabular-nums">时间 {timePct}%</span>
@@ -905,13 +905,13 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
             {(() => {
               const TABS = [
                 { key: 'active', lb: '进行中', col: RED_DATA,    n: partitionedGoals.active.length },
-                { key: 'done',   lb: '已完成', col: '#34C759', n: partitionedGoals.done.length   },
+                { key: 'done',   lb: '已完成', col: 'var(--success)', n: partitionedGoals.done.length   },
                 { key: 'shelf',  lb: '已归档', col: '#64748b', n: partitionedGoals.shelf.length  },
               ];
               return TABS.map(t => {
                 const active = workTab === t.key;
                 const activeBg = active ? RED_DATA : 'transparent';
-                const activeFg = active ? '#ffffff' : t.col;
+                const activeFg = active ? 'var(--surface-card)' : t.col;
                 return (
                   <button
                     key={t.key}
@@ -926,13 +926,13 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                     }}>
                     <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
                       style={{ background: active ? 'rgba(255,255,255,0.25)' : hexToRgba(t.col, 0.133) }}>
-                      <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? '#ffffff' : t.col }}></span>
+                      <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? 'var(--surface-card)' : t.col }}></span>
                     </span>
                     <span>{t.lb}</span>
                     <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
                       style={{
                         background: active ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.05)',
-                        color: active ? '#ffffff' : '#64748b',
+                        color: active ? 'var(--surface-card)' : '#64748b',
                       }}>
                       {t.n}
                     </span>
@@ -1007,12 +1007,12 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   }`}
                   style={isSel ? { boxShadow: 'inset 0 0 0 1px rgba(250,80,62,0.35), 0 2px 8px rgba(250,80,62,0.12)' } : undefined}
                 >
-                  <div className="w-[18px] h-[18px] rounded-full grid place-items-center bg-[#34C759] text-white flex-shrink-0" style={{ boxShadow: 'inset 0 0 0 1px rgba(52,199,89,.5)' }}>
+                  <div className="w-[18px] h-[18px] rounded-full grid place-items-center bg-[var(--success)] text-white flex-shrink-0" style={{ boxShadow: 'inset 0 0 0 1px rgba(52,199,89,.5)' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[16px] font-bold text-ink-900 truncate leading-tight">{entry.o.title}</div>
-                    <div className="text-[10.5px] font-medium text-[#8e8e93] tabular-nums mt-[2px]">{startShort} → {endShort}</div>
+                    <div className="text-[10.5px] font-medium text-[var(--text-muted)] tabular-nums mt-[2px]">{startShort} → {endShort}</div>
                   </div>
                   <div style={{ width: 28, flexShrink: 0 }}>
                     {renderCardMenu({ entry, location: 'done' })}
@@ -1051,18 +1051,18 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
         const bottleneck = renderWorkBottleneck(o, gs.color);
         const st = _statusOf(o);
         const statusPill = st === 'done'
-          ? { txt: '已完成', bg: 'rgba(52,199,89,0.10)', fg: '#34C759', icon: '✅' }
-          : { txt: '搁置归档', bg: 'rgba(142,142,147,0.12)', fg: '#8e8e93', icon: '📦' };
+          ? { txt: '已完成', bg: 'rgba(52,199,89,0.10)', fg: 'var(--success)', icon: '✅' }
+          : { txt: '搁置归档', bg: 'rgba(142,142,147,0.12)', fg: 'var(--text-muted)', icon: '📦' };
         const stop = (e) => e.stopPropagation();
         return (
           <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
             onClick={() => setDetailGoal(null)}
           >
-            <div className="w-full max-w-[720px] max-h-[90vh] flex flex-col bg-[#f5f5f7] rounded-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.24)]"
+            <div className="w-full max-w-[720px] max-h-[90vh] flex flex-col bg-[var(--surface-fill)] rounded-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.24)]"
               onClick={stop}>
               {/* Modal Header */}
-              <div className="shrink-0 flex items-center gap-3 px-5 py-3.5 border-b border-[#e5e5ea] bg-white/80 backdrop-blur">
+              <div className="shrink-0 flex items-center gap-3 px-5 py-3.5 border-b border-[var(--ink-100)] bg-white/80 backdrop-blur">
                 <div className="shrink-0 w-1 h-8 rounded-full" style={{ background: gs.color }}/>
                 <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
                   <h3 className="text-[17px] font-semibold text-[#1d1d1f] truncate leading-tight" title={o.title}>{o.title}</h3>
@@ -1082,7 +1082,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   {renderCardMenu({ entry: detailGoal, location: 'modal' })}
                 </div>
                 <button onClick={() => setDetailGoal(null)}
-                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] hover:bg-[#f2f2f7] transition-colors"
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[#1d1d1f] hover:bg-[#f2f2f7] transition-colors"
                   title="关闭">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

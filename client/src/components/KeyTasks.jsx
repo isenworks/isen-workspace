@@ -238,18 +238,18 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     const cat = catOf(s);
     if (cat === 1) {
       return {
-        bg: 'linear-gradient(90deg,#FFEEED 0%,transparent 70%)',
-        borderColor: '#FF3B30',
-        dotColor: '#FF3B30',
-        doneColor: '#FF3B30'
+        bg: 'linear-gradient(90deg,var(--danger-soft) 0%,transparent 70%)',
+        borderColor: 'var(--m-work)',
+        dotColor: 'var(--m-work)',
+        doneColor: 'var(--m-work)'
       };
     }
     if (cat === 2) {
       return {
         bg: 'linear-gradient(90deg,#fff4d8 0%,transparent 70%)',
-        borderColor: '#FF9500',
-        dotColor: '#FF9500',
-        doneColor: '#FF9500'
+        borderColor: 'var(--m-ability)',
+        dotColor: 'var(--m-ability)',
+        doneColor: 'var(--m-ability)'
       };
     }
     // 习惯（cat=4）按成长类型分色
@@ -258,53 +258,53 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const def = GROWTH_TYPES[gt] || GROWTH_TYPES.energy;
       return {
         bg: `linear-gradient(90deg,${def.bg || '#e5f6ea'} 0%,transparent 70%)`,
-        borderColor: def.color || '#34C759',
-        dotColor: def.color || '#34C759',
-        doneColor: def.color || '#34C759'
+        borderColor: def.color || 'var(--m-energy)',
+        dotColor: def.color || 'var(--m-energy)',
+        doneColor: def.color || 'var(--m-energy)'
       };
     }
     // 生活体验（cat=5）紫色
     if (cat === 5) {
       return {
         bg: 'linear-gradient(90deg,#f3e8ff 0%,transparent 70%)',
-        borderColor: '#AF52DE',
-        dotColor: '#AF52DE',
-        doneColor: '#AF52DE'
+        borderColor: 'var(--m-life)',
+        dotColor: 'var(--m-life)',
+        doneColor: 'var(--m-life)'
       };
     }
-    // 精力（cat=6）绿色 — 与主线精力模块一致（#34C759）
+    // 精力（cat=6）绿色 — 与主线精力模块一致（var(--m-energy)）
     if (cat === 6) {
       return {
         bg: 'linear-gradient(90deg,#e5f6ea 0%,transparent 70%)',
-        borderColor: '#34C759',
-        dotColor: '#34C759',
-        doneColor: '#34C759'
+        borderColor: 'var(--m-energy)',
+        dotColor: 'var(--m-energy)',
+        doneColor: 'var(--m-energy)'
       };
     }
-    // 知力（cat=7）蓝色 — 与主线知力模块一致（#00A3FF）
+    // 知力（cat=7）蓝色 — 与主线知力模块一致（var(--m-cognition)）
     if (cat === 7) {
       return {
         bg: 'linear-gradient(90deg,#e0f0ff 0%,transparent 70%)',
-        borderColor: '#00A3FF',
-        dotColor: '#00A3FF',
-        doneColor: '#00A3FF'
+        borderColor: 'var(--m-cognition)',
+        dotColor: 'var(--m-cognition)',
+        doneColor: 'var(--m-cognition)'
       };
     }
-    // 财务（cat=8）粉色 — 与系统设置财务模块色一致（#FF2D55）
+    // 财务（cat=8）粉色 — 与系统设置财务模块色一致（var(--m-finance)）
     if (cat === 8) {
       return {
         bg: 'linear-gradient(90deg,#ffe9ee 0%,transparent 70%)',
-        borderColor: '#FF2D55',
-        dotColor: '#FF2D55',
-        doneColor: '#FF2D55'
+        borderColor: 'var(--m-finance)',
+        dotColor: 'var(--m-finance)',
+        doneColor: 'var(--m-finance)'
       };
     }
     // 常规事项
     return {
-      bg: 'linear-gradient(90deg,#e5e5ea 0%,transparent 70%)',
-      borderColor: '#8e8e93',
-      dotColor: '#8e8e93',
-      doneColor: '#8e8e93'
+      bg: 'linear-gradient(90deg,var(--ink-100) 0%,transparent 70%)',
+      borderColor: 'var(--text-muted)',
+      dotColor: 'var(--text-muted)',
+      doneColor: 'var(--text-muted)'
     };
   }
 
@@ -377,22 +377,22 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           className={`${cbClass} ${s.is_failed && !s.is_done ? 'cb-failed' : ''}`}
           checked={!!s.is_done}
           onChange={() => {}}
-          style={{ '--cb-color': s.is_failed ? '#FF3B30' : st.doneColor, '--cb-border': s.is_failed ? '#FF3B30' : (s.is_done ? st.doneColor : st.borderColor) }}
+          style={{ '--cb-color': s.is_failed ? 'var(--m-work)' : st.doneColor, '--cb-border': s.is_failed ? 'var(--m-work)' : (s.is_done ? st.doneColor : st.borderColor) }}
           onClick={(e) => { e.stopPropagation(); toggle(s); }}
           title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
         />
         <div className="flex-1 min-w-0">
-          <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[#8e8e93] line-through' : s.is_failed ? 'text-[#FF3B30] line-through' : 'text-[#1c1c1e]'}`}>
+          <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[var(--text-muted)] line-through' : s.is_failed ? 'text-[var(--m-work)] line-through' : 'text-[var(--text-1)]'}`}>
             <span className="truncate">{s.title}</span>
             <PTag p={s.priority} />
           </p>
-          <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : s.is_failed ? 'text-[#FF3B30]/70' : 'text-[#8e8e93]'}`}>{formatTime(s)}</p>
+          <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : s.is_failed ? 'text-[#FF3B30]/70' : 'text-[var(--text-muted)]'}`}>{formatTime(s)}</p>
         </div>
         {/* 小圆点始终保留原色 */}
         <span className={`w-2 h-2 flex-shrink-0 self-center ${isHabitSchedule ? 'rounded-full' : 'rounded-[2px]'}`} style={{background: st.dotColor}}></span>
         <button
           onClick={(e) => { e.stopPropagation(); remove(s); }}
-          className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#FF3B30] text-xs px-1"
+          className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--m-work)] text-xs px-1"
           title="删除"
         >×</button>
       </div>
@@ -402,7 +402,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   // 标题（今日视图跟随选中日：非今天时追加主题色日期，今天保持干净不加热词）
   const titleText = view === 'today'
     ? (date !== getToday()
-      ? <>重点事项 <span className="text-[#c7c7cc] font-medium">·</span> <span className="text-[color:var(--s-main)]">{dateScopeLabel(date)}</span></>
+      ? <>重点事项 <span className="text-[var(--ink-300)] font-medium">·</span> <span className="text-[color:var(--s-main)]">{dateScopeLabel(date)}</span></>
       : '重点事项')
     : view === 'week'
     ? '重点事项 · 本周'
@@ -419,7 +419,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
 
     if (dates.length === 0) {
       return (
-        <div className="text-center py-6 text-sm text-[#8e8e93]">
+        <div className="text-center py-6 text-sm text-[var(--text-muted)]">
           <div className="text-2xl mb-2">📋</div>
           {view === 'week' ? '本周' : '本月'}无事项
         </div>
@@ -435,9 +435,9 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           return (
             <div key={d}>
               <div className="flex items-center gap-2 mb-1.5 px-1">
-                <div className="w-2 h-2 rounded-[2px] bg-[#1c1c1e] shrink-0"></div>
-                <p className="text-[13px] font-semibold text-[#1c1c1e]">{dateLabel(d)}</p>
-                <span className="text-[11px] text-[#8e8e93]">{items.length} 项 · 已完成 {dDone}</span>
+                <div className="w-2 h-2 rounded-[2px] bg-[var(--text-1)] shrink-0"></div>
+                <p className="text-[13px] font-semibold text-[var(--text-1)]">{dateLabel(d)}</p>
+                <span className="text-[11px] text-[var(--text-muted)]">{items.length} 项 · 已完成 {dDone}</span>
               </div>
               <div className="space-y-1.5">
                 {sorted.map(renderItem)}
@@ -475,15 +475,15 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
               {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
               <button
                 onClick={() => setSortBy(sortBy === 'priority' ? 'time' : 'priority')}
-                className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[var(--text-muted)] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
                 title={sortBy === 'priority' ? '按重要性排序（点击切换为按时间）' : '按时间排序（点击切换为按重要性）'}
                 aria-label={sortBy === 'priority' ? '按重要性排序' : '按时间排序'}
               >
                 {sortBy === 'priority' ? (
                   <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
-                    <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="#FF3B30"/>
-                    <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="#FF9500"/>
-                    <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="#c7c7cc"/>
+                    <rect x="1.5" y="2" width="11" height="2.2" rx="1.1" fill="var(--m-work)"/>
+                    <rect x="1.5" y="5.9" width="11" height="2.2" rx="1.1" fill="var(--m-ability)"/>
+                    <rect x="1.5" y="9.8" width="11" height="2.2" rx="1.1" fill="var(--ink-300)"/>
                   </svg>
                 ) : (
                   <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">
@@ -496,14 +496,14 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
                 )}
               </button>
             </div>
-            <p className="text-[12px] font-normal tracking-tight leading-tight ml-[17px]" style={{ color: '#8e8e93', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif' }}>
+            <p className="text-[12px] font-normal tracking-tight leading-tight ml-[17px]" style={{ color: 'var(--text-muted)', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif' }}>
               增收入 · 建资产 · 提能力
             </p>
           </div>
         <div className="flex items-center gap-2">
           <div className="relative w-6 h-6">
             <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
-              <circle cx="12" cy="12" r={radius} fill="none" stroke="#e5e5ea" strokeWidth="3"></circle>
+              <circle cx="12" cy="12" r={radius} fill="none" stroke="var(--ink-100)" strokeWidth="3"></circle>
               <circle
                 cx="12" cy="12" r={radius} fill="none"
                 stroke="var(--s-main)" strokeWidth="3" strokeLinecap="round"

@@ -36,10 +36,10 @@ const DEFAULT_TEMPLATES = [
     name: '通用每日',
     emoji: '📋',
     sections: [
-      { idx: 1, title: '今日成果 / 亮点', color: '#FF3B30', placeholder: '今天完成了什么重要的事？' },
-      { idx: 2, title: '今日不足 / 改进', color: '#FF9500', placeholder: '哪些事没做好？哪里可以改进？' },
-      { idx: 3, title: '今日收获（可复利新知 / 动作）', color: '#007AFF', placeholder: '学到了什么新知识？有什么可以复用的经验？' },
-      { idx: 4, title: '明日计划 / 验证清单', color: '#34C759', placeholder: '明天最重要的 3 件事？' },
+      { idx: 1, title: '今日成果 / 亮点', color: 'var(--danger)', placeholder: '今天完成了什么重要的事？' },
+      { idx: 2, title: '今日不足 / 改进', color: 'var(--warning)', placeholder: '哪些事没做好？哪里可以改进？' },
+      { idx: 3, title: '今日收获（可复利新知 / 动作）', color: 'var(--s-main)', placeholder: '学到了什么新知识？有什么可以复用的经验？' },
+      { idx: 4, title: '明日计划 / 验证清单', color: 'var(--success)', placeholder: '明天最重要的 3 件事？' },
     ],
   },
   {
@@ -47,10 +47,10 @@ const DEFAULT_TEMPLATES = [
     name: 'KPT 复盘',
     emoji: '🔁',
     sections: [
-      { idx: 1, title: 'Keep（继续保持）', color: '#34C759', placeholder: '哪些做得好，值得持续坚持？' },
-      { idx: 2, title: 'Problem（遇到问题）', color: '#FF3B30', placeholder: '遇到了什么阻碍或问题？' },
-      { idx: 3, title: 'Try（下一步尝试）', color: '#007AFF', placeholder: '针对问题，计划尝试什么改变？' },
-      { idx: 4, title: '明日小目标', color: '#FF9500', placeholder: '明天最重要的行动项？' },
+      { idx: 1, title: 'Keep（继续保持）', color: 'var(--success)', placeholder: '哪些做得好，值得持续坚持？' },
+      { idx: 2, title: 'Problem（遇到问题）', color: 'var(--danger)', placeholder: '遇到了什么阻碍或问题？' },
+      { idx: 3, title: 'Try（下一步尝试）', color: 'var(--s-main)', placeholder: '针对问题，计划尝试什么改变？' },
+      { idx: 4, title: '明日小目标', color: 'var(--warning)', placeholder: '明天最重要的行动项？' },
     ],
   },
   {
@@ -58,10 +58,10 @@ const DEFAULT_TEMPLATES = [
     name: '求职专项',
     emoji: '💼',
     sections: [
-      { idx: 1, title: '今日投递 & 进展', color: '#007AFF', placeholder: '投了哪些公司？有什么新进展？' },
-      { idx: 2, title: '刷题 / 学习输出', color: '#34C759', placeholder: '刷了多少题？学了哪些知识点？' },
-      { idx: 3, title: '复盘 & 不足', color: '#FF9500', placeholder: '哪里表现不好？需要补什么？' },
-      { idx: 4, title: '明日计划', color: '#FF3B30', placeholder: '投哪些 / 学什么 / 准备什么？' },
+      { idx: 1, title: '今日投递 & 进展', color: 'var(--s-main)', placeholder: '投了哪些公司？有什么新进展？' },
+      { idx: 2, title: '刷题 / 学习输出', color: 'var(--success)', placeholder: '刷了多少题？学了哪些知识点？' },
+      { idx: 3, title: '复盘 & 不足', color: 'var(--warning)', placeholder: '哪里表现不好？需要补什么？' },
+      { idx: 4, title: '明日计划', color: 'var(--danger)', placeholder: '投哪些 / 学什么 / 准备什么？' },
     ],
   },
   {
@@ -69,10 +69,10 @@ const DEFAULT_TEMPLATES = [
     name: 'GTD 清空',
     emoji: '🧠',
     sections: [
-      { idx: 1, title: '已完成（拖出大脑）', color: '#34C759', placeholder: '把今天做完的所有事列出来' },
-      { idx: 2, title: '未完成 & 转移', color: '#FF3B30', placeholder: '哪些没做完？挪到哪天？' },
-      { idx: 3, title: '新想法 & 收集箱', color: '#007AFF', placeholder: '脑中冒出来的新念头/项目/灵感' },
-      { idx: 4, title: '明日 Top3 + 下一步', color: '#FF9500', placeholder: '明天最高优先级的 3 件事，以及立刻能做的第一步' },
+      { idx: 1, title: '已完成（拖出大脑）', color: 'var(--success)', placeholder: '把今天做完的所有事列出来' },
+      { idx: 2, title: '未完成 & 转移', color: 'var(--danger)', placeholder: '哪些没做完？挪到哪天？' },
+      { idx: 3, title: '新想法 & 收集箱', color: 'var(--s-main)', placeholder: '脑中冒出来的新念头/项目/灵感' },
+      { idx: 4, title: '明日 Top3 + 下一步', color: 'var(--warning)', placeholder: '明天最高优先级的 3 件事，以及立刻能做的第一步' },
     ],
   },
 ];
@@ -318,7 +318,7 @@ function renderMdToHtml(md) {
     if (line.startsWith('>')) {
       closeUl(); closeTable(); flushPara();
       const txt = line.replace(/^>\s?/, '');
-      if (!inBlockquote) { html += '<blockquote style="border-left:3px solid var(--s-main);background:rgba(var(--s-rgb),0.04);padding:6px 10px;margin:6px 0;border-radius:0 8px 8px 0;color:#3c3c43;font-size:12px;line-height:1.7">'; inBlockquote = true; }
+      if (!inBlockquote) { html += '<blockquote style="border-left:3px solid var(--s-main);background:rgba(var(--s-rgb),0.04);padding:6px 10px;margin:6px 0;border-radius:0 8px 8px 0;color:var(--text-2);font-size:12px;line-height:1.7">'; inBlockquote = true; }
       else html += '<br>';
       html += escape(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/  /g, '&nbsp;&nbsp;');
       continue;
@@ -350,15 +350,15 @@ function renderMdToHtml(md) {
         html += '<tr>';
         cells.forEach(c => {
           let cellHtml = escape(c).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-          if (/✅/.test(c)) cellHtml = cellHtml.replace(/✅[^\u4e00-\u9fa5|]*/g, m => `<span style="color:#34C759;font-weight:600">${m}</span>`);
-          if (/❌/.test(c)) cellHtml = cellHtml.replace(/❌[^\u4e00-\u9fa5|]*/g, m => `<span style="color:#FF3B30;font-weight:600">${m}</span>`);
+          if (/✅/.test(c)) cellHtml = cellHtml.replace(/✅[^\u4e00-\u9fa5|]*/g, m => `<span style="color:var(--success);font-weight:600">${m}</span>`);
+          if (/❌/.test(c)) cellHtml = cellHtml.replace(/❌[^\u4e00-\u9fa5|]*/g, m => `<span style="color:var(--danger);font-weight:600">${m}</span>`);
           if (/⚡|❤️/.test(c)) {
-            cellHtml = cellHtml.replace(/⚡充沛/g, '<span style="color:#34C759;font-weight:600">⚡充沛</span>');
-            cellHtml = cellHtml.replace(/⚡一般/g, '<span style="color:#007AFF;font-weight:600">⚡一般</span>');
-            cellHtml = cellHtml.replace(/⚡疲惫/g, '<span style="color:#FF3B30;font-weight:600">⚡疲惫</span>');
-            cellHtml = cellHtml.replace(/❤️积极/g, '<span style="color:#34C759;font-weight:600">❤️积极</span>');
-            cellHtml = cellHtml.replace(/❤️平淡/g, '<span style="color:#007AFF;font-weight:600">❤️平淡</span>');
-            cellHtml = cellHtml.replace(/❤️消极/g, '<span style="color:#FF3B30;font-weight:600">❤️消极</span>');
+            cellHtml = cellHtml.replace(/⚡充沛/g, '<span style="color:var(--success);font-weight:600">⚡充沛</span>');
+            cellHtml = cellHtml.replace(/⚡一般/g, '<span style="color:var(--s-main);font-weight:600">⚡一般</span>');
+            cellHtml = cellHtml.replace(/⚡疲惫/g, '<span style="color:var(--danger);font-weight:600">⚡疲惫</span>');
+            cellHtml = cellHtml.replace(/❤️积极/g, '<span style="color:var(--success);font-weight:600">❤️积极</span>');
+            cellHtml = cellHtml.replace(/❤️平淡/g, '<span style="color:var(--s-main);font-weight:600">❤️平淡</span>');
+            cellHtml = cellHtml.replace(/❤️消极/g, '<span style="color:var(--danger);font-weight:600">❤️消极</span>');
           }
           html += `<td style="border:1px solid rgba(0,0,0,0.08);padding:4px 8px;text-align:left;line-height:1.6">${cellHtml}</td>`;
         });
@@ -747,7 +747,7 @@ export default function SummaryPanel({
     const names = [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].map(s => s.trim());
     if (!name) return;
     if (names.some(n => !n)) return;
-    const colors = ['#FF3B30', '#FF9500', '#007AFF', '#34C759'];
+    const colors = ['var(--danger)', 'var(--warning)', 'var(--s-main)', 'var(--success)'];
 
     if (editingTplId) {
       if (isPresetId(editingTplId)) {
@@ -895,7 +895,7 @@ export default function SummaryPanel({
       style={{
         position: 'absolute', top: 'calc(100% + 6px)', right: 0,
         minWidth: '200px',
-        background: '#fff',
+        background: 'var(--surface-card)',
         borderRadius: '12px',
         padding: '6px',
         boxShadow: '0 12px 36px rgba(0,0,0,0.18), 0 4px 10px rgba(0,0,0,0.06)',
@@ -914,7 +914,7 @@ export default function SummaryPanel({
             borderRadius: '8px',
             cursor: 'pointer',
             background: templateId === t.id ? 'rgba(var(--s-rgb),0.08)' : 'transparent',
-            color: templateId === t.id ? 'var(--s-main)' : '#1c1c1e',
+            color: templateId === t.id ? 'var(--s-main)' : 'var(--text-1)',
             transition: 'background .1s',
             fontSize: '13px',
           }}
@@ -938,7 +938,7 @@ export default function SummaryPanel({
                   borderRadius: '50%',
                   border: 'none',
                   background: 'transparent',
-                  color: '#c7c7cc',
+                  color: 'var(--ink-300)',
                   cursor: 'pointer',
                   fontSize: '11px',
                   lineHeight: 1,
@@ -946,7 +946,7 @@ export default function SummaryPanel({
                 }}
                 title="编辑"
                 onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--s-main)'; e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-300)'; e.currentTarget.style.background = 'transparent'; }}
               >✎</button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleDelTemplate(t.id); }}
@@ -955,15 +955,15 @@ export default function SummaryPanel({
                   borderRadius: '50%',
                   border: 'none',
                   background: 'transparent',
-                  color: '#c7c7cc',
+                  color: 'var(--ink-300)',
                   cursor: 'pointer',
                   fontSize: '12px',
                   lineHeight: 1,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}
                 title="删除"
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#FF3B30'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#c7c7cc'; e.currentTarget.style.background = 'transparent'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-300)'; e.currentTarget.style.background = 'transparent'; }}
               >×</button>
             </div>
           )}
@@ -1013,7 +1013,7 @@ export default function SummaryPanel({
     fontSize: '12px', fontWeight: '600',
     cursor: 'pointer', transition: 'all .15s',
     background: tplMenuOpen ? 'rgba(var(--s-rgb),0.10)' : 'rgba(120,120,128,0.10)',
-    color: '#1c1c1e',
+    color: 'var(--text-1)',
     border: tplMenuOpen ? '1px solid rgba(var(--s-rgb),0.2)' : '1px solid transparent',
   });
 
@@ -1085,8 +1085,8 @@ export default function SummaryPanel({
             placeholder="模板名称（如：运动日复盘）"
             style={{
               padding: '7px 10px', fontSize: '13px',
-              borderRadius: '8px', border: '1px solid #d1d1d6',
-              background: '#fff', outline: 'none',
+              borderRadius: '8px', border: '1px solid var(--ink-200)',
+              background: 'var(--surface-card)', outline: 'none',
             }}
             maxLength={12}
           />
@@ -1094,9 +1094,9 @@ export default function SummaryPanel({
             <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <span style={{
                 width: '18px', height: '18px', borderRadius: '5px',
-                color: '#fff', fontSize: '10px', fontWeight: '700',
+                color: 'var(--surface-card)', fontSize: '10px', fontWeight: '700',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                background: ['#FF3B30', '#FF9500', '#007AFF', '#34C759'][i - 1], flexShrink: 0,
+                background: ['var(--danger)', 'var(--warning)', 'var(--s-main)', 'var(--success)'][i - 1], flexShrink: 0,
               }}>{i}</span>
               <input
                 value={newTplDraft['s' + i]}
@@ -1104,8 +1104,8 @@ export default function SummaryPanel({
                 placeholder={`第 ${i} 段标题`}
                 style={{
                   flex: 1, padding: '7px 10px', fontSize: '13px',
-                  borderRadius: '8px', border: '1px solid #d1d1d6',
-                  background: '#fff', outline: 'none',
+                  borderRadius: '8px', border: '1px solid var(--ink-200)',
+                  background: 'var(--surface-card)', outline: 'none',
                 }}
                 maxLength={20}
               />
@@ -1116,7 +1116,7 @@ export default function SummaryPanel({
               onClick={() => { setShowTplEditor(false); setEditingTplId(null); setNewTplDraft({ name: '', s1: '', s2: '', s3: '', s4: '' }); }}
               style={{
                 padding: '5px 12px', borderRadius: '8px', border: 'none',
-                background: 'rgba(120,120,128,0.10)', color: '#3c3c43',
+                background: 'rgba(120,120,128,0.10)', color: 'var(--text-2)',
                 fontSize: '12px', fontWeight: '600', cursor: 'pointer',
               }}
             >取消</button>
@@ -1125,7 +1125,7 @@ export default function SummaryPanel({
               disabled={!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())}
               style={{
                 padding: '5px 12px', borderRadius: '8px', border: 'none',
-                background: 'var(--s-main)', color: '#fff',
+                background: 'var(--s-main)', color: 'var(--surface-card)',
                 fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                 opacity: (!newTplDraft.name.trim() || [newTplDraft.s1, newTplDraft.s2, newTplDraft.s3, newTplDraft.s4].some(s => !s.trim())) ? 0.5 : 1,
               }}
@@ -1155,17 +1155,17 @@ export default function SummaryPanel({
               }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '7px',
-                  fontSize: '13px', fontWeight: '600', color: '#1c1c1e',
+                  fontSize: '13px', fontWeight: '600', color: 'var(--text-1)',
                 }}>
                   <span style={{
                     width: '18px', height: '18px', borderRadius: '5px',
-                    color: '#fff', fontSize: '10px', fontWeight: '700',
+                    color: 'var(--surface-card)', fontSize: '10px', fontWeight: '700',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0, background: sec.color,
                   }}>{sec.idx}</span>
                   <span>{sec.title}</span>
                 </div>
-                <span style={{ fontSize: '10px', fontWeight: '600', color: '#c7c7cc' }}>
+                <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--ink-300)' }}>
                   {countChinese(val)}字
                 </span>
               </div>
@@ -1177,7 +1177,7 @@ export default function SummaryPanel({
                 style={{
                   width: '100%', border: 'none', borderRadius: '8px',
                   padding: '8px 10px', fontSize: '13px', lineHeight: '1.7',
-                  fontFamily: 'inherit', color: '#1c1c1e',
+                  fontFamily: 'inherit', color: 'var(--text-1)',
                   background: 'rgba(0,0,0,0.015)',
                   outline: 'none', resize: 'none',
                   minHeight: '94px', maxHeight: '94px',
@@ -1198,13 +1198,13 @@ export default function SummaryPanel({
         border: '1px solid rgba(0,0,0,0.04)',
         flexWrap: 'wrap', gap: '8px',
       }}>
-        <div style={{ fontSize: '11px', color: '#8e8e93', display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '8px', alignItems: 'center' }}>
           {saving
             ? <span style={{ color: 'var(--s-main)', fontWeight: '600' }}>⟳ 保存中…</span>
             : savedTime
               ? (
                 <>
-                  <span style={{ color: '#34C759', fontWeight: '600' }}>✓ 已保存</span>
+                  <span style={{ color: 'var(--success)', fontWeight: '600' }}>✓ 已保存</span>
                   <span>· {String(savedTime.getHours()).padStart(2, '0')}:{String(savedTime.getMinutes()).padStart(2, '0')}</span>
                 </>
               )
@@ -1217,7 +1217,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: 'rgba(255,59,48,0.08)', color: '#FF3B30',
+              background: 'rgba(255,59,48,0.08)', color: 'var(--danger)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(255,59,48,0.16)';
@@ -1235,7 +1235,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: 'rgba(120,120,128,0.10)', color: '#3c3c43',
+              background: 'rgba(120,120,128,0.10)', color: 'var(--text-2)',
             }}
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.18)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.10)'}
@@ -1249,7 +1249,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: copied ? '#34C759' : 'var(--s-main)', color: '#fff',
+              background: copied ? 'var(--success)' : 'var(--s-main)', color: 'var(--surface-card)',
             }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
@@ -1262,7 +1262,7 @@ export default function SummaryPanel({
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: saving ? 'default' : 'pointer',
               fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-              background: saving ? '#2db24f' : '#34C759', color: '#fff',
+              background: saving ? '#2db24f' : 'var(--success)', color: 'var(--surface-card)',
               opacity: saving ? 0.85 : 1,
             }}
           >
@@ -1302,16 +1302,16 @@ export default function SummaryPanel({
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: '12px',
               }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
                   <line x1="12" y1="9" x2="12" y2="13"></line>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
               </div>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1c1c1e', marginBottom: '6px' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-1)', marginBottom: '6px' }}>
                 清空每日总结？
               </div>
-              <div style={{ fontSize: '12px', color: '#8e8e93', textAlign: 'center', lineHeight: '1.5' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: '1.5' }}>
                 将删除今日所有总结内容<br/>
                 此操作不可撤销
               </div>
@@ -1323,7 +1323,7 @@ export default function SummaryPanel({
                 onClick={() => setShowClearConfirm(false)}
                 style={{
                   flex: 1, padding: '12px 0', border: 'none', background: 'transparent',
-                  fontSize: '14px', fontWeight: '600', color: '#3c3c43',
+                  fontSize: '14px', fontWeight: '600', color: 'var(--text-2)',
                   cursor: 'pointer', borderRight: '1px solid rgba(0,0,0,0.06)',
                   transition: 'background .15s',
                 }}
@@ -1336,7 +1336,7 @@ export default function SummaryPanel({
                 onClick={handleClearConfirm}
                 style={{
                   flex: 1, padding: '12px 0', border: 'none', background: 'transparent',
-                  fontSize: '14px', fontWeight: '600', color: '#FF3B30',
+                  fontSize: '14px', fontWeight: '600', color: 'var(--danger)',
                   cursor: 'pointer', transition: 'background .15s',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,59,48,0.08)'}
@@ -1394,7 +1394,7 @@ export default function SummaryPanel({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: '#575f6a', fontSize: '16px', fontWeight: '500',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.10)'; e.currentTarget.style.color = '#FF3B30'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.10)'; e.currentTarget.style.color = 'var(--danger)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(120,120,128,0.10)'; e.currentTarget.style.color = '#575f6a'; }}
           >×</button>
         </div>
@@ -1414,9 +1414,9 @@ export default function SummaryPanel({
             }}>{markdown}</pre>
           </div>
           <div style={{ overflowY: 'auto', padding: '16px' }}>
-            <div style={{ color: '#8e8e93', fontSize: '10px', fontWeight: '700', letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>渲染预览</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>渲染预览</div>
             <div
-              style={{ fontSize: '13px', lineHeight: '1.7', color: '#1c1c1e' }}
+              style={{ fontSize: '13px', lineHeight: '1.7', color: 'var(--text-1)' }}
               dangerouslySetInnerHTML={{ __html: renderedMd }}
             />
           </div>
@@ -1426,7 +1426,7 @@ export default function SummaryPanel({
           padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
         }}>
-          <div style={{ fontSize: '11px', color: copied ? '#34C759' : '#8e8e93', fontWeight: copied ? '600' : '400' }}>
+          <div style={{ fontSize: '11px', color: copied ? 'var(--success)' : 'var(--text-muted)', fontWeight: copied ? '600' : '400' }}>
             {copied ? '✓ 已复制到剪贴板' : '点击复制即可粘贴到飞书 / Notion'}
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
@@ -1434,7 +1434,7 @@ export default function SummaryPanel({
               onClick={() => setMdOpen(false)}
               style={{
                 padding: '6px 12px', borderRadius: '8px', border: 'none',
-                background: 'rgba(120,120,128,0.10)', color: '#3c3c43',
+                background: 'rgba(120,120,128,0.10)', color: 'var(--text-2)',
                 fontSize: '12px', fontWeight: '600', cursor: 'pointer',
               }}
             >取消</button>
@@ -1444,7 +1444,7 @@ export default function SummaryPanel({
                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                 padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                 fontSize: '12px', fontWeight: '600', transition: 'all .15s',
-                background: copied ? '#34C759' : 'var(--s-main)', color: '#fff',
+                background: copied ? 'var(--success)' : 'var(--s-main)', color: 'var(--surface-card)',
               }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
@@ -1469,7 +1469,7 @@ export default function SummaryPanel({
             }}></span>
             每日总结
             <span style={{
-              fontSize: '12px', fontWeight: '500', color: '#8e8e93',
+              fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)',
               background: 'rgba(120,120,128,0.10)', padding: '2px 10px', borderRadius: '999px',
             }}>{toDisplayDate(date)}</span>
           </div>

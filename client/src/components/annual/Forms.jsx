@@ -26,9 +26,9 @@ export function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCance
 
   const scoreColor = (n) => {
     n = Number(n) || 0;
-    if (n >= 9) return '#34C759';
-    if (n >= 6) return '#FF9500';
-    return '#FF3B30';
+    if (n >= 9) return 'var(--success)';
+    if (n >= 6) return 'var(--warning)';
+    return 'var(--danger)';
   };
   const scoreLabel = (n) => {
     n = Number(n) || 0;
@@ -54,15 +54,15 @@ export function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCance
     return Number(scores[idx]) - Number(prev);
   };
 
-  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#FF9500', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const LABEL = { fontSize: 13, fontWeight: 600, color: 'var(--text-1)', display: 'block', marginBottom: 4 };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--warning)', color: 'var(--surface-card)', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 顶部说明 */}
       <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.18)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <svg style={{ width: 18, height: 18, color: '#FF9500', flexShrink: 0, marginTop: 1 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <svg style={{ width: 18, height: 18, color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
         <div style={{ fontSize: 12, lineHeight: 1.55, color: '#804B00' }}>
           <b>{curYear}年{curMonth}月 · 能力自评</b>：客观评估本月自己在每项能力上的实际水平（0-10分），<br />对比上月看趋势，作为下月的行动锚点。
         </div>
@@ -75,10 +75,10 @@ export function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCance
           const c = scoreColor(sc);
           const delta = prevDelta(i);
           return (
-            <div key={i} style={{ padding: '12px 12px 14px', borderRadius: 12, border: '1px solid rgba(15,23,42,0.08)', background: '#fff' }}>
+            <div key={i} style={{ padding: '12px 12px 14px', borderRadius: 12, border: '1px solid rgba(15,23,42,0.08)', background: 'var(--surface-card)' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 3 }}>{a.title}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 3 }}>{a.title}</div>
                   <div style={{ fontSize: 11.5, color: '#6b7280', lineHeight: 1.45 }}>每日：{a.daily}</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
@@ -91,7 +91,7 @@ export function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCance
                     {delta !== null && (
                       <span style={{
                         fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                        color: delta > 0 ? '#34C759' : delta < 0 ? '#FF3B30' : '#8e8e93',
+                        color: delta > 0 ? 'var(--success)' : delta < 0 ? 'var(--danger)' : 'var(--text-muted)',
                       }}>
                         {delta > 0 ? '▲' : delta < 0 ? '▼' : '—'}{Math.abs(delta) > 0 ? Math.abs(delta) : ''}
                       </span>
@@ -106,7 +106,7 @@ export function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCance
                 style={{ width: '100%', accentColor: c }}
               />
               {/* 刻度标记 */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 10, color: '#8E8E93', fontWeight: 600, padding: '0 1px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, padding: '0 1px' }}>
                 <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>
               </div>
             </div>
@@ -119,7 +119,7 @@ export function AbilityAssessmentForm({ abilities, scoreHistory, onSave, onCance
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#B36900', marginBottom: 2 }}>综合自评</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-            <span style={{ fontSize: 24, fontWeight: 800, color: '#FF9500', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{avg}</span>
+            <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{avg}</span>
             <span style={{ fontSize: 13, color: '#B36900', opacity: .8 }}>/10</span>
           </div>
         </div>
@@ -192,9 +192,9 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
   // 根据gap与urgency推算一条可以立即推进的建议增量（用于onKrProgressAdd快速推进v值）
   const quickBoost = Math.min(gap, Math.max(1, Math.round(perDay)));
 
-  const LABEL = { fontSize: 13, fontWeight: 600, color: '#1c1c1e', display: 'block', marginBottom: 4 };
-  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#FF3B30', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: '#8e8e93', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
+  const LABEL = { fontSize: 13, fontWeight: 600, color: 'var(--text-1)', display: 'block', marginBottom: 4 };
+  const BTN_P = { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--danger)', color: 'var(--surface-card)', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const BTN_G = { padding: '8px 16px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.1)', background: 'transparent', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500, cursor: 'pointer' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -216,9 +216,9 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
               差距 <b style={{ color: riskInfo.color }}>—{Math.abs(riskInfo.diff)}%</b>，剩余 <b>{riskInfo.daysLeft}</b> 天
             </span>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', lineHeight: 1.4 }}>{kr.t}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1.4 }}>{kr.t}</div>
           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, lineHeight: 1.45 }}>
-            当前 <b style={{ color: '#1c1c1e' }}>{kr.v}</b> / 目标 <b style={{ color: '#1c1c1e' }}>{kr.tgt}</b>，
+            当前 <b style={{ color: 'var(--text-1)' }}>{kr.v}</b> / 目标 <b style={{ color: 'var(--text-1)' }}>{kr.tgt}</b>，
             还差 <b style={{ color: riskInfo.color }}>{gap}</b>，日均需至少 <b style={{ color: riskInfo.color }}>{perDay}</b>（建议 <b>×1.5</b> 留出缓冲）。
           </div>
         </div>
@@ -227,7 +227,7 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
       {/* 微动作清单 */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <label style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1c1c1e' }}>微动作拆解 · 已完成 {doneCount}/{actions.length}（{donePct}%）</label>
+          <label style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>微动作拆解 · 已完成 {doneCount}/{actions.length}（{donePct}%）</label>
           <button
             type="button"
             onClick={() => onKrProgressAdd?.(quickBoost)}
@@ -243,22 +243,22 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
             <div key={a.id} style={{
               padding: '9px 10px', borderRadius: 10,
               border: a.done ? '1px solid rgba(52,199,89,0.2)' : '1px solid rgba(15,23,42,0.08)',
-              background: a.done ? 'rgba(52,199,89,0.04)' : '#fff',
+              background: a.done ? 'rgba(52,199,89,0.04)' : 'var(--surface-card)',
               display: 'flex', alignItems: 'flex-start', gap: 9,
             }}>
               <input
                 type="checkbox" checked={!!a.done}
                 onChange={() => setActions(prev => prev.map(x => x.id === a.id ? { ...x, done: !x.done } : x))}
-                style={{ width: 16, height: 16, marginTop: 1, accentColor: '#FF3B30', flexShrink: 0 }}
+                style={{ width: 16, height: 16, marginTop: 1, accentColor: 'var(--danger)', flexShrink: 0 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: 12.5, fontWeight: 600, lineHeight: 1.45,
-                  color: a.done ? '#34C759' : '#1c1c1e',
+                  color: a.done ? 'var(--success)' : 'var(--text-1)',
                   textDecoration: a.done ? 'line-through' : 'none',
                 }}>{a.text}</div>
                 <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: '#8e8e93' }}>截止 {a.deadline}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)' }}>截止 {a.deadline}</span>
                 </div>
               </div>
               <button
@@ -282,7 +282,7 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
             }}
             style={{
               flex: 1, padding: '7px 10px', borderRadius: 9, border: '1px solid rgba(15,23,42,0.08)',
-              fontSize: 12.5, outline: 'none', background: '#fff',
+              fontSize: 12.5, outline: 'none', background: 'var(--surface-card)',
             }}
           />
           <button
@@ -304,7 +304,7 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
             <button
               type="button"
               onClick={() => setActions(genTemplates().map(t => ({ id: uid(), text: t.text, deadline: t.deadline, ddlOffset: t.ddlOffset, done: false, createdAt: Date.now() })))}
-              style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: 'transparent', color: '#8e8e93', fontSize: 12, fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}
+              style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: 12, fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}
             >重置为模板建议</button>
           )}
         </div>
@@ -356,7 +356,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-bold text-[#1c1c1e] mb-1">{year} 年度精选 · 记忆卡生成</div>
+          <div className="text-[14px] font-bold text-[var(--text-1)] mb-1">{year} 年度精选 · 记忆卡生成</div>
           <div className="text-[12px] text-[#6b7280] leading-normal">
             选择 <b style={{ color: moduleColor('life') }}>3–9 条</b> 最珍贵的生活片段，下面会实时生成一张今年的专属记忆卡预览。
             已选 <b>{currentHl.length}</b> / 共 <b>{allEntries.length}</b> 条可挑选。
@@ -366,7 +366,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
 
       {/* 记忆卡预览 */}
       <div>
-        <div className="text-[12.5px] font-bold text-[#1c1c1e] mb-2">🪄 记忆卡预览</div>
+        <div className="text-[12.5px] font-bold text-[var(--text-1)] mb-2">🪄 记忆卡预览</div>
         <div className="rounded-2xl p-5 relative overflow-hidden"
           style={{
             background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #FFEEED 100%)',
@@ -397,7 +397,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
                       {e.catLb.slice(0, 1)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12px] font-semibold text-[#1c1c1e] leading-[1.45]">{e.t}</div>
+                      <div className="text-[12px] font-semibold text-[var(--text-1)] leading-[1.45]">{e.t}</div>
                       {e.n && <div className="text-[10.5px] text-[#6b7280] mt-0.5 leading-[1.4]">{e.n}</div>}
                     </div>
                     <div className="text-[10px] font-semibold tabular-nums shrink-0" style={{ color: moduleColor('life') }}>{e.d}</div>
@@ -417,7 +417,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
 
       {/* 快速操作 */}
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[12.5px] font-bold text-[#1c1c1e]">📋 挑选条目（{currentHl.length}）</div>
+        <div className="text-[12.5px] font-bold text-[var(--text-1)]">📋 挑选条目（{currentHl.length}）</div>
         <div className="flex gap-2">
           <button type="button" onClick={autoSelectRecommended}
             className="py-[5px] px-2.5 rounded-lg text-[11.5px] font-bold cursor-pointer"
@@ -426,7 +426,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
           </button>
           {currentHl.length > 0 && (
             <button type="button" onClick={() => onSave?.([])}
-              className="py-[5px] px-2.5 rounded-lg border-none bg-transparent text-[#8e8e93] text-[11.5px] font-medium cursor-pointer underline">
+              className="py-[5px] px-2.5 rounded-lg border-none bg-transparent text-[var(--text-muted)] text-[11.5px] font-medium cursor-pointer underline">
               清空精选
             </button>
           )}
@@ -444,16 +444,16 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
             <div key={e.id} className="py-[9px] px-2.5 rounded-[10px] flex items-start gap-2.5"
               style={{
                 border: `1px solid ${sel ? moduleRgba('life', 0.33) : 'rgba(15,23,42,0.08)'}`,
-                background: sel ? moduleRgba('life', 0.04) : '#fff',
+                background: sel ? moduleRgba('life', 0.04) : 'var(--surface-card)',
               }}>
               <div className="w-[22px] h-[22px] rounded-[7px] grid place-items-center shrink-0 text-[10.5px] font-extrabold"
                 style={{ background: moduleRgba('life', 0.09), color: moduleColor('life') }}>{e.catLb.slice(0, 1)}</div>
               <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold text-[#1c1c1e] leading-[1.4]">{e.t}</div>
+                <div className="text-[12px] font-semibold text-[var(--text-1)] leading-[1.4]">{e.t}</div>
                 {e.n && <div className="text-[10.5px] text-[#6b7280] mt-0.5 leading-[1.4]">{e.n}</div>}
               </div>
               <div className="flex flex-col items-end gap-[5px] shrink-0">
-                <div className="text-[10.5px] font-semibold text-[#8e8e93] tabular-nums">{e.d}</div>
+                <div className="text-[10.5px] font-semibold text-[var(--text-muted)] tabular-nums">{e.d}</div>
                 <button
                   type="button"
                   onClick={() => onToggleHighlight?.(e.id)}
@@ -461,7 +461,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
                   className="w-6 h-6 rounded-lg border-none cursor-pointer grid place-items-center transition-transform duration-[120ms]"
                   style={{
                     background: sel ? 'linear-gradient(135deg,var(--m-life),#FF2D55)' : 'rgba(15,23,42,0.05)',
-                    color: sel ? '#fff' : '#cbd5e1',
+                    color: sel ? 'var(--surface-card)' : '#cbd5e1',
                     boxShadow: sel ? `0 1px 3px ${moduleRgba('life', 0.3)}` : 'none',
                   }}>
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -474,7 +474,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
 
       {/* 按钮 */}
       <div className="flex justify-end gap-2 pt-0.5">
-        <button onClick={onCancel} className="px-4 py-2 rounded-[9px] bg-transparent text-[#8e8e93] text-[13px] font-medium cursor-pointer" style={BTN_G}>关闭</button>
+        <button onClick={onCancel} className="px-4 py-2 rounded-[9px] bg-transparent text-[var(--text-muted)] text-[13px] font-medium cursor-pointer" style={BTN_G}>关闭</button>
         <button onClick={() => onSave?.(highlightedIds)} className="px-4 py-2 rounded-[9px] border-none text-white text-[13px] font-semibold cursor-pointer" style={BTN_P}>确定 · 保存记忆卡</button>
       </div>
     </div>

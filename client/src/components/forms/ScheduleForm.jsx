@@ -36,17 +36,17 @@ function builtinCats() {
   try { mc = getModuleColors(); } catch {}
   return BUILTIN_LABELS.map(b => ({
     ...b,
-    dot: (CAT_MODULE_KEY[b.v] && mc[CAT_MODULE_KEY[b.v]]?.hex) || '#8E8E93',
+    dot: (CAT_MODULE_KEY[b.v] && mc[CAT_MODULE_KEY[b.v]]?.hex) || 'var(--text-muted)',
     builtin: true,
   }));
 }
 
 // 重要紧急程度选项（P0 最紧急；NULL=未设置）· P2 用 iOS 蓝 #007AFF（区别于知力主题色）
 const PRIORITY_OPTS = [
-  { v: 0, label: 'P0', short: '紧急且重要',   color: '#FF3B30', title: 'P0 · 紧急且重要' },
-  { v: 1, label: 'P1', short: '重要不紧急',   color: '#FF9500', title: 'P1 · 重要不紧急' },
-  { v: 2, label: 'P2', short: '紧急不重要',   color: '#007AFF', title: 'P2 · 紧急不重要' },
-  { v: 3, label: 'P3', short: '不重要不紧急', color: '#8E8E93', title: 'P3 · 不重要不紧急' },
+  { v: 0, label: 'P0', short: '紧急且重要',   color: 'var(--danger)', title: 'P0 · 紧急且重要' },
+  { v: 1, label: 'P1', short: '重要不紧急',   color: 'var(--warning)', title: 'P1 · 重要不紧急' },
+  { v: 2, label: 'P2', short: '紧急不重要',   color: 'var(--s-main)', title: 'P2 · 紧急不重要' },
+  { v: 3, label: 'P3', short: '不重要不紧急', color: 'var(--text-muted)', title: 'P3 · 不重要不紧急' },
 ];
 
 const LS_KEY = 'schedule_cats_v1';
@@ -75,7 +75,7 @@ export function readCats() {
     });
     saved.forEach(s => {
       if (s.v >= 100 && !merged.find(m => m.v === s.v)) {
-        merged.push({ v: s.v, label: s.label || `自定义 ${s.v}`, dot: s.dot || '#8E8E93', builtin: false });
+        merged.push({ v: s.v, label: s.label || `自定义 ${s.v}`, dot: s.dot || 'var(--text-muted)', builtin: false });
       }
     });
     return merged;
@@ -122,11 +122,11 @@ function initialCategory(initial) {
 const INPUT_STYLE = {
   width: '100%',
   padding: '8px 12px',
-  border: '1px solid #d1d1d6',
+  border: '1px solid var(--ink-200)',
   borderRadius: '9px',
   fontSize: '14px',
-  color: '#1c1c1e',
-  background: '#ffffff',
+  color: 'var(--text-1)',
+  background: 'var(--surface-card)',
   outline: 'none',
   transition: 'all .15s',
   boxSizing: 'border-box'
@@ -136,7 +136,7 @@ const LABEL_STYLE = {
   display: 'block',
   fontSize: '11px',
   fontWeight: '600',
-  color: '#8e8e93',
+  color: 'var(--text-muted)',
   marginBottom: '5px',
   textTransform: 'uppercase',
   letterSpacing: '0.03em'
@@ -148,7 +148,7 @@ const BTN_GHOST = {
   fontSize: '13px',
   fontWeight: '600',
   background: 'rgba(120,120,128,0.12)',
-  color: '#1c1c1e',
+  color: 'var(--text-1)',
   border: 'none',
   cursor: 'pointer',
   transition: 'all .15s'
@@ -160,7 +160,7 @@ const BTN_PRIMARY = {
   fontSize: '13px',
   fontWeight: '600',
   background: 'var(--s-main)',
-  color: '#fff',
+  color: 'var(--surface-card)',
   border: 'none',
   cursor: 'pointer',
   transition: 'all .15s',
@@ -380,10 +380,10 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
           className="form-input"
           style={{
             ...INPUT_STYLE,
-            border: '1px solid #d1d1d6',
+            border: '1px solid var(--ink-200)',
             fontSize: '14px',
             fontWeight: '500',
-            background: '#ffffff'
+            background: 'var(--surface-card)'
           }}
           value={form.title}
           onChange={e => set('title', e.target.value)}
@@ -426,7 +426,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
                 style={{
                   position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
                   width: '20px', height: '20px', borderRadius: '999px', border: 'none',
-                  background: 'rgba(120,120,128,0.16)', color: '#8e8e93',
+                  background: 'rgba(120,120,128,0.16)', color: 'var(--text-muted)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', fontSize: '12px', lineHeight: '1'
                 }}
@@ -496,7 +496,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
                   cursor: 'pointer',
                   transition: 'all .15s',
                   background: on ? 'var(--s-main)' : 'rgba(120,120,128,0.12)',
-                  color: on ? '#fff' : '#1c1c1e',
+                  color: on ? 'var(--surface-card)' : 'var(--text-1)',
                   boxShadow: on ? '0 2px 6px rgba(var(--s-rgb),0.3)' : 'none'
                 }}
               >{o.label}</button>
@@ -505,7 +505,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         </div>
         {isRecurring && (
           <div style={{
-            fontSize: '11px', color: '#8e8e93', marginTop: '7px',
+            fontSize: '11px', color: 'var(--text-muted)', marginTop: '7px',
             display: 'flex', alignItems: 'center', gap: '4px'
           }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -546,7 +546,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
               onClick={openDeleteConfirm}
               style={{
                 ...BTN_GHOST,
-                color: '#FF3B30',
+                color: 'var(--danger)',
                 background: 'rgba(255,59,48,0.08)'
               }}
             >删除</button>
@@ -583,18 +583,18 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
         >
           <div
             style={{
-              width: 360, background: '#ffffff', borderRadius: '16px', overflow: 'hidden',
+              width: 360, background: 'var(--surface-card)', borderRadius: '16px', overflow: 'hidden',
               boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ padding: '20px 20px 18px', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em', margin: 0 }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.01em', margin: 0 }}>
                 {confirmDialog.title}
               </h3>
               <p style={{
                 whiteSpace: 'pre-line', marginTop: '6px', marginBottom: 0,
-                fontSize: '13px', lineHeight: 1.55, color: '#8E8E93',
+                fontSize: '13px', lineHeight: 1.55, color: 'var(--text-muted)',
               }}>{confirmDialog.message}</p>
             </div>
             <div style={{ display: 'flex', borderTop: '0.5px solid rgba(60,60,67,0.18)' }}>
@@ -614,7 +614,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
                 style={{
                   flex: 1, padding: '14px 0', fontSize: '15px',
                   fontWeight: confirmDialog.danger ? 700 : 600,
-                  color: confirmDialog.danger ? '#FF3B30' : 'var(--s-main)',
+                  color: confirmDialog.danger ? 'var(--danger)' : 'var(--s-main)',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   transition: 'background .15s',
                 }}
@@ -650,9 +650,9 @@ function PickerCell({ c, active, onClick, onEdit }) {
           borderRadius: '9px',
           fontSize: '12.5px',
           fontWeight: active ? '700' : '600',
-          background: active ? c.dot : '#ffffff',
-          color: active ? '#ffffff' : '#636366',
-          border: active ? 'none' : '1px solid #d1d1d6',
+          background: active ? c.dot : 'var(--surface-card)',
+          color: active ? 'var(--surface-card)' : '#636366',
+          border: active ? 'none' : '1px solid var(--ink-200)',
           boxShadow: active ? `0 2px 6px ${hexToRgba(c.dot, 0.3)}` : 'none',
           cursor: 'pointer',
           transition: 'all .15s',
@@ -669,7 +669,7 @@ function PickerCell({ c, active, onClick, onEdit }) {
           display: 'inline-block',
           width: '7px', height: '7px',
           borderRadius: '2px',
-          background: active ? 'rgba(255,255,255,0.95)' : '#c7c7cc',
+          background: active ? 'rgba(255,255,255,0.95)' : 'var(--ink-300)',
           flexShrink: 0
         }}></span>
         <span className="truncate">{c.label}</span>
@@ -683,7 +683,7 @@ function PickerCell({ c, active, onClick, onEdit }) {
           position: 'absolute', top: '4px', right: '4px',
           width: '18px', height: '18px',
           borderRadius: '999px', border: 'none',
-          background: 'rgba(0,0,0,0.04)', color: '#8e8e93',
+          background: 'rgba(0,0,0,0.04)', color: 'var(--text-muted)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', fontSize: '10px', lineHeight: '1',
           opacity: 0, transition: 'opacity .15s',
@@ -747,9 +747,9 @@ function CategoryPicker({ cats, value, onSelect, onManage, priority, onPriority 
                   borderRadius: '9px',
                   fontSize: '12px',
                   fontWeight: '600',
-                  background: on ? po.color : '#ffffff',
-                  color: on ? '#ffffff' : '#636366',
-                  border: on ? 'none' : '1px solid #d1d1d6',
+                  background: on ? po.color : 'var(--surface-card)',
+                  color: on ? 'var(--surface-card)' : '#636366',
+                  border: on ? 'none' : '1px solid var(--ink-200)',
                   boxShadow: on ? `0 2px 6px ${hexToRgba(po.color, 0.3)}` : 'none',
                   cursor: 'pointer',
                   transition: 'all .15s',
@@ -805,7 +805,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
     const v = nextCustomCatId(list);
     const next = [
       ...list,
-      { v, label: '新类型', dot: '#007AFF', builtin: false },
+      { v, label: '新类型', dot: 'var(--s-main)', builtin: false },
     ];
     setList(next);
     setFocusIdx(next.length - 1);
@@ -852,7 +852,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
       >
-        <div style={{ fontSize: '16px', fontWeight: '700', color: '#1c1c1e' }}>类型管理</div>
+        <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-1)' }}>类型管理</div>
         <button
           type="button"
           onClick={onClose}
@@ -880,14 +880,14 @@ function CategoryEditor({ cats, onClose, onChange }) {
             <div
               key={c.v}
               style={{
-                background: '#ffffff',
+                background: 'var(--surface-card)',
                 borderRadius: '12px',
                 padding: '10px 12px',
                 border: focused
-                  ? `1.5px solid ${c.dot || '#007AFF'}`
+                  ? `1.5px solid ${c.dot || 'var(--s-main)'}`
                   : '1px solid rgba(60,60,67,0.10)',
                 boxShadow: focused
-                  ? `0 0 0 3px ${hexToRgba(c.dot || '#007AFF', 0.14)}`
+                  ? `0 0 0 3px ${hexToRgba(c.dot || 'var(--s-main)', 0.14)}`
                   : 'none',
                 display: 'flex', alignItems: 'center', gap: '10px',
                 transition: 'all .15s',
@@ -915,7 +915,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
                     style={{
                       position: 'absolute', top: '36px', left: 0, zIndex: 10,
                       width: '252px', padding: '10px',
-                      background: '#ffffff', borderRadius: '12px',
+                      background: 'var(--surface-card)', borderRadius: '12px',
                       border: '1px solid rgba(60,60,67,0.10)',
                       boxShadow: '0 10px 28px rgba(0,0,0,0.14)',
                       display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '7px'
@@ -944,7 +944,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
                     <label style={{
                       gridColumn: '1 / -1', marginTop: '2px',
                       display: 'flex', alignItems: 'center', gap: '8px',
-                      fontSize: '11px', color: '#8e8e93',
+                      fontSize: '11px', color: 'var(--text-muted)',
                     }}>
                       <span>自定义</span>
                       <input
@@ -956,7 +956,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
                           borderRadius: '8px', padding: 0, cursor: 'pointer', background: 'none'
                         }}
                       />
-                      <span style={{ marginLeft: 'auto', color: '#8e8e93' }}>{c.dot}</span>
+                      <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>{c.dot}</span>
                     </label>
                   </div>
                 )}
@@ -974,7 +974,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
                   padding: '8px 12px',
                   border: 'none', background: 'rgba(120,120,128,0.08)',
                   borderRadius: '9px',
-                  fontSize: '14px', fontWeight: '500', color: '#1c1c1e',
+                  fontSize: '14px', fontWeight: '500', color: 'var(--text-1)',
                   outline: 'none',
                 }}
               />
@@ -1000,7 +1000,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
                   width: '28px', height: '28px', borderRadius: '999px',
                   border: 'none', cursor: c.builtin ? 'not-allowed' : 'pointer',
                   background: c.builtin ? 'rgba(142,142,147,0.08)' : 'rgba(255,59,48,0.09)',
-                  color: c.builtin ? '#c7c7cc' : '#FF3B30',
+                  color: c.builtin ? 'var(--ink-300)' : 'var(--danger)',
                   fontSize: '14px', lineHeight: '1', flexShrink: 0,
                   opacity: c.builtin ? 0.55 : 1,
                 }}
@@ -1046,18 +1046,18 @@ function CategoryEditor({ cats, onClose, onChange }) {
         >
           <div
             style={{
-              width: 360, background: '#ffffff', borderRadius: '16px', overflow: 'hidden',
+              width: 360, background: 'var(--surface-card)', borderRadius: '16px', overflow: 'hidden',
               boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ padding: '20px 20px 18px', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em', margin: 0 }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.01em', margin: 0 }}>
                 {confirmDialog.title}
               </h3>
               <p style={{
                 whiteSpace: 'pre-line', marginTop: '6px', marginBottom: 0,
-                fontSize: '13px', lineHeight: 1.55, color: '#8E8E93',
+                fontSize: '13px', lineHeight: 1.55, color: 'var(--text-muted)',
               }}>{confirmDialog.message}</p>
             </div>
             <div style={{ display: 'flex', borderTop: '0.5px solid rgba(60,60,67,0.18)' }}>
@@ -1077,7 +1077,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
                 style={{
                   flex: 1, padding: '14px 0', fontSize: '15px',
                   fontWeight: confirmDialog.danger ? 700 : 600,
-                  color: confirmDialog.danger ? '#FF3B30' : 'var(--s-main)',
+                  color: confirmDialog.danger ? 'var(--danger)' : 'var(--s-main)',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   transition: 'background .15s',
                 }}

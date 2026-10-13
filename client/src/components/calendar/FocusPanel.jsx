@@ -135,7 +135,7 @@ const MOD_ORDER = Object.fromEntries(MODULES.map((m, i) => [m.key, i]));
    · 投影：0.022 → 0.028（近距淡影，刚好让卡片与背景拉开层次又不浮起）
    · hover：描边 0.095 → 0.105，投影 0.028 → 0.034 */
 const GROUP_SURFACE = {
-  background:   '#ffffff',
+  background:   'var(--surface-card)',
   border:       '1px solid rgba(15,23,42,0.072)',
   boxShadow:    '0 1px 2px rgba(15,23,42,0.028)',
   hoverBorder:  '1px solid rgba(15,23,42,0.105)',
@@ -306,14 +306,14 @@ export default function FocusPanel({
   return (
     <>
     <div className={`card p-4 flex flex-col${fill ? ' flex-1 min-h-0' : ''}`} style={{
-      background: '#fff',
+      background: 'var(--surface-card)',
       borderRadius: '18px',
       boxShadow: '0 0 0 1px rgba(0,0,0,0.025), 0 4px 20px rgba(0,0,0,0.035)',
     }}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-[5px] h-[18px] rounded-[3px] flex-shrink-0" style={{ background: accentColor }} />
-        <div className="flex-shrink-0 text-[15px] font-extrabold text-[#1C1C1E] tracking-tight">
+        <div className="flex-shrink-0 text-[15px] font-extrabold text-[var(--text-1)] tracking-tight">
           {titleByView?.[sortBy] || title}
         </div>
         {/* 标题行内嵌插槽：月周重点页在此传 本周/本月 分段切换 + 日期辅助 */}
@@ -323,7 +323,7 @@ export default function FocusPanel({
           {/* 视图切换：时间顺序（递减线）/ 模块分组（田字），逻辑同重点事项卡片的排序按钮 */}
           <button
             onClick={() => setSortBy(s => (s === 'module' ? 'time' : 'module'))}
-            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-[10px] text-[#8e8e93] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
+            className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-[10px] text-[var(--text-muted)] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
             title={sortBy === 'time' ? '按时间顺序（点击切换为按模块分组）' : '按模块分组（点击切换为按时间顺序）'}
             aria-label={sortBy === 'time' ? '按时间顺序' : '按模块分组'}
           >
@@ -353,7 +353,7 @@ export default function FocusPanel({
             {totalFailed > 0 && (
               <>
                 <span style={{ opacity: 0.35 }}>·</span>
-                <span style={{ color: '#FF3B30' }}>{totalFailed}</span>
+                <span style={{ color: 'var(--danger)' }}>{totalFailed}</span>
               </>
             )}
             <span style={{ opacity: 0.35 }}>/</span>
@@ -431,7 +431,7 @@ export default function FocusPanel({
                   <span
                     className="flex-shrink-0 rounded-full grid place-items-center"
                     style={{
-                      width: 22, height: 22, color: '#fff', background: grp.color,
+                      width: 22, height: 22, color: 'var(--surface-card)', background: grp.color,
                       boxShadow: `0 2px 5px ${modRgba(grp.color, 0.23)}`,
                     }}
                   >
@@ -568,8 +568,8 @@ export default function FocusPanel({
                             onContextMenu={task.is_goal && onMarkFailed ? handleContextMenu : undefined}
                             className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
                             style={{
-                              borderColor: task.is_failed ? '#FF3B30' : mod.color,
-                              background: task.done ? mod.color : (task.is_failed ? 'rgba(255,59,48,0.08)' : '#fff'),
+                              borderColor: task.is_failed ? 'var(--danger)' : mod.color,
+                              background: task.done ? mod.color : (task.is_failed ? 'rgba(255,59,48,0.08)' : 'var(--surface-card)'),
                               boxShadow: task.done ? `0 2px 6px ${modRgba(mod.color, 0.25)}` : 'none',
                             }}
                             role="checkbox"
@@ -581,7 +581,7 @@ export default function FocusPanel({
                               <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
                                 <path
                                   d="M1 4.5L3.5 7L7 1.5"
-                                  stroke="#fff"
+                                  stroke="var(--surface-card)"
                                   strokeWidth="1.8"
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
@@ -592,7 +592,7 @@ export default function FocusPanel({
                               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                                 <path
                                   d="M2.5 2.5L7.5 7.5M7.5 2.5L2.5 7.5"
-                                  stroke="#FF3B30"
+                                  stroke="var(--danger)"
                                   strokeWidth="1.8"
                                   strokeLinecap="round"
                                 />
@@ -606,15 +606,15 @@ export default function FocusPanel({
                           <span className="flex items-center gap-1.5">
                             <span
                               className={`text-[13px] font-semibold leading-tight truncate flex-1 ${
-                                task.done ? 'text-[#8E8E93] line-through' :
-                                task.is_failed ? 'text-[#FF3B30] line-through' :
-                                'text-[#1C1C1E]'
+                                task.done ? 'text-[var(--text-muted)] line-through' :
+                                task.is_failed ? 'text-[var(--danger)] line-through' :
+                                'text-[var(--text-1)]'
                               }`}
                             >
                               {task.title}
                             </span>
                           </span>
-                          <div className="flex items-center gap-2 text-[11px] font-medium text-[#8E8E93]">
+                          <div className="flex items-center gap-2 text-[11px] font-medium text-[var(--text-muted)]">
                             {task.srcTag && (
                               <span
                                 className="px-1.5 py-0.5 rounded text-[10px] font-normal select-none"
@@ -638,13 +638,13 @@ export default function FocusPanel({
                             )}
                             {task.dueDate && (
                               <span style={urgency === 'urgent'
-                                ? { color: '#FF3B30', fontWeight: 700 }
+                                ? { color: 'var(--danger)', fontWeight: 700 }
                                 : urgency === 'overdue' ? { color: '#FFB627', fontWeight: 700 } : undefined}>
                                 {task.dueDate}
                               </span>
                             )}
                             {task.note && (
-                              <span style={{ color: '#8E8E93' }}>{task.note}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>{task.note}</span>
                             )}
                           </div>
                         </div>
@@ -659,14 +659,14 @@ export default function FocusPanel({
                                 className="px-1.5 py-[2px] rounded-md text-[10px] font-extrabold leading-none"
                                 style={urgency === 'overdue'
                                   ? { background: 'rgba(255,182,39,0.14)', color: '#FFB627' }   // 逾期：琥珀黄
-                                  : { background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }} // 紧急：红
+                                  : { background: 'rgba(255,59,48,0.10)', color: 'var(--danger)' }} // 紧急：红
                               >{urgency === 'overdue' ? '逾期' : '紧急'}</span>
                             )}
                             <PTag p={task.priority} />
                             {dateLabel && (
                               <span
                                 className="text-[12px] font-bold tabular-nums leading-none"
-                                style={{ color: urgency === 'urgent' ? '#FF3B30' : urgency === 'overdue' ? '#FFB627' : '#8E8E93' }}
+                                style={{ color: urgency === 'urgent' ? 'var(--danger)' : urgency === 'overdue' ? '#FFB627' : 'var(--text-muted)' }}
                               >{dateLabel}</span>
                             )}
                           </div>
@@ -674,7 +674,7 @@ export default function FocusPanel({
                           <div className="flex-shrink-0 flex flex-col items-end gap-1 min-w-[80px]" onClick={handleEdit}>
                             <span className="flex items-center gap-1.5">
                               <PTag p={task.priority} />
-                              <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : '#1C1C1E' }}>
+                              <span className="text-[12px] font-extrabold tabular-nums" style={{ color: task.done ? mod.color : 'var(--text-1)' }}>
                                 {task.isEvent ? '100%' : `${pct}%`}
                               </span>
                             </span>
@@ -704,12 +704,12 @@ export default function FocusPanel({
       {/* 空状态（目标模式下提示建目标，而非同步年度规划） */}
       {grouped.length === 0 && !deletedTasks?.length && (
         <div className="py-8 text-center">
-          <div className="text-[12px] text-[#8E8E93]">
+          <div className="text-[12px] text-[var(--text-muted)]">
             {moduleGoalsOnly && sortBy === 'module'
               ? (type === 'month' ? '本月还没有目标' : '本周还没有目标')
               : (type === 'month' ? '本月还没有主线任务' : '本周还没有主线任务')}
           </div>
-          <div className="text-[12px] text-[#8E8E93] mt-1">
+          <div className="text-[12px] text-[var(--text-muted)] mt-1">
             {moduleGoalsOnly && sortBy === 'module' ? '点右上角 + 新建目标' : '从年度规划一键同步 或 点右上角 + 新建'}
           </div>
         </div>
@@ -724,12 +724,12 @@ export default function FocusPanel({
           <div
             className="rounded-2xl overflow-hidden"
             style={{
-              background: '#ffffff',
+              background: 'var(--surface-card)',
               border: '1px solid rgba(142,142,147,0.07)',
               boxShadow: '0 1px 2px rgba(142,142,147,0.018)',
             }}
           >
-            <div aria-hidden="true" style={{ height: 3, width: '100%', background: 'linear-gradient(90deg, #8e8e93, #aeaeb2)' }} />
+            <div aria-hidden="true" style={{ height: 3, width: '100%', background: 'linear-gradient(90deg, var(--text-muted), #aeaeb2)' }} />
             <div style={{ padding: '8px 10px 10px' }}>
               <div className="flex items-center gap-2 select-none">
                 <span
@@ -738,13 +738,13 @@ export default function FocusPanel({
                 >
                   <span
                     className="flex-shrink-0 rounded-full grid place-items-center"
-                    style={{ width: 22, height: 22, color: '#fff', background: '#8E8E93' }}
+                    style={{ width: 22, height: 22, color: 'var(--surface-card)', background: 'var(--text-muted)' }}
                     aria-hidden="true"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
                   </span>
                   <span className="text-[12px] font-extrabold leading-none" style={{ color: '#636366' }}>回收站</span>
-                  <span className="text-[9.5px] font-extrabold tracking-widest leading-none" style={{ color: '#8e8e93' }}>TRASH</span>
+                  <span className="text-[9.5px] font-extrabold tracking-widest leading-none" style={{ color: 'var(--text-muted)' }}>TRASH</span>
                 </span>
                 <span
                   className="ml-auto inline-flex items-center px-2 py-[3px] rounded-full text-[11px] font-extrabold tabular-nums"
@@ -778,8 +778,8 @@ export default function FocusPanel({
                         className="w-[18px] h-[18px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition"
                         style={{
                           borderColor: 'rgba(142,142,147,0.45)',
-                          background: '#fff',
-                          color: '#8e8e93',
+                          background: 'var(--surface-card)',
+                          color: 'var(--text-muted)',
                         }}
                         aria-label="还原事项"
                       >
@@ -787,7 +787,7 @@ export default function FocusPanel({
                       </button>
 
                       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                        <span className="text-[13px] font-semibold leading-tight truncate text-[#8E8E93] line-through">
+                        <span className="text-[13px] font-semibold leading-tight truncate text-[var(--text-muted)] line-through">
                           {task.title}
                         </span>
                         <div className="flex items-center gap-2 text-[11px] font-medium text-[#aeaeb2]">
@@ -823,7 +823,7 @@ export default function FocusPanel({
               fontSize: '13px',
               fontWeight: '600',
               background: 'rgba(255,59,48,0.09)',
-              color: '#FF3B30',
+              color: 'var(--danger)',
               border: 'none',
               cursor: 'pointer',
               transition: 'all .15s',
@@ -845,7 +845,7 @@ export default function FocusPanel({
           left: Math.min(contextMenu.x, window.innerWidth - 172),
           top: Math.min(contextMenu.y, window.innerHeight - 110),
           minWidth: 156,
-          background: '#ffffff',
+          background: 'var(--surface-card)',
           borderRadius: '12px',
           boxShadow: '0 8px 30px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)',
           border: '1px solid rgba(0,0,0,0.06)',
@@ -858,7 +858,7 @@ export default function FocusPanel({
             type="button"
             onClick={() => { onMarkFailed(contextMenu.task.id); setContextMenu(null); }}
             className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
-            style={{ color: contextMenu.task.is_failed ? 'var(--s-main)' : '#1C1C1E' }}
+            style={{ color: contextMenu.task.is_failed ? 'var(--s-main)' : 'var(--text-1)' }}
           >
             <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               {contextMenu.task.is_failed
@@ -873,7 +873,7 @@ export default function FocusPanel({
             type="button"
             onClick={() => { openDeleteConfirm(contextMenu.task, '任务行'); setContextMenu(null); }}
             className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(255,59,48,0.08)] flex items-center gap-2"
-            style={{ color: '#FF3B30' }}
+            style={{ color: 'var(--danger)' }}
           >
             <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -899,7 +899,7 @@ export default function FocusPanel({
         <div
           className="overflow-hidden"
           style={{
-            width: 360, background: '#ffffff', borderRadius: '16px',
+            width: 360, background: 'var(--surface-card)', borderRadius: '16px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',
           }}
           onClick={(e) => e.stopPropagation()}
@@ -907,13 +907,13 @@ export default function FocusPanel({
           <div style={{ padding: '20px 20px 18px', textAlign: 'center' }}>
             <h3
               id="focuspanel-confirm-title"
-              style={{ fontSize: '17px', fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em' }}
+              style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.01em' }}
             >{confirmDialog.title}</h3>
             <p
               className="whitespace-pre-line"
               style={{
                 marginTop: '6px', fontSize: '13px', lineHeight: 1.55,
-                color: '#8E8E93',
+                color: 'var(--text-muted)',
               }}
             >{confirmDialog.message}</p>
           </div>
@@ -934,7 +934,7 @@ export default function FocusPanel({
               style={{
                 flex: 1, padding: '14px 0', fontSize: '15px',
                 fontWeight: confirmDialog.danger ? 700 : 600,
-                color: confirmDialog.danger ? '#FF3B30' : 'var(--s-main)',
+                color: confirmDialog.danger ? 'var(--danger)' : 'var(--s-main)',
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 transition: 'background .15s',
               }}

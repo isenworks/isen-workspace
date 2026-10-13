@@ -29,7 +29,7 @@ export const LABEL_STYLE = {
   display: 'block',
   fontSize: '11px',
   fontWeight: '600',
-  color: '#8e8e93',
+  color: 'var(--text-3)',
   marginBottom: '5px',
   textTransform: 'uppercase',
   letterSpacing: '0.03em'
@@ -38,11 +38,11 @@ export const LABEL_STYLE = {
 export const INPUT_STYLE = {
   width: '100%',
   padding: '8px 12px',
-  border: '1px solid #d1d1d6',
+  border: '1px solid var(--ink-200)',
   borderRadius: '9px',
   fontSize: '14px',
-  color: '#1c1c1e',
-  background: '#fff',
+  color: 'var(--text-1)',
+  background: 'var(--surface-card)',
   outline: 'none',
   transition: 'all .15s',
   boxSizing: 'border-box'

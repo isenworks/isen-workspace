@@ -47,15 +47,46 @@
   --border-modal: rgba(255, 255, 255, 0.6);
 }
 
+/* ====== 语义色令牌（统一画布 / 文本层级 / 中性灰阶，替代散落在各处的 #8e8e93、rgba(60,60,67,…)） ======
+   组件里一直以 var(--ink-500, #8e8e93) 形式引用 --ink-*，但从未定义，实际只走 fallback；
+   这里补全标度（取值与既有 fallback 对齐，故无视觉变化），并把文本层级收敛为 3 档：
+   --text-1 主文本 / --text-2 次文本 / --text-3 辅助文本（10–11px 小字统一用 text-3，满足 AA 对比度）。 */
+:root {
+  /* 画布与表面 */
+  --surface-canvas: #F7F8FA;
+  --surface-card: #ffffff;
+
+  /* 文本层级 */
+  --text-1: #1c1c1e;
+  --text-2: #3c3c43;
+  --text-3: #6c6c70;
+  --text-muted: #8e8e93;
+
+  /* 中性灰阶（与组件中 var(--ink-*, fallback) 的 fallback 逐一对齐） */
+  --ink-900: #1c1c1e;
+  --ink-800: #3c3c43;
+  --ink-700: #48484a;
+  --ink-600: #3a3a3c;
+  --ink-500: #8e8e93;
+  --ink-400: #999999;
+  --ink-300: #c7c7cc;
+  --ink-200: #d1d1d6;
+  --ink-100: #e5e5ea;
+
+  /* 发丝分隔线 */
+  --hairline: rgba(60, 60, 67, 0.12);
+  --hairline-soft: rgba(60, 60, 67, 0.08);
+}
+
 html, body { min-height: 100%; }
 #root { min-height: 100vh; }
 
 body {
   margin: 0;
   /* 近白中性画布：平铺、无下压渐变，白卡仍靠发丝环浮起，整体更通透（原 #f5f5f7→#e8e8ed 底部偏灰） */
-  background: #F7F8FA;
+  background: var(--surface-canvas);
   min-height: 100vh;
-  color: #1c1c1e;
+  color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
@@ -66,7 +97,7 @@ body {
 
 /* ====== 玻璃卡片 ====== */
 .glass-card {
-  background: #ffffff;
+  background: var(--surface-card);
   border: 1px solid rgba(255,255,255,0.6);
   border-radius: 18px;
   /* 零阴影渗出：仅 1px 发丝环，行间隙=画布逐像素一致（Apple 设置页风格） */
@@ -318,7 +349,7 @@ body {
 .tl-time-cell-label {
   position: absolute;
   top: -6px; right: 10px;
-  font-size: 11px; font-weight: 600; color: #8e8e93;
+  font-size: 11px; font-weight: 600; color: var(--text-3);
   letter-spacing: -0.01em;
   background: rgba(255,255,255,0.72); padding: 0 2px;
   white-space: nowrap;
@@ -406,7 +437,7 @@ body {
 }
 .tl-event-title.done { color: #8e8e93; text-decoration: line-through; }
 .tl-event-sub {
-  font-size: 12px; font-weight: 500; color: #8e8e93;
+  font-size: 12px; font-weight: 500; color: var(--text-3);
   letter-spacing: 0.01em; margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -494,7 +525,7 @@ body {
 /* 下方列表区样式（待办 / 未定时 / 全天习惯 沿用旧行样式） */
 .tl-list-section-label {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: #8e8e93;
+  letter-spacing: 0.08em; color: var(--text-3);
   padding: 0 3px;
 }
 
@@ -549,7 +580,7 @@ body {
 .btn-secondary:hover { background: rgba(120,120,128,0.18); }
 
 /* ====== Divider ====== */
-.hairline { height: 1px; background: rgba(60,60,67,0.12); }
+.hairline { height: 1px; background: var(--hairline); }
 
 /* ====== Section headers ====== */
 .section-title {
@@ -614,7 +645,7 @@ body {
   line-height: 1.2;
 }
 .sb-greet {
-  font-size: 11px; color: #8e8e93; margin-top: 2px;
+  font-size: 11px; color: var(--text-3); margin-top: 2px;
   display: flex; align-items: center; gap: 3px;
 }
 .sb-iconrow { display: flex; align-items: center; gap: 4px; padding: 0 2px; }
@@ -823,7 +854,7 @@ body {
 .sb-label {
   padding: 6px 12px 4px;
   font-size: 10px; font-weight: 600;
-  color: #8e8e93;
+  color: var(--text-3);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -879,10 +910,10 @@ body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .sp-row.sel .sp-row-title { color: var(--s-main); font-weight: 600; }
-.sp-row-meta { font-size: 11px; color: #a8a8ad; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.sp-row-meta { font-size: 11px; color: var(--text-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .sp-hit { background: rgba(var(--s-rgb),0.16); color: var(--s-deep); border-radius: 3px; padding: 0 1px; font-weight: 600; }
 
-.sp-hint { font-size: 11px; color: #a8a8ad; padding: 0 8px 6px; }
+.sp-hint { font-size: 11px; color: var(--text-3); padding: 0 8px 6px; }
 .sp-skeleton {
   height: 34px; border-radius: 10px; margin-bottom: 6px;
   background: linear-gradient(90deg, rgba(120,120,128,0.08) 25%, rgba(120,120,128,0.14) 50%, rgba(120,120,128,0.08) 75%);
@@ -892,14 +923,14 @@ body {
 @keyframes sp-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .sp-empty { padding: 26px 0 22px; text-align: center; }
 .sp-empty-t { font-size: 13.5px; font-weight: 600; color: #6c6c70; }
-.sp-empty-s { font-size: 12px; color: #a8a8ad; margin-top: 4px; }
+.sp-empty-s { font-size: 12px; color: var(--text-3); margin-top: 4px; }
 
 .sp-footer {
   display: flex; gap: 14px; justify-content: center;
   padding-top: 10px; margin-top: 2px;
   border-top: 1px solid rgba(60,60,67,0.08);
 }
-.sp-footer span { font-size: 11px; color: #a8a8ad; display: inline-flex; align-items: center; gap: 4px; }
+.sp-footer span { font-size: 11px; color: var(--text-3); display: inline-flex; align-items: center; gap: 4px; }
 .sp-footer kbd {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 17px; height: 17px; padding: 0 4px;
@@ -1267,5 +1298,31 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   .split-root { flex-direction: column; align-items: stretch; }
   .split-root > * { flex: none !important; width: 100% !important; max-width: 100% !important; }
   .split-root > .split-divider { display: none !important; }
+}
+
+/* ====== 小图标按钮触达区扩展 ======
+   视觉尺寸不变，用不可见的 ::after 把热区补足到 ~32px（HIG 建议 ≥44，折中取 32 以免重叠相邻控件）。
+   仅用于「独立」的小图标按钮；嵌在可点击行内的小按钮（⌄/加号/总结删除等）不扩展，改由长按菜单承载，避免误触。 */
+.sp-clear,
+.sb-collapse-btn { position: relative; }
+.sp-clear::after,
+.sb-collapse-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 32px; height: 32px;
+  transform: translate(-50%, -50%);
+}
+
+/* ====== 降级动画：尊重系统「减少动态效果」=====
+   全局收敛过渡与动画时长，避免前庭敏感用户被位移/循环动画干扰；
+   与 PlantingShelf 内的局部 prefers-reduced-motion 规则互补（后者关的是无限循环）。 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 

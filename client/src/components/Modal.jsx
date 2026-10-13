@@ -44,7 +44,7 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
           <h3 className="text-[17px] font-semibold text-[#1c1c1e] tracking-tight">{title}</h3>
           <button
             onClick={onClose}
-            className="text-[#8e8e93] hover:text-[#1c1c1e] text-2xl leading-none flex items-center justify-center w-7 h-7 rounded-full hover:bg-black/5 transition"
+            className="text-[#8e8e93] hover:text-[#1c1c1e] text-2xl leading-none flex items-center justify-center w-9 h-9 -mr-1 shrink-0 rounded-full hover:bg-black/5 transition"
             aria-label="关闭"
           >×</button>
         </div>

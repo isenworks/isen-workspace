@@ -479,7 +479,7 @@ export default function KnowledgeBasePage() {
   return (
     <div className="flex-1 min-w-0 w-full flex flex-col gap-3">
       {/* 主体：左书架卡 + 右（目录 + 正文）卡，中间可拖拽调宽 */}
-      <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
+      <div {...bindRoot} className="split-root flex-1 min-h-0 flex items-stretch">
           {/* ---- 左：页头 + 知识库书架 ---- */}
           <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
             {/* 页头：色条 + 标题 + 计数 + 搜索 / 新建 */}

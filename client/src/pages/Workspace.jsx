@@ -18,6 +18,7 @@ import AnnualPlan from './AnnualPlan.jsx';
 import { API } from '../api/client.js';
 import { store } from '../utils/store.js';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
+import { parseRoute, buildRoute } from '../utils/route.js';
 
 // ===== 路由级 / 弹窗级懒加载：仅在对应菜单或弹窗打开时才拉取分块，减小首屏 JS =====
 // 注：CalendarPage 内含 lunar 农历库（大），懒加载后随「日历」菜单按需加载，不进首屏；
@@ -48,8 +49,46 @@ export default function Workspace({ user: propUser }) {
   const toast = useToast();
   const user = propUser || authUser;
   const logout = authLogout || (() => {});
-  const [activeMenu, setActiveMenu] = useState('home');
-  const [annualView, setAnnualView] = useState('overview');
+  // ===== 路由/深链：activeMenu / annualView ↔ location.hash 双向同步 =====
+  // 初始值取自 hash（刷新保持当前页、可分享链接）；未知/空 → 主页
+  const [activeMenu, setActiveMenu] = useState(() => parseRoute(window.location.hash).menu || 'home');
+  const [annualView, setAnnualView] = useState(() => parseRoute(window.location.hash).annualView || 'overview');
+  const annualViewRef = useRef(annualView);
+  useEffect(() => { annualViewRef.current = annualView; }, [annualView]);
+
+  // ===== 窄屏抽屉式侧栏开关（仅移动端由顶栏按钮唤出） =====
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // 导航：更新状态并写入 hash（产生历史记录，支持浏览器前进/后退），同时收起移动端抽屉
+  const navigate = useCallback((menu, view) => {
+    if (!menu) return;
+    const nextView = menu === 'annual' ? (view || annualViewRef.current || 'overview') : null;
+    setActiveMenu(menu);
+    if (nextView) setAnnualView(nextView);
+    const h = buildRoute(menu, nextView);
+    if (window.location.hash !== h) window.location.hash = h;
+    setMobileNavOpen(false);
+  }, []);
+
+  // 初始无有效路由 → 归一化到主页（replaceState，不产生多余历史记录）
+  useEffect(() => {
+    if (!parseRoute(window.location.hash).menu) {
+      history.replaceState(null, '', buildRoute('home'));
+    }
+  }, []);
+
+  // 前进/后退 或 手动改 hash → 同步到内部状态
+  useEffect(() => {
+    const onHash = () => {
+      const r = parseRoute(window.location.hash);
+      if (!r.menu) return;
+      setActiveMenu(r.menu);
+      if (r.menu === 'annual' && r.annualView) setAnnualView(r.annualView);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
   // 侧边栏「发展规划」二级导航加号请求：{ view, ts } → AnnualPlan 打开对应添加弹窗
   const [annualAdd, setAnnualAdd] = useState(null);
   const [selectedDate, setSelectedDate] = useState(getToday());
@@ -200,7 +239,7 @@ export default function Workspace({ user: propUser }) {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        if (e.shiftKey) setActiveMenu('inbox');
+        if (e.shiftKey) navigate('inbox');
         else setQuickCaptureOpen(true);
       } else if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
@@ -277,8 +316,13 @@ export default function Workspace({ user: propUser }) {
 
   // ===== 跨组件动作（替代原 window.__* 全局函数）：通过 Context 注入给子组件 =====
   const showContextMenu = useCallback((x, y, type, id, task) => {
+    // 定位钳制：菜单约 160×200，触碰/长按在屏幕右缘或下缘时回收进视口，避免被裁掉
+    const CW = 168, CH = 208, PAD = 8;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const px = Math.max(PAD, Math.min(x, vw - CW - PAD));
+    const py = Math.max(PAD, Math.min(y, vh - CH - PAD));
     ctxMenuShownAt.current = Date.now();
-    setCtxMenu({ x, y, type, id, task });
+    setCtxMenu({ x: px, y: py, type, id, task });
   }, []);
   const openHabitModal = useCallback((habit) => {
     setModal(habit ? { type: 'habit', data: habit } : { type: 'habit', data: null });
@@ -488,14 +532,30 @@ export default function Workspace({ user: propUser }) {
 
   return (
     <WorkspaceActionsProvider value={workspaceActions}>
-    <div className="max-w-[1440px] mx-auto px-6 py-6 flex gap-6 min-h-screen">
-      {/* 左侧边栏 */}
+    {/* 移动端顶栏（仅窄屏显示）：汉堡按钮唤出抽屉式侧栏 */}
+    <header className="mobile-topbar">
+      <button
+        type="button"
+        className="mobile-menu-btn"
+        aria-label="打开导航菜单"
+        onClick={() => setMobileNavOpen(true)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div className="mobile-topbar-title">工作台</div>
+    </header>
+
+    <div className="max-w-[1440px] mx-auto px-4 py-4 lg:px-6 lg:py-6 flex gap-6 min-h-screen">
+      {/* 移动端抽屉遮罩：点击空白处收起侧栏 */}
+      {mobileNavOpen && <div className="mobile-scrim" onClick={() => setMobileNavOpen(false)} />}
+      {/* 左侧边栏（窄屏为抽屉，mobileOpen 控制滑入） */}
       <Sidebar 
         user={user} 
+        mobileOpen={mobileNavOpen}
         onLogout={logout} 
-        onSettingsClick={() => setSettingsOpen(true)}
-        onShortcutsClick={() => setShortcutsOpen(true)}
-        onSearchClick={() => setSearchOpen(true)}
+        onSettingsClick={() => { setSettingsOpen(true); setMobileNavOpen(false); }}
+        onShortcutsClick={() => { setShortcutsOpen(true); setMobileNavOpen(false); }}
+        onSearchClick={() => { setSearchOpen(true); setMobileNavOpen(false); }}
         syncSignal={syncSignal}
         onSync={async () => {
           // 手动同步：立即刷新所有面板
@@ -524,17 +584,15 @@ export default function Workspace({ user: propUser }) {
           });
         }}
         activeMenu={activeMenu}
-        onMenuChange={setActiveMenu}
+        onMenuChange={(m, v) => navigate(m, v)}
         annualView={annualView}
-        onAnnualView={setAnnualView}
         onAnnualAdd={(k) => {
           // 侧边栏二级导航加号：切到发展规划对应模块并弹出添加表单
-          setAnnualView(k);
-          setActiveMenu('annual');
+          navigate('annual', k);
           setAnnualAdd({ view: k, ts: Date.now() });
         }}
         inboxCount={inboxCount}
-        onQuickCapture={() => setQuickCaptureOpen(true)}
+        onQuickCapture={() => { setQuickCaptureOpen(true); setMobileNavOpen(false); }}
       />
 
       {/* 主内容区（含懒加载页面，用 Suspense 兜底分块拉取） */}
@@ -544,10 +602,7 @@ export default function Workspace({ user: propUser }) {
           <HomePage
             user={user}
             syncSignal={refreshKey}
-            onNav={(menu, annualView) => {
-              setActiveMenu(menu);
-              if (annualView) setAnnualView(annualView);
-            }}
+            onNav={(menu, annualView) => navigate(menu, annualView)}
             onNewSchedule={openNewSchedule}
             onEditSchedule={(sch) => setModal({ type: 'schedule', data: sch })}
             onEditBook={(book) => setModal({ type: 'book', initial: book, tab: 'basic' })}
@@ -562,7 +617,7 @@ export default function Workspace({ user: propUser }) {
         </div>
       ) : activeMenu === 'annual' ? (
         <div className="flex-1 min-w-0 md:h-[calc(100vh-48px)] min-h-0 flex flex-col">
-          <AnnualPlan standalone={false} initialView={annualView} onViewChange={setAnnualView} addRequest={annualAdd} />
+          <AnnualPlan standalone={false} initialView={annualView} onViewChange={(v) => navigate('annual', v)} addRequest={annualAdd} />
         </div>
       ) : activeMenu === 'inbox' ? (
         <InboxPage onCountChange={setInboxCount} />
@@ -635,8 +690,7 @@ export default function Workspace({ user: propUser }) {
               // 主线卡片：点击"习惯同步·作息 / 书架同步 / 能力项·XX / 工作目标 / 生活记录"
               // 等 srcTag 关联/同步标签 → 关闭所有 modal & 跳转年度规划对应模块页
               setModal(null);
-              setAnnualView(viewKey);
-              setActiveMenu('annual');
+              navigate('annual', viewKey);
             }}
           />
         </div>
@@ -649,8 +703,8 @@ export default function Workspace({ user: propUser }) {
             refreshSignal={refreshKey}
           />
 
-          {/* 主体：左右分栏（默认 38% + 62%，可拖拽调整并记忆） */}
-          <div {...bindRoot} className="flex items-stretch">
+          {/* 主体：左右分栏（默认 38% + 62%，可拖拽调整并记忆；窄屏自动堆叠为上下） */}
+          <div {...bindRoot} className="split-root flex items-stretch">
             {/* 左栏：重点事项 + 习惯 */}
             <div className="flex flex-col gap-4 min-w-0" style={leftStyle}>
               <KeyTasks
@@ -1040,8 +1094,8 @@ export default function Workspace({ user: propUser }) {
           onPick={(type, it) => {
             // 事项/目标 → 打开编辑弹窗；习惯 → 计划总结页（习惯面板所在）；收集箱 → 收集箱页
             if (type === 'schedule' || type === 'goal') setModal({ type: 'schedule', data: it });
-            else if (type === 'habit') setActiveMenu('plan');
-            else if (type === 'inbox') setActiveMenu('inbox');
+            else if (type === 'habit') navigate('plan');
+            else if (type === 'inbox') navigate('inbox');
           }}
         />
       </Suspense>

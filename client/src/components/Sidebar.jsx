@@ -3,6 +3,7 @@ import { formatChineseDate, formatGreeting } from '../utils/date.js';
 import { API } from '../api/client.js';
 import { syncCloudNow, syncKey, cloudPush } from '../utils/cloudKV.js';
 import { trySubmitTopForm } from '../utils/formSubmitBus.js';
+import { useIsNarrow } from '../utils/useMediaQuery.js';
 import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
@@ -75,7 +76,7 @@ function saveNavLabel(user, key, label) {
   } catch { /* ignore */ }
 }
 
-export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsClick, onSearchClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd, inboxCount = 0, onQuickCapture }) {
+export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsClick, onSearchClick, activeMenu = 'plan', onMenuChange, onBeforeLogout, onSync, syncSignal = 0, onUserUpdate, annualView = 'overview', onAnnualView, onAnnualAdd, inboxCount = 0, onQuickCapture, mobileOpen = false }) {
   const toast = useToast();
   const [navLabels, setNavLabels] = useState(() => loadNavLabels(user));
   // 发展规划二级导航展开/收起态：由主菜单右侧 ⌄ 按钮显式控制（localStorage 持久化）
@@ -90,11 +91,14 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
   };
   // 侧栏折叠（图标栏）模式：收窄为图标导航给内容区让宽，localStorage 持久化、全局所有页面生效
   const SIDEBAR_COLLAPSED_LS = 'sidebar_collapsed_v1';
-  const [collapsed, setCollapsed] = useState(() => {
+  const [collapsedState, setCollapsedState] = useState(() => {
     try { return localStorage.getItem(SIDEBAR_COLLAPSED_LS) === '1'; } catch { return false; }
   });
+  // 窄屏（移动端）侧栏以抽屉形式呈现，始终完整展开，忽略桌面端保存的折叠态
+  const isNarrow = useIsNarrow();
+  const collapsed = isNarrow ? false : collapsedState;
   const toggleCollapsed = () => {
-    setCollapsed(v => {
+    setCollapsedState(v => {
       const next = !v;
       try { localStorage.setItem(SIDEBAR_COLLAPSED_LS, next ? '1' : '0'); } catch { /* ignore */ }
       return next;
@@ -309,7 +313,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
         const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
         if (inField) return; // 表单内不拦截（避免影响富文本加粗等编辑操作）
         e.preventDefault();
-        setCollapsed(v => {
+        setCollapsedState(v => {
           const next = !v;
           try { localStorage.setItem(SIDEBAR_COLLAPSED_LS, next ? '1' : '0'); } catch { /* ignore */ }
           return next;
@@ -330,7 +334,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
 
   return (
     <>
-    <aside className={`sidebar-b${collapsed ? ' collapsed' : ''}`}>
+    <aside className={`sidebar-b${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
       {/* 用户 + 日期问候 + 搜索（折叠态只留头像，点击头像 = 展开侧栏） */}
       <div className="sb-user-card">
         <div className="sb-user-row">
@@ -551,8 +555,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                           : { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' })
                           : undefined}
                         onClick={() => {
-                          onMenuChange?.('annual');
-                          onAnnualView?.(sub.key);
+                          onMenuChange?.('annual', sub.key);
                         }}
                       >
                         <span className="sb-annual-sub-ic" style={{ color: on ? (sub.color || 'var(--s-main)') : undefined }}>
@@ -667,8 +670,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                 : { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' })
                 : undefined}
               onClick={() => {
-                onMenuChange?.('annual');
-                onAnnualView?.(sub.key);
+                onMenuChange?.('annual', sub.key);
                 setAnnualFly(null);
               }}
             >

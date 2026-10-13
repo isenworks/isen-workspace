@@ -1198,3 +1198,74 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   border-color: var(--s-main);
 }
 
+/* ====== 分栏分隔条：拖拽用 Pointer Events，需屏蔽浏览器默认触摸手势（滚动/缩放） ====== */
+.split-divider { touch-action: none; }
+
+/* ====== 移动端 / 触摸适配（断点 1023px ≡ Tailwind lg） ======
+   窄屏下：① 侧栏收为抽屉（顶栏汉堡唤出）② 左右分栏堆叠为上下 ③ 分隔条隐藏 */
+
+/* 移动端顶栏：默认隐藏，仅窄屏显示 */
+.mobile-topbar { display: none; }
+
+@media (max-width: 1023px) {
+  /* ---- 顶栏 ---- */
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    height: 52px;
+    padding: 0 12px;
+    background: rgba(247, 248, 250, 0.88);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid rgba(60, 60, 67, 0.1);
+  }
+  .mobile-menu-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; flex-shrink: 0;
+    border: none; border-radius: 10px;
+    background: transparent; color: #1c1c1e; cursor: pointer;
+    transition: background .15s ease;
+  }
+  .mobile-menu-btn:active { background: rgba(120, 120, 128, 0.14); }
+  .mobile-menu-btn svg { width: 22px; height: 22px; }
+  .mobile-topbar-title { font-size: 16px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.01em; }
+
+  /* ---- 抽屉遮罩：盖过顶栏，点击收起 ---- */
+  .mobile-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-modal) - 1);
+    background: var(--overlay);
+    animation: popoverIn 0.18s ease;
+  }
+
+  /* ---- 侧栏 → 抽屉：默认滑出屏幕外，mobile-open 滑入 ---- */
+  .sidebar-b {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 282px;
+    max-width: 84vw;
+    max-height: 100vh;
+    z-index: var(--z-modal);
+    padding: 14px;
+    gap: 14px;
+    background: #F7F8FA;
+    box-shadow: 24px 0 60px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    transform: translateX(-105%);
+    transition: transform .26s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow-y: auto;
+  }
+  .sidebar-b.mobile-open { transform: translateX(0); }
+  /* 窄屏忽略桌面端折叠态（图标栏）：抽屉始终完整展开 */
+  .sidebar-b.collapsed { width: 282px; gap: 14px; }
+
+  /* ---- 左右分栏堆叠为上下：整宽铺满，隐藏拖拽分隔条 ---- */
+  .split-root { flex-direction: column; align-items: stretch; }
+  .split-root > * { flex: none !important; width: 100% !important; max-width: 100% !important; }
+  .split-root > .split-divider { display: none !important; }
+}
+

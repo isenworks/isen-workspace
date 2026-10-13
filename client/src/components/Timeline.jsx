@@ -8,6 +8,7 @@ import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 import { syncKey, cloudPush } from '../utils/cloudKV.js';
 // 成长类型配色与推断逻辑：与 HabitsPanel/KeyTasks 统一来源（CSS 变量版，跟随模块主题色）
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
+import { useLongPress } from './useLongPress.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -49,6 +50,8 @@ function isToday(dateStr) {
 export default function Timeline({ date, view, range, refreshSignal, onEdit, onChange, onAdd, onManageFixedSchedules, onSummaryToggle, showSummary }) {
   const toast = useToast();
   const { showContextMenu } = useWorkspaceActions();
+  // 触摸端长按事件块 → 弹出与右键相同的上下文菜单 / 固定日程管理
+  const lp = useLongPress();
   const [schedules, setSchedules] = useState([]);
   const [habits, setHabits] = useState([]);
   const [fixedSchedules, setFixedSchedules] = useState([]);
@@ -1093,7 +1096,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       e.stopPropagation();
                       onManageFixedSchedules?.();
                     }}
-                    title="固定日程 · 右键管理"
+                    {...lp.bind(() => onManageFixedSchedules?.())}
+                    title="固定日程 · 右键/长按管理"
                   >
                     <div className="tl-event-line" style={{ background: 'rgba(142,142,147,0.35)' }} />
                     <div className="tl-event-content" style={{ gap: '8px' }}>
@@ -1172,6 +1176,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     e.dataTransfer.effectAllowed = 'move';
                   }}
                   onClick={handleEdit}
+                  {...lp.bind((pos) => {
+                    if (item.isHabit || isCat4) showContextMenu?.(pos.clientX, pos.clientY, 'habit', item.id);
+                    else showContextMenu?.(pos.clientX, pos.clientY, 'schedule', item.id);
+                  })}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();

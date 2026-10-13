@@ -510,7 +510,7 @@ export default function InboxPage({ onCountChange }) {
   const { leftStyle, rightStyle, bindRoot, bindDivider } = split;
 
   return (
-    <div {...bindRoot} className="flex-1 min-w-0 w-full flex items-stretch">
+    <div {...bindRoot} className="split-root flex-1 min-w-0 w-full flex items-stretch">
       {isDuo ? (
         <>
           <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>

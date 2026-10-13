@@ -10,6 +10,7 @@ import { catToModule } from '../utils/categoryMapping.js';
 import { CategoryIcon } from '../components/annual/ui.jsx';
 import lunarLib from '../vendor/lunar.js';
 import PTag from '../components/PTag.jsx';
+import { useLongPress } from '../components/useLongPress.js';
 
 /* ============ 小工具 ============ */
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
@@ -523,11 +524,18 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   /* ===== 本周重点右键浮动菜单 + 删除确认 ===== */
   const [wkContextMenu, setWkContextMenu] = useState(null); // { x, y, task } | null
   const [wkConfirmDelete, setWkConfirmDelete] = useState(null); // { task } | null
+  // 菜单打开时刻：触摸长按后抬手会合成一次 mousedown，需在短时间内忽略它，避免菜单刚弹出即被关闭
+  const wkCtxShownAt = useRef(0);
+  const showWkMenu = (task, x, y) => { wkCtxShownAt.current = Date.now(); setWkContextMenu({ x, y, task }); };
+  // 触摸端长按今日聚焦/本周重点行 → 弹出与右键相同的浮动菜单
+  const lp = useLongPress();
   useEffect(() => {
     if (!wkContextMenu) return;
     // 排除菜单内部点击：marker class 'hp-ctx-menu'
     const onDown = (e) => {
-      if (e.button !== 2 && !e.target.closest('.hp-ctx-menu')) setWkContextMenu(null);
+      if (e.button === 2) return;
+      if (Date.now() - wkCtxShownAt.current < 350) return; // 忽略同一手势合成的 mousedown
+      if (!e.target.closest('.hp-ctx-menu')) setWkContextMenu(null);
     };
     const onScroll = () => setWkContextMenu(null);
     const onKey = (e) => { if (e.key === 'Escape') setWkContextMenu(null); };
@@ -888,14 +896,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     onContextMenu={e => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setWkContextMenu({ x: e.clientX, y: e.clientY, task: s });
+                      showWkMenu(s, e.clientX, e.clientY);
                     }}
+                    {...lp.bind((pos) => showWkMenu(s, pos.clientX, pos.clientY))}
                     className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
                   >
                     <button
                       onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
                       className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
-                      title={s.is_done ? '左键取消完成 · 右键菜单' : s.is_failed ? '左键标记完成 · 右键菜单' : '左键标记完成 · 右键菜单'}
+                      title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
                       style={{
                         background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
                         borderColor: s.is_failed ? '#FF3B30' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
@@ -1001,14 +1010,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     onContextMenu={e => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setWkContextMenu({ x: e.clientX, y: e.clientY, task: s });
+                      showWkMenu(s, e.clientX, e.clientY);
                     }}
+                    {...lp.bind((pos) => showWkMenu(s, pos.clientX, pos.clientY))}
                     className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
                   >
                     <button
                       onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
                       className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
-                      title={s.is_done ? '左键取消完成 · 右键菜单' : s.is_failed ? '左键标记完成 · 右键菜单' : '左键标记完成 · 右键菜单'}
+                      title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
                       style={{
                         background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
                         borderColor: s.is_failed ? '#FF3B30' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),

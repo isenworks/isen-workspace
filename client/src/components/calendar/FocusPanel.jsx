@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { MODULES, keyToModule, paceStatus } from '../../utils/categoryMapping.js';
 import PTag from '../PTag.jsx';
+import { useLongPress } from '../useLongPress.js';
 
 /* 模块色 + 透明度工具：模块色是 var(--m-xxx) CSS 变量，不支持 hex 拼接（如 `${color}14` 会产出
    非法值被浏览器丢弃），统一转成 rgba(var(--m-xxx-rgb), α) 形式 */
@@ -269,12 +270,26 @@ export default function FocusPanel({
        · 菜单位置跟随光标，自动避开视口右下边缘
        · 点击外部 / 滚动 / ESC 关闭 */
   const [contextMenu, setContextMenu] = useState(null); // { x, y, task } | null
+  // 菜单打开时刻：触摸长按后抬手会合成一次 mousedown，需在短时间内忽略它，避免菜单刚弹出即被关闭
+  const ctxMenuShownAt = useRef(0);
+  // 触摸端长按任务行 → 弹出与右键相同的浮动菜单
+  const lp = useLongPress();
+  const openTaskMenu = (task, x, y) => {
+    if (task.isFromFetch) return;
+    // 至少有一个可用动作才弹菜单：目标事项可标记未完成 / 有删除回调
+    const canMarkFailed = task.is_goal && onMarkFailed;
+    if (!canMarkFailed && !onDeleteTask) return;
+    ctxMenuShownAt.current = Date.now();
+    setContextMenu({ x, y, task });
+  };
   useEffect(() => {
     if (!contextMenu) return;
     // 关键：mousedown 会在 click 之前触发，若不排除菜单内部点击，
     // setContextMenu(null) 会先把按钮卸载 → onClick 永远不执行。
     const onDown = (e) => {
-      if (e.button !== 2 && !e.target.closest('.fp-ctx-menu')) setContextMenu(null);
+      if (e.button === 2) return;
+      if (Date.now() - ctxMenuShownAt.current < 350) return; // 忽略同一手势合成的 mousedown
+      if (!e.target.closest('.fp-ctx-menu')) setContextMenu(null);
     };
     const onScroll = () => setContextMenu(null);
     const onKey = (e) => { if (e.key === 'Escape') setContextMenu(null); };
@@ -472,11 +487,7 @@ export default function FocusPanel({
                     const handleContextMenu = (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      if (task.isFromFetch) return;
-                      // 至少有一个可用动作才弹菜单：目标事项可标记未完成 / 有删除回调
-                      const canMarkFailed = task.is_goal && onMarkFailed;
-                      if (!canMarkFailed && !onDeleteTask) return;
-                      setContextMenu({ x: e.clientX, y: e.clientY, task });
+                      openTaskMenu(task, e.clientX, e.clientY);
                     };
                     // DnD：仅模块分组视图、同组内、非习惯（习惯固定顺序按打卡权重，不可打乱）项可拖拽排序
                     const canDrag = !!onReorder && !task.__rowColor && !task.isHabit && !task.isSubItem;
@@ -496,12 +507,13 @@ export default function FocusPanel({
                         }}
                         onClick={handleEdit}
                         onContextMenu={handleContextMenu}
+                        {...lp.bind((pos) => openTaskMenu(task, pos.clientX, pos.clientY))}
                         title={
-                          canDrag ? '拖拽排序 · 点击编辑 · 右键菜单' :
+                          canDrag ? '拖拽排序 · 点击编辑 · 右键/长按菜单' :
                           task.isHabit ? '长期习惯 · 实心圆标记' :
                           task.isFromFetch ? '已关联 · 抓取的事项不支持右键操作' :
-                          task.is_goal ? '点击编辑 · 右键菜单（未完成/删除）' :
-                          '点击编辑 · 右键菜单（删除）'
+                          task.is_goal ? '点击编辑 · 右键/长按菜单（未完成/删除）' :
+                          '点击编辑 · 右键/长按菜单（删除）'
                         }
                         onMouseEnter={(e) => { if (!isDropTarget) e.currentTarget.style.background = task.done ? modRgba(rowColor, 0.09) : modRgba(rowColor, 0.07); }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = isDropTarget ? modRgba(rowColor, 0.13) : completedBg; }}

@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 import PTag from './PTag.jsx';
 import ConfirmAlert from './ConfirmAlert.jsx';
+import { useLongPress } from './useLongPress.js';
 import { inferGrowthType, GROWTH_TYPES } from '../utils/uiConstants.js';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
@@ -43,6 +44,8 @@ function catOf(s) {
 export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onNew, onChange }) {
   const toast = useToast();
   const { deleteScheduleConfirm, showContextMenu } = useWorkspaceActions();
+  // 触摸端长按行 → 弹出与右键相同的上下文菜单
+  const lp = useLongPress();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
@@ -362,6 +365,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           if (isHabitSchedule) return;
           onEdit?.(s);
         }}
+        {...lp.bind((pos) => showContextMenu?.(pos.clientX, pos.clientY, 'schedule', s.id, s))}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -375,7 +379,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
           onChange={() => {}}
           style={{ '--cb-color': s.is_failed ? '#FF3B30' : st.doneColor, '--cb-border': s.is_failed ? '#FF3B30' : (s.is_done ? st.doneColor : st.borderColor) }}
           onClick={(e) => { e.stopPropagation(); toggle(s); }}
-          title={s.is_done ? '左键取消完成 · 右键菜单' : s.is_failed ? '左键标记完成 · 右键菜单' : '左键标记完成 · 右键菜单'}
+          title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
         />
         <div className="flex-1 min-w-0">
           <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[#8e8e93] line-through' : s.is_failed ? 'text-[#FF3B30] line-through' : 'text-[#1c1c1e]'}`}>

@@ -241,7 +241,7 @@ export default function RecycleBinPage() {
       : 'font-medium text-ink-700 hover:bg-surface-soft'}`;
 
   return (
-    <div {...bindRoot} className="flex-1 min-w-0 w-full flex items-stretch">
+    <div {...bindRoot} className="split-root flex-1 min-w-0 w-full flex items-stretch">
       {/* ===== 左列（38%）：卡① 页头 + 卡② 类型导航 ===== */}
       <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
         <div className="glass-card rounded-2xl p-4">

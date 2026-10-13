@@ -121,7 +121,7 @@ export default function AIAssistantPage() {
   return (
     <div className="flex-1 min-w-0 w-full flex flex-col gap-3 md:h-[calc(100vh-48px)] md:min-h-0">
       {/* ===== 左会话卡 + 右对话卡，中间可拖拽调宽 ===== */}
-      <div {...bindRoot} className="flex-1 min-h-0 flex items-stretch">
+      <div {...bindRoot} className="split-root flex-1 min-h-0 flex items-stretch">
         {/* ---- 左：页头 + 会话列表 ---- */}
         <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
           {/* 页头：色条 + 标题 + 搜索（弹窗） / 新建对话 */}

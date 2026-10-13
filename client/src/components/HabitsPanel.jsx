@@ -10,6 +10,7 @@ import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 import ConfirmAlert from './ConfirmAlert.jsx';
+import { useLongPress } from './useLongPress.js';
 
 // 精力状态（3档）— 颜色统一用 iOS 系统色，弹窗按钮与行内 chip 共用
 const ENERGY_STATES = [
@@ -50,6 +51,8 @@ function isSleepHabit(h) {
 export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const toast = useToast();
   const { showContextMenu, archiveHabitConfirm, openHabitModal } = useWorkspaceActions();
+  // 触摸端长按习惯行 → 弹出与右键相同的上下文菜单
+  const lp = useLongPress();
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
@@ -448,6 +451,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           e.stopPropagation();
           showContextMenu?.(e.clientX, e.clientY, 'habit', h.id);
         }}
+        {...lp.bind((pos) => showContextMenu?.(pos.clientX, pos.clientY, 'habit', h.id))}
       >
         <input
           type="checkbox"

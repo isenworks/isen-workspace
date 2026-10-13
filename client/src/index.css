@@ -28,6 +28,25 @@
   --m-finance: #FF2D55;   --m-finance-rgb: 255,45,85;
 }
 
+/* ====== 浮层层级与遮罩令牌（统一 z 轴，替代各处 9999/10002/2147483647 魔法数字） ======
+   z 轴自下而上：scrim(点击遮罩) < dropdown(下拉) < sticky(侧栏浮层)
+   < modal(弹窗) < modal-nested(弹窗内二次确认) < popover(右键菜单/气泡，需盖过弹窗)
+   < toast(全局提示，永远最上层)
+   遮罩/弹窗底色同样收口到变量，便于后续主题化 */
+:root {
+  --z-scrim: 99;
+  --z-dropdown: 100;
+  --z-sticky: 300;
+  --z-modal: 1000;
+  --z-modal-nested: 1010;
+  --z-popover: 1050;
+  --z-toast: 1100;
+
+  --overlay: rgba(0, 0, 0, 0.4);
+  --surface-modal: rgba(255, 255, 255, 0.9);
+  --border-modal: rgba(255, 255, 255, 0.6);
+}
+
 html, body { min-height: 100%; }
 #root { min-height: 100vh; }
 
@@ -712,7 +731,7 @@ body {
 
 /* ====== 折叠态 · 发展规划二级导航浮层（图标右侧弹出，fixed 定位不受侧栏 overflow 裁剪） ====== */
 .sb-annual-flyout {
-  position: fixed; z-index: 300;
+  position: fixed; z-index: var(--z-sticky);
   width: 180px;
   background: #fff;
   border: 1px solid rgba(0,0,0,0.06);
@@ -897,7 +916,7 @@ body {
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -907,30 +926,42 @@ body {
 }
 .toast-item {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 10px 12px 10px 16px;
   border-radius: 12px;
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.45;
   color: #fff;
-  background: rgba(28, 28, 30, 0.92);
+  background: rgba(28, 28, 30, 0.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   pointer-events: auto;
-  cursor: pointer;
   animation: toast-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: min(480px, calc(100vw - 48px));
 }
 @keyframes toast-in {
   from { transform: translateY(-12px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-.toast-icon { font-size: 15px; flex-shrink: 0; }
-.toast-text { flex-shrink: 1; max-width: 480px; overflow: hidden; text-overflow: ellipsis; }
+.toast-icon { font-size: 15px; flex-shrink: 0; line-height: 1.45; }
+/* 正文允许换行（最多 3 行），避免长错误提示被截断看不全 */
+.toast-text {
+  flex: 1 1 auto; min-width: 0;
+  overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.toast-close {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; margin-left: 2px; padding: 0;
+  border: none; border-radius: 999px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.18); color: #fff; font-size: 12px; line-height: 1;
+  transition: background .15s;
+}
+.toast-close:hover { background: rgba(255, 255, 255, 0.32); }
 .toast-error { background: rgba(207, 19, 34, 0.92); }
 .toast-success { background: rgba(52, 199, 89, 0.92); }
 .toast-warn { background: rgba(255, 149, 0, 0.92); }
@@ -1052,7 +1083,7 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 /* ====== Dropdown (新建按钮下拉) ====== */
 .flyout {
   position: absolute;
-  z-index: 100;
+  z-index: var(--z-dropdown);
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
@@ -1088,7 +1119,7 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .scrim {
   position: fixed;
   inset: 0;
-  z-index: 99;
+  z-index: var(--z-scrim);
   background: transparent;
 }
 
@@ -1150,4 +1181,20 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .qc-editor ul { list-style: disc; }
 .qc-editor ol { list-style: decimal; }
 .qc-editor b, .qc-editor strong { font-weight: 700; }
+
+/* ====== 全局键盘焦点环 ======
+   仅键盘导航（:focus-visible）触发，鼠标点击不出现描边。
+   选择器用 :root :where(...) 提升到 (0,2,0)，确保盖过 Tailwind 的 outline-none/focus:outline-none 工具类。
+   描边自动跟随元素自身圆角，不改变元素外观。 */
+:root :where(a, button, [role="button"], [role="tab"], [role="checkbox"], [role="option"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid rgba(var(--s-rgb), 0.55);
+  outline-offset: 2px;
+}
+/* 复选框基类显式写了 outline: none，这里补回可见焦点 */
+.cb-square:focus-visible,
+.cb-round:focus-visible {
+  outline: 2px solid rgba(var(--s-rgb), 0.55);
+  outline-offset: 2px;
+  border-color: var(--s-main);
+}
 

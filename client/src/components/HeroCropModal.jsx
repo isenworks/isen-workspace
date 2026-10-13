@@ -378,7 +378,7 @@ const styles = {
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 10000
+    zIndex: 'var(--z-modal)'
   },
   modal: {
     width: '516px',

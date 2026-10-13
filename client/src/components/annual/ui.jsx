@@ -149,7 +149,7 @@ export function InlineEdit({
       {isCtxMode && menu && typeof document !== 'undefined' && document.body && createPortal(
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 999999, width: menuWidth, backgroundColor: '#ffffff' }}
+          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 'var(--z-popover)', width: menuWidth, backgroundColor: '#ffffff' }}
           className="rounded-xl shadow-2xl border border-ink-100 py-1 overflow-hidden">
           <button
             onClick={(e) => {

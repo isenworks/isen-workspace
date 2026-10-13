@@ -1350,7 +1350,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       {/* ===== 本周重点右键浮动菜单 + 删除确认 Modal（与周月重点 FocusPanel 同构） ===== */}
       {wkContextMenu && (
         <div
-          className="hp-ctx-menu fixed z-[70] select-none"
+          className="hp-ctx-menu fixed z-[var(--z-popover)] select-none"
           style={{
             left: Math.min(wkContextMenu.x, window.innerWidth - 172),
             top: Math.min(wkContextMenu.y, window.innerHeight - 110),

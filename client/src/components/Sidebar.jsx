@@ -375,7 +375,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
               position: 'absolute', left: '0', top: '52px',
               background: '#fff', borderRadius: '12px',
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-              padding: '6px', minWidth: '140px', zIndex: 200,
+              padding: '6px', minWidth: '140px', zIndex: 'var(--z-sticky)',
               border: '1px solid rgba(0,0,0,0.06)'
             }} onClick={e => e.stopPropagation()}>
               <div

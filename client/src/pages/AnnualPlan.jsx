@@ -1175,7 +1175,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   );
 
   const confirmEl = confirmDialog && (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-900/40 backdrop-blur-sm" onClick={confirmDialog.onCancel}>
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-ink-900/40 backdrop-blur-sm" onClick={confirmDialog.onCancel}>
       <div className="bg-white rounded-2xl shadow-xl w-[360px] overflow-hidden animate-fade-in" onClick={e => e.stopPropagation()}>
         <div className="p-5 flex flex-col gap-1">
           <h3 className="text-base font-bold text-ink-900">{confirmDialog.title}</h3>

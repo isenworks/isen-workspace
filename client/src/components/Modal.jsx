@@ -1,35 +1,39 @@
-import { useEffect } from 'react';
+import { useDialogA11y } from './useDialogA11y.js';
 
 export default function Modal({ open, onClose, title, children, footer, maxWidth }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  // 焦点陷阱 + 锁背景滚动 + Esc 关闭（hook 内部按 open 生效，须在提前 return 之前调用）
+  const dialogRef = useDialogA11y(open, { onClose });
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: 'var(--z-modal)' }}
+    >
       {/* 遮罩层 */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        style={{ background: 'rgba(0,0,0,0.4)' }}
+        className="absolute inset-0"
+        style={{ background: 'var(--overlay)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
         onClick={onClose}
       />
 
       {/* 模态内容 */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : undefined}
         className="relative w-full max-h-[90vh] flex flex-col"
         style={{
           maxWidth: maxWidth || 480,
-          background: 'rgba(255,255,255,0.88)',
+          background: 'var(--surface-modal)',
           backdropFilter: 'saturate(180%) blur(24px)',
           WebkitBackdropFilter: 'saturate(180%) blur(24px)',
-          border: '1px solid rgba(255,255,255,0.6)',
+          border: '1px solid var(--border-modal)',
           borderRadius: '18px',
           boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 24px 64px rgba(0,0,0,0.18)',
+          outline: 'none',
         }}
       >
         {/* 标题栏 */}

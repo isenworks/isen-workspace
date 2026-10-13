@@ -5,28 +5,53 @@ const ToastContext = createContext(null);
 let seedId = 0;
 const nextId = () => ++seedId;
 
-const DEFAULT_DURATION = 3000;
+/* 同时最多展示的提示条数，超出挤掉最旧的一条 */
+const MAX_ITEMS = 3;
+/* 默认存活时长（ms）：错误给更长时间以便读完，可被 opts.duration 覆盖，<=0 表示不自动消失 */
+const DEFAULT_DURATION = { error: 6000, success: 2600, info: 2600, warn: 4000 };
 
 export function ToastProvider({ children }) {
   const [items, setItems] = useState([]);
   const timers = useRef(new Map());
+  /* items 的镜像：push 去重/限流时需要同步读取当前列表，避免在 setState 更新函数里写副作用 */
+  const itemsRef = useRef([]);
+
+  const commit = useCallback((next) => {
+    itemsRef.current = next;
+    setItems(next);
+  }, []);
 
   const dismiss = useCallback((id) => {
     const t = timers.current.get(id);
     if (t) { clearTimeout(t); timers.current.delete(id); }
-    setItems(prev => prev.filter(x => x.id !== id));
-  }, []);
+    commit(itemsRef.current.filter(x => x.id !== id));
+  }, [commit]);
 
   const push = useCallback((type, text, opts = {}) => {
+    const duration = opts.duration ?? DEFAULT_DURATION[type] ?? 3000;
+
+    // 同类型同文案去重：刷新存活时间，不再叠加一条
+    const dup = itemsRef.current.find(x => x.type === type && x.text === text);
+    if (dup) {
+      const t0 = timers.current.get(dup.id);
+      if (t0) { clearTimeout(t0); timers.current.delete(dup.id); }
+      if (duration > 0) timers.current.set(dup.id, setTimeout(() => dismiss(dup.id), duration));
+      return dup.id;
+    }
+
     const id = nextId();
-    const duration = opts.duration ?? DEFAULT_DURATION;
-    setItems(prev => [...prev, { id, type, text }]);
+    const next = [...itemsRef.current, { id, type, text }];
+    while (next.length > MAX_ITEMS) {
+      const dropped = next.shift();
+      const td = timers.current.get(dropped.id);
+      if (td) { clearTimeout(td); timers.current.delete(dropped.id); }
+    }
+    commit(next);
     if (duration > 0) {
-      const t = setTimeout(() => dismiss(id), duration);
-      timers.current.set(id, t);
+      timers.current.set(id, setTimeout(() => dismiss(id), duration));
     }
     return id;
-  }, [dismiss]);
+  }, [commit, dismiss]);
 
   const api = {
     error: (msg, opts) => push('error', msg, opts),
@@ -64,9 +89,19 @@ function ToastLayer({ items, onClose }) {
   return (
     <div className="toast-layer" aria-live="polite" aria-atomic="false">
       {items.map(it => (
-        <div key={it.id} className={`toast-item toast-${it.type}`} onClick={() => onClose(it.id)}>
-          <span className="toast-icon">{ICON[it.type] || '💬'}</span>
+        <div
+          key={it.id}
+          className={`toast-item toast-${it.type}`}
+          role={it.type === 'error' ? 'alert' : 'status'}
+        >
+          <span className="toast-icon" aria-hidden="true">{ICON[it.type] || '💬'}</span>
           <span className="toast-text">{it.text}</span>
+          <button
+            type="button"
+            className="toast-close"
+            aria-label="关闭提示"
+            onClick={() => onClose(it.id)}
+          >✕</button>
         </div>
       ))}
     </div>

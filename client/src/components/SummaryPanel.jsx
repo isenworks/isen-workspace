@@ -900,7 +900,7 @@ export default function SummaryPanel({
         padding: '6px',
         boxShadow: '0 12px 36px rgba(0,0,0,0.18), 0 4px 10px rgba(0,0,0,0.06)',
         border: '1px solid rgba(0,0,0,0.06)',
-        zIndex: 10002,
+        zIndex: 'var(--z-popover)',
         maxHeight: '320px',
         overflowY: 'auto',
       }}
@@ -1277,7 +1277,7 @@ export default function SummaryPanel({
         <div
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)',
-            backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 10006,
+            backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 'var(--z-modal-nested)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
           }}
           onClick={() => setShowClearConfirm(false)}
@@ -1356,7 +1356,7 @@ export default function SummaryPanel({
     <div
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)',
-        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 10005,
+        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 'var(--z-modal-nested)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
       }}
       onClick={() => setMdOpen(false)}

@@ -805,7 +805,7 @@ export default function Workspace({ user: propUser }) {
             position: 'fixed',
             left: ctxMenu.x,
             top: ctxMenu.y,
-            zIndex: 10000,
+            zIndex: 'var(--z-popover)',
             background: '#fff',
             borderRadius: '10px',
             padding: '6px',
@@ -877,7 +877,7 @@ export default function Workspace({ user: propUser }) {
           position: 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.35)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10003
+          zIndex: 'var(--z-modal-nested)'
         }} onClick={confirm.onCancel}>
           <div
             style={{
@@ -925,7 +925,7 @@ export default function Workspace({ user: propUser }) {
           position: 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.4)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10001
+          zIndex: 'var(--z-modal)'
         }} onClick={() => setArchiveOpen(false)}>
           <div
             style={{

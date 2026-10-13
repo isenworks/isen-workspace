@@ -464,7 +464,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               <div onClick={(e) => e.stopPropagation()} style={{
                 position: 'fixed', top: linkMenu.y,
                 // 右边界钳制：按钮在右上角时面板 230px+边距 会溢出视口被裁剪，改为右对齐收缩
-                left: Math.max(8, Math.min(linkMenu.x, window.innerWidth - 246)), zIndex: 200,
+                left: Math.max(8, Math.min(linkMenu.x, window.innerWidth - 246)), zIndex: 'var(--z-popover)',
                 minWidth: '230px', padding: '6px', borderRadius: '12px',
                 background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
                 boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
@@ -585,7 +585,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
             {linkListPopup && (
               <div onClick={(e) => e.stopPropagation()} style={{
                 position: 'fixed', top: linkListPopup.y,
-                left: Math.max(8, Math.min(linkListPopup.x, window.innerWidth - 236)), zIndex: 200,
+                left: Math.max(8, Math.min(linkListPopup.x, window.innerWidth - 236)), zIndex: 'var(--z-popover)',
                 minWidth: '220px', padding: '6px', borderRadius: '12px',
                 background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
                 boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',

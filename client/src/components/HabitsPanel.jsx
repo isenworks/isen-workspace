@@ -621,7 +621,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     {/* 睡眠记录 Modal - 居中全屏 overlay */}
     {sleepPopover && typeof document !== 'undefined' && createPortal(
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center sleep-modal-overlay"
+        className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center sleep-modal-overlay"
         style={{ background: 'rgba(0,0,0,0.35)' }}
         onClick={() => setSleepPopover(null)}
       >
@@ -776,7 +776,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     {/* 量化打卡日志 Modal - 居中 */}
     {countLog && typeof document !== 'undefined' && createPortal(
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center"
+        className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center"
         style={{ background: 'rgba(0,0,0,0.35)' }}
         onClick={() => setCountLog(null)}
       >

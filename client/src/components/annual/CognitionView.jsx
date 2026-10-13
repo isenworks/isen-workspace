@@ -1537,7 +1537,7 @@ export function CognitionView({
                   <div onClick={(e) => e.stopPropagation()} style={{
                     position: 'fixed', top: wereadLinkMenu.y,
                     // 右边界钳制：书架在右列，菜单 230px 需防止溢出视口
-                    left: Math.max(8, Math.min(wereadLinkMenu.x, window.innerWidth - 246)), zIndex: 200,
+                    left: Math.max(8, Math.min(wereadLinkMenu.x, window.innerWidth - 246)), zIndex: 'var(--z-popover)',
                     minWidth: '230px', padding: '6px', borderRadius: '12px',
                     background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
                     boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
@@ -1657,7 +1657,7 @@ export function CognitionView({
                 {wereadLinkPopup && (
                   <div onClick={(e) => e.stopPropagation()} style={{
                     position: 'fixed', top: wereadLinkPopup.y,
-                    left: Math.max(8, Math.min(wereadLinkPopup.x, window.innerWidth - 236)), zIndex: 200,
+                    left: Math.max(8, Math.min(wereadLinkPopup.x, window.innerWidth - 236)), zIndex: 'var(--z-popover)',
                     minWidth: '220px', padding: '6px', borderRadius: '12px',
                     background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
                     boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',

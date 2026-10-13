@@ -1051,7 +1051,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
           : { txt: '搁置归档', bg: 'rgba(142,142,147,0.12)', fg: '#8e8e93', icon: '📦' };
         const stop = (e) => e.stopPropagation();
         return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
             onClick={() => setDetailGoal(null)}
           >

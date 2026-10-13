@@ -325,7 +325,7 @@ export const Sparkline = ({ data, labels, color = '#34C759', width = 260, height
         const tipLeft = Math.max(8, Math.min(cx - TIP_W / 2, (window.innerWidth || 1e3) - TIP_W - 8));
         const tipTop = Math.max(8, cy - TIP_H - 4);
         return createPortal(
-          <div className="pointer-events-none fixed z-[999]"
+          <div className="pointer-events-none fixed z-[var(--z-popover)]"
             style={{ left: tipLeft, top: tipTop, width: TIP_W }}>
             <div className="px-2.5 py-1.5 rounded-lg border border-ink-100 bg-white shadow-[0_4px_14px_rgba(17,24,39,0.12)] flex flex-col items-center gap-0.5 w-full">
               {labels && labels[hoverIdx] && (

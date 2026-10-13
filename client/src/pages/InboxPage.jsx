@@ -285,8 +285,8 @@ export default function InboxPage({ onCountChange }) {
             </button>
             {menuFor && (
               <>
-                <div className="fixed inset-0 z-[10]" onClick={(e) => { e.stopPropagation(); setMenu(null); }} />
-                <div className="absolute right-0 top-7 z-[20] w-[130px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden">
+                <div className="fixed inset-0 z-[var(--z-scrim)]" onClick={(e) => { e.stopPropagation(); setMenu(null); }} />
+                <div className="absolute right-0 top-7 z-[var(--z-dropdown)] w-[130px] py-1 rounded-xl border border-ink-100 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden">
                   <button
                     onClick={(e) => { e.stopPropagation(); setMenu(m => ({ id: item.id, cat: !m?.cat })); }}
                     className={`w-full flex items-center px-3 py-1.5 text-[12.5px] transition-colors ${catPickFor ? 'bg-ink-50 text-ink-900 font-medium' : 'text-ink-700 hover:bg-ink-50'}`}
@@ -374,8 +374,8 @@ export default function InboxPage({ onCountChange }) {
         </button>
         {filterPopover && (
           <>
-            <div className="fixed inset-0 z-[10]" onClick={() => setFilterPopover(false)} />
-            <div className="absolute right-0 top-8 z-[20] w-[220px] py-1.5 rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
+            <div className="fixed inset-0 z-[var(--z-scrim)]" onClick={() => setFilterPopover(false)} />
+            <div className="absolute right-0 top-8 z-[var(--z-dropdown)] w-[220px] py-1.5 rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
               <div className="px-3 py-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">筛选标签</div>
               <button
                 onClick={() => { setFilterTagId(null); setFilterPopover(false); }}

@@ -171,7 +171,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
       position: 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.35)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 10002
+      zIndex: 'var(--z-modal)'
     }} onClick={onClose}>
       <div style={{
         background: '#fff', borderRadius: '14px', width: '680px', maxWidth: '94vw',

@@ -572,7 +572,7 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
       {confirmDialog && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 80,
+            position: 'fixed', inset: 0, zIndex: 'var(--z-modal)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'rgba(28,28,30,0.40)',
             backdropFilter: 'blur(4px) saturate(180%)',
@@ -1035,7 +1035,7 @@ function CategoryEditor({ cats, onClose, onChange }) {
       {confirmDialog && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 80,
+            position: 'fixed', inset: 0, zIndex: 'var(--z-modal)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'rgba(28,28,30,0.40)',
             backdropFilter: 'blur(4px) saturate(180%)',

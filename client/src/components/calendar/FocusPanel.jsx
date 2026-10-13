@@ -828,7 +828,7 @@ export default function FocusPanel({
          · 跟随光标定位，自动避开视口右下边缘（菜单宽约 160 / 高约 90） */}
     {contextMenu && (
       <div
-        className="fp-ctx-menu fixed z-[70] select-none"
+        className="fp-ctx-menu fixed z-[var(--z-popover)] select-none"
         style={{
           left: Math.min(contextMenu.x, window.innerWidth - 172),
           top: Math.min(contextMenu.y, window.innerHeight - 110),
@@ -877,7 +877,7 @@ export default function FocusPanel({
          · 左右双按钮横排（取消 / 删除红色） ，顶部大标题粗体 · 正文小字体换行 */}
     {confirmDialog && (
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center"
+        className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center"
         style={{ background: 'rgba(28,28,30,0.40)', backdropFilter: 'blur(4px) saturate(180%)' }}
         onClick={confirmDialog.onCancel}
         role="dialog"

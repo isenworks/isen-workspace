@@ -1558,7 +1558,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           padding: '6px',
           boxShadow: '0 16px 48px rgba(0,0,0,0.22), 0 3px 12px rgba(0,0,0,0.10)',
           border: '1px solid rgba(255,255,255,0.8)',
-          zIndex: 2147483647,
+          zIndex: 'var(--z-popover)',
           display: 'flex',
           flexDirection: 'column',
           gap: '2px',

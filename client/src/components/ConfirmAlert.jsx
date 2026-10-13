@@ -15,17 +15,21 @@
  *       onConfirm={...} onCancel={() => setConfirmOpen(false)} />
  *   )}
  * ============================================================ */
+import { useDialogA11y } from './useDialogA11y.js';
+
 export default function ConfirmAlert({
   title = '确认', message, children,
   confirmText = '确定', cancelText = '取消',
   danger = false, onConfirm, onCancel,
 }) {
+  // 不接管 Esc（避免嵌套 Modal 时同时关闭「确认层 + 外层表单」），但仍锁背景滚动 + 焦点陷阱
+  const dialogRef = useDialogA11y(true, { escape: false });
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 80,
+        position: 'fixed', inset: 0, zIndex: 'var(--z-modal-nested)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(28,28,30,0.40)',
+        background: 'var(--overlay)',
         backdropFilter: 'blur(4px) saturate(180%)',
         WebkitBackdropFilter: 'blur(4px) saturate(180%)',
       }}
@@ -34,6 +38,7 @@ export default function ConfirmAlert({
       aria-modal="true"
     >
       <div
+        ref={dialogRef}
         style={{
           width: 360, background: '#ffffff', borderRadius: '16px', overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',

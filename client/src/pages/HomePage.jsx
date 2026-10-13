@@ -390,14 +390,27 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 后续事项） ===== */
   const [sched, setSched] = useState(null);
-  useEffect(() => {
-    let alive = true;
-    const fetchFrom = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
-    API.schedules.list({ from: fetchFrom, to: addDaysISO(todayStr, 30) })
-      .then(r => { if (alive) setSched(r?.schedules || []); })
-      .catch(() => { if (alive) setSched([]); });
-    return () => { alive = false; };
-  }, [weekStartStr, todayStr, syncSignal, weekOffset, viewWeekStartStr]);
+  // 请求序号 + 在途复用：并发/重复触发（refreshKey 与 reload 广播）只保留最新结果，
+  // 同范围请求在途时复用同一 Promise，避免移动端冷启动时的重复请求风暴
+  const schedReqRef = useRef(0);
+  const schedInflightRef = useRef(null);
+  const loadSched = useCallback(() => {
+    const from = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
+    const inflight = schedInflightRef.current;
+    if (inflight && inflight.from === from) return inflight.promise;
+    const reqId = ++schedReqRef.current;
+    const promise = API.schedules.list({ from, to: addDaysISO(todayStr, 30) })
+      .then(r => { if (reqId === schedReqRef.current) setSched(r?.schedules || []); })
+      // 读取失败（移动端网络抖动 / 8s 超时 / 非 JSON 兜底）：保留上一份数据，不清空已展示内容，
+      // 修复「数据出现一会又消失」——只有成功响应才覆盖 sched
+      .catch(() => {});
+    schedInflightRef.current = { from, promise };
+    promise.then(() => {
+      if (schedInflightRef.current && schedInflightRef.current.promise === promise) schedInflightRef.current = null;
+    });
+    return promise;
+  }, [weekOffset, viewWeekStartStr, weekStartStr, todayStr]);
+  useEffect(() => { loadSched(); }, [loadSched, syncSignal]);
 
   /* ===== 跨组件同步：监听 schedule_saved / schedule_deleted 事件
        CalendarPage 在周月目标面板修改状态后广播，HomePage 实时更新本周目标卡 ===== */
@@ -423,17 +436,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         const delId = String(msg.schedule.id);
         setSched(prev => (prev || []).filter(x => String(x.id) !== delId));
       } else if (msg.type === 'reload') {
-        // 全局 reload：重新拉取（与 syncSignal 触发同款路径）
-        let alive = true;
-        const rf = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
-        API.schedules.list({ from: rf, to: addDaysISO(todayStr, 30) })
-          .then(r => { if (alive) setSched(r?.schedules || []); })
-          .catch(() => {});
-        return () => { alive = false; };
+        // 全局 reload（表单保存/删除等广播）：重新拉取；同范围请求在途时自动复用，不重复发起
+        loadSched();
       }
     });
     return unsub;
-  }, [weekStartStr, todayStr, weekOffset, viewWeekStartStr]);
+  }, [loadSched]);
 
   /* ===== 精力习惯（周打卡矩阵） ===== */
   const { realHabits, refresh: refreshEnergy } = useEnergyHabits();

@@ -57,12 +57,35 @@ const NAV_LABELS_CLOUD = 'sidebar_nav_labels';
 function navLabelsUid(user) {
   return user?.id != null ? String(user.id) : 'anon';
 }
+/* 标题更名兼容：历史自定义标题里仍残留旧称的，读取时一次性归一为新称
+ * （"本周重点"→"本周目标"、"周月重点"→"周月目标"），本地与云端同步改写 */
+const LEGACY_NAV_LABELS = { '本周重点': '本周目标', '周月重点': '周月目标' };
+function normalizeNavLabels(obj) {
+  if (!obj || typeof obj !== 'object') return {};
+  let changed = false;
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const nv = LEGACY_NAV_LABELS[v] || v;
+    if (nv !== v) changed = true;
+    out[k] = nv;
+  }
+  return changed ? out : obj;
+}
 function loadNavLabels(user) {
   try {
     const raw = localStorage.getItem(NAV_LABELS_LS);
     const obj = raw ? JSON.parse(raw) : null;
     if (!obj) return {};
-    return obj[navLabelsUid(user)] || {};
+    const uid = navLabelsUid(user);
+    const mine = obj[uid] || {};
+    const norm = normalizeNavLabels(mine);
+    if (norm !== mine) {
+      // 命中旧称（"重点"→"目标"更名）→ 写回本地并推云端，一次性归一
+      obj[uid] = norm;
+      localStorage.setItem(NAV_LABELS_LS, JSON.stringify(obj));
+      cloudPush(NAV_LABELS_CLOUD, JSON.stringify(norm));
+    }
+    return norm;
   } catch { return {}; }
 }
 function saveNavLabel(user, key, label) {
@@ -134,11 +157,13 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
     syncKey(NAV_LABELS_CLOUD, JSON.stringify(loadNavLabels(user)), (cloudStr) => {
       try {
         const parsed = JSON.parse(cloudStr);
+        const norm = normalizeNavLabels(parsed || {});
         const raw = localStorage.getItem(NAV_LABELS_LS);
         const obj = raw ? JSON.parse(raw) : {};
-        obj[uid] = parsed || {};
+        obj[uid] = norm;
         localStorage.setItem(NAV_LABELS_LS, JSON.stringify(obj));
-        setNavLabels(parsed || {});
+        setNavLabels(norm);
+        if (norm !== parsed) cloudPush(NAV_LABELS_CLOUD, JSON.stringify(norm)); // 云端旧称回写为新称
       } catch {}
     });
   }, [user?.id]);

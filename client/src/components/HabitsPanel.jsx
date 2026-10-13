@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Clock, Pencil, X, Zap, Heart, Moon, Target,
+  Clock, Pencil, X, Zap, Heart, Moon, Target, ChevronDown,
 } from 'lucide-react';
 import { API } from '../api/client.js';
 import { formatDuration, calcDurationMin, cachedLoad, cachePeek, cacheClear, loadingGate } from '../utils/date.js';
@@ -60,6 +60,17 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const [overId, setOverId] = useState(null);
   const [sleepPopover, setSleepPopover] = useState(null);
   const [confirmArchive, setConfirmArchive] = useState(null);
+  // 习惯列表折叠（默认展开；记忆用户选择，下次进入沿用）
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('hp_collapsed') === '1'; } catch { return false; }
+  });
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed(v => {
+      const next = !v;
+      try { localStorage.setItem('hp_collapsed', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  }, []);
   const popoverRef = useRef(null);
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
@@ -572,10 +583,20 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     <>
       <div className="glass-card p-4 flex-1">
       <div className="flex items-center justify-between section-header">
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className="flex items-center gap-3 min-w-0 flex-1 text-left group/hd"
+          title={collapsed ? '展开习惯列表' : '折叠习惯列表'}
+        >
           <span className="section-accent" style={{background:'var(--s-main)'}}></span>
           <h3 className="section-title">习惯</h3>
-        </div>
+          <ChevronDown
+            size={16}
+            strokeWidth={2.2}
+            className={`flex-shrink-0 text-[var(--text-3)] transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
+          />
+        </button>
         <div className="flex items-center gap-2">
           <div className="relative w-6 h-6">
             <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
@@ -600,7 +621,15 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         </div>
       </div>
 
-      {loading && !hasData ? (
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className="w-full mt-1 text-center text-[12.5px] text-[var(--text-3)] py-2 rounded-lg hover:bg-[rgba(120,120,128,0.06)] transition-colors"
+        >
+          已折叠 {habits.length} 项习惯 · 点击展开
+        </button>
+      ) : loading && !hasData ? (
         <div className="space-y-3 pt-3 px-1">
           <div className="sk-line" style={{width:'85%'}}></div>
           <div className="sk-line" style={{width:'78%'}}></div>

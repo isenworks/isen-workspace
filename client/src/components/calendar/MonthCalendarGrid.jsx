@@ -276,7 +276,7 @@ export default function MonthCalendarGrid({
                   return (
                     <div
                       key={ev.id || `${date}-${j}`}
-                      className="flex items-center gap-1.5 text-[12px] leading-tight px-1.5 py-0.5 rounded-md cursor-pointer"
+                      className="flex items-start gap-1.5 text-[12px] leading-tight px-1.5 py-0.5 rounded-md cursor-pointer md:items-center"
                       style={{
                         background: bg,
                         color: done ? 'var(--text-muted)' : 'var(--ink-700)',
@@ -290,11 +290,11 @@ export default function MonthCalendarGrid({
                       }}
                     >
                       {/* 复选框：独立 stopPropagation，只点它才 toggle 勾选，不触发编辑 / 不触发 day-detail */}
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <div className="mt-[1px] md:mt-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         <EventCheckbox ev={ev} mod={mod} date={date} />
                       </div>
                       {spanMark && <span className="flex-shrink-0 opacity-70">{spanMark}</span>}
-                      <span className="truncate flex-1 min-w-0">{ev.title || ev.name || ''}</span>
+                      <span className="min-w-0 flex-1 leading-snug break-words md:truncate">{ev.title || ev.name || ''}</span>
                     </div>
                   );
                 })}

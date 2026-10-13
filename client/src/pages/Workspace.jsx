@@ -126,7 +126,7 @@ export default function Workspace({ user: propUser }) {
 
   const ctxRef = useRef(null);
   const ctxMenuShownAt = useRef(0);
-  const lastSyncRef = useRef(Date.now()); // 防止过于频繁的自动同步
+  const lastSyncRef = useRef(0); // 0 = 尚未同步过：首帧同步不被 15s 防抖拦截
 
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
   const range = useMemo(() => ({ from: selectedDate, to: selectedDate }), [selectedDate]);
@@ -154,6 +154,16 @@ export default function Workspace({ user: propUser }) {
     }
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [doAutoSync]);
+
+  // 首次进入：冷启动没有 visibilitychange 事件，主动同步一次，确保首页/各面板拿到最新数据
+  // （此前只依赖 120s 轮询与手动同步，导致「打开后要点一下同步按钮才出内容」）
+  const bootSyncedRef = useRef(false);
+  useEffect(() => {
+    if (bootSyncedRef.current) return;
+    bootSyncedRef.current = true;
+    const t = setTimeout(() => doAutoSync(), 350);
+    return () => clearTimeout(t);
   }, [doAutoSync]);
 
   // 定时轮询：每 120 秒自动刷新一次（仅当页面可见时）

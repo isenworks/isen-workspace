@@ -706,7 +706,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0 flex flex-col overflow-hidden" style={rightStyle}>
             {isPlantRow(selFilterCat) ? (
-              <div className="flex-1 min-h-0"><PlantingShelf onCountChange={syncPlantCount} /></div>
+              <div className="flex-1 min-h-0 plant-host"><PlantingShelf onCountChange={syncPlantCount} /></div>
             ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
                 <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-400">

@@ -1317,9 +1317,13 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   .sidebar-b.collapsed { width: 282px; gap: 14px; }
 
   /* ---- 左右分栏堆叠为上下：整宽铺满，隐藏拖拽分隔条 ---- */
-  .split-root { flex-direction: column; align-items: stretch; }
+  .split-root { flex-direction: column; align-items: stretch; gap: 14px; }
   .split-root > * { flex: none !important; width: 100% !important; max-width: 100% !important; }
   .split-root > .split-divider { display: none !important; }
+
+  /* ---- 花架画布：堆叠后父容器无固定高度，需显式给定高度，否则画布塌缩为 0（植物不可见）---- */
+  .plant-host { min-height: min(66vh, 520px); }
+  .planting-shelf-wrap { min-height: min(66vh, 520px); }
 }
 
 /* ====== 小图标按钮触达区扩展 ======

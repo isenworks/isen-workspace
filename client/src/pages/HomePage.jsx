@@ -864,8 +864,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         )}
         </div>
 
-        {/* ========== 时间层：今日聚焦 / 本周重点 / 即将到来（3 等分，md 起 3 列） ========== */}
-        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
+        {/* ========== 时间层：今日聚焦 / 本周重点 / 即将到来（3 等分，md 起 3 列） ==========
+             窄屏：auto-rows-auto —— 每张卡按各自内容自适应高度（不再被 auto-rows-fr 拉齐到最高卡）；
+             md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满视口 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
@@ -890,7 +892,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 <span className="text-[12px] font-bold text-ink-800 tabular-nums">{todayDone}/{todayItems.length}</span>
               </div>
               <Bar value={todayPct} />
-              <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0">
+              <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
                 {todaySorted.map(s => (
                   <div
                     key={s.id}
@@ -1004,7 +1006,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 </span>
               </div>
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
-              <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 flex-1 min-h-0">
+              <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
                 {weekKeys.map(s => (
                   <div
                     key={s.id}
@@ -1052,7 +1054,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           {/* ---- 即将到来：今日之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月重点页 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead title="即将到来" sub="今日之后" onClick={() => onNav?.('calendar')} />
-            <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0">
+            <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
               {followUpList.map(u => {
                 const weekday = '日一二三四五六'[new Date(`${u.date}T00:00:00`).getDay()];
                 const schedMod = u.category != null ? catToModule(Number(u.category)) : null;

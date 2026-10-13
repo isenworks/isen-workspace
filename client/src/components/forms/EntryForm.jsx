@@ -4,9 +4,9 @@ import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmAlert from '../ConfirmAlert.jsx';
 
-const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
-const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'var(--m-life)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(var(--m-life-rgb),0.25)' };
-const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer', transition: 'all .15s' };
+const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: 'var(--text-1)', border: 'none', cursor: 'pointer', transition: 'all .15s' };
+const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'var(--m-life)', color: 'var(--surface-card)', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(var(--m-life-rgb),0.25)' };
+const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(255,59,48,0.08)', color: 'var(--danger)', border: 'none', cursor: 'pointer', transition: 'all .15s' };
 
 /* 面板配色统一：所有模块（含新建）不再区分类目色，全部跟随生活模块紫 var(--m-life) */
 const ACCENT = 'var(--m-life)';
@@ -129,7 +129,7 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
                   padding: '5px 10px', borderRadius: '10px',
                   border: `1px solid ${active ? ACCENT : 'rgba(15,23,42,0.10)'}`,
                   background: active ? 'rgba(var(--m-life-rgb),0.07)' : 'rgba(15,23,42,0.03)',
-                  color: active ? ACCENT : '#1c1c1e',
+                  color: active ? ACCENT : 'var(--text-1)',
                   fontWeight: 600, fontSize: '12px', lineHeight: 1.2,
                   opacity: disabled ? 0.45 : 1,
                   cursor: disabled ? 'not-allowed' : 'pointer',
@@ -202,7 +202,7 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
             · {selCat.lb}
           </span>
           {!isEdit && (
-            <span style={{ fontSize: '11px', color: '#8e8e93' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               记录将添加到「{selCat.lb}」模块
             </span>
           )}
@@ -245,7 +245,7 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
                 style={{
                   position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
                   width: '20px', height: '20px', borderRadius: '999px', border: 'none',
-                  background: 'rgba(120,120,128,0.16)', color: '#8e8e93',
+                  background: 'rgba(120,120,128,0.16)', color: 'var(--text-muted)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', fontSize: '12px', lineHeight: '1'
                 }}

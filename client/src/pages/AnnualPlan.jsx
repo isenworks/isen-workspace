@@ -1168,8 +1168,8 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
 
   const toastEl = toast && (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2"
-      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
-      <svg className="w-4 h-4" fill="none" stroke="#34C759" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+      style={{ background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
+      <svg className="w-4 h-4" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
       <span className="text-ink-800">{toast}</span>
     </div>
   );

@@ -579,7 +579,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         <div className="flex items-center gap-2">
           <div className="relative w-6 h-6">
             <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
-              <circle cx="12" cy="12" r="10" fill="none" stroke="#e5e5ea" strokeWidth="3"></circle>
+              <circle cx="12" cy="12" r="10" fill="none" stroke="var(--ink-100)" strokeWidth="3"></circle>
               <circle
                 cx="12" cy="12" r="10" fill="none"
                 stroke="var(--s-main)" strokeWidth="3" strokeLinecap="round"

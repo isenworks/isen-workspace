@@ -149,7 +149,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                       style={{ color: GREEN }}>
                       {padNum}
                     </span>
-                    <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-[#48484A]">
+                    <span className="text-[14px] font-semibold leading-none truncate flex-1 min-w-0 text-[var(--ink-700)]">
                       {cleanLabel}
                     </span>
                   </div>
@@ -238,7 +238,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
         <div className={monthsCollapsed ? '' : 'mt-2'}></div>
         {!monthsCollapsed && (
           <>
-        <div className="grid habit-table px-0 py-1 bg-transparent text-[14px] font-semibold text-[#48484A]">
+        <div className="grid habit-table px-0 py-1 bg-transparent text-[14px] font-semibold text-[var(--ink-700)]">
           <div className="grp-start whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
           </div>
           <div className="text-center whitespace-nowrap rate-gap">完成率</div>
@@ -290,7 +290,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   style={{ color: GREEN }}>
                   {padNum}
                 </span>
-                <span className="text-[14px] font-semibold truncate leading-none text-[#48484A]">{cleanLabel}</span>
+                <span className="text-[14px] font-semibold truncate leading-none text-[var(--ink-700)]">{cleanLabel}</span>
               </div>
               <div className="flex justify-center items-center cursor-pointer rate-gap" onClick={() => onAction?.('editHabit', h)}>
                 {h.target > 0 ? (
@@ -299,7 +299,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     style={{
                       width: '56px',
                       background: GREEN,
-                      color: '#fff',
+                      color: 'var(--surface-card)',
                       boxShadow: '0 1px 2px rgba(52,199,89,0.25)',
                     }}>
                     <span className="flex items-baseline leading-none">
@@ -401,7 +401,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150 whitespace-nowrap flex-shrink-0 cursor-pointer active:scale-[.96]"
                   style={{
                     background: selected ? 'var(--m-energy)' : 'transparent',
-                    color: selected ? '#ffffff' : '#64748b',
+                    color: selected ? 'var(--surface-card)' : '#64748b',
                     fontWeight: selected ? 700 : 500,
                     fontSize: '11.5px',
                     boxShadow: selected ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
@@ -414,7 +414,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                   <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
                     style={{
                       background: selected ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.05)',
-                      color: selected ? '#ffffff' : (isPast ? 'var(--m-energy)' : '#64748b'),
+                      color: selected ? 'var(--surface-card)' : (isPast ? 'var(--m-energy)' : '#64748b'),
                     }}>
                     {isCurrent || isPast ? monthTotal : 0}
                   </span>
@@ -470,7 +470,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                     style={{ color: GREEN }}>
                     {padNum}
                   </span>
-                  <span className="text-[14px] font-semibold truncate leading-none text-[#48484A] min-w-0 flex-1">
+                  <span className="text-[14px] font-semibold truncate leading-none text-[var(--ink-700)] min-w-0 flex-1">
                     {cleanLabel}
                   </span>
                 </div>
@@ -483,7 +483,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         style={{
                           width: '56px',
                           background: GREEN,
-                          color: '#fff',
+                          color: 'var(--surface-card)',
                           boxShadow: '0 1px 2px rgba(52,199,89,0.25)',
                         }}>
                         <span className="flex items-baseline leading-none">
@@ -492,7 +492,7 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         </span>
                       </span>
                       <div className="flex items-baseline leading-none flex-shrink-0">
-                        <span className="text-[12.5px] font-semibold tabular-nums text-[#48484A]">{doneCount}</span>
+                        <span className="text-[12.5px] font-semibold tabular-nums text-[var(--ink-700)]">{doneCount}</span>
                         <span className="text-[12.5px] font-medium tabular-nums text-ink-400 mx-[3px]">/</span>
                         <span className="text-[12.5px] font-medium tabular-nums text-ink-500">{monthlyTarget}</span>
                         <span className="text-[12.5px] font-medium tabular-nums text-ink-400 ml-[2px]">{h.unit || '天'}</span>

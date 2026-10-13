@@ -12,11 +12,11 @@ const BLUE_LIGHT = 'rgba(var(--m-cognition-rgb),0.06)';
 const BLUE_BORDER = 'rgba(var(--m-cognition-rgb),0.22)';
 const BLUE_SOFT = 'rgba(var(--m-cognition-rgb),0.08)';
 const SAVE_BG = 'var(--s-main)';
-const INK = '#1c1c1e';
+const INK = 'var(--text-1)';
 const INK_MUTE = '#64748b';
 const INK_LIGHT = '#94a3b8';
-const DANGER = '#FF3B30';
-const SUCCESS = '#34C759';
+const DANGER = 'var(--danger)';
+const SUCCESS = 'var(--success)';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
 const CARD_RADIUS = 14;
@@ -293,7 +293,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
             <div key={s.l} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
               padding: '3px 7px', borderRadius: '6px',
-              background: '#fff', border: `1px solid ${CARD_BORDER}`, minWidth: '38px',
+              background: 'var(--surface-card)', border: `1px solid ${CARD_BORDER}`, minWidth: '38px',
             }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: INK, lineHeight: 1.1 }}>{s.n}</div>
               <div style={{ fontSize: '8.5px', fontWeight: 600, color: INK_LIGHT, letterSpacing: '0.03em' }}>{s.l}</div>
@@ -323,7 +323,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
                 fontSize: '12px',
                 fontWeight: active ? 700 : 500,
                 color: active ? BLUE_DARK : INK_MUTE,
-                background: active ? '#fff' : 'transparent',
+                background: active ? 'var(--surface-card)' : 'transparent',
                 border: 'none',
                 borderRadius: '999px',
                 boxShadow: active ? '0 1px 4px rgba(15,23,42,0.1)' : 'none',
@@ -337,7 +337,7 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
                   fontSize: '10px', fontWeight: 700,
                   padding: '1px 6px', borderRadius: '999px',
                   background: active ? BLUE : BLUE_LIGHT,
-                  color: active ? '#fff' : BLUE_DARK,
+                  color: active ? 'var(--surface-card)' : BLUE_DARK,
                   minWidth: '16px', textAlign: 'center', lineHeight: 1.3,
                 }}>{badge}</span>
               )}
@@ -369,11 +369,11 @@ export default function BookForm({ initial, onSaved, onCancel, onDelete, initial
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={onCancel} style={{
             padding: '6px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
-            background: '#fff', color: INK_MUTE, border: `1px solid ${CARD_BORDER}`, cursor: 'pointer',
+            background: 'var(--surface-card)', color: INK_MUTE, border: `1px solid ${CARD_BORDER}`, cursor: 'pointer',
           }}>取消</button>
           <button onClick={submit} style={{
             padding: '6px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
-            background: SAVE_BG, color: '#fff', border: 'none', cursor: 'pointer',
+            background: SAVE_BG, color: 'var(--surface-card)', border: 'none', cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(var(--s-rgb),0.25)',
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>
@@ -444,7 +444,7 @@ function SectionCard({ title, children, action, CARD_BG, CARD_BORDER, CARD_RADIU
 function FieldRow({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-      <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1c1c1e', opacity: 0.55 }}>{label}</span>
+      <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-1)', opacity: 0.55 }}>{label}</span>
       {children}
     </div>
   );
@@ -452,7 +452,7 @@ function FieldRow({ label, children }) {
 
 // ===== Tab 0: 基础信息（紧凑版：单屏完整显示，无需滚动） =====
 function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, isEbook, SELECT_STYLE, INPUT_STYLE, BLUE, BLUE_DARK, BLUE_BORDER, BLUE_LIGHT, SUCCESS, INK, INK_MUTE, INK_LIGHT, CARD_BG, CARD_BORDER, CARD_RADIUS }) {
-  const inputStyle = { ...INPUT_STYLE, fontSize: '12px', background: '#fff', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '5px 8px', outline: 'none' };
+  const inputStyle = { ...INPUT_STYLE, fontSize: '12px', background: 'var(--surface-card)', border: `1px solid ${CARD_BORDER}`, borderRadius: '10px', padding: '5px 8px', outline: 'none' };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {/* Section 1: 书籍信息 */}
@@ -487,7 +487,7 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
           <FieldRow label="状态">
             <select style={{ ...SELECT_STYLE, ...inputStyle, paddingRight: '26px', fontWeight: 600,
               color: form.st === 'done' ? SUCCESS : form.st === 'reading' ? BLUE_DARK : INK_MUTE,
-              background: form.st === 'done' ? '#ecfdf5' : form.st === 'reading' ? BLUE_LIGHT : '#fff',
+              background: form.st === 'done' ? '#ecfdf5' : form.st === 'reading' ? BLUE_LIGHT : 'var(--surface-card)',
             }}
               value={form.st} onChange={e => setStatus(e.target.value)}>
               {STATUSES.map(s => <option key={s.v} value={s.v}>{s.lb}</option>)}
@@ -495,7 +495,7 @@ function BasicTab({ form, set, setStatus, setPct, searchCover, coverFetching, is
           </FieldRow>
           <FieldRow label={`进度 ${form.pct}%`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, height: '30px',
-              padding: '0 10px', background: '#fff', borderRadius: '10px', border: `1px solid ${CARD_BORDER}` }}>
+              padding: '0 10px', background: 'var(--surface-card)', borderRadius: '10px', border: `1px solid ${CARD_BORDER}` }}>
               <input type="range" min="0" max="100" step="1"
                 value={form.pct} onChange={e => setPct(e.target.value)}
                 style={{ flex: 1, accentColor: BLUE, height: '13px', minWidth: 0 }} />
@@ -575,7 +575,7 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
           style={{
             width: '28px', height: '28px', borderRadius: '10px',
             border: `1px solid ${CARD_BORDER}`,
-            background: '#fff', color: BLUE,
+            background: 'var(--surface-card)', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
           }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -594,14 +594,14 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
           {form.insights.map((ins) => (
             <div key={ins.id} style={{
               padding: '12px', borderRadius: CARD_RADIUS,
-              background: '#fff',
+              background: 'var(--surface-card)',
               border: `1px solid ${CARD_BORDER}`,
             }}>
               {/* 核心触动 行 */}
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <div style={{
                   width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
-                  background: BLUE, color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
+                  background: BLUE, color: 'var(--surface-card)', display: 'grid', placeItems: 'center', marginTop: '3px',
                 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 </div>
@@ -626,7 +626,7 @@ function InsightsTab({ form, addInsight, updateInsight, removeInsight, insightCo
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <div style={{
                   width: '20px', height: '20px', borderRadius: '5px', flexShrink: 0,
-                  background: '#FF9500', color: '#fff', display: 'grid', placeItems: 'center', marginTop: '3px',
+                  background: 'var(--warning)', color: 'var(--surface-card)', display: 'grid', placeItems: 'center', marginTop: '3px',
                 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
                 </div>
@@ -661,7 +661,7 @@ function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, 
           style={{
             width: '28px', height: '28px', borderRadius: '10px',
             border: `1px solid ${CARD_BORDER}`,
-            background: '#fff', color: BLUE,
+            background: 'var(--surface-card)', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
           }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -681,7 +681,7 @@ function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, 
             <div key={a.id} style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '10px 12px', borderRadius: CARD_RADIUS,
-              background: '#fff',
+              background: 'var(--surface-card)',
               border: `1px solid ${CARD_BORDER}`,
               opacity: a.done ? 0.65 : 1,
             }}>
@@ -691,12 +691,12 @@ function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, 
                 style={{
                   width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
                   border: `2px solid ${a.done ? BLUE : '#cbd5e1'}`,
-                  background: a.done ? BLUE : '#fff',
+                  background: a.done ? BLUE : 'var(--surface-card)',
                   display: 'grid', placeItems: 'center',
                   cursor: 'pointer', transition: 'all .15s',
                 }}>
                 {a.done && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
                 )}
@@ -740,7 +740,7 @@ function ChangesTab({ form, addChange, updateChange, removeChange, changeCount, 
           style={{
             width: '28px', height: '28px', borderRadius: '10px',
             border: `1px solid ${CARD_BORDER}`,
-            background: '#fff', color: BLUE,
+            background: 'var(--surface-card)', color: BLUE,
             cursor: 'pointer', display: 'grid', placeItems: 'center',
           }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -759,7 +759,7 @@ function ChangesTab({ form, addChange, updateChange, removeChange, changeCount, 
           {form.changes.map((c) => (
             <div key={c.id} style={{
               padding: '10px 12px', borderRadius: CARD_RADIUS,
-              background: '#fff',
+              background: 'var(--surface-card)',
               border: `1px solid ${CARD_BORDER}`,
               display: 'flex', alignItems: 'center', gap: '8px',
             }}>

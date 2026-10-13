@@ -191,8 +191,8 @@ export default function AIConfigModal({ open, onClose }) {
         </button>
         {testMsg && (
           <div className={`flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-[11.5px] truncate ${
-            testOk === true ? 'bg-[#34C75910] text-[#34C759]'
-              : testOk === false ? 'bg-[#FF3B300F] text-[#FF3B30]'
+            testOk === true ? 'bg-[#34C75910] text-[var(--success)]'
+              : testOk === false ? 'bg-[#FF3B300F] text-[var(--danger)]'
               : 'bg-ink-50 text-ink-400'
           }`}>
             {testOk === true ? <IconCheck size={12} />

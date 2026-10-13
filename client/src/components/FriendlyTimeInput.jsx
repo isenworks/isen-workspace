@@ -75,7 +75,7 @@ export default function FriendlyTimeInput({ value, onChange, placeholder, compac
     outline: 'none',
     fontSize: compact ? '12px' : '14px',
     fontWeight: '600',
-    color: '#1c1c1e',
+    color: 'var(--text-1)',
     background: 'transparent',
     textAlign: 'center',
     fontFamily: 'inherit',
@@ -87,17 +87,17 @@ export default function FriendlyTimeInput({ value, onChange, placeholder, compac
       display: 'flex',
       alignItems: 'stretch',
       height: compact ? '30px' : undefined,
-      border: '1px solid #d1d1d6',
+      border: '1px solid var(--ink-200)',
       borderRadius: compact ? '9px' : '9px',
-      background: '#ffffff',
+      background: 'var(--surface-card)',
       overflow: 'hidden',
       transition: 'all .15s',
       minWidth: compact ? '96px' : '128px'
     }}
       onMouseEnter={(e) => e.currentTarget.style.borderColor = '#b5b5bd'}
-      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#d1d1d6'}
+      onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--ink-200)'}
       onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--s-main)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(var(--s-rgb),0.15)'; }}
-      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) { e.currentTarget.style.borderColor = '#d1d1d6'; e.currentTarget.style.boxShadow = 'none'; } }}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) { e.currentTarget.style.borderColor = 'var(--ink-200)'; e.currentTarget.style.boxShadow = 'none'; } }}
     >
       <input
         style={CELL}
@@ -116,7 +116,7 @@ export default function FriendlyTimeInput({ value, onChange, placeholder, compac
         width: '6px',
         fontSize: '14px',
         fontWeight: '700',
-        color: hh ? '#1c1c1e' : '#c7c7cc',
+        color: hh ? 'var(--text-1)' : 'var(--ink-300)',
         userSelect: 'none'
       }}>:</div>
       <input
@@ -136,17 +136,17 @@ export default function FriendlyTimeInput({ value, onChange, placeholder, compac
         style={{
           width: compact ? '26px' : '36px',
           border: 'none',
-          background: '#f5f5f7',
+          background: 'var(--surface-fill)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#8e8e93',
+          color: 'var(--text-muted)',
           padding: 0,
           flexShrink: 0
         }}
         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--s-main)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = '#8e8e93'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"></circle>

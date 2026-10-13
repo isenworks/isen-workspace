@@ -536,7 +536,7 @@ export default function KnowledgeBasePage() {
                       ><IconPen size={12} /></button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmRemoveBook(b); }}
-                        className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                        className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-ink-300 hover:text-[var(--danger)] hover:bg-[#FF3B300F] transition-colors"
                         title="删除知识库"
                       ><IconTrash size={12} /></button>
                     </span>
@@ -709,7 +709,7 @@ export default function KnowledgeBasePage() {
                               ><IconPen size={11} /></button>
                               <button
                                 onClick={() => { removeKBGroup(activeKbId, group); reload(); }}
-                                className="w-[20px] h-[20px] rounded-md flex items-center justify-center text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F]"
+                                className="w-[20px] h-[20px] rounded-md flex items-center justify-center text-ink-300 hover:text-[var(--danger)] hover:bg-[#FF3B300F]"
                                 title="删除分组（文档移到未分组）"
                               ><IconTrash size={11} /></button>
                             </span>
@@ -749,7 +749,7 @@ export default function KnowledgeBasePage() {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); setConfirmRemoveDoc(doc); }}
-                              className="w-[20px] h-[20px] rounded-md flex items-center justify-center flex-shrink-0 text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="w-[20px] h-[20px] rounded-md flex items-center justify-center flex-shrink-0 text-ink-300 hover:text-[var(--danger)] hover:bg-[#FF3B300F] opacity-0 group-hover:opacity-100 transition-opacity"
                               title="删除文档"
                             ><IconX size={12} /></button>
                           </div>
@@ -782,7 +782,7 @@ export default function KnowledgeBasePage() {
             <div className="flex-1 min-w-0 flex flex-col min-h-0 p-5">
               {!selectedDoc ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--ink-300)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                     <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                   </svg>
@@ -837,7 +837,7 @@ export default function KnowledgeBasePage() {
                             <button
                               onClick={() => { setDocMenuOpen(false); setConfirmRemoveDoc(selectedDoc); }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] transition-colors text-left hover:bg-[#FF3B300F]"
-                              style={{ color: '#FF3B30' }}
+                              style={{ color: 'var(--danger)' }}
                             ><IconTrash size={13} className="flex-shrink-0" />删除文档</button>
                           </div>
                         </>
@@ -907,7 +907,7 @@ export default function KnowledgeBasePage() {
                         disabled={!dirty}
                         className="h-[26px] px-3 rounded-lg text-[12px] font-semibold transition-all focus:outline-none disabled:cursor-default"
                         style={dirty
-                          ? { background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
+                          ? { background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }
                           : { background: 'rgba(15,31,28,0.05)', color: '#9AA5A2' }}
                       >保存</button>
                     </div>

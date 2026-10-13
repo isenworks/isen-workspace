@@ -26,7 +26,7 @@ export function ProgressBar({ value, color, variant }) {
   const h = variant === 'dense' ? 'h-0.75' : 'h-1';
   return (
     <div className={`${h} rounded-full bg-ink-100 overflow-hidden`}>
-      <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%`, background: color || '#007AFF' }} />
+      <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%`, background: color || 'var(--s-main)' }} />
     </div>
   );
 }
@@ -166,7 +166,7 @@ export function InlineEdit({
         <div
           data-inline-edit-menu=""
           onMouseDown={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 'var(--z-popover)', width: menuWidth, backgroundColor: '#ffffff' }}
+          style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 'var(--z-popover)', width: menuWidth, backgroundColor: 'var(--surface-card)' }}
           className="rounded-xl shadow-2xl border border-ink-100 py-1 overflow-hidden">
           <button
             onClick={(e) => {

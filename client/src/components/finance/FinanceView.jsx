@@ -137,11 +137,11 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
       <div className="flex flex-col items-center gap-1.5 py-0">
         {/* 水位球：浅红细线框 + 白色轨道底（灰卡上清晰）+ 饱和水，球心红/白动态百分比 */}
         <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border-2"
-          style={{ background: '#fff', borderColor: moduleRgba('finance', 0.35) }} role="img" aria-label={`进度 ${pct}%`}>
+          style={{ background: 'var(--surface-card)', borderColor: moduleRgba('finance', 0.35) }} role="img" aria-label={`进度 ${pct}%`}>
           <div className="absolute left-0 right-0 bottom-0 transition-[height] duration-500 ease-out"
             style={{ height: `${pct}%`, background: FIN }} />
           <span className="absolute inset-0 grid place-items-center text-[13px] font-bold tabular-nums"
-            style={{ color: onWater ? '#fff' : FIN }}>{pct}%</span>
+            style={{ color: onWater ? 'var(--surface-card)' : FIN }}>{pct}%</span>
         </div>
         {/* ¥43,500 / ¥150,000 —— 完成值粗体、目标值弱化，整组居中 */}
         <div className="flex items-baseline justify-center gap-1.5 flex-wrap leading-none">

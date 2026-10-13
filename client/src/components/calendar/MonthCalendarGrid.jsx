@@ -16,14 +16,14 @@ function lunarBadge(iso) {
   if (fests.length > 0) {
     // 显示名：直接使用节日全称（国庆节/劳动节/建军节…）
     const text = fests[0];
-    return { text, full, color: '#FF3B30', weight: 600 };
+    return { text, full, color: 'var(--danger)', weight: 600 };
   }
   const jq = lunar.getJieQi();
   if (jq) return { text: jq, full, color: '#6D6D72', weight: 600 };
   if (lunar.getDay() === 1) {
     return { text: (lunar.getMonth() < 0 ? '闰' : '') + lunar.getMonthInChinese() + '月', full, color: '#6D6D72', weight: 600 };
   }
-  return { text: lunar.getDayInChinese(), full, color: '#8E8E93', weight: 500 };
+  return { text: lunar.getDayInChinese(), full, color: 'var(--text-muted)', weight: 500 };
 }
 
 /**
@@ -66,7 +66,7 @@ export default function MonthCalendarGrid({
   const inCurrentWeek = (iso) => iso >= weekStartISO && iso <= weekEndISO;
   const CURRENT_WEEK_BG_MONFRI = 'rgba(var(--s-rgb),0.03)'; // 当周整周浅色（与上月格 opacity-40 后的视觉深度一致）
   // 周六/周日列：需求 3 明确「周六日两列灰色→白色」
-  const WEEKEND_BG = '#ffffff';
+  const WEEKEND_BG = 'var(--surface-card)';
 
   const eventsByDate = useMemo(() => {
     const m = {};
@@ -121,7 +121,7 @@ export default function MonthCalendarGrid({
         style={{
           // 线框直接用模块色实色（跟随事项类型）；此前 rgba 缺 var() 包裹在 CSS 变量下非法被丢弃
           borderColor: mod.color,
-          background: done ? mod.color : '#ffffff',
+          background: done ? mod.color : 'var(--surface-card)',
           boxShadow: done
             ? (mod.color.startsWith('var(')
               ? `0 2px 5px rgba(var(${mod.color.slice(4, -1)}-rgb), 0.29)`
@@ -131,7 +131,7 @@ export default function MonthCalendarGrid({
       >
         {done && (
           <svg width="7" height="9" viewBox="0 0 8 10" fill="none">
-            <path d="M1 4.5L3.5 7L7 1.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M1 4.5L3.5 7L7 1.5" stroke="var(--surface-card)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         )}
       </div>
@@ -143,7 +143,7 @@ export default function MonthCalendarGrid({
       {/* 表头：周一起 */}
       <div className="grid grid-cols-7 px-4 pt-4 pb-2">
         {WEEK_LABELS_MON.map((w, i) => (
-          <div key={i} className="text-center text-[11px] font-bold uppercase tracking-wider text-[#8E8E93]">
+          <div key={i} className="text-center text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
             {w}
           </div>
         ))}
@@ -167,7 +167,7 @@ export default function MonthCalendarGrid({
 
           /* 背景：需求 3 周末格灰色→白
                平日白底 ← 周末白 ← 当周 Mon-Fri 浅蓝 ← 选中浅蓝（选中态最高优） */
-          let cellBg = '#ffffff';
+          let cellBg = 'var(--surface-card)';
           if (isWeekend) cellBg = WEEKEND_BG;
           if (weekInRange) cellBg = CURRENT_WEEK_BG_MONFRI;
           if (isSelected && !isToday) cellBg = 'rgba(var(--s-rgb),0.08)';
@@ -217,7 +217,7 @@ export default function MonthCalendarGrid({
                 <span
                   className="inline-flex items-center justify-center text-[14px] font-semibold tabular-nums leading-none px-[5px] py-[3px] rounded-md transition"
                   style={{
-                    color: isToday ? '#fff' : isSelected ? 'var(--s-deep)' : '#1C1C1E',
+                    color: isToday ? 'var(--surface-card)' : isSelected ? 'var(--s-deep)' : 'var(--text-1)',
                     background: isToday
                       ? 'var(--s-main)'
                       : isSelected
@@ -244,7 +244,7 @@ export default function MonthCalendarGrid({
                   {isToday && (
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                      style={{ color: '#fff', background: 'var(--s-main)' }}
+                      style={{ color: 'var(--surface-card)', background: 'var(--s-main)' }}
                     >
                       今日
                     </span>
@@ -279,7 +279,7 @@ export default function MonthCalendarGrid({
                       className="flex items-center gap-1.5 text-[12px] leading-tight px-1.5 py-0.5 rounded-md cursor-pointer"
                       style={{
                         background: bg,
-                        color: done ? '#8E8E93' : '#48484A',
+                        color: done ? 'var(--text-muted)' : 'var(--ink-700)',
                         fontWeight: 500,
                         textDecoration: done ? 'line-through' : 'none',
                       }}
@@ -320,11 +320,11 @@ export default function MonthCalendarGrid({
                       <span
                         key={j}
                         className="w-1 h-1 rounded-full"
-                        style={{ background: on ? '#34C759' : 'rgba(var(--s-rgb),0.12)' }}
+                        style={{ background: on ? 'var(--success)' : 'rgba(var(--s-rgb),0.12)' }}
                       />
                     ))}
                   </div>
-                  <span className="ml-auto text-[10px] font-medium tabular-nums" style={{ color: habitDone > 0 ? '#34C759' : 'rgba(var(--s-rgb),0.5)' }}>
+                  <span className="ml-auto text-[10px] font-medium tabular-nums" style={{ color: habitDone > 0 ? 'var(--success)' : 'rgba(var(--s-rgb),0.5)' }}>
                     {habitDone > 0 ? `${habitDone}/${habitTarget}` : ''}
                   </span>
                 </div>

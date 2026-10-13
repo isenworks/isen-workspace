@@ -6,13 +6,13 @@ import ConfirmAlert from '../ConfirmAlert.jsx';
 /* 工作 Objective 新增/编辑弹窗 —— 视觉对齐 AbilityForm/BookForm（iOS Red 主题 SectionCard） */
 const RED = '#FF3B30';
 const RED_DARK = '#E6352B';
-const INK = '#1c1c1e';
+const INK = 'var(--text-1)';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
 const CARD_RADIUS = 14;
 
 const INPUT_BASE = {
-  fontSize: '12px', background: '#fff', color: INK,
+  fontSize: '12px', background: 'var(--surface-card)', color: INK,
   border: `1px solid ${CARD_BORDER}`, borderRadius: '10px',
   padding: '5px 8px', outline: 'none', width: '100%',
   fontWeight: 500,
@@ -110,7 +110,7 @@ export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
                     style={{
                       padding: '5px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: 600,
                       border: `1px solid ${on ? x.c : CARD_BORDER}`,
-                      background: on ? `${x.c}15` : '#fff',
+                      background: on ? `${x.c}15` : 'var(--surface-card)',
                       color: on ? x.c : INK,
                       cursor: 'pointer', transition: 'all .15s',
                     }}>
@@ -140,7 +140,7 @@ export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
                     style={{
                       padding: '7px 9px', borderRadius: '10px', fontSize: '11px', fontWeight: 600,
                       border: `1px solid ${on ? RED : CARD_BORDER}`,
-                      background: on ? `${RED}12` : '#fff',
+                      background: on ? `${RED}12` : 'var(--surface-card)',
                       color: on ? RED_DARK : INK,
                       textAlign: 'left', cursor: 'pointer', transition: 'all .15s',
                     }}>{m.lb}</button>
@@ -175,7 +175,7 @@ export default function WorkGoalForm({ initial, onSaved, onCancel, onDelete }) {
           }}>取消</button>
           <button onClick={submit} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
-            background: RED, color: '#fff', border: 'none', cursor: 'pointer',
+            background: RED, color: 'var(--surface-card)', border: 'none', cursor: 'pointer',
             boxShadow: `0 2px 8px rgba(255,59,48,0.25)`,
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>

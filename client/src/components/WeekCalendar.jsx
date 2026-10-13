@@ -109,10 +109,10 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
     // 按规则决定圆点颜色（单个圆点）
     let dotColor = null;
     if (hasPriority || hasNormal) {
-      if (isPast) dotColor = '#c7c7cc';
-      else if (isToday) dotColor = '#ffffff';
-      else if (hasPriority) dotColor = '#FF3B30';
-      else if (hasNormal) dotColor = '#8e8e93';
+      if (isPast) dotColor = 'var(--ink-300)';
+      else if (isToday) dotColor = 'var(--surface-card)';
+      else if (hasPriority) dotColor = 'var(--danger)';
+      else if (hasNormal) dotColor = 'var(--text-muted)';
     }
     const dotsHtml = dotColor
       ? <div className="cal-dot" style={{ width: '4px', height: '4px', background: dotColor, borderRadius: '50%' }}></div>
@@ -140,11 +140,11 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
       <div className="flex items-center gap-4">
         <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
           <div className="flex items-center gap-0.5">
-            <button onClick={prevMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+            <button onClick={prevMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[var(--text-muted)] flex-shrink-0 transition">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
             </button>
-            <span className="text-[14px] font-semibold text-[#1c1c1e] min-w-[36px] text-center">{month}月</span>
-            <button onClick={nextMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+            <span className="text-[14px] font-semibold text-[var(--text-1)] min-w-[36px] text-center">{month}月</span>
+            <button onClick={nextMonth} className="w-7 h-7 rounded-xl hover:bg-black/5 flex items-center justify-center text-[var(--text-muted)] flex-shrink-0 transition">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
             </button>
           </div>

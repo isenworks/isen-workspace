@@ -4,15 +4,15 @@ import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* KR 新增/编辑弹窗 —— 复选框语义（勾/未勾二态）+ dueBy 字段，视觉对齐 AbilityForm/BookForm */
-const AB = '#FF9500';
+const AB = 'var(--warning)';
 const AB_DARK = '#E67E22';
-const INK = '#1c1c1e';
+const INK = 'var(--text-1)';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
 const CARD_RADIUS = 14;
 
 const INPUT_BASE = {
-  fontSize: '12px', background: '#fff', color: INK,
+  fontSize: '12px', background: 'var(--surface-card)', color: INK,
   border: `1px solid ${CARD_BORDER}`, borderRadius: '10px',
   padding: '5px 8px', outline: 'none', width: '100%',
   fontWeight: 500,
@@ -123,7 +123,7 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
                   flex: 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   padding: '7px 8px', borderRadius: '10px',
-                  background: active ? `${opt.color}15` : '#fff',
+                  background: active ? `${opt.color}15` : 'var(--surface-card)',
                   border: `1.5px solid ${active ? opt.color : CARD_BORDER}`,
                   cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
@@ -158,7 +158,7 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
         <div>{isEdit && (
           <button onClick={del} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
-            background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer',
+            background: 'rgba(255,59,48,0.08)', color: 'var(--danger)', border: 'none', cursor: 'pointer',
           }}>删除</button>
         )}</div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -168,7 +168,7 @@ export default function MilestoneForm({ initial, onSaved, onCancel, onDelete }) 
           }}>取消</button>
           <button onClick={submit} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
-            background: AB, color: '#fff', border: 'none', cursor: 'pointer',
+            background: AB, color: 'var(--surface-card)', border: 'none', cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(255,149,0,0.25)',
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>

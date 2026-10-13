@@ -805,7 +805,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                         <button title="调整图片" onClick={e => { e.stopPropagation(); editHeroImage(im.id); }} className="w-[22px] h-[22px] rounded-md grid place-items-center text-white/85 hover:text-white hover:bg-white/25 transition">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                         </button>
-                        <button title="删除" onClick={e => onHeroImgDel(e, im.id)} className={`w-[22px] h-[22px] rounded-md grid place-items-center transition ${isConfirmDel ? 'bg-[#FF3B30] text-white' : 'text-white/85 hover:text-white hover:bg-[#FF3B30]/80'}`}>
+                        <button title="删除" onClick={e => onHeroImgDel(e, im.id)} className={`w-[22px] h-[22px] rounded-md grid place-items-center transition ${isConfirmDel ? 'bg-[var(--danger)] text-white' : 'text-white/85 hover:text-white hover:bg-[#FF3B30]/80'}`}>
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                       </div>
@@ -814,14 +814,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     {isConfirmDel && (
                       <div
                         className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-30 popover-enter"
-                        style={{ background: '#fff', borderRadius: 10, padding: '8px 10px 9px', boxShadow: '0 6px 24px rgba(0,0,0,0.18)', width: 'max-content' }}
+                        style={{ background: 'var(--surface-card)', borderRadius: 10, padding: '8px 10px 9px', boxShadow: '0 6px 24px rgba(0,0,0,0.18)', width: 'max-content' }}
                         onMouseDown={e => e.stopPropagation()}
                         onClick={e => e.stopPropagation()}
                       >
                         <div className="text-[11px] font-semibold text-ink-600 whitespace-nowrap">删除这张背景图？</div>
                         <div className="flex gap-1.5 mt-2">
                           <button onClick={() => setConfirmDelId(null)} className="h-[22px] px-2.5 rounded-md text-[11px] font-semibold transition hover:brightness-95" style={{ background: 'rgba(120,120,128,0.12)', color: 'var(--ink-600, #3a3a3c)' }}>取消</button>
-                          <button onClick={confirmHeroImgDel} className="h-[22px] px-2.5 rounded-md text-[11px] font-semibold text-white transition hover:brightness-110" style={{ background: '#FF3B30' }}>删除</button>
+                          <button onClick={confirmHeroImgDel} className="h-[22px] px-2.5 rounded-md text-[11px] font-semibold text-white transition hover:brightness-110" style={{ background: 'var(--danger)' }}>删除</button>
                         </div>
                       </div>
                     )}
@@ -908,19 +908,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
                       style={{
                         background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
-                        borderColor: s.is_failed ? '#FF3B30' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
+                        borderColor: s.is_failed ? 'var(--danger)' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
                       }}
                     >
                       {s.is_done ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       ) : s.is_failed ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
                       ) : null}
                     </button>
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
                       <span className={`text-[12.5px] font-semibold truncate ${
                         s.is_done ? 'text-ink-300 line-through' :
-                        s.is_failed ? 'text-[#FF3B30] line-through' :
+                        s.is_failed ? 'text-[var(--danger)] line-through' :
                         'text-ink-800'
                       }`}>{s.title || '（无标题）'}</span>
                       <PTag p={s.priority} />
@@ -930,7 +930,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 ))}
                 {todayFestivals.map(f => (
                   <div key={f} className="flex items-center gap-2 px-2 py-1.5 rounded-[12px] transition-colors hover:bg-[rgba(120,120,128,0.06)]">
-                    <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="#FF3B30" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="var(--danger)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
                       <path d="M5 5v14a2 2 0 0 0 2 2h6"/>
                       <path d="M5 10h15"/>
@@ -941,7 +941,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       <path d="M19 16l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z"/>
                     </svg>
                     <span className="text-[12.5px] font-semibold text-ink-800 truncate">{f}</span>
-                    <span className="text-[10px] font-bold ml-auto flex-shrink-0" style={{ color: '#FF3B30' }}>今天 · 节日</span>
+                    <span className="text-[10px] font-bold ml-auto flex-shrink-0" style={{ color: 'var(--danger)' }}>今天 · 节日</span>
                   </div>
                 ))}
                 {todaySorted.length === 0 && todayFestivals.length === 0 && (
@@ -1000,7 +1000,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <div className="flex items-baseline justify-between mb-0.5">
                 <span className="text-[11px] text-ink-400">本周进度</span>
                 <span className="text-[12px] font-bold text-ink-800 tabular-nums">
-                  {weekKeyDone}{weekKeyFailed > 0 && <span className="text-[#FF3B30]">·{weekKeyFailed}</span>}/{weekKeys.length}
+                  {weekKeyDone}{weekKeyFailed > 0 && <span className="text-[var(--danger)]">·{weekKeyFailed}</span>}/{weekKeys.length}
                 </span>
               </div>
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
@@ -1022,19 +1022,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
                       style={{
                         background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
-                        borderColor: s.is_failed ? '#FF3B30' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
+                        borderColor: s.is_failed ? 'var(--danger)' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
                       }}
                     >
                       {s.is_done ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       ) : s.is_failed ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
                       ) : null}
                     </button>
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
                       <span className={`text-[12.5px] font-semibold truncate ${
                         s.is_done ? 'text-ink-300 line-through' :
-                        s.is_failed ? 'text-[#FF3B30] line-through' :
+                        s.is_failed ? 'text-[var(--danger)] line-through' :
                         'text-ink-800'
                       }`}>{s.title}</span>
                       <PTag p={s.priority} />
@@ -1161,7 +1161,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                             );
                           })}
                         </div>
-                        <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[20px] text-right" style={{ color: cnt >= 7 ? 'var(--m-energy)' : '#8e8e93' }}>{cnt}/7</span>
+                        <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[20px] text-right" style={{ color: cnt >= 7 ? 'var(--m-energy)' : 'var(--text-muted)' }}>{cnt}/7</span>
                       </div>
                     );
                   })}
@@ -1366,7 +1366,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             left: Math.min(wkContextMenu.x, window.innerWidth - 172),
             top: Math.min(wkContextMenu.y, window.innerHeight - 110),
             minWidth: 156,
-            background: '#ffffff',
+            background: 'var(--surface-card)',
             borderRadius: '12px',
             boxShadow: '0 8px 30px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)',
             border: '1px solid rgba(0,0,0,0.06)',
@@ -1378,7 +1378,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             type="button"
             onClick={() => { markFailedWeekKey(wkContextMenu.task); setWkContextMenu(null); }}
             className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
-            style={{ color: wkContextMenu.task.is_failed ? 'var(--s-main)' : '#1C1C1E' }}
+            style={{ color: wkContextMenu.task.is_failed ? 'var(--s-main)' : 'var(--text-1)' }}
           >
             <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               {wkContextMenu.task.is_failed
@@ -1391,7 +1391,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             type="button"
             onClick={() => { moveToInbox(wkContextMenu.task); setWkContextMenu(null); }}
             className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
-            style={{ color: '#1C1C1E' }}
+            style={{ color: 'var(--text-1)' }}
           >
             <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11l5-5V5a2 2 0 0 0-2-2Z" />
@@ -1404,7 +1404,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             type="button"
             onClick={() => { setWkConfirmDelete({ task: wkContextMenu.task }); setWkContextMenu(null); }}
             className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(255,59,48,0.08)] flex items-center gap-2"
-            style={{ color: '#FF3B30' }}
+            style={{ color: 'var(--danger)' }}
           >
             <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -1430,7 +1430,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </button>
             <button
               onClick={() => { deleteWeekKey(wkConfirmDelete.task); setWkConfirmDelete(null); }}
-              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#FF3B30] hover:brightness-105 active:scale-[0.98] transition-all"
+              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[var(--danger)] hover:brightness-105 active:scale-[0.98] transition-all"
             >
               确认删除
             </button>

@@ -218,11 +218,11 @@ export const Sparkline = ({ data, labels, color = '#34C759', width = 260, height
           let strokeW = 0;
           let fillOp = 0;
           if (isHover) {
-            r = 3.5; fill = color; stroke = '#fff'; strokeW = 1.5; fillOp = 1;
+            r = 3.5; fill = color; stroke = 'var(--surface-card)'; strokeW = 1.5; fillOp = 1;
           } else if (isCurrent) {
-            r = 5.5; fill = color; stroke = '#fff'; strokeW = 2.5; fillOp = 1;
+            r = 5.5; fill = color; stroke = 'var(--surface-card)'; strokeW = 2.5; fillOp = 1;
           } else if (isFuture) {
-            r = 1.9; fill = '#fff'; stroke = color; strokeW = 1.4; fillOp = 0.75;
+            r = 1.9; fill = 'var(--surface-card)'; stroke = color; strokeW = 1.4; fillOp = 0.75;
           } else {
             r = 1.5; fill = 'transparent'; stroke = color; strokeW = 0; fillOp = 0;
           }
@@ -237,7 +237,7 @@ export const Sparkline = ({ data, labels, color = '#34C759', width = 260, height
             <rect x={bubble.x} y={bubble.y} width={bubble.w} height={bubble.h} rx="6"
               style={{ fill: color }} />
             <text x={bubble.x + bubble.w / 2} y={bubble.y + 11.5} textAnchor="middle"
-              fontSize="10" fontWeight="700" fill="#fff"
+              fontSize="10" fontWeight="700" fill="var(--surface-card)"
               style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
               {bubble.txt}
             </text>
@@ -264,7 +264,7 @@ export const Sparkline = ({ data, labels, color = '#34C759', width = 260, height
           const below = p.y + 14 < labelY - 8;
           return (
             <text key={'peak'} x={p.x} y={below ? p.y + 12 : p.y - 5} textAnchor="middle"
-              fontSize="9.5" fontWeight="600" fill="#8E8E93" opacity="0.9"
+              fontSize="9.5" fontWeight="600" fill="var(--text-muted)" opacity="0.9"
               style={{ fontFamily: 'ui-sans-serif, system-ui', fontVariantNumeric: 'tabular-nums' }}>
               {p.v}
             </text>
@@ -283,7 +283,7 @@ export const Sparkline = ({ data, labels, color = '#34C759', width = 260, height
             const labTxt = labRaw.replace(/月$/, '');
             // ★ ① 统一字重、统一颜色（不再分过去/当前/未来三层样式）
             const weight = '600';
-            const fill = '#8E8E93';
+            const fill = 'var(--text-muted)';
             return (
               <g key={'l'+i}>
                 <text x={p.x} y={labelY} textAnchor="middle"
@@ -418,7 +418,7 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-ink-100/60 bg-white/60 cursor-pointer select-none"
         onClick={() => toggle(c.key)} role="button" aria-expanded={!collapsed[c.key]}>
         {/* 图标：深色填充底 + 白色线形 */}
-        <span className="rounded-md grid place-items-center flex-shrink-0" style={{ width: 24, height: 24, color: '#fff', background: col }}>
+        <span className="rounded-md grid place-items-center flex-shrink-0" style={{ width: 24, height: 24, color: 'var(--surface-card)', background: col }}>
           <CategoryIcon catKey={c.key} className="w-[15px] h-[15px]" />
         </span>
         <span className="text-[14px] font-bold text-[#000000] leading-none flex-shrink-0">{c.label}</span>
@@ -430,7 +430,7 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
         </div>
         <span className="text-[13px] font-bold tabular-nums leading-none flex-shrink-0 text-right ml-auto" style={{ color: col, width: 38 }}>{Math.round(pctVal)}%</span>
         <span className="text-[10.5px] font-semibold tabular-nums px-1.5 py-[3px] rounded-full leading-none flex-shrink-0" style={chip.style}>{chip.txt}</span>
-        <svg className={`w-3.5 h-3.5 text-[#C7C7CC] transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
+        <svg className={`w-3.5 h-3.5 text-[var(--ink-300)] transition-transform duration-200 flex-shrink-0 ${collapsed[c.key] ? '' : 'rotate-180'}`}
           fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -444,7 +444,7 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
       <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: 165, padding: '3px 12px 8px 16px' }}>
         {children}
       </div>
-      <div className="absolute left-0 right-0 bottom-0 pointer-events-none" style={{ height: 26, background: 'linear-gradient(180deg,transparent,#fff)' }} />
+      <div className="absolute left-0 right-0 bottom-0 pointer-events-none" style={{ height: 26, background: 'linear-gradient(180deg,transparent,var(--surface-card))' }} />
     </div>
   );
 
@@ -452,7 +452,7 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
      名称12.5px/val 11px/pct 11.5px;迷你条放大 6px、列宽 44px;时间锚竖线 白+柔光 3×14 */
   const SubRow = ({ name, pct: p, val, color, done, tail }) => (
     <div className="grid items-center gap-1.5 py-1.5 border-t border-ink-100/40" style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 56px 42px', minHeight: 28 }}>
-      <span className={`text-[12.5px] font-semibold leading-none truncate ${done === false ? 'text-[#8E8E93]' : 'text-[#48484A]'}`}>{name}</span>
+      <span className={`text-[12.5px] font-semibold leading-none truncate ${done === false ? 'text-[var(--text-muted)]' : 'text-[var(--ink-700)]'}`}>{name}</span>
       <div className="relative h-2 w-full">
         {done === false ? null : (<>
           <span className="absolute left-0 right-0 top-[1px] h-[6px] rounded-full bg-ink-100/80" />
@@ -460,9 +460,9 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
           <span className="absolute -top-[3px] w-[3px] h-[14px] rounded-sm bg-white" style={{ left: `${anchor}%`, boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />
         </>)}
       </div>
-      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none whitespace-nowrap ${done === false ? 'text-[#8E8E93]' : 'text-[#6C6C70]'}`}>{val}</span>
+      <span className={`text-[11px] font-semibold tabular-nums text-right leading-none whitespace-nowrap ${done === false ? 'text-[var(--text-muted)]' : 'text-[var(--text-3)]'}`}>{val}</span>
       {tail ?? (
-        <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: done === false ? '#C7C7CC' : color }}>
+        <span className="text-[11.5px] font-bold tabular-nums text-right leading-none whitespace-nowrap" style={{ color: done === false ? 'var(--ink-300)' : color }}>
           {done === false ? '–' : `${Math.round(done === true ? 100 : p)}%`}
         </span>
       )}
@@ -474,7 +474,7 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
     const pctW = Math.max(12, (count / (total || 1)) * 60);
     return (
       <div className="flex items-center gap-2 py-1.5 border-t border-ink-100/40" style={{ minHeight: 28 }}>
-        <span className="text-[12.5px] font-semibold text-[#48484A] leading-none w-[48px] flex-shrink-0">{label}</span>
+        <span className="text-[12.5px] font-semibold text-[var(--ink-700)] leading-none w-[48px] flex-shrink-0">{label}</span>
         <div className="h-[14px] rounded-full flex items-center flex-shrink-0"
           style={{ width: `${pctW}%`, background: 'var(--m-cognition)' }}>
           <span className="text-[10px] font-semibold tabular-nums ml-1.5 leading-none text-white">{count}{unit}</span>
@@ -491,8 +491,8 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
       <>
         <div className="flex items-center gap-1.5 pt-1.5 pb-1">
           <span className="w-[3px] h-[12px] rounded-sm flex-shrink-0" style={{ background: color }} />
-          <span className="text-[11px] font-bold text-[#3C3C43] leading-none">{title}</span>
-          <span className="text-[10.5px] text-[#8E8E93] leading-none truncate ml-0.5">{obj?.title}</span>
+          <span className="text-[11px] font-bold text-[var(--text-2)] leading-none">{title}</span>
+          <span className="text-[10.5px] text-[var(--text-muted)] leading-none truncate ml-0.5">{obj?.title}</span>
         </div>
         {krs.map(k => {
           const due = k.dueBy ? (k.dueBy).slice(5).replace('-', '.') : '';
@@ -558,7 +558,7 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
                     <FunnelRow key={lb} label={lb} count={counts[i]} idx={i} conv={rates[i] || '—'} total={funnel.total}
                       unit={i === 0 ? (COG_KRS[0]?.u || '本') : ''} />
                   ))}
-                  <div className="text-[10.5px] text-[#8E8E93] leading-none py-1 truncate">
+                  <div className="text-[10.5px] text-[var(--text-muted)] leading-none py-1 truncate">
                     已读 {funnel.done}/{funnel.total} · 待读 {dynBooks.filter(b => b.st === 'pending').length}
                   </div>
                 </>);
@@ -595,7 +595,7 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
             <CardHead c={CATEGORIES[4]} pctVal={perCat[4]} />
             <CardBody show={!collapsed.finance}>
               {finGoals.length === 0 ? (
-                <div className="text-[12.5px] text-[#8E8E93] py-4 text-center">还没有攒钱目标，去财务页创建</div>
+                <div className="text-[12.5px] text-[var(--text-muted)] py-4 text-center">还没有攒钱目标，去财务页创建</div>
               ) : finGoals.map(g => {
                 const target = Number(g.target_amount) || 0;
                 const current = Number(g.current_amount) || 0;
@@ -613,8 +613,8 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
                 );
               })}
               {/* 资产负债脚注：与知力卡「已读 X/Y · 待读 Z」同位，给资产/负债各一个锚点值 */}
-              <div className="text-[10.5px] text-[#8E8E93] leading-none py-1 truncate">
-                资产 <b style={{ color: '#48484A' }}>¥{finShort(finAssetTotal)}</b> · 负债 <b style={{ color: '#48484A' }}>¥{finShort(finLiabTotal)}</b>
+              <div className="text-[10.5px] text-[var(--text-muted)] leading-none py-1 truncate">
+                资产 <b style={{ color: 'var(--ink-700)' }}>¥{finShort(finAssetTotal)}</b> · 负债 <b style={{ color: 'var(--ink-700)' }}>¥{finShort(finLiabTotal)}</b>
               </div>
             </CardBody>
           </div>
@@ -640,9 +640,9 @@ export function OverviewView({ onNav, stats, realHabits, books, abilities, workG
         </div>
 
         {/* 图例:竖线 白+柔光 4×14 跟卡头一致;色块 h-2(8px) 跟卡头条一致 */}
-        <div className="flex items-center gap-3 mt-3 text-[10.5px] text-[#8E8E93] flex-wrap pl-0.5">
+        <div className="flex items-center gap-3 mt-3 text-[10.5px] text-[var(--text-muted)] flex-wrap pl-0.5">
           <span className="inline-flex items-center gap-1"><span className="w-[4px] h-[14px] rounded-sm bg-white inline-block" style={{ boxShadow: '0 0 3px rgba(0,0,0,0.25)' }} />时间锚 {anchor}%</span>
-          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-2 rounded-full bg-[#34C759] inline-block" />实际</span>
+          <span className="inline-flex items-center gap-1"><span className="w-3.5 h-2 rounded-full bg-[var(--success)] inline-block" />实际</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(52,199,89,0.20)', color: '#248A3D' }}><span className="font-semibold">↑</span>超前</span>
             <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full leading-none" style={{ background: 'rgba(0,122,255,0.15)', color: '#0040DD' }}><span className="font-semibold">±</span>贴近</span>

@@ -475,12 +475,12 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 // 右边界钳制：按钮在右上角时面板 230px+边距 会溢出视口被裁剪，改为右对齐收缩
                 left: Math.max(8, Math.min(linkMenu.x, window.innerWidth - 246)), zIndex: 'var(--z-popover)',
                 minWidth: '230px', padding: '6px', borderRadius: '12px',
-                background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)',
                 boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
               }}>
                 {/* 现有链接条目列表 · hover 高亮 · 右侧 edit/delete */}
                 {links.length === 0 && (
-                  <div style={{ padding: '6px 10px', fontSize: '11px', color: '#8e8e93', fontWeight: 600 }}>
+                  <div style={{ padding: '6px 10px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
                     暂无文档链接，下面添加一条
                   </div>
                 )}
@@ -492,7 +492,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                   onMouseEnter={(e) => { e.currentTarget.style.background = `${moduleRgba('life', 0.08)}`; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                     <span style={{
-                      flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                      flex: 1, minWidth: 0, fontSize: '12px', fontWeight: 600, color: 'var(--text-1)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       cursor: 'pointer',
                     }}
@@ -504,11 +504,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     <button title="编辑" onClick={() => { setLinkMenu({ ...linkMenu, editingId: l.id }); setLinkForm({ title: l.title, url: l.url }); }}
                       style={{
                         width: '22px', height: '22px', borderRadius: '6px', border: 'none',
-                        background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                        background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = `${moduleRgba('life', 0.14)}`; e.currentTarget.style.color = 'var(--m-life)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                       </svg>
@@ -517,11 +517,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     <button title="删除" onClick={() => { closeAllMenus(); setConfirmLinkDel(l.id); }}
                       style={{
                         width: '22px', height: '22px', borderRadius: '6px', border: 'none',
-                        background: 'transparent', color: '#8e8e93', cursor: 'pointer',
+                        background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.14)'; e.currentTarget.style.color = '#FF3B30'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}>
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,59,48,0.14)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
                         <path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
@@ -543,14 +543,14 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                       onChange={(e) => setLinkForm(f => ({ ...f, title: e.target.value }))}
                       style={{
                         fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
-                        border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                        border: '1px solid rgba(15,23,42,0.10)', background: 'var(--surface-card)', outline: 'none',
                         fontWeight: 500,
                       }} />
                     <input placeholder="链接地址（支持 https://）" value={linkForm.url}
                       onChange={(e) => setLinkForm(f => ({ ...f, url: e.target.value }))}
                       style={{
                         fontSize: '12px', padding: '5px 8px', borderRadius: '8px',
-                        border: '1px solid rgba(15,23,42,0.10)', background: '#fff', outline: 'none',
+                        border: '1px solid rgba(15,23,42,0.10)', background: 'var(--surface-card)', outline: 'none',
                         fontWeight: 500,
                       }} />
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
@@ -558,13 +558,13 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                         style={{
                           padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
                           border: 'none', cursor: 'pointer',
-                          background: 'rgba(120,120,128,0.12)', color: '#1c1c1e',
+                          background: 'rgba(120,120,128,0.12)', color: 'var(--text-1)',
                         }}>取消</button>
                       <button onClick={() => linkMenu.editingId ? updateLink(linkMenu.editingId) : addLink()}
                         style={{
                           padding: '4px 10px', borderRadius: '7px', fontSize: '11px', fontWeight: 600,
                           border: 'none', cursor: 'pointer',
-                          background: 'var(--m-life)', color: '#fff',
+                          background: 'var(--m-life)', color: 'var(--surface-card)',
                           boxShadow: `0 1px 4px ${moduleRgba('life', 0.28)}`,
                         }}>{linkMenu.editingId ? '保存' : '添加'}</button>
                     </div>
@@ -596,10 +596,10 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 position: 'fixed', top: linkListPopup.y,
                 left: Math.max(8, Math.min(linkListPopup.x, window.innerWidth - 236)), zIndex: 'var(--z-popover)',
                 minWidth: '220px', padding: '6px', borderRadius: '12px',
-                background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+                background: 'var(--surface-card)', border: '1px solid rgba(15,23,42,0.08)',
                 boxShadow: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
               }}>
-                <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#8e8e93', letterSpacing: '0.04em', padding: '4px 8px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em', padding: '4px 8px' }}>
                   选择要打开的文档
                 </div>
                 {links.map(l => (
@@ -608,11 +608,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                       display: 'block', width: '100%', textAlign: 'left',
                       padding: '7px 10px', borderRadius: '8px', border: 'none',
                       background: 'transparent', cursor: 'pointer',
-                      fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+                      fontSize: '12px', fontWeight: 600, color: 'var(--text-1)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = `${moduleRgba('life', 0.08)}`; e.currentTarget.style.color = 'var(--m-life)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1c1c1e'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-1)'; }}
                     title={l.url}>
                     {l.title}
                   </button>
@@ -653,10 +653,10 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                   onKeyDown={(e) => { if (e.key === 'Enter') createCategory(); if (e.key === 'Escape') setShowNewCat(false); }}
                   placeholder="模块名，如「健康」"
                   className="flex-1 min-w-0 text-[12px] px-2 py-1 rounded-md border outline-none"
-                  style={{ borderColor: `${moduleRgba('life', 0.35)}`, background: '#fff' }} />
+                  style={{ borderColor: `${moduleRgba('life', 0.35)}`, background: 'var(--surface-card)' }} />
                 <button onClick={createCategory} title="确认新建"
                   className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md flex-shrink-0 cursor-pointer"
-                  style={{ background: 'var(--m-life)', color: '#fff' }}>
+                  style={{ background: 'var(--m-life)', color: 'var(--surface-card)' }}>
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                 </button>
               </div>
@@ -733,18 +733,18 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-[#1c1c1e] truncate">{b.name}</span>
+                            <span className="text-sm font-semibold text-[var(--text-1)] truncate">{b.name}</span>
                             <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none"
                               style={b.isLunar
                                 ? { background: moduleRgba('life', 0.12), color: 'var(--m-life)', fontWeight: 600 }
-                                : { background: 'rgba(255,255,255,0.75)', color: '#8e8e93' }}>
+                                : { background: 'rgba(255,255,255,0.75)', color: 'var(--text-muted)' }}>
                               {b.lunarText || (b.isLunar ? '农历' : '公历')}
                             </span>
                           </div>
                           <div className="text-[11px] text-ink-500 tabular-nums mt-0.5">下次生日 {b.nextYear}年{b.mo}月{b.day}日</div>
                         </div>
                         <span className="flex-shrink-0 text-[11px] font-bold tabular-nums"
-                          style={{ color: b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
+                          style={{ color: b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? 'var(--danger)' : b.daysLeft <= 30 ? 'var(--warning)' : 'var(--m-life)' }}>
                           {b.passed ? `已过 ${b.daysPassed}天` : `还有 ${b.daysLeft} 天`}
                         </span>
                       </div>
@@ -811,15 +811,15 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                           </div>
                           <div className={`flex-1 min-w-0 relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)] ${isLast ? '' : 'mb-4'}`}>
                             <LifeCatIcon catKey="birthday" lb="生日" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--m-life)' }} />
-                            <span className="text-sm font-normal text-[#1c1c1e] truncate">{b.name}生日</span>
+                            <span className="text-sm font-normal text-[var(--text-1)] truncate">{b.name}生日</span>
                             <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none"
                               style={b.isLunar
                                 ? { background: moduleRgba('life', 0.12), color: 'var(--m-life)', fontWeight: 600 }
-                                : { background: 'rgba(255,255,255,0.75)', color: '#8e8e93' }}>
+                                : { background: 'rgba(255,255,255,0.75)', color: 'var(--text-muted)' }}>
                               {b.lunarText || (b.isLunar ? '农历' : '公历')}
                             </span>
                             <span className="ml-auto flex-shrink-0 text-[11px] font-bold tabular-nums"
-                              style={{ color: b.isToday ? '#FF3B30' : b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? '#FF3B30' : b.daysLeft <= 30 ? '#FF9500' : 'var(--m-life)' }}>
+                              style={{ color: b.isToday ? 'var(--danger)' : b.passed ? 'var(--ink-400, #999)' : b.daysLeft <= 7 ? 'var(--danger)' : b.daysLeft <= 30 ? 'var(--warning)' : 'var(--m-life)' }}>
                               {b.isToday ? '今天' : b.passed ? `已过 ${b.daysPassed}天` : `还有 ${b.daysLeft} 天`}
                             </span>
                           </div>
@@ -849,7 +849,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                         onClick={() => onStartHighlights?.()}
                         disabled={totalEntries === 0}
                         className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ background: 'linear-gradient(135deg, var(--m-life) 0%, #FF2D55 100%)', color: '#fff', boxShadow: `0 1px 3px ${moduleRgba('life', 0.25)}` }}>
+                        style={{ background: 'linear-gradient(135deg, var(--m-life) 0%, #FF2D55 100%)', color: 'var(--surface-card)', boxShadow: `0 1px 3px ${moduleRgba('life', 0.25)}` }}>
                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" strokeLinecap="round"/>
                         </svg>
@@ -887,13 +887,13 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     <div className="relative h-7 flex items-center gap-2.5 px-2.5 rounded-lg bg-[rgba(120,120,128,0.08)] transition hover:bg-[rgba(120,120,128,0.12)]">
                       {hl && (
                         <div className="absolute -top-1 right-0 w-5 h-5 rounded-full grid place-items-center"
-                          style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: '#fff', boxShadow: `0 1px 3px ${moduleRgba('life', 0.35)}` }}
+                          style={{ background: 'linear-gradient(135deg,var(--m-life),#FF2D55)', color: 'var(--surface-card)', boxShadow: `0 1px 3px ${moduleRgba('life', 0.35)}` }}
                           title="年度精选">
                           <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         </div>
                       )}
                       {/* 标题：semibold 加粗，与下方灰色备注形成「字重 + 明度」双轴层级 */}
-                      <span className="text-sm font-semibold text-[#1c1c1e] truncate">{r.e.t}</span>
+                      <span className="text-sm font-semibold text-[var(--text-1)] truncate">{r.e.t}</span>
                       {/* 类目标签：紧跟标题（内容左聚，不钉死最右）；保持常规字重不抢层级 */}
                       <span className="flex-shrink-0 px-1.5 py-0.5 rounded-md text-[11px] leading-none font-normal"
                         style={{ background: 'rgba(255,255,255,0.75)', color: lifeRgba(r.cat.color, 0.85) }}>

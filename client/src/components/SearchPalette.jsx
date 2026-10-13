@@ -170,7 +170,7 @@ export default function SearchPalette({ open, onClose, onPick }) {
         onMouseEnter={() => setSel(idx)}
         onClick={() => pick(type, it)}
       >
-        <span className="sp-row-ic" style={{ color: on ? 'var(--s-main)' : '#8e8e93' }}>
+        <span className="sp-row-ic" style={{ color: on ? 'var(--s-main)' : 'var(--text-muted)' }}>
           {TYPE_ICONS[type]}
         </span>
         <span className="sp-row-title">

@@ -12,12 +12,12 @@ function FullScreenSpinner() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
         <div style={{
           width: '32px', height: '32px',
-          border: '3px solid #e5e5ea',
+          border: '3px solid var(--ink-100)',
           borderTopColor: 'var(--s-main)',
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite'
         }}></div>
-        <div className="text-sm" style={{ color: '#8e8e93' }}>加载中...</div>
+        <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中...</div>
       </div>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

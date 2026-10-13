@@ -4,16 +4,16 @@ import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* 能力新增/编辑弹窗 —— 视觉规格对齐 BookForm（SectionCard 分组 + 圆角输入 + 橙色主题） */
-const AB = '#FF9500';          // 主题橙
+const AB = 'var(--warning)';          // 主题橙
 const AB_DARK = '#E67E22';     // 深橙（文字）
-const INK = '#1c1c1e';
+const INK = 'var(--text-1)';
 const INK_MUTE = '#64748b';
 const CARD_BG = 'rgba(15,23,42,0.03)';
 const CARD_BORDER = 'rgba(15,23,42,0.08)';
 const CARD_RADIUS = 14;
 
 const INPUT_BASE = {
-  fontSize: '12px', background: '#fff', color: INK,
+  fontSize: '12px', background: 'var(--surface-card)', color: INK,
   border: `1px solid ${CARD_BORDER}`, borderRadius: '10px',
   padding: '5px 8px', outline: 'none', width: '100%',
   fontWeight: 500,
@@ -130,7 +130,7 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
         <div>{isEdit && (
           <button onClick={del} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
-            background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer',
+            background: 'rgba(255,59,48,0.08)', color: 'var(--danger)', border: 'none', cursor: 'pointer',
           }}>删除</button>
         )}</div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -140,7 +140,7 @@ export default function AbilityForm({ initial, onSaved, onCancel, onDelete }) {
           }}>取消</button>
           <button onClick={submit} style={{
             padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
-            background: AB, color: '#fff', border: 'none', cursor: 'pointer',
+            background: AB, color: 'var(--surface-card)', border: 'none', cursor: 'pointer',
             boxShadow: `0 2px 8px rgba(255,149,0,0.25)`,
           }}>{isEdit ? '保存' : '添加'}</button>
         </div>

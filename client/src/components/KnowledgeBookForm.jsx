@@ -69,7 +69,7 @@ export default function KnowledgeBookForm({ open, onClose, book = null, onSave }
     >
       {/* 名称 */}
       <div className="mb-3">
-        <label className={labelCls}>名称 <span className="text-[#FF3B30]">*</span></label>
+        <label className={labelCls}>名称 <span className="text-[var(--danger)]">*</span></label>
         <div className="relative">
           <input
             type="text"

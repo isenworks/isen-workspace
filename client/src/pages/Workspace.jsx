@@ -41,7 +41,7 @@ const SearchPalette = lazy(() => import('../components/SearchPalette.jsx'));
 
 // 懒加载分块拉取时的占位
 const ChunkFallback = () => (
-  <div className="flex items-center justify-center py-12 text-sm" style={{ color: '#8e8e93' }}>加载中…</div>
+  <div className="flex items-center justify-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>加载中…</div>
 );
 
 export default function Workspace({ user: propUser }) {
@@ -365,7 +365,7 @@ export default function Workspace({ user: propUser }) {
       title: '归档该习惯？',
       msg: `「${name}」将移至"归档"，可以从归档恢复。`,
       okText: '归档',
-      okColor: '#FF9500',
+      okColor: 'var(--warning)',
       onOk: async () => {
         try {
           await API.habits.archive(id);
@@ -382,7 +382,7 @@ export default function Workspace({ user: propUser }) {
       title: '删除确认',
       msg: `「${title}」删除后移入回收站，可恢复，确定删除吗？`,
       okText: '确认删除',
-      okColor: '#FF3B30',
+      okColor: 'var(--danger)',
       onOk: async () => {
         try {
           await API.schedules.remove(id);
@@ -461,7 +461,7 @@ export default function Workspace({ user: propUser }) {
           title: '删除确认',
           msg: '删除后移入回收站，可恢复，确定删除该日程吗？',
           okText: '确认删除',
-          okColor: '#FF3B30',
+          okColor: 'var(--danger)',
           onOk: async () => {
             try {
               await API.schedules.remove(id);
@@ -477,7 +477,7 @@ export default function Workspace({ user: propUser }) {
           title: '归档该习惯？',
           msg: '习惯将移至"归档"，可以从归档恢复。',
           okText: '归档',
-          okColor: '#FF9500',
+          okColor: 'var(--warning)',
           onOk: async () => {
             try {
               await API.habits.archive(id);
@@ -497,7 +497,7 @@ export default function Workspace({ user: propUser }) {
       title: '恢复该习惯？',
       msg: '将从归档中移出，回到习惯列表。',
       okText: '恢复',
-      okColor: '#34C759',
+      okColor: 'var(--success)',
       onOk: async () => {
         try {
           await API.habits.restore(id);
@@ -516,7 +516,7 @@ export default function Workspace({ user: propUser }) {
       title: '删除确认',
       msg: `「${name}」及其打卡记录将移入回收站，可恢复。`,
       okText: '确认删除',
-      okColor: '#FF3B30',
+      okColor: 'var(--danger)',
       onOk: async () => {
         try {
           await API.habits.remove(id);
@@ -570,7 +570,7 @@ export default function Workspace({ user: propUser }) {
             title: '退出登录？',
             msg: '退出后需要重新输入账号密码才能登录。',
             okText: '确认退出',
-            okColor: '#FF3B30',
+            okColor: 'var(--danger)',
             onOk: async () => {
               try {
                 await logout();
@@ -860,7 +860,7 @@ export default function Workspace({ user: propUser }) {
             left: ctxMenu.x,
             top: ctxMenu.y,
             zIndex: 'var(--z-popover)',
-            background: '#fff',
+            background: 'var(--surface-card)',
             borderRadius: '10px',
             padding: '6px',
             minWidth: '140px',
@@ -873,7 +873,7 @@ export default function Workspace({ user: propUser }) {
             style={{
               padding: '8px 12px',
               fontSize: '13px',
-              color: '#1c1c1e',
+              color: 'var(--text-1)',
               cursor: 'pointer',
               borderRadius: '6px'
             }}
@@ -886,7 +886,7 @@ export default function Workspace({ user: propUser }) {
               style={{
                 padding: '8px 12px',
                 fontSize: '13px',
-                color: ctxMenu.task.is_failed ? 'var(--s-main)' : '#1c1c1e',
+                color: ctxMenu.task.is_failed ? 'var(--s-main)' : 'var(--text-1)',
                 cursor: 'pointer',
                 borderRadius: '6px'
               }}
@@ -900,7 +900,7 @@ export default function Workspace({ user: propUser }) {
               style={{
                 padding: '8px 12px',
                 fontSize: '13px',
-                color: '#1c1c1e',
+                color: 'var(--text-1)',
                 cursor: 'pointer',
                 borderRadius: '6px'
               }}
@@ -909,12 +909,12 @@ export default function Workspace({ user: propUser }) {
               onClick={() => handleCtxAction('moveToInbox')}
             >📝 移入小记</div>
           )}
-          <div style={{ height: '1px', background: '#e5e5ea', margin: '4px 2px' }}></div>
+          <div style={{ height: '1px', background: 'var(--ink-100)', margin: '4px 2px' }}></div>
           <div
             style={{
               padding: '8px 12px',
               fontSize: '13px',
-              color: '#FF3B30',
+              color: 'var(--danger)',
               cursor: 'pointer',
               borderRadius: '6px'
             }}
@@ -935,7 +935,7 @@ export default function Workspace({ user: propUser }) {
         }} onClick={confirm.onCancel}>
           <div
             style={{
-              background: '#fff', borderRadius: '14px', width: '340px', maxWidth: '90vw',
+              background: 'var(--surface-card)', borderRadius: '14px', width: '340px', maxWidth: '90vw',
               padding: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -943,10 +943,10 @@ export default function Workspace({ user: propUser }) {
             <div style={{ textAlign: 'center', marginBottom: '12px' }}>
               <div style={{ fontSize: '32px' }}>⚠️</div>
             </div>
-            <div style={{ fontSize: '17px', fontWeight: '600', color: '#1c1c1e', textAlign: 'center', marginBottom: '6px' }}>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: 'var(--text-1)', textAlign: 'center', marginBottom: '6px' }}>
               {confirm.title}
             </div>
-            <div style={{ fontSize: '13px', color: '#8e8e93', textAlign: 'center', marginBottom: '20px', lineHeight: '1.5' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '20px', lineHeight: '1.5' }}>
               {confirm.msg}
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -954,7 +954,7 @@ export default function Workspace({ user: propUser }) {
                 style={{
                   flex: 1, padding: '10px 12px', borderRadius: '10px',
                   background: 'rgba(120,120,128,0.12)',
-                  color: '#1c1c1e', border: 'none', fontWeight: '600',
+                  color: 'var(--text-1)', border: 'none', fontWeight: '600',
                   fontSize: '14px', cursor: 'pointer'
                 }}
                 onClick={confirm.onCancel}
@@ -962,8 +962,8 @@ export default function Workspace({ user: propUser }) {
               <button
                 style={{
                   flex: 1, padding: '10px 12px', borderRadius: '10px',
-                  background: confirm.okColor || '#FF3B30',
-                  color: '#fff', border: 'none', fontWeight: '600',
+                  background: confirm.okColor || 'var(--danger)',
+                  color: 'var(--surface-card)', border: 'none', fontWeight: '600',
                   fontSize: '14px', cursor: 'pointer'
                 }}
                 onClick={confirm.onOk}
@@ -983,21 +983,21 @@ export default function Workspace({ user: propUser }) {
         }} onClick={() => setArchiveOpen(false)}>
           <div
             style={{
-              background: '#fff', borderRadius: '16px', width: '520px', maxWidth: '92vw',
+              background: 'var(--surface-card)', borderRadius: '16px', width: '520px', maxWidth: '92vw',
               maxHeight: '80vh', overflow: 'hidden',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column'
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{
-              padding: '18px 20px', borderBottom: '1px solid #e5e5ea',
+              padding: '18px 20px', borderBottom: '1px solid var(--ink-100)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1c1c1e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                 </svg>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1c1c1e' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text-1)' }}>
                   习惯归档
                 </h3>
               </div>
@@ -1006,7 +1006,7 @@ export default function Workspace({ user: propUser }) {
                 style={{
                   width: '28px', height: '28px', borderRadius: '50%', border: 'none',
                   background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
-                  color: '#8e8e93', display: 'flex',
+                  color: 'var(--text-muted)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s'
                 }}
@@ -1022,9 +1022,9 @@ export default function Workspace({ user: propUser }) {
                 <div style={{ 
                   textAlign: 'center', 
                   padding: '48px 20px', 
-                  color: '#8e8e93', 
+                  color: 'var(--text-muted)', 
                   fontSize: '13px',
-                  background: '#f5f5f7',
+                  background: 'var(--surface-fill)',
                   borderRadius: '10px'
                 }}>
                   <div style={{ fontSize: '32px', marginBottom: '8px' }}>📭</div>
@@ -1038,13 +1038,13 @@ export default function Workspace({ user: propUser }) {
                       style={{
                         display: 'flex', alignItems: 'center', gap: '10px',
                         padding: '10px 12px', borderRadius: '10px',
-                        background: '#f5f5f7'
+                        background: 'var(--surface-fill)'
                       }}
                     >
                       <div style={{ fontSize: '20px' }}>{h.emoji || '✅'}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: '500', color: '#1c1c1e' }}>{h.name}</div>
-                        <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '2px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-1)' }}>{h.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                           {h.target_time ? `${h.target_time} · ` : ''}
                           {h.duration_min ? `${h.duration_min}m` : '全天'}
                         </div>
@@ -1053,7 +1053,7 @@ export default function Workspace({ user: propUser }) {
                         onClick={() => restoreHabit(h.id)}
                         style={{
                           padding: '6px 12px', borderRadius: '8px', border: 'none',
-                          background: '#e5f6ea', color: '#34C759',
+                          background: '#e5f6ea', color: 'var(--success)',
                           fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                           transition: 'all 0.15s'
                         }}
@@ -1062,7 +1062,7 @@ export default function Workspace({ user: propUser }) {
                         onClick={() => deleteHabit(h.id, h.name)}
                         style={{
                           padding: '6px 12px', borderRadius: '8px', border: 'none',
-                          background: '#FFEEED', color: '#FF3B30',
+                          background: 'var(--danger-soft)', color: 'var(--danger)',
                           fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                           transition: 'all 0.15s'
                         }}

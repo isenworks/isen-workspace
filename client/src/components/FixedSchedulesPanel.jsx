@@ -41,7 +41,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
         background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
         borderRadius: '10px',
       }}>
-        <div style={{ fontSize: '12px', color: '#6c6c70', lineHeight: '1.5', flex: 1 }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: '1.5', flex: 1 }}>
           <span style={{ fontWeight: '600', color: 'var(--s-main)' }}>📌 固定日程</span>
           <span> · 每天重复显示在时间线，仅作提醒，不可打卡</span>
         </div>
@@ -53,7 +53,7 @@ export default function FixedSchedulesPanel({ onEdit }) {
             fontSize: '13px',
             fontWeight: '600',
             background: 'var(--s-main)',
-            color: '#fff',
+            color: 'var(--surface-card)',
             border: 'none',
             cursor: 'pointer',
             boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25)',
@@ -71,13 +71,13 @@ export default function FixedSchedulesPanel({ onEdit }) {
 
       {/* 列表 */}
       {loading ? (
-        <div style={{ padding: '24px', textAlign: 'center', color: '#8e8e93', fontSize: '13px' }}>
+        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
           加载中...
         </div>
       ) : list.length === 0 ? (
         <div style={{
           padding: '32px 16px', textAlign: 'center',
-          color: '#8e8e93', fontSize: '13px',
+          color: 'var(--text-muted)', fontSize: '13px',
           background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
           borderRadius: '10px',
         }}>
@@ -105,10 +105,10 @@ export default function FixedSchedulesPanel({ onEdit }) {
               >
                 <span style={{ fontSize: '18px', flexShrink: 0 }}>{s.emoji || '📌'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '14px', fontWeight: '500', color: '#1c1c1e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {s.name}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#8e8e93', marginTop: '2px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {s.start_time} – {s.end_time}
                     {dur != null && dur > 0 && ` · ${formatDuration(dur)}`}
                   </div>
@@ -120,12 +120,12 @@ export default function FixedSchedulesPanel({ onEdit }) {
                     width: '26px', height: '26px', flexShrink: 0,
                     borderRadius: '6px',
                     border: 'none', background: 'transparent',
-                    color: '#8e8e93', cursor: 'pointer',
+                    color: 'var(--text-muted)', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all .15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.1)'; e.currentTarget.style.color = '#FF3B30'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8e8e93'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.1)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>

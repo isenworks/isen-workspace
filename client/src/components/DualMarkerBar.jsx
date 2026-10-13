@@ -146,7 +146,7 @@ export default function DualMarkerBar({
 
   const track = { position: 'relative', height: 10 };
   const segBase = { position: 'absolute', top: 0, bottom: 0, transition: 'left .35s ease, width .35s ease' };
-  const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: '#fff', zIndex: 3, transition: 'left .35s ease' };
+  const dividerBase = { position: 'absolute', top: 0, bottom: 0, width: 5, background: 'var(--surface-card)', zIndex: 3, transition: 'left .35s ease' };
   const labelBase = {
     position: 'absolute', bottom: -15, transform: 'translateX(-50%)',
     fontSize: 10, fontWeight: 600, lineHeight: 1, cursor: 'pointer', zIndex: 50,
@@ -155,7 +155,7 @@ export default function DualMarkerBar({
   };
   const tipStyle = {
     position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-    background: '#fff', color: '#1c1c1e',
+    background: 'var(--surface-card)', color: 'var(--text-1)',
     padding: '9px 12px', borderRadius: 12,
     fontSize: 11.5, fontWeight: 500, lineHeight: 1.55,
     minWidth: 188, textAlign: 'left',
@@ -177,7 +177,7 @@ export default function DualMarkerBar({
     position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
     width: 0, height: 0,
     borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-    borderTop: '5px solid #fff',
+    borderTop: '5px solid var(--surface-card)',
   };
   const qMark = { fontSize: 8, opacity: 0.55, verticalAlign: 'super', marginLeft: 1, fontWeight: 800 };
   // eslint-disable-next-line no-unused-vars
@@ -228,7 +228,7 @@ export default function DualMarkerBar({
           <span ref={bubRef} style={{
             position: 'absolute', top: -25, transform: 'translateX(-50%)',
             left: geo ? geo.bubL : undefined,
-            background: color, color: '#fff', fontSize: 11, fontWeight: 700,
+            background: color, color: 'var(--surface-card)', fontSize: 11, fontWeight: 700,
             padding: '2px 8px 4px', borderRadius: 999, lineHeight: 1.1,
             boxShadow: `0 2px 6px ${hexToRgba(color, 0.3)}`,
             whiteSpace: 'nowrap', zIndex: 4, fontVariantNumeric: 'tabular-nums',
@@ -250,7 +250,7 @@ export default function DualMarkerBar({
           <span ref={pnRef} style={{
             position: 'absolute', top: -22, transform: 'translateX(-50%)',
             left: geo && !merged ? geo.pnL : undefined,
-            fontSize: 12, fontWeight: 800, color: '#1c1c1e', lineHeight: 1,
+            fontSize: 12, fontWeight: 800, color: 'var(--text-1)', lineHeight: 1,
             zIndex: 4, fontVariantNumeric: 'tabular-nums',
             transition: 'left .35s ease', visibility: geo && !merged ? 'visible' : 'hidden',
           }}>

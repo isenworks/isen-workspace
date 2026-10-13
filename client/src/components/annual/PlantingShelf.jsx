@@ -79,29 +79,29 @@ function Bee({ size = 28 }) {
       <ellipse className="bee-wing" cx="10" cy="6" rx="7" ry="5" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
       <ellipse className="bee-wing" cx="18" cy="6" rx="7" ry="5" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
       <ellipse cx="14" cy="14" rx="8" ry="6" fill="#F5C724" />
-      <rect x="10" y="10" width="2" height="8" fill="#3a3a3c" />
-      <rect x="14" y="10" width="2" height="8" fill="#3a3a3c" />
-      <rect x="18" y="11" width="1.5" height="6" fill="#3a3a3c" />
-      <line x1="11" y1="8" x2="10" y2="4" stroke="#3a3a3c" strokeWidth="1" />
-      <line x1="17" y1="8" x2="18" y2="4" stroke="#3a3a3c" strokeWidth="1" />
+      <rect x="10" y="10" width="2" height="8" fill="var(--ink-600)" />
+      <rect x="14" y="10" width="2" height="8" fill="var(--ink-600)" />
+      <rect x="18" y="11" width="1.5" height="6" fill="var(--ink-600)" />
+      <line x1="11" y1="8" x2="10" y2="4" stroke="var(--ink-600)" strokeWidth="1" />
+      <line x1="17" y1="8" x2="18" y2="4" stroke="var(--ink-600)" strokeWidth="1" />
     </svg>
   );
 }
 
 // ---- 蝴蝶 SVG ----
 function Butterfly({ size = 34, color = '#FFB347' }) {
-  const dark = color === '#FFB347' ? '#FF9500' : '#9D5CDB';
+  const dark = color === '#FFB347' ? 'var(--warning)' : '#9D5CDB';
   return (
     <svg width={size} height={size * 0.88} viewBox="0 0 34 30">
       <ellipse className="bf-wing" cx="10" cy="14" rx="9" ry="7" fill={color} opacity="0.82" />
       <ellipse className="bf-wing" cx="10" cy="22" rx="7" ry="5" fill={dark} opacity="0.75" />
       <ellipse className="bf-wing" cx="24" cy="14" rx="9" ry="7" fill={color} opacity="0.82" />
       <ellipse className="bf-wing" cx="24" cy="22" rx="7" ry="5" fill={dark} opacity="0.75" />
-      <circle cx="10" cy="12" r="2" fill="#fff" opacity="0.6" />
-      <circle cx="24" cy="12" r="2" fill="#fff" opacity="0.6" />
-      <ellipse cx="17" cy="18" rx="1.8" ry="8" fill="#3a3a3c" />
-      <path d="M16 10 q-2 -4 -4 -3" fill="none" stroke="#3a3a3c" strokeWidth="1" />
-      <path d="M18 10 q2 -4 4 -3" fill="none" stroke="#3a3a3c" strokeWidth="1" />
+      <circle cx="10" cy="12" r="2" fill="var(--surface-card)" opacity="0.6" />
+      <circle cx="24" cy="12" r="2" fill="var(--surface-card)" opacity="0.6" />
+      <ellipse cx="17" cy="18" rx="1.8" ry="8" fill="var(--ink-600)" />
+      <path d="M16 10 q-2 -4 -4 -3" fill="none" stroke="var(--ink-600)" strokeWidth="1" />
+      <path d="M18 10 q2 -4 4 -3" fill="none" stroke="var(--ink-600)" strokeWidth="1" />
     </svg>
   );
 }
@@ -525,7 +525,7 @@ export default function PlantingShelf({ onCountChange }) {
           <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
             className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
             title="花架设置">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
@@ -616,7 +616,7 @@ export default function PlantingShelf({ onCountChange }) {
               <div className="absolute left-1/2 -bottom-5 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
                 style={{
                   background: isSel ? '#3E7D3E' : 'rgba(255,255,255,0.88)',
-                  color: isSel ? 'var(--surface-card)' : '#3a3a3c',
+                  color: isSel ? 'var(--surface-card)' : 'var(--ink-600)',
                   opacity: isSel || dragging === plant.id ? 1 : 0,
                   transition: 'opacity 0.15s',
                   pointerEvents: 'none',
@@ -629,7 +629,7 @@ export default function PlantingShelf({ onCountChange }) {
                 <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center animate-pulse"
                   style={{
                     background: 'var(--danger)',
-                    boxShadow: '0 2px 8px rgba(var(--danger-rgb),0.55), 0 0 0 2px #fff',
+                    boxShadow: '0 2px 8px rgba(var(--danger-rgb),0.55), 0 0 0 2px var(--surface-card)',
                     color: 'var(--surface-card)',
                     fontSize: '13px',
                     fontWeight: '900',

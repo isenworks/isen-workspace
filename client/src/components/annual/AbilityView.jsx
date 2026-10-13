@@ -94,7 +94,7 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
               className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] hover:rounded-md transition-colors">编辑</button>
             {st === 'active' ? (
               <button onClick={() => { close(); onAbilityMarkDone?.(a.id); }}
-                className="w-full text-left px-3.5 py-2 text-[13px] text-[#34C759] font-medium hover:bg-[#f2f2f7] hover:rounded-md transition-colors">标记完成</button>
+                className="w-full text-left px-3.5 py-2 text-[13px] text-[var(--success)] font-medium hover:bg-[#f2f2f7] hover:rounded-md transition-colors">标记完成</button>
             ) : (
               <button onClick={() => { close(); onAbilityRestore?.(a.id); }}
                 className="w-full text-left px-3.5 py-2 text-[13px] text-[#1d1d1f] hover:bg-[#f2f2f7] hover:rounded-md transition-colors">回到进行中</button>
@@ -211,18 +211,18 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
                     onClick={(e) => { e.stopPropagation(); onMsToggleDone?.({ abilityIdx: as.idx, msIdx: i }); }}
                     className="w-4 h-4 rounded-full grid place-items-center flex-shrink-0 transition-all"
                     style={{
-                      background: isDone ? AB : '#fff',
+                      background: isDone ? AB : 'var(--surface-card)',
                       border: `1.5px solid ${AB}`,
                     }}
                   >
                     {isDone && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                     )}
                   </button>
                   {/* 文字区：主文字 13px semibold ink-700 —— 对齐知力页 OKR KR 规格；长标题 2 行截断 */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); onMsEdit?.(as.idx, i, m); }}>
                     <div className="flex items-center gap-1.5">
-                      <div className={`text-[13px] font-semibold leading-snug line-clamp-2 ${isDone ? 'text-ink-400 line-through' : 'text-[#48484A]'}`}>
+                      <div className={`text-[13px] font-semibold leading-snug line-clamp-2 ${isDone ? 'text-ink-400 line-through' : 'text-[var(--ink-700)]'}`}>
                         {m.lb}
                       </div>
                       {/* 需求 3：状态徽章 */}
@@ -277,20 +277,20 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[10px] transition-all duration-150"
                     style={{
                       background: active ? AB_COLOR : 'transparent',
-                      color: active ? '#ffffff' : '#64748b',
+                      color: active ? 'var(--surface-card)' : '#64748b',
                       fontWeight: active ? 700 : 500,
                       fontSize: '11.5px',
                       boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.05)',
                     }}>
                     <span className="relative w-[11px] h-[11px] rounded-full flex-shrink-0 flex items-center justify-center"
                       style={{ background: active ? 'rgba(255,255,255,0.25)' : hexToRgba(t.col, 0.133) }}>
-                      <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? '#ffffff' : t.col }}></span>
+                      <span className="w-[5.5px] h-[5.5px] rounded-full" style={{ background: active ? 'var(--surface-card)' : t.col }}></span>
                     </span>
                     <span>{t.lb}</span>
                     <span className="inline-flex items-center justify-center min-w-[17px] h-[15px] px-1 rounded-full text-[10px] font-bold tabular-nums leading-none"
                       style={{
                         background: active ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.05)',
-                        color: active ? '#ffffff' : '#64748b',
+                        color: active ? 'var(--surface-card)' : '#64748b',
                       }}>
                       {t.n}
                     </span>
@@ -319,7 +319,7 @@ export function AbilityView({ abilities, onMsAdd, onMsEdit, onMsToggleDone, onAb
           {partitioned.active.map(en => renderCard(en.a, en.as))}
           {partitioned.active.length === 0 && (
             <div className="col-span-full rounded-2xl border border-dashed border-ink-200 flex flex-col items-center justify-center gap-2 py-12" style={{ background: 'rgba(15,23,42,0.02)' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c7c7cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M15.5 13a6 6 0 1 0-7 0M12 13v6M8 22h8"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-300)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M15.5 13a6 6 0 1 0-7 0M12 13v6M8 22h8"/></svg>
               <div className="text-[12px] text-ink-400 font-medium">还没有进行中的能力目标</div>
               <button
                 onClick={() => onAbilityAdd?.()}

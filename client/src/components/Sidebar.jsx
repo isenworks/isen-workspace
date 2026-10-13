@@ -366,7 +366,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                 position: 'absolute', inset: 0, borderRadius: '50%',
                 background: 'rgba(0,0,0,0.5)', display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: '12px', fontWeight: '600'
+                color: 'var(--surface-card)', fontSize: '12px', fontWeight: '600'
               }}>上传中</div>
             )}
           </div>
@@ -380,7 +380,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
           {showAvatarMenu && (
             <div style={{
               position: 'absolute', left: '0', top: '52px',
-              background: '#fff', borderRadius: '12px',
+              background: 'var(--surface-card)', borderRadius: '12px',
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
               padding: '6px', minWidth: '140px', zIndex: 'var(--z-sticky)',
               border: '1px solid rgba(0,0,0,0.06)'
@@ -389,7 +389,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                 onClick={() => fileInputRef.current?.click()}
                 style={{
                   padding: '9px 12px', borderRadius: '8px', cursor: 'pointer',
-                  fontSize: '13px', color: '#1c1c1e', fontWeight: '500',
+                  fontSize: '13px', color: 'var(--text-1)', fontWeight: '500',
                   display: 'flex', alignItems: 'center', gap: '8px',
                   transition: 'background .15s'
                 }}
@@ -404,7 +404,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                   onClick={handleResetAvatar}
                   style={{
                     padding: '9px 12px', borderRadius: '8px', cursor: 'pointer',
-                    fontSize: '13px', color: '#FF3B30', fontWeight: '500',
+                    fontSize: '13px', color: 'var(--danger)', fontWeight: '500',
                     display: 'flex', alignItems: 'center', gap: '8px',
                     transition: 'background .15s'
                   }}
@@ -511,7 +511,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                     {item.key === 'inbox' && inboxCount > 0 && (
                       <span
                         className="flex-shrink-0 text-[11px] font-semibold tabular-nums"
-                        style={{ color: activeMenu === 'inbox' ? 'var(--s-main)' : 'var(--ink-500, #8e8e93)' }}
+                        style={{ color: activeMenu === 'inbox' ? 'var(--s-main)' : 'var(--ink-500, var(--text-muted))' }}
                       >· {inboxCount}</span>
                     )}
                   </span>

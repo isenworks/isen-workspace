@@ -201,7 +201,7 @@ export default function AIAssistantPage() {
                         ><IconPen size={11} /></button>
                         <button
                           onClick={(e) => { e.stopPropagation(); setConfirmRemove(s); }}
-                          className="w-[20px] h-[20px] rounded-md flex items-center justify-center text-ink-300 hover:text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                          className="w-[20px] h-[20px] rounded-md flex items-center justify-center text-ink-300 hover:text-[var(--danger)] hover:bg-[#FF3B300F] transition-colors"
                           title="删除对话"
                         ><IconTrash size={11} /></button>
                       </span>

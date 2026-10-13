@@ -489,7 +489,7 @@ const AIChat = forwardRef(function AIChat({
               onClick={() => handleDeleteMessage(m)}
               disabled={streaming}
               title="删除"
-              className="p-1.5 flex items-center justify-center text-ink-400 hover:text-[#FF3B30] transition-colors disabled:opacity-30"
+              className="p-1.5 flex items-center justify-center text-ink-400 hover:text-[var(--danger)] transition-colors disabled:opacity-30"
             >
               <IconTrash size={14} />
             </button>
@@ -510,7 +510,7 @@ const AIChat = forwardRef(function AIChat({
               style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.03)' }}>
               <div className="flex items-center gap-2 mb-2.5">
                 <span className="w-[22px] h-[22px] rounded-lg flex items-center justify-center text-white flex-shrink-0"
-                  style={{ background: '#FF9500' }}>
+                  style={{ background: 'var(--warning)' }}>
                   <IconPen size={12} />
                 </span>
                 <span className="text-[12.5px] font-semibold text-ink-900">{displayName}</span>
@@ -537,8 +537,8 @@ const AIChat = forwardRef(function AIChat({
 
       // 工具执行步骤条
       const statusColor =
-        m.toolStatus === 'done' || m.toolStatus === 'confirmed' ? '#34C759' :
-        m.toolStatus === 'error' ? '#FF3B30' : '#8a9491';
+        m.toolStatus === 'done' || m.toolStatus === 'confirmed' ? 'var(--success)' :
+        m.toolStatus === 'error' ? 'var(--danger)' : '#8a9491';
       return (
         <div key={m.id} className="flex justify-start">
           <div className="inline-flex items-center gap-1.5 max-w-[82%] px-2.5 py-1.5 rounded-full bg-ink-50">
@@ -682,11 +682,11 @@ const AIChat = forwardRef(function AIChat({
       {/* 清空确认（内联轻量确认，headerless 时由父组件 ConfirmDialog 处理） */}
       {!headerless && confirmClear && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2 flex-shrink-0 bg-[#FF3B300A] border border-[#FF3B3022]">
-          <span className="text-[#FF3B30] flex-shrink-0"><IconAlert size={13} /></span>
+          <span className="text-[var(--danger)] flex-shrink-0"><IconAlert size={13} /></span>
           <span className="text-[11.5px] text-ink-700 flex-1">确定清空当前对话？清空后不可恢复。</span>
           <button
             onClick={handleClear}
-            className="px-2.5 py-1 rounded-md text-[11.5px] font-semibold text-white bg-[#FF3B30] transition-all active:scale-[0.97]"
+            className="px-2.5 py-1 rounded-md text-[11.5px] font-semibold text-white bg-[var(--danger)] transition-all active:scale-[0.97]"
           >清空</button>
           <button
             onClick={() => setConfirmClear(false)}
@@ -734,7 +734,7 @@ const AIChat = forwardRef(function AIChat({
 
           {/* 语音识别异常提示（短暂显示） */}
           {voiceHint && (
-            <div className="text-[11px] text-[#FF3B30] mt-1">{voiceHint}</div>
+            <div className="text-[11px] text-[var(--danger)] mt-1">{voiceHint}</div>
           )}
 
           {/* 工具条：左下角模式切换，右下角语音 + 模型选择 + 发送 */}
@@ -745,7 +745,7 @@ const AIChat = forwardRef(function AIChat({
                 title="通用：直接使用模型知识回答"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
                 style={mode === 'general'
-                  ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
+                  ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
                   : { color: '#8a9491' }}
               >
                 <IconGlobe size={12} />
@@ -756,7 +756,7 @@ const AIChat = forwardRef(function AIChat({
                 title="知识库：仅基于你沉淀的知识回答"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-[12px] font-medium"
                 style={mode === 'kb'
-                  ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
+                  ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' }
                   : { color: '#8a9491' }}
               >
                 <IconBook size={12} />
@@ -833,7 +833,7 @@ const AIChat = forwardRef(function AIChat({
                 onClick={toggleVoice}
                 disabled={streaming}
                 className={`w-[28px] h-[28px] rounded-lg flex items-center justify-center flex-shrink-0 transition-all active:scale-95 disabled:opacity-40 ${listening ? 'text-white' : 'text-ink-400 hover:bg-ink-50 hover:text-ink-600'}`}
-                style={listening ? { background: '#FF3B30', animation: 'ai-pulse 1.2s ease-out infinite' } : {}}
+                style={listening ? { background: 'var(--danger)', animation: 'ai-pulse 1.2s ease-out infinite' } : {}}
                 title={listening ? '停止语音输入' : '语音输入'}
               >
                 <IconMic size={14} />
@@ -843,7 +843,7 @@ const AIChat = forwardRef(function AIChat({
             {streaming ? (
               <button
                 onClick={handleStop}
-                className="w-[32px] h-[32px] rounded-lg flex items-center justify-center flex-shrink-0 text-[#FF3B30] bg-[#FF3B300F] hover:bg-[#FF3B301A] transition-all active:scale-95"
+                className="w-[32px] h-[32px] rounded-lg flex items-center justify-center flex-shrink-0 text-[var(--danger)] bg-[#FF3B300F] hover:bg-[#FF3B301A] transition-all active:scale-95"
                 title="停止生成"
               >
                 <IconStop size={14} />

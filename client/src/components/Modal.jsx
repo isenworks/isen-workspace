@@ -41,10 +41,10 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
           className="flex items-center justify-between px-6 py-4"
           style={{ borderBottom: '1px solid rgba(60,60,67,0.1)' }}
         >
-          <h3 className="text-[17px] font-semibold text-[#1c1c1e] tracking-tight">{title}</h3>
+          <h3 className="text-[17px] font-semibold text-[var(--text-1)] tracking-tight">{title}</h3>
           <button
             onClick={onClose}
-            className="text-[#8e8e93] hover:text-[#1c1c1e] text-2xl leading-none flex items-center justify-center w-9 h-9 -mr-1 shrink-0 rounded-full hover:bg-black/5 transition"
+            className="text-[var(--text-muted)] hover:text-[var(--text-1)] text-2xl leading-none flex items-center justify-center w-9 h-9 -mr-1 shrink-0 rounded-full hover:bg-black/5 transition"
             aria-label="关闭"
           >×</button>
         </div>

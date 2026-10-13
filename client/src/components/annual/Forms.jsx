@@ -369,7 +369,7 @@ export function LifeHighlightsForm({ lifeData, highlightedIds, onToggleHighlight
         <div className="text-[12.5px] font-bold text-[var(--text-1)] mb-2">🪄 记忆卡预览</div>
         <div className="rounded-2xl p-5 relative overflow-hidden"
           style={{
-            background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, #FFEEED 100%)',
+            background: 'linear-gradient(160deg, #f5f3ff 0%, #fdf4ff 45%, var(--danger-soft) 100%)',
             border: `1px solid ${moduleRgba('life', 0.15)}`,
             boxShadow: `0 4px 16px ${moduleRgba('life', 0.1)}`,
           }}>

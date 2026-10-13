@@ -10,11 +10,11 @@ import { calcDurationMin, formatDuration } from '../../utils/date.js';
 const INPUT_STYLE = {
   width: '100%',
   padding: '8px 12px',
-  border: '1px solid #d1d1d6',
+  border: '1px solid var(--ink-200)',
   borderRadius: '9px',
   fontSize: '14px',
-  color: '#1c1c1e',
-  background: '#ffffff',
+  color: 'var(--text-1)',
+  background: 'var(--surface-card)',
   outline: 'none',
   transition: 'all .15s',
   boxSizing: 'border-box'
@@ -24,7 +24,7 @@ const LABEL_STYLE = {
   display: 'block',
   fontSize: '11px',
   fontWeight: '600',
-  color: '#8e8e93',
+  color: 'var(--text-muted)',
   marginBottom: '5px',
   textTransform: 'uppercase',
   letterSpacing: '0.03em'
@@ -36,7 +36,7 @@ const BTN_GHOST = {
   fontSize: '13px',
   fontWeight: '600',
   background: 'rgba(120,120,128,0.12)',
-  color: '#1c1c1e',
+  color: 'var(--text-1)',
   border: 'none',
   cursor: 'pointer',
   transition: 'all .15s'
@@ -48,7 +48,7 @@ const BTN_PRIMARY = {
   fontSize: '13px',
   fontWeight: '600',
   background: 'var(--s-main)',
-  color: '#fff',
+  color: 'var(--surface-card)',
   border: 'none',
   cursor: 'pointer',
   transition: 'all .15s',
@@ -123,10 +123,10 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
         background: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
         borderRadius: '10px',
         fontSize: '12px',
-        color: '#6c6c70',
+        color: 'var(--text-3)',
         lineHeight: '1.5',
       }}>
-        <span style={{ fontWeight: '600', color: '#6c6c70' }}>📌 固定日程</span>
+        <span style={{ fontWeight: '600', color: 'var(--text-3)' }}>📌 固定日程</span>
         <span> · 每天重复显示在时间线，仅作提醒，不可打卡，不进入重点/习惯事项</span>
       </div>
 
@@ -156,8 +156,8 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
                   width: '34px', height: '34px',
                   borderRadius: '8px',
                   fontSize: '18px',
-                  background: active ? 'rgba(var(--s-rgb),0.1)' : '#fff',
-                  border: active ? '1.5px solid var(--s-main)' : '1px solid #d1d1d6',
+                  background: active ? 'rgba(var(--s-rgb),0.1)' : 'var(--surface-card)',
+                  border: active ? '1.5px solid var(--s-main)' : '1px solid var(--ink-200)',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all .15s',
@@ -188,7 +188,7 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
       </div>
 
       {durMin != null && durMin > 0 && (
-        <div style={{ fontSize: '12px', color: '#8e8e93' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
           时长：<span style={{ color: 'var(--s-main)', fontWeight: '600' }}>{formatDuration(durMin)}</span>
         </div>
       )}
@@ -201,7 +201,7 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
               disabled={busy}
               style={{
                 ...BTN_GHOST,
-                color: '#FF3B30',
+                color: 'var(--danger)',
                 background: 'rgba(255,59,48,0.08)',
                 opacity: busy ? 0.5 : 1,
                 cursor: busy ? 'not-allowed' : 'pointer',

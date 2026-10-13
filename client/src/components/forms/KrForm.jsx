@@ -4,9 +4,9 @@ import { LABEL_STYLE, INPUT_STYLE } from '../../utils/uiConstants.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmAlert from '../ConfirmAlert.jsx';
 
-const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
-const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: '#FF3B30', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(255,59,48,0.25)' };
-const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer', transition: 'all .15s' };
+const BTN_GHOST = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: 'var(--text-1)', border: 'none', cursor: 'pointer', transition: 'all .15s' };
+const BTN_PRIMARY = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'var(--danger)', color: 'var(--surface-card)', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(255,59,48,0.25)' };
+const BTN_DANGER = { padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(255,59,48,0.08)', color: 'var(--danger)', border: 'none', cursor: 'pointer', transition: 'all .15s' };
 
 const STATUSES = [
   { v: 'done',    lb: '已完成' },
@@ -87,8 +87,8 @@ export default function KrForm({ initial, onSaved, onCancel, onDelete }) {
                 style={{
                   flex: 1, padding: '7px 0', borderRadius: '9px',
                   fontSize: '13px', fontWeight: on ? '600' : '500',
-                  background: on ? '#FFEEED' : 'rgba(120,120,128,0.08)',
-                  color: on ? '#FF3B30' : '#8e8e93',
+                  background: on ? 'var(--danger-soft)' : 'rgba(120,120,128,0.08)',
+                  color: on ? 'var(--danger)' : 'var(--text-muted)',
                   border: 'none', cursor: 'pointer', transition: 'all .15s',
                 }}>{s.lb}</button>
             );

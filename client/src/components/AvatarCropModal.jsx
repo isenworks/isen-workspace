@@ -188,7 +188,7 @@ export default function AvatarCropModal({ open, file, onClose, onConfirm }) {
       <div style={styles.modal}>
         <div style={styles.header}>
           <div style={styles.title}>调整头像</div>
-          <div style={{ fontSize: '12px', color: '#8e8e93' }}>拖动调整位置 · 滚轮或滑块缩放</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>拖动调整位置 · 滚轮或滑块缩放</div>
         </div>
 
         <div
@@ -209,7 +209,7 @@ export default function AvatarCropModal({ open, file, onClose, onConfirm }) {
         </div>
 
         <div style={styles.sliderRow}>
-          <span style={{ fontSize: '12px', color: '#8e8e93', width: '28px' }}>缩小</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', width: '28px' }}>缩小</span>
           <input
             type="range"
             min={0}
@@ -222,7 +222,7 @@ export default function AvatarCropModal({ open, file, onClose, onConfirm }) {
             }}
             style={{ flex: 1, accentColor: 'var(--s-main)' }}
           />
-          <span style={{ fontSize: '12px', color: '#8e8e93', width: '28px', textAlign: 'right' }}>放大</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', width: '28px', textAlign: 'right' }}>放大</span>
         </div>
 
         <div style={styles.footer}>
@@ -245,7 +245,7 @@ const styles = {
   },
   modal: {
     width: '380px',
-    background: '#fff',
+    background: 'var(--surface-card)',
     borderRadius: '18px',
     padding: '18px 18px 16px',
     boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
@@ -254,7 +254,7 @@ const styles = {
     marginBottom: '14px'
   },
   title: {
-    fontSize: '16px', fontWeight: '700', color: '#1c1c1e',
+    fontSize: '16px', fontWeight: '700', color: 'var(--text-1)',
     marginBottom: '4px'
   },
   canvasWrap: {

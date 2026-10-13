@@ -333,7 +333,7 @@ export default function InboxPage({ onCountChange }) {
                   >分派…</button>
                   <button
                     onClick={(e) => { e.stopPropagation(); askRemove(item); }}
-                    className="w-full text-left px-3 py-1.5 text-[12.5px] text-[#FF3B30] hover:bg-[#FF3B300F] transition-colors"
+                    className="w-full text-left px-3 py-1.5 text-[12.5px] text-[var(--danger)] hover:bg-[#FF3B300F] transition-colors"
                   >删除</button>
                 </div>
               </>
@@ -360,7 +360,7 @@ export default function InboxPage({ onCountChange }) {
           } ${filterPopover ? 'ring-2 ring-[rgba(var(--s-rgb),0.25)]' : ''}`}
           style={isActive
             ? { background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }
-            : { background: 'transparent', color: '#8e8e93' }
+            : { background: 'transparent', color: 'var(--text-muted)' }
           }
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto' }}>
@@ -422,14 +422,14 @@ export default function InboxPage({ onCountChange }) {
       <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
         <button onClick={() => switchLayout('tri')} title="三分布局"
           className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'tri' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
+          style={layout === 'tri' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
           </svg>
         </button>
         <button onClick={() => switchLayout('duo')} title="二分布局"
           className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'duo' ? { background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: '#8e8e93' }}>
+          style={layout === 'duo' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
           </svg>
@@ -440,7 +440,7 @@ export default function InboxPage({ onCountChange }) {
       {isDuo && (
         <button onClick={() => setSelectedId(null)} title="新增记录"
           className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-          style={{ background: 'var(--s-grad-bg)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
+          style={{ background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
         </button>
       )}
@@ -453,7 +453,7 @@ export default function InboxPage({ onCountChange }) {
         <div className={`glass-card rounded-2xl p-10 flex items-center justify-center text-[13px] text-ink-400 ${fill ? 'flex-1' : ''}`}>加载中…</div>
       ) : items.length === 0 ? (
         <div className={`glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2 ${fill ? 'flex-1' : ''}`}>
-          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--ink-300)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11l5-5V5a2 2 0 0 0-2-2Z" />
             <path d="M15 21v-4a2 2 0 0 1 2-2h4" />
           </svg>
@@ -485,7 +485,7 @@ export default function InboxPage({ onCountChange }) {
     if (!selected && emptyHint) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-8">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--ink-300)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
           <div className="text-[13.5px] font-medium text-ink-300">选择左侧一条想法</div>
@@ -667,7 +667,7 @@ function TagManagerModal({ open, tags, onClose, setTags, toast }) {
             <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: t.color }} />
             <span className="text-[13.5px] text-ink-800 flex-1">{t.name}</span>
             <button onClick={() => startEdit(t)} className="text-[12px] text-ink-400 hover:text-ink-700 px-1.5 py-0.5">编辑</button>
-            <button onClick={() => setConfirmDel(t)} className="text-[12px] text-[#FF3B30] hover:bg-[#FF3B300F] px-1.5 py-0.5 rounded">删除</button>
+            <button onClick={() => setConfirmDel(t)} className="text-[12px] text-[var(--danger)] hover:bg-[#FF3B300F] px-1.5 py-0.5 rounded">删除</button>
           </div>
         ))}
       </div>

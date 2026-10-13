@@ -68,7 +68,7 @@ export function Sidebar({ active, onChange, stats }) {
           <div className="lg:hidden relative w-10 h-10 flex-shrink-0">
             <svg viewBox="0 0 36 36" className="w-10 h-10 -rotate-90">
               <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#007AFF" strokeWidth="3"
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--s-main)" strokeWidth="3"
                 strokeDasharray={`${(ring / 100) * 94.2} 94.2`} strokeLinecap="round"/>
             </svg>
             <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-ink-900 tabular-nums">{ring}</div>
@@ -78,7 +78,7 @@ export function Sidebar({ active, onChange, stats }) {
           <div className="relative w-14 h-14 flex-shrink-0">
             <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
               <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" className="text-ink-100" strokeWidth="3"/>
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#007AFF" strokeWidth="3"
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--s-main)" strokeWidth="3"
                 strokeDasharray={`${(ring / 100) * 94.2} 94.2`} strokeLinecap="round"/>
             </svg>
             <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-ink-900 tabular-nums">{ring}</div>

@@ -34,7 +34,7 @@ function KeyCap({ children }) {
         background: 'linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%)',
         border: '1px solid rgba(0,0,0,0.1)',
         boxShadow: '0 1px 0 rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04)',
-        color: '#1c1c1e',
+        color: 'var(--text-1)',
         lineHeight: 1,
       }}
     >

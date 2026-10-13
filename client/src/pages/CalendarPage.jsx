@@ -1414,7 +1414,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         <button className={tabView === 'week' ? 'active' : ''} onClick={() => setTabView('week')}>本周</button>
         <button className={tabView === 'month' ? 'active' : ''} onClick={() => setTabView('month')}>本月</button>
       </div>
-      <span className="text-[12px] text-[#8e8e93] tabular-nums truncate">
+      <span className="text-[12px] text-[var(--text-muted)] tabular-nums truncate">
         {tabView === 'month'
           ? `${year}年${month}月`
           : `${weekStartStr}-${weekEndStr}`}
@@ -1497,13 +1497,13 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
             >
               <div className="flex items-center gap-1">
-                <button onClick={prevMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+                <button onClick={prevMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[var(--text-muted)] flex-shrink-0 transition">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
                 </button>
-                <span className="text-[15px] font-bold text-[#1c1c1e] min-w-[92px] text-center tracking-tight">
+                <span className="text-[15px] font-bold text-[var(--text-1)] min-w-[92px] text-center tracking-tight">
                   {year}年{month}月
                 </span>
-                <button onClick={nextMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[#8e8e93] flex-shrink-0 transition">
+                <button onClick={nextMonth} className="w-8 h-8 rounded-xl hover:bg-black/5 flex items-center justify-center text-[var(--text-muted)] flex-shrink-0 transition">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"></path></svg>
                 </button>
               </div>
@@ -1534,7 +1534,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
             <div className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap">
               {MODULES.filter(m => m.key !== 'others').map(m => (
-                <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#8E8E93]">
+                <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-muted)]">
                   <span className="w-2 h-2 rounded-full" style={{ background: m.color }} />
                   {m.label}
                 </span>
@@ -1564,8 +1564,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
                 style={{ background: 'rgba(var(--s-rgb),0.10)', color: 'var(--s-deep)' }}>
                 {detailDateObj.getMonth() + 1}.{detailDateObj.getDate()} 周{weekdayZh[detailDateObj.getDay()]}
               </span>
-              <span className="text-[#1c1c1e]">当日事项</span>
-              <span className="text-[12px] font-bold text-[#8E8E93] ml-1">{detailEvents.length} 条</span>
+              <span className="text-[var(--text-1)]">当日事项</span>
+              <span className="text-[12px] font-bold text-[var(--text-muted)] ml-1">{detailEvents.length} 条</span>
             </div>
           }
           footer={

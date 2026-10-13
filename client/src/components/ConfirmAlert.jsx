@@ -40,19 +40,19 @@ export default function ConfirmAlert({
       <div
         ref={dialogRef}
         style={{
-          width: 360, background: '#ffffff', borderRadius: '16px', overflow: 'hidden',
+          width: 360, background: 'var(--surface-card)', borderRadius: '16px', overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 4px 14px rgba(0,0,0,0.10)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ padding: '20px 20px 18px', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em', margin: 0 }}>
+          <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-1)', letterSpacing: '-0.01em', margin: 0 }}>
             {title}
           </h3>
           {(children || message) && (
             <p style={{
               whiteSpace: 'pre-line', marginTop: '6px', marginBottom: 0,
-              fontSize: '13px', lineHeight: 1.55, color: '#8E8E93',
+              fontSize: '13px', lineHeight: 1.55, color: 'var(--text-muted)',
             }}>{children || message}</p>
           )}
         </div>
@@ -75,7 +75,7 @@ export default function ConfirmAlert({
             style={{
               flex: 1, padding: '14px 0', fontSize: '15px',
               fontWeight: danger ? 700 : 600,
-              color: danger ? '#FF3B30' : 'var(--s-main)',
+              color: danger ? 'var(--danger)' : 'var(--s-main)',
               background: 'transparent', border: 'none', cursor: 'pointer',
               transition: 'background .15s',
             }}

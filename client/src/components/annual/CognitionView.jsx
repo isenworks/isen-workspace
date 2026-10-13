@@ -1470,8 +1470,8 @@ export function CognitionView({
             <div className="flex items-start gap-2 mt-2 pt-2.5 pb-1 px-3 rounded-lg"
               style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.18)' }}>
               {/* 橙色三角标：与「关键瓶颈」11px/15.4px 行高中心对齐（同工作页红色三角对齐逻辑） */}
-              <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[0.5px]" fill="#FF9500" viewBox="0 0 24 24">
-                <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <svg className="w-[14px] h-[14px] flex-shrink-0 mt-[0.5px]" fill="var(--warning)" viewBox="0 0 24 24">
+                <path d="M12 2.5c-.6 0-1.1.3-1.4.8L1.5 19.3c-.3.5-.1 1.1.3 1.4.2.2.5.3.8.3h18.8c.3 0 .6-.1.8-.3.5-.3.6-.9.3-1.4L13.4 3.3c-.3-.5-.8-.8-1.4-.8z"/><path d="M12 9v4.5M12 17.5v.01" stroke="var(--surface-card)" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
               <div className="min-w-0 flex-1 text-[11px] leading-[1.4]">
                 <span className="font-bold text-ink-700">关键瓶颈：</span>
@@ -2055,7 +2055,7 @@ export function CognitionView({
                               <div className="flex items-center gap-[5px]">
                                 <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
                                   style={{ background: 'var(--success)' }}>
-                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                 </div>
                                 <span className="text-[11px] font-semibold text-ink-600 leading-none">思考 {validIns.length} 组</span>
                               </div>
@@ -2064,7 +2064,7 @@ export function CognitionView({
                               <div className="flex items-center gap-[5px]">
                                 <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
                                   style={{ background: 'var(--success)' }}>
-                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                 </div>
                                 <span className="text-[11px] font-semibold text-ink-600 leading-none">行动 {validActs.length} 条</span>
                               </div>
@@ -2076,7 +2076,7 @@ export function CognitionView({
                                 <div className="flex items-center gap-[5px]">
                                   <div className={`flex items-center justify-center w-[14px] h-[14px] rounded-[3.5px]`}
                                     style={{ background: 'var(--success)' }}>
-                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                                   </div>
                                   <span className="text-[11px] font-semibold text-ink-600 leading-none">改变 {changeCount} 个</span>
                                 </div>

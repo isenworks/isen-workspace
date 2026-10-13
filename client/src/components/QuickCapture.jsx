@@ -269,7 +269,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
               style={{
                 background: on ? hexToRgba(t.color, 0.14) : 'rgba(120,120,128,0.06)',
-                color: on ? t.color : '#8e8e93',
+                color: on ? t.color : 'var(--text-muted)',
                 border: `1px solid ${on ? hexToRgba(t.color, 0.55) : 'transparent'}`,
                 fontWeight: on ? 600 : 400,
               }}
@@ -311,7 +311,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         data-placeholder={placeholder}
         className={`qc-editor mx-[1.5px] outline-none rounded-[9px] transition-all ${bare ? 'flex-1 min-h-0 overflow-auto' : 'w-[calc(100%_-_3px)]'}`}
         style={{
-          background: '#ffffff',
+          background: 'var(--surface-card)',
           border: '1px solid transparent',
           boxShadow: focused
             ? '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1.5px rgba(var(--s-rgb),0.25)'
@@ -319,7 +319,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
           padding: '12px 14px',
           fontSize: '14px',
           lineHeight: '22px',
-          color: '#1c1c1e',
+          color: 'var(--text-1)',
           ...(bare ? {} : { minHeight: 200 }),
         }}
       />
@@ -349,7 +349,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
               disabled={busy || !getPlainText()}
               title="保存（Ctrl+S）"
               className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-              style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+              style={{ background: 'var(--s-main)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
             >{busy ? '保存中…' : '保存'}</button>
           </div>
         </>
@@ -373,7 +373,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
             disabled={busy || !getPlainText()}
             title="保存（Ctrl+S）"
             className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-            style={{ background: 'var(--s-main)', color: '#fff', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+            style={{ background: 'var(--s-main)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
           >保存</button>
         </div>
       )}

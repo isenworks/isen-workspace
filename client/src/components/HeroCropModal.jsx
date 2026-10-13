@@ -311,7 +311,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
       <div style={styles.modal}>
         <div style={styles.header}>
           <div style={styles.title}>裁剪 Hero 背景</div>
-          <div style={{ fontSize: '12px', color: '#8e8e93' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             拖动选区取景 · 角柄 / 滚轮调整大小 · 双击复位
           </div>
         </div>
@@ -326,7 +326,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
           {img && geo ? (
             <canvas ref={canvasRef} width={CW * DPR} height={geo.ch * DPR} style={{ display: 'block', borderRadius: '12px', width: '100%' }} />
           ) : (
-            <div style={{ height: 160, display: 'grid', placeItems: 'center', color: '#8e8e93', fontSize: 13 }}>加载图片中…</div>
+            <div style={{ height: 160, display: 'grid', placeItems: 'center', color: 'var(--text-muted)', fontSize: 13 }}>加载图片中…</div>
           )}
           {/* 取景分辨率指示（低于设计显示宽提示放大可能模糊） */}
           {img && geo && box && (
@@ -341,10 +341,10 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
 
         <div style={styles.sliderRow}>
           {smallImg ? (
-            <div style={{ flex: 1, textAlign: 'center', fontSize: 12, color: '#8e8e93' }}>原图较小，仅可拖动选区位置</div>
+            <div style={{ flex: 1, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>原图较小，仅可拖动选区位置</div>
           ) : (
             <>
-              <span style={{ fontSize: '12px', color: '#8e8e93', width: '38px' }}>视野广</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', width: '38px' }}>视野广</span>
               <input
                 type="range" min={0} max={100}
                 value={geo && box ? Math.round(((geo.wMax - box.w) / (geo.wMax - geo.wMin)) * 100) : 0}
@@ -357,7 +357,7 @@ export default function HeroCropModal({ open, source, ratio = 8, initialCrop = n
                 }}
                 style={{ flex: 1, accentColor: 'var(--s-main)' }}
               />
-              <span style={{ fontSize: '12px', color: '#8e8e93', width: '38px', textAlign: 'right' }}>特写</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', width: '38px', textAlign: 'right' }}>特写</span>
             </>
           )}
         </div>
@@ -382,13 +382,13 @@ const styles = {
   },
   modal: {
     width: '516px',
-    background: '#fff',
+    background: 'var(--surface-card)',
     borderRadius: '18px',
     padding: '18px 18px 16px',
     boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
   },
   header: { marginBottom: '14px' },
-  title: { fontSize: '16px', fontWeight: '700', color: '#1c1c1e', marginBottom: '4px' },
+  title: { fontSize: '16px', fontWeight: '700', color: 'var(--text-1)', marginBottom: '4px' },
   canvasWrap: {
     width: '480px', maxWidth: '100%', margin: '0 auto',
     borderRadius: '12px', overflow: 'hidden',

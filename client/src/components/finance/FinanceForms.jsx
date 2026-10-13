@@ -17,8 +17,8 @@ const FIN = 'var(--m-finance)';
 const GREEN = '#34C759';
 const RED = '#FF3B30';
 
-const BTN_GHOST = { padding: '7px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s' };
-const BTN_PRIMARY = { padding: '7px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: FIN, color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(var(--m-finance-rgb),0.30)' };
+const BTN_GHOST = { padding: '7px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(120,120,128,0.12)', color: 'var(--text-1)', border: 'none', cursor: 'pointer', transition: 'all .15s' };
+const BTN_PRIMARY = { padding: '7px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: FIN, color: 'var(--surface-card)', border: 'none', cursor: 'pointer', transition: 'all .15s', boxShadow: '0 2px 8px rgba(var(--m-finance-rgb),0.30)' };
 const BTN_DANGER = { padding: '7px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: '600', background: 'rgba(255,59,48,0.08)', color: RED, border: 'none', cursor: 'pointer', transition: 'all .15s' };
 
 const ACCOUNT_TYPES = [
@@ -119,7 +119,7 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
             <button key={t.k} type="button" disabled={isEdit} onClick={() => { setType(t.k); setCategoryId(null); }}
               style={{
                 flex: 1, padding: '7px 0', borderRadius: '8px', border: 'none', cursor: isEdit ? 'not-allowed' : 'pointer',
-                background: active ? '#fff' : 'transparent', color: active ? t.color : '#8e8e93',
+                background: active ? 'var(--surface-card)' : 'transparent', color: active ? t.color : 'var(--text-muted)',
                 fontWeight: 700, fontSize: '13px', boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                 transition: 'all .15s', opacity: isEdit && !active ? 0.45 : 1,
               }}>{t.lb}</button>
@@ -131,7 +131,7 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
       <div>
         <label style={{ ...LABEL_STYLE, marginBottom: '6px' }}>金额</label>
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', fontWeight: 700, color: '#8e8e93' }}>¥</span>
+          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', fontWeight: 700, color: 'var(--text-muted)' }}>¥</span>
           <input type="number" inputMode="decimal" min="0" step="0.01" autoFocus value={amount}
             onChange={e => setAmount(e.target.value)} placeholder="0.00"
             style={{ ...INPUT_STYLE, paddingLeft: '30px', fontSize: '19px', fontWeight: 700 }} />
@@ -154,7 +154,7 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
                     padding: '5px 10px', borderRadius: '10px',
                     border: `1px solid ${active ? FIN : 'rgba(15,23,42,0.10)'}`,
                     background: active ? moduleRgba('finance', 0.08) : 'rgba(15,23,42,0.03)',
-                    color: active ? FIN : '#1c1c1e',
+                    color: active ? FIN : 'var(--text-1)',
                     fontWeight: 600, fontSize: '12px', lineHeight: 1.2, cursor: 'pointer', transition: 'all .15s',
                   }}>
                   <span>{c.icon}</span><span>{c.name}</span>
@@ -208,7 +208,7 @@ export function FinanceTxForm({ initial, accounts, categories, onSaved, onCancel
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
         {isEdit
           ? <button type="button" onClick={del} style={BTN_DANGER}>删除</button>
-          : <span style={{ fontSize: '11px', color: '#8e8e93', alignSelf: 'center' }}>收入分类可在「本月收支 → 管理」中添加</span>}
+          : <span style={{ fontSize: '11px', color: 'var(--text-muted)', alignSelf: 'center' }}>收入分类可在「本月收支 → 管理」中添加</span>}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" onClick={onCancel} style={BTN_GHOST}>取消</button>
           <button type="button" onClick={submit} disabled={busy} style={BTN_PRIMARY}>{isEdit ? '保存修改' : '记一笔'}</button>
@@ -329,7 +329,7 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
 
   const miniBtn = (disabled) => ({
     padding: '3px 9px', borderRadius: '7px', fontSize: '11.5px', fontWeight: 600,
-    border: '1px solid rgba(15,23,42,0.10)', background: '#fff', color: disabled ? '#c7c7cc' : '#3a3a3c',
+    border: '1px solid rgba(15,23,42,0.10)', background: 'var(--surface-card)', color: disabled ? 'var(--ink-300)' : 'var(--ink-600)',
     cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all .15s',
   });
 
@@ -357,11 +357,11 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
           onChange={e => { setDeadline(e.target.value); setDeadlineManual(true); }} style={INPUT_STYLE} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', minHeight: '16px' }}>
           {autoDate && !deadlineManual && (
-            <span style={{ fontSize: '11px', color: '#8e8e93' }}>已按目标金额与每月计划自动推算，可手动调整</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>已按目标金额与每月计划自动推算，可手动调整</span>
           )}
           {autoDate && deadlineManual && (
             <>
-              <span style={{ fontSize: '11px', color: '#8e8e93' }}>已手动指定</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>已手动指定</span>
               <button type="button"
                 onClick={() => { setDeadlineManual(false); setDeadline(autoDate); }}
                 style={{ fontSize: '11px', fontWeight: 600, color: FIN, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
@@ -386,7 +386,7 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
             onClick={() => { setAccEdit({ mode: 'edit', id: selectedAcc.id }); setAccName(selectedAcc.name); setAccType(selectedAcc.type || 'debit'); }}
             style={miniBtn(!selectedAcc || accBusy)}>编辑</button>
           <button type="button" disabled={!selectedAcc || accBusy} onClick={removeAccount}
-            style={{ ...miniBtn(!selectedAcc || accBusy), color: !selectedAcc || accBusy ? '#c7c7cc' : '#FA503E', borderColor: 'rgba(250,80,62,0.25)' }}>删除</button>
+            style={{ ...miniBtn(!selectedAcc || accBusy), color: !selectedAcc || accBusy ? 'var(--ink-300)' : '#FA503E', borderColor: 'rgba(250,80,62,0.25)' }}>删除</button>
         </div>
         {accEdit && (
           <div style={{ marginTop: '8px', border: '1px solid rgba(15,23,42,0.08)', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -402,8 +402,8 @@ export function FinanceGoalForm({ initial, accounts, onSaved, onCancel, onDelete
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
                       padding: '4px 9px', borderRadius: '9px',
                       border: `1px solid ${active ? FIN : 'rgba(15,23,42,0.10)'}`,
-                      background: active ? moduleRgba('finance', 0.08) : '#fff',
-                      color: active ? FIN : '#3a3a3c',
+                      background: active ? moduleRgba('finance', 0.08) : 'var(--surface-card)',
+                      color: active ? FIN : 'var(--ink-600)',
                       fontWeight: 600, fontSize: '11.5px', cursor: 'pointer', transition: 'all .15s',
                     }}>
                     <span>{t.icon}</span><span>{t.lb}</span>
@@ -479,8 +479,8 @@ export function FinanceDepositForm({ goal, accounts, onSaved, onCancel }) {
       {/* 目标概要 */}
       <div style={{ background: moduleRgba('finance', 0.07), borderRadius: '12px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#1c1c1e' }}>{goal?.name}</span>
-          <span style={{ fontSize: '12px', color: '#8e8e93', tabular: 'true' }}>还差 {finFmt(remain)}</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-1)' }}>{goal?.name}</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', tabular: 'true' }}>还差 {finFmt(remain)}</span>
         </div>
         <div style={{ fontSize: '12px', color: '#666', tabular: 'true' }}>
           已存 <b style={{ color: FIN }}>{finFmt(goal?.current_amount)}</b> / 目标 {finFmt(goal?.target_amount)}（{goal?.progress || 0}%）
@@ -489,7 +489,7 @@ export function FinanceDepositForm({ goal, accounts, onSaved, onCancel }) {
       <div>
         <label style={{ ...LABEL_STYLE, marginBottom: '6px' }}>存入金额（¥）</label>
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', fontWeight: 700, color: '#8e8e93' }}>¥</span>
+          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', fontWeight: 700, color: 'var(--text-muted)' }}>¥</span>
           <input type="number" inputMode="decimal" min="0" step="0.01" autoFocus value={amount}
             onChange={e => setAmount(e.target.value)} placeholder="0.00"
             style={{ ...INPUT_STYLE, paddingLeft: '30px', fontSize: '19px', fontWeight: 700 }} />
@@ -516,7 +516,7 @@ export function FinanceDepositForm({ goal, accounts, onSaved, onCancel }) {
       </div>
       <input type="hidden" value={date} onChange={() => {}} />
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
-        <span style={{ fontSize: '11px', color: '#8e8e93' }}>存入会计入目标进度{goal?.account_name ? `，并转入「${goal.account_name}」` : ''}</span>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>存入会计入目标进度{goal?.account_name ? `，并转入「${goal.account_name}」` : ''}</span>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" onClick={onCancel} style={BTN_GHOST}>取消</button>
           <button type="button" onClick={submit} disabled={busy} style={BTN_PRIMARY}>确认存入</button>
@@ -573,7 +573,7 @@ export function FinanceManageForm({ categories, onSaved, onCancel }) {
             <button key={t.k} type="button" onClick={() => setTab(t.k)}
               style={{
                 flex: 1, padding: '7px 0', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                background: active ? '#fff' : 'transparent', color: active ? '#1c1c1e' : '#8e8e93',
+                background: active ? 'var(--surface-card)' : 'transparent', color: active ? 'var(--text-1)' : 'var(--text-muted)',
                 fontWeight: 700, fontSize: '12.5px', boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none', transition: 'all .15s',
               }}>{t.lb}</button>
           );
@@ -605,7 +605,7 @@ export function FinanceManageForm({ categories, onSaved, onCancel }) {
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               padding: '5px 6px 5px 10px', borderRadius: '10px',
               border: '1px solid rgba(15,23,42,0.10)', background: 'rgba(15,23,42,0.03)',
-              fontSize: '12px', fontWeight: 600, color: '#1c1c1e',
+              fontSize: '12px', fontWeight: 600, color: 'var(--text-1)',
             }}>
             <span>{c.icon}</span><span>{c.name}</span>
             {c.is_system
@@ -616,7 +616,7 @@ export function FinanceManageForm({ categories, onSaved, onCancel }) {
                     display: 'grid', placeItems: 'center' }}>✕</button>}
           </div>
         ))}
-        {list.length === 0 && <span style={{ fontSize: '12px', color: '#8e8e93' }}>暂无分类</span>}
+        {list.length === 0 && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>暂无分类</span>}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '2px' }}>
@@ -697,7 +697,7 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
                   padding: '5px 10px', borderRadius: '10px',
                   border: `1px solid ${active ? FIN : 'rgba(15,23,42,0.10)'}`,
                   background: active ? moduleRgba('finance', 0.08) : 'rgba(15,23,42,0.03)',
-                  color: active ? FIN : '#1c1c1e',
+                  color: active ? FIN : 'var(--text-1)',
                   fontWeight: 600, fontSize: '12px', cursor: 'pointer', transition: 'all .15s',
                 }}>
                 <span>{t.icon}</span><span>{t.lb}</span>
@@ -717,7 +717,7 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
             onChange={e => setInitialBalance(e.target.value)} placeholder={isLiability ? '如 8500（欠款）' : '如 12000'} style={INPUT_STYLE} />
         </div>
       </div>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#1c1c1e', cursor: 'pointer' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-1)', cursor: 'pointer' }}>
         <input type="checkbox" checked={includeInNetWorth} onChange={e => setIncludeInNetWorth(e.target.checked)}
           style={{ width: '16px', height: '16px', accentColor: 'var(--m-finance)' }} />
         计入净资产
@@ -761,7 +761,7 @@ export function FinanceGoalDetail({ goal, onEdit, onClose }) {
       {/* 头部：名称 + 进度条 */}
       <div style={{ background: moduleRgba('finance', 0.07), borderRadius: '12px', padding: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: '#1c1c1e' }}>{goal?.name}</span>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-1)' }}>{goal?.name}</span>
           <span style={{ fontSize: '12px', fontWeight: 700, color: FIN, tabular: 'true' }}>{goal?.progress || 0}%</span>
         </div>
         <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(120,120,128,0.15)', overflow: 'hidden' }}>
@@ -771,8 +771,8 @@ export function FinanceGoalDetail({ goal, onEdit, onClose }) {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {rows.map(([k, v]) => (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 2px', borderBottom: '1px solid rgba(60,60,67,0.08)' }}>
-            <span style={{ fontSize: '12.5px', color: '#8e8e93' }}>{k}</span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#1c1c1e', tabular: 'true' }}>{v}</span>
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>{k}</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-1)', tabular: 'true' }}>{v}</span>
           </div>
         ))}
       </div>

@@ -28,9 +28,9 @@ function PillChip({ active, onClick, children }) {
       style={{
         padding: '5px 13px',
         borderRadius: '14px',
-        border: active ? '1px solid #007AFF' : '1px solid #d1d1d6',
-        background: active ? '#007AFF' : 'transparent',
-        color: active ? '#fff' : '#1c1c1e',
+        border: active ? '1px solid var(--s-main)' : '1px solid var(--ink-200)',
+        background: active ? 'var(--s-main)' : 'transparent',
+        color: active ? 'var(--surface-card)' : 'var(--text-1)',
         fontSize: '12px',
         fontWeight: 600,
         cursor: 'pointer',
@@ -125,7 +125,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
 
   const sectionHeaderStyle = {
     display: 'flex', alignItems: 'center', gap: '6px',
-    fontSize: '12px', fontWeight: 600, color: '#8e8e93',
+    fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)',
     cursor: 'pointer', userSelect: 'none',
     textTransform: 'uppercase', letterSpacing: '0.03em',
   };
@@ -166,7 +166,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
                 width: '22px',
                 height: '22px',
                 borderRadius: '50%',
-                border: form.growth_type === key ? '2px solid #1c1c1e' : '2px solid #e5e5ea',
+                border: form.growth_type === key ? '2px solid var(--text-1)' : '2px solid var(--ink-100)',
                 background: color,
                 padding: 0,
                 cursor: 'pointer',
@@ -204,7 +204,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
         </div>
       </div>
       {form.start_time && form.end_time && (
-        <div style={{ fontSize: '11px', color: '#8e8e93', marginTop: '-4px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '-4px' }}>
           设置结束时间后时长会自动计算，也可手动覆盖
         </div>
       )}
@@ -214,7 +214,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
       <div style={sectionHeaderStyle} onClick={() => setShowTarget(v => !v)}>
         <span style={{ fontSize: '13px' }}>{showTarget ? '▾' : '▸'}</span>
         目标设置
-        <span style={{ fontSize: '10px', color: '#c7c7cc', fontWeight: 400, textTransform: 'none' }}>非必填</span>
+        <span style={{ fontSize: '10px', color: 'var(--ink-300)', fontWeight: 400, textTransform: 'none' }}>非必填</span>
       </div>
       {showTarget && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '2px' }}>
@@ -229,7 +229,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
           {form.target_mode === 'count' && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '13px', color: '#8e8e93' }}>每天完成</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>每天完成</span>
                 <input
                   className="form-input"
                   type="number"
@@ -256,7 +256,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
                   <option value="自定义">自定义</option>
                 </select>
                 {!TARGET_UNITS.includes(form.target_unit) && form.target_unit !== '' && form.target_unit !== '自定义' && (
-                  <span style={{ fontSize: '12px', color: '#8e8e93' }}>({form.target_unit})</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({form.target_unit})</span>
                 )}
               </div>
               {form.target_unit === '自定义' && (
@@ -268,12 +268,12 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
                   style={{ ...INPUT_STYLE, width: '160px' }}
                 />
               )}
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1c1c1e' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-1)' }}>
                 <input
                   type="checkbox"
                   checked={form.auto_log}
                   onChange={e => set('auto_log', e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#007AFF' }}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--s-main)' }}
                 />
                 打卡时自动弹出日志记录
               </label>
@@ -287,7 +287,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
       <div style={sectionHeaderStyle} onClick={() => setShowStreak(v => !v)}>
         <span style={{ fontSize: '13px' }}>{showStreak ? '▾' : '▸'}</span>
         坚持目标
-        <span style={{ fontSize: '10px', color: '#c7c7cc', fontWeight: 400, textTransform: 'none' }}>默认永远</span>
+        <span style={{ fontSize: '10px', color: 'var(--ink-300)', fontWeight: 400, textTransform: 'none' }}>默认永远</span>
       </div>
       {showStreak && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '2px' }}>
@@ -311,7 +311,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
           </div>
           {form.streak_goal && !STREAK_PRESETS.some(s => String(s.value) === form.streak_goal) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', color: '#8e8e93' }}>坚持</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>坚持</span>
               <input
                 className="form-input"
                 type="number"
@@ -320,7 +320,7 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
                 onChange={e => set('streak_goal', e.target.value)}
                 style={{ ...INPUT_STYLE, width: '72px', textAlign: 'center' }}
               />
-              <span style={{ fontSize: '13px', color: '#8e8e93' }}>天</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>天</span>
             </div>
           )}
         </div>
@@ -328,9 +328,9 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
 
       <div className="flex justify-end gap-2 pt-1">
         <button onClick={onCancel}
-          style={{ padding: '7px 14px', borderRadius: '9px', background: 'rgba(120,120,128,0.12)', border: 'none', color: '#1c1c1e', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>取消</button>
+          style={{ padding: '7px 14px', borderRadius: '9px', background: 'rgba(120,120,128,0.12)', border: 'none', color: 'var(--text-1)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>取消</button>
         <button onClick={submit} disabled={busy}
-          style={{ padding: '7px 14px', borderRadius: '9px', background: '#007AFF', border: 'none', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}>
+          style={{ padding: '7px 14px', borderRadius: '9px', background: 'var(--s-main)', border: 'none', color: 'var(--surface-card)', fontSize: '13px', fontWeight: '600', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}>
           {busy ? (isEdit ? '保存中...' : '添加中...') : (isEdit ? '保存' : '添加')}
         </button>
       </div>

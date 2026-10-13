@@ -30,7 +30,7 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             className={`px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-all active:scale-[0.98] ${
               danger
-                ? 'bg-[#FF3B30] hover:brightness-105 shadow-[0_2px_6px_rgba(255,59,48,0.25)]'
+                ? 'bg-[var(--danger)] hover:brightness-105 shadow-[0_2px_6px_rgba(255,59,48,0.25)]'
                 : 'bg-[var(--s-main)] hover:brightness-105 shadow-[0_2px_6px_rgba(var(--s-rgb),0.25)]'
             }`}
           >

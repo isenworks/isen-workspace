@@ -11,11 +11,11 @@ import ConfirmAlert from '../ConfirmAlert.jsx';
 const INPUT_STYLE = {
   width: '100%',
   padding: '8px 12px',
-  border: '1px solid #d1d1d6',
+  border: '1px solid var(--ink-200)',
   borderRadius: '9px',
   fontSize: '14px',
-  color: '#1c1c1e',
-  background: '#ffffff',
+  color: 'var(--text-1)',
+  background: 'var(--surface-card)',
   outline: 'none',
   transition: 'all .15s',
   boxSizing: 'border-box'
@@ -25,7 +25,7 @@ const LABEL_STYLE = {
   display: 'block',
   fontSize: '11px',
   fontWeight: '600',
-  color: '#8e8e93',
+  color: 'var(--text-muted)',
   marginBottom: '5px',
   textTransform: 'uppercase',
   letterSpacing: '0.03em'
@@ -33,16 +33,16 @@ const LABEL_STYLE = {
 
 const BTN_GHOST = {
   padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600',
-  background: 'rgba(120,120,128,0.12)', color: '#1c1c1e', border: 'none', cursor: 'pointer', transition: 'all .15s'
+  background: 'rgba(120,120,128,0.12)', color: 'var(--text-1)', border: 'none', cursor: 'pointer', transition: 'all .15s'
 };
 const BTN_PRIMARY = {
   padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600',
-  background: 'var(--m-life)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all .15s',
+  background: 'var(--m-life)', color: 'var(--surface-card)', border: 'none', cursor: 'pointer', transition: 'all .15s',
   boxShadow: '0 2px 8px rgba(var(--m-life-rgb),0.25)'
 };
 const BTN_DANGER = {
   padding: '6px 14px', borderRadius: '9px', fontSize: '13px', fontWeight: '600',
-  background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: 'none', cursor: 'pointer', transition: 'all .15s'
+  background: 'rgba(255,59,48,0.08)', color: 'var(--danger)', border: 'none', cursor: 'pointer', transition: 'all .15s'
 };
 
 /* 生日重复选项：复用 ScheduleForm REPEAT_OPTS 中的年重复两档 */
@@ -194,7 +194,7 @@ export default function BirthdayForm({ initial, onSaved, onCancel, onDelete }) {
                   cursor: 'pointer',
                   transition: 'all .15s',
                   background: on ? 'var(--m-life)' : 'rgba(120,120,128,0.12)',
-                  color: on ? '#fff' : '#1c1c1e',
+                  color: on ? 'var(--surface-card)' : 'var(--text-1)',
                   boxShadow: on ? '0 2px 6px rgba(var(--m-life-rgb),0.3)' : 'none'
                 }}
               >{o.label}</button>
@@ -202,7 +202,7 @@ export default function BirthdayForm({ initial, onSaved, onCancel, onDelete }) {
           })}
         </div>
         <div style={{
-          fontSize: '11px', color: '#8e8e93', marginTop: '7px',
+          fontSize: '11px', color: 'var(--text-muted)', marginTop: '7px',
           display: 'flex', alignItems: 'center', gap: '4px'
         }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -215,7 +215,7 @@ export default function BirthdayForm({ initial, onSaved, onCancel, onDelete }) {
         </div>
       </div>
 
-      {error && <div style={{ fontSize: '12px', color: '#FF3B30', fontWeight: 500 }}>{error}</div>}
+      {error && <div style={{ fontSize: '12px', color: 'var(--danger)', fontWeight: 500 }}>{error}</div>}
 
       {/* 操作按钮 · 与 ScheduleForm 同构（左删除 / 右取消+保存） */}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', paddingTop: '8px' }}>

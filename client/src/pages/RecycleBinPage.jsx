@@ -253,7 +253,7 @@ export default function RecycleBinPage() {
             {items && items.length > 0 && (
               <button
                 onClick={() => setConfirming({ kind: 'clear' })}
-                className="flex-shrink-0 text-[12.5px] font-semibold text-[#FF3B30] px-3 py-1.5 rounded-lg bg-[#FF3B3014] hover:bg-[#FF3B3026] active:scale-[0.98] transition-all"
+                className="flex-shrink-0 text-[12.5px] font-semibold text-[var(--danger)] px-3 py-1.5 rounded-lg bg-[#FF3B3014] hover:bg-[#FF3B3026] active:scale-[0.98] transition-all"
               >
                 清空
               </button>
@@ -301,7 +301,7 @@ export default function RecycleBinPage() {
           <div className="flex-1 flex items-center justify-center text-[13px] text-ink-400">加载中…</div>
         ) : grouped.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-10">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--ink-300)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
@@ -342,7 +342,7 @@ export default function RecycleBinPage() {
                       disabled={busy}
                       onClick={() => askRemove(it)}
                       title="永久删除"
-                      className="text-[#FF3B30] w-8 h-8 rounded-lg hover:bg-[#FF3B3014] disabled:opacity-40 opacity-30 group-hover:opacity-100 transition-all flex items-center justify-center"
+                      className="text-[var(--danger)] w-8 h-8 rounded-lg hover:bg-[#FF3B3014] disabled:opacity-40 opacity-30 group-hover:opacity-100 transition-all flex items-center justify-center"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -374,7 +374,7 @@ export default function RecycleBinPage() {
             <button
               onClick={() => confirming?.kind === 'clear' ? doClear() : doRemove(confirming.id)}
               disabled={busyIds.has(confirming?.kind === 'clear' ? 'clear' : confirming?.id)}
-              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[#FF3B30] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 transition-all"
+              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-[var(--danger)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 transition-all"
             >
               {confirming?.kind === 'clear' ? '全部清空' : '永久删除'}
             </button>

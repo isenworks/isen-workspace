@@ -166,7 +166,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayStr]);
   const weekStartStr = toISODate(weekStart);
   const weekEndStr = toISODate(endOfWeek(new Date()));
-  /* 本周重点卡片：周切换偏移量（0 = 当前周，-1 = 上周，1 = 下周…） */
+  /* 本周目标卡片：周切换偏移量（0 = 当前周，-1 = 上周，1 = 下周…） */
   const [weekOffset, setWeekOffset] = useState(0);
   const viewWeekStartStr = useMemo(() => addDaysISO(weekStartStr, weekOffset * 7), [weekStartStr, weekOffset]);
   const viewWeekEndStr = useMemo(() => addDaysISO(weekEndStr, weekOffset * 7), [weekEndStr, weekOffset]);
@@ -400,7 +400,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   }, [weekStartStr, todayStr, syncSignal, weekOffset, viewWeekStartStr]);
 
   /* ===== 跨组件同步：监听 schedule_saved / schedule_deleted 事件
-       CalendarPage 在周月重点面板修改状态后广播，HomePage 实时更新本周重点卡 ===== */
+       CalendarPage 在周月目标面板修改状态后广播，HomePage 实时更新本周目标卡 ===== */
   useEffect(() => {
     const unsub = store.subscribe((msg) => {
       if (!msg) return;
@@ -457,7 +457,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const [abilities] = usePersistentState('annual_abilities_v2', () => null);
   const [workGoals] = usePersistentState('annual_work', () => null);
 
-  /* ===== 今日聚焦（排除 is_goal 目标事项：目标只归属本周重点/日历主线面板，不进当日列表与进度统计） ===== */
+  /* ===== 今日聚焦（排除 is_goal 目标事项：目标只归属本周目标/日历主线面板，不进当日列表与进度统计） ===== */
   const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr && !s.is_goal), [sched, todayStr]);
   const todayDone = todayItems.filter(s => s.is_done).length;
   const todayPct = pct(todayDone, todayItems.length);
@@ -470,7 +470,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     return [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
   }, [todayStr]);
 
-  /* ===== 本周重点：仅展示目标（is_goal），当前周含逾期未完成；其他周严格限定该周范围内 ===== */
+  /* ===== 本周目标：仅展示目标（is_goal），当前周含逾期未完成；其他周严格限定该周范围内 ===== */
   const weekKeys = useMemo(() => (sched || [])
     .filter(s => {
       if (!s.is_goal) return false;
@@ -494,7 +494,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: nextDone, is_failed: false } : x));
     try {
       const r = await API.schedules.update(s.id, { is_done: nextDone, is_failed: false, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
-      // 广播勾选结果：日历"周月重点"面板等挂载中的监听方实时同步状态
+      // 广播勾选结果：日历"周月目标"面板等挂载中的监听方实时同步状态
       const saved = r?.schedule || { ...s, is_done: nextDone, is_failed: false };
       saved.is_done = nextDone;
       saved.is_failed = false;
@@ -511,7 +511,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: nextFailed, is_done: nextDone } : x));
     try {
       const r = await API.schedules.update(s.id, { is_failed: nextFailed, is_done: nextDone });
-      // 广播"未达成"标记结果：日历"周月重点"面板等挂载中的监听方实时同步状态
+      // 广播"未达成"标记结果：日历"周月目标"面板等挂载中的监听方实时同步状态
       const saved = r?.schedule || { ...s, is_failed: nextFailed, is_done: nextDone };
       saved.is_failed = nextFailed;
       saved.is_done = nextDone;
@@ -521,13 +521,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
-  /* ===== 本周重点右键浮动菜单 + 删除确认 ===== */
+  /* ===== 本周目标右键浮动菜单 + 删除确认 ===== */
   const [wkContextMenu, setWkContextMenu] = useState(null); // { x, y, task } | null
   const [wkConfirmDelete, setWkConfirmDelete] = useState(null); // { task } | null
   // 菜单打开时刻：触摸长按后抬手会合成一次 mousedown，需在短时间内忽略它，避免菜单刚弹出即被关闭
   const wkCtxShownAt = useRef(0);
   const showWkMenu = (task, x, y) => { wkCtxShownAt.current = Date.now(); setWkContextMenu({ x, y, task }); };
-  // 触摸端长按今日聚焦/本周重点行 → 弹出与右键相同的浮动菜单
+  // 触摸端长按今日聚焦/本周目标行 → 弹出与右键相同的浮动菜单
   const lp = useLongPress();
   useEffect(() => {
     if (!wkContextMenu) return;
@@ -570,10 +570,31 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       const r = await API.inbox.tags();
       const todoTag = (r.tags || []).find(t => t.name === '待办');
       await API.inbox.create({ content: `<p>${title}</p>`, tag_id: todoTag ? todoTag.id : null });
-      // 小记创建成功后，从今日聚焦/本周重点卡片移除原事项（复用删除链路：乐观移除 + 广播 + 后端软删）
+      // 小记创建成功后，从今日聚焦/本周目标卡片移除原事项（复用删除链路：乐观移除 + 广播 + 后端软删）
       deleteWeekKey(s);
       toast.success(todoTag ? '已移入小记（待办）' : '已移入小记（未找到「待办」标签，已无标签）');
     } catch (e) { toast.error(e.message || '移入小记失败'); }
+  };
+
+  /* 右键"转为事项"：目标事项（is_goal=1）→ 普通事项（is_goal=0）
+     转出后立即从"本周目标"卡消失，并广播 schedule_saved，
+     令今日聚焦 / 重点事项卡 / 日历等挂载中的视图实时同步（is_goal=false → 各视图按普通事项口径纳入） */
+  const convertToTask = async (s) => {
+    const id = s?.id;
+    if (id == null) return;
+    // 1) 乐观更新：is_goal=false → weekKeys 的 is_goal 过滤立即剔除该行
+    setSched(prev => (prev || []).map(x => String(x.id) === String(id) ? { ...x, is_goal: false } : x));
+    try {
+      const r = await API.schedules.update(id, { is_goal: 0 });
+      const saved = { ...(r?.schedule || s), is_goal: false, is_done: !!s.is_done, is_failed: !!s.is_failed };
+      // 2) 广播：其他挂载组件（重点事项卡 / 日历网格 / 主线面板）同步刷新
+      store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
+      toast.success('已转为事项');
+    } catch {
+      // 3) 失败回滚
+      setSched(prev => (prev || []).map(x => String(x.id) === String(id) ? { ...x, is_goal: true } : x));
+      toast.error('转为事项失败');
+    }
   };
 
   /* ===== 即将到来：今日之后的事项（日程 + 生日 + 节日，30 天内），按日期升序滚动查看 ===== */
@@ -597,7 +618,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       const daysLeft = Math.round((next - today) / 86400000);
       list.push({ key: `bd-${b.id}`, type: 'birthday', title: `${name}的生日`, date: toISODate(next), isLunar: b.repeat_rule === 'lunar-yearly', daysLeft });
     });
-    // 日程（今日之后 30 天内，排除生日原事项与目标事项——目标归属"本周重点"卡，避免同屏重复）
+    // 日程（今日之后 30 天内，排除生日原事项与目标事项——目标归属"本周目标"卡，避免同屏重复）
     (sched || []).filter(s => s.date > todayStr && s.date <= addDaysISO(todayStr, 30) && !isBirthday(s) && !s.is_goal)
       .forEach(s => {
         const daysLeft = Math.round((new Date(`${s.date}T00:00:00`) - today) / 86400000);
@@ -864,7 +885,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         )}
         </div>
 
-        {/* ========== 时间层：今日聚焦 / 本周重点 / 即将到来（3 等分，md 起 3 列） ==========
+        {/* ========== 时间层：今日聚焦 / 本周目标 / 即将到来（3 等分，md 起 3 列） ==========
              窄屏：auto-rows-auto —— 每张卡按各自内容自适应高度（不再被 auto-rows-fr 拉齐到最高卡）；
              md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满视口 */}
         <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
@@ -953,10 +974,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
 
-          {/* ---- 本周重点（标题右侧显示本周日期区间 + 周切换按钮，查看 → 周月重点页） ---- */}
+          {/* ---- 本周目标（标题右侧显示本周日期区间 + 周切换按钮，查看 → 周月目标页） ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead
-              title="本周重点"
+              title="本周目标"
               sub={`${+viewWeekStartStr.slice(5, 7)}.${+viewWeekStartStr.slice(8, 10)}-${+viewWeekEndStr.slice(5, 7)}.${+viewWeekEndStr.slice(8, 10)}`}
               onClick={() => onNav?.('calendar')}
               action={(
@@ -1051,7 +1072,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
 
-          {/* ---- 即将到来：今日之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月重点页 ---- */}
+          {/* ---- 即将到来：今日之后的事项（日程 + 生日 + 节日）滚动查看，查看 → 周月目标页 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead title="即将到来" sub="今日之后" onClick={() => onNav?.('calendar')} />
             <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
@@ -1362,13 +1383,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         onConfirm={handleCropConfirm}
       />
 
-      {/* ===== 本周重点右键浮动菜单 + 删除确认 Modal（与周月重点 FocusPanel 同构） ===== */}
+      {/* ===== 本周目标右键浮动菜单 + 删除确认 Modal（与周月目标 FocusPanel 同构） ===== */}
       {wkContextMenu && (
         <div
           className="hp-ctx-menu fixed z-[var(--z-popover)] select-none"
           style={{
             left: Math.min(wkContextMenu.x, window.innerWidth - 172),
-            top: Math.min(wkContextMenu.y, window.innerHeight - 110),
+            top: Math.min(wkContextMenu.y, window.innerHeight - 170),
             minWidth: 156,
             background: 'var(--surface-card)',
             borderRadius: '12px',
@@ -1390,6 +1411,18 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 : <path d="M18 6 6 18M6 6l12 12" />}
             </svg>
             {wkContextMenu.task.is_failed ? '取消未完成' : '标记未完成'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { convertToTask(wkContextMenu.task); setWkContextMenu(null); }}
+            className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
+            style={{ color: 'var(--text-1)' }}
+          >
+            <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            转为事项
           </button>
           <button
             type="button"

@@ -161,7 +161,7 @@ export function IconLink({ size = 14, strokeWidth = 2 }) {
   </>);
 }
 
-// 右上斜箭头（跳转 / 外链 ↗，与工作台既有跳转图标一致：主页本周重点 · 年度规划书架）
+// 右上斜箭头（跳转 / 外链 ↗，与工作台既有跳转图标一致：主页本周目标 · 年度规划书架）
 export function IconArrowUpRight({ size = 14, strokeWidth = 2.4 }) {
   return base(size, strokeWidth, <>
     <line x1="7" y1="17" x2="17" y2="7" />

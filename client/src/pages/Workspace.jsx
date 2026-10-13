@@ -92,13 +92,13 @@ export default function Workspace({ user: propUser }) {
   // 侧边栏「发展规划」二级导航加号请求：{ view, ts } → AnnualPlan 打开对应添加弹窗
   const [annualAdd, setAnnualAdd] = useState(null);
   const [selectedDate, setSelectedDate] = useState(getToday());
-  const view = 'today'; // 今日计划页聚焦单日，周/月视角由左侧「周/月重点」页承担
+  const view = 'today'; // 今日计划页聚焦单日，周/月视角由左侧「周/月目标」页承担
   const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  // 新建事项弹窗（快捷键 S / 首页新建卡共用）：默认今天；可传预置对象（如 { date, is_goal:1 } 从主线/本周重点建目标）
+  // 新建事项弹窗（快捷键 S / 首页新建卡共用）：默认今天；可传预置对象（如 { date, is_goal:1 } 从主线/本周目标建目标）
   const openNewSchedule = (preset) => {
     const p = (preset && typeof preset === 'object' && !preset.type) ? preset : undefined;
     setSelectedDate(p?.date || getToday());
@@ -422,7 +422,7 @@ export default function Workspace({ user: propUser }) {
     setCtxMenu(null);
 
     if (action === 'markFailed' && type === 'schedule') {
-      // 右键标记/取消"未完成"（is_failed），与 HomePage 本周重点同款三态语义
+      // 右键标记/取消"未完成"（is_failed），与 HomePage 本周目标同款三态语义
       const nextFailed = !task?.is_failed;
       try {
         await API.schedules.update(id, { is_failed: nextFailed, is_done: false, ...(task?._repeat_occurrence ? { occurrence_date: task.date } : {}) });

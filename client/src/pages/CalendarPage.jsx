@@ -421,7 +421,7 @@ function aggregateTasksFromAnnualPlan(year, month, realHabits = null) {
   }
 
   /* ========== [5] 生活 LIFE —— 不聚合进主线：生活体验属于记录而非计划，
-     只保留在年度规划·生活页（AnnualPlan）查看，月周重点/今日计划均不展示 */
+     只保留在年度规划·生活页（AnnualPlan）查看，月周目标/今日计划均不展示 */
 
   return tasks;
 }
@@ -1023,7 +1023,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         setApiSchedules(prev => prev.map(s =>
           String(s.id) === String(t.id) ? { ...s, is_done: nextDone, is_failed: nextFailed } : s));
         API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).then(r => {
-          // 广播勾选结果：主页"本周重点"卡等挂载中的监听方实时同步状态
+          // 广播勾选结果：主页"本周目标"卡等挂载中的监听方实时同步状态
           const saved = r?.schedule;
           if (saved) {
             saved.is_done = nextDone;
@@ -1060,7 +1060,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         setApiSchedules(prev => prev.map(s =>
           String(s.id) === String(t.id) ? { ...s, is_done: nextDone, is_failed: nextFailed } : s));
         API.schedules.update(t.id, { is_done: nextDone, is_failed: nextFailed }).then(r => {
-          // 广播"未达成"标记结果：主页"本周重点"卡等挂载中的监听方实时同步状态
+          // 广播"未达成"标记结果：主页"本周目标"卡等挂载中的监听方实时同步状态
           const saved = r?.schedule;
           if (saved) {
             saved.is_done = nextDone;
@@ -1432,8 +1432,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="month"
               accentColor="var(--s-main)"
-              title="重点"
-              titleByView={{ module: '重点', time: '日程' }}
+              title="目标"
+              titleByView={{ module: '目标', time: '日程' }}
               tasks={visibleMonthTasks}
               progressPct={monthProgress}
               timePct={monthTimePct}
@@ -1461,8 +1461,8 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               fill
               type="week"
               accentColor="var(--s-main)"
-              title="重点"
-              titleByView={{ module: '重点', time: '日程' }}
+              title="目标"
+              titleByView={{ module: '目标', time: '日程' }}
               tasks={visibleWeekTasks}
               progressPct={weekProgress}
               timePct={weekTimePct}

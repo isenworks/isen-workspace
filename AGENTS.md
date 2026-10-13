@@ -171,7 +171,7 @@ functions/api/[[route]].js           # 薄路由
 
 **语义**：`is_goal=1` 的 `ethan_schedules` 记录 = 目标事项（区别于普通日程）。字段在后端 create/update/list 全链路保留（`SELECT *` 回读），**丢失只会发生在前端的 map 转换点**——每处 map 必须显式携带 `is_goal: !!s.is_goal`，漏写不报错，症状是该路径注入的目标在"按 is_goal 筛选的视图"里消失。
 
-**写入入口（3 个，均预置 `is_goal:1`）**：主页本周重点卡 +（`HomePage` onNewSchedule）→ `Workspace.openNewSchedule`；日历本周/本月主线面板 +（`CalendarPage` 两处 `onEditSchedule({ date, is_goal: 1 })`）。表单层 `ScheduleForm`：`form.is_goal` 仅由 initial 决定，无 UI 覆盖点。
+**写入入口（3 个，均预置 `is_goal:1`）**：主页本周目标卡 +（`HomePage` onNewSchedule）→ `Workspace.openNewSchedule`；日历本周/本月主线面板 +（`CalendarPage` 两处 `onEditSchedule({ date, is_goal: 1 })`）。表单层 `ScheduleForm`：`form.is_goal` 仅由 initial 决定，无 UI 覆盖点。
 
 **前端两条注入路径（对比排查的关键，历史上挂载恢复路径丢过字段）**：
 
@@ -180,7 +180,7 @@ functions/api/[[route]].js           # 薄路由
 | 实时事件注入 | 保存时 `schedule_saved` 广播（页面已挂载） | `buildProxyTask`（~L818，字段全） |
 | 挂载恢复注入 | 切页回日历，CalendarPage 重新挂载拉 API | `mapped`（~L706）→ toInject 注入 monthTasks；`computeInitialWeekTasks`（~L131）注入 weekTasks |
 
-**按 is_goal 筛选的视图（字段丢失时的消失点）**：主页"本周重点"卡（`weekKeys`）；周月重点"重点"看板 = FocusPanel 模块分组视图（`moduleGoalsOnly` 时 `filter(t.is_goal)`）。**排除 is_goal 的视图**：今日聚焦（HomePage `todayItems`）、重点事项卡（KeyTasks `isDisplayInKeyTasks`）。**不筛、显示全部**：FocusPanel 时间顺序视图（"日程"标题）——目标在这里可见但在"重点"看板消失 = 注入路径丢了 is_goal 的典型症状。
+**按 is_goal 筛选的视图（字段丢失时的消失点）**：主页"本周目标"卡（`weekKeys`）；周月目标"目标"看板 = FocusPanel 模块分组视图（`moduleGoalsOnly` 时 `filter(t.is_goal)`）。另：主页本周目标卡右键支持"转为事项"（`convertToTask`，`is_goal:1→0` 后广播 `schedule_saved`），转出后该事项按普通事项口径重新纳入今日聚焦 / 重点事项卡 / 日历网格。**排除 is_goal 的视图**：今日聚焦（HomePage `todayItems`）、重点事项卡（KeyTasks `isDisplayInKeyTasks`）。**不筛、显示全部**：FocusPanel 时间顺序视图（"日程"标题）——目标在这里可见但在"目标"看板消失 = 注入路径丢了 is_goal 的典型症状。
 
 ***
 

@@ -167,8 +167,8 @@ export default function FocusPanel({
   onReorder,          // (groupKey, fromTaskId, toTaskId) => void — 组内拖拽排序回调
   deletedTasks,       // 回收站任务数组（若传则底部出现回收站卡）
   showDeleteButton,   // 详情弹层场景：在底部 footer 左侧放"删除该事项"按钮（需求 2 体检标题点面板左下删除）
-  titleExtra,         // 标题行内嵌插槽：紧跟标题文字渲染（月周重点页传 本周/本月 分段切换 + 日期辅助）
-  titleByView,        // 视图态标题 { module, time }：按模块分组/按时间顺序 切换时标题跟随（月周重点主线卡）；不传则恒用 title
+  titleExtra,         // 标题行内嵌插槽：紧跟标题文字渲染（月周目标页传 本周/本月 分段切换 + 日期辅助）
+  titleByView,        // 视图态标题 { module, time }：按模块分组/按时间顺序 切换时标题跟随（月周目标主线卡）；不传则恒用 title
   fill,              // 页面布局场景：卡片纵向撑满所在列（列表区吃剩余高度，超出滚动）；弹层不传则保持自然高度
   moduleGoalsOnly,   // 主线面板场景：模块分组视图只显示 is_goal 目标事项（时间顺序视图仍显示全部）；当日详情弹层不传保持全量
 }) {
@@ -316,7 +316,7 @@ export default function FocusPanel({
         <div className="flex-shrink-0 text-[15px] font-extrabold text-[var(--text-1)] tracking-tight">
           {titleByView?.[sortBy] || title}
         </div>
-        {/* 标题行内嵌插槽：月周重点页在此传 本周/本月 分段切换 + 日期辅助 */}
+        {/* 标题行内嵌插槽：月周目标页在此传 本周/本月 分段切换 + 日期辅助 */}
         {titleExtra && <div className="flex items-center gap-2 min-w-0">{titleExtra}</div>}
         <div className="flex-1" />
         <div className="flex items-center gap-2">

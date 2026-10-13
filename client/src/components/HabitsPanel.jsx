@@ -288,7 +288,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   function getDotColor(h) {
     const gt = getHabitGrowthType(h);
-    return GROWTH_TYPES[gt]?.color || '#34C759';
+    return GROWTH_TYPES[gt]?.color || 'var(--success)';
   }
 
   function getBg(h) {
@@ -303,7 +303,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
   function getDoneColor(h) {
     const gt = getHabitGrowthType(h);
-    return GROWTH_TYPES[gt]?.doneColor || '#34C759';
+    return GROWTH_TYPES[gt]?.doneColor || 'var(--success)';
   }
 
   function formatTime(h) {
@@ -408,7 +408,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
     return (
       <button
         onClick={(e) => { e.stopPropagation(); onClick(); }}
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#8e8e93] hover:text-[#34C759] hover:bg-[rgba(52,199,89,0.10)] active:scale-[0.97] transition-colors"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-3)] hover:text-[var(--success)] hover:bg-[rgba(var(--success-rgb),0.10)] active:scale-[0.97] transition-colors"
         title={hasSleepData ? '编辑睡眠记录（实际睡眠 + 精力 + 心情）' : '点击记录昨晚入睡/起床 + 醒后精力、心情'}
       >
         <Pencil size={16} strokeWidth={2} />
@@ -465,11 +465,11 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
         {/* 文本区 */}
         <div className="flex-1 min-w-0">
           {/* 第一行：标题 */}
-          <p className={`text-[14px] leading-tight ${h.done_today ? 'text-[#8e8e93] line-through' : 'text-[#1c1c1e]'}`}>
+          <p className={`text-[14px] leading-tight ${h.done_today ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
             {h.emoji} {h.name}
           </p>
           {/* 第二行：预设时间/目标 */}
-          <p className={`text-[12px] mt-0.5 flex items-center gap-1 ${h.done_today ? 'text-[#aeaeae]' : 'text-[#8e8e93]'}`}>
+          <p className={`text-[12px] mt-0.5 flex items-center gap-1 ${h.done_today ? 'text-[#aeaeae]' : 'text-[var(--text-3)]'}`}>
             {isSleep ? (
               <>
                 <Target size={12.5} strokeWidth={2} className="flex-shrink-0" />
@@ -487,17 +487,17 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
             const unit = h.target_unit || '次';
             return (
               <div className="mt-1.5 flex items-center gap-2">
-                <div className="flex-1 h-1.5 rounded-full bg-[#e5e5ea] overflow-hidden">
+                <div className="flex-1 h-1.5 rounded-full bg-[var(--ink-100)] overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
                       width: `${pct}%`,
-                      background: pct >= 100 ? '#34C759' : getDoneColor(h),
+                      background: pct >= 100 ? 'var(--success)' : getDoneColor(h),
                     }}
                   />
                 </div>
                 <span className={`text-[11px] font-medium whitespace-nowrap flex-shrink-0 ${h.done_today ? 'text-[#aeaeae]' : ''}`}
-                  style={{ color: h.done_today ? undefined : (pct >= 100 ? '#34C759' : '#8e8e93') }}
+                  style={{ color: h.done_today ? undefined : (pct >= 100 ? 'var(--success)' : 'var(--text-3)') }}
                 >
                   {cur} / {tgt}{unit}
                 </span>
@@ -511,17 +511,17 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           {isSleep && (
             hasSleepData && thirdLine ? (
               <>
-                <div className="my-2 h-px bg-[#e5e5ea]" style={{ opacity: 0.8 }}></div>
+                <div className="my-2 h-px bg-[var(--ink-100)]" style={{ opacity: 0.8 }}></div>
                 <div className="flex items-center gap-1 text-[12px] text-[#4a4a4f] w-full">
-                  <Clock size={12.5} strokeWidth={2} className="flex-shrink-0 text-[#8e8e93]" />
+                  <Clock size={12.5} strokeWidth={2} className="flex-shrink-0 text-[var(--text-3)]" />
                   <span className="whitespace-nowrap flex-shrink-0">
                     实际 {h.sleep_start} – {h.sleep_end} · {formatDuration(thirdLine.dur)}
                   </span>
-                  <span className="flex-shrink-0 text-[#c8c8cc]">·</span>
+                  <span className="flex-shrink-0 text-[var(--ink-300)]">·</span>
                   {thirdLine.dur >= thirdLine.target ? (
                     <span className="text-[#2BAD5E] whitespace-nowrap flex-shrink-0 font-medium">达标</span>
                   ) : (
-                    <span className="text-[#FF9500] whitespace-nowrap flex-shrink-0 font-medium">
+                    <span className="text-[var(--warning)] whitespace-nowrap flex-shrink-0 font-medium">
                       差{formatDuration(thirdLine.target - thirdLine.dur)}
                     </span>
                   )}
@@ -529,18 +529,18 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   <span className="inline-flex items-center gap-1 flex-shrink-0">
                     {energyMeta && <StateChip icon={ZapFilled} label={energyMeta.label} color={energyMeta.color} />}
                     {moodMeta && energyMeta && (
-                      <span className="text-[#c8c8cc]">·</span>
+                      <span className="text-[var(--ink-300)]">·</span>
                     )}
                     {moodMeta && <StateChip icon={HeartFilled} label={moodMeta.label} color={moodMeta.color} />}
                   </span>
                 </div>
                 {h.sleep_note && (
-                  <p className="mt-1 text-[11px] text-[#8e8e93] whitespace-pre-wrap leading-snug">💭 {h.sleep_note}</p>
+                  <p className="mt-1 text-[11px] text-[var(--text-3)] whitespace-pre-wrap leading-snug">💭 {h.sleep_note}</p>
                 )}
               </>
             ) : (
               <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-[8px]"
-                style={{ background: 'rgba(120,120,128,0.08)', color: '#8e8e93' }}>
+                style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--text-3)' }}>
                 <Pencil size={11} strokeWidth={2} />
                 <span>点击记录实际睡眠时间和精力心情</span>
               </div>
@@ -560,7 +560,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           ></span>
           <button
             onClick={(e) => { e.stopPropagation(); remove(h); }}
-            className="opacity-0 group-hover:opacity-100 text-[#8e8e93] hover:text-[#FF3B30] text-xs px-1 flex-shrink-0"
+            className="opacity-0 group-hover:opacity-100 text-[var(--text-3)] hover:text-[var(--danger)] text-xs px-1 flex-shrink-0"
             title="归档/删除该习惯"
           >×</button>
         </span>
@@ -608,7 +608,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           <div className="sk-line" style={{width:'80%'}}></div>
         </div>
       ) : habits.length === 0 ? (
-        <div className="text-center py-6 text-sm text-[#8e8e93]">
+        <div className="text-center py-6 text-sm text-[var(--text-3)]">
           <div className="text-2xl mb-2">🎯</div>
           还没有习惯
         </div>
@@ -639,13 +639,13 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           }}
         >
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-[16px] font-semibold text-[#1c1c1e] flex items-center gap-2">
+            <h3 className="text-[16px] font-semibold text-[var(--text-1)] flex items-center gap-2">
               <Moon size={18} strokeWidth={1.75} className="text-[color:var(--s-main)]" />
               <span>{sleepPopover.habitName} · 睡眠记录</span>
             </h3>
             <button
               onClick={() => setSleepPopover(null)}
-              className="text-[#8e8e93] hover:text-[#1c1c1e] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
+              className="text-[var(--text-3)] hover:text-[var(--text-1)] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
               title="关闭"
             >
               <X size={16} strokeWidth={2} />
@@ -655,21 +655,21 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           {/* 入睡 / 起床时间 */}
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">入睡时间</label>
+              <label className="text-[13px] text-[var(--text-3)] mb-1.5 block">入睡时间</label>
               <input
                 type="time"
                 value={sleepPopover.sleepStart}
                 onChange={(e) => setSleepPopover(s => ({ ...s, sleepStart: e.target.value }))}
-                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
+                className="w-full border border-[var(--ink-100)] rounded-lg px-3 py-2 text-[14px] text-[var(--text-1)] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
               />
             </div>
             <div>
-              <label className="text-[13px] text-[#8e8e93] mb-1.5 block">起床时间</label>
+              <label className="text-[13px] text-[var(--text-3)] mb-1.5 block">起床时间</label>
               <input
                 type="time"
                 value={sleepPopover.sleepEnd}
                 onChange={(e) => setSleepPopover(s => ({ ...s, sleepEnd: e.target.value }))}
-                className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
+                className="w-full border border-[var(--ink-100)] rounded-lg px-3 py-2 text-[14px] text-[var(--text-1)] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
               />
             </div>
           </div>
@@ -683,7 +683,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                 const target = sleepPopover.targetMin;
                 const met = dur >= target;
                 return (
-                  <p className="text-[13px] inline-flex items-center gap-1.5" style={{ color: met ? '#34C759' : '#FF9500' }}>
+                  <p className="text-[13px] inline-flex items-center gap-1.5" style={{ color: met ? 'var(--success)' : 'var(--warning)' }}>
                     <Clock size={13} />
                     <span>实际睡眠 {formatDuration(dur)}</span>
                     {met ? <span>· 达标 ✅</span> : <span> · 差{formatDuration(target - dur)}</span>}
@@ -695,7 +695,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
           {/* 精力状态 */}
           <div className="mb-3">
-            <label className="text-[13px] text-[#8e8e93] mb-2 block flex items-center gap-1.5">
+            <label className="text-[13px] text-[var(--text-3)] mb-2 block flex items-center gap-1.5">
               <Zap size={13} strokeWidth={2} className="text-[#ffcc00]" />
               醒后精力状态
             </label>
@@ -707,9 +707,9 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   data-energy={opt.value}
                   className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[13px] font-medium border transition-all"
                   style={{
-                    background: sleepPopover.energyState === opt.value ? `${opt.color}14` : '#fff',
-                    borderColor: sleepPopover.energyState === opt.value ? opt.color : '#e5e5ea',
-                    color: sleepPopover.energyState === opt.value ? opt.color : '#1c1c1e',
+                    background: sleepPopover.energyState === opt.value ? `${opt.color}14` : 'var(--surface-card)',
+                    borderColor: sleepPopover.energyState === opt.value ? opt.color : 'var(--ink-100)',
+                    color: sleepPopover.energyState === opt.value ? opt.color : 'var(--text-1)',
                   }}
                 >
                   <Zap size={14} strokeWidth={2} />
@@ -721,8 +721,8 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
           {/* 心情状态 */}
           <div className="mb-4">
-            <label className="text-[13px] text-[#8e8e93] mb-2 block flex items-center gap-1.5">
-              <Heart size={13} strokeWidth={2} className="text-[#FF3B30]" />
+            <label className="text-[13px] text-[var(--text-3)] mb-2 block flex items-center gap-1.5">
+              <Heart size={13} strokeWidth={2} className="text-[var(--danger)]" />
               醒后心情状态
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -732,9 +732,9 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                   onClick={() => setSleepPopover(sp => ({ ...sp, moodState: sp.moodState === s.value ? '' : s.value }))}
                   className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[13px] font-medium border transition-all"
                   style={{
-                    background: sleepPopover.moodState === s.value ? `${s.color}14` : '#fff',
-                    borderColor: sleepPopover.moodState === s.value ? s.color : '#e5e5ea',
-                    color: sleepPopover.moodState === s.value ? s.color : '#1c1c1e',
+                    background: sleepPopover.moodState === s.value ? `${s.color}14` : 'var(--surface-card)',
+                    borderColor: sleepPopover.moodState === s.value ? s.color : 'var(--ink-100)',
+                    color: sleepPopover.moodState === s.value ? s.color : 'var(--text-1)',
                   }}
                 >
                   <Heart size={14} strokeWidth={2} />
@@ -746,13 +746,13 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
           {/* 备注 */}
           <div className="mb-5">
-            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">备注（可选）</label>
+            <label className="text-[13px] text-[var(--text-3)] mb-1.5 block">备注（可选）</label>
             <textarea
               value={sleepPopover.sleepNote}
               onChange={(e) => setSleepPopover(s => ({ ...s, sleepNote: e.target.value }))}
               placeholder="例如：昨晚做梦了，中间醒了一次..."
               rows={2}
-              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] resize-none bg-white"
+              className="w-full border border-[var(--ink-100)] rounded-lg px-3 py-2 text-[13px] text-[var(--text-1)] focus:outline-none focus:border-[color:var(--s-main)] resize-none bg-white"
             />
           </div>
 
@@ -760,7 +760,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setSleepPopover(null)}
-              className="px-4 py-2 rounded-lg text-[14px] text-[#8e8e93] hover:bg-[#e5e5ea] bg-[#f0f0f5]"
+              className="px-4 py-2 rounded-lg text-[14px] text-[var(--text-3)] hover:bg-[var(--ink-100)] bg-[#f0f0f5]"
             >
               取消
             </button>
@@ -794,13 +794,13 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[16px] font-semibold text-[#1c1c1e] flex items-center gap-2">
+            <h3 className="text-[16px] font-semibold text-[var(--text-1)] flex items-center gap-2">
               <span className="text-[18px]">{countLog.emoji}</span>
               <span>{countLog.habitName}</span>
             </h3>
             <button
               onClick={() => setCountLog(null)}
-              className="text-[#8e8e93] hover:text-[#1c1c1e] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
+              className="text-[var(--text-3)] hover:text-[var(--text-1)] w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center transition-colors"
             >
               <X size={16} strokeWidth={2} />
             </button>
@@ -814,14 +814,14 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
               return (
                 <>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[12px] text-[#8e8e93]">当前进度</span>
-                    <span className="text-[12px] font-medium" style={{ color: pct >= 100 ? '#34C759' : '#1c1c1e' }}>
+                    <span className="text-[12px] text-[var(--text-3)]">当前进度</span>
+                    <span className="text-[12px] font-medium" style={{ color: pct >= 100 ? 'var(--success)' : 'var(--text-1)' }}>
                       {countLog.currentValue} → {newVal} / {countLog.targetValue}{countLog.unit}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-[#e5e5ea] overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[var(--ink-100)] overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${pct}%`, background: pct >= 100 ? '#34C759' : 'var(--s-main)' }}
+                      style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--success)' : 'var(--s-main)' }}
                     />
                   </div>
                 </>
@@ -831,13 +831,13 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
 
           {/* 本次记录量 */}
           <div className="mb-3">
-            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">
+            <label className="text-[13px] text-[var(--text-3)] mb-1.5 block">
               本次记录（{countLog.unit}）
             </label>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCountLog(s => ({ ...s, addValue: Math.max(0.5, (Number(s.addValue) || 1) - 1) }))}
-                className="w-9 h-9 rounded-lg border border-[#e5e5ea] bg-white text-[#1c1c1e] text-lg font-medium hover:bg-[#f0f0f5] transition-colors flex items-center justify-center"
+                className="w-9 h-9 rounded-lg border border-[var(--ink-100)] bg-white text-[var(--text-1)] text-lg font-medium hover:bg-[#f0f0f5] transition-colors flex items-center justify-center"
               >−</button>
               <input
                 type="number"
@@ -845,24 +845,24 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
                 step="1"
                 value={countLog.addValue}
                 onChange={(e) => setCountLog(s => ({ ...s, addValue: e.target.value }))}
-                className="flex-1 border border-[#e5e5ea] rounded-lg px-3 py-2 text-[14px] text-center text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
+                className="flex-1 border border-[var(--ink-100)] rounded-lg px-3 py-2 text-[14px] text-center text-[var(--text-1)] focus:outline-none focus:border-[color:var(--s-main)] bg-white"
               />
               <button
                 onClick={() => setCountLog(s => ({ ...s, addValue: (Number(s.addValue) || 0) + 1 }))}
-                className="w-9 h-9 rounded-lg border border-[#e5e5ea] bg-white text-[#1c1c1e] text-lg font-medium hover:bg-[#f0f0f5] transition-colors flex items-center justify-center"
+                className="w-9 h-9 rounded-lg border border-[var(--ink-100)] bg-white text-[var(--text-1)] text-lg font-medium hover:bg-[#f0f0f5] transition-colors flex items-center justify-center"
               >+</button>
             </div>
           </div>
 
           {/* 打卡备注 */}
           <div className="mb-5">
-            <label className="text-[13px] text-[#8e8e93] mb-1.5 block">打卡备注（可选）</label>
+            <label className="text-[13px] text-[var(--text-3)] mb-1.5 block">打卡备注（可选）</label>
             <textarea
               value={countLog.note}
               onChange={(e) => setCountLog(s => ({ ...s, note: e.target.value }))}
               placeholder="记录本次打卡的感受或细节..."
               rows={3}
-              className="w-full border border-[#e5e5ea] rounded-lg px-3 py-2 text-[13px] text-[#1c1c1e] focus:outline-none focus:border-[color:var(--s-main)] resize-none bg-white"
+              className="w-full border border-[var(--ink-100)] rounded-lg px-3 py-2 text-[13px] text-[var(--text-1)] focus:outline-none focus:border-[color:var(--s-main)] resize-none bg-white"
             />
           </div>
 
@@ -870,7 +870,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setCountLog(null)}
-              className="px-4 py-2 rounded-lg text-[14px] text-[#8e8e93] hover:bg-[#e5e5ea] bg-[#f0f0f5]"
+              className="px-4 py-2 rounded-lg text-[14px] text-[var(--text-3)] hover:bg-[var(--ink-100)] bg-[#f0f0f5]"
             >
               取消
             </button>

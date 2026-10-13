@@ -15,14 +15,14 @@ import { uid } from './utils.js';
 // 灰=无记录 / 绿=正常或今日已做 / 橙=临期(距周期≤2天) / 红=超期
 // 状态文案只做行动指引，周期数字不出现（避免与控制行的「周期」重复）
 function careStatus(last, cycle, unit) {
-  if (!last) return { level: 'none', color: '#8e8e93', text: `还没有${unit}记录` };
-  if (!cycle) return { level: 'none', color: '#8e8e93', text: `未设置${unit}周期` };
+  if (!last) return { level: 'none', color: 'var(--text-3)', text: `还没有${unit}记录` };
+  if (!cycle) return { level: 'none', color: 'var(--text-3)', text: `未设置${unit}周期` };
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const l = new Date(last); l.setHours(0, 0, 0, 0);
   const days = Math.round((today - l) / 86400000);
   if (days <= 0) return { level: 'done', color: '#3E7D3E', text: `今日已${unit}`, days };
-  if (days >= cycle) return { level: 'alert', color: '#FF3B30', text: `已超期 ${days - cycle} 天`, days };
-  if (days >= cycle - 2) return { level: 'warn', color: '#FF9500', text: `建议今天${unit}`, days };
+  if (days >= cycle) return { level: 'alert', color: 'var(--danger)', text: `已超期 ${days - cycle} 天`, days };
+  if (days >= cycle - 2) return { level: 'warn', color: 'var(--warning)', text: `建议今天${unit}`, days };
   return { level: 'ok', color: '#3E7D3E', text: `${cycle - days} 天后${unit}`, days };
 }
 
@@ -519,8 +519,8 @@ export default function PlantingShelf({ onCountChange }) {
         {/* 顶部栏 */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 5 }}>
           <div className="flex items-baseline gap-2">
-            <span className="text-[15px] font-semibold text-[#1c1c1e] tracking-tight">我的花架</span>
-            <span className="text-[12px] text-[#8e8e93]">{plants.length} 株 · 3 层</span>
+            <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">我的花架</span>
+            <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株 · 3 层</span>
           </div>
           <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
             className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
@@ -538,8 +538,8 @@ export default function PlantingShelf({ onCountChange }) {
             className="absolute left-1/2 top-14 -translate-x-1/2 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap"
             style={{
               zIndex: 9,
-              background: saveToast.type === 'ok' ? 'rgba(62,125,62,0.94)' : 'rgba(255,59,48,0.96)',
-              color: '#fff',
+              background: saveToast.type === 'ok' ? 'rgba(62,125,62,0.94)' : 'rgba(var(--danger-rgb),0.96)',
+              color: 'var(--surface-card)',
               boxShadow: '0 4px 14px rgba(0,0,0,0.16)',
               animation: 'toast-pop 0.18s ease-out',
             }}>
@@ -603,7 +603,7 @@ export default function PlantingShelf({ onCountChange }) {
                       className={`absolute ${pos} w-2.5 h-2.5 rounded-full z-10`}
                       title="拖动缩放"
                       style={{
-                        background: '#fff',
+                        background: 'var(--surface-card)',
                         border: '2px solid #3E7D3E',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
                         cursor: cur,
@@ -616,7 +616,7 @@ export default function PlantingShelf({ onCountChange }) {
               <div className="absolute left-1/2 -bottom-5 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
                 style={{
                   background: isSel ? '#3E7D3E' : 'rgba(255,255,255,0.88)',
-                  color: isSel ? '#fff' : '#3a3a3c',
+                  color: isSel ? 'var(--surface-card)' : '#3a3a3c',
                   opacity: isSel || dragging === plant.id ? 1 : 0,
                   transition: 'opacity 0.15s',
                   pointerEvents: 'none',
@@ -628,9 +628,9 @@ export default function PlantingShelf({ onCountChange }) {
               {ws?.level === 'alert' && (
                 <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center animate-pulse"
                   style={{
-                    background: '#FF3B30',
-                    boxShadow: '0 2px 8px rgba(255,59,48,0.55), 0 0 0 2px #fff',
-                    color: '#fff',
+                    background: 'var(--danger)',
+                    boxShadow: '0 2px 8px rgba(var(--danger-rgb),0.55), 0 0 0 2px #fff',
+                    color: 'var(--surface-card)',
                     fontSize: '13px',
                     fontWeight: '900',
                     lineHeight: '1',
@@ -660,14 +660,14 @@ export default function PlantingShelf({ onCountChange }) {
 
         {/* 加载状态 */}
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-[12px]" style={{ zIndex: 3, color: '#8e8e93' }}>
+          <div className="absolute inset-0 flex items-center justify-center text-[12px]" style={{ zIndex: 3, color: 'var(--text-3)' }}>
             正在加载花架…
           </div>
         )}
         {/* 加载失败（API 挂/超时） */}
         {!loading && loadErr && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{ zIndex: 3 }}>
-            <div className="text-[12px]" style={{ color: '#FF3B30' }}>{loadErr}</div>
+            <div className="text-[12px]" style={{ color: 'var(--danger)' }}>{loadErr}</div>
             <button onClick={loadPlants}
               className="text-[11px] font-semibold px-3 py-1 rounded-md transition active:scale-95"
               style={{ color: '#3E7D3E', background: 'rgba(95,168,95,0.12)', border: '1px solid rgba(95,168,95,0.25)' }}>
@@ -679,7 +679,7 @@ export default function PlantingShelf({ onCountChange }) {
         {/* 右下角 + 按钮（小巧紧凑，不产生渐变） */}
         <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
           className="absolute right-3 bottom-3 w-9 h-9 rounded-xl grid place-items-center transition hover:scale-105"
-          style={{ zIndex: 7, background: '#3E7D3E', color: '#fff', boxShadow: '0 2px 8px rgba(62,125,62,0.18)' }}
+          style={{ zIndex: 7, background: '#3E7D3E', color: 'var(--surface-card)', boxShadow: '0 2px 8px rgba(62,125,62,0.18)' }}
           title="添加植物 · 支持 PNG 透明图">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
         </button>
@@ -751,13 +751,13 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
         {doneToday ? (
           <button onClick={onUndo} title="撤销今天的打卡，回退一个周期"
             className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition active:scale-95 flex-shrink-0"
-            style={{ color: '#8e8e93', background: 'rgba(120,120,128,0.08)', border: '1px solid rgba(120,120,128,0.16)' }}>
+            style={{ color: 'var(--text-3)', background: 'rgba(120,120,128,0.08)', border: '1px solid rgba(120,120,128,0.16)' }}>
             撤销
           </button>
         ) : (
           <button onClick={onMark}
             className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition active:scale-95 flex-shrink-0"
-            style={{ color: '#fff', background: markColor, boxShadow: `0 1px 4px ${markColor}4D` }}>
+            style={{ color: 'var(--surface-card)', background: markColor, boxShadow: `0 1px 4px ${markColor}4D` }}>
             ✓ {markLabel}
           </button>
         )}
@@ -765,17 +765,17 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
       {/* 控制行：上次日期（可改）+ 周期天数（可改） */}
       <div className="flex items-center gap-2">
         <div className="flex-1 flex items-center gap-1.5 rounded-lg min-w-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">上次</span>
+          <span className="text-[10px] text-[var(--text-3)] font-medium flex-shrink-0">上次</span>
           <input type="date" value={last} onChange={(e) => onLastChange(e.target.value)}
             className="dp min-w-0 flex-1" title="修改上次日期" />
         </div>
         <div className="flex items-center gap-1 rounded-lg flex-shrink-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <span className="text-[10px] text-[#8e8e93] font-medium flex-shrink-0">周期</span>
+          <span className="text-[10px] text-[var(--text-3)] font-medium flex-shrink-0">周期</span>
           <input type="number" min={1} max={maxCycle} value={cycle}
             onChange={(e) => onCycleChange(parseInt(e.target.value) || 1)}
             className="w-8 text-[11px] text-center bg-transparent outline-none font-semibold tabular-nums"
             style={{ color: markColor }} />
-          <span className="text-[10px] text-[#8e8e93] font-medium">天</span>
+          <span className="text-[10px] text-[var(--text-3)] font-medium">天</span>
         </div>
       </div>
     </div>
@@ -818,9 +818,9 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
 
   // 浇水卡配色随状态（绿/橙/红渐变）
   const waterCard = ws.level === 'alert'
-    ? { bg: 'linear-gradient(135deg, rgba(255,59,48,0.08), rgba(255,149,0,0.05))', border: 'rgba(255,59,48,0.14)' }
+    ? { bg: 'linear-gradient(135deg, rgba(var(--danger-rgb),0.08), rgba(var(--warning-rgb),0.05))', border: 'rgba(var(--danger-rgb),0.14)' }
     : ws.level === 'warn'
-      ? { bg: 'linear-gradient(135deg, rgba(255,149,0,0.08), rgba(95,168,95,0.04))', border: 'rgba(255,149,0,0.14)' }
+      ? { bg: 'linear-gradient(135deg, rgba(var(--warning-rgb),0.08), rgba(95,168,95,0.04))', border: 'rgba(var(--warning-rgb),0.14)' }
       : ws.level === 'none'
         ? { bg: 'rgba(120,120,128,0.05)', border: 'rgba(120,120,128,0.12)' }
         : { bg: 'linear-gradient(135deg, rgba(95,168,95,0.08), rgba(95,168,95,0.02))', border: 'rgba(95,168,95,0.14)' };
@@ -835,7 +835,7 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
         className="absolute top-12 right-4 w-[320px] overflow-hidden"
         style={{
           zIndex: 10,
-          background: '#fff',
+          background: 'var(--surface-card)',
           borderRadius: '16px',
           border: '1px solid rgba(0,0,0,0.06)',
           boxShadow: '0 20px 56px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
@@ -848,7 +848,7 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
              font:inherit 会继承抽屉 16px 且压不住 WebKit date 内部默认尺寸 → 显式锁 10.5px */
           .dp { appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
             font-family: inherit; font-size: 10.5px; font-weight: 400; padding: 0; margin: 0;
-            color: #1c1c1e; cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1.15; letter-spacing: -0.01em; }
+            color: var(--text-1); cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1.15; letter-spacing: -0.01em; }
           /* WebKit 日期编辑区：与外层同字号（缺这条 Chrome 会用内部默认字号渲染数字） */
           .dp::-webkit-datetime-edit { padding: 0; font-size: 10.5px; font-weight: 400; }
           .dp::-webkit-datetime-edit-fields-wrapper { font-size: 10.5px; font-weight: 400; }
@@ -875,14 +875,14 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
             <div className="flex items-center gap-2">
               <input value={form.name} onChange={(e) => update('name', e.target.value)}
                 placeholder="植物名称"
-                className="text-[15px] font-semibold text-[#1c1c1e] bg-transparent outline-none border-b border-transparent focus:border-[#3E7D3E] transition leading-tight" />
+                className="text-[15px] font-semibold text-[var(--text-1)] bg-transparent outline-none border-b border-transparent focus:border-[#3E7D3E] transition leading-tight" />
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
                 style={{ color: '#3E7D3E', background: 'rgba(95,168,95,0.1)' }}>
                 L{Math.ceil((plant.pos_y || 0) / 33) || 1}
               </span>
             </div>
             {/* 已种植天数 + 种植日期（原生 date 胶囊，点击即弹系统日历） */}
-            <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: '#6B6B70' }}>
+            <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: 'var(--text-3)' }}>
               <span>已种植</span>
               <span className="font-bold tabular-nums" style={{ color: '#3E7D3E' }}>{days}</span>
               <span>天 ·</span>
@@ -934,16 +934,16 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
 
           {/* 特性 */}
           <div>
-            <div className="text-[11px] text-[#8e8e93] mb-1.5 font-semibold tracking-wide">特性</div>
+            <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">特性</div>
             <textarea value={form.traits} onChange={(e) => update('traits', e.target.value)} placeholder="喜温暖湿润，耐阴…" rows={2}
-              className="w-full text-[13.5px] text-[#1c1c1e] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
+              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
           </div>
 
           {/* 养护方法 */}
           <div>
-            <div className="text-[11px] text-[#8e8e93] mb-1.5 font-semibold tracking-wide">养护方法</div>
+            <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">养护方法</div>
             <textarea value={form.care_method} onChange={(e) => update('care_method', e.target.value)} placeholder="每周浇水 1 次…" rows={2}
-              className="w-full text-[13.5px] text-[#1c1c1e] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[#c7c7cc]" />
+              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#3E7D3E] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
           </div>
         </div>
 
@@ -951,12 +951,12 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
         <div className="flex gap-2 px-4 pb-3.5">
           <button onClick={() => onRemove(plant.id)}
             className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition hover:brightness-95 active:scale-[0.98]"
-            style={{ background: 'rgba(255,59,48,0.06)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.1)' }}>
+            style={{ background: 'rgba(var(--danger-rgb),0.06)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.1)' }}>
             移除
           </button>
           <button onClick={handleSave} disabled={!dirty}
             className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition hover:brightness-95 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: '#3E7D3E', color: '#fff', boxShadow: '0 2px 8px rgba(62,125,62,0.2)' }}>
+            style={{ background: '#3E7D3E', color: 'var(--surface-card)', boxShadow: '0 2px 8px rgba(62,125,62,0.2)' }}>
             保存
           </button>
         </div>

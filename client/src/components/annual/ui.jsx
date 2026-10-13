@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { catMeta } from './utils.js';
 import { createPortal } from 'react-dom'
+import { useLongPress } from '../useLongPress.js'
 
 export function CategoryIcon({ catKey, className, style }) {
   const cls = className || 'w-4 h-4';
@@ -68,6 +69,9 @@ export function InlineEdit({
   const ref = React.useRef(null);
   // 右键菜单：{x, y} 打开中；null 关闭
   const [menu, setMenu] = React.useState(null);
+  // 菜单打开时刻 + 触摸端长按手势（与右键共用同一份菜单逻辑）
+  const menuOpenedAt = React.useRef(0);
+  const lp = useLongPress();
 
   React.useEffect(() => { if (!editing) setDraft(value); }, [value, editing]);
   React.useEffect(() => { if (editing) setTimeout(() => ref.current?.focus(), 0); }, [editing]);
@@ -75,7 +79,13 @@ export function InlineEdit({
   // 点击外部 / 滚动 → 关闭右键菜单
   React.useEffect(() => {
     if (!menu) return;
-    const hide = () => setMenu(null);
+    const hide = (e) => {
+      // 触摸长按抬手会合成一次 mousedown/touchstart，短时间内忽略，避免菜单刚弹出即被关闭
+      if (Date.now() - menuOpenedAt.current < 350) return;
+      // 菜单内部交互不关闭
+      if (e && e.target && typeof e.target.closest === 'function' && e.target.closest('[data-inline-edit-menu]')) return;
+      setMenu(null);
+    };
     window.addEventListener('mousedown', hide);
     window.addEventListener('touchstart', hide);
     window.addEventListener('scroll', hide, true);
@@ -96,17 +106,22 @@ export function InlineEdit({
   };
   const cancel = () => { setEditing(false); setDraft(value ?? ''); };
 
-  const openContextMenu = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // 计算位置，超出右边界则左对齐
+  const openMenuAt = (clientX, clientY) => {
+    menuOpenedAt.current = Date.now();
+    // 计算位置，超出右/下边界则回收进视口
     const pad = 12;
     const maxX = window.innerWidth - menuWidth - pad;
     const maxY = window.innerHeight - 92 - pad;
     setMenu({
-      x: Math.min(e.clientX, maxX),
-      y: Math.min(e.clientY, maxY),
+      x: Math.min(clientX, maxX),
+      y: Math.min(clientY, maxY),
     });
+  };
+
+  const openContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openMenuAt(e.clientX, e.clientY);
   };
 
   // -------- 编辑态：输入框 --------
@@ -130,12 +145,13 @@ export function InlineEdit({
   return (
     <>
       <span
-        title={title || (isCtxMode ? '右键编辑' : '点击编辑')}
+        title={title || (isCtxMode ? '右键/长按编辑' : '点击编辑')}
         onClick={(e) => {
           if (isCtxMode) return; // 右键模式下禁用单击编辑
           e.stopPropagation(); setEditing(true);
         }}
         onContextMenu={isCtxMode ? openContextMenu : undefined}
+        {...(isCtxMode ? lp.bind((pos) => openMenuAt(pos.clientX, pos.clientY)) : {})}
         style={style}
         className={`${isCtxMode ? 'cursor-context-menu' : 'cursor-text'} hover:opacity-80 transition select-none ${className || ''}`}>
         {value ? (
@@ -148,6 +164,7 @@ export function InlineEdit({
       {/* ---- 右键浮层菜单：编辑 / 删除（通过 portal 输出到 body，避免被容器裁剪）---- */}
       {isCtxMode && menu && typeof document !== 'undefined' && document.body && createPortal(
         <div
+          data-inline-edit-menu=""
           onMouseDown={(e) => e.stopPropagation()}
           style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 'var(--z-popover)', width: menuWidth, backgroundColor: '#ffffff' }}
           className="rounded-xl shadow-2xl border border-ink-100 py-1 overflow-hidden">
@@ -201,7 +218,7 @@ export function EditableTitle({ value, onChange, fallback, className, inputClass
       onDelete={() => onChange('')}
       placeholder={fallback}
       mode="contextmenu"
-      title="右键修改标题"
+      title="右键/长按修改标题"
       className={className}
       inputClassName={inputClassName}
     />

@@ -654,6 +654,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           className="relative overflow-hidden px-8 py-10 flex items-center justify-between gap-6 flex-wrap rounded-[18px] group md:h-[168px]"
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
+          {...lp.bind(() => setHeroEditOpen(v => !v))}
         >
           {/* 背景图片层 ×N（交叉淡入；按 crop 从原图实时裁剪铺满，渐变模式时全透明） */}
           {heroImgs.map((im, i) => (

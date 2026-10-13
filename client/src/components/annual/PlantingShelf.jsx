@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { API } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmDialog from '../ConfirmDialog.jsx';
+import { useLongPress } from '../useLongPress.js';
 import { uid } from './utils.js';
 
 // ---- 养护状态计算（浇水/施肥通用）----
@@ -171,6 +172,8 @@ function BFDrop({ pos, size, color, anim, onPosChange }) {
 
 export default function PlantingShelf({ onCountChange }) {
   const toast = useToast();
+  // 触摸端长按植物 → 与右键同：打开信息编辑面板
+  const lp = useLongPress();
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   // 加载完成后把 plants 数量同步给父组件（LifeView 的左侧分类计数）
@@ -562,7 +565,8 @@ export default function PlantingShelf({ onCountChange }) {
               }}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => onPlantMouseDown(e, plant)}
-              onContextMenu={(e) => onPlantContextMenu(e, plant)}>
+              onContextMenu={(e) => onPlantContextMenu(e, plant)}
+              {...lp.bind(() => { setSelected(plant); setShowInfo(true); })}>
               {/* 绿色光晕 */}
               <div className="absolute pointer-events-none" style={{
                 inset: '-8px -8px -4px', borderRadius: '50%',

@@ -7,9 +7,12 @@ import { Sparkline } from './OverviewView.jsx';
 import { moduleColor, moduleRgba } from '../../utils/color.js'
 import BookForm from '../forms/BookForm.jsx'
 import DualMarkerBar from '../DualMarkerBar.jsx'
+import { useLongPress } from '../useLongPress.js'
 
 export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  // 触摸端长按卡片 → 与右键同：编辑年度目标
+  const lp = useLongPress();
   const habits = realHabits || HABITS;
   // 正在编辑目标的行 habit key，null = 不编辑
   const [editingTargetKey, setEditingTargetKey] = useState(null);
@@ -136,8 +139,9 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
               <div key={h.key}
                 className="grid p-3 pb-1.5 rounded-2xl bg-white border border-ink-100 shadow-[0_1px_2px_rgba(17,24,39,0.03)] hover:shadow-[0_2px_6px_rgba(17,24,39,0.05)] transition-shadow h-[210px]"
                 style={{ gridTemplateRows: 'auto auto 1fr' }}
-                title="右击卡片修改年度目标"
-                onContextMenu={(e) => { e.preventDefault(); startEditTarget(h); }}>
+                title="右击/长按卡片修改年度目标"
+                onContextMenu={(e) => { e.preventDefault(); startEditTarget(h); }}
+                {...lp.bind(() => startEditTarget(h))}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <span
@@ -277,8 +281,9 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
           const cleanLabel = (h.label || '').replace(EMOJI_STRIP_RE, '').trim() || h.label || '';
           return (
             <div key={hkey} className="grid habit-table px-0 py-1.5 items-center transition-colors group rounded-xl hover:bg-ink-50/60"
-              title="右击修改年度目标"
-              onContextMenu={(e) => { e.preventDefault(); startEditTarget(h); }}>
+              title="右击/长按修改年度目标"
+              onContextMenu={(e) => { e.preventDefault(); startEditTarget(h); }}
+              {...lp.bind(() => startEditTarget(h))}>
               <div className="flex items-center gap-1.5 min-w-0 cursor-pointer grp-start whitespace-nowrap overflow-hidden text-ellipsis pl-0" onClick={() => onAction?.('editHabit', h)}>
                 <span
                   className="text-[12px] font-bold tabular-nums w-[24px] text-right flex-shrink-0 select-none leading-none"

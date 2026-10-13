@@ -5,11 +5,14 @@ import { AddButton, ProgressBar } from './ui.jsx';
 import { moduleColor, moduleRgba } from '../../utils/color.js'
 import Modal from '../Modal.jsx'
 import DualMarkerBar from '../DualMarkerBar.jsx'
+import { useLongPress } from '../useLongPress.js'
 
 export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = 'var(--m-work)';
+  // 触摸端长按标题 → 与右键同：进入标题编辑
+  const lp = useLongPress();
   const RED_DATA = 'var(--m-work)';
   const RED_RISK = 'var(--m-work)';
 
@@ -886,7 +889,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
               <span
                 className="text-[15.5px] font-bold text-ink-900 leading-none whitespace-nowrap cursor-default"
                 onContextMenu={(e) => { e.preventDefault(); setTitleEditing(true); }}
-                title="右击编辑标题"
+                {...lp.bind(() => setTitleEditing(true))}
+                title="右击/长按编辑标题"
               >{localTitle}</span>
             )}
             <span className="text-[11px] text-ink-400 tabular-nums leading-none whitespace-nowrap">

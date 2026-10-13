@@ -3,6 +3,7 @@ import { BOOKS, COG_KRS, COG_O } from './data.js';
 import { pct, uid } from './utils.js';
 import { EditableTitle, InlineEdit } from './ui.jsx';
 import { usePersistentState } from './hooks.js';
+import { useLongPress } from '../useLongPress.js';
 import { moduleColor, moduleRgba } from '../../utils/color.js'
 import { API } from '../../api/client.js'
 import { useToast } from '../../context/ToastContext.jsx'
@@ -548,6 +549,8 @@ export function CognitionView({
   showToast,
 }) {
   const toast = useToast();
+  // 触摸端长按 → 与右键同：微信读书链接菜单 / 书籍操作菜单
+  const lp = useLongPress();
   const [editingObj, setEditingObj] = useState(false);
   const [objDraft, setObjDraft] = useState('');
   const [addingKr, setAddingKr] = useState(false);
@@ -585,6 +588,8 @@ export function CognitionView({
   const [wereadLinkPopup, setWereadLinkPopup] = useState(null); // { x, y } | null — 多链接时左键弹出选择面板
   const [wereadLinkForm, setWereadLinkForm] = useState({ title: '', url: '' });
   const closeWereadMenus = () => { setWereadLinkMenu(null); setWereadLinkPopup(null); setWereadLinkForm({ title: '', url: '' }); };
+  // 打开微信读书链接增删改菜单（右键 / 触摸长按共用）
+  const openWereadMenuAt = (x, y) => { setWereadLinkPopup(null); setWereadLinkMenu({ x, y, editingId: null }); };
   // 点击页面其他区域关闭菜单（按钮/菜单内部已 stopPropagation，不会误触发）
   useEffect(() => {
     if (!wereadLinkMenu && !wereadLinkPopup) return;
@@ -597,7 +602,7 @@ export function CognitionView({
     e.stopPropagation();
     if (!wereadLinks || wereadLinks.length === 0) {
       const rect = e.currentTarget.getBoundingClientRect();
-      setWereadLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+      openWereadMenuAt(rect.left, rect.bottom + 6);
       return;
     }
     if (wereadLinks.length === 1) {
@@ -612,8 +617,7 @@ export function CognitionView({
     e.preventDefault();
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    setWereadLinkPopup(null);
-    setWereadLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+    openWereadMenuAt(rect.left, rect.bottom + 6);
   }
   function addWereadLink() {
     if (!wereadLinkForm.url.trim()) { toast.warn('请输入链接地址'); return; }
@@ -1519,7 +1523,8 @@ export function CognitionView({
                 <button
                   onClick={handleWereadLinkClick}
                   onContextMenu={handleWereadLinkContext}
-                  title={wereadLinks.length ? `微信读书链接（${wereadLinks.length} 条，右键增删改）` : '右键添加微信读书链接'}
+                  {...lp.bind((pos) => openWereadMenuAt(pos.clientX, pos.clientY))}
+                  title={wereadLinks.length ? `微信读书链接（${wereadLinks.length} 条，右键/长按增删改）` : '右键/长按添加微信读书链接'}
                   className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
                   style={{ color: BLUE, background: `rgba(${S_RGB},0.06)` }}>
                   {/* 书架图标（三本竖立于书架上） */}
@@ -1874,6 +1879,7 @@ export function CognitionView({
                         onDragEnd={() => { setDragBookId(null); setDragOverCol(null); }}
                         onClick={() => onBookEdit?.(b)}
                         onContextMenu={(e) => { e.preventDefault(); onBookContextMenu?.(e, b); }}
+                        {...lp.bind(() => onBookContextMenu?.(null, b))}
                         className={`rounded-2xl bg-white transition-all select-none overflow-hidden ${isDragging ? 'opacity-40 scale-[0.98]' : 'hover:shadow-[0_5px_16px_rgba(15,23,42,0.08)] hover:-translate-y-[1px]'}`}
                         style={{
                           cursor: isDragging ? 'grabbing' : 'pointer',

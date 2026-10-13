@@ -8,6 +8,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import AvatarCropModal from './AvatarCropModal.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import { CategoryIcon } from './annual/ui.jsx';
+import { useLongPress } from './useLongPress.js';
 
 const ICONS = {
   home:    (<svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>),
@@ -97,6 +98,8 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
   // 窄屏（移动端）侧栏以抽屉形式呈现，始终完整展开，忽略桌面端保存的折叠态
   const isNarrow = useIsNarrow();
   const collapsed = isNarrow ? false : collapsedState;
+  // 触摸端长按导航项 → 与右键同：行内编辑标题（展开态才有入口）
+  const lp = useLongPress();
   const toggleCollapsed = () => {
     setCollapsedState(v => {
       const next = !v;
@@ -483,9 +486,10 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
                   onMenuChange?.(item.key);
                 }}
                 onContextMenu={(e) => handleNavContextMenu(e, item)}
+                {...lp.bind(() => { if (!collapsed) setEditingNav({ key: item.key }); })}
                 title={collapsed
                   ? (item.key === 'annual' ? `${labelOf(item)} · 点击展开二级导航` : labelOf(item))
-                  : '右键可修改标题文字'}
+                  : '右键/长按可修改标题文字'}
               >
                 <span style={{ flexShrink: 0 }}>{ICONS[item.key]}</span>
                 {editingNav?.key === item.key ? (

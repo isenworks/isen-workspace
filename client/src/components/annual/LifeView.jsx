@@ -12,6 +12,7 @@ import ConfirmDialog from '../ConfirmDialog.jsx'
 import lunarLib from '../../vendor/lunar.js';
 import EntryForm from '../forms/EntryForm.jsx'
 import PlantingShelf from './PlantingShelf.jsx'
+import { useLongPress } from '../useLongPress.js'
 
 /* 种植行统一判定：key 或 label 任一匹配即视为种植类目。
  * 用户持久化的 annual_life 数据可能来自旧版本/自建类目（key 是 uid 而非 'planting'），
@@ -284,6 +285,10 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   /* ===== 需求 2：链接按钮 · 右键菜单增删改 · 点击跳转 ===== */
   const [linkMenu, setLinkMenu] = useState(null); // { x, y, editingId } | null
   const [bdMenu, setBdMenu] = useState(null); // { x, y, bd } | null
+  // 触摸端长按 → 与右键同：链接按钮弹出增删改菜单 / 生日条目弹出菜单
+  const lp = useLongPress();
+  // 生日菜单打开时刻：长按抬手会合成一次 click，短时间内忽略遮罩关闭，避免菜单刚弹出即被关闭
+  const bdMenuShownAt = useRef(0);
   /* 生日视图切换：date=按日期时间流 / person=按人列表（记忆用户偏好） */
   const [bdView, setBdView] = usePersistentState('annual_life_bd_view', () => 'date');
   /* 按日期视图的浏览年份（默认当年；◀▶ 切换，不持久化避免停在旧年份） */
@@ -386,6 +391,10 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   const [linkForm, setLinkForm] = useState({ title: '', url: '' }); // 编辑/新建 mini 表单
   const links = Array.isArray(docLinks) ? docLinks : [];
   const closeAllMenus = () => { setLinkMenu(null); setLinkListPopup(null); setLinkForm({ title: '', url: '' }); };
+  // 打开链接增删改菜单（右键 / 触摸长按共用；x,y 为菜单左上角）
+  const openLinkMenuAt = (x, y) => { setLinkListPopup(null); setLinkMenu({ x, y, editingId: null }); };
+  // 打开生日条目菜单（右键 / 触摸长按共用）
+  const openBdMenuAt = (b, x, y) => { bdMenuShownAt.current = Date.now(); setBdMenu({ x, y, bd: b }); };
 
   // ===== 左右分栏拖拽（38:62，与收集箱二分布局同款交互，独立记忆） =====
   const { leftStyle, rightStyle, bindRoot, bindDivider } = useSplitRatio('life_split_ratio');
@@ -396,7 +405,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     if (!links || links.length === 0) {
       // 没有链接 → 直接触发新建表单（模拟右键→添加）
       const rect = e.currentTarget.getBoundingClientRect();
-      setLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+      openLinkMenuAt(rect.left, rect.bottom + 6);
       return;
     }
     if (links.length === 1) {
@@ -412,8 +421,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     e.preventDefault();
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    setLinkListPopup(null);
-    setLinkMenu({ x: rect.left, y: rect.bottom + 6, editingId: null });
+    openLinkMenuAt(rect.left, rect.bottom + 6);
   }
   // 更新链接列表操作（增/删/改）
   function addLink() {
@@ -449,7 +457,8 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
             <button
               onClick={handleLinkButtonClick}
               onContextMenu={handleLinkButtonContext}
-              title={links.length ? `文档链接（${links.length} 条，右键增删改）` : '右键添加飞书文档链接'}
+              {...lp.bind((pos) => openLinkMenuAt(pos.clientX, pos.clientY))}
+              title={links.length ? `文档链接（${links.length} 条，右键/长按增删改）` : '右键/长按添加飞书文档链接'}
               className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-lg transition hover:brightness-105 active:scale-[0.98] cursor-pointer"
               style={{ background: moduleRgba('life', 0.10), border: `1px solid ${moduleRgba('life', 0.25)}` }}>
               {/* 外链图标：当前 UI 风格线形 · 紫 */}
@@ -715,7 +724,8 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                       <div key={b.id || i}
                         className={`flex items-center gap-3 pl-2.5 pr-3 h-[52px] rounded-xl bg-[rgba(120,120,128,0.08)] hover:bg-[rgba(120,120,128,0.12)] transition cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
                         onClick={() => onBirthdayEdit?.(b)}
-                        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
+                        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); openBdMenuAt(b, rect.left, rect.bottom + 4); }}
+                        {...lp.bind((pos) => openBdMenuAt(b, pos.clientX, pos.clientY))}>
                         {/* 姓名首字头像 */}
                         <span className="w-8 h-8 rounded-full grid place-items-center flex-shrink-0 text-[13px] font-bold"
                           style={{ background: moduleRgba('life', 0.10), color: 'var(--m-life)' }}>
@@ -782,7 +792,8 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                       return (
                         <div key={b.id || idx} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
                           onClick={() => onBirthdayEdit?.(b)}
-                          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); setBdMenu({ x: rect.left, y: rect.bottom + 4, bd: b }); }}>
+                          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); openBdMenuAt(b, rect.left, rect.bottom + 4); }}
+                        {...lp.bind((pos) => openBdMenuAt(b, pos.clientX, pos.clientY))}>
                           {/* 月份列（组首行）：pl-3.5 与年份缩进同源，左缘与年份大字严格对齐；补零后月份等宽，右缘也自然整齐 */}
                           <div className="w-12 flex-shrink-0">
                             {label && (
@@ -910,7 +921,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       </div>
       {/* 生日条目右键菜单 */}
       {bdMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setBdMenu(null)}>
+        <div className="fixed inset-0 z-50" onClick={() => { if (Date.now() - bdMenuShownAt.current < 350) return; setBdMenu(null); }}>
           <div className="absolute glass-card p-1.5 flex flex-col gap-0.5 min-w-[120px]"
             style={{ left: bdMenu.x, top: bdMenu.y }}>
             <button className="px-3 py-1.5 text-left text-sm rounded-md hover:bg-surface-soft transition"

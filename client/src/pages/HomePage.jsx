@@ -777,7 +777,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative md:shrink-0">
         <div
-          className={`relative overflow-hidden px-5 py-6 sm:px-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6 rounded-[18px] group md:h-[168px]${heroBg.type === 'images' ? ' min-h-[224px] justify-end sm:min-h-0' : ''}`}
+          className={`relative overflow-hidden px-5 py-5 sm:px-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-6 rounded-[18px] group md:h-[168px]${heroBg.type === 'images' ? ' min-h-[176px] justify-end sm:min-h-0' : ''}`}
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
           {...lp.bind(() => setHeroEditOpen(v => !v))}

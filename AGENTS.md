@@ -167,6 +167,8 @@ functions/api/[[route]].js           # 薄路由
 
 * 前端入口：`client/src/utils/cloudKV.js` + `client/src/pages/AnnualPlan.jsx` 的 `usePersistentState` hook
 
+* **拉取失败语义（排查"移动端不同步"先读）**：`flushPulls` 带 8s 超时 + 边缘 5xx 单次重试；失败返回 `PULL_FAILED` 哨兵（Symbol），**绝不**与「云端无值(null)」混淆 —— 否则 `syncKey` 会把陈旧/空本地值推上云覆盖好数据。失败时 `syncKey` 不推送、发 `cloudkv error` 事件（侧边栏指示器转红）并延迟 3s 自动重试一次；`Workspace.doAutoSync` 每次自动同步会 `syncCloudNow()` 重放全部已登记 key 的拉取（自愈）。**严禁**在 CalendarPage 种子化路径 broadcast `reload`（本组件订阅 reload 会重跑 effect → 无限重载循环 → 移动端请求风暴，2026-10 已踩坑修复）。主页成长四卡有「同步中/失败重试/确认为空」三态（`CardDataState`），勿再回退假空态。
+
 ### is_goal 目标事项数据流（排查"目标在某视图消失"先读这里）
 
 **语义**：`is_goal=1` 的 `ethan_schedules` 记录 = 目标事项（区别于普通日程）。字段在后端 create/update/list 全链路保留（`SELECT *` 回读），**丢失只会发生在前端的 map 转换点**——每处 map 必须显式携带 `is_goal: !!s.is_goal`，漏写不报错，症状是该路径注入的目标在"按 is_goal 筛选的视图"里消失。

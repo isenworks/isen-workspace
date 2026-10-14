@@ -17,6 +17,7 @@ import AbilityForm from '../components/forms/AbilityForm.jsx';
 import AnnualPlan from './AnnualPlan.jsx';
 import { API } from '../api/client.js';
 import { store } from '../utils/store.js';
+import { syncCloudNow } from '../utils/cloudKV.js';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import { parseRoute, buildRoute } from '../utils/route.js';
 
@@ -148,6 +149,11 @@ export default function Workspace({ user: propUser }) {
     refresh();
     setSyncSignal(s => s + 1);
     store.broadcast({ type: 'reload' }); // 全局：日历/知识库/年度等订阅方重读
+    // 云端 KV 全量重放（hero/签名/年度规划等 localStorage 镜像）：
+    // 各组件挂载时的 syncKey 只拉一次，移动端弱网一旦失败原本再无重试机会 ——
+    // 这里随每次自动同步重放所有已登记 key 的拉取，实现跨设备数据自愈。
+    // 失败时 syncCloudNow 内部按失败哨兵跳过（不覆盖本地），侧边栏指示器转红。
+    syncCloudNow().catch(() => {});
   }, [refresh]);
 
   // 手动同步（侧边栏 / 首页同步按钮）：无条件刷新全部面板，不受防抖限制
@@ -159,16 +165,20 @@ export default function Workspace({ user: propUser }) {
   }, [refresh]);
 
   // 切回标签页 / 窗口重获焦点 / 网络恢复：强制同步（移动端最常见路径，切回即更新）
+  // pageshow(persisted)：iOS Safari 从页面缓存(bfcache)恢复时不触发 visibilitychange，需单独监听
   useEffect(() => {
     function onVisible() { if (document.visibilityState === 'visible') doAutoSync(true); }
     function onOnline() { doAutoSync(true); }
+    function onPageShow(e) { if (e.persisted) doAutoSync(true); }
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
     window.addEventListener('online', onOnline);
+    window.addEventListener('pageshow', onPageShow);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
       window.removeEventListener('online', onOnline);
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, [doAutoSync]);
 

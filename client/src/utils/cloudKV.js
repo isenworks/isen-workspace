@@ -20,6 +20,22 @@ const PULL_BATCH_DELAY = 0;      // 同一 tick 内的拉取合并成一次请�
 const PUSH_DEBOUNCE_MS = 1500;   // 本地写入后防抖推送
 const MERGE_DEBOUNCE_MS = 1500;  // 字段级合并同样防抖
 
+// 拉取失败哨兵：与「云端无值(null)」严格区分。
+// 弱网下拉取超时/失败如果被当作 null，syncKey 会把陈旧/空的本地值推上云覆盖云端好数据（数据事故），
+// 页面也会永远停留在旧数据且无人重试 —— 这是移动端「数据不同步」的核心根因之一
+const PULL_FAILED = Symbol('cloudkv_pull_failed');
+
+// 带超时的 fetch（8s）：移动端弱网下裸 fetch 可能长时间挂起，拉取永不完成
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 8000) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: ctl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const pendingPulls = new Map();  // key → [{ resolve, versioned }]
 const pushTimers = new Map();    // key → { timer, value } 待推送/待重试队列
 const mergeTimers = new Map();   // key → { timer, partial } 待合并/待重试队列
@@ -61,38 +77,54 @@ async function flushPulls() {
   const keys = [...pendingPulls.keys()];
   const waitersPerKey = [...pendingPulls.values()];
   pendingPulls.clear();
-  if (!keys.length || !isAuthed()) {
+  if (!keys.length) {
     waitersPerKey.forEach(w => w.forEach(x => x.resolve(null)));
     return;
   }
-  try {
-    const res = await fetch(`/api/userSettings/get?k=${encodeURIComponent(keys.join(','))}`, {
-      headers: { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' },
-    });
-    const data = await res.json().catch(() => null);
-    const map = (res.ok && data?.ok && data.data) ? data.data : null;
-    waitersPerKey.forEach((waiters, i) => {
-      const key = keys[i];
-      const entry = map ? map[key] : null;
-      if (!entry) { waiters.forEach(w => w.resolve(null)); return; }
-      // 规整为 { v, version }，兼容老协议纯字符串
-      let v, version;
-      if (key === 'weread_api_key') {
-        v = entry.configured ? entry.value : null;
-        version = entry.version || 0;
-      } else if (entry && typeof entry === 'object' && 'v' in entry) {
-        v = entry.v;
-        version = entry.version || 0;
-      } else {
-        v = entry; // 老协议纯字符串
-        version = 0;
-      }
-      localVersion.set(key, version || 0);
-      waiters.forEach(w => w.resolve(w.versioned ? { v, version } : v));
-    });
-  } catch {
+  if (!isAuthed()) {
+    // 未登录：语义等同「云端无值」，调用方各自降级为纯本地
     waitersPerKey.forEach(w => w.forEach(x => x.resolve(null)));
+    return;
   }
+  // 8s 超时 + 网络错误/边缘 5xx 单次重试（与 api/client.js fetchPages 同款策略），
+  // 消除移动端弱网下拉取挂起/偶发失败导致的「永远不同步」
+  const headers = { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' };
+  let res = null, netErr = null;
+  for (let attempt = 0; ; attempt++) {
+    netErr = null; res = null;
+    try {
+      res = await fetchWithTimeout(`/api/userSettings/get?k=${encodeURIComponent(keys.join(','))}`, { headers });
+    } catch (e) { netErr = e; }
+    const retryable = netErr
+      ? netErr.name !== 'AbortError'
+      : [502, 503, 504].includes(res.status);
+    if (retryable && attempt === 0) { await new Promise(r => setTimeout(r, 600)); continue; }
+    break;
+  }
+  const fail = () => waitersPerKey.forEach(w => w.forEach(x => x.resolve(PULL_FAILED)));
+  if (!res || netErr || !res.ok) { fail(); return; } // 网络失败/HTTP 错误 → 失败哨兵
+  const data = await res.json().catch(() => null);
+  if (!data || data.ok !== true || !data.data) { fail(); return; } // 非 JSON（SPA 兜底 HTML）/业务失败 → 同样不是「云端无值」
+  const map = data.data;
+  waitersPerKey.forEach((waiters, i) => {
+    const key = keys[i];
+    const entry = map[key];
+    if (!entry) { waiters.forEach(w => w.resolve(null)); return; }
+    // 规整为 { v, version }，兼容老协议纯字符串
+    let v, version;
+    if (key === 'weread_api_key') {
+      v = entry.configured ? entry.value : null;
+      version = entry.version || 0;
+    } else if (entry && typeof entry === 'object' && 'v' in entry) {
+      v = entry.v;
+      version = entry.version || 0;
+    } else {
+      v = entry; // 老协议纯字符串
+      version = 0;
+    }
+    localVersion.set(key, version || 0);
+    waiters.forEach(w => w.resolve(w.versioned ? { v, version } : v));
+  });
 }
 
 /* ---- 状态事件：侧边栏同步指示器监听（syncing / synced / error / pulled） ---- */
@@ -214,12 +246,13 @@ export async function syncCloudNow() {
     ...pushEntries.map(([key, p]) => doPush(key, p.value, 0)),
     ...mergeEntries.map(([key, m]) => doMergePush(key, m.partial, 0)),
   ]);
-  // 2. 拉云端：与本地一致则无动作；云端较新 → onCloud 覆盖应用
+  // 2. 拉云端：与本地一致则无动作；云端较新 → onCloud 覆盖应用；拉取失败（PULL_FAILED 哨兵）跳过且不覆盖本地
   const targets = [...pullRegistry.entries()];
   await Promise.all(targets.map(async ([key, onCloud]) => {
     const cloud = await cloudPull(key);
+    if (cloud == null || cloud === PULL_FAILED) return;
     const local = (() => { try { return localStorage.getItem(key); } catch { return null; } })();
-    if (cloud != null && cloud !== local) {
+    if (cloud !== local) {
       try { onCloud?.(cloud); emit('pulled', key); } catch {}
     }
   }));
@@ -227,17 +260,26 @@ export async function syncCloudNow() {
 
 /* ---- 同步原语：拉云端 → 云端有且不同则云端胜；否则本地为准并确保上云 ----
  * onCloud(value) 云端较新时回调（调用方负责写 localStorage 并应用）
- * 返回 'cloud' | 'local' | 'none' */
-export async function syncKey(key, localValueStr, onCloud) {
+ * 返回 'cloud' | 'local' | 'none' | 'error'
+ * 失败语义（关键）：拉取失败 ≠ 云端无值。失败时不推送本地 —— 防止弱网下用陈旧/空
+ * 本地值覆盖云端好数据；广播 error 事件（侧边栏指示器变红），3s 后自动重试一次 */
+export async function syncKey(key, localValueStr, onCloud, attempt = 0) {
   if (onCloud) pullRegistry.set(key, onCloud); // 登记以便手动同步时重放拉取
   const cloud = await cloudPull(key);
+  if (cloud === PULL_FAILED) {
+    emit('error', key);
+    if (attempt < 1) {
+      setTimeout(() => { syncKey(key, localValueStr, onCloud, attempt + 1); }, 3000);
+    }
+    return 'error';
+  }
   if (cloud != null && cloud !== localValueStr) {
     onCloud?.(cloud);
     emit('pulled', key); // 云端较新已覆盖本地（多设备拉新）
     return 'cloud';
   }
   if (cloud == null && localValueStr != null) {
-    cloudPush(key, localValueStr); // 首次迁移上云
+    cloudPush(key, localValueStr); // 首次迁移上云（仅在确认云端确实无值时才推）
     return 'local';
   }
   return 'none';

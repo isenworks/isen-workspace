@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useEnergyHabits, usePersistentState } from '../components/annual/hooks.js';
 import { API } from '../api/client.js';
 import { store } from '../utils/store.js';
+import { syncCloudNow } from '../utils/cloudKV.js';
 import { useToast } from '../context/ToastContext.jsx';
 import HeroCropModal from '../components/HeroCropModal.jsx';
 import Modal from '../components/Modal.jsx';
@@ -156,6 +157,36 @@ function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
   return (
     <div className="w-full rounded-full overflow-hidden" style={{ height: h, background: 'rgba(120,120,128,0.12)' }}>
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, background: color }} />
+    </div>
+  );
+}
+
+/* 卡片数据态：云端同步失败（可重试）/ 正在同步 / 确认为空 —— 三态分明，杜绝"假空态"误导 */
+function CardDataState({ mode, onRetry, emptyTitle, emptySub }) {
+  if (mode === 'failed') {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4">
+        <span className="text-[12.5px] font-medium text-ink-500">云端同步失败</span>
+        <button
+          onClick={onRetry}
+          className="text-[11.5px] font-semibold underline underline-offset-2 transition active:opacity-60"
+          style={{ color: 'var(--s-main)' }}
+        >点击重试</button>
+      </div>
+    );
+  }
+  if (mode === 'pending') {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4">
+        <span className="text-[12.5px] font-medium text-ink-400">正在同步数据…</span>
+        <span className="text-[11px] text-ink-300">与其他设备保持一致，稍候即刷新</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4">
+      <span className="text-[12.5px] font-medium text-ink-400">{emptyTitle}</span>
+      <span className="text-[11px] text-ink-300">{emptySub}</span>
     </div>
   );
 }
@@ -444,7 +475,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   }, [loadSched]);
 
   /* ===== 精力习惯（周打卡矩阵） ===== */
-  const { realHabits, refresh: refreshEnergy } = useEnergyHabits();
+  const { realHabits, loading: energyLoading, refresh: refreshEnergy, error: energyErr } = useEnergyHabits();
   const habits = realHabits || [];
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysISO(weekStartStr, i)), [weekStartStr]);
 
@@ -464,6 +495,25 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const [books] = usePersistentState('annual_books_v12', () => null);
   const [abilities] = usePersistentState('annual_abilities_v2', () => null);
   const [workGoals] = usePersistentState('annual_work', () => null);
+
+  /* ===== KV 云同步可见状态：区分「正在同步 / 同步失败 / 确认为空」 =====
+   * null 数据在弱网下可能是"还没拉到"而非"真的没有" —— 没有三态就会显示假空态误导用户 */
+  const [kvFailed, setKvFailed] = useState(false);
+  const [kvSettled, setKvSettled] = useState(false);
+  useEffect(() => {
+    const settle = setTimeout(() => setKvSettled(true), 20000); // 兜底：拉取长期无事件也结束 pending 态
+    const onKv = (e) => {
+      const st = e.detail?.status;
+      if (st === 'error') setKvFailed(true);
+      else if (st === 'pulled' || st === 'synced') { setKvFailed(false); setKvSettled(true); }
+    };
+    window.addEventListener('cloudkv', onKv);
+    return () => { clearTimeout(settle); window.removeEventListener('cloudkv', onKv); };
+  }, []);
+  const retryCloudKV = useCallback(() => {
+    setKvFailed(false);
+    syncCloudNow().catch(() => {});
+  }, []);
 
   /* ===== 今日聚焦（排除 is_goal 目标事项：目标只归属本周目标/日历主线面板，不进当日列表与进度统计） ===== */
   const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr && !s.is_goal), [sched, todayStr]);
@@ -1198,6 +1248,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   })}
                 </div>
               </>
+            ) : energyErr ? (
+              <CardDataState mode="failed" onRetry={refreshEnergy} emptyTitle="" emptySub="" />
+            ) : energyLoading ? (
+              <CardDataState mode="pending" />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4">
                 <span className="text-[12.5px] font-medium text-ink-400">还没有精力类习惯</span>
@@ -1268,10 +1322,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 </div>
               )}
               {reading.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                  <span className="text-[12.5px] font-semibold text-ink-600">当前没有在读的书</span>
-                  <span className="text-[11px] text-ink-400">{booksDone > 0 ? `今年已读完 ${booksDone} 本` : '去书架添加一本开始阅读'}</span>
-                </div>
+                <CardDataState
+                  mode={books == null ? (kvFailed ? 'failed' : (kvSettled ? 'empty' : 'pending')) : 'empty'}
+                  onRetry={retryCloudKV}
+                  emptyTitle="当前没有在读的书"
+                  emptySub={booksDone > 0 ? `今年已读完 ${booksDone} 本` : '去书架添加一本开始阅读'}
+                />
               )}
             </div>
           </div>
@@ -1290,10 +1346,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 </div>
               ))}
               {abilRows.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                  <span className="text-[12.5px] font-medium text-ink-400">还没有能力目标</span>
-                  <span className="text-[11px] text-ink-300">去能力页添加第一个成长目标</span>
-                </div>
+                <CardDataState
+                  mode={abilities == null ? (kvFailed ? 'failed' : (kvSettled ? 'empty' : 'pending')) : 'empty'}
+                  onRetry={retryCloudKV}
+                  emptyTitle="还没有能力目标"
+                  emptySub="去能力页添加第一个成长目标"
+                />
               )}
             </div>
           </div>
@@ -1317,10 +1375,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 </div>
               ))}
               {workRows.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-1.5 py-4">
-                  <span className="text-[12.5px] font-medium text-ink-400">暂无进行中的工作目标</span>
-                  <span className="text-[11px] text-ink-300">去工作页建立你的 OKR</span>
-                </div>
+                <CardDataState
+                  mode={workGoals == null ? (kvFailed ? 'failed' : (kvSettled ? 'empty' : 'pending')) : 'empty'}
+                  onRetry={retryCloudKV}
+                  emptyTitle="暂无进行中的工作目标"
+                  emptySub="去工作页建立你的 OKR"
+                />
               )}
             </div>
           </div>

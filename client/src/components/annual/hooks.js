@@ -123,7 +123,7 @@ export function useEnergyHabits() {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  return { realHabits, loading, refresh };
+  return { realHabits, loading, refresh, error: !loading && realHabits === null };
 }
 
 /* ---------- 3. 视图数据计算 · Overview ---------- */

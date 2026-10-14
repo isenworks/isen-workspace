@@ -603,6 +603,11 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
   /* ====== 需求 6：ethan_schedules 只进日历右栏，不进主线面板 ====== */
   // 计划总结 API 拉取的日程 → 只用于日历右栏事件显示
   const [apiSchedules, setApiSchedules] = useState([]);
+  // apiSchedules 的镜像 ref：加载失败时判断「是否首载即失败（还没有任何数据）」用
+  const apiSchedulesRef = useRef([]);
+  useEffect(() => { apiSchedulesRef.current = apiSchedules; }, [apiSchedules]);
+  // 首载失败自动重试计数（成功后清零；连续失败最多自动重试 2 次，防请求风暴）
+  const calRetryRef = useRef(0);
   // 种子化完成标记：为 true 后不再用 MOCK_EVENTS_RAW 做 fallback
   // （否则用户删除 API 事件后 MOCK 副本会重新出现 → "删除不成功"假象）
   const [seedDone, setSeedDone] = useState(false);
@@ -642,8 +647,9 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       //      之后用户删除的事件刷新后不会被重新种子化复活（根因修复）
       const seedCreateAll = async () => {
         if (isSeedDoneForMonth(year, month)) {
-          // 已种子化过：仅刷新日历事件源，不再 create 任何 seed
-          store?.broadcast?.({ type: 'reload' });
+          // 已种子化过：直接跳过。绝不能在这里 broadcast reload —— 本组件订阅 reload
+          // 会 setSyncTick 重跑本 effect → 再走到这里再 broadcast → 无限重载循环
+          // （移动端请求风暴、其他页面数据被饿死/超时的根本原因）
           return;
         }
         let remotes = await API.schedules.list({ from: monthS, to: monthE });
@@ -703,9 +709,9 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         for (const s of seeds) {
           try { await API.schedules.create(s); } catch (_) { /* dup */ }
         }
-        // 落标记：后续刷新不再种子化，删除的事件不会被复活
+        // 落标记：后续刷新不再种子化，删除的事件不会被复活。
+        // 不 broadcast reload：本 effect 第 3 步在本轮就会拉到刚建的种子，再广播只会多跑一轮全量重载
         markSeedDoneForMonth(year, month);
-        store?.broadcast?.({ type: 'reload' });
       };
       try { await seedCreateAll(); } catch (_) { /* ignore */ }
 
@@ -742,7 +748,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         // 不再做白名单过滤（MOCK 演示时代已结束，主页等入口新建的事项 id 无法登记白名单会被误隐藏）
         const cleaned = mapped
           .filter(s => s.id == null || !isScheduleDeletedLocally(s.id));
-        if (!cancelled) { setApiSchedules(cleaned); setSeedDone(true); }
+        if (!cancelled) { setApiSchedules(cleaned); setSeedDone(true); calRetryRef.current = 0; }
 
         // 只注入「用户通过 ScheduleForm 新建」的事项到 monthTasks（切页回来恢复）
         // 排除：① planBase 已有（按 title 去重，因为 planBase 用字符串 id、API 用数字 id，id 比对无效）
@@ -822,7 +828,14 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         }
       } catch (_) {
         // 读取/注入失败（移动端网络抖动、8s 超时、非 JSON 兜底，或后续注入过程异常）：
-        // 保留上一份 apiSchedules，不清空日历事件源 —— 与主页同款修复，只有成功响应才覆盖
+        // 保留上一份 apiSchedules，不清空日历事件源 —— 与主页同款修复，只有成功响应才覆盖。
+        // 若当前还没有任何数据（首载即失败），延迟 2.5s 自动重试，最多 2 次，避免移动端首开永久空白
+        if (!cancelled && (apiSchedulesRef.current?.length ?? 0) === 0) {
+          calRetryRef.current = (calRetryRef.current || 0) + 1;
+          if (calRetryRef.current <= 2) {
+            setTimeout(() => { if (!cancelled) setSyncTick(t => t + 1); }, 2500);
+          }
+        }
       }
 
       if (!cancelled) setTick(v => v + 1);

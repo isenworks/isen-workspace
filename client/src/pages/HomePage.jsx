@@ -100,25 +100,29 @@ function normalizeHeroBg(v) {
 }
 /* Hero 背景样式生成：
  *   · 有 out（v4 成品图）：直接 background-size: cover，像素 100% 有效，画质更高
- *   · 无 out（v3 及以前）：原图 + crop → CSS 按比例裁剪铺满（向后兼容）
+ *   · 无 out（v3 及以前）：以裁剪选区中心为焦点做 cover 填充。
+ *     旧实现用 backgroundSize 百分比模拟裁剪，数学上仅在容器宽高比恰为 8:1 时不变形：
+ *     桌面约 7:1 轻微拉伸，手机约 2:1 → 纵向拉伸近 4 倍（「背景被拉伸」的根因）。
+ *     cover 在任何容器宽高比下都不变形，焦点定位保留原裁剪的取景中心。
  *   渐变遮罩统一叠加在图片上 */
 function heroCropBg(im, withShade = true) {
   const shade = withShade ? 'linear-gradient(135deg, rgba(0,0,0,0.38), rgba(0,0,0,0.12)), ' : '';
+  const coverSize = `${withShade ? 'cover, ' : ''}cover`;
   if (im.out) {
     return {
       backgroundImage: `${shade}url(${im.out})`,
-      backgroundSize: `${withShade ? 'cover, ' : ''}cover`,
+      backgroundSize: coverSize,
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
     };
   }
   const c = im.crop || coverCrop(3);
-  const sw = Math.min(c.sw, 0.9995), sh = Math.min(c.sh, 0.9995);   // 防除零
-  const px = (c.sx / (1 - sw)) * 100, py = (c.sy / (1 - sh)) * 100;
+  const fx = Math.min(100, Math.max(0, (c.sx + c.sw / 2) * 100));
+  const fy = Math.min(100, Math.max(0, (c.sy + c.sh / 2) * 100));
   return {
     backgroundImage: `${shade}url(${im.src})`,
-    backgroundSize: `${withShade ? 'cover, ' : ''}${100 / sw}% ${100 / sh}%`,
-    backgroundPosition: `${withShade ? 'center, ' : ''}${px}% ${py}%`,
+    backgroundSize: coverSize,
+    backgroundPosition: `${withShade ? 'center, ' : ''}${fx}% ${fy}%`,
     backgroundRepeat: 'no-repeat',
   };
 }
@@ -761,7 +765,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative md:shrink-0">
         <div
-          className="relative overflow-hidden px-5 py-6 sm:px-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6 rounded-[18px] group md:h-[168px]"
+          className={`relative overflow-hidden px-5 py-6 sm:px-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6 rounded-[18px] group md:h-[168px]${heroBg.type === 'images' ? ' min-h-[224px] justify-end sm:min-h-0' : ''}`}
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
           {...lp.bind(() => setHeroEditOpen(v => !v))}
@@ -810,6 +814,14 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           <div className="absolute -right-14 -top-28 w-[280px] h-[280px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, transparent 68%)' }} />
           <div className="absolute right-40 -bottom-24 w-[190px] h-[190px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.09) 0%, transparent 70%)' }} />
 
+          {/* 手机端照片模式：底部渐暗保证文字可读（桌面文字垂直居中，沿用图片自带 135° 遮罩） */}
+          {heroBg.type === 'images' && (
+            <div
+              className="absolute inset-x-0 bottom-0 h-3/5 pointer-events-none sm:hidden"
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.42), rgba(0,0,0,0.05) 72%, transparent)' }}
+            />
+          )}
+
           {/* 左：问候 */}
           <div className="relative z-[2] flex flex-col gap-0.5 min-w-0">
             <span className="text-[12px] font-semibold tracking-wide" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -840,13 +852,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             ) : (
               <button
                 onClick={() => setSigEditing(true)}
-                className="group flex items-center gap-1 min-w-0 px-3 py-2 rounded-xl transition hover:bg-[rgba(255,255,255,0.12)]"
+                className="group flex items-center gap-1 min-w-0 px-3 py-2 rounded-xl transition hover:bg-[rgba(255,255,255,0.12)] text-left"
                 title="点击编辑签名"
               >
                 {signature ? (
                   <>
                     <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>“</span>
-                    <span className="text-[14.5px] italic font-medium truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
+                    <span className="text-[14.5px] italic font-medium break-words sm:truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
                     <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>”</span>
                   </>
                 ) : (

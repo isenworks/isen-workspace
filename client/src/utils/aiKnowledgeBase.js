@@ -8,7 +8,7 @@
  *   · getKBTextForPrompt：全量拼文本给 AI system prompt（v1 不做 RAG）
  * ============================================================ */
 
-import { cloudPush } from './cloudKV.js';
+import { cloudPush, syncKey } from './cloudKV.js';
 
 const KB_LS_KEY = 'ai_kb_entries';
 const KB_CLOUD_KEY = 'ai_kb_entries';
@@ -335,7 +335,17 @@ export function ensureKBBooks() {
     return next;
   });
 
-  if (booksChanged) persistBooks(books);
+  if (booksChanged) {
+    // 空列表播种默认知识库时只写本地、不推云端：
+    // 播种值的 updatedAt=此刻，是全新设备上"最高"的时间戳，若推上云，
+    // 会以 LWW 压过用户真实书架，把书架永久锁死成一台空设备的默认库（线上已踩坑）
+    const seeding = books.length === 1 && books[0].id === DEFAULT_KB_ID;
+    if (seeding) {
+      try { localStorage.setItem(BOOKS_LS_KEY, JSON.stringify(books)); } catch { /* ignore */ }
+    } else {
+      persistBooks(books);
+    }
+  }
   if (entriesChanged) persist(entries);
   return books;
 }
@@ -413,52 +423,20 @@ export function getKBTextForPrompt(maxEntries = 50, maxChars = 20000) {
   return parts.join('\n\n---\n\n');
 }
 
-// 从云端同步（页面加载时调用）：条目 + 知识库，LWW（按各自最新 updatedAt）
+/* ------------------------------ 云端同步 ------------------------------ */
+/* 走 cloudKV 统一协议（syncKey）：
+ *   · 8s 超时 + 弱网重试 —— 此前自带的裸 fetch 在移动端弱网挂起/失败被当作
+ *     「云端无值」静默吞掉，知识库永远显示 0 篇（线上已踩坑）
+ *   · 失败哨兵：拉取失败绝不推送本地，防止空设备覆盖云端好数据
+ *   · pullRegistry 登记：Workspace 每轮自动同步 syncCloudNow() 重放拉取，跨设备自愈
+ *   · 云端有值即覆盖本地（本地编辑经 cloudPush 防抖 1.5s 上行，冲突窗口与全局一致）
+ * onCloud 只写 localStorage；页面通过 store 'reload' 广播链重读渲染：
+ *   pulled → Workspace.doAutoSync → broadcast reload → KnowledgeBasePage 重拉 */
 export async function syncKBFromCloud() {
-  await Promise.all([syncEntriesFromCloud(), syncBooksFromCloud()]);
-}
-
-async function fetchCloud(key) {
-  try {
-    const res = await fetch(`/api/userSettings/get?k=${encodeURIComponent(key)}`, {
-      headers: { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' },
-    });
-    const data = await res.json().catch(() => null);
-    if (res.ok && data?.ok && data.data) return data.data[key] || null;
-  } catch { /* ignore */ }
-  return null;
-}
-
-async function syncEntriesFromCloud() {
-  const cloudStr = await fetchCloud(KB_CLOUD_KEY);
-  if (!cloudStr) return null;
-  try {
-    const cloudEntries = JSON.parse(cloudStr);
-    if (!Array.isArray(cloudEntries)) return null;
-    const local = getKBEntries();
-    const localMax = local.length ? Math.max(...local.map(e => e.updatedAt || 0)) : 0;
-    const cloudMax = cloudEntries.length ? Math.max(...cloudEntries.map(e => e.updatedAt || 0)) : 0;
-    if (cloudMax > localMax) {
-      localStorage.setItem(KB_LS_KEY, JSON.stringify(cloudEntries));
-      return cloudEntries;
-    }
-  } catch { /* ignore */ }
-  return null;
-}
-
-async function syncBooksFromCloud() {
-  const cloudStr = await fetchCloud(BOOKS_CLOUD_KEY);
-  if (!cloudStr) return null;
-  try {
-    const cloudBooks = JSON.parse(cloudStr);
-    if (!Array.isArray(cloudBooks)) return null;
-    const local = getRawBooks();
-    const localMax = local.length ? Math.max(...local.map(b => b.updatedAt || 0)) : 0;
-    const cloudMax = cloudBooks.length ? Math.max(...cloudBooks.map(b => b.updatedAt || 0)) : 0;
-    if (cloudMax > localMax) {
-      localStorage.setItem(BOOKS_LS_KEY, JSON.stringify(cloudBooks));
-      return cloudBooks;
-    }
-  } catch { /* ignore */ }
-  return null;
+  const localEntries = (() => { try { return localStorage.getItem(KB_LS_KEY); } catch { return null; } })();
+  const localBooks = (() => { try { return localStorage.getItem(BOOKS_LS_KEY); } catch { return null; } })();
+  await Promise.all([
+    syncKey(KB_CLOUD_KEY, localEntries, (v) => { try { localStorage.setItem(KB_LS_KEY, v); } catch { /* ignore */ } }),
+    syncKey(BOOKS_CLOUD_KEY, localBooks, (v) => { try { localStorage.setItem(BOOKS_LS_KEY, v); } catch { /* ignore */ } }),
+  ]);
 }

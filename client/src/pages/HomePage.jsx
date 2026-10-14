@@ -1009,13 +1009,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   >
                     <TaskCheck s={s} onToggle={toggleWeekKey} />
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
-                      <span className={`text-[14px] font-semibold truncate ${
+                      <span className={`text-[14px] truncate ${
                         s.is_done ? 'text-ink-300 line-through' :
                         s.is_failed ? 'text-[var(--danger)] line-through' :
                         'text-ink-800'
                       }`}>{s.title || '（无标题）'}</span>
                       <PTag p={s.priority} />
-                      <span className={`text-[12px] font-semibold tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
+                      <span className={`text-[12px] tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
                     </button>
                   </div>
                 ))}
@@ -1031,7 +1031,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       <path d="M17 19a2 2 0 0 0 2 2"/>
                       <path d="M19 16l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z"/>
                     </svg>
-                    <span className="text-[12.5px] font-semibold text-ink-800 truncate">{f}</span>
+                    <span className="text-[14px] text-ink-800 truncate">{f}</span>
                     <span className="text-[10px] font-bold ml-auto flex-shrink-0" style={{ color: 'var(--danger)' }}>今天 · 节日</span>
                   </div>
                 ))}
@@ -1109,13 +1109,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   >
                     <TaskCheck s={s} onToggle={toggleWeekKey} />
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
-                      <span className={`text-[14px] font-semibold truncate ${
+                      <span className={`text-[14px] truncate ${
                         s.is_done ? 'text-ink-300 line-through' :
                         s.is_failed ? 'text-[var(--danger)] line-through' :
                         'text-ink-800'
                       }`}>{s.title}</span>
                       <PTag p={s.priority} />
-                      <span className={`text-[12px] font-semibold text-ink-300 flex-shrink-0 ml-auto tabular-nums`}>{String(s.date).slice(5).replace('-', '/')}</span>
+                      <span className={`text-[12px] text-ink-300 flex-shrink-0 ml-auto tabular-nums`}>{String(s.date).slice(5).replace('-', '/')}</span>
                     </button>
                   </div>
                 ))}
@@ -1188,7 +1188,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1">
-                        <span className="text-[14px] font-semibold text-ink-800 truncate">{u.title}</span>
+                        <span className="text-[14px] text-ink-800 truncate">{u.title}</span>
                         <PTag p={u.priority} />
                       </div>
                       <div className="text-[12px] text-ink-400 tabular-nums">{`${String(u.date).slice(5).replace('-', '.')} ${weekday} · ${meta.tag}`}</div>
@@ -1296,10 +1296,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     )}
                     <div className="flex-1 min-w-0 flex flex-col">
                       <div className="flex items-baseline justify-between gap-2 mb-1">
-                        <span className="text-[12.5px] font-semibold text-ink-800 truncate">《{reading[0].t}》</span>
-                        <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--m-cognition)' }}>{reading[0].pct || 0}%</span>
+                        <span className="text-[14px] text-ink-800 truncate">《{reading[0].t}》</span>
+                        <span className="text-[12px] font-semibold tabular-nums flex-shrink-0" style={{ color: 'var(--m-cognition)' }}>{reading[0].pct || 0}%</span>
                       </div>
-                      <div className="text-[11px] text-ink-400 truncate">{reading[0].author || '佚名'} · {reading[0].cat || '未分类'}</div>
+                      <div className="text-[12px] text-ink-400 truncate">{reading[0].author || '佚名'} · {reading[0].cat || '未分类'}</div>
                       <div className="mt-auto pt-1.5"><Bar value={reading[0].pct || 0} color="var(--m-cognition)" /></div>
                     </div>
                   </div>
@@ -1307,9 +1307,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: '1px dashed rgba(120,120,128,0.16)' }}>
                       {reading.slice(1, 4).map(b => (
                         <div key={b.id} onClick={() => onEditBook?.(b)} title="编辑书籍" className="flex items-center gap-2 cursor-pointer rounded-md px-1 -mx-1 py-0.5 transition hover:bg-[rgba(var(--m-cognition-rgb),0.06)]">
-                          <span className="text-[11.5px] text-ink-600 truncate flex-1">{b.t}</span>
+                          <span className="text-[14px] text-ink-600 truncate flex-1">{b.t}</span>
                           <div className="w-[54px] flex-shrink-0"><Bar value={b.pct || 0} color="var(--m-cognition)" h="4px" /></div>
-                          <span className="text-[10px] text-ink-400 tabular-nums w-[27px] text-right">{b.pct || 0}%</span>
+                          <span className="text-[12px] text-ink-400 tabular-nums w-[30px] text-right">{b.pct || 0}%</span>
                         </div>
                       ))}
                       {reading.length > 4 && <div className="text-[10.5px] text-ink-300">等 {reading.length - 4} 本在读…</div>}
@@ -1335,8 +1335,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               {abilRows.map(a => (
                 <div key={a.id}>
                   <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <span className="text-[12.5px] font-semibold text-ink-800 truncate">{a.title}</span>
-                    <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--m-ability)' }}>{a.avg}%</span>
+                    <span className="text-[14px] text-ink-800 truncate">{a.title}</span>
+                    <span className="text-[12px] font-semibold tabular-nums flex-shrink-0" style={{ color: 'var(--m-ability)' }}>{a.avg}%</span>
                   </div>
                   <Bar value={a.avg} color="var(--m-ability)" />
                 </div>
@@ -1363,9 +1363,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                       {o.label && (
                         <span className="text-[9px] font-bold px-1.5 py-[1px] rounded flex-shrink-0" style={{ background: 'rgba(var(--m-work-rgb),0.1)', color: 'var(--m-work)' }}>{o.label}</span>
                       )}
-                      <span className="text-[12.5px] font-semibold text-ink-800 truncate">{o.title}</span>
+                      <span className="text-[14px] text-ink-800 truncate">{o.title}</span>
                     </span>
-                    <span className="text-[11.5px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--m-work)' }}>{o.avg}%</span>
+                    <span className="text-[12px] font-semibold tabular-nums flex-shrink-0" style={{ color: 'var(--m-work)' }}>{o.avg}%</span>
                   </div>
                   <Bar value={o.avg} color="var(--m-work)" />
                 </div>

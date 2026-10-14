@@ -527,7 +527,7 @@ export default function KnowledgeBasePage() {
                       {b.icon || <IconBook size={17} />}
                     </span>
                     <span className="flex-1 min-w-0">
-                      <span className={`block text-[14px] leading-snug truncate ${active ? 'font-semibold' : 'font-medium'}`}
+                      <span className={`block text-[14px] leading-snug truncate ${active ? 'font-semibold' : ''}`}
                         style={active ? { color: b.color || 'var(--s-main)' } : { color: '#0f1f1c' }}>
                         {b.name}
                       </span>

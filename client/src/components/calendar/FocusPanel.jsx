@@ -605,7 +605,7 @@ export default function FocusPanel({
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <span className="flex items-center gap-1.5">
                             <span
-                              className={`text-[13px] font-semibold leading-tight truncate flex-1 ${
+                              className={`text-[14px] leading-tight truncate flex-1 ${
                                 task.done ? 'text-[var(--text-muted)] line-through' :
                                 task.is_failed ? 'text-[var(--danger)] line-through' :
                                 'text-[var(--text-1)]'
@@ -787,7 +787,7 @@ export default function FocusPanel({
                       </button>
 
                       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                        <span className="text-[13px] font-semibold leading-tight truncate text-[var(--text-muted)] line-through">
+                        <span className="text-[14px] leading-tight truncate text-[var(--text-muted)] line-through">
                           {task.title}
                         </span>
                         <div className="flex items-center gap-2 text-[11px] font-medium text-[#aeaeb2]">

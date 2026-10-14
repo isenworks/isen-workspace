@@ -288,7 +288,7 @@ export default function InboxPage({ onCountChange }) {
               : { background: firstTag ? hexToRgba(firstTag.color, 0.4) : 'rgba(var(--s-rgb),0.40)' }
             }
           />
-          <span className="text-[14px] leading-snug font-medium text-ink-900 truncate">
+          <span className="text-[14px] leading-snug text-ink-900 truncate">
             {(firstLine || '（空）').slice(0, 60)}
           </span>
         </div>

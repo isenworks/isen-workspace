@@ -184,7 +184,7 @@ export default function AIAssistantPage() {
                       </span>
                       <span className="flex-1 min-w-0 flex items-center gap-1.5 pr-0.5">
                         <span
-                          className={`flex-1 min-w-0 text-[14px] leading-tight truncate ${active ? 'font-semibold' : 'font-medium'}`}
+                          className={`flex-1 min-w-0 text-[14px] leading-tight truncate ${active ? 'font-semibold' : ''}`}
                           style={active ? { color: 'var(--s-main)' } : { color: '#0f1f1c' }}
                         >{s.title}</span>
                         <span className="text-[10.5px] text-ink-300 flex-shrink-0 tabular-nums transition-opacity duration-150 group-hover:opacity-0">{fmtSessionTime(s.updatedAt)}</span>

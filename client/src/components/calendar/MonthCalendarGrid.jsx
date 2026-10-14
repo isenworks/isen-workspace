@@ -352,7 +352,8 @@ export default function MonthCalendarGrid({
                 )}
               </div>
 
-              {/* Layer 3: 习惯热力点（点击 → 当日面板） */}
+              {/* Layer 3: 习惯热力点（点击 → 当日面板）。数字 2/4 仅桌面显示：
+                  手机格子窄，数字时有时无导致各行底部参差；统一纯圆点行后每格节奏一致 */}
               {cell.inMonth && (
                 <div
                   className="flex items-center gap-1.5 mt-auto"
@@ -367,9 +368,11 @@ export default function MonthCalendarGrid({
                       />
                     ))}
                   </div>
-                  <span className="ml-auto text-[10px] font-medium tabular-nums" style={{ color: habitDone > 0 ? 'var(--success)' : 'rgba(var(--s-rgb),0.5)' }}>
-                    {habitDone > 0 ? `${habitDone}/${habitTarget}` : ''}
-                  </span>
+                  {!isTiny && (
+                    <span className="ml-auto text-[10px] font-medium tabular-nums" style={{ color: habitDone > 0 ? 'var(--success)' : 'rgba(var(--s-rgb),0.5)' }}>
+                      {habitDone > 0 ? `${habitDone}/${habitTarget}` : ''}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

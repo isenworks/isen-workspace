@@ -219,7 +219,7 @@ export default function AIAssistantPage() {
         {/* ---- 右：对话窗口 ---- */}
         <div className="glass-card rounded-2xl min-w-0 min-h-0 flex flex-col p-3" style={rightStyle}>
           {activeSession && (
-            <div className="flex items-center gap-2 px-1 pb-3 flex-shrink-0">
+            <div className="flex items-center gap-2 px-1 pb-4 flex-shrink-0">
               {/* 图标胶囊：栏头身份标识，沿用左侧列表的品牌印记样式 */}
               <span
                 className="w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 text-white"

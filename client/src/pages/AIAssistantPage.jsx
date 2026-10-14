@@ -187,7 +187,7 @@ export default function AIAssistantPage() {
                           className={`flex-1 min-w-0 text-[14px] leading-tight truncate ${active ? 'font-semibold' : ''}`}
                           style={active ? { color: 'var(--s-main)' } : { color: '#0f1f1c' }}
                         >{s.title}</span>
-                        <span className="text-[10.5px] text-ink-300 flex-shrink-0 tabular-nums transition-opacity duration-150 group-hover:opacity-0">{fmtSessionTime(s.updatedAt)}</span>
+                        <span className="text-[12px] text-ink-300 flex-shrink-0 tabular-nums transition-opacity duration-150 group-hover:opacity-0">{fmtSessionTime(s.updatedAt)}</span>
                       </span>
                       {/* hover 悬浮操作：时间淡出 + 实底深色遮盖，双重保证不与时间重影 */}
                       <span
@@ -220,8 +220,8 @@ export default function AIAssistantPage() {
         <div className="glass-card rounded-2xl min-w-0 min-h-0 flex flex-col p-3" style={rightStyle}>
           {activeSession && (
             <div className="flex items-center gap-2 px-1 pb-2 flex-shrink-0">
-              <span className="text-[12.5px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeSession.title}</span>
-              <span className="text-[11px] text-ink-300 flex-shrink-0">更新于 {fmtSessionTime(activeSession.updatedAt)}</span>
+              <span className="text-[14px] font-medium text-ink-900 truncate flex-1 min-w-0">{activeSession.title}</span>
+              <span className="text-[12px] text-ink-300 flex-shrink-0">更新于 {fmtSessionTime(activeSession.updatedAt)}</span>
             </div>
           )}
 

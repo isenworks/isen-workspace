@@ -124,9 +124,9 @@ export default function AIAssistantPage() {
       <div {...bindRoot} className="split-root flex-1 min-h-0 flex items-stretch">
         {/* ---- 左：页头 + 会话列表 ---- */}
         <div className="glass-card rounded-2xl min-w-0 flex flex-col min-h-0 p-3" style={leftStyle}>
-          {/* 页头：色条 + 标题 + 搜索（弹窗） / 新建对话 */}
+          {/* 页头：色条 + 标题 + 搜索（弹窗） / 新建对话。色条 22px 与右卡图标胶囊同高，两卡标题行同轴 */}
           <div className="flex items-center gap-2.5 px-1 pt-0.5 pb-2.5 flex-shrink-0">
-            <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
+            <span className="w-[5px] h-[22px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }} />
             <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-1 min-w-0 truncate">小亦Ai</span>
             <SearchPopover
               results={searchItems}
@@ -219,16 +219,16 @@ export default function AIAssistantPage() {
         {/* ---- 右：对话窗口 ---- */}
         <div className="glass-card rounded-2xl min-w-0 min-h-0 flex flex-col p-3" style={rightStyle}>
           {activeSession && (
-            <div className="flex items-center gap-2 px-1 pb-4 flex-shrink-0">
-              {/* 图标胶囊：栏头身份标识，沿用左侧列表的品牌印记样式 */}
+            <div className="flex items-center gap-2 px-1 pt-0.5 pb-6 flex-shrink-0">
+              {/* 头部与左卡页头同轴：同 pt-0.5 起点、同 22px 行高（图标胶囊决定）、leading-none 基线一致；pb-6 拉开与正文距离 */}
               <span
                 className="w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 text-white"
                 style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
               >
                 <IconSparkle size={12} strokeWidth={1.8} />
               </span>
-              <span className="text-[14px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeSession.title}</span>
-              <span className="text-[12px] text-ink-300 flex-shrink-0">更新于 {fmtSessionTime(activeSession.updatedAt)}</span>
+              <span className="text-[14px] font-semibold text-ink-900 truncate flex-1 min-w-0 leading-none">{activeSession.title}</span>
+              <span className="text-[12px] text-ink-300 flex-shrink-0 leading-none">更新于 {fmtSessionTime(activeSession.updatedAt)}</span>
             </div>
           )}
 

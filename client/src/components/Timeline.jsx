@@ -1460,20 +1460,22 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   return (
     <>
     <div className="glass-card p-4 h-full">
-      <div className="flex items-center justify-between section-header">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between section-header gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="section-accent" style={{background:'var(--s-main)'}}></span>
-          <h3 className="section-title">{titleText}</h3>
+          <h3 className="section-title whitespace-nowrap">{titleText}</h3>
 
-          {/* 总结按钮 — 紧跟标题后面 */}
-          <div ref={sumAnchorRef} className="ml-1.5">
+          {/* 总结按钮 — 紧跟标题后面（移动端收窄：防标题行换行） */}
+          <div ref={sumAnchorRef} className="ml-0.5 flex-shrink-0">
             <button
               className="btn-secondary flex items-center gap-1"
               onClick={() => { setSumMenuOpen(v => !v); }}
               style={{
-                padding: '4px 13px',
-                fontSize: '13px',
+                padding: '4px 9px',
+                fontSize: '12px',
                 fontWeight: showSummary ? 600 : 500,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
                 ...(showSummary ? {
                   background: 'var(--s-main)',
                   color: 'var(--surface-card)',
@@ -1482,11 +1484,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 } : {}),
               }}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{flexShrink:0}}>
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
               </svg>
               总结
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{transition:'transform .15s', transform: sumMenuOpen?'rotate(180deg)':'none'}}><path d="M6 9l6 6 6-6"></path></svg>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{transition:'transform .15s', transform: sumMenuOpen?'rotate(180deg)':'none', flexShrink:0}}><path d="M6 9l6 6 6-6"></path></svg>
             </button>
           </div>
         </div>
@@ -1494,11 +1496,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           onClick={() => onManageFixedSchedules?.()}
           title="管理固定日程"
           style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '5px 10px',
+            display: 'flex', alignItems: 'center', gap: '3px',
+            padding: '4px 9px',
             borderRadius: '8px',
-            fontSize: '12px',
+            fontSize: '11.5px',
             fontWeight: '500',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
             color: 'var(--text-3)',
             background: 'rgba(142,142,147,0.10)',
             border: 'none',

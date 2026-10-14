@@ -55,29 +55,39 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
 
   useEffect(() => { loadDots(); }, [year, month, refreshSignal]);
 
-  // 滚动到当前日
-  useEffect(() => {
-    if (year === todayYear && month === todayMonth) {
-      setTimeout(scrollTodayIntoView, 50);
-    }
-  }, [year, month, dots]);
-
-  function scrollTodayIntoView() {
-    if (year === todayYear && month === todayMonth && scrollRef.current) {
-      const todayEl = scrollRef.current.querySelector('.cal-day.today');
-      if (todayEl && scrollRef.current) {
-        const scrollLeft = todayEl.offsetLeft - scrollRef.current.clientWidth / 2 + todayEl.offsetWidth / 2;
-        scrollRef.current.scrollTo({ left: scrollLeft, behavior: 'auto' });
-      }
-    }
+  // 居中定位今天：getBoundingClientRect 计算相对位置（不依赖 offsetParent，避免定位祖先陷阱）。
+  // 移动端浏览器恢复页面时会用记住的滚动位置覆盖早期程序化滚动（刷新/返回常见），
+  // 单次 50ms 定位会被吞掉 → 打开页面看不到今天（线上已踩坑），故多时机重试直至就位
+  function centerToday() {
+    if (year !== todayYear || month !== todayMonth || !scrollRef.current) return;
+    const cont = scrollRef.current;
+    const todayEl = cont.querySelector('.cal-day.today');
+    if (!todayEl) return;
+    const cRect = cont.getBoundingClientRect();
+    const eRect = todayEl.getBoundingClientRect();
+    if (cRect.width < 40 || eRect.width < 10) return; // 布局未就绪（抽屉动画/隐藏态），留给下次重试
+    const target = cont.scrollLeft + (eRect.left - cRect.left) - (cRect.width - eRect.width) / 2;
+    if (Math.abs(target - cont.scrollLeft) < 2) return; // 已就位
+    cont.scrollTo({ left: target, behavior: 'auto' });
   }
+
+  // 滚动到当前日：渲染帧 + 300ms + 1000ms 三次重试（覆盖浏览器滚动位置恢复的时序）
+  useEffect(() => {
+    if (year !== todayYear || month !== todayMonth) return;
+    const raf = requestAnimationFrame(centerToday);
+    const t1 = setTimeout(centerToday, 300);
+    const t2 = setTimeout(centerToday, 1000);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t1); clearTimeout(t2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month, dots]);
 
   // 「回到今天」：重置月份与选中日期，并兜底滚回今天（同月内 effect 不触发，需手动滚）
   function backToToday() {
     setYear(todayYear);
     setMonth(todayMonth);
     onSelectDate(today);
-    setTimeout(scrollTodayIntoView, 60);
+    setTimeout(centerToday, 60);
+    setTimeout(centerToday, 350);
   }
 
   function prevMonth() {
@@ -106,6 +116,12 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
     const pastClass = isPast ? 'past' : '';
     const selectedClass = isSelected && !isToday ? 'selected' : '';
 
+    // 今天格子三重保险标识（移动端曾出现 CSS 类样式未达预期的设备，导致"看不出哪天是今天"）：
+    // ① weekday 文字直接显示「今」（文字级，任何渲染路径都可见）
+    // ② 内联样式兜底实心填充（不依赖外部 CSS 是否生效）
+    // ③ CSS 类 .cal-day.today（正常路径）
+    const weekdayText = isToday ? '今' : weekLabels[w];
+
     // 按规则决定圆点颜色（单个圆点）
     let dotColor = null;
     if (hasPriority || hasNormal) {
@@ -122,9 +138,10 @@ export default function WeekCalendar({ selectedDate, onSelectDate, refreshSignal
       <div
         key={day}
         className={`cal-day ${todayClass} ${pastClass} ${selectedClass}`}
+        style={isToday ? { background: 'var(--s-main, #007AFF)', color: '#fff' } : undefined}
         onClick={() => onSelectDate(toISODate(d))}
       >
-        <div className="cal-weekday">{weekLabels[w]}</div>
+        <div className="cal-weekday">{weekdayText}</div>
         <div className="cal-date">{day}</div>
         <div className="cal-dots">{dotsHtml}</div>
       </div>

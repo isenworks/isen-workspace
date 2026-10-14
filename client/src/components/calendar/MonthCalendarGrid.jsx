@@ -147,7 +147,7 @@ export default function MonthCalendarGrid({
     <div className="flex flex-col min-h-0">
       {/* 表头：周一起。下缘 hairline 锚定列轴（全宽，与年月条/图例栏的分隔线同一节奏） */}
       <div
-        className={`grid grid-cols-7 pt-4 pb-2 ${isTiny ? 'px-2' : 'px-4'}`}
+        className={`grid grid-cols-7 pt-4 pb-2 ${isTiny ? 'px-0' : 'px-4'}`}
         style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
       >
         {WEEK_LABELS_MON.map((w, i) => (
@@ -157,7 +157,7 @@ export default function MonthCalendarGrid({
         ))}
       </div>
 
-      <div className={`grid grid-cols-7 gap-0 mb-4 rounded-2xl overflow-hidden ${isTiny ? 'mx-1' : 'mx-4'}`}>
+      <div className={`grid grid-cols-7 gap-0 mb-4 rounded-2xl overflow-hidden ${isTiny ? 'mx-0' : 'mx-4'}`}>
         {grid.map((cell, i) => {
           const dateObj = fromISODate(cell.date);
           const day = dateObj.getDate();
@@ -200,7 +200,7 @@ export default function MonthCalendarGrid({
           return (
             <div
               key={i}
-              className={`${isTiny ? 'min-h-[60px] p-1 gap-[2px]' : 'min-h-[88px] p-2 gap-1'} flex flex-col transition-colors relative ${corner} ${
+              className={`${isTiny ? 'min-h-[60px] p-[2px] gap-[2px]' : 'min-h-[88px] p-2 gap-1'} flex flex-col transition-colors relative ${corner} ${
                 !cell.inMonth ? 'opacity-40' : ''
               }`}
               style={{
@@ -284,13 +284,13 @@ export default function MonthCalendarGrid({
                     : `${mod.color}1F`;
                   const title = ev.title || ev.name || '';
 
-                  /* 手机紧凑条：无圆点纯文字（色块背景已承担模块归属），内边距压到 3px 最大化文字宽；
-                     单行省略——超长标题看当日面板。勾选交互移步当日面板（点格即开）；点击条仍直接打开编辑 */
+                  /* 手机紧凑条：无圆点纯文字（色块背景已承担模块归属），内边距压到 2px（与事项间距同级）；
+                     单行硬截断（无省略号、不溢出）——超长标题看当日面板。勾选交互移步当日面板；点击条仍直接打开编辑 */
                   if (isTiny) {
                     return (
                       <div
                         key={ev.id || `${date}-${j}`}
-                        className="flex items-center min-w-0 px-[3px] py-[1.5px] rounded cursor-pointer"
+                        className="flex items-center min-w-0 px-[2px] py-[1.5px] rounded cursor-pointer"
                         style={{ background: bg }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -298,8 +298,9 @@ export default function MonthCalendarGrid({
                         }}
                       >
                         <span
-                          className="min-w-0 flex-1 text-[9px] leading-[12px] truncate"
+                          className="min-w-0 flex-1 text-[9px] leading-[12px] overflow-hidden whitespace-nowrap"
                           style={{
+                            textOverflow: 'clip',
                             color: done ? 'var(--text-muted)' : 'var(--ink-700)',
                             fontWeight: 500,
                             textDecoration: done ? 'line-through' : 'none',

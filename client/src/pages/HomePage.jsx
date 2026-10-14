@@ -127,6 +127,18 @@ function heroCropBg(im, withShade = true) {
   };
 }
 
+/* 签名单行字号分档：中文≈1、半角≈0.55 估视觉宽度，宽度越小字号越大；
+ * 分档边界按手机 375px 可用文本宽（约 249px）实测容量校准，
+ * 保证降档后单行能放下；极端超长由 truncate 省略兜底（点击编辑可查看全文） */
+function signatureFontClass(s) {
+  let w = 0;
+  for (const ch of String(s || '')) w += /[\u2E80-\u9FFF\uF900-\uFFEF]/.test(ch) ? 1 : 0.55;
+  if (w <= 16) return 'text-[14.5px]';
+  if (w <= 19) return 'text-[13px]';
+  if (w <= 23) return 'text-[12px]';
+  return 'text-[11px]';
+}
+
 /* 重要节日白名单：lunar 库 getFestivals 会带出全民国防教育日这类小众纪念日，首页只展示大众节日 */
 const MAJOR_FESTIVALS = new Set(['元旦', '除夕', '春节', '元宵节', '情人节', '妇女节', '植树节', '清明节', '劳动节', '青年节', '母亲节', '儿童节', '父亲节', '端午节', '建党节', '建军节', '七夕节', '教师节', '中秋节', '国庆节', '重阳节', '万圣节', '感恩节', '圣诞节']);
 
@@ -858,7 +870,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 {signature ? (
                   <>
                     <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>“</span>
-                    <span className="text-[14.5px] italic font-medium break-words sm:truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
+                    <span className={`${signatureFontClass(signature)} italic font-medium truncate`} style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
                     <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>”</span>
                   </>
                 ) : (

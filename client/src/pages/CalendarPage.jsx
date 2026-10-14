@@ -1553,23 +1553,24 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               onCellOpenDay={(date) => setDayDetail({ date })}
             />
 
+            {/* 图例栏：手机端 9px + 7px 色点 + nowrap，四模块图例与「今日/选中」同一行；桌面端不变 */}
             <div
-              className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap"
+              className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap max-sm:gap-2 max-sm:px-3 max-sm:flex-nowrap"
               style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}
             >
               {MODULES.filter(m => m.key !== 'others').map(m => (
-                <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-muted)]">
-                  <span className="w-2 h-2 rounded-full" style={{ background: m.color }} />
+                <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-muted)] max-sm:text-[9px] max-sm:gap-1">
+                  <span className="w-2 h-2 rounded-full max-sm:w-[7px] max-sm:h-[7px]" style={{ background: m.color }} />
                   {m.label}
                 </span>
               ))}
               <div className="flex-1" />
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[color:var(--s-main)]">
-                <span className="w-2 h-2 rounded-full" style={{ background: 'var(--s-main)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.35)' }} />
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[color:var(--s-main)] max-sm:text-[9px] max-sm:gap-1">
+                <span className="w-2 h-2 rounded-full max-sm:w-[7px] max-sm:h-[7px]" style={{ background: 'var(--s-main)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.35)' }} />
                 今日
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[color:var(--s-deep)]">
-                <span className="w-2 h-2 rounded-full" style={{ background: 'transparent', boxShadow: 'inset 0 0 0 2px rgba(var(--s-rgb),0.45)' }} />
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[color:var(--s-deep)] max-sm:text-[9px] max-sm:gap-1">
+                <span className="w-2 h-2 rounded-full max-sm:w-[7px] max-sm:h-[7px]" style={{ background: 'transparent', boxShadow: 'inset 0 0 0 2px rgba(var(--s-rgb),0.45)' }} />
                 选中
               </span>
             </div>

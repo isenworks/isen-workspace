@@ -213,9 +213,10 @@ export default function MonthCalendarGrid({
                    事件行内部会自行 stopPropagation，防止冒泡到这里 */
               onClick={(e) => emitOpenDay('cell', e)}
             >
-              {/* Layer 1: 日期数字（左上） + 农历/节气/节日（右上） + 今日徽章（点击 → 当日面板） */}
+              {/* Layer 1: 日期数字（左上） + 农历/节气/节日（右上/手机第二行） + 今日徽章（点击 → 当日面板）
+                  手机：节日不与日期挤同一行，wrap 后 w-full 落到第二行顶格 */}
               <div
-                className="flex items-center justify-between gap-1"
+                className={isTiny ? 'flex flex-wrap items-center gap-x-1' : 'flex items-center justify-between gap-1'}
                 onClick={(e) => emitOpenDay('dateBadge', e)}
               >
                 <span
@@ -232,15 +233,15 @@ export default function MonthCalendarGrid({
                 >
                   {day}
                 </span>
-                <span className="flex items-center gap-1 min-w-0">
+                <span className={`flex items-center gap-1 min-w-0 ${isTiny ? 'w-full' : ''}`}>
                   {(() => {
                     const lb = lunarBadge(cell.date);
                     // 手机紧凑模式：普通农历日（初一/十五等）在 48px 格里是纯噪音，只保留
-                    // 节日/节气/农历月名（weight 600），把右上角空间让给日期与事项
+                    // 节日/节气/农历月名（weight 600），换行到第二行顶格展示
                     if (isTiny && lb.weight < 600) return null;
                     return (
                       <span
-                        className={`leading-none truncate ${isTiny ? 'text-[8.5px]' : 'text-[10.5px]'}`}
+                        className={`leading-none truncate ${isTiny ? 'text-[9px]' : 'text-[10.5px]'}`}
                         style={{ color: lb.color, fontWeight: lb.weight }}
                         title={lb.full}
                       >
@@ -283,23 +284,20 @@ export default function MonthCalendarGrid({
                     : `${mod.color}1F`;
                   const title = ev.title || ev.name || '';
 
-                  /* 手机紧凑条：模块色点 + 单行省略标题。48px 格里放不下复选框与换行，
-                     勾选交互移步当日面板（点格即开）；点击条仍直接打开编辑 */
+                  /* 手机紧凑条：无圆点纯文字（色块背景已承担模块归属，省 8px 给标题），
+                     单行省略。48px 格里放不下复选框与换行，勾选交互移步当日面板（点格即开）；
+                     点击条仍直接打开编辑 */
                   if (isTiny) {
                     return (
                       <div
                         key={ev.id || `${date}-${j}`}
-                        className="flex items-center gap-1 min-w-0 px-1 py-[1.5px] rounded cursor-pointer"
+                        className="flex items-center min-w-0 px-1 py-[1.5px] rounded cursor-pointer"
                         style={{ background: bg }}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEventClick?.(ev, date);
                         }}
                       >
-                        <span
-                          className="w-[5px] h-[5px] rounded-full flex-shrink-0"
-                          style={{ background: done ? 'var(--text-muted)' : mod.color }}
-                        />
                         <span
                           className="min-w-0 flex-1 text-[9.5px] leading-[13px] truncate"
                           style={{

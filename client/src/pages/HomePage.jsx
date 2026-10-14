@@ -162,33 +162,26 @@ function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
   );
 }
 
-/* 事项完成标记：圆形 + 分类主题色 —— 全站统一设计语言（今日计划时间线/习惯打卡同款）
- * · 形状用圆：移动端 to-do 事实标准（Apple Reminders / Things / Todoist），与全站习惯打卡一致
+/* 事项完成标记：直接复用重点事项面板的 .cb-round（18×18 · 1.5px 线框 · CSS 同源白勾）
+ * —— 不再自绘尺寸，规格与今日计划完全一致且永不漂移
  * · 颜色跟事项分类（工作/能力/精力/生活…）：颜色承担类型识别，扫一眼即知归属；
  *   旧版勾选填充的是卡片自身主题色，与事项类型无关，导致各卡事项无法区分
- * · 未完成 = 分类色细描边空心圆（视觉轻）· 完成 = 分类饱和色实底 + 白勾（视觉重）
- * · 失败保持全局红色语义，不被分类色覆盖；分类缺失时回退卡片主题色 */
-function TaskCheck({ s, onToggle, size = 16 }) {
+ * · 未完成 = 分类色细描边空心圆（视觉轻）· 完成 = 分类色实底 + 白勾（视觉重）
+ * · 失败走 cb-failed 全局红色语义，不被分类色覆盖；分类缺失回退卡片主题色 */
+function TaskCheck({ s, onToggle }) {
   const tone = CATEGORY_COLORS[Number(s.category)];
-  const idleBorder = s.is_failed ? 'var(--danger)' : (tone?.borderColor || 'rgba(120,120,128,0.35)');
-  const fill = s.is_failed ? 'rgba(255,59,48,0.08)' : (tone?.doneColor || 'var(--s-main)');
+  const failed = !!s.is_failed && !s.is_done;
+  const color = failed ? 'var(--danger)' : (tone?.doneColor || 'var(--s-main)');
   return (
-    <button
-      onClick={e => { e.stopPropagation(); onToggle(s); }}
-      className="rounded-full border flex-shrink-0 grid place-items-center transition hover:scale-110 cursor-pointer"
-      title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
-      style={{
-        width: size, height: size,
-        background: (s.is_done || s.is_failed) ? fill : 'transparent',
-        borderColor: (s.is_done || s.is_failed) ? fill : idleBorder,
-      }}
-    >
-      {s.is_done ? (
-        <svg className="w-[9px] h-[9px]" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      ) : s.is_failed ? (
-        <svg className="w-[8px] h-[8px]" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-      ) : null}
-    </button>
+    <input
+      type="checkbox"
+      className={`cb-round flex-shrink-0 cursor-pointer ${failed ? 'cb-failed' : ''}`}
+      checked={!!s.is_done}
+      onChange={() => onToggle(s)}
+      onClick={e => e.stopPropagation()}
+      style={{ '--cb-color': color, '--cb-border': failed ? 'var(--danger)' : (tone?.borderColor || color) }}
+      title={s.is_done ? '左键取消完成 · 右键/长按菜单' : failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
+    />
   );
 }
 
@@ -1016,13 +1009,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   >
                     <TaskCheck s={s} onToggle={toggleWeekKey} />
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
-                      <span className={`text-[12.5px] font-semibold truncate ${
+                      <span className={`text-[14px] font-semibold truncate ${
                         s.is_done ? 'text-ink-300 line-through' :
                         s.is_failed ? 'text-[var(--danger)] line-through' :
                         'text-ink-800'
                       }`}>{s.title || '（无标题）'}</span>
                       <PTag p={s.priority} />
-                      <span className={`text-[11.5px] font-semibold tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
+                      <span className={`text-[12px] font-semibold tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
                     </button>
                   </div>
                 ))}
@@ -1116,13 +1109,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                   >
                     <TaskCheck s={s} onToggle={toggleWeekKey} />
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
-                      <span className={`text-[12.5px] font-semibold truncate ${
+                      <span className={`text-[14px] font-semibold truncate ${
                         s.is_done ? 'text-ink-300 line-through' :
                         s.is_failed ? 'text-[var(--danger)] line-through' :
                         'text-ink-800'
                       }`}>{s.title}</span>
                       <PTag p={s.priority} />
-                      <span className="text-[11.5px] font-semibold text-ink-300 flex-shrink-0 ml-auto tabular-nums">{String(s.date).slice(5).replace('-', '/')}</span>
+                      <span className={`text-[12px] font-semibold text-ink-300 flex-shrink-0 ml-auto tabular-nums`}>{String(s.date).slice(5).replace('-', '/')}</span>
                     </button>
                   </div>
                 ))}
@@ -1195,12 +1188,12 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1">
-                        <span className="text-[12.5px] font-semibold text-ink-800 truncate">{u.title}</span>
+                        <span className="text-[14px] font-semibold text-ink-800 truncate">{u.title}</span>
                         <PTag p={u.priority} />
                       </div>
-                      <div className="text-[10.5px] text-ink-400 tabular-nums">{`${String(u.date).slice(5).replace('-', '.')} ${weekday} · ${meta.tag}`}</div>
+                      <div className="text-[12px] text-ink-400 tabular-nums">{`${String(u.date).slice(5).replace('-', '.')} ${weekday} · ${meta.tag}`}</div>
                     </div>
-                    <span className="text-[11px] font-bold tabular-nums flex-shrink-0" style={{ color: meta.fg }}>{u.daysLeft === 0 ? '今天' : `${u.daysLeft}天后`}</span>
+                    <span className="text-[12px] font-bold tabular-nums flex-shrink-0" style={{ color: meta.fg }}>{u.daysLeft === 0 ? '今天' : `${u.daysLeft}天后`}</span>
                   </button>
                 );
               })}

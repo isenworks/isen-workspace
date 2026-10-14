@@ -845,8 +845,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </span>
           </div>
 
-          {/* 右：签名 / 座右铭（点击编辑，回车/失焦保存） */}
-          <div className="relative z-[2] flex items-center gap-2 min-w-0 w-full sm:w-auto sm:max-w-[440px]">
+          {/* 右：签名 / 座右铭（点击编辑，回车/失焦保存）。移动端右对齐：与左上问候构成信笺式对角构图 */}
+          <div className="relative z-[2] flex items-center gap-2 min-w-0 w-full justify-end sm:w-auto sm:max-w-[440px]">
             {sigEditing ? (
               <input
                 autoFocus
@@ -869,10 +869,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               >
                 {signature ? (
                   <>
-                    {/* 开引号悬挂：负 margin 抵消 serif 引号字形左侧空白，签名文字与问候语左缘严格对齐 */}
-                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center -ml-[7px]" style={{ color: 'rgba(255,255,255,0.35)' }}>“</span>
+                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>“</span>
                     <span className={`${signatureFontClass(signature)} italic font-medium truncate`} style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
-                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>”</span>
+                    {/* 尾引号悬挂：负 margin 抵消 serif 引号字形右侧空白，签名文字与内容区右缘严格对齐 */}
+                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center -mr-[7px]" style={{ color: 'rgba(255,255,255,0.35)' }}>”</span>
                   </>
                 ) : (
                   <>

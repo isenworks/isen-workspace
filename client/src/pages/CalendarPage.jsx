@@ -1553,7 +1553,10 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               onCellOpenDay={(date) => setDayDetail({ date })}
             />
 
-            <div className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap">
+            <div
+              className="flex items-center gap-4 px-5 py-3 pb-4 flex-wrap"
+              style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}
+            >
               {MODULES.filter(m => m.key !== 'others').map(m => (
                 <span key={m.key} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-muted)]">
                   <span className="w-2 h-2 rounded-full" style={{ background: m.color }} />

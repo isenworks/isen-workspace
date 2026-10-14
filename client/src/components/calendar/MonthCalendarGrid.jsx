@@ -145,8 +145,11 @@ export default function MonthCalendarGrid({
 
   return (
     <div className="flex flex-col min-h-0">
-      {/* 表头：周一起 */}
-      <div className={`grid grid-cols-7 pt-4 pb-2 ${isTiny ? 'px-2' : 'px-4'}`}>
+      {/* 表头：周一起。下缘 hairline 锚定列轴（全宽，与年月条/图例栏的分隔线同一节奏） */}
+      <div
+        className={`grid grid-cols-7 pt-4 pb-2 ${isTiny ? 'px-2' : 'px-4'}`}
+        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+      >
         {WEEK_LABELS_MON.map((w, i) => (
           <div key={i} className="text-center text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
             {w}
@@ -154,10 +157,7 @@ export default function MonthCalendarGrid({
         ))}
       </div>
 
-      <div
-        className={`grid grid-cols-7 gap-0 mb-4 rounded-2xl overflow-hidden ${isTiny ? 'mx-2' : 'mx-4'}`}
-        style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.04)' }}
-      >
+      <div className={`grid grid-cols-7 gap-0 mb-4 rounded-2xl overflow-hidden ${isTiny ? 'mx-2' : 'mx-4'}`}>
         {grid.map((cell, i) => {
           const dateObj = fromISODate(cell.date);
           const day = dateObj.getDate();
@@ -206,9 +206,8 @@ export default function MonthCalendarGrid({
               style={{
                 background: cellBg,
                 cursor: 'pointer',
-                boxShadow: isSelected && !isToday
-                  ? 'inset 0 0 0 2px rgba(var(--s-rgb),0.45)'
-                  : 'inset -1px -1px 0 rgba(0,0,0,0.04)',
+                // 常态无框（去格线，开放网格；行带感由当周浅蓝背景提供），选中态保留 inset ring
+                boxShadow: isSelected && !isToday ? 'inset 0 0 0 2px rgba(var(--s-rgb),0.45)' : 'none',
               }}
               /* 整个日格背景/空白兜底点击 → 开当日事项面板
                    事件行内部会自行 stopPropagation，防止冒泡到这里 */

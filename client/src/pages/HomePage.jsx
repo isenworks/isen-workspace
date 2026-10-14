@@ -777,7 +777,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== Hero：渐变 / 多图轮播通栏（问候 + 签名），全页唯一彩色锚点 ========== */}
         <div ref={heroRef} className="relative md:shrink-0">
         <div
-          className={`relative overflow-hidden px-5 py-5 sm:px-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-6 rounded-[18px] group md:h-[168px]${heroBg.type === 'images' ? ' min-h-[176px] justify-end sm:min-h-0' : ''}`}
+          className={`relative overflow-hidden px-5 py-4 sm:px-8 sm:py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-6 rounded-[18px] group md:h-[168px]${heroBg.type === 'images' ? ' min-h-[160px] justify-between sm:min-h-0' : ''}`}
           style={heroStyle}
           onContextMenu={e => { e.preventDefault(); setHeroEditOpen(v => !v); }}
           {...lp.bind(() => setHeroEditOpen(v => !v))}
@@ -864,12 +864,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             ) : (
               <button
                 onClick={() => setSigEditing(true)}
-                className="group flex items-center gap-1 min-w-0 px-3 py-2 rounded-xl transition hover:bg-[rgba(255,255,255,0.12)] text-left"
+                className="group flex items-center gap-1 min-w-0 py-2 rounded-xl transition hover:bg-[rgba(255,255,255,0.12)] text-left"
                 title="点击编辑签名"
               >
                 {signature ? (
                   <>
-                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>“</span>
+                    {/* 开引号悬挂：负 margin 抵消 serif 引号字形左侧空白，签名文字与问候语左缘严格对齐 */}
+                    <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center -ml-[7px]" style={{ color: 'rgba(255,255,255,0.35)' }}>“</span>
                     <span className={`${signatureFontClass(signature)} italic font-medium truncate`} style={{ color: 'rgba(255,255,255,0.92)' }}>{signature}</span>
                     <span className="text-[22px] font-serif leading-none flex-shrink-0 self-center" style={{ color: 'rgba(255,255,255,0.35)' }}>”</span>
                   </>

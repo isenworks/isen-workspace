@@ -1197,7 +1197,7 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .hp-hb::-webkit-scrollbar-track { background: transparent; }
 .hp-hrow { display: flex; align-items: center; gap: 6px; }
 .hp-hname {
-  font-size: 14px; font-weight: 600; color: #2a3431;
+  font-size: 14px; font-weight: 400; color: #2a3431;
   width: 40px; flex-shrink: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

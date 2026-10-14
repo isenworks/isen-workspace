@@ -220,7 +220,14 @@ export default function AIAssistantPage() {
         <div className="glass-card rounded-2xl min-w-0 min-h-0 flex flex-col p-3" style={rightStyle}>
           {activeSession && (
             <div className="flex items-center gap-2 px-1 pb-2 flex-shrink-0">
-              <span className="text-[14px] font-medium text-ink-900 truncate flex-1 min-w-0">{activeSession.title}</span>
+              {/* 图标胶囊：栏头身份标识，沿用左侧列表的品牌印记样式 */}
+              <span
+                className="w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 text-white"
+                style={{ background: 'var(--s-grad-bg)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+              >
+                <IconSparkle size={12} strokeWidth={1.8} />
+              </span>
+              <span className="text-[14px] font-semibold text-ink-900 truncate flex-1 min-w-0">{activeSession.title}</span>
               <span className="text-[12px] text-ink-300 flex-shrink-0">更新于 {fmtSessionTime(activeSession.updatedAt)}</span>
             </div>
           )}

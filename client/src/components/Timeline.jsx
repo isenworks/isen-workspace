@@ -1464,25 +1464,31 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         <div className="flex items-center gap-2 min-w-0">
           <span className="section-accent" style={{background:'var(--s-main)'}}></span>
           <h3 className="section-title whitespace-nowrap">{titleText}</h3>
+        </div>
 
-          {/* 总结按钮 — 紧跟标题后面（移动端收窄：防标题行换行） */}
-          <div ref={sumAnchorRef} className="ml-0.5 flex-shrink-0">
+        {/* 右侧操作组：总结 + 固定日程（统一胶囊规格 12px/8px 圆角/浅灰填充，紧凑排列） */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div ref={sumAnchorRef}>
             <button
-              className="btn-secondary flex items-center gap-1"
               onClick={() => { setSumMenuOpen(v => !v); }}
+              title="查看 / 编辑每日总结"
               style={{
+                display: 'flex', alignItems: 'center', gap: '3px',
                 padding: '4px 9px',
+                borderRadius: '8px',
                 fontSize: '12px',
                 fontWeight: showSummary ? 600 : 500,
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
-                ...(showSummary ? {
-                  background: 'var(--s-main)',
-                  color: 'var(--surface-card)',
-                  border: 'none',
-                  boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25), 0 1px 1px rgba(0,0,0,0.04)',
-                } : {}),
+                color: showSummary ? 'var(--surface-card)' : 'var(--text-3)',
+                background: showSummary ? 'var(--s-main)' : 'rgba(142,142,147,0.10)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all .15s',
+                ...(showSummary ? { boxShadow: '0 3px 8px rgba(var(--s-rgb),0.25), 0 1px 1px rgba(0,0,0,0.04)' } : {}),
               }}
+              onMouseEnter={e => { if (!showSummary) e.currentTarget.style.background = 'rgba(142,142,147,0.18)'; }}
+              onMouseLeave={e => { if (!showSummary) e.currentTarget.style.background = 'rgba(142,142,147,0.10)'; }}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{flexShrink:0}}>
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -1491,33 +1497,33 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{transition:'transform .15s', transform: sumMenuOpen?'rotate(180deg)':'none', flexShrink:0}}><path d="M6 9l6 6 6-6"></path></svg>
             </button>
           </div>
+          <button
+            onClick={() => onManageFixedSchedules?.()}
+            title="管理固定日程"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '3px',
+              padding: '4px 9px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: '500',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              color: 'var(--text-3)',
+              background: 'rgba(142,142,147,0.10)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all .15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'rgba(142,142,147,0.18)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'rgba(142,142,147,0.10)'; }}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{flexShrink:0}}>
+              <path d="M12 17v5"></path>
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path>
+            </svg>
+            固定日程
+          </button>
         </div>
-        <button
-          onClick={() => onManageFixedSchedules?.()}
-          title="管理固定日程"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '3px',
-            padding: '4px 9px',
-            borderRadius: '8px',
-            fontSize: '11.5px',
-            fontWeight: '500',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            color: 'var(--text-3)',
-            background: 'rgba(142,142,147,0.10)',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all .15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'rgba(142,142,147,0.18)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'rgba(142,142,147,0.10)'; }}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{flexShrink:0}}>
-            <path d="M12 17v5"></path>
-            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path>
-          </svg>
-          固定日程
-        </button>
       </div>
 
       <div className="overflow-visible">

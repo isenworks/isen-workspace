@@ -128,15 +128,16 @@ function heroCropBg(im, withShade = true) {
 }
 
 /* 签名单行字号分档：中文≈1、半角≈0.55 估视觉宽度，宽度越小字号越大；
- * 分档边界按手机 375px 可用文本宽（约 249px）实测容量校准，
- * 保证降档后单行能放下；极端超长由 truncate 省略兜底（点击编辑可查看全文） */
+ * 分档边界按手机 375px 可用文本宽（约 249px）实测容量校准。
+ * 仅移动端降档（max-sm:），桌面宽度充裕永远保持 14.5px 原字号；
+ * 极端超长由 truncate 省略兜底（点击编辑可查看全文） */
 function signatureFontClass(s) {
   let w = 0;
   for (const ch of String(s || '')) w += /[\u2E80-\u9FFF\uF900-\uFFEF]/.test(ch) ? 1 : 0.55;
   if (w <= 16) return 'text-[14.5px]';
-  if (w <= 19) return 'text-[13px]';
-  if (w <= 23) return 'text-[12px]';
-  return 'text-[11px]';
+  if (w <= 19) return 'text-[14.5px] max-sm:text-[13px]';
+  if (w <= 23) return 'text-[14.5px] max-sm:text-[12px]';
+  return 'text-[14.5px] max-sm:text-[11px]';
 }
 
 /* 重要节日白名单：lunar 库 getFestivals 会带出全民国防教育日这类小众纪念日，首页只展示大众节日 */

@@ -157,7 +157,7 @@ export default function MonthCalendarGrid({
         ))}
       </div>
 
-      <div className={`grid grid-cols-7 gap-0 mb-4 rounded-2xl overflow-hidden ${isTiny ? 'mx-2' : 'mx-4'}`}>
+      <div className={`grid grid-cols-7 gap-0 mb-4 rounded-2xl overflow-hidden ${isTiny ? 'mx-1' : 'mx-4'}`}>
         {grid.map((cell, i) => {
           const dateObj = fromISODate(cell.date);
           const day = dateObj.getDate();
@@ -200,7 +200,7 @@ export default function MonthCalendarGrid({
           return (
             <div
               key={i}
-              className={`${isTiny ? 'min-h-[60px] p-1.5 gap-0.5' : 'min-h-[88px] p-2 gap-1'} flex flex-col transition-colors relative ${corner} ${
+              className={`${isTiny ? 'min-h-[60px] p-1 gap-[2px]' : 'min-h-[88px] p-2 gap-1'} flex flex-col transition-colors relative ${corner} ${
                 !cell.inMonth ? 'opacity-40' : ''
               }`}
               style={{
@@ -220,7 +220,7 @@ export default function MonthCalendarGrid({
                 onClick={(e) => emitOpenDay('dateBadge', e)}
               >
                 <span
-                  className={`inline-flex items-center justify-center font-semibold tabular-nums leading-none rounded-md transition ${isTiny ? 'text-[12px] px-[3.5px] py-[2px]' : 'text-[14px] px-[5px] py-[3px]'}`}
+                  className={`inline-flex items-center justify-center font-semibold tabular-nums leading-none rounded-md transition ${isTiny ? 'text-[11px] px-[3px] py-[1.5px]' : 'text-[14px] px-[5px] py-[3px]'}`}
                   style={{
                     color: isToday ? 'var(--surface-card)' : isSelected ? 'var(--s-deep)' : 'var(--text-1)',
                     background: isToday
@@ -266,7 +266,7 @@ export default function MonthCalendarGrid({
                 className={`flex flex-col flex-1 min-h-0 ${isTiny ? 'gap-[2px]' : 'gap-[3px]'}`}
                 onClick={(e) => { /* 阻止冒泡到 cell，避免点击事件行空白处也开当日面板（点击事件行空白处按「非事项区」统一：不弹编辑） */ }}
               >
-                {(isTiny ? dayEvents.slice(0, 2) : dayEvents.slice(0, 3)).map((ev, j) => {
+                {(isTiny ? dayEvents.slice(0, 3) : dayEvents.slice(0, 3)).map((ev, j) => {
                   const mod = scheduleModule(ev);
                   const done = Boolean(ev.is_done || ev.done);
                   // 多日事项起止标记：首日 ›、末日 ‹（轻量角标，中间日不标——首尾包裹已表意）
@@ -284,14 +284,13 @@ export default function MonthCalendarGrid({
                     : `${mod.color}1F`;
                   const title = ev.title || ev.name || '';
 
-                  /* 手机紧凑条：无圆点纯文字（色块背景已承担模块归属，省 8px 给标题），
-                     单行省略。48px 格里放不下复选框与换行，勾选交互移步当日面板（点格即开）；
-                     点击条仍直接打开编辑 */
+                  /* 手机紧凑条：无圆点纯文字（色块背景已承担模块归属），内边距压到 3px 最大化文字宽；
+                     单行省略——超长标题看当日面板。勾选交互移步当日面板（点格即开）；点击条仍直接打开编辑 */
                   if (isTiny) {
                     return (
                       <div
                         key={ev.id || `${date}-${j}`}
-                        className="flex items-center min-w-0 px-1 py-[1.5px] rounded cursor-pointer"
+                        className="flex items-center min-w-0 px-[3px] py-[1.5px] rounded cursor-pointer"
                         style={{ background: bg }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -299,7 +298,7 @@ export default function MonthCalendarGrid({
                         }}
                       >
                         <span
-                          className="min-w-0 flex-1 text-[9.5px] leading-[13px] truncate"
+                          className="min-w-0 flex-1 text-[9px] leading-[12px] truncate"
                           style={{
                             color: done ? 'var(--text-muted)' : 'var(--ink-700)',
                             fontWeight: 500,
@@ -348,7 +347,7 @@ export default function MonthCalendarGrid({
                       padding: isTiny ? '1px 4px' : '2px 6px',
                     }}
                   >
-                    +{dayEvents.length - (isTiny ? 2 : 3)} 更多
+                    +{dayEvents.length - 3} 更多
                   </span>
                 )}
               </div>

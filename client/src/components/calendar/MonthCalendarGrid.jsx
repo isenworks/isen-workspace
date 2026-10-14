@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { calendarGrid, toISODate, today as getToday, fromISODate, startOfWeek, endOfWeek } from '../../utils/date.js';
 import { WEEK_LABELS_MON, scheduleModule } from '../../utils/categoryMapping.js';
+import { useMediaQuery } from '../../utils/useMediaQuery.js';
 import lunarLib from '../../vendor/lunar.js';
 
 /* 每格农历标注：优先级 节日 > 节气 > 农历日（初一显示农历月名）
@@ -60,6 +61,10 @@ export default function MonthCalendarGrid({
   onCellOpenDay,
 }) {
   const todayISO = getToday();
+  // 手机紧凑模式（<640px）：7 列格子每列仅 ~48px，完整事项行（复选框+换行标题）
+  // 会被挤成一列一个字的"竖排"并撑爆格子 —— 切换为 iOS/Google 日历式紧凑条：
+  // 色点 + 单行省略标题（无复选框，勾选去当日面板做），每格最多 2 条 + "+N"
+  const isTiny = useMediaQuery('(max-width: 639px)');
   const grid = useMemo(() => calendarGrid(year, month - 1), [year, month]);
   const weekStartISO = useMemo(() => toISODate(startOfWeek(todayISO)), [todayISO]);
   const weekEndISO   = useMemo(() => toISODate(endOfWeek(todayISO)),   [todayISO]);
@@ -141,7 +146,7 @@ export default function MonthCalendarGrid({
   return (
     <div className="flex flex-col min-h-0">
       {/* 表头：周一起 */}
-      <div className="grid grid-cols-7 px-4 pt-4 pb-2">
+      <div className={`grid grid-cols-7 pt-4 pb-2 ${isTiny ? 'px-2' : 'px-4'}`}>
         {WEEK_LABELS_MON.map((w, i) => (
           <div key={i} className="text-center text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
             {w}
@@ -150,7 +155,7 @@ export default function MonthCalendarGrid({
       </div>
 
       <div
-        className="grid grid-cols-7 gap-0 mx-4 mb-4 rounded-2xl overflow-hidden"
+        className={`grid grid-cols-7 gap-0 mb-4 rounded-2xl overflow-hidden ${isTiny ? 'mx-2' : 'mx-4'}`}
         style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.04)' }}
       >
         {grid.map((cell, i) => {
@@ -195,7 +200,7 @@ export default function MonthCalendarGrid({
           return (
             <div
               key={i}
-              className={`min-h-[88px] p-2 flex flex-col gap-1 transition-colors relative ${corner} ${
+              className={`${isTiny ? 'min-h-[60px] p-1.5 gap-0.5' : 'min-h-[88px] p-2 gap-1'} flex flex-col transition-colors relative ${corner} ${
                 !cell.inMonth ? 'opacity-40' : ''
               }`}
               style={{
@@ -215,7 +220,7 @@ export default function MonthCalendarGrid({
                 onClick={(e) => emitOpenDay('dateBadge', e)}
               >
                 <span
-                  className="inline-flex items-center justify-center text-[14px] font-semibold tabular-nums leading-none px-[5px] py-[3px] rounded-md transition"
+                  className={`inline-flex items-center justify-center font-semibold tabular-nums leading-none rounded-md transition ${isTiny ? 'text-[12px] px-[3.5px] py-[2px]' : 'text-[14px] px-[5px] py-[3px]'}`}
                   style={{
                     color: isToday ? 'var(--surface-card)' : isSelected ? 'var(--s-deep)' : 'var(--text-1)',
                     background: isToday
@@ -231,9 +236,12 @@ export default function MonthCalendarGrid({
                 <span className="flex items-center gap-1 min-w-0">
                   {(() => {
                     const lb = lunarBadge(cell.date);
+                    // 手机紧凑模式：普通农历日（初一/十五等）在 48px 格里是纯噪音，只保留
+                    // 节日/节气/农历月名（weight 600），把右上角空间让给日期与事项
+                    if (isTiny && lb.weight < 600) return null;
                     return (
                       <span
-                        className="text-[10.5px] leading-none truncate"
+                        className={`leading-none truncate ${isTiny ? 'text-[8.5px]' : 'text-[10.5px]'}`}
                         style={{ color: lb.color, fontWeight: lb.weight }}
                         title={lb.full}
                       >
@@ -241,7 +249,8 @@ export default function MonthCalendarGrid({
                       </span>
                     );
                   })()}
-                  {isToday && (
+                  {/* 今日徽章：手机上日期数字已有主题色实底标识，省掉胶囊避免与农历挤爆格子 */}
+                  {isToday && !isTiny && (
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
                       style={{ color: 'var(--surface-card)', background: 'var(--s-main)' }}
@@ -252,12 +261,12 @@ export default function MonthCalendarGrid({
                 </span>
               </div>
 
-              {/* Layer 2: 事项行 · 小圆点 → 复选框（与左FocusPanel同构） */}
+              {/* Layer 2: 事项行 · 小圆点 → 复选框（与左FocusPanel同构）；手机紧凑条见 isTiny 分支 */}
               <div
-                className="flex flex-col gap-[3px] flex-1 min-h-0"
+                className={`flex flex-col flex-1 min-h-0 ${isTiny ? 'gap-[2px]' : 'gap-[3px]'}`}
                 onClick={(e) => { /* 阻止冒泡到 cell，避免点击事件行空白处也开当日面板（点击事件行空白处按「非事项区」统一：不弹编辑） */ }}
               >
-                {dayEvents.slice(0, 3).map((ev, j) => {
+                {(isTiny ? dayEvents.slice(0, 2) : dayEvents.slice(0, 3)).map((ev, j) => {
                   const mod = scheduleModule(ev);
                   const done = Boolean(ev.is_done || ev.done);
                   // 多日事项起止标记：首日 ›、末日 ‹（轻量角标，中间日不标——首尾包裹已表意）
@@ -273,6 +282,39 @@ export default function MonthCalendarGrid({
                   const bg = mod.color.startsWith?.('var(')
                     ? `rgba(var(${mod.color.slice(4, -1)}-rgb), 0.12)`
                     : `${mod.color}1F`;
+                  const title = ev.title || ev.name || '';
+
+                  /* 手机紧凑条：模块色点 + 单行省略标题。48px 格里放不下复选框与换行，
+                     勾选交互移步当日面板（点格即开）；点击条仍直接打开编辑 */
+                  if (isTiny) {
+                    return (
+                      <div
+                        key={ev.id || `${date}-${j}`}
+                        className="flex items-center gap-1 min-w-0 px-1 py-[1.5px] rounded cursor-pointer"
+                        style={{ background: bg }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick?.(ev, date);
+                        }}
+                      >
+                        <span
+                          className="w-[5px] h-[5px] rounded-full flex-shrink-0"
+                          style={{ background: done ? 'var(--text-muted)' : mod.color }}
+                        />
+                        <span
+                          className="min-w-0 flex-1 text-[9.5px] leading-[13px] truncate"
+                          style={{
+                            color: done ? 'var(--text-muted)' : 'var(--ink-700)',
+                            fontWeight: 500,
+                            textDecoration: done ? 'line-through' : 'none',
+                          }}
+                        >
+                          {spanMark}{title}
+                        </span>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={ev.id || `${date}-${j}`}
@@ -294,17 +336,22 @@ export default function MonthCalendarGrid({
                         <EventCheckbox ev={ev} mod={mod} date={date} />
                       </div>
                       {spanMark && <span className="flex-shrink-0 opacity-70">{spanMark}</span>}
-                      <span className="min-w-0 flex-1 leading-snug break-words md:truncate">{ev.title || ev.name || ''}</span>
+                      <span className="min-w-0 flex-1 leading-snug break-words md:truncate">{title}</span>
                     </div>
                   );
                 })}
-                {dayEvents.length > 3 && (
+                {dayEvents.length > (isTiny ? 2 : 3) && (
                   <span
                     onClick={(e) => emitOpenDay('more', e)}
-                    className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md self-start cursor-pointer"
-                    style={{ color: 'var(--s-deep)', background: 'rgba(var(--s-rgb),0.08)' }}
+                    className="font-semibold rounded-md self-start cursor-pointer"
+                    style={{
+                      color: 'var(--s-deep)',
+                      background: 'rgba(var(--s-rgb),0.08)',
+                      fontSize: isTiny ? '9px' : '11px',
+                      padding: isTiny ? '1px 4px' : '2px 6px',
+                    }}
                   >
-                    +{dayEvents.length - 3} 更多…
+                    +{dayEvents.length - (isTiny ? 2 : 3)} 更多
                   </span>
                 )}
               </div>

@@ -25,8 +25,9 @@ const MERGE_DEBOUNCE_MS = 1500;  // 字段级合并同样防抖
 // 页面也会永远停留在旧数据且无人重试 —— 这是移动端「数据不同步」的核心根因之一
 const PULL_FAILED = Symbol('cloudkv_pull_failed');
 
-// 带超时的 fetch（8s）：移动端弱网下裸 fetch 可能长时间挂起，拉取永不完成
-async function fetchWithTimeout(url, opts = {}, timeoutMs = 8000) {
+// 带超时的 fetch（15s）：移动端弱网下裸 fetch 可能长时间挂起，拉取永不完成。
+// 15s 而非 8s：需覆盖 Functions + D1 冷启动叠加慢速传输的极端场景（用户实测 <15KB/s 蜂窝网络）
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 15000) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
@@ -86,8 +87,9 @@ async function flushPulls() {
     waitersPerKey.forEach(w => w.forEach(x => x.resolve(null)));
     return;
   }
-  // 8s 超时 + 网络错误/边缘 5xx 单次重试（与 api/client.js fetchPages 同款策略），
-  // 消除移动端弱网下拉取挂起/偶发失败导致的「永远不同步」
+  // 15s 超时 + 退避重试（最多 2 次，600ms / 3s）：拉取是幂等 GET，网络错误（含超时）
+  // 与边缘 5xx 均可安全重试。超时在移动蜂窝弱网下是最常见的瞬时失败形态（冷启动+慢传输），
+  // 此前把 AbortError 排除在重试外 —— 弱网一次超时即判死，四张成长卡持续「云端同步失败」
   const headers = { 'X-Unlock-Token': localStorage.getItem('pw_unlock_token') || '' };
   let res = null, netErr = null;
   for (let attempt = 0; ; attempt++) {
@@ -96,9 +98,9 @@ async function flushPulls() {
       res = await fetchWithTimeout(`/api/userSettings/get?k=${encodeURIComponent(keys.join(','))}`, { headers });
     } catch (e) { netErr = e; }
     const retryable = netErr
-      ? netErr.name !== 'AbortError'
+      ? true
       : [502, 503, 504].includes(res.status);
-    if (retryable && attempt === 0) { await new Promise(r => setTimeout(r, 600)); continue; }
+    if (retryable && attempt < 2) { await new Promise(r => setTimeout(r, attempt === 0 ? 600 : 3000)); continue; }
     break;
   }
   const fail = () => waitersPerKey.forEach(w => w.forEach(x => x.resolve(PULL_FAILED)));
@@ -216,6 +218,9 @@ async function doMergePush(key, partial, attempt) {
  */
 export async function cloudMergePull(key) {
   const entry = await cloudPullVersioned(key);
+  // 失败哨兵必须传播：调用方据此区分「拉取失败」与「云端无值(null)」，
+  // 否则失败被误判为无值 → 触发「首次迁移上云」用本地空值覆盖云端好数据
+  if (entry === PULL_FAILED) return PULL_FAILED;
   if (!entry || !entry.v) return null;
   try {
     const parsed = JSON.parse(entry.v);
@@ -262,14 +267,16 @@ export async function syncCloudNow() {
  * onCloud(value) 云端较新时回调（调用方负责写 localStorage 并应用）
  * 返回 'cloud' | 'local' | 'none' | 'error'
  * 失败语义（关键）：拉取失败 ≠ 云端无值。失败时不推送本地 —— 防止弱网下用陈旧/空
- * 本地值覆盖云端好数据；广播 error 事件（侧边栏指示器变红），3s 后自动重试一次 */
+ * 本地值覆盖云端好数据；广播 error 事件（侧边栏指示器变红），3s/10s 指数退避共重试 2 次 */
 export async function syncKey(key, localValueStr, onCloud, attempt = 0) {
   if (onCloud) pullRegistry.set(key, onCloud); // 登记以便手动同步时重放拉取
   const cloud = await cloudPull(key);
   if (cloud === PULL_FAILED) {
     emit('error', key);
-    if (attempt < 1) {
-      setTimeout(() => { syncKey(key, localValueStr, onCloud, attempt + 1); }, 3000);
+    // 指数退避重试（3s → 10s，共 2 次）：弱网下单次 3s 重试几乎必然再次失败，
+    // 然后整页数据卡死到下一次 visibilitychange / 15s 轮询 —— 退避两轮基本都能穿过冷启动窗口
+    if (attempt < 2) {
+      setTimeout(() => { syncKey(key, localValueStr, onCloud, attempt + 1); }, attempt === 0 ? 3000 : 10000);
     }
     return 'error';
   }

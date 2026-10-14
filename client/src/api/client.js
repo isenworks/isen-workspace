@@ -12,14 +12,21 @@ function unlockToken() {
   return localStorage.getItem('pw_unlock_token') || '';
 }
 
-// 通用 fetch 包装（8 秒超时兜底 + 瞬时故障单次自动重试）
-//   瞬时故障：网络错误、或 Cloudflare 边缘 502 / 503 / 504（部署切换、边缘抖动、容量抖动）。
-//   这类响应通常代表请求未进入业务处理，重试安全，可避免移动端偶发「HTTP 503，非 JSON」直接失败。
+// 通用 fetch 包装（15 秒超时兜底 + 瞬时故障退避重试）
+//   幂等读请求（GET / list / stats 等）：网络错误、超时、边缘 502/503/504 均退避重试（最多 2 次）。
+//     移动蜂窝弱网（实测 <15KB/s）下，超时是最常见的瞬时失败形态（Functions+D1 冷启动叠加慢传输），
+//     把它排除在重试外 = 弱网下一次超时即永久判死 —— 这正是「电脑正常、手机必现不同步」的根因。
+//   非幂等写请求（create/remove/toggle 等）：超时后服务端可能已执行成功，重试有重复写入风险，
+//     不自动重试（失败抛错由 UI 呈现，用户手动重试一次即可）。
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// 幂等路径判定：GET 天然幂等；POST 中以下列词结尾的接口是「读 / 覆盖式」语义，重发无副作用
+const IDEMPOTENT_POST = /\/(list|archivedList|stats|range|search|bootstrap|image|export|status|sync|upsert|reorder|archive|restore)$/;
+
 async function fetchPages(path, body = {}, method = 'POST') {
   const isGET = String(method).toUpperCase() === 'GET';
+  const idempotent = isGET || IDEMPOTENT_POST.test(path);
   const hdrs = {
     'X-Unlock-Token': unlockToken(),
   };
@@ -32,9 +39,9 @@ async function fetchPages(path, body = {}, method = 'POST') {
 
   let res;
   for (let attempt = 0; ; attempt++) {
-    // 每次尝试用独立的 AbortController：8 秒超时
+    // 每次尝试用独立的 AbortController：15 秒超时（覆盖弱网 + Functions/D1 冷启动）
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 8000);
+    const timer = setTimeout(() => ctl.abort(), 15000);
     let netErr = null;
     try {
       res = await fetch('/api' + path, { ...init, signal: ctl.signal });
@@ -43,11 +50,11 @@ async function fetchPages(path, body = {}, method = 'POST') {
     } finally {
       clearTimeout(timer);
     }
-    // 判定是否可重试：网络错误可重试（超时中断除外，避免总等待翻倍）；边缘 5xx 可重试
+    // 可重试判定：网络错误（含超时）仅对幂等请求重试；边缘 5xx 未进业务处理，任何请求重试都安全
     const retryable = netErr
-      ? netErr.name !== 'AbortError'
+      ? idempotent
       : RETRYABLE_STATUS.has(res.status);
-    if (retryable && attempt === 0) { await sleep(600); continue; }
+    if (retryable && attempt < 2) { await sleep(attempt === 0 ? 600 : 3000); continue; }
     if (netErr) throw netErr;
     break;
   }

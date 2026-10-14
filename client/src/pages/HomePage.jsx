@@ -467,6 +467,11 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   }, [weekOffset, viewWeekStartStr, weekStartStr, todayStr]);
   useEffect(() => { loadSched(); }, [loadSched, syncSignal]);
 
+  /* ===== 精力习惯（周打卡矩阵）：声明须在下方 store.subscribe effect 之前（其依赖本行的 refreshEnergy） ===== */
+  const { realHabits, loading: energyLoading, refresh: refreshEnergy, error: energyErr } = useEnergyHabits();
+  const habits = realHabits || [];
+  const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysISO(weekStartStr, i)), [weekStartStr]);
+
   /* ===== 跨组件同步：监听 schedule_saved / schedule_deleted 事件
        CalendarPage 在周月目标面板修改状态后广播，HomePage 实时更新本周目标卡 ===== */
   useEffect(() => {
@@ -491,17 +496,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         const delId = String(msg.schedule.id);
         setSched(prev => (prev || []).filter(x => String(x.id) !== delId));
       } else if (msg.type === 'reload') {
-        // 全局 reload（表单保存/删除等广播）：重新拉取；同范围请求在途时自动复用，不重复发起
+        // 全局 reload（表单保存/自动同步等广播）：重新拉取；同范围请求在途时自动复用，不重复发起。
+        // 精力卡也要刷新 —— useEnergyHabits 只听自己的 refreshKey，不刷的话跨设备打卡后
+        // 切回前台永远显示旧矩阵（用户感知「不同步」）
         loadSched();
+        refreshEnergy();
       }
     });
     return unsub;
-  }, [loadSched]);
-
-  /* ===== 精力习惯（周打卡矩阵） ===== */
-  const { realHabits, loading: energyLoading, refresh: refreshEnergy, error: energyErr } = useEnergyHabits();
-  const habits = realHabits || [];
-  const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysISO(weekStartStr, i)), [weekStartStr]);
+  }, [loadSched, refreshEnergy]);
 
   /* ===== 精力格子打卡：乐观覆盖 + API 持久化（与今日计划/习惯面板同接口，切页重新拉取即同步） ===== */
   const [habitTweaks, setHabitTweaks] = useState({});
@@ -521,12 +524,16 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const [workGoals] = usePersistentState('annual_work', () => null);
 
   /* ===== KV 云同步可见状态：区分「正在同步 / 同步失败 / 确认为空」 =====
-   * null 数据在弱网下可能是"还没拉到"而非"真的没有" —— 没有三态就会显示假空态误导用户 */
+   * null 数据在弱网下可能是"还没拉到"而非"真的没有" —— 没有三态就会显示假空态误导用户。
+   * 事件按 key 过滤：cloudkv 是全局总线，「总结文档链接」等无关 key 的偶发失败
+   * 不该把四张成长卡全部染红（假故障）；兜底 30s 覆盖 15s 超时 × 3 次尝试的最坏时长 */
   const [kvFailed, setKvFailed] = useState(false);
   const [kvSettled, setKvSettled] = useState(false);
   useEffect(() => {
-    const settle = setTimeout(() => setKvSettled(true), 20000); // 兜底：拉取长期无事件也结束 pending 态
+    const MY_KEYS = new Set(['annual_books_v12', 'annual_abilities_v2', 'annual_work']);
+    const settle = setTimeout(() => setKvSettled(true), 30000);
     const onKv = (e) => {
+      if (!MY_KEYS.has(e.detail?.key)) return;
       const st = e.detail?.status;
       if (st === 'error') setKvFailed(true);
       else if (st === 'pulled' || st === 'synced') { setKvFailed(false); setKvSettled(true); }

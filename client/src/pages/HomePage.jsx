@@ -8,6 +8,7 @@ import HeroCropModal from '../components/HeroCropModal.jsx';
 import Modal from '../components/Modal.jsx';
 import { formatChineseDate, today as getToday, toISODate, addDaysISO, startOfWeek, endOfWeek } from '../utils/date.js';
 import { catToModule } from '../utils/categoryMapping.js';
+import { CATEGORY_COLORS } from '../utils/uiConstants.js';
 import { CategoryIcon } from '../components/annual/ui.jsx';
 import lunarLib from '../vendor/lunar.js';
 import PTag from '../components/PTag.jsx';
@@ -158,6 +159,36 @@ function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
     <div className="w-full rounded-full overflow-hidden" style={{ height: h, background: 'rgba(120,120,128,0.12)' }}>
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, background: color }} />
     </div>
+  );
+}
+
+/* 事项完成标记：圆形 + 分类主题色 —— 全站统一设计语言（今日计划时间线/习惯打卡同款）
+ * · 形状用圆：移动端 to-do 事实标准（Apple Reminders / Things / Todoist），与全站习惯打卡一致
+ * · 颜色跟事项分类（工作/能力/精力/生活…）：颜色承担类型识别，扫一眼即知归属；
+ *   旧版勾选填充的是卡片自身主题色，与事项类型无关，导致各卡事项无法区分
+ * · 未完成 = 分类色细描边空心圆（视觉轻）· 完成 = 分类饱和色实底 + 白勾（视觉重）
+ * · 失败保持全局红色语义，不被分类色覆盖；分类缺失时回退卡片主题色 */
+function TaskCheck({ s, onToggle, size = 16 }) {
+  const tone = CATEGORY_COLORS[Number(s.category)];
+  const idleBorder = s.is_failed ? 'var(--danger)' : (tone?.borderColor || 'rgba(120,120,128,0.35)');
+  const fill = s.is_failed ? 'rgba(255,59,48,0.08)' : (tone?.doneColor || 'var(--s-main)');
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onToggle(s); }}
+      className="rounded-full border flex-shrink-0 grid place-items-center transition hover:scale-110 cursor-pointer"
+      title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
+      style={{
+        width: size, height: size,
+        background: (s.is_done || s.is_failed) ? fill : 'transparent',
+        borderColor: (s.is_done || s.is_failed) ? fill : idleBorder,
+      }}
+    >
+      {s.is_done ? (
+        <svg className="w-[9px] h-[9px]" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      ) : s.is_failed ? (
+        <svg className="w-[8px] h-[8px]" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      ) : null}
+    </button>
   );
 }
 
@@ -983,21 +1014,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     {...lp.bind((pos) => showWkMenu(s, pos.clientX, pos.clientY))}
                     className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
                   >
-                    <button
-                      onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
-                      className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
-                      title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
-                      style={{
-                        background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
-                        borderColor: s.is_failed ? 'var(--danger)' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
-                      }}
-                    >
-                      {s.is_done ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      ) : s.is_failed ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-                      ) : null}
-                    </button>
+                    <TaskCheck s={s} onToggle={toggleWeekKey} />
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
                       <span className={`text-[12.5px] font-semibold truncate ${
                         s.is_done ? 'text-ink-300 line-through' :
@@ -1097,21 +1114,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     {...lp.bind((pos) => showWkMenu(s, pos.clientX, pos.clientY))}
                     className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
                   >
-                    <button
-                      onClick={e => { e.stopPropagation(); toggleWeekKey(s); }}
-                      className="w-[15px] h-[15px] rounded-[4.5px] border flex-shrink-0 grid place-items-center transition hover:border-[rgba(var(--s-rgb),0.6)] cursor-pointer"
-                      title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
-                      style={{
-                        background: s.is_done ? 'var(--s-main)' : (s.is_failed ? 'rgba(255,59,48,0.08)' : 'transparent'),
-                        borderColor: s.is_failed ? 'var(--danger)' : (s.is_done ? 'var(--s-main)' : 'rgba(120,120,128,0.35)'),
-                      }}
-                    >
-                      {s.is_done ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      ) : s.is_failed ? (
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-                      ) : null}
-                    </button>
+                    <TaskCheck s={s} onToggle={toggleWeekKey} />
                     <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
                       <span className={`text-[12.5px] font-semibold truncate ${
                         s.is_done ? 'text-ink-300 line-through' :

@@ -594,9 +594,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   }
 
   function useSquareCheckbox(item) {
-    if (item.isHabit) return false;
-    const cat = getCat(item);
-    return cat !== 4;
+    // 全站完成标记统一为圆形（Apple Reminders / Things / Todoist 同款语言；
+    // 习惯打卡、主页聚焦/目标卡均为圆形，方形仅剩此处历史遗留）—— 恒返回 false
+    return false;
   }
 
   // 取可靠时长：优先按 start/end 实时计算，duration_min 作为回退（兜底脏数据）

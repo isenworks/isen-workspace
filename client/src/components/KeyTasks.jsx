@@ -342,7 +342,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     const st = getStyle(s);
     const cat = catOf(s);
     const isHabitSchedule = cat === 4;
-    const cbClass = isHabitSchedule ? 'cb-round' : 'cb-square';
+    const cbClass = 'cb-round'; // 全站完成标记统一圆形（与习惯打卡/主页卡片/时间线一致）
     return (
       <div
         key={s.id}

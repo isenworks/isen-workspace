@@ -69,6 +69,8 @@ function groupLabel(s) {
 }
 const GROUP_ORDER = ['今天', '昨天', '更早'];
 
+const pad2 = n => String(n).padStart(2, '0');
+
 export default function InboxPage({ onCountChange }) {
   const toast = useToast();
   const [items, setItems] = useState(null);
@@ -81,6 +83,7 @@ export default function InboxPage({ onCountChange }) {
   const [filterPopover, setFilterPopover] = useState(false);
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null); // 待删除的 item
+  const [dateEdit, setDateEdit] = useState(null); // 行内改日期 { id, value }
 
   const [layout, setLayout] = useState(() => {
     try { return localStorage.getItem(LS_LAYOUT_KEY) === 'tri' ? 'tri' : 'duo'; } catch { return 'duo'; }
@@ -185,6 +188,27 @@ export default function InboxPage({ onCountChange }) {
     setItemTags(item, cur.includes(n) ? cur.filter(x => x !== n) : [...cur, n]);
   }
 
+  // ===== 修改记录日期：仅替换日期、保留原时分秒；本地时区选完换算回 UTC 存库 =====
+  // 改完乐观更新，列表的「今天/昨天/更早」分组即时随 created_at 重排
+  async function commitDateEdit(item, dateStr) {
+    setDateEdit(null);
+    if (!dateStr) return;
+    const cur = parseDbTime(item.created_at);
+    if (!cur) return;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (!y || !m || !d) return;
+    const nd = new Date(y, m - 1, d, cur.getHours(), cur.getMinutes(), cur.getSeconds());
+    const iso = `${nd.getUTCFullYear()}-${pad2(nd.getUTCMonth() + 1)}-${pad2(nd.getUTCDate())} ${pad2(nd.getUTCHours())}:${pad2(nd.getUTCMinutes())}:${pad2(nd.getUTCSeconds())}`;
+    const prev = item.created_at;
+    setItems(list => list.map(it => it.id === item.id ? { ...it, created_at: iso } : it));
+    try {
+      await API.inbox.update(item.id, { created_at: iso });
+    } catch (e) {
+      setItems(list => list.map(it => it.id === item.id ? { ...it, created_at: prev } : it));
+      toast.error(e.message || '修改日期失败');
+    }
+  }
+
   function openDetailFor(item) {
     const it = item || selected;
     if (!it) return;
@@ -247,6 +271,7 @@ export default function InboxPage({ onCountChange }) {
     const selectedIds = parseItemTagIds(item).map(Number);
     const menuFor = menu?.id === item.id;
     const catPickFor = menuFor && !!menu.cat;
+    const dateEditFor = dateEdit?.id === item.id;
     const firstLine = plainFirstLine(item.content);
     return (
       <div
@@ -275,10 +300,32 @@ export default function InboxPage({ onCountChange }) {
               style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
             >{t.name}</span>
           ))}
-          <span
-            className="text-[12px] text-ink-400 tabular-nums"
-            title={fmtTooltip(item.created_at)}
-          >{fmtDate(item.created_at)}</span>
+          {dateEditFor ? (
+            <input
+              type="date"
+              autoFocus
+              value={dateEdit.value}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => commitDateEdit(item, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setDateEdit(null);
+                if (e.key === 'Enter') commitDateEdit(item, dateEdit.value);
+              }}
+              onBlur={() => setDateEdit(null)}
+              className="flex-shrink-0 w-[112px] px-1 py-0.5 rounded-md text-[12px] tabular-nums border border-[rgba(var(--s-rgb),0.45)] bg-white text-ink-700 focus:outline-none focus:border-[var(--s-main)]"
+            />
+          ) : (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                const d = parseDbTime(item.created_at);
+                if (!d) return;
+                setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
+              }}
+              className="flex-shrink-0 text-[12px] text-ink-400 tabular-nums cursor-pointer hover:text-ink-700 transition-colors"
+              title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
+            >{fmtDate(item.created_at)}</span>
+          )}
           <div className="relative flex-shrink-0">
             <button
               onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}

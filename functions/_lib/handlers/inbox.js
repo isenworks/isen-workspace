@@ -52,7 +52,7 @@ export async function handleInboxCreate(env, body) {
   return json({ item: await dbFirst(env.DB, `SELECT * FROM ethan_inbox WHERE id=?`, [Number(info.meta.last_row_id)]) });
 }
 
-// 编辑内容 / 改分类 / 改标签 / 就地完成 / 详细模式分派后回写去向
+// 编辑内容 / 改分类 / 改标签 / 改记录日期 / 就地完成 / 详细模式分派后回写去向
 export async function handleInboxUpdate(env, body) {
   const id = Number(body?.id);
   if (!id) return json({ error: '缺少 id' }, 400);
@@ -64,6 +64,13 @@ export async function handleInboxUpdate(env, body) {
     if (!content.trim()) return json({ error: '内容不能为空' }, 400);
     sets.push('content=?');
     params.push(content);
+  }
+  if (body.created_at !== undefined) {
+    // 修改记录日期（移动小记到其他日期分组）：前端传 UTC 的 YYYY-MM-DD HH:MM:SS
+    const ca = String(body.created_at || '').trim().replace('T', ' ');
+    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(ca)) return json({ error: '无效的日期格式' }, 400);
+    sets.push('created_at=?');
+    params.push(ca);
   }
   if (body.category !== undefined) {
     sets.push('category=?');

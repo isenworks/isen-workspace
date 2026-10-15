@@ -1240,6 +1240,10 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .qc-editor ul.qc-checklist { list-style: none !important; padding-left: 4px !important; margin: 4px 0; }
 .qc-editor ul.qc-checklist li {
   position: relative;
+  /* 显式锁定行高 1.5：编辑器行高继承 body 的 normal（中文字体≈1.8），
+   * 不锁的话 top:0.75em（按行高1.5推的首行中心）恒偏上约3px。
+   * 锁定后 0.75em=行高一半=首行文字中心，任何字号/继承环境下数学自洽（实测偏差0px） */
+  line-height: 1.5;
   padding-left: 27px;
   margin: 3px 0;
   cursor: pointer;

@@ -11,6 +11,7 @@ import ScheduleForm from '../components/forms/ScheduleForm.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
 const LS_LAYOUT_KEY = 'inbox_layout';
+const LS_CHIPS_KEY = 'inbox_filter_chips'; // 快捷筛选位（默认「日记」「待办」之外用户添加的标签 id）
 
 // 预设标签颜色（新建标签时可选）
 const TAG_COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#8E8E93'];
@@ -79,8 +80,13 @@ export default function InboxPage({ onCountChange }) {
   const [selectedId, setSelectedId] = useState(null);
   const [menu, setMenu] = useState(null); // { id, cat }
   const [detail, setDetail] = useState(null);
-  const [filterTagId, setFilterTagId] = useState(null); // null=全部
+  const [filterTagIds, setFilterTagIds] = useState([]); // 多选，空数组=全部
   const [filterPopover, setFilterPopover] = useState(false);
+  const [chipMenu, setChipMenu] = useState(false); // 「+」快捷位管理菜单
+  const [extraChipIds, setExtraChipIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(LS_CHIPS_KEY) || '[]').map(Number).filter(n => !Number.isNaN(n)); } catch { return []; }
+  });
+  const [tagManagerStart, setTagManagerStart] = useState(null); // 打开标签管理时预填的名字（灰态 chip 点击创建）
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null); // 待删除的 item
   const [dateEdit, setDateEdit] = useState(null); // 行内改日期 { id, value }
@@ -243,8 +249,39 @@ export default function InboxPage({ onCountChange }) {
     }
   }
 
-  // 过滤后的列表（多标签：命中任一标签即展示）
-  const filteredItems = (items || []).filter(it => filterTagId == null || parseItemTagIds(it).includes(Number(filterTagId)));
+  // ===== 标签筛选（chips 与漏斗共用状态：多选 OR，空数组=全部） =====
+  const toggleFilter = useCallback((id) => {
+    const n = Number(id);
+    setFilterTagIds(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
+  }, []);
+
+  // 快捷位增删（localStorage 记忆，仅存默认两位之外用户手动添加的标签）
+  const addChip = useCallback((tagId) => {
+    const n = Number(tagId);
+    setExtraChipIds(prev => {
+      if (prev.includes(n)) return prev;
+      try { localStorage.setItem(LS_CHIPS_KEY, JSON.stringify([...prev, n])); } catch {}
+      return [...prev, n];
+    });
+    setFilterTagIds(prev => prev.includes(n) ? prev : [...prev, n]); // 加入即激活
+    setChipMenu(false);
+  }, []);
+  const removeChip = useCallback((tagId) => {
+    const n = Number(tagId);
+    setExtraChipIds(prev => {
+      const next = prev.filter(x => x !== n);
+      try { localStorage.setItem(LS_CHIPS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setFilterTagIds(prev => prev.filter(x => x !== n));
+  }, []);
+
+  // 过滤后的列表（多标签：命中任一选中标签即展示）
+  const filteredItems = (items || []).filter(it => {
+    if (filterTagIds.length === 0) return true;
+    const ids = parseItemTagIds(it).map(Number);
+    return filterTagIds.some(id => ids.includes(id));
+  });
 
   const groups = [];
   if (filteredItems.length > 0) {
@@ -397,15 +434,15 @@ export default function InboxPage({ onCountChange }) {
     );
   };
 
-  // ===== 标签筛选 Popover =====
+  // ===== 标签筛选 Popover（完整标签列表，多选；与标题下 chips 共用 filterTagIds） =====
   const renderFilterPopover = () => {
-    const activeTag = tags.find(t => t.id === filterTagId) || null;
-    const isActive = filterTagId != null;
+    const activeTag = tags.find(t => t.id === filterTagIds[0]) || null;
+    const isActive = filterTagIds.length > 0;
     return (
       <div className="relative">
         <button
           onClick={() => setFilterPopover(v => !v)}
-          title={activeTag ? `筛选：${activeTag.name}` : '筛选标签'}
+          title={isActive ? `筛选：${filterTagIds.length} 个标签` : '筛选标签'}
           className={`relative flex items-center gap-1 w-[32px] h-[24px] rounded-lg transition-all ${
             isActive
               ? 'hover:brightness-95'
@@ -421,30 +458,32 @@ export default function InboxPage({ onCountChange }) {
             <line x1="7" y1="7" x2="7.01" y2="7"/>
           </svg>
           {isActive && (
-            <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full border border-white"
-              style={{ background: activeTag?.color || 'var(--s-main)' }} />
+            <span className="absolute -top-0.5 -right-0.5 min-w-[13px] h-[13px] px-[2px] rounded-full border border-white text-[8.5px] font-bold text-white flex items-center justify-center tabular-nums"
+              style={{ background: activeTag?.color || 'var(--s-main)' }}>
+              {filterTagIds.length}
+            </span>
           )}
         </button>
         {filterPopover && (
           <>
             <div className="fixed inset-0 z-[var(--z-scrim)]" onClick={() => setFilterPopover(false)} />
             <div className="absolute right-0 top-8 z-[var(--z-dropdown)] w-[220px] py-1.5 rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
-              <div className="px-3 py-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">筛选标签</div>
+              <div className="px-3 py-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">筛选标签（可多选）</div>
               <button
-                onClick={() => { setFilterTagId(null); setFilterPopover(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors ${filterTagId == null ? 'text-ink-900 font-semibold bg-ink-50' : 'text-ink-600 hover:bg-ink-50'}`}
+                onClick={() => setFilterTagIds([])}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors ${filterTagIds.length === 0 ? 'text-ink-900 font-semibold bg-ink-50' : 'text-ink-600 hover:bg-ink-50'}`}
               >
                 <span className="w-2 h-2 rounded-full bg-ink-300" />
                 全部
-                {filterTagId == null && <span className="ml-auto text-[var(--s-main)]">✓</span>}
+                {filterTagIds.length === 0 && <span className="ml-auto text-[var(--s-main)]">✓</span>}
               </button>
               {tags.length > 0 && <div className="my-1 border-t border-ink-100/80" />}
               {tags.map(t => {
-                const on = filterTagId === t.id;
+                const on = filterTagIds.includes(Number(t.id));
                 return (
                   <button
                     key={t.id}
-                    onClick={() => { setFilterTagId(on ? null : t.id); setFilterPopover(false); }}
+                    onClick={() => toggleFilter(t.id)}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors ${on ? 'text-ink-900 font-semibold bg-ink-50' : 'text-ink-700 hover:bg-ink-50'}`}
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
@@ -455,7 +494,7 @@ export default function InboxPage({ onCountChange }) {
               })}
               <div className="my-1 border-t border-ink-100/80" />
               <button
-                onClick={() => { setFilterPopover(false); setTagManagerOpen(true); }}
+                onClick={() => { setFilterPopover(false); setTagManagerStart(null); setTagManagerOpen(true); }}
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] text-[var(--s-main)] hover:bg-ink-50 transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -468,35 +507,140 @@ export default function InboxPage({ onCountChange }) {
     );
   };
 
-  const renderHeader = () => (
-    <div className="flex items-center gap-3">
-      <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
-      <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
-      <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
-        <button onClick={() => switchLayout('tri')} title="三分布局"
-          className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'tri' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
-          </svg>
-        </button>
-        <button onClick={() => switchLayout('duo')} title="二分布局"
-          className="px-2 py-1 rounded-md transition-all flex items-center"
-          style={layout === 'duo' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
-          </svg>
-        </button>
+  // ===== 标题下方快捷筛选 chips（默认「日记」「待办」占位 + 「+」自选标签） =====
+  const DEFAULT_CHIP_NAMES = ['日记', '待办'];
+  const renderFilterChips = () => {
+    // 默认两位按名字匹配标签库；匹配不到显示灰态（点击去创建）
+    const namedChips = DEFAULT_CHIP_NAMES.map(name => ({ name, tag: (tags || []).find(t => t.name === name) || null }));
+    const extraChips = extraChipIds.map(id => tagMap.get(id)).filter(Boolean).map(t => ({ name: t.name, tag: t }));
+    const shownIds = new Set([
+      ...namedChips.filter(c => c.tag).map(c => c.tag.id),
+      ...extraChips.map(c => c.tag.id),
+    ]);
+    const addable = (tags || []).filter(t => !shownIds.has(t.id));
+
+    const chipBase = 'h-[24px] px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] leading-none transition-all select-none cursor-pointer';
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {[...namedChips, ...extraChips].map((c, i) => {
+          const t = c.tag;
+          if (!t) {
+            // 灰态：标签尚未创建，点击打开标签管理并预填名字
+            return (
+              <button
+                key={`${c.name}-${i}`}
+                onClick={() => { setTagManagerStart(c.name); setTagManagerOpen(true); }}
+                title={`创建标签「${c.name}」`}
+                className={`${chipBase} border border-dashed border-ink-200 text-ink-300 hover:border-ink-300 hover:text-ink-500`}
+              >
+                {c.name}
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              </button>
+            );
+          }
+          const on = filterTagIds.includes(Number(t.id));
+          return (
+            <button
+              key={t.id}
+              onClick={() => toggleFilter(t.id)}
+              title={on ? `取消筛选「${t.name}」` : `筛选「${t.name}」`}
+              className={chipBase}
+              style={on
+                ? { background: hexToRgba(t.color, 0.13), color: t.color, fontWeight: 600 }
+                : { background: 'rgba(120,120,128,0.06)', color: 'var(--ink-600, #6b7280)' }
+              }
+            >
+              <span className="flex-shrink-0 w-[6px] h-[6px] rounded-full" style={{ background: on ? t.color : hexToRgba(t.color, 0.45) }} />
+              {t.name}
+              {extraChips.some(x => x.tag.id === t.id) && (
+                <span
+                  role="button"
+                  tabIndex={-1}
+                  onClick={(e) => { e.stopPropagation(); removeChip(t.id); }}
+                  title="从快捷位移除（不影响筛选勾选）"
+                  className="-mr-0.5 w-[13px] h-[13px] rounded-full flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-black/[0.06] transition-colors"
+                >
+                  <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                </span>
+              )}
+            </button>
+          );
+        })}
+        {/* + 快捷位管理 */}
+        <div className="relative">
+          <button
+            onClick={() => setChipMenu(v => !v)}
+            title="添加筛选标签"
+            className={`w-[24px] h-[24px] rounded-lg flex items-center justify-center border border-dashed transition-all ${chipMenu ? 'border-[var(--s-main)] text-[var(--s-main)] bg-[rgba(var(--s-rgb),0.06)]' : 'border-ink-200 text-ink-400 hover:border-ink-300 hover:text-ink-600'}`}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+          {chipMenu && (
+            <>
+              <div className="fixed inset-0 z-[var(--z-scrim)]" onClick={() => setChipMenu(false)} />
+              <div className="absolute left-0 top-7 z-[var(--z-dropdown)] w-[190px] py-1.5 rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
+                <div className="px-3 py-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">添加到快捷位</div>
+                {addable.length === 0 ? (
+                  <div className="px-3 py-2 text-[12px] text-ink-400">所有标签都已显示</div>
+                ) : addable.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => addChip(t.id)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition-colors"
+                  >
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
+                    <span className="flex-1 text-left">{t.name}</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="text-ink-300"><path d="M12 5v14M5 12h14" /></svg>
+                  </button>
+                ))}
+                <div className="my-1 border-t border-ink-100/80" />
+                <button
+                  onClick={() => { setChipMenu(false); setTagManagerStart(null); setTagManagerOpen(true); }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] text-[var(--s-main)] hover:bg-ink-50 transition-colors"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  管理标签…
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-      <div className="flex-1" />
-      {renderFilterPopover()}
-      {isDuo && (
-        <button onClick={() => setSelectedId(null)} title="新增记录"
-          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-          style={{ background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        </button>
-      )}
+    );
+  };
+
+  const renderHeader = () => (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
+        <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
+        <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+          <button onClick={() => switchLayout('tri')} title="三分布局"
+            className="px-2 py-1 rounded-md transition-all flex items-center"
+            style={layout === 'tri' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
+            </svg>
+          </button>
+          <button onClick={() => switchLayout('duo')} title="二分布局"
+            className="px-2 py-1 rounded-md transition-all flex items-center"
+            style={layout === 'duo' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1" />
+        {renderFilterPopover()}
+        {isDuo && (
+          <button onClick={() => setSelectedId(null)} title="新增记录"
+            className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+            style={{ background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </button>
+        )}
+      </div>
+      {renderFilterChips()}
     </div>
   );
 
@@ -515,7 +659,7 @@ export default function InboxPage({ onCountChange }) {
         </div>
       ) : groups.length === 0 ? (
         <div className={`glass-card rounded-2xl p-14 flex flex-col items-center justify-center text-center gap-2 ${fill ? 'flex-1' : ''}`}>
-          <div className="text-[13px] text-ink-400">该标签下暂无小记</div>
+          <div className="text-[13px] text-ink-400">所选标签下暂无小记</div>
         </div>
       ) : (
         <div className={`glass-card rounded-2xl p-2.5 flex flex-col ${fill ? 'flex-1 min-h-0' : ''}`}>
@@ -630,21 +774,26 @@ export default function InboxPage({ onCountChange }) {
       <TagManagerModal
         open={tagManagerOpen}
         tags={tags}
-        onClose={() => setTagManagerOpen(false)}
+        onClose={() => { setTagManagerOpen(false); setTagManagerStart(null); }}
         setTags={setTags}
         toast={toast}
+        startName={tagManagerStart}
       />
     </div>
   );
 }
 
 // ==================== 标签管理弹窗（增删改） ====================
-function TagManagerModal({ open, tags, onClose, setTags, toast }) {
+function TagManagerModal({ open, tags, onClose, setTags, toast, startName }) {
   const [editing, setEditing] = useState(null); // { id?, name, color, _optimistic? }
   const [confirmDel, setConfirmDel] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (!open) { setEditing(null); setConfirmDel(null); } }, [open]);
+  useEffect(() => {
+    if (!open) { setEditing(null); setConfirmDel(null); return; }
+    // 带 startName 打开 = 直接进入新建态并预填（快捷位灰态 chip 点击创建）
+    if (startName) setEditing({ name: startName, color: TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] });
+  }, [open, startName]);
 
   function startCreate() {
     setEditing({ name: '', color: TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] });

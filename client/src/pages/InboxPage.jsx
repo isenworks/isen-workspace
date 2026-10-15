@@ -24,11 +24,15 @@ function parseDbTime(s) {
   return isNaN(d) ? null : d;
 }
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+/* 列表行日期：当年省略年份（如 10-14 周三，省右侧空间，飞书/微信同款惯例）；
+   非当年自动带年份（如 2025-12-30 周二）——跨年后旧记录自然显示年份，年份信息不丢。
+   完整时间（含年份+时分）仍可通过行内 hover 提示查看（fmtTooltip → fmtFull）。 */
 function fmtDate(s) {
   const d = parseDbTime(s);
   if (!d) return '';
   const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${WEEKDAYS[d.getDay()]}`;
+  const md = `${p(d.getMonth() + 1)}-${p(d.getDate())} ${WEEKDAYS[d.getDay()]}`;
+  return d.getFullYear() === new Date().getFullYear() ? md : `${d.getFullYear()}-${md}`;
 }
 function fmtFull(s) {
   const d = parseDbTime(s);

@@ -324,13 +324,11 @@ export default function Login() {
           {/* Brand */}
           <div className="mb-8 text-center">
             <div className="mx-auto mb-4 inline-flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700 text-white shadow-[0_14px_34px_rgba(0,122,255,0.35),0_2px_6px_rgba(0,122,255,0.15)]">
-              <span
-                aria-hidden="true"
-                className="text-[30px] leading-none"
-                style={{ fontFamily: '-apple-system, SF Pro Display, system-ui', fontWeight: 700 }}
-              >
-                ⌘
-              </span>
+              {/* 品牌图形：圆润粗体 L + 黄太阳（与 favicon.svg 同款） */}
+              <svg viewBox="0 0 64 64" className="h-[58px] w-[58px]" aria-hidden="true">
+                <path d="M25.5 20 V42.5 H44" fill="none" stroke="#ffffff" strokeWidth="9.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="45" cy="19" r="5" fill="#FFD60A" />
+              </svg>
             </div>
             <h1 className="text-[30px] font-bold leading-tight tracking-tight text-ink-900">
               人生管理系统

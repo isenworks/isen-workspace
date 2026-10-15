@@ -106,20 +106,28 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
   }
 
   // ===== 复选框列表（ul.qc-checklist > li[data-checked]） =====
-  // 光标已在复选列表内：续一行；否则在光标处插入新的复选列表
+  // 交互语义（与 Notion/飞书一致）：
+  //  · 光标在复选列表内 → 续一行
+  //  · 光标在某行内（无选区）→ 整行转复选项（内容与行内格式保留）
+  //  · 光标在普通列表内 → 整个列表转复选列表
+  //  · 选中文字 → 选区内容转复选项（跨块拍平，文字保留）
+  //  · 空编辑器/无块上下文 → 插入空复选行
   function insertChecklist() {
     const ed = editorRef.current;
     if (!ed) return;
     ed.focus();
     const sel = window.getSelection();
-    const node = sel?.anchorNode;
-    const el = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
-    const li = el?.closest?.('ul.qc-checklist > li');
-    if (li) {
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const nodeToEl = n => (n ? (n.nodeType === 3 ? n.parentElement : n) : null);
+
+    // 1) 已在复选列表内 → 续一行
+    const curLi = nodeToEl(range.startContainer)?.closest?.('ul.qc-checklist > li');
+    if (curLi) {
       const nl = document.createElement('li');
       nl.setAttribute('data-checked', 'false');
       nl.innerHTML = '<br>';
-      li.after(nl);
+      curLi.after(nl);
       const r = document.createRange();
       r.selectNodeContents(nl);
       r.collapse(true);
@@ -128,13 +136,71 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       touch();
       return;
     }
-    document.execCommand('insertHTML', false, '<ul class="qc-checklist"><li data-checked="false"><br></li></ul>');
-    // 光标定位进刚插入的空复选行
-    const inserted = [...ed.querySelectorAll('ul.qc-checklist > li')].find(x => !x.textContent);
-    if (inserted && sel) {
+
+    // 光标所在块（editor 自身不算块）
+    let block = nodeToEl(range.startContainer)?.closest?.('p,h1,h2,h3,h4,li,blockquote,div');
+    if (block === ed || (block && !ed.contains(block))) block = null;
+
+    // 2) 光标折叠：转换整行
+    if (range.collapsed && block) {
+      // 2a) 普通列表内 → 整个列表转复选列表
+      if (block.tagName === 'LI' && !block.closest('ul.qc-checklist')) {
+        const list = block.closest('ul,ol');
+        const idx = [...list.children].indexOf(block);
+        const nu = document.createElement('ul');
+        nu.className = 'qc-checklist';
+        nu.innerHTML = list.innerHTML;
+        nu.querySelectorAll('li').forEach(x => x.setAttribute('data-checked', 'false'));
+        list.replaceWith(nu);
+        const target = nu.children[idx] || nu.querySelector('li');
+        if (target && sel) {
+          const r = document.createRange();
+          r.selectNodeContents(target);
+          r.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+        touch();
+        return;
+      }
+      // 2b) 段落/标题/引用行 → 整行转复选项（走 execCommand 保留 undo 栈）
+      const html = block.innerHTML || '<br>';
+      range.selectNodeContents(block);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.execCommand('insertHTML', false, `<ul class="qc-checklist"><li data-checked="false">${html}</li></ul>`);
+      const li = nodeToEl(sel.anchorNode)?.closest?.('ul.qc-checklist')?.querySelector('li:last-of-type');
+      if (li && sel) {
+        const r = document.createRange();
+        r.selectNodeContents(li);
+        r.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
+      touch();
+      return;
+    }
+
+    // 3) 有选区：选区内容转复选项（块级拍平为 <br> 分隔的行内序列）
+    const tmp = document.createElement('div');
+    tmp.appendChild(range.cloneContents());
+    const blockEls = tmp.querySelectorAll('p,h1,h2,h3,h4,li,blockquote');
+    if (blockEls.length > 0) {
+      const parts = [];
+      blockEls.forEach((b, i) => {
+        const seg = b.innerHTML.trim();
+        if (i > 0) parts.push('<br>');
+        if (seg) parts.push(seg);
+      });
+      tmp.innerHTML = parts.join('') || '<br>';
+    }
+    const html = tmp.innerHTML || '<br>';
+    document.execCommand('insertHTML', false, `<ul class="qc-checklist"><li data-checked="false">${html}</li></ul>`);
+    const li = nodeToEl(sel.anchorNode)?.closest?.('ul.qc-checklist')?.querySelector('li:last-of-type');
+    if (li && sel) {
       const r = document.createRange();
-      r.selectNodeContents(inserted);
-      r.collapse(true);
+      r.selectNodeContents(li);
+      r.collapse(false);
       sel.removeAllRanges();
       sel.addRange(r);
     }

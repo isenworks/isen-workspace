@@ -61,37 +61,52 @@ function setCaretOffset(root, offset) {
   sel.addRange(r);
 }
 
-// 收集选区覆盖的顶层块（嵌套块只取最外层；每块将转为一个独立复选项）
 const BLOCK_TAG = /^(P|H1|H2|H3|H4|LI|BLOCKQUOTE|DIV)$/;
+
+// 收集选区覆盖的块（文档顺序）：根级块元素 + 根级列表的 li。
+// 列表项粒度 —— 框选列表中一部分项时只转选中的那些（飞书行为）；
+// 嵌套结构（blockquote/div 内）整体视为一个块，不深入展开。
 function selectedBlocks(root, range) {
-  const blocks = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-    acceptNode: n => {
-      if (n === root || !BLOCK_TAG.test(n.tagName || '')) return NodeFilter.FILTER_SKIP;
-      try { if (!range.intersectsNode(n)) return NodeFilter.FILTER_SKIP; } catch { return NodeFilter.FILTER_SKIP; }
-      return NodeFilter.FILTER_ACCEPT;
-    },
+  const out = [];
+  const hit = el => { try { return range.intersectsNode(el); } catch { return false; } };
+  [...root.childNodes].forEach(n => {
+    if (/^(UL|OL)$/.test(n.tagName || '')) {
+      [...n.children].forEach(li => { if (hit(li)) out.push(li); });
+    } else if (n.nodeType === 1 && BLOCK_TAG.test(n.tagName || '') && hit(n)) {
+      out.push(n);
+    }
   });
-  let n;
-  while ((n = walker.nextNode())) {
-    const p = n.parentElement;
-    if (p && p !== root && BLOCK_TAG.test(p.tagName || '')) continue;
-    blocks.push(n);
-  }
-  return blocks;
+  return out;
 }
 
-// 相邻复选列表归一化：转换/撤销操作可能产生紧邻的碎片 ul（如「取消复选框→再设置」
-// 会生成一个单项 ul 贴在原列表下方），导致同一批事项被拆开、列表间出现多余间隙。
-// 每个复选列表向后吞并紧随其后的同类列表，保证一段连续复选项永远在同一个 ul 里。
-function normalizeChecklistsIn(root) {
+// 块的列表类型：'checklist' | 'ul' | 'ol' | null（非列表块）
+function blockListType(el) {
+  if (!el || el.tagName !== 'LI') return null;
+  const p = el.parentElement;
+  if (!p) return null;
+  if (p.classList?.contains('qc-checklist')) return 'checklist';
+  if (p.tagName === 'UL') return 'ul';
+  if (p.tagName === 'OL') return 'ol';
+  return null;
+}
+
+// 列表归一化（每次转换后调用）：
+// 1) 相邻同类列表合并 —— 转换/撤销会产生紧贴的碎片列表（如「取消复选框→再设置」），
+//    ul+ul / ol+ol / checklist+checklist 各自向后吞并，保证连续同类项永远在同一个列表里（飞书行为）
+// 2) 旧数据迁移：伪元素版复选列表（li 内无 .qc-box）补插真实圆点元素
+function normalizeListsIn(root) {
   if (!root) return;
-  root.querySelectorAll('ul.qc-checklist').forEach(ul => {
-    let next = ul.nextElementSibling;
-    while (next && next.classList?.contains('qc-checklist')) {
+  const sameKind = (a, b) =>
+    b && /^(UL|OL)$/.test(b.tagName || '') &&
+    a.tagName === b.tagName &&
+    !!a.classList?.contains('qc-checklist') === !!b.classList?.contains('qc-checklist');
+  [...root.children].forEach(list => {
+    if (!list.isConnected || !/^(UL|OL)$/.test(list.tagName || '')) return;
+    let next = list.nextElementSibling;
+    while (sameKind(list, next)) {
       const dead = next;
       next = next.nextElementSibling;
-      while (dead.firstChild) ul.appendChild(dead.firstChild);
+      while (dead.firstChild) list.appendChild(dead.firstChild);
       dead.remove();
     }
   });
@@ -128,7 +143,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
   useEffect(() => {
     if (editorRef.current) {
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
-      normalizeChecklistsIn(editorRef.current); // 修复历史数据里已存在的碎片复选列表
+      normalizeListsIn(editorRef.current); // 修复历史数据里已存在的碎片复选列表
     }
     draftRef.current = { content: '', plain: '' };
     undoStack.current = [{ html: editorRef.current?.innerHTML || '', caret: 0 }];
@@ -227,153 +242,173 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     scheduleAutosave();
   }
 
-  // ===== 复选框列表（ul.qc-checklist > li[data-checked]） =====
-  // 全部纯 DOM 操作（execCommand('insertHTML') 会被浏览器清洗掉 class/data 属性，
-  // 导致复选样式退化为普通列表）。按钮为 toggle 语义（同 B/I）：
-  //  · 光标行是复选项 → 取消复选框，转回普通行（光标原位保留）
-  //  · 选区全是复选项 → 全部取消
-  //  · 光标在普通行内 → 整行转复选项（内容与行内格式保留）
-  //  · 光标在普通列表内 → 整个列表转复选列表
-  //  · 选中文字 → 选区覆盖的每一块各自转为一个复选项（一行一个圆点）
-  //  · 空编辑器/无块上下文 → 插入空复选行
-  function insertChecklist() {
+  // ===== 列表块类型转换（飞书/ProseMirror 同构语义，无序/有序/复选框三个按钮共用） =====
+  // 全部纯 DOM 操作：execCommand('insert*List') 只换列表标签，不清理复选框的
+  // data-checked / .qc-box（转换后序号+圆点残缺同显），对自定义结构不可靠，已弃用。
+  //  · 光标折叠在列表内 → 整个列表受影响（光标在 li 内点任一列表按钮 = 整表转换，飞书行为）
+  //  · 光标折叠在普通块 → 整块转（行内格式保留）
+  //  · 有选区 → 选区覆盖的每个块（列表项粒度）各自转换，未选中的项留在原列表里、顺序不变
+  //  · toggle 语义：受影响块全部已是目标类型 → 转回普通段落（div），否则全部转为目标类型
+  //  · 空编辑器/无块上下文 → 插入一个空的目标列表项
+  function applyListType(target) { // target: 'ul' | 'ol' | 'checklist'
     const ed = editorRef.current;
     if (!ed) return;
     ed.focus();
+    wrapRootText(ed); // 根级裸文本先包成 div，保证后续操作的都是元素块
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
     const nodeToEl = n => (n ? (n.nodeType === 3 ? n.parentElement : n) : null);
-    const focusLi = (li, atStart) => {
-      if (!li) return;
-      const r = document.createRange();
-      r.selectNodeContents(li);
-      r.collapse(!!atStart);
-      sel.removeAllRanges();
-      sel.addRange(r);
+    const closestBlock = n => {
+      const b = nodeToEl(n)?.closest?.('p,h1,h2,h3,h4,li,blockquote,div');
+      return b && b !== ed && ed.contains(b) ? b : null;
     };
 
-    // 构造复选项：行首为真实圆点元素（contenteditable=false 防光标进入/编辑），
-    // 圆点由 normal-flow 行内对齐保证与文字垂直居中（飞书/ProseMirror task list 同构）
-    const buildLi = (srcEl, checked) => {
-      const li = document.createElement('li');
-      li.setAttribute('data-checked', checked || 'false');
-      let inner = '<br>';
-      if (srcEl) {
-        const t = document.createElement('div');
-        t.innerHTML = srcEl.innerHTML || '';
-        t.querySelectorAll('.qc-box').forEach(x => x.remove()); // 源自复选项时避免圆点重复
-        inner = t.innerHTML.trim() || '<br>';
-      }
-      li.innerHTML = `<span class="qc-box" contenteditable="false"></span>${inner}`;
-      return li;
-    };
-    // 复选项 → 普通行（取消复选框）：移除圆点元素，内容不变，文本偏移等价，可精确恢复光标
-    const toPlainDiv = (li) => {
-      const off = getCaretOffset(li);
-      const div = document.createElement('div');
-      div.innerHTML = li.innerHTML || '<br>';
-      div.querySelectorAll('.qc-box').forEach(x => x.remove());
-      if (div.innerHTML.trim() === '') div.innerHTML = '<br>';
-      if (li.parentElement && li.parentElement.children.length === 1) li.parentElement.replaceWith(div);
-      else li.replaceWith(div);
-      setCaretOffset(div, off);
-      return div;
-    };
-
-    // 1) 光标在复选项内 → toggle 取消：该行转回普通行
-    const curLi = nodeToEl(range.startContainer)?.closest?.('ul.qc-checklist > li');
-    if (curLi) {
-      toPlainDiv(curLi);
-      touch();
-      return;
-    }
-
-    // 2) 光标折叠：整行/整列表转换
+    let blocks;
     if (range.collapsed) {
-      let block = nodeToEl(range.startContainer)?.closest?.('p,h1,h2,h3,h4,li,blockquote,div');
-      if (block === ed || (block && !ed.contains(block))) block = null;
-      if (block && block.tagName === 'LI' && !block.closest('ul.qc-checklist')) {
-        // 2a) 普通列表 → 整个列表转复选列表
-        const list = block.closest('ul,ol');
-        const idx = [...list.children].indexOf(block);
-        const nu = document.createElement('ul');
-        nu.className = 'qc-checklist';
-        nu.innerHTML = list.innerHTML;
-        nu.querySelectorAll('li').forEach(x => x.setAttribute('data-checked', 'false'));
-        const focusEl = nu.children[idx] || nu.querySelector('li');
-        list.replaceWith(nu);
-        normalizeChecklistsIn(ed); // 新列表若紧邻其他复选列表则并入，光标项引用仍有效
-        focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
-        touch();
-        return;
+      const block = closestBlock(range.startContainer);
+      if (!block) { insertEmptyListItem(ed, range, target); touch(); return; }
+      blocks = block.tagName === 'LI' ? [...block.parentElement.children] : [block];
+    } else {
+      blocks = selectedBlocks(ed, range);
+      if (blocks.length === 0) {
+        const block = closestBlock(range.startContainer);
+        if (!block) { insertEmptyListItem(ed, range, target); touch(); return; }
+        blocks = [block]; // 选区未覆盖任何块（同块内部分文字）→ 整块转
       }
-      if (block) {
-        // 2b) 段落/标题/引用行 → 整行转复选项
-        const ul = document.createElement('ul');
-        ul.className = 'qc-checklist';
-        ul.appendChild(buildLi(block));
-        const focusEl = ul.firstChild;
-        block.replaceWith(ul);
-        normalizeChecklistsIn(ed); // 紧邻上方复选列表时并入同一个 ul（保证对齐）
-        focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
-        touch();
-        return;
-      }
-      // 2c) 编辑器直接文本/空内容 → 光标处插空复选行
-      const ul = document.createElement('ul');
-      ul.className = 'qc-checklist';
-      const li = buildLi(null, 'false');
-      ul.appendChild(li);
-      range.deleteContents();
-      range.insertNode(ul);
-      normalizeChecklistsIn(ed);
-      focusLi(li?.isConnected ? li : null, true);
-      touch();
-      return;
     }
 
-    // 3) 有选区
-    const blocks = selectedBlocks(ed, range);
-    if (blocks.length === 0) {
-      // 选区未覆盖任何块（同块内部分文字）：整块转
-      let block = nodeToEl(range.startContainer)?.closest?.('p,h1,h2,h3,h4,li,blockquote,div');
-      if (block === ed || (block && !ed.contains(block))) block = null;
-      if (block) {
-        const ul = document.createElement('ul');
-        ul.className = 'qc-checklist';
-        ul.appendChild(buildLi(block));
-        const focusEl = ul.firstChild;
-        block.replaceWith(ul);
-        normalizeChecklistsIn(ed);
-        focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
-      }
-      touch();
-      return;
-    }
-    // 3a) 选区全部是复选项 → 全部取消复选框
-    if (blocks.every(b => b.closest('ul.qc-checklist'))) {
-      let lastDiv = null;
-      blocks.forEach(b => { lastDiv = toPlainDiv(b); });
-      if (lastDiv) focusLi(lastDiv, false);
-      touch();
-      return;
-    }
-    // 3b) 转复选：每一块一个复选项（保留原勾选态与行内格式）
-    const ul = document.createElement('ul');
-    ul.className = 'qc-checklist';
-    blocks.forEach(b => {
-      const checked = b.closest('ul.qc-checklist') ? (b.getAttribute('data-checked') || 'false') : 'false';
-      ul.appendChild(buildLi(b, checked));
-    });
-    // 新列表插到选区起点之前；起点在原列表内时插到整个列表之前，避免嵌套
-    const anchor = /^(UL|OL)$/.test(blocks[0].parentElement?.tagName || '') ? blocks[0].parentElement : blocks[0];
-    const focusEl = ul.querySelector('li:last-of-type');
-    anchor.before(ul);
-    blocks.forEach(b => b.remove());
-    normalizeChecklistsIn(ed);
-    focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
+    const toParagraph = blocks.every(b => blockListType(b) === target);
+    const lastNew = convertBlocks(ed, blocks, toParagraph ? null : target);
+    if (lastNew) focusBlockEnd(lastNew);
     touch();
+  }
+
+  // 根级裸文本包一层 div（contenteditable 根下的裸文本没有块容器，统一成 div 块）
+  function wrapRootText(ed) {
+    [...ed.childNodes].forEach(n => {
+      if (n.nodeType === 3 && n.textContent.trim()) {
+        const div = document.createElement('div');
+        n.replaceWith(div);
+        div.appendChild(n);
+      }
+    });
+  }
+
+  // 空编辑器/无块上下文 → 光标处插入一个空的目标列表项
+  function insertEmptyListItem(ed, range, target) {
+    const list = document.createElement(target === 'checklist' ? 'ul' : target);
+    if (target === 'checklist') list.className = 'qc-checklist';
+    const li = document.createElement('li');
+    if (target === 'checklist') {
+      li.setAttribute('data-checked', 'false');
+      li.innerHTML = '<span class="qc-box" contenteditable="false"></span><br>';
+    } else {
+      li.innerHTML = '<br>';
+    }
+    list.appendChild(li);
+    range.deleteContents();
+    range.insertNode(list);
+    normalizeListsIn(ed);
+    focusBlockEnd(li);
+  }
+
+  // blocks → 替换节点：目标段落（null）每块一个 div；目标列表整 run 一个列表、每块一个 li。
+  // 行内格式保留；复选框圆点元素剔除（目标为复选列表时按原勾选态重新生成）
+  function buildListNodes(blocks, target) {
+    const cleanHTML = b => {
+      const t = document.createElement('div');
+      t.innerHTML = b.innerHTML || '';
+      t.querySelectorAll('.qc-box').forEach(x => x.remove());
+      return t.innerHTML.trim();
+    };
+    if (!target) {
+      return blocks.map(b => {
+        const div = document.createElement('div');
+        div.innerHTML = cleanHTML(b) || '<br>';
+        return div;
+      });
+    }
+    const list = document.createElement(target === 'checklist' ? 'ul' : target);
+    if (target === 'checklist') list.className = 'qc-checklist';
+    blocks.forEach(b => {
+      const li = document.createElement('li');
+      const inner = cleanHTML(b) || '<br>';
+      if (target === 'checklist') {
+        const keep = blockListType(b) === 'checklist' ? (b.getAttribute('data-checked') || 'false') : 'false';
+        li.setAttribute('data-checked', keep);
+        li.innerHTML = `<span class="qc-box" contenteditable="false"></span>${inner}`;
+      } else {
+        li.innerHTML = inner;
+      }
+      list.appendChild(li);
+    });
+    return [list];
+  }
+
+  // 列表内 [i, j) 的 li 被 nodes 替换；i==0 且 j==末尾 → 整表替换，
+  // 否则先把头部/尾部未受影响的 li 拆到同类型克隆列表里，保证它们留在
+  // 原类型列表中且相对顺序不变（框选列表中间几项转类型时不断裂、不乱序）
+  function spliceList(list, i, j, nodes) {
+    const kids = [...list.children];
+    if (i === 0 && j >= kids.length) {
+      list.replaceWith(...nodes);
+      return;
+    }
+    if (j < kids.length) {
+      const tail = list.cloneNode(false);
+      kids.slice(j).forEach(li => tail.appendChild(li));
+      list.after(tail);
+    }
+    if (i > 0) {
+      const lead = list.cloneNode(false);
+      kids.slice(0, i).forEach(li => lead.appendChild(li));
+      list.before(lead);
+    }
+    list.replaceWith(...nodes);
+  }
+
+  // 把 blocks 转成目标类型：连续相邻且同父的块合为一个 run，整 run 一次替换；
+  // run 在列表内 → spliceList 拆分保序；run 在根级 → 原位替换。
+  // 相邻同类列表最后由 normalizeListsIn 合并，保证转换结果是连续的一个列表
+  function convertBlocks(ed, blocks, target) {
+    const runs = [];
+    blocks.forEach(b => {
+      const prev = runs[runs.length - 1];
+      if (prev && prev.parent === b.parentElement && prev.blocks[prev.blocks.length - 1].nextSibling === b) {
+        prev.blocks.push(b);
+      } else {
+        runs.push({ parent: b.parentElement, blocks: [b] });
+      }
+    });
+
+    let lastNew = null;
+    runs.forEach(run => {
+      const nodes = buildListNodes(run.blocks, target);
+      lastNew = nodes[nodes.length - 1];
+      const parent = run.parent;
+      if (parent && /^(UL|OL)$/.test(parent.tagName || '')) {
+        const idx = [...parent.children].indexOf(run.blocks[0]);
+        spliceList(parent, idx, idx + run.blocks.length, nodes);
+      } else {
+        run.blocks[0].before(...nodes);
+        run.blocks.forEach(b => b.remove());
+      }
+    });
+    normalizeListsIn(ed);
+    return lastNew;
+  }
+
+  // 光标落到块末（列表节点取最后一个 li；复选项的圆点 contenteditable=false 不可入）
+  function focusBlockEnd(el) {
+    if (!el || !el.isConnected) return;
+    const t = /^(UL|OL)$/.test(el.tagName) ? (el.querySelector(':scope > li:last-of-type') || el) : el;
+    const sel = window.getSelection();
+    const r = document.createRange();
+    r.selectNodeContents(t);
+    r.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(r);
   }
 
   // 点击圆点元素本体 → 切换勾选态（真实元素命中，不再依赖坐标区间判定）
@@ -585,13 +620,13 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       <ToolbarBtn title="加粗 (Ctrl+B)" onClick={() => exec('bold')}><span className="font-bold">B</span></ToolbarBtn>
       <ToolbarBtn title="斜体 (Ctrl+I)" onClick={() => exec('italic')}><span className="italic">I</span></ToolbarBtn>
       <div className="w-px h-4 bg-ink-200 mx-1" />
-      <ToolbarBtn title="无序列表" onClick={() => exec('insertUnorderedList')}>
+      <ToolbarBtn title="无序列表" onClick={() => applyListType('ul')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>
       </ToolbarBtn>
-      <ToolbarBtn title="有序列表" onClick={() => exec('insertOrderedList')}>
+      <ToolbarBtn title="有序列表" onClick={() => applyListType('ol')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4" strokeLinejoin="round"/><path d="M4 10h2" /><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" /></svg>
       </ToolbarBtn>
-      <ToolbarBtn title="复选框列表" onClick={insertChecklist}>
+      <ToolbarBtn title="复选框列表" onClick={() => applyListType('checklist')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><polyline points="8.4 12.3 11 14.9 15.6 9.9"/></svg>
       </ToolbarBtn>
       <div className="w-px h-4 bg-ink-200 mx-1" />

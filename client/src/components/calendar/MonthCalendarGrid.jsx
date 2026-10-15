@@ -106,10 +106,14 @@ export default function MonthCalendarGrid({
     return dots;
   };
 
-  /* 圆复选框：与 FocusPanel 左卡规格同构
-       18×18 round-full / 1.5px border / 完成时模块色填充+白勾+投影 */
+  /* 圆复选框：与 FocusPanel 左卡规格同构，三态语义与 KeyTasks cb-failed 同款
+       16×16 round-full / 1.5px border
+       · 完成：模块色填充 + 白勾 + 投影
+       · 标记未完成（is_failed 且未完成）：红边 + 8% 红底 + 红 ✕（今日计划右键"标记未完成"同步展示）
+       · 未完成：模块色描边空心 */
   function EventCheckbox({ ev, mod, date }) {
     const done = Boolean(ev.is_done || ev.done);
+    const failed = !!ev.is_failed && !done;
     const handleToggle = (e) => {
       e.stopPropagation();
       e.preventDefault();
@@ -120,13 +124,14 @@ export default function MonthCalendarGrid({
         onClick={handleToggle}
         role="checkbox"
         aria-checked={done}
+        aria-label={failed ? '已标记未完成' : done ? '已完成' : '未完成'}
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
         className="w-[16px] h-[16px] rounded-full flex-shrink-0 border-[1.5px] flex items-center justify-center transition select-none"
         style={{
           // 线框直接用模块色实色（跟随事项类型）；此前 rgba 缺 var() 包裹在 CSS 变量下非法被丢弃
-          borderColor: mod.color,
-          background: done ? mod.color : 'var(--surface-card)',
+          borderColor: failed ? 'var(--danger)' : mod.color,
+          background: done ? mod.color : (failed ? 'rgba(var(--danger-rgb),0.08)' : 'var(--surface-card)'),
           boxShadow: done
             ? (mod.color.startsWith('var(')
               ? `0 2px 5px rgba(var(${mod.color.slice(4, -1)}-rgb), 0.29)`
@@ -137,6 +142,11 @@ export default function MonthCalendarGrid({
         {done && (
           <svg width="7" height="9" viewBox="0 0 8 10" fill="none">
             <path d="M1 4.5L3.5 7L7 1.5" stroke="var(--surface-card)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        {failed && (
+          <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
+            <path d="M1.5 1.5L6.5 6.5M6.5 1.5L1.5 6.5" stroke="var(--danger)" strokeWidth="1.6" strokeLinecap="round"/>
           </svg>
         )}
       </div>
@@ -269,6 +279,7 @@ export default function MonthCalendarGrid({
                 {(isTiny ? dayEvents.slice(0, 3) : dayEvents.slice(0, 3)).map((ev, j) => {
                   const mod = scheduleModule(ev);
                   const done = Boolean(ev.is_done || ev.done);
+                  const failed = !!ev.is_failed && !done; // 标记未完成（三态，与 KeyTasks/FocusPanel 同语义）
                   // 多日事项起止标记：首日 ›、末日 ‹（轻量角标，中间日不标——首尾包裹已表意）
                   const evStart = ev.start_date || ev.date || ev.schedule_date;
                   const evEnd = ev.end_date;
@@ -291,12 +302,17 @@ export default function MonthCalendarGrid({
                       <div
                         key={ev.id || `${date}-${j}`}
                         className="flex items-center min-w-0 px-[2px] py-[1.5px] rounded cursor-pointer"
-                        style={{ background: bg }}
+                        style={{ background: failed ? 'rgba(var(--danger-rgb),0.08)' : bg }}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEventClick?.(ev, date);
                         }}
                       >
+                        {failed && (
+                          <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="flex-shrink-0 mr-[2px]">
+                            <path d="M1.5 1.5L6.5 6.5M6.5 1.5L1.5 6.5" stroke="var(--danger)" strokeWidth="1.6" strokeLinecap="round"/>
+                          </svg>
+                        )}
                         <span
                           className="min-w-0 flex-1 text-[9px] leading-[12px] overflow-hidden whitespace-nowrap"
                           style={{

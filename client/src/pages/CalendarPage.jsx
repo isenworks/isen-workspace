@@ -475,7 +475,10 @@ function buildEventsWithTaskLink(raw, tasks) {
            || tasks.find(t => titleMatches((ev.title || ''), t.title));
     }
     const done = match ? !!match.done : Boolean(ev.is_done);
-    return { ...ev, moduleKey: (match?.moduleKey) || mod.key, taskId: match?.id, is_done: done };
+    // is_failed 与 done 同构：优先取关联主线任务的三态状态（今日计划右键"标记未完成"后
+    // 月历格子/当日面板同步展示红 ✕），无关联时用事件自身字段
+    const isFailed = match ? !!match.is_failed : !!ev.is_failed;
+    return { ...ev, moduleKey: (match?.moduleKey) || mod.key, taskId: match?.id, is_done: done, is_failed: isFailed };
   });
 }
 
@@ -1268,14 +1271,14 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
   /* === 月历勾选同步：事件行复选框 → 若有 taskId 则同步主线 done；否则仅翻转事件 is_done === */
   const handleEventToggle = useCallback((ev, date) => {
-    // 1) 如果与左卡关联，先同步左卡 done
+    // 1) 如果与左卡关联，先同步左卡 done（勾选完成同时清除"未完成"标记，与 KeyTasks.toggle 同语义）
     if (ev.taskId) {
       // month/week 都尝试改一下（用户周tab也可能看上月任务）
       setMonthTasks(prev => prev.map(t =>
-        t.id === ev.taskId ? { ...t, done: !t.done, progress: !t.done ? 1 : t.progress } : t
+        t.id === ev.taskId ? { ...t, done: !t.done, progress: !t.done ? 1 : t.progress, is_failed: !t.done ? false : !!t.is_failed } : t
       ));
       setWeekTasks(prev => prev.map(t =>
-        t.id === ev.taskId ? { ...t, done: !t.done, progress: !t.done ? 1 : t.progress } : t
+        t.id === ev.taskId ? { ...t, done: !t.done, progress: !t.done ? 1 : t.progress, is_failed: !t.done ? false : !!t.is_failed } : t
       ));
     }
     // 2) 事件自身状态翻转（若未匹配到 taskId 也能独立勾选）
@@ -1290,12 +1293,14 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
       || (ev.id != null && /^\d+$/.test(String(ev.id)));
     if (isRealApiSchedule && ev.id != null) {
       const nextDone = !Boolean(ev.is_done || ev.done);
+      // 勾选完成同时清除"未完成"标记（与 KeyTasks.toggle / FocusPanel 同语义），取消勾选保留
+      const nextFailed = nextDone ? false : !!ev.is_failed;
       // 乐观更新本地事件源：月历格子 / 当日详情立即变色（含未注入主线的 category=3 事项）
       setApiSchedules(prev => prev.map(s =>
-        String(s.id) === String(ev.id) ? { ...s, is_done: nextDone } : s));
+        String(s.id) === String(ev.id) ? { ...s, is_done: nextDone, is_failed: nextFailed } : s));
       (async () => {
         try {
-          await API.schedules.update(ev.id, { is_done: nextDone });
+          await API.schedules.update(ev.id, { is_done: nextDone, is_failed: nextFailed });
         } catch (_) {
           // 失败回滚乐观更新
           setApiSchedules(prev => prev.map(s =>

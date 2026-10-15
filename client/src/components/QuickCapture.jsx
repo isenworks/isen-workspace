@@ -23,6 +23,64 @@ export function parseItemTagIds(it) {
   return it?.tag_id != null ? [Number(it.tag_id)] : [];
 }
 
+// ===== 编辑器光标偏移（自管 undo 用：快照/恢复光标到等价文本位置） =====
+function getCaretOffset(root) {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return 0;
+  try {
+    const pre = document.createRange();
+    pre.selectNodeContents(root);
+    const r = sel.getRangeAt(0);
+    pre.setEnd(r.endContainer, r.endOffset);
+    return pre.toString().length;
+  } catch { return 0; }
+}
+
+function setCaretOffset(root, offset) {
+  if (!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let cur = 0, node;
+  while ((node = walker.nextNode())) {
+    const len = node.textContent.length;
+    if (cur + len >= offset) {
+      const r = document.createRange();
+      r.setStart(node, Math.max(0, offset - cur));
+      r.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      return;
+    }
+    cur += len;
+  }
+  const r = document.createRange();
+  r.selectNodeContents(root);
+  r.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+}
+
+// 收集选区覆盖的顶层块（嵌套块只取最外层；每块将转为一个独立复选项）
+const BLOCK_TAG = /^(P|H1|H2|H3|H4|LI|BLOCKQUOTE|DIV)$/;
+function selectedBlocks(root, range) {
+  const blocks = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: n => {
+      if (n === root || !BLOCK_TAG.test(n.tagName || '')) return NodeFilter.FILTER_SKIP;
+      try { if (!range.intersectsNode(n)) return NodeFilter.FILTER_SKIP; } catch { return NodeFilter.FILTER_SKIP; }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  let n;
+  while ((n = walker.nextNode())) {
+    const p = n.parentElement;
+    if (p && p !== root && BLOCK_TAG.test(p.tagName || '')) continue;
+    blocks.push(n);
+  }
+  return blocks;
+}
+
 export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageTags, autoFocus = true, placeholder, bare, edit, tags }) {
   const toast = useToast();
   const editorRef = useRef(null);
@@ -35,6 +93,11 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
   const flashTimer = useRef(null);
   const autoTimer = useRef(null);                      // 输入防抖自动保存定时器
   const draftRef = useRef({ content: '', plain: '' }); // 最近一次输入（卸载兜底用）
+  // 自管 undo/redo：DOM 直改（复选转换/勾选）会打断浏览器原生撤销栈，
+  // 因此编辑器内 Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y 全部走这里的快照栈
+  const undoStack = useRef([]);   // [{ html, caret }]
+  const undoIdx = useRef(-1);
+  const undoTimer = useRef(null); // 输入快照防抖（连续打字合并为一步）
   const activeIdRef = useRef(edit?.id ?? null);        // 当前记录 id：编辑=edit.id；新建首次自动保存后回填
   const tagIdsRef = useRef(tagIds);                    // 标签同步值（供异步自动保存读最新）
   tagIdsRef.current = tagIds;
@@ -45,6 +108,8 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
     }
     draftRef.current = { content: '', plain: '' };
+    undoStack.current = [{ html: editorRef.current?.innerHTML || '', caret: 0 }];
+    undoIdx.current = 0;
     setTagIds(parseItemTagIds(edit));
     setSavedAt(edit?.updated_at || edit?.created_at || '');
   }, [edit?.id]);
@@ -56,6 +121,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
   useEffect(() => () => {
     if (flashTimer.current) clearTimeout(flashTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
     // 卸载时若有未保存内容，立即落库（fire-and-forget），避免切走丢失
     const d = draftRef.current;
     if (d.plain) {
@@ -64,6 +130,37 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       else API.inbox.create(payload).catch(() => {});
     }
   }, []);
+
+  // ===== 自管 undo/redo =====
+  function pushUndo() {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const html = ed.innerHTML;
+    const top = undoStack.current[undoIdx.current];
+    if (top && top.html === html) return;
+    undoStack.current = undoStack.current.slice(0, undoIdx.current + 1);
+    undoStack.current.push({ html, caret: getCaretOffset(ed) });
+    if (undoStack.current.length > 120) undoStack.current.shift();
+    undoIdx.current = undoStack.current.length - 1;
+  }
+  function restoreSnap(snap) {
+    const ed = editorRef.current;
+    if (!ed || !snap) return;
+    ed.innerHTML = snap.html;
+    setCaretOffset(ed, snap.caret);
+    draftRef.current = { content: snap.html, plain: (ed.innerText || '').trim() };
+    scheduleAutosave();
+  }
+  function applyUndo() {
+    if (undoIdx.current <= 0) return;
+    undoIdx.current -= 1;
+    restoreSnap(undoStack.current[undoIdx.current]);
+  }
+  function applyRedo() {
+    if (undoIdx.current >= undoStack.current.length - 1) return;
+    undoIdx.current += 1;
+    restoreSnap(undoStack.current[undoIdx.current]);
+  }
 
   function fmtSavedTime(iso) {
     if (!iso) return '';
@@ -97,20 +194,23 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
   function exec(cmd, val) {
     editorRef.current?.focus();
     document.execCommand(cmd, false, val);
+    pushUndo();
   }
 
-  // 手动改 DOM（插入复选行/勾选切换）后统一走这里：同步草稿 + 触发防抖自动保存
+  // 手动改 DOM（插入复选行/勾选切换/转换）后统一走这里：压 undo 快照 + 同步草稿 + 触发防抖自动保存
   function touch() {
+    pushUndo();
     draftRef.current = { content: getContent(), plain: getPlainText() };
     scheduleAutosave();
   }
 
   // ===== 复选框列表（ul.qc-checklist > li[data-checked]） =====
-  // 交互语义（与 Notion/飞书一致）：
+  // 全部纯 DOM 操作（execCommand('insertHTML') 会被浏览器清洗掉 class/data 属性，
+  // 导致复选样式退化为普通列表）。交互语义（与 Notion/飞书一致）：
   //  · 光标在复选列表内 → 续一行
   //  · 光标在某行内（无选区）→ 整行转复选项（内容与行内格式保留）
   //  · 光标在普通列表内 → 整个列表转复选列表
-  //  · 选中文字 → 选区内容转复选项（跨块拍平，文字保留）
+  //  · 选中文字 → 选区覆盖的每一块各自转为一个复选项（一行一个圆点）
   //  · 空编辑器/无块上下文 → 插入空复选行
   function insertChecklist() {
     const ed = editorRef.current;
@@ -120,6 +220,14 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
     const nodeToEl = n => (n ? (n.nodeType === 3 ? n.parentElement : n) : null);
+    const focusLi = (li, atStart) => {
+      if (!li) return;
+      const r = document.createRange();
+      r.selectNodeContents(li);
+      r.collapse(!!atStart);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    };
 
     // 1) 已在复选列表内 → 续一行
     const curLi = nodeToEl(range.startContainer)?.closest?.('ul.qc-checklist > li');
@@ -128,23 +236,24 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       nl.setAttribute('data-checked', 'false');
       nl.innerHTML = '<br>';
       curLi.after(nl);
-      const r = document.createRange();
-      r.selectNodeContents(nl);
-      r.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(r);
+      focusLi(nl, true);
       touch();
       return;
     }
 
-    // 光标所在块（editor 自身不算块）
-    let block = nodeToEl(range.startContainer)?.closest?.('p,h1,h2,h3,h4,li,blockquote,div');
-    if (block === ed || (block && !ed.contains(block))) block = null;
+    const buildLi = (srcEl, checked) => {
+      const li = document.createElement('li');
+      li.setAttribute('data-checked', checked || 'false');
+      li.innerHTML = srcEl?.innerHTML?.trim() ? srcEl.innerHTML : '<br>';
+      return li;
+    };
 
-    // 2) 光标折叠：转换整行
-    if (range.collapsed && block) {
-      // 2a) 普通列表内 → 整个列表转复选列表
-      if (block.tagName === 'LI' && !block.closest('ul.qc-checklist')) {
+    // 2) 光标折叠：整行/整列表转换
+    if (range.collapsed) {
+      let block = nodeToEl(range.startContainer)?.closest?.('p,h1,h2,h3,h4,li,blockquote,div');
+      if (block === ed || (block && !ed.contains(block))) block = null;
+      if (block && block.tagName === 'LI' && !block.closest('ul.qc-checklist')) {
+        // 2a) 普通列表 → 整个列表转复选列表
         const list = block.closest('ul,ol');
         const idx = [...list.children].indexOf(block);
         const nu = document.createElement('ul');
@@ -152,58 +261,61 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         nu.innerHTML = list.innerHTML;
         nu.querySelectorAll('li').forEach(x => x.setAttribute('data-checked', 'false'));
         list.replaceWith(nu);
-        const target = nu.children[idx] || nu.querySelector('li');
-        if (target && sel) {
-          const r = document.createRange();
-          r.selectNodeContents(target);
-          r.collapse(false);
-          sel.removeAllRanges();
-          sel.addRange(r);
-        }
+        focusLi(nu.children[idx] || nu.querySelector('li'), false);
         touch();
         return;
       }
-      // 2b) 段落/标题/引用行 → 整行转复选项（走 execCommand 保留 undo 栈）
-      const html = block.innerHTML || '<br>';
-      range.selectNodeContents(block);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      document.execCommand('insertHTML', false, `<ul class="qc-checklist"><li data-checked="false">${html}</li></ul>`);
-      const li = nodeToEl(sel.anchorNode)?.closest?.('ul.qc-checklist')?.querySelector('li:last-of-type');
-      if (li && sel) {
-        const r = document.createRange();
-        r.selectNodeContents(li);
-        r.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(r);
+      if (block) {
+        // 2b) 段落/标题/引用行 → 整行转复选项
+        const ul = document.createElement('ul');
+        ul.className = 'qc-checklist';
+        ul.appendChild(buildLi(block));
+        block.replaceWith(ul);
+        focusLi(ul.querySelector('li'), false);
+        touch();
+        return;
       }
+      // 2c) 编辑器直接文本/空内容 → 光标处插空复选行
+      const ul = document.createElement('ul');
+      ul.className = 'qc-checklist';
+      const li = document.createElement('li');
+      li.setAttribute('data-checked', 'false');
+      li.innerHTML = '<br>';
+      ul.appendChild(li);
+      range.deleteContents();
+      range.insertNode(ul);
+      focusLi(li, true);
       touch();
       return;
     }
 
-    // 3) 有选区：选区内容转复选项（块级拍平为 <br> 分隔的行内序列）
-    const tmp = document.createElement('div');
-    tmp.appendChild(range.cloneContents());
-    const blockEls = tmp.querySelectorAll('p,h1,h2,h3,h4,li,blockquote');
-    if (blockEls.length > 0) {
-      const parts = [];
-      blockEls.forEach((b, i) => {
-        const seg = b.innerHTML.trim();
-        if (i > 0) parts.push('<br>');
-        if (seg) parts.push(seg);
-      });
-      tmp.innerHTML = parts.join('') || '<br>';
+    // 3) 有选区：选区覆盖的每一块各自转为一个复选项（保留勾选态与行内格式）
+    const blocks = selectedBlocks(ed, range);
+    if (blocks.length === 0) {
+      // 选区未覆盖任何块（同块内部分文字）：整块转
+      let block = nodeToEl(range.startContainer)?.closest?.('p,h1,h2,h3,h4,li,blockquote,div');
+      if (block === ed || (block && !ed.contains(block))) block = null;
+      if (block) {
+        const ul = document.createElement('ul');
+        ul.className = 'qc-checklist';
+        ul.appendChild(buildLi(block));
+        block.replaceWith(ul);
+        focusLi(ul.querySelector('li'), false);
+      }
+      touch();
+      return;
     }
-    const html = tmp.innerHTML || '<br>';
-    document.execCommand('insertHTML', false, `<ul class="qc-checklist"><li data-checked="false">${html}</li></ul>`);
-    const li = nodeToEl(sel.anchorNode)?.closest?.('ul.qc-checklist')?.querySelector('li:last-of-type');
-    if (li && sel) {
-      const r = document.createRange();
-      r.selectNodeContents(li);
-      r.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(r);
-    }
+    const ul = document.createElement('ul');
+    ul.className = 'qc-checklist';
+    blocks.forEach(b => {
+      const checked = b.closest('ul.qc-checklist') ? (b.getAttribute('data-checked') || 'false') : 'false';
+      ul.appendChild(buildLi(b, checked));
+    });
+    // 新列表插到选区起点之前；起点在原列表内时插到整个列表之前，避免嵌套
+    const anchor = /^(UL|OL)$/.test(blocks[0].parentElement?.tagName || '') ? blocks[0].parentElement : blocks[0];
+    anchor.before(ul);
+    blocks.forEach(b => b.remove());
+    focusLi(ul.querySelector('li:last-of-type'), false);
     touch();
   }
 
@@ -312,6 +424,17 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
       if (getPlainText()) save();
+      return;
+    }
+    // 自管 undo/redo：拦截原生撤销（DOM 直改后原生栈不可靠）
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      if (e.shiftKey) applyRedo(); else applyUndo();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+      e.preventDefault();
+      applyRedo();
     }
   }
 
@@ -427,7 +550,13 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        onInput={() => { draftRef.current = { content: getContent(), plain: getPlainText() }; scheduleAutosave(); }}
+        onInput={() => {
+          draftRef.current = { content: getContent(), plain: getPlainText() };
+          // 输入快照防抖压栈（连续打字合并为一步 undo）
+          if (undoTimer.current) clearTimeout(undoTimer.current);
+          undoTimer.current = setTimeout(() => pushUndo(), 600);
+          scheduleAutosave();
+        }}
         onKeyDown={onKeyDown}
         onClick={onEditorClick}
         onFocus={() => setFocused(true)}

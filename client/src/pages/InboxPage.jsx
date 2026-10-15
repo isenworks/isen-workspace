@@ -522,6 +522,16 @@ export default function InboxPage({ onCountChange }) {
     const chipBase = 'h-[24px] px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] leading-none transition-all select-none cursor-pointer';
     return (
       <div className="flex flex-wrap items-center gap-1.5">
+        {/* 全部：清空筛选（无标签语义，用主题色激活态） */}
+        <button
+          onClick={() => setFilterTagIds([])}
+          title="显示全部小记"
+          className={chipBase}
+          style={filterTagIds.length === 0
+            ? { background: 'rgba(var(--s-rgb),0.12)', color: 'var(--s-main)', fontWeight: 600 }
+            : { background: 'rgba(120,120,128,0.06)', color: 'var(--ink-600, #6b7280)' }
+          }
+        >全部</button>
         {[...namedChips, ...extraChips].map((c, i) => {
           const t = c.tag;
           if (!t) {

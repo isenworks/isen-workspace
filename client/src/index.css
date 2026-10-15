@@ -1235,6 +1235,50 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .qc-editor ol { list-style: decimal; }
 .qc-editor b, .qc-editor strong { font-weight: 700; }
 
+/* 复选框列表（圆形勾选，与工作台事项勾选规范一致）：
+ * 结构 ul.qc-checklist > li[data-checked="true|false"]，勾选态持久化在 HTML 属性里 */
+.qc-editor ul.qc-checklist { list-style: none !important; padding-left: 4px !important; margin: 4px 0; }
+.qc-editor ul.qc-checklist li {
+  position: relative;
+  padding-left: 27px;
+  margin: 3px 0;
+  cursor: pointer;
+}
+.qc-editor ul.qc-checklist li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(120, 120, 128, 0.38);
+  background: transparent;
+  transition: background .15s, border-color .15s;
+}
+.qc-editor ul.qc-checklist li[data-checked="true"]::before {
+  background: var(--s-main, #007AFF);
+  border-color: var(--s-main, #007AFF);
+}
+.qc-editor ul.qc-checklist li[data-checked="true"]::after {
+  content: '';
+  position: absolute;
+  left: 8.6px;
+  top: 50%;
+  width: 4.4px;
+  height: 8.2px;
+  border-right: 1.8px solid #fff;
+  border-bottom: 1.8px solid #fff;
+  transform: translateY(-62%) rotate(42deg);
+}
+.qc-editor ul.qc-checklist li[data-checked="true"] {
+  color: var(--ink-400, #b0b0b6);
+  text-decoration: line-through;
+  text-decoration-color: rgba(120, 120, 128, 0.4);
+}
+.qc-editor ul.qc-checklist li[data-checked="true"] * { text-decoration: line-through; }
+
 /* ====== 全局键盘焦点环 ======
    仅键盘导航（:focus-visible）触发，鼠标点击不出现描边。
    选择器用 :root :where(...) 提升到 (0,2,0)，确保盖过 Tailwind 的 outline-none/focus:outline-none 工具类。

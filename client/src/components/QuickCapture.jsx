@@ -99,6 +99,60 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     document.execCommand(cmd, false, val);
   }
 
+  // 手动改 DOM（插入复选行/勾选切换）后统一走这里：同步草稿 + 触发防抖自动保存
+  function touch() {
+    draftRef.current = { content: getContent(), plain: getPlainText() };
+    scheduleAutosave();
+  }
+
+  // ===== 复选框列表（ul.qc-checklist > li[data-checked]） =====
+  // 光标已在复选列表内：续一行；否则在光标处插入新的复选列表
+  function insertChecklist() {
+    const ed = editorRef.current;
+    if (!ed) return;
+    ed.focus();
+    const sel = window.getSelection();
+    const node = sel?.anchorNode;
+    const el = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
+    const li = el?.closest?.('ul.qc-checklist > li');
+    if (li) {
+      const nl = document.createElement('li');
+      nl.setAttribute('data-checked', 'false');
+      nl.innerHTML = '<br>';
+      li.after(nl);
+      const r = document.createRange();
+      r.selectNodeContents(nl);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+      touch();
+      return;
+    }
+    document.execCommand('insertHTML', false, '<ul class="qc-checklist"><li data-checked="false"><br></li></ul>');
+    // 光标定位进刚插入的空复选行
+    const inserted = [...ed.querySelectorAll('ul.qc-checklist > li')].find(x => !x.textContent);
+    if (inserted && sel) {
+      const r = document.createRange();
+      r.selectNodeContents(inserted);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+    touch();
+  }
+
+  // 编辑区内点击复选行左侧圆点区域 → 切换勾选态（data-checked 持久化在 HTML 里）
+  function onEditorClick(e) {
+    const li = e.target?.closest?.('ul.qc-checklist > li');
+    if (!li) return;
+    const rect = li.getBoundingClientRect();
+    if (e.clientX - rect.left <= 28) {
+      e.preventDefault();
+      li.setAttribute('data-checked', li.getAttribute('data-checked') === 'true' ? 'false' : 'true');
+      touch();
+    }
+  }
+
   // 手动保存：编辑态=更新，新建态=收录；都不清空编辑区，保持显示已保存内容
   //  - 已自动落库的新建记录会复用同一 id，避免重复创建
   //  - 新建时把记录回传给父级，父级可据此选中它（编辑区随之为「已保存」态）
@@ -246,6 +300,9 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       <ToolbarBtn title="有序列表" onClick={() => exec('insertOrderedList')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4" strokeLinejoin="round"/><path d="M4 10h2" /><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" /></svg>
       </ToolbarBtn>
+      <ToolbarBtn title="复选框列表" onClick={insertChecklist}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><polyline points="8.4 12.3 11 14.9 15.6 9.9"/></svg>
+      </ToolbarBtn>
       <div className="w-px h-4 bg-ink-200 mx-1" />
       <ToolbarBtn title="清除格式" onClick={() => exec('removeFormat')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
@@ -306,6 +363,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         suppressContentEditableWarning
         onInput={() => { draftRef.current = { content: getContent(), plain: getPlainText() }; scheduleAutosave(); }}
         onKeyDown={onKeyDown}
+        onClick={onEditorClick}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         data-placeholder={placeholder}

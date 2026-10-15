@@ -95,6 +95,12 @@ function normalizeChecklistsIn(root) {
       dead.remove();
     }
   });
+  // 旧数据迁移：伪元素版复选列表（li 内无 .qc-box）补插真实圆点元素
+  root.querySelectorAll('ul.qc-checklist > li').forEach(li => {
+    if (!li.querySelector(':scope > .qc-box')) {
+      li.insertAdjacentHTML('afterbegin', '<span class="qc-box" contenteditable="false"></span>');
+    }
+  });
 }
 
 export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageTags, autoFocus = true, placeholder, bare, edit, tags }) {
@@ -247,17 +253,28 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       sel.addRange(r);
     };
 
+    // 构造复选项：行首为真实圆点元素（contenteditable=false 防光标进入/编辑），
+    // 圆点由 normal-flow 行内对齐保证与文字垂直居中（飞书/ProseMirror task list 同构）
     const buildLi = (srcEl, checked) => {
       const li = document.createElement('li');
       li.setAttribute('data-checked', checked || 'false');
-      li.innerHTML = srcEl?.innerHTML?.trim() ? srcEl.innerHTML : '<br>';
+      let inner = '<br>';
+      if (srcEl) {
+        const t = document.createElement('div');
+        t.innerHTML = srcEl.innerHTML || '';
+        t.querySelectorAll('.qc-box').forEach(x => x.remove()); // 源自复选项时避免圆点重复
+        inner = t.innerHTML.trim() || '<br>';
+      }
+      li.innerHTML = `<span class="qc-box" contenteditable="false"></span>${inner}`;
       return li;
     };
-    // 复选项 → 普通行（取消复选框）：内容不变，文本偏移等价，可精确恢复光标
+    // 复选项 → 普通行（取消复选框）：移除圆点元素，内容不变，文本偏移等价，可精确恢复光标
     const toPlainDiv = (li) => {
       const off = getCaretOffset(li);
       const div = document.createElement('div');
       div.innerHTML = li.innerHTML || '<br>';
+      div.querySelectorAll('.qc-box').forEach(x => x.remove());
+      if (div.innerHTML.trim() === '') div.innerHTML = '<br>';
       if (li.parentElement && li.parentElement.children.length === 1) li.parentElement.replaceWith(div);
       else li.replaceWith(div);
       setCaretOffset(div, off);
@@ -306,9 +323,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       // 2c) 编辑器直接文本/空内容 → 光标处插空复选行
       const ul = document.createElement('ul');
       ul.className = 'qc-checklist';
-      const li = document.createElement('li');
-      li.setAttribute('data-checked', 'false');
-      li.innerHTML = '<br>';
+      const li = buildLi(null, 'false');
       ul.appendChild(li);
       range.deleteContents();
       range.insertNode(ul);
@@ -361,16 +376,15 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     touch();
   }
 
-  // 编辑区内点击复选行左侧圆点区域 → 切换勾选态（data-checked 持久化在 HTML 里）
+  // 点击圆点元素本体 → 切换勾选态（真实元素命中，不再依赖坐标区间判定）
   function onEditorClick(e) {
-    const li = e.target?.closest?.('ul.qc-checklist > li');
+    const box = e.target?.closest?.('.qc-box');
+    if (!box) return;
+    const li = box.closest('ul.qc-checklist > li');
     if (!li) return;
-    const rect = li.getBoundingClientRect();
-    if (e.clientX - rect.left <= 28) {
-      e.preventDefault();
-      li.setAttribute('data-checked', li.getAttribute('data-checked') === 'true' ? 'false' : 'true');
-      touch();
-    }
+    e.preventDefault();
+    li.setAttribute('data-checked', li.getAttribute('data-checked') === 'true' ? 'false' : 'true');
+    touch();
   }
 
   // 手动保存：编辑态=更新，新建态=收录；都不清空编辑区，保持显示已保存内容
@@ -477,6 +491,52 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
       e.preventDefault();
       applyRedo();
+      return;
+    }
+    // 复选列表内回车：拦截浏览器克隆（会把 data-checked=true 传染给新行），
+    // 有内容 → 新增未勾选复选行；空行 → 跳出列表转普通行（飞书/Notion 同款行为）
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const sel = window.getSelection();
+      const li = sel?.anchorNode
+        ? (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode)?.closest?.('ul.qc-checklist > li')
+        : null;
+      if (!li) return;
+      e.preventDefault();
+      if (!li.textContent.trim()) {
+        // 空复选行回车 → 跳出列表
+        const ul = li.closest('ul.qc-checklist');
+        const div = document.createElement('div');
+        div.innerHTML = '<br>';
+        if (ul) {
+          if (ul.children.length === 1) ul.replaceWith(div);
+          else { li.remove(); ul.after(div); }
+        }
+        const r = document.createRange();
+        r.selectNodeContents(div);
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      } else {
+        // 有内容 → 续未勾选新行；光标后的内容拆到新行（中间回车语义，飞书/Notion 同款）
+        const r2 = document.createRange();
+        r2.setStart(sel.anchorNode, sel.anchorOffset);
+        r2.setEnd(li, li.childNodes.length);
+        const frag = r2.extractContents();
+        const t = document.createElement('div');
+        t.appendChild(frag);
+        t.querySelectorAll('.qc-box').forEach(x => x.remove());
+        if (!li.innerHTML.trim()) li.innerHTML = '<span class="qc-box" contenteditable="false"></span><br>';
+        const nl = document.createElement('li');
+        nl.setAttribute('data-checked', 'false');
+        nl.innerHTML = `<span class="qc-box" contenteditable="false"></span>${t.innerHTML.trim() || '<br>'}`;
+        li.after(nl);
+        const r = document.createRange();
+        r.setStart(nl, 1); // childNodes[0]=圆点(不可入)，1=文本起点
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
+      touch();
     }
   }
 

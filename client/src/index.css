@@ -1235,48 +1235,46 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .qc-editor ol { list-style: decimal; }
 .qc-editor b, .qc-editor strong { font-weight: 700; }
 
-/* 复选框列表（圆形勾选，与工作台事项勾选规范一致）：
- * 结构 ul.qc-checklist > li[data-checked="true|false"]，勾选态持久化在 HTML 属性里 */
-.qc-editor ul.qc-checklist { list-style: none !important; padding-left: 4px !important; margin: 4px 0; }
+/* 复选框列表 v2（飞书/Notion/ProseMirror task list 同构架构）：
+ * 圆点是真实行内元素 span.qc-box[contenteditable=false]，参与文档流，
+ * 由浏览器 normal-flow 行内对齐保证与文字垂直居中——不依赖任何
+ * 「锚点 vs 行高」的数学假设（伪元素绝对定位方案因此反复出错，已废弃）。
+ * 结构：ul.qc-checklist > li[data-checked] > span.qc-box + 文本 */
+.qc-editor ul.qc-checklist { list-style: none !important; padding-left: 0 !important; margin: 4px 0; }
 .qc-editor ul.qc-checklist li {
-  position: relative;
-  /* 显式锁定行高 1.5：编辑器行高继承 body 的 normal（中文字体≈1.8），
-   * 不锁的话 top:0.75em（按行高1.5推的首行中心）恒偏上约3px。
-   * 锁定后 0.75em=行高一半=首行文字中心，任何字号/继承环境下数学自洽（实测偏差0px） */
-  line-height: 1.5;
-  padding-left: 27px;
+  padding-left: 24px;
+  text-indent: -24px; /* 悬挂缩进：圆点悬挂行首，换行后文字与首行文字对齐 */
   margin: 3px 0;
-  cursor: pointer;
+  line-height: 1.5;
 }
-.qc-editor ul.qc-checklist li::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  /* 锚定首行文字中心（0.75em = 默认行高 1.5 的一半）：
-   * 不用 top:50% —— 那是相对整个 li 高度，li 有行框尾随空间/段后距时会相对首行偏上 */
-  top: 0.75em;
-  transform: translateY(-50%);
+.qc-editor ul.qc-checklist .qc-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;   /* 选中白勾在 15px 圆内由 flex 保证绝对居中 */
+  box-sizing: border-box;
   width: 15px;
   height: 15px;
+  text-indent: 0;            /* 逃离父级悬挂缩进 */
+  vertical-align: -0.5px;    /* 全方案唯一手调值：15px 圆 vs 16px 字视觉居中（实测偏差<0.2px） */
+  margin-right: 9px;
   border-radius: 9999px;
   border: 1.5px solid rgba(120, 120, 128, 0.38);
-  background: transparent;
+  cursor: pointer;
   transition: background .15s, border-color .15s;
+  -webkit-user-modify: read-only;
+  user-modify: read-only;
 }
-.qc-editor ul.qc-checklist li[data-checked="true"]::before {
+.qc-editor ul.qc-checklist li[data-checked="true"] .qc-box {
   background: var(--s-main, #007AFF);
   border-color: var(--s-main, #007AFF);
 }
-.qc-editor ul.qc-checklist li[data-checked="true"]::after {
+.qc-editor ul.qc-checklist li[data-checked="true"] .qc-box::after {
   content: '';
-  position: absolute;
-  left: 8.6px;
-  top: 0.75em;
   width: 4.4px;
   height: 8.2px;
   border-right: 1.8px solid #fff;
   border-bottom: 1.8px solid #fff;
-  transform: translateY(-62%) rotate(42deg);
+  transform: rotate(42deg) translateY(-0.5px);
 }
 .qc-editor ul.qc-checklist li[data-checked="true"] {
   color: var(--ink-400, #b0b0b6);

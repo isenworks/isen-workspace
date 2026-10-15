@@ -89,10 +89,17 @@ export function AuthProvider({ children }) {
           if (mounted) { setUser(null); setLoading(false); }
         }
       } catch (err) {
-        // 401 / 网络错误：清空登录态（避免死循环，下次进入登录）
-        writeCachedUser(null);
-        writeToken('');
-        if (mounted) { setUser(null); setLoading(false); }
+        // 网络/超时/5xx 等非认证错误：保留登录态（乐观恢复会话，飞书/Notion 同款策略）。
+        //   之前这里「catch 一切错误都清 token」是移动端频繁掉登录的根因：
+        //   弱网下 /auth/me 超时（fetchPages 抛 TypeError，无 status）被误判为认证失效，
+        //   手机每次弱网启动都被强制重新登录。真正的 token 失效由 client.js 统一处理
+        //   （401 → 清存储 + 广播 pw:auth-expired → 下方监听器置空用户），不会走到这里。
+        if (cached && cached.id) {
+          if (mounted) { setUser(cached); setLoading(false); }
+        } else {
+          // 本地连用户缓存都没有（极端情况）：token 保留，仅进登录页
+          if (mounted) { setUser(null); setLoading(false); }
+        }
       }
     })();
 

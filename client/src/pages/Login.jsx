@@ -50,6 +50,24 @@ const IconSpinner = ({ className = 'w-5 h-5' }) => (
   </svg>
 );
 
+/* ---------- 记住密码：本机 localStorage 自动填充 ----------
+   仅存 base64（防肩窥/直接明文可读，非加密——个人自托管应用的合理取舍，用户明确要求）。
+   登出时保留凭据，下次进登录页自动填充（微信/飞书网页版同款行为）。 */
+const REMEMBER_KEY = 'pw_remember_cred';
+function readRemember() {
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    if (!raw) return null;
+    return JSON.parse(decodeURIComponent(escape(atob(raw))));
+  } catch { return null; }
+}
+function persistRemember(save, mail, pwd) {
+  try {
+    if (save) localStorage.setItem(REMEMBER_KEY, btoa(unescape(encodeURIComponent(JSON.stringify({ email: mail, password: pwd })))));
+    else localStorage.removeItem(REMEMBER_KEY);
+  } catch (_) {}
+}
+
 /* ---------- 字段级输入组件：标签 + 图标前缀 + 后缀按钮（如密码眼睛）+ 错误态 ---------- */
 function Field({
   id,
@@ -121,9 +139,11 @@ function Field({
 
 export default function Login() {
   const { login, register } = useAuth();
+  const savedCred = readRemember(); // 仅初始化读一次
   const [mode, setMode] = useState('login');          // login / register / bootstrap
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(savedCred?.email || '');
+  const [password, setPassword] = useState(savedCred?.password || '');
+  const [remember, setRemember] = useState(!!savedCred);
   const [username, setUsername] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [bootstrapCode, setBootstrapCode] = useState('');
@@ -218,6 +238,8 @@ export default function Login() {
     try {
       if (mode === 'login') {
         await login(email.trim().toLowerCase(), password);
+        // 登录成功后按勾选状态记住/清除凭据（失败走 catch 不会到这里）
+        persistRemember(remember, email.trim().toLowerCase(), password);
         return;
       }
       if (mode === 'register') {
@@ -409,6 +431,18 @@ export default function Login() {
                     </button>
                   }
                 />
+
+                {mode === 'login' && (
+                  <label className="flex w-fit cursor-pointer select-none items-center gap-2 text-[13px] text-ink-600">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={e => setRemember(e.target.checked)}
+                      className="h-4 w-4 cursor-pointer accent-brand-500"
+                    />
+                    记住密码，下次自动填充
+                  </label>
+                )}
 
                 {mode === 'register' && (
                   <>

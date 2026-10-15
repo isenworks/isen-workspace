@@ -134,9 +134,10 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         }
       }
     } else if (patch.type === 'reload') {
+      // 不调 onChange（refreshKey++）：reload 广播源（自动同步/保存后刷新）都会同时 refresh()，
+      // 这里再叠加会让本轮数据被拉两遍、面板连闪两次（"数据跳动"放大器）
       cacheClear(cacheRef, 'kt:');
       load();
-      onChange?.();
     }
   }), []);
 

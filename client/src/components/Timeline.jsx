@@ -258,10 +258,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     } else if (patch.type === 'task' && patch.id !== undefined) {
       // 兼容：旧版待办 patch（功能已下线），仅忽略
     } else if (patch.type === 'reload') {
+      // 不调 onChange（refreshKey++）：reload 广播源都会同时 refresh()，叠加会让本轮数据被拉两遍
       cacheClear(cacheRef, 'tl:');
       load();
       loadFixed();
-      onChange?.();
     }
   }), []);
 

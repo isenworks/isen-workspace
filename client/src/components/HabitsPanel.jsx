@@ -122,9 +122,9 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
       // 其他面板（时间线）勾选习惯时同步清掉本面板缓存快照，防止 TTL 内 load() 旧值回退
       cacheClear(cacheRef, 'hp:');
     } else if (patch.type === 'reload') {
+      // 不调 onChange（refreshKey++）：reload 广播源都会同时 refresh()，叠加会让本轮数据被拉两遍
       cacheClear(cacheRef, 'hp:');
       load();
-      onChange?.();
     }
   }), []);
 

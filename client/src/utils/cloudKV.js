@@ -156,6 +156,7 @@ async function doPush(key, valueStr, attempt) {
     if (!res.ok) throw new Error(`http ${res.status}`);
     const data = await res.json().catch(() => null);
     if (data?.version != null) localVersion.set(key, data.version); // 记录新版本号
+    advanceLocal(key, String(valueStr == null ? '' : valueStr)); // 推送成功：云端=该值，基准推进（防全量同步重放误报）
     emit('synced', key);
   } catch {
     emit('error', key);
@@ -199,6 +200,7 @@ async function doMergePush(key, partial, attempt) {
     if (!res.ok) throw new Error(`http ${res.status}`);
     const data = await res.json().catch(() => null);
     if (data?.version != null) localVersion.set(key, data.version);
+    advanceLocal(key, null); // 合并推送成功：服务器端合并后的最终值不可知，基准回落到同名 localStorage 读取
     emit('synced', key);
   } catch {
     emit('error', key);
@@ -238,9 +240,19 @@ export async function cloudMergePull(key) {
 }
 
 /* ---- 手动全量同步（同步按钮 / Ctrl+S）：先冲刷待推送（跳过防抖），再拉云端覆盖 ----
- * 拉取注册表：syncKey 挂载时登记各 key 的 onCloud（各自负责写 localStorage 并应用），
- * 手动同步时重放拉取比较，云端较新则覆盖本地 → 不刷新页面也能拿到其他设备的更新 */
-const pullRegistry = new Map();
+ * 拉取注册表：syncKey 挂载时登记各 key 的 onCloud（各自负责写 localStorage 并应用）+
+ * local 基准值（调用方声明的"当前本地值"）。
+ * 为什么比较用登记的基准而不是 localStorage.getItem(key)：
+ *   部分调用方的本地镜像 key 与云端 key 不同名（导航标题 nav_labels→nav_labels_ls、
+ *   总结模板、知识库等），同名读取永远得到 null → 每轮全量同步都误判"云端有更新"
+ *   → emit pulled → 上层监听者再次触发同步 → 死循环（页面数据反复跳动）。
+ * 基准推进时机：拉取应用后（local=cloud）、推送成功后（local=推送值）、
+ * 合并推送成功后（local 置 null，回落到同名 localStorage 读取——合并后的本地最终值不可知） */
+const pullRegistry = new Map(); // key → { onCloud, local }
+function advanceLocal(key, value) {
+  const reg = pullRegistry.get(key);
+  if (reg) reg.local = value;
+}
 export async function syncCloudNow() {
   // 1. 立即冲刷所有待推送（push + merge 两类，必须先于拉取，避免把云端旧值拉回来覆盖本地新值）
   const pushEntries = [...pushTimers.entries()];
@@ -251,14 +263,16 @@ export async function syncCloudNow() {
     ...pushEntries.map(([key, p]) => doPush(key, p.value, 0)),
     ...mergeEntries.map(([key, m]) => doMergePush(key, m.partial, 0)),
   ]);
-  // 2. 拉云端：与本地一致则无动作；云端较新 → onCloud 覆盖应用；拉取失败（PULL_FAILED 哨兵）跳过且不覆盖本地
+  // 2. 拉云端：与本地基准一致则无动作；云端较新 → onCloud 覆盖应用；拉取失败（PULL_FAILED 哨兵）跳过且不覆盖本地
   const targets = [...pullRegistry.entries()];
-  await Promise.all(targets.map(async ([key, onCloud]) => {
+  await Promise.all(targets.map(async ([key, reg]) => {
     const cloud = await cloudPull(key);
     if (cloud == null || cloud === PULL_FAILED) return;
-    const local = (() => { try { return localStorage.getItem(key); } catch { return null; } })();
+    const local = reg.local != null
+      ? reg.local
+      : (() => { try { return localStorage.getItem(key); } catch { return null; } })();
     if (cloud !== local) {
-      try { onCloud?.(cloud); emit('pulled', key); } catch {}
+      try { reg.onCloud?.(cloud); advanceLocal(key, cloud); emit('pulled', key); } catch {}
     }
   }));
 }
@@ -269,7 +283,7 @@ export async function syncCloudNow() {
  * 失败语义（关键）：拉取失败 ≠ 云端无值。失败时不推送本地 —— 防止弱网下用陈旧/空
  * 本地值覆盖云端好数据；广播 error 事件（侧边栏指示器变红），3s/10s 指数退避共重试 2 次 */
 export async function syncKey(key, localValueStr, onCloud, attempt = 0) {
-  if (onCloud) pullRegistry.set(key, onCloud); // 登记以便手动同步时重放拉取
+  if (onCloud) pullRegistry.set(key, { onCloud, local: localValueStr }); // 登记以便手动同步时重放拉取
   const cloud = await cloudPull(key);
   if (cloud === PULL_FAILED) {
     emit('error', key);
@@ -282,6 +296,7 @@ export async function syncKey(key, localValueStr, onCloud, attempt = 0) {
   }
   if (cloud != null && cloud !== localValueStr) {
     onCloud?.(cloud);
+    advanceLocal(key, cloud); // 基准推进：否则全量同步重放时对同一值再次误报"有更新"
     emit('pulled', key); // 云端较新已覆盖本地（多设备拉新）
     return 'cloud';
   }

@@ -197,12 +197,19 @@ export default function Workspace({ user: propUser }) {
     return () => clearInterval(timer);
   }, [doAutoSync]);
 
-  // 云端 KV 拉取完成（跨设备数据落到本地）→ 立即全局重读，令日历/知识库等同步展示
+  // 云端 KV 拉取完成（跨设备数据落到本地）→ 全局重读一次，令各视图同步展示。
+  // 注意：绝不能再走 doAutoSync —— doAutoSync 内部会 syncCloudNow，而 syncCloudNow 又可能
+  // emit pulled → 再次 doAutoSync → 死循环（页面三卡每秒重拉、数据反复跳动的根源之一）。
+  // 拉取完成本身已说明数据到手，这里只需让面板重读：refreshKey 重拉 API + reload 广播重读 localStorage。
   useEffect(() => {
-    const onCloud = (e) => { if (e.detail?.status === 'pulled') doAutoSync(true); };
+    const onCloud = (e) => {
+      if (e.detail?.status !== 'pulled') return;
+      refresh();
+      store.broadcast({ type: 'reload' });
+    };
     window.addEventListener('cloudkv', onCloud);
     return () => window.removeEventListener('cloudkv', onCloud);
-  }, [doAutoSync]);
+  }, [refresh]);
 
   // ===== 收集箱待分派计数：挂载 + 全局刷新（refreshKey）时同步 =====
   const [inboxTags, setInboxTags] = useState([]);

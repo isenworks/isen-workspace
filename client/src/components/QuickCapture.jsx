@@ -81,6 +81,22 @@ function selectedBlocks(root, range) {
   return blocks;
 }
 
+// 相邻复选列表归一化：转换/撤销操作可能产生紧邻的碎片 ul（如「取消复选框→再设置」
+// 会生成一个单项 ul 贴在原列表下方），导致同一批事项被拆开、列表间出现多余间隙。
+// 每个复选列表向后吞并紧随其后的同类列表，保证一段连续复选项永远在同一个 ul 里。
+function normalizeChecklistsIn(root) {
+  if (!root) return;
+  root.querySelectorAll('ul.qc-checklist').forEach(ul => {
+    let next = ul.nextElementSibling;
+    while (next && next.classList?.contains('qc-checklist')) {
+      const dead = next;
+      next = next.nextElementSibling;
+      while (dead.firstChild) ul.appendChild(dead.firstChild);
+      dead.remove();
+    }
+  });
+}
+
 export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageTags, autoFocus = true, placeholder, bare, edit, tags }) {
   const toast = useToast();
   const editorRef = useRef(null);
@@ -106,6 +122,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
   useEffect(() => {
     if (editorRef.current) {
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
+      normalizeChecklistsIn(editorRef.current); // 修复历史数据里已存在的碎片复选列表
     }
     draftRef.current = { content: '', plain: '' };
     undoStack.current = [{ html: editorRef.current?.innerHTML || '', caret: 0 }];
@@ -267,8 +284,10 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         nu.className = 'qc-checklist';
         nu.innerHTML = list.innerHTML;
         nu.querySelectorAll('li').forEach(x => x.setAttribute('data-checked', 'false'));
+        const focusEl = nu.children[idx] || nu.querySelector('li');
         list.replaceWith(nu);
-        focusLi(nu.children[idx] || nu.querySelector('li'), false);
+        normalizeChecklistsIn(ed); // 新列表若紧邻其他复选列表则并入，光标项引用仍有效
+        focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
         touch();
         return;
       }
@@ -277,8 +296,10 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         const ul = document.createElement('ul');
         ul.className = 'qc-checklist';
         ul.appendChild(buildLi(block));
+        const focusEl = ul.firstChild;
         block.replaceWith(ul);
-        focusLi(ul.querySelector('li'), false);
+        normalizeChecklistsIn(ed); // 紧邻上方复选列表时并入同一个 ul（保证对齐）
+        focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
         touch();
         return;
       }
@@ -291,7 +312,8 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       ul.appendChild(li);
       range.deleteContents();
       range.insertNode(ul);
-      focusLi(li, true);
+      normalizeChecklistsIn(ed);
+      focusLi(li?.isConnected ? li : null, true);
       touch();
       return;
     }
@@ -306,8 +328,10 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         const ul = document.createElement('ul');
         ul.className = 'qc-checklist';
         ul.appendChild(buildLi(block));
+        const focusEl = ul.firstChild;
         block.replaceWith(ul);
-        focusLi(ul.querySelector('li'), false);
+        normalizeChecklistsIn(ed);
+        focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
       }
       touch();
       return;
@@ -329,9 +353,11 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     });
     // 新列表插到选区起点之前；起点在原列表内时插到整个列表之前，避免嵌套
     const anchor = /^(UL|OL)$/.test(blocks[0].parentElement?.tagName || '') ? blocks[0].parentElement : blocks[0];
+    const focusEl = ul.querySelector('li:last-of-type');
     anchor.before(ul);
     blocks.forEach(b => b.remove());
-    focusLi(ul.querySelector('li:last-of-type'), false);
+    normalizeChecklistsIn(ed);
+    focusLi(focusEl?.isConnected ? focusEl : ed.querySelector('ul.qc-checklist > li:last-of-type'), false);
     touch();
   }
 

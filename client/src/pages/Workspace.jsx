@@ -8,6 +8,7 @@ import WeekCalendar from '../components/WeekCalendar.jsx';
 import KeyTasks from '../components/KeyTasks.jsx';
 import HabitsPanel from '../components/HabitsPanel.jsx';
 import Timeline from '../components/Timeline.jsx';
+import ScheduleContextMenu from '../components/ScheduleContextMenu.jsx';
 import Modal from '../components/Modal.jsx';
 import HabitForm from '../components/forms/HabitForm.jsx';
 import BookForm from '../components/forms/BookForm.jsx';
@@ -119,14 +120,12 @@ export default function Workspace({ user: propUser }) {
   // ===== 今日计划左右分栏拖拽比例（与收集箱同款交互，独立记忆） =====
   const { leftStyle, rightStyle, bindRoot, bindDivider } = useSplitRatio('plan_split_ratio');
 
-  // ===== 右键上下文菜单 =====
-  const [ctxMenu, setCtxMenu] = useState(null); // {x, y, type, id}
+  // ===== 右键上下文菜单（UI 与关闭逻辑在共享组件 ScheduleContextMenu 内）=====
+  const [ctxMenu, setCtxMenu] = useState(null); // {x, y, type, id, task}
   const [confirm, setConfirm] = useState(null); // {title, msg, okText, okColor, onOk, onCancel}
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archivedHabits, setArchivedHabits] = useState([]);
 
-  const ctxRef = useRef(null);
-  const ctxMenuShownAt = useRef(0);
   const lastSyncRef = useRef(0); // 0 = 尚未同步过：首帧同步不被 15s 防抖拦截
 
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
@@ -361,39 +360,12 @@ export default function Workspace({ user: propUser }) {
 
   // ===== 跨组件动作（替代原 window.__* 全局函数）：通过 Context 注入给子组件 =====
   const showContextMenu = useCallback((x, y, type, id, task) => {
-    // 定位钳制：菜单约 160×200，触碰/长按在屏幕右缘或下缘时回收进视口，避免被裁掉
-    const CW = 168, CH = 208, PAD = 8;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const px = Math.max(PAD, Math.min(x, vw - CW - PAD));
-    const py = Math.max(PAD, Math.min(y, vh - CH - PAD));
-    ctxMenuShownAt.current = Date.now();
-    setCtxMenu({ x: px, y: py, type, id, task });
+    setCtxMenu({ x, y, type, id, task }); // 定位钳制/关闭监听由 ScheduleContextMenu 组件统一处理
   }, []);
   const openHabitModal = useCallback((habit) => {
     setModal(habit ? { type: 'habit', data: habit } : { type: 'habit', data: null });
   }, []);
   const openArchive = useCallback(() => setArchiveOpen(true), []);
-
-  // 监听全局点击/滚动/按ESC，关闭上下文菜单
-  useEffect(() => {
-    function onDocMouseDown(e) {
-      if (!ctxMenu) return;
-      // 右键触发的 300ms 内的点击（同一次手势的 click/mouseup），忽略
-      if (Date.now() - ctxMenuShownAt.current < 350) return;
-      const el = ctxRef.current;
-      if (!el || !el.contains(e.target)) setCtxMenu(null);
-    }
-    function onDocScroll() { ctxMenu && setCtxMenu(null); }
-    function onDocKey(e) { if (e.key === 'Escape') setCtxMenu(null); }
-    document.addEventListener('mousedown', onDocMouseDown);
-    document.addEventListener('scroll', onDocScroll, true);
-    document.addEventListener('keydown', onDocKey);
-    return () => {
-      document.removeEventListener('mousedown', onDocMouseDown);
-      document.removeEventListener('scroll', onDocScroll, true);
-      document.removeEventListener('keydown', onDocKey);
-    };
-  }, [ctxMenu]);
 
   // 加载归档习惯
   const loadArchived = useCallback(async () => {
@@ -888,79 +860,12 @@ export default function Workspace({ user: propUser }) {
         </Suspense>
       </Modal>
 
-      {/* ===== 右键上下文菜单 ===== */}
-      {ctxMenu && (
-        <div
-          ref={ctxRef}
-          style={{
-            position: 'fixed',
-            left: ctxMenu.x,
-            top: ctxMenu.y,
-            zIndex: 'var(--z-popover)',
-            background: 'var(--surface-card)',
-            borderRadius: '10px',
-            padding: '6px',
-            minWidth: '140px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',
-            border: '1px solid rgba(0,0,0,0.06)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div
-            style={{
-              padding: '8px 12px',
-              fontSize: '13px',
-              color: 'var(--text-1)',
-              cursor: 'pointer',
-              borderRadius: '6px'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--s-rgb),0.08)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            onClick={() => handleCtxAction('edit')}
-          >✏️ 编辑</div>
-          {ctxMenu.type === 'schedule' && ctxMenu.task && (
-            <div
-              style={{
-                padding: '8px 12px',
-                fontSize: '13px',
-                color: ctxMenu.task.is_failed ? 'var(--s-main)' : 'var(--text-1)',
-                cursor: 'pointer',
-                borderRadius: '6px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.08)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              onClick={() => handleCtxAction('markFailed')}
-            >{ctxMenu.task.is_failed ? '↩ 取消未完成' : '✕ 标记未完成'}</div>
-          )}
-          {ctxMenu.type === 'schedule' && (
-            <div
-              style={{
-                padding: '8px 12px',
-                fontSize: '13px',
-                color: 'var(--text-1)',
-                cursor: 'pointer',
-                borderRadius: '6px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(120,120,128,0.08)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              onClick={() => handleCtxAction('moveToInbox')}
-            >📝 移入小记</div>
-          )}
-          <div style={{ height: '1px', background: 'var(--ink-100)', margin: '4px 2px' }}></div>
-          <div
-            style={{
-              padding: '8px 12px',
-              fontSize: '13px',
-              color: 'var(--danger)',
-              cursor: 'pointer',
-              borderRadius: '6px'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,59,48,0.08)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            onClick={() => handleCtxAction('delete')}
-          >{ctxMenu.type === 'habit' ? '📁 归档' : '🗑️ 删除'}</div>
-        </div>
-      )}
+      {/* ===== 右键上下文菜单（共享组件：与日历页月历格子同款） ===== */}
+      <ScheduleContextMenu
+        menu={ctxMenu}
+        onAction={handleCtxAction}
+        onClose={() => setCtxMenu(null)}
+      />
 
       {/* ===== 二次确认弹窗 ===== */}
       {confirm && (

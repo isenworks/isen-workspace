@@ -4,6 +4,8 @@ import { MODULES, keyToModule, catToModule } from '../utils/categoryMapping.js';
 import MonthCalendarGrid from '../components/calendar/MonthCalendarGrid.jsx';
 import FocusPanel from '../components/calendar/FocusPanel.jsx';
 import Modal from '../components/Modal.jsx';
+import ScheduleContextMenu from '../components/ScheduleContextMenu.jsx';
+import { useToast } from '../context/ToastContext.jsx';
 import { API } from '../api/client.js';
 import { store } from '../utils/store.js';
 /* ===== 需求 1-7：从年度规划 AnnualPlan 聚合同源数据 =====
@@ -602,6 +604,11 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
 
   // 需求 4：当日详情弹层 Modal —— 点击日格空白/日期/今日/热力点/+更多 打开
   const [dayDetail, setDayDetail] = useState(null); // { date } | null
+
+  // 月历格子事件行右键菜单（与主页同款，共享 ScheduleContextMenu 组件）
+  const [evCtxMenu, setEvCtxMenu] = useState(null); // { x, y, ev, date } | null
+  const [evDeleteConfirm, setEvDeleteConfirm] = useState(null); // 待删除的事件对象 | null
+  const toast = useToast();
 
   /* ====== 需求 6：ethan_schedules 只进日历右栏，不进主线面板 ====== */
   // 计划总结 API 拉取的日程 → 只用于日历右栏事件显示
@@ -1367,6 +1374,68 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
     );
   }, [onEditSchedule]);
 
+  /* === 月历格子右键菜单动作（与主页 handleCtxAction 同款语义，适配本页数据源） ===
+     · edit        → 复用 handleEventClick 的编辑面板路由（真实日程→ScheduleForm，合成→专用面板）
+     · markFailed  → 有关联主线任务走 markFailedTask（乐观+落库+广播）；无关联的真实日程直接落库
+     · moveToInbox → 事项标题建小记（自动带"待办"标签）→ 删除原事项（复用 deleteTask：真实记录
+                     落库+广播驱动三处状态同步、合成任务入本地回收站）
+     · delete      → 二次确认（与主页删除文案一致）→ deleteTask */
+  const handleEvCtxAction = useCallback(async (action) => {
+    const m = evCtxMenu;
+    if (!m?.ev) return;
+    const { ev, date } = m;
+    setEvCtxMenu(null);
+
+    if (action === 'edit') {
+      handleEventClick(ev, date);
+      return;
+    }
+
+    if (action === 'markFailed') {
+      // 有关联主线任务：复用 markFailedTask（含 API 落库 / 广播 / 失败回滚）
+      if (ev.taskId) { markFailedTask(ev.taskId, true); return; }
+      // 无关联但真实 API 记录：直接落库（语义与主页一致：标记未完成时清完成态）
+      const isReal = ev.__origin === 'api' || (ev.id != null && /^\d+$/.test(String(ev.id)));
+      if (!isReal) return; // 合成事件无后端载体，仅忽略
+      const nextFailed = !ev.is_failed;
+      setApiSchedules(prev => prev.map(s =>
+        String(s.id) === String(ev.id) ? { ...s, is_done: false, is_failed: nextFailed } : s));
+      setTick(v => v + 1);
+      try {
+        const r = await API.schedules.update(ev.id, {
+          is_done: false, is_failed: nextFailed,
+          ...(ev._repeat_occurrence ? { occurrence_date: ev.date } : {}),
+        });
+        const saved = r?.schedule;
+        if (saved) store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
+      } catch (e) {
+        setApiSchedules(prev => prev.map(s =>
+          String(s.id) === String(ev.id) ? { ...s, is_done: ev.is_done, is_failed: ev.is_failed } : s));
+        setTick(v => v + 1);
+        toast.error(e.message);
+      }
+      return;
+    }
+
+    if (action === 'moveToInbox') {
+      const title = String(ev.title || '').trim();
+      if (!title) { toast.error('事项标题为空，无法移入小记'); return; }
+      try {
+        const r = await API.inbox.tags();
+        const todoTag = (r.tags || []).find(t => t.name === '待办');
+        await API.inbox.create({ content: `<p>${title}</p>`, tag_id: todoTag ? todoTag.id : null });
+        // 小记创建成功后删除原事项（真实记录落库+广播 / 合成任务本地回收站）
+        deleteTask({ ...ev, id: ev.taskId ?? ev.id }, { isMonth: true });
+        toast.success(todoTag ? '已移入小记（待办）' : '已移入小记');
+      } catch (e) { toast.error(e.message || '移入小记失败'); }
+      return;
+    }
+
+    if (action === 'delete') {
+      setEvDeleteConfirm(ev);
+    }
+  }, [evCtxMenu, handleEventClick, markFailedTask, deleteTask, toast]);
+
   const weekStart = startOfWeek(todayISO);
   const weekEnd = endOfWeek(todayISO);
   // 两种形态：M.D 用于标题展示（9.14-9.20）；ISO 用于与 todayISO 做区间比较（onAdd 默认日期）
@@ -1556,6 +1625,7 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               onEventToggle={handleEventToggle}
               onEventClick={handleEventClick}
               onCellOpenDay={(date) => setDayDetail({ date })}
+              onEventContextMenu={(ev, date, x, y) => setEvCtxMenu({ x, y, ev, date })}
             />
 
             {/* 图例栏：手机端 9px + 7px 色点 + nowrap，四模块图例与「今日/选中」同一行；桌面端不变 */}
@@ -1652,6 +1722,45 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
               />
             )}
           </div>
+        </Modal>
+      )}
+
+      {/* ===== 月历格子事件右键菜单（共享组件：与主页同款） ===== */}
+      <ScheduleContextMenu
+        menu={evCtxMenu ? { x: evCtxMenu.x, y: evCtxMenu.y, type: 'schedule', task: evCtxMenu.ev } : null}
+        onAction={handleEvCtxAction}
+        onClose={() => setEvCtxMenu(null)}
+      />
+
+      {/* ===== 月历格子删除二次确认（与主页删除文案一致） ===== */}
+      {evDeleteConfirm && (
+        <Modal
+          open
+          onClose={() => setEvDeleteConfirm(null)}
+          title="删除确认"
+          maxWidth={360}
+          footer={
+            <>
+              <button
+                onClick={() => setEvDeleteConfirm(null)}
+                className="px-4 py-2 rounded-lg text-[14px] font-medium transition"
+                style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--text-1)' }}
+              >取消</button>
+              <button
+                onClick={() => {
+                  const ev = evDeleteConfirm;
+                  setEvDeleteConfirm(null);
+                  deleteTask({ ...ev, id: ev.taskId ?? ev.id }, { isMonth: true });
+                }}
+                className="px-4 py-2 rounded-lg text-[14px] font-semibold text-white transition"
+                style={{ background: 'var(--danger)' }}
+              >确认删除</button>
+            </>
+          }
+        >
+          <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-1)' }}>
+            删除后移入回收站，可恢复，确定删除该日程吗？
+          </p>
         </Modal>
       )}
     </div>

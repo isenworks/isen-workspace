@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { calendarGrid, toISODate, today as getToday, fromISODate, startOfWeek, endOfWeek } from '../../utils/date.js';
 import { WEEK_LABELS_MON, scheduleModule } from '../../utils/categoryMapping.js';
 import { useMediaQuery } from '../../utils/useMediaQuery.js';
+import { useLongPress } from '../useLongPress.js';
 import lunarLib from '../../vendor/lunar.js';
 
 /* 每格农历标注：优先级 节日 > 节气 > 农历日（初一显示农历月名）
@@ -47,6 +48,7 @@ function lunarBadge(iso) {
  * @param {Function} props.onEventToggle - (event, date) 复选框勾选 —— 仅复选框触发
  * @param {Function} props.onEventClick  - (event, date) 标题点击 —— 打开编辑面板
  * @param {Function} props.onCellOpenDay  - (date, { source }) 日格"非事项交互区"点击 —— 开当日事项面板
+ * @param {Function} props.onEventContextMenu - (event, date, x, y) 事项行右键/长按 —— 打开上下文菜单（与主页同款）
  */
 export default function MonthCalendarGrid({
   year,
@@ -59,8 +61,10 @@ export default function MonthCalendarGrid({
   onEventToggle,
   onEventClick,
   onCellOpenDay,
+  onEventContextMenu,
 }) {
   const todayISO = getToday();
+  const lp = useLongPress(); // 触摸端长按 → 替代右键（与主页 KeyTasks 同款手势）
   // 手机紧凑模式（<640px）：7 列格子每列仅 ~48px，完整事项行（复选框+换行标题）
   // 会被挤成一列一个字的"竖排"并撑爆格子 —— 切换为 iOS/Google 日历式紧凑条：
   // 色点 + 单行省略标题（无复选框，勾选去当日面板做），每格最多 2 条 + "+N"
@@ -307,6 +311,12 @@ export default function MonthCalendarGrid({
                           e.stopPropagation();
                           onEventClick?.(ev, date);
                         }}
+                        {...lp.bind((pos) => onEventContextMenu?.(ev, date, pos.clientX, pos.clientY))}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onEventContextMenu?.(ev, date, e.clientX, e.clientY);
+                        }}
                       >
                         {failed && (
                           <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="flex-shrink-0 mr-[2px]">
@@ -342,6 +352,13 @@ export default function MonthCalendarGrid({
                         // 整行（除复选框外）点击 = 编辑该事项；阻止冒泡避免开 day-detail 面板
                         e.stopPropagation();
                         onEventClick?.(ev, date);
+                      }}
+                      /* 右键/长按 = 上下文菜单（与主页同款）：阻止冒泡避免触发日格的当日面板 */
+                      {...lp.bind((pos) => onEventContextMenu?.(ev, date, pos.clientX, pos.clientY))}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onEventContextMenu?.(ev, date, e.clientX, e.clientY);
                       }}
                     >
                       {/* 复选框：独立 stopPropagation，只点它才 toggle 勾选，不触发编辑 / 不触发 day-detail */}

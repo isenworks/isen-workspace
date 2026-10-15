@@ -511,7 +511,9 @@ export default function KnowledgeBasePage() {
               </button>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5">
+            {/* 列表容器 px-1：知识库卡片背景块（active/hover 底色）左右缘与页头色条左缘对齐
+                （色条 left = p-3(12) + px-1(4) = 16px，此前列表无 px 背景块凸出色条 4px） */}
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0.5 px-1">
               {books.map(b => {
                 const active = b.id === activeKbId;
                 const stat = bookStats.get(b.id) || { count: 0, updatedAt: 0 };

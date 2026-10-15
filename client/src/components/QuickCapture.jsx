@@ -206,9 +206,10 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
 
   // ===== 复选框列表（ul.qc-checklist > li[data-checked]） =====
   // 全部纯 DOM 操作（execCommand('insertHTML') 会被浏览器清洗掉 class/data 属性，
-  // 导致复选样式退化为普通列表）。交互语义（与 Notion/飞书一致）：
-  //  · 光标在复选列表内 → 续一行
-  //  · 光标在某行内（无选区）→ 整行转复选项（内容与行内格式保留）
+  // 导致复选样式退化为普通列表）。按钮为 toggle 语义（同 B/I）：
+  //  · 光标行是复选项 → 取消复选框，转回普通行（光标原位保留）
+  //  · 选区全是复选项 → 全部取消
+  //  · 光标在普通行内 → 整行转复选项（内容与行内格式保留）
   //  · 光标在普通列表内 → 整个列表转复选列表
   //  · 选中文字 → 选区覆盖的每一块各自转为一个复选项（一行一个圆点）
   //  · 空编辑器/无块上下文 → 插入空复选行
@@ -229,24 +230,30 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       sel.addRange(r);
     };
 
-    // 1) 已在复选列表内 → 续一行
-    const curLi = nodeToEl(range.startContainer)?.closest?.('ul.qc-checklist > li');
-    if (curLi) {
-      const nl = document.createElement('li');
-      nl.setAttribute('data-checked', 'false');
-      nl.innerHTML = '<br>';
-      curLi.after(nl);
-      focusLi(nl, true);
-      touch();
-      return;
-    }
-
     const buildLi = (srcEl, checked) => {
       const li = document.createElement('li');
       li.setAttribute('data-checked', checked || 'false');
       li.innerHTML = srcEl?.innerHTML?.trim() ? srcEl.innerHTML : '<br>';
       return li;
     };
+    // 复选项 → 普通行（取消复选框）：内容不变，文本偏移等价，可精确恢复光标
+    const toPlainDiv = (li) => {
+      const off = getCaretOffset(li);
+      const div = document.createElement('div');
+      div.innerHTML = li.innerHTML || '<br>';
+      if (li.parentElement && li.parentElement.children.length === 1) li.parentElement.replaceWith(div);
+      else li.replaceWith(div);
+      setCaretOffset(div, off);
+      return div;
+    };
+
+    // 1) 光标在复选项内 → toggle 取消：该行转回普通行
+    const curLi = nodeToEl(range.startContainer)?.closest?.('ul.qc-checklist > li');
+    if (curLi) {
+      toPlainDiv(curLi);
+      touch();
+      return;
+    }
 
     // 2) 光标折叠：整行/整列表转换
     if (range.collapsed) {
@@ -289,7 +296,7 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       return;
     }
 
-    // 3) 有选区：选区覆盖的每一块各自转为一个复选项（保留勾选态与行内格式）
+    // 3) 有选区
     const blocks = selectedBlocks(ed, range);
     if (blocks.length === 0) {
       // 选区未覆盖任何块（同块内部分文字）：整块转
@@ -305,6 +312,15 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       touch();
       return;
     }
+    // 3a) 选区全部是复选项 → 全部取消复选框
+    if (blocks.every(b => b.closest('ul.qc-checklist'))) {
+      let lastDiv = null;
+      blocks.forEach(b => { lastDiv = toPlainDiv(b); });
+      if (lastDiv) focusLi(lastDiv, false);
+      touch();
+      return;
+    }
+    // 3b) 转复选：每一块一个复选项（保留原勾选态与行内格式）
     const ul = document.createElement('ul');
     ul.className = 'qc-checklist';
     blocks.forEach(b => {

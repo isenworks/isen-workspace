@@ -372,13 +372,16 @@ export default function InboxPage({ onCountChange }) {
     );
 
     // 元信息行：内容优先 = [chips] … [日期右端]；时间优先 = [日期] [chips]（日志流）
+    // 日期右缘对齐 ⋮ 墨迹右缘的推导：date 右缘 = 行宽R - 28(菜单列占位14+gap6+左列缩进8…) + m，
+    // ⋮ 墨迹右缘 = R - 8.875（svg 盒内收 4.5px + 圆点半径内收 1.125px + 按钮外溢 2px），
+    // 解得 m = 19.125 → -mr-[19.1px]。行结构改动时此值需重算。
     const metaLine = timeFirst ? (
       <div className="flex items-center gap-2 min-w-0">
         {dateEl}
         {chips}
       </div>
     ) : (
-      <div className="flex items-center gap-1.5 min-w-0 -mr-[25.5px] mt-1">
+      <div className="flex items-center gap-1.5 min-w-0 -mr-[19.1px] mt-1">
         {chips}
         <span className="flex-1 min-w-0" />
         {dateEl}

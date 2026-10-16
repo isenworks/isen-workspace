@@ -389,13 +389,13 @@ export default function InboxPage({ onCountChange }) {
       <div
         key={item.id}
         onClick={() => !menuFor && setSelectedId(item.id)}
-        className={`relative block -mx-2.5 py-2 pr-[18px] rounded-xl transition-all cursor-pointer group ${timeFirst ? 'pl-[34px]' : 'pl-[18px]'} ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+        className={`relative block mx-1.5 py-2 px-2 rounded-xl transition-all cursor-pointer group ${timeFirst ? 'pl-6' : ''} ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
         {/* 时间优先排版：行首蓝色圆点（轴线由组容器 .inx-axis 贯穿） */}
         {timeFirst && (
           <span
-            className="absolute left-[17px] top-[14px] w-[8px] h-[8px] rounded-full transition-colors"
+            className="absolute left-[7px] top-[14px] w-[8px] h-[8px] rounded-full transition-colors"
             style={{
               background: isSelected ? 'var(--s-main)' : 'rgba(var(--s-rgb),0.40)',
               boxShadow: '0 0 0 3px var(--surface-card)',

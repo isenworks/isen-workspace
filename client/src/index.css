@@ -1423,7 +1423,7 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   content: '';
   position: absolute;
   left: 20.5px;          /* 圆点中心 x = 卡片 p-2.5(10) + 行 pl-6(24) 内圆点中心(11) = 21 */
-  top: 44px;             /* 组头(≈26px) + 行 py-2(8) + 元信息行半高(10) */
+  top: 43px;             /* 组头(≈25px) + 行 py-2(8) + 元信息行半高(10) */
   bottom: 10px;
   width: 1.5px;
   border-radius: 2px;

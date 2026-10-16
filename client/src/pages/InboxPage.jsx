@@ -25,13 +25,13 @@ function parseDbTime(s) {
   return isNaN(d) ? null : d;
 }
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-/* ===== 列表行时间（元信息行日期锚点）：只显示「日 周X」=====
+/* ===== 列表行时间（元信息行日期锚点）：「M.DD 周X」（如 10.16 周五）=====
    月份由组头给出（往年组头带年份），行内保持短小；完整时间（含年月日时分）
    仍可通过 hover 提示查看（fmtTooltip → fmtFull）。 */
 function fmtDay(s) {
   const d = parseDbTime(s);
   if (!d) return '';
-  return `${d.getDate()} ${WEEKDAYS[d.getDay()]}`;
+  return `${d.getMonth() + 1}.${pad2(d.getDate())} ${WEEKDAYS[d.getDay()]}`;
 }
 function fmtFull(s) {
   const d = parseDbTime(s);
@@ -61,15 +61,16 @@ function plainFirstLine(html) {
   return text;
 }
 
-/* ===== 分组：按自然月（今年「M月」，往年「YYYY年M月」），组序按月份倒序 =====
-   今天/昨天的细分交给行内「日 周X」承担，组头保持一层即可。 */
+/* ===== 分组：按自然月（今年「MM月」，往年「YYYY年MM月」，月份补零对齐），组序按月份倒序 =====
+   今天/昨天的细分交给行内「M.DD 周X」承担，组头保持一层即可。 */
 function groupOf(s) {
   const d = parseDbTime(s);
   if (!d) return { k: -1, label: '更早' }; // 无效时间兜底，排最末
   const k = d.getFullYear() * 12 + d.getMonth();
+  const mm = pad2(d.getMonth() + 1);
   const label = d.getFullYear() === new Date().getFullYear()
-    ? `${d.getMonth() + 1}月`
-    : `${d.getFullYear()}年${d.getMonth() + 1}月`;
+    ? `${mm}月`
+    : `${d.getFullYear()}年${mm}月`;
   return { k, label };
 }
 
@@ -330,43 +331,57 @@ export default function InboxPage({ onCountChange }) {
       </div>
     );
 
-    // 元信息行：标签 chips（左）｜日期锚点浅灰不加粗（最右，点击可改日期）
-    const metaLine = (
-      <div className={`flex items-center gap-1.5 min-w-0 ${timeFirst ? '' : 'mt-1'}`}>
-        {itemTags.map(t => (
-          <span
-            key={t.id}
-            className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none flex-shrink-0"
-            style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
-          >{t.name}</span>
-        ))}
+    // 标签 chips：选中行展示各自颜色，未选中行统一浅灰（减少列表噪音，聚焦当前查看的记录）
+    const chipCls = 'inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none flex-shrink-0';
+    const chips = itemTags.map(t => (
+      <span
+        key={t.id}
+        className={chipCls}
+        style={isSelected
+          ? { color: t.color, background: hexToRgba(t.color, 0.10) }
+          : { color: 'var(--ink-500, #8e8e93)', background: 'rgba(120,120,128,0.08)' }}
+      >{t.name}</span>
+    ));
+
+    // 日期锚点：内容优先时浅灰辅助居行尾（与 ⋯ 菜单右端对齐）；时间优先时 semibold 居行首作主角
+    const dateEl = dateEditFor ? (
+      <input
+        type="date"
+        autoFocus
+        value={dateEdit.value}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => commitDateEdit(item, e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setDateEdit(null);
+          if (e.key === 'Enter') commitDateEdit(item, dateEdit.value);
+        }}
+        onBlur={() => setDateEdit(null)}
+        className="flex-shrink-0 w-[112px] px-1 py-0.5 rounded-md text-[12px] tabular-nums border border-[rgba(var(--s-rgb),0.45)] bg-white text-ink-700 focus:outline-none focus:border-[var(--s-main)]"
+      />
+    ) : (
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
+          const d = parseDbTime(item.created_at);
+          if (!d) return;
+          setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
+        }}
+        className={`flex-shrink-0 text-[12px] tabular-nums cursor-pointer whitespace-nowrap transition-colors ${timeFirst ? 'font-semibold text-ink-500 hover:text-ink-700' : 'text-ink-300 hover:text-ink-600'}`}
+        title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
+      >{fmtDay(item.created_at)}</span>
+    );
+
+    // 元信息行：内容优先 = [chips] … [日期右端]；时间优先 = [日期] [chips]（日志流）
+    const metaLine = timeFirst ? (
+      <div className="flex items-center gap-2 min-w-0">
+        {dateEl}
+        {chips}
+      </div>
+    ) : (
+      <div className="flex items-center gap-1.5 min-w-0 -mr-2.5 mt-1">
+        {chips}
         <span className="flex-1 min-w-0" />
-        {dateEditFor ? (
-          <input
-            type="date"
-            autoFocus
-            value={dateEdit.value}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => commitDateEdit(item, e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setDateEdit(null);
-              if (e.key === 'Enter') commitDateEdit(item, dateEdit.value);
-            }}
-            onBlur={() => setDateEdit(null)}
-            className="flex-shrink-0 w-[112px] px-1 py-0.5 rounded-md text-[12px] tabular-nums border border-[rgba(var(--s-rgb),0.45)] bg-white text-ink-700 focus:outline-none focus:border-[var(--s-main)]"
-          />
-        ) : (
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              const d = parseDbTime(item.created_at);
-              if (!d) return;
-              setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
-            }}
-            className="flex-shrink-0 text-[12px] text-ink-300 tabular-nums cursor-pointer hover:text-ink-600 transition-colors whitespace-nowrap"
-            title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
-          >{fmtDay(item.created_at)}</span>
-        )}
+        {dateEl}
       </div>
     );
 
@@ -396,7 +411,7 @@ export default function InboxPage({ onCountChange }) {
             <button
               onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}
               title={fmtTooltip(item.created_at)}
-              className="w-6 h-6 -mr-1 rounded-lg flex items-center justify-center text-ink-300/70 group-hover:text-ink-500 hover:!text-ink-700 hover:bg-black/[0.04] transition-colors"
+              className="w-6 h-6 -mr-2.5 rounded-lg flex items-center justify-center text-ink-300/70 group-hover:text-ink-500 hover:!text-ink-700 hover:bg-black/[0.04] transition-colors"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
@@ -725,8 +740,8 @@ export default function InboxPage({ onCountChange }) {
             <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
               {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}
               <div className="flex items-baseline gap-2 px-1.5 pt-1 pb-0.5">
-                {/* 组头承担月份导航职能：与标题同大（14px），浅灰色弱化为背景层级 */}
-                <span className="text-[14px] font-semibold text-ink-300 tracking-wide">{g.label}</span>
+                {/* 组头承担月份导航职能：13px 介于标题与注脚之间，浅灰色弱化为背景层级 */}
+                <span className="text-[13px] font-semibold text-ink-300 tracking-wide">{g.label}</span>
                 <span className="text-[11px] text-ink-200 tabular-nums">{g.list.length}</span>
               </div>
               <div className={rowOrder === 'time' ? 'inx-axis' : ''}>{g.list.map(renderRow)}</div>

@@ -1185,9 +1185,10 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 /* 卡片内细滚动条（首页本周目标 / 即将到来列表）。
    圆角卡片内滚动条的上下端裁切：Chromium 不识别 ::-webkit-scrollbar-track 的 margin，
    故无法靠内缩轨道解决；正解是让滚动视口内缩于圆角卡片内部（见 InboxPage 列表卡结构）。 */
-.nice-scroll { scrollbar-width: thin; scrollbar-color: rgba(120,120,128,0.28) transparent; }
+.nice-scroll { scrollbar-width: thin; scrollbar-color: rgba(120,120,128,0.16) transparent; }
 .nice-scroll::-webkit-scrollbar { width: 4px; }
-.nice-scroll::-webkit-scrollbar-thumb { background: rgba(120,120,128,0.28); border-radius: 999px; }
+.nice-scroll::-webkit-scrollbar-thumb { background: rgba(120,120,128,0.16); border-radius: 999px; }
+.nice-scroll::-webkit-scrollbar-thumb:hover { background: rgba(120,120,128,0.28); }
 .nice-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* 卡片头「查看」箭头：hover 填充模块主题色（白图标） */

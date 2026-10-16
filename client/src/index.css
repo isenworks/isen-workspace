@@ -1415,3 +1415,19 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   }
 }
 
+/* ====== 小记列表 · 时间优先排版的时间轴 ======
+   组容器左侧贯穿轴线（主题蓝 14%），与行内圆点（InboxPage renderRow）
+   通过圆点自身的 3px 卡片底色 ring 衔接，形成连续「月份 → 日」轴线。 */
+.inx-axis { position: relative; }
+.inx-axis::before {
+  content: '';
+  position: absolute;
+  left: 20.5px;          /* 圆点中心 x = 卡片 p-2.5(10) + 行 pl-6(24) 内圆点中心(11) = 21 */
+  top: 44px;             /* 组头(≈26px) + 行 py-2(8) + 元信息行半高(10) */
+  bottom: 10px;
+  width: 1.5px;
+  border-radius: 2px;
+  background: rgba(var(--s-rgb), 0.14);
+  pointer-events: none;
+}
+

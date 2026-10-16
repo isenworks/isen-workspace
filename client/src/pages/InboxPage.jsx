@@ -325,14 +325,22 @@ export default function InboxPage({ onCountChange }) {
 
     // 标题行（内容优先排版时是第一视觉，时间优先排版时沉底）
     const titleLine = (
-      <div className="text-[14px] leading-snug text-ink-900 truncate">
+      <div className={`text-[14px] leading-snug text-ink-900 truncate ${timeFirst ? 'mt-0.5' : ''}`}>
         {(firstLine || '（空）').slice(0, 60)}
       </div>
     );
 
-    // 元信息行：日期锚点（点击可改日期）+ 标签注脚（小号淡彩，从 chip 按钮退位为注脚）
+    // 元信息行：标签 chips（左）｜日期锚点浅灰不加粗（最右，点击可改日期）
     const metaLine = (
-      <div className={`flex items-center gap-1.5 min-w-0 ${timeFirst ? '' : 'mt-[3px]'}`}>
+      <div className={`flex items-center gap-1.5 min-w-0 ${timeFirst ? '' : 'mt-1'}`}>
+        {itemTags.map(t => (
+          <span
+            key={t.id}
+            className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none flex-shrink-0"
+            style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
+          >{t.name}</span>
+        ))}
+        <span className="flex-1 min-w-0" />
         {dateEditFor ? (
           <input
             type="date"
@@ -355,18 +363,10 @@ export default function InboxPage({ onCountChange }) {
               if (!d) return;
               setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
             }}
-            className="flex-shrink-0 text-[12px] font-semibold text-ink-500 tabular-nums cursor-pointer hover:text-ink-700 transition-colors whitespace-nowrap"
+            className="flex-shrink-0 text-[12px] text-ink-300 tabular-nums cursor-pointer hover:text-ink-600 transition-colors whitespace-nowrap"
             title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
           >{fmtDay(item.created_at)}</span>
         )}
-        {itemTags.length > 0 && <span className="flex-shrink-0 text-[11px] text-ink-200 select-none">·</span>}
-        {itemTags.map(t => (
-          <span
-            key={t.id}
-            className="px-1.5 rounded-[5px] text-[10.5px] font-medium leading-[17px] whitespace-nowrap select-none"
-            style={{ color: t.color, background: hexToRgba(t.color, 0.08) }}
-          >{t.name}</span>
-        ))}
       </div>
     );
 
@@ -374,12 +374,22 @@ export default function InboxPage({ onCountChange }) {
       <div
         key={item.id}
         onClick={() => !menuFor && setSelectedId(item.id)}
-        className={`relative block px-2 py-2 rounded-xl transition-all cursor-pointer group ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+        className={`relative block px-2 py-2 rounded-xl transition-all cursor-pointer group ${timeFirst ? 'pl-6' : ''} ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
+        {/* 时间优先排版：行首蓝色圆点（轴线由组容器 .inx-axis 贯穿） */}
+        {timeFirst && (
+          <span
+            className="absolute left-[7px] top-[14px] w-[8px] h-[8px] rounded-full transition-colors"
+            style={{
+              background: isSelected ? 'var(--s-main)' : 'rgba(var(--s-rgb),0.40)',
+              boxShadow: '0 0 0 3px var(--surface-card)',
+            }}
+          />
+        )}
         <div className="flex items-start gap-1.5">
           <div className="flex-1 min-w-0">
-            {/* 排版可切换：内容优先 = 标题在上（flomo 式）｜时间优先 = 日期在上（日志式） */}
+            {/* 排版可切换：内容优先 = 标题在上（flomo 式）｜时间优先 = 日期在上（日志式，带时间轴） */}
             {timeFirst ? <>{metaLine}{titleLine}</> : <>{titleLine}{metaLine}</>}
           </div>
           <div className="relative flex-shrink-0 -mt-px">
@@ -715,11 +725,11 @@ export default function InboxPage({ onCountChange }) {
             <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
               {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}
               <div className="flex items-baseline gap-2 px-1.5 pt-1 pb-0.5">
-                {/* 组头承担月份导航职能：12.5px semibold 接近标题但弱半档，保持层级 */}
-                <span className="text-[12.5px] font-semibold text-ink-500 tracking-wide">{g.label}</span>
-                <span className="text-[11px] text-ink-300 tabular-nums">{g.list.length}</span>
+                {/* 组头承担月份导航职能：与标题同大（14px），浅灰色弱化为背景层级 */}
+                <span className="text-[14px] font-semibold text-ink-300 tracking-wide">{g.label}</span>
+                <span className="text-[11px] text-ink-200 tabular-nums">{g.list.length}</span>
               </div>
-              {g.list.map(renderRow)}
+              <div className={rowOrder === 'time' ? 'inx-axis' : ''}>{g.list.map(renderRow)}</div>
             </div>
           ))}
         </div>

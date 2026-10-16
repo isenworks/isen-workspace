@@ -1012,7 +1012,6 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onBoardsChange={setBoards}
             onAddBoard={addBoard}
             onRemoveBoard={removeBoard}
-            onArrange={() => restoreDefault()}
             onClose={() => setShowSettings(false)}
           />
         )}
@@ -1355,123 +1354,153 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
 // ============================================================
 // SettingsDrawer — 花架设置面板（右上角齿轮）
 //   背景：纯色 / 上传图片
-//   悬浮托板：增删托板 / 改色 / 调宽 + 一键整理植物
+//   悬浮托板：增删托板 / 改色 / 调宽 / 恢复颜色
 //   设置自动存 localStorage（实时预览）
+//   排版对齐工作台既有面板：15px 标题 / 11px 段标 / var(--text-*) 文本层级
 // ============================================================
 const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
+const PLANT_GREEN = '#3E7D3E';
 
-function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onArrange, onClose }) {
+function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onClose }) {
   const merge = (patch) => onChange({ ...settings, ...patch });
   const patchBoard = (id, patch) => onBoardsChange(list => list.map(b => (b.id === id ? { ...b, ...patch } : b)));
   const palette = Array.isArray(boardPalette) && boardPalette.length ? boardPalette : DEFAULT_BOARD_COLORS;
+  const full = boards.length >= MAX_BOARDS;
+  // 恢复颜色：只把每块托板颜色还原成默认色板，位置 / 宽度 / 背景保持不变
+  const restoreColors = () => onBoardsChange(list => list.map((b, i) => ({ ...b, color: palette[i % palette.length] || b.color })));
+  // 分段控件（对齐全站 .tab-group 视觉：外槽圆角方 + 选中胶囊）
+  const segStyle = (on) => ({
+    padding: '4px 14px', fontSize: 13, fontWeight: on ? 600 : 500, borderRadius: 7,
+    color: on ? '#fff' : 'var(--text-2)', background: on ? PLANT_GREEN : 'transparent',
+    border: 'none', cursor: 'pointer', transition: 'all .2s',
+    boxShadow: on ? '0 3px 8px rgba(62,125,62,0.25)' : 'none',
+  });
+  const swatchStyle = (active) => ({
+    width: 22, height: 22, borderRadius: '50%', cursor: 'pointer',
+    border: '1px solid rgba(0,0,0,0.12)',
+    outline: active ? `2px solid ${PLANT_GREEN}` : 'none', outlineOffset: '1px',
+  });
 
   return (
     <div onClick={(e) => e.stopPropagation()}
-      className="absolute top-10 right-4 w-[280px] overflow-hidden"
+      className="absolute top-12 right-4 w-[320px] overflow-hidden"
       style={{
         zIndex: 11,
-        background: 'rgba(255,255,255,0.97)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '14px',
+        background: 'var(--surface-card)',
+        borderRadius: '16px',
         border: '1px solid rgba(0,0,0,0.06)',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.04)',
+        boxShadow: '0 20px 56px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
         animation: 'drawer-slide-in 0.2s ease-out',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       }}>
       <style>{`@keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }`}</style>
 
       {/* 头部 */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-ink-100">
-        <span className="text-[12px] font-bold text-ink-900">花架设置</span>
-        <button onClick={onClose} className="w-6 h-6 rounded-md grid place-items-center hover:bg-ink-100 text-ink-500">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+        <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">花架设置</span>
+        <button onClick={onClose} title="关闭"
+          className="w-7 h-7 rounded-lg grid place-items-center text-[var(--text-muted)] hover:bg-black/5 transition">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       </div>
 
-      <div className="px-4 py-3.5 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+      <div className="px-4 py-3.5 flex flex-col gap-3.5 max-h-[62vh] overflow-y-auto">
 
         {/* 背景 */}
         <div>
-          <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase mb-1.5">背景</div>
-          <div className="flex gap-2 mb-2">
-            <button onClick={() => merge({ bg_type: 'solid' })}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition ${settings.bg_type === 'solid' ? 'bg-[#3E7D3E] text-white' : 'bg-ink-100 text-ink-700'}`}>纯色</button>
-            <button onClick={() => merge({ bg_type: 'image' })}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition ${settings.bg_type === 'image' ? 'bg-[#3E7D3E] text-white' : 'bg-ink-100 text-ink-700'}`}>图片</button>
-            {settings.bg_type === 'image' && settings.bg_image && (
-              <button onClick={() => merge({ bg_type: 'solid', bg_image: '' })}
-                className="ml-auto text-[10px] text-ink-500 underline">清除</button>
-            )}
+          <div className="text-[11px] font-semibold tracking-wide text-[var(--text-3)] mb-2">背景</div>
+
+          <div className="inline-flex mb-2.5" style={{ background: 'rgba(120,120,128,0.12)', borderRadius: 9, padding: 2 }}>
+            <button style={segStyle(settings.bg_type === 'solid')} onClick={() => merge({ bg_type: 'solid' })}>纯色</button>
+            <button style={segStyle(settings.bg_type === 'image')} onClick={() => merge({ bg_type: 'image' })}>图片</button>
           </div>
 
           {settings.bg_type === 'solid' ? (
-            <>
-              <input type="color" value={settings.bg_color || '#FFFFFF'}
-                onChange={(e) => merge({ bg_color: e.target.value })}
-                className="w-full h-7 rounded-md border border-ink-100 cursor-pointer" />
-              <div className="flex gap-1.5 mt-2 flex-wrap">
-                {PRESET_BG_COLORS.map(c => (
-                  <button key={c} onClick={() => merge({ bg_color: c })}
-                    className="w-5 h-5 rounded-full border border-ink-200 transition hover:scale-110"
-                    style={{ background: c, outline: settings.bg_color === c ? '2px solid #3E7D3E' : 'none', outlineOffset: '1px' }} />
-                ))}
-              </div>
-            </>
+            <div className="flex items-center gap-2 flex-wrap">
+              {PRESET_BG_COLORS.map(c => (
+                <button key={c} onClick={() => merge({ bg_color: c })} title={c}
+                  className="transition hover:scale-110"
+                  style={{ ...swatchStyle(settings.bg_color === c), background: c }} />
+              ))}
+              {/* 自定义取色：小圆点内嵌原生取色器（取代原来的长条方框） */}
+              <label className="relative transition hover:scale-110" title="自定义颜色"
+                style={{ ...swatchStyle(!PRESET_BG_COLORS.includes(settings.bg_color)), background: settings.bg_color || '#FFFFFF' }}>
+                <input type="color" value={settings.bg_color || '#FFFFFF'}
+                  onChange={(e) => merge({ bg_color: e.target.value })}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                  width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              </label>
+            </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <button onClick={() => bgInputRef.current?.click()}
-                className="flex-1 px-2.5 py-2 rounded-md text-[10px] font-bold text-[#3E7D3E] border border-dashed border-[#3E7D3E] bg-[rgba(95,168,95,0.06)] hover:bg-[rgba(95,168,95,0.12)] transition">
+                className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition"
+                style={{ color: PLANT_GREEN, border: `1px dashed ${PLANT_GREEN}`, background: 'rgba(95,168,95,0.06)' }}>
                 {settings.bg_image ? '更换图片' : '上传图片'}
               </button>
               {settings.bg_image && (
-                <img src={settings.bg_image} alt="bg" className="w-9 h-9 rounded-md object-cover border border-ink-100" />
+                <div className="relative flex-shrink-0">
+                  <img src={settings.bg_image} alt="背景预览" className="w-9 h-9 rounded-lg object-cover border border-[rgba(0,0,0,0.08)]" />
+                  <button onClick={() => merge({ bg_type: 'solid', bg_image: '' })} title="清除背景图"
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full grid place-items-center text-white"
+                    style={{ background: 'rgba(0,0,0,0.5)' }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  </button>
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* 悬浮托板：增删 / 改色 / 调宽 */}
+        {/* 悬浮托板 */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase">悬浮托板 · {boards.length}/{MAX_BOARDS}</div>
-            <button onClick={onAddBoard} disabled={boards.length >= MAX_BOARDS}
-              className="text-[9px] text-[#3E7D3E] font-bold hover:underline disabled:opacity-40 disabled:no-underline">
-              + 添加托板
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-semibold tracking-wide text-[var(--text-3)]">悬浮托板</span>
+            <span className="text-[11px] tabular-nums text-[var(--text-muted)]">{boards.length}/{MAX_BOARDS}</span>
+          </div>
+
+          {/* 操作行：添加托板 + 恢复颜色 */}
+          <div className="flex items-center gap-2 mb-2.5">
+            <button onClick={onAddBoard} disabled={full}
+              className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[12px] font-semibold transition disabled:opacity-40"
+              style={{ color: PLANT_GREEN, border: '1px solid rgba(95,168,95,0.35)', background: 'rgba(95,168,95,0.06)' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              添加托板
+            </button>
+            <button onClick={restoreColors}
+              className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition"
+              style={{ color: 'var(--text-2)', border: '1px solid var(--ink-100)', background: 'transparent' }}>
+              恢复颜色
             </button>
           </div>
 
-          <div className="space-y-2">
+          {/* 托板列表 */}
+          <div className="flex flex-col gap-2">
             {boards.map((b, i) => (
-              <div key={b.id} className="flex items-center gap-2">
-                <span className="text-[10px] text-ink-700 w-9 flex-shrink-0">第 {i + 1} 块</span>
-                <input type="color" value={b.color}
-                  onChange={(e) => patchBoard(b.id, { color: e.target.value })}
-                  className="w-6 h-5 rounded border border-ink-100 cursor-pointer flex-shrink-0" />
+              <div key={b.id} className="flex items-center gap-2.5">
+                <span className="w-[46px] flex-shrink-0 text-[12px] tabular-nums text-[var(--text-2)]">第 {i + 1} 块</span>
+                <label className="relative w-[18px] h-[18px] rounded-[5px] flex-shrink-0 cursor-pointer"
+                  title="托板颜色" style={{ background: b.color, border: '1px solid rgba(0,0,0,0.12)' }}>
+                  <input type="color" value={b.color}
+                    onChange={(e) => patchBoard(b.id, { color: e.target.value })}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                </label>
                 <input type="range" min={16} max={72} value={Math.round(b.w)}
                   onChange={(e) => {
                     const w = Number(e.target.value);
                     patchBoard(b.id, { w, x: Math.min(b.x, 100 - w - 1) });
                   }}
                   className="flex-1 h-1 accent-[#3E7D3E]" />
-                <span className="text-[9px] text-ink-400 w-7 text-right tabular-nums">{Math.round(b.w)}%</span>
+                <span className="w-9 text-right text-[11px] tabular-nums text-[var(--text-3)]">{Math.round(b.w)}%</span>
                 <button onClick={() => onRemoveBoard(b.id)} disabled={boards.length <= 1} title="删除这块托板"
-                  className="text-ink-400 hover:text-[var(--danger)] disabled:opacity-30 flex-shrink-0">
+                  className="w-6 h-6 rounded-md grid place-items-center flex-shrink-0 transition disabled:opacity-30 text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[rgba(var(--danger-rgb),0.08)]">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
                 </button>
               </div>
             ))}
           </div>
-
-          <button onClick={onArrange}
-            className="mt-2.5 w-full py-1.5 rounded-lg text-[10px] font-bold text-[#3E7D3E] border border-[rgba(95,168,95,0.35)] bg-[rgba(95,168,95,0.06)] hover:bg-[rgba(95,168,95,0.12)] transition">
-            一键整理植物
-          </button>
         </div>
-
-        {/* 恢复托板颜色：只把每块托板的颜色还原成默认色板，位置 / 宽度 / 背景保持不变 */}
-        <button onClick={() => onBoardsChange(list => list.map((b, i) => ({ ...b, color: palette[i % palette.length] || b.color })))}
-          className="w-full py-1.5 rounded-lg text-[10px] font-bold text-ink-500 border border-ink-100 hover:bg-ink-50 transition">
-          恢复托板颜色
-        </button>
       </div>
     </div>
   );

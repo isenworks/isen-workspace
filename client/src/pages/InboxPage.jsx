@@ -569,7 +569,7 @@ export default function InboxPage({ onCountChange }) {
 
     const chipBase = 'h-[24px] px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] leading-none transition-all select-none cursor-pointer';
     return (
-      <div className="flex items-start gap-1.5">
+      <div className="flex items-start gap-1.5 flex-1 min-w-0">
         {/* chips 区：占剩余宽度、可折行 */}
         <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
         {/* 全部：清空筛选（无标签语义，用主题色激活态） */}

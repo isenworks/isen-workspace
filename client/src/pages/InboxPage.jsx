@@ -741,22 +741,26 @@ export default function InboxPage({ onCountChange }) {
           <div className="text-[13px] text-ink-400">所选标签下暂无小记</div>
         </div>
       ) : (
-        <div className={`glass-card rounded-2xl p-2.5 flex flex-col ${fill ? 'flex-1 min-h-0 overflow-y-auto nice-scroll' : ''}`}>
-          {/* 列表级工具行（筛选 chips + 行序切换）：sticky 顶部，列表内滚时控件常驻可见 */}
-          <div className="sticky top-0 z-10 -mx-2.5 px-4 pt-2 pb-2 bg-white/85 backdrop-blur-md border-b border-ink-100/60 rounded-t-2xl flex flex-wrap items-center gap-1.5">
-            {renderFilterChips()}
-          </div>
-          {groups.map((g, gi) => (
-            <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
-              {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}
-              <div className="flex items-baseline gap-2 px-1.5 pt-1 pb-0.5">
-                {/* 组头承担月份导航职能：13px 介于标题与注脚之间，浅灰色弱化为背景层级 */}
-                <span className="text-[13px] font-semibold text-ink-300 tracking-wide">{g.label}</span>
-                <span className="text-[11px] text-ink-200 tabular-nums">{g.list.length}</span>
-              </div>
-              <div className={rowOrder === 'time' ? 'inx-axis' : ''}>{g.list.map(renderRow)}</div>
+        <div className={`glass-card rounded-2xl p-2.5 flex flex-col ${fill ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
+          {/* 滚动视口内缩于圆角卡片之内（而非卡片自身滚动）：原生滚动条因此远离 18px 圆角裁切区，
+              两端圆头不再被斜切；此前试图用 ::-webkit-scrollbar-track 的 margin 内缩是无效的（Chromium 不生效） */}
+          <div className={fill ? 'flex-1 min-h-0 overflow-y-auto nice-scroll' : ''}>
+            {/* 列表级工具行（筛选 chips + 行序切换）：sticky 顶部，列表内滚时控件常驻可见 */}
+            <div className="sticky top-0 z-10 px-1.5 pt-2 pb-2 bg-white/85 backdrop-blur-md border-b border-ink-100/60">
+              {renderFilterChips()}
             </div>
-          ))}
+            {groups.map((g, gi) => (
+              <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
+                {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}
+                <div className="flex items-baseline gap-2 px-1.5 pt-1 pb-0.5">
+                  {/* 组头承担月份导航职能：13px 介于标题与注脚之间，浅灰色弱化为背景层级 */}
+                  <span className="text-[13px] font-semibold text-ink-300 tracking-wide">{g.label}</span>
+                  <span className="text-[11px] text-ink-200 tabular-nums">{g.list.length}</span>
+                </div>
+                <div className={rowOrder === 'time' ? 'inx-axis' : ''}>{g.list.map(renderRow)}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>

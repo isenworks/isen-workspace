@@ -1419,14 +1419,16 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
    组容器左侧贯穿轴线（主题蓝 14%），与行内圆点（InboxPage renderRow）
    通过圆点自身的 3px 卡片底色 ring 衔接，形成连续「月份 → 日」轴线。
    几何：行 mx-1.5 使选中背景左缘对齐头部卡「小记」蓝条（列表卡 p-2.5(10)
-   + 6 = 16px）；圆点中心相对 inx-axis（起点=卡内容缘 10px）= 16+11-10 = 17px。 */
+   + 6 = 16px）；圆点中心相对 inx-axis（起点=卡内容缘 10px）= 16+11-10 = 17px。
+   注意 .inx-axis 只包裹行（组头是其外部兄弟）：行 py-2(8) + 元信息行半高(10)
+   → 首行圆点中心 y=18px；行高 ≈56px → 末行圆点中心距组底 38px。 */
 .inx-axis { position: relative; }
 .inx-axis::before {
   content: '';
   position: absolute;
   left: 16.25px;         /* 圆点中心 17px - 线宽/2 0.75px */
-  top: 43px;             /* 组头(≈25px) + 行 py-2(8) + 元信息行半高(10) */
-  bottom: 10px;
+  top: 18px;             /* 首个圆点中心：轴线从第一颗圆点贯穿 */
+  bottom: 38px;          /* 末个圆点中心：止于最后一颗圆点 */
   width: 1.5px;
   border-radius: 2px;
   background: rgba(var(--s-rgb), 0.14);

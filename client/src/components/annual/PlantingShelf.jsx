@@ -77,6 +77,54 @@ function dateDaysAgo(n) {
   return d.toISOString().slice(0, 10);
 }
 
+// ---- 悬浮托板（boards）----
+//   「概念 A：悬浮托板」的落地模型：板不贴边、长短不一、左右错位，无立柱。
+//   x/y/w 均为画布百分比（x=左缘、y=顶面、w=宽度）；厚度固定 BOARD_H(px)；color=板色。
+//   板画在植物之上（zIndex 4 > 植物容器 2），盖住花盆底部 → 形成"坐在板上"的错觉。
+const BOARD_H = 16;
+const BOARD_SINK = 5;   // 植物底部下沉像素：让花盆底被托板盖住，形成"坐在板上"的错觉
+const MAX_BOARDS = 6;
+const DEFAULT_BOARD_COLORS = ['#A98C64', '#9A7F5C', '#8B6B4F'];
+// 默认三块：右(52%) / 左(6%) / 右(56%) —— 交替缩进，形成 Z 字节奏
+const DEFAULT_BOARDS = [
+  { id: 'bd1', x: 52, y: 24, w: 42, color: '#A98C64' },
+  { id: 'bd2', x: 6, y: 50, w: 42, color: '#9A7F5C' },
+  { id: 'bd3', x: 56, y: 76, w: 38, color: '#8B6B4F' },
+];
+// settings 里已有 boards 则直接使用；否则从旧的 layer_colors 迁移出三块默认几何的托板
+function resolveBoards(settings) {
+  const st = settings || {};
+  if (Array.isArray(st.boards) && st.boards.length) return st.boards;
+  const legacy = Array.isArray(st.layer_colors) ? st.layer_colors : null;
+  return DEFAULT_BOARDS.map((b, i) => ({ ...b, color: legacy?.[i] || b.color }));
+}
+
+// 木色明暗（amt>0 提亮，<0 压暗）：托板"上亮下暗"的实木三明治渐变
+function shade(hex, amt) {
+  const n = String(hex || '#9A7F5C').replace('#', '');
+  const h = n.length === 3 ? n.split('').map(c => c + c).join('') : n.padEnd(6, '0');
+  const ch = (i) => {
+    const v = parseInt(h.slice(i, i + 2), 16) || 0;
+    return Math.round(amt >= 0 ? v + (255 - v) * amt : v * (1 + amt));
+  };
+  return `rgb(${ch(0)}, ${ch(2)}, ${ch(4)})`;
+}
+
+// 新增托板时补一个纵向空档 + 左右交替，尽量不压已有的板
+function nextBoardSlot(list) {
+  const ys = list.map(b => b.y);
+  const cands = [16, 30, 44, 58, 72, 86];
+  let y = cands[0], best = -1;
+  for (const c of cands) {
+    const d = ys.length ? Math.min(...ys.map(v => Math.abs(v - c))) : 99;
+    if (d > best) { best = d; y = c; }
+  }
+  const idx = list.length;
+  const w = idx % 2 === 0 ? 36 : 42;
+  const x = idx % 2 === 0 ? 8 : 56;
+  return { x: Math.min(x, 100 - w), y, w, color: DEFAULT_BOARD_COLORS[idx % DEFAULT_BOARD_COLORS.length] };
+}
+
 // ---- 蜜蜂 SVG ----
 function Bee({ size = 28 }) {
   return (
@@ -195,11 +243,23 @@ export default function PlantingShelf({ onCountChange }) {
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(null); // 待移除的植物 id
+  // 托板：选中（显示手柄/删除）× 拖拽中
+  const [selectedBoard, setSelectedBoard] = useState(null);
+  const [boardDragging, setBoardDragging] = useState(null);
   const [settings, setSettings] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('planting_shelf_settings')) || {};
     } catch { return {}; }
   });
+  // 悬浮托板：由 settings.boards 派生，写入时显式落库（旧数据经 resolveBoards 迁移）
+  const boards = useMemo(() => resolveBoards(settings), [settings]);
+  const setBoards = useCallback((updater) => {
+    setSettings(st => {
+      const cur = resolveBoards(st);
+      const next = typeof updater === 'function' ? updater(cur) : updater;
+      return { ...st, boards: next };
+    });
+  }, []);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const bgInputRef = useRef(null);
@@ -207,8 +267,11 @@ export default function PlantingShelf({ onCountChange }) {
   const zCounter = useRef(1);
   const draggingRef = useRef(null);
   const plantsRef = useRef([]);
+  const boardsRef = useRef([]);      // 拖拽植物松手吸附时读最新托板
+  const plantElsRef = useRef({});    // 植物 DOM 映射（实测宽高 → 吸附/自动排列）
   useEffect(() => { draggingRef.current = dragging; }, [dragging]);
   useEffect(() => { plantsRef.current = plants; }, [plants]);
+  useEffect(() => { boardsRef.current = boards; }, [boards]);
   // toast 自动消失
   useEffect(() => {
     if (!saveToast) return;
@@ -219,6 +282,191 @@ export default function PlantingShelf({ onCountChange }) {
   const notifySaveFail = (msg) => setSaveToast({ type: 'fail', msg });
   // settings 持久化
   useEffect(() => { localStorage.setItem('planting_shelf_settings', JSON.stringify(settings)); }, [settings]);
+
+  // ---- 悬浮托板几何 / 植物自动布局 ----
+  const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // 植物渲染尺寸：实测不到（图片未加载完）就按标称尺寸兜底，避免把植物摆到托板中线
+  function measure(plant) {
+    const el = plantElsRef.current[plant.id];
+    const ok = el && el.offsetWidth > 16 && el.offsetHeight > 16;
+    return {
+      w: ok ? el.offsetWidth : 130 * (plant.size || 1),
+      h: ok ? el.offsetHeight : 150 * (plant.size || 1),
+    };
+  }
+
+  // 距植物最近的一块托板（requireOverlap=true 时要求水平方向与托板有交集）
+  function boardNearest(plant, r, bs, requireOverlap) {
+    const { w, h } = measure(plant);
+    const cx = r.left + (plant.pos_x / 100) * r.width;
+    const bottom = r.top + (plant.pos_y / 100) * r.height + h / 2;
+    let best = null, bestD = Infinity;
+    for (const b of bs) {
+      const bl = r.left + (b.x / 100) * r.width;
+      const br = bl + (b.w / 100) * r.width;
+      const bt = r.top + (b.y / 100) * r.height;
+      if (requireOverlap && (cx < bl - w * 0.45 || cx > br + w * 0.45)) continue;
+      const d = Math.abs(bottom - bt);
+      if (d < bestD) { bestD = d; best = { b, bl, br, bt, w, h }; }
+    }
+    return best;
+  }
+
+  // 沿托板宽度均匀排布一组植物（按当前位置左→右排序；间距不足时收紧到 3px 允许轻微出板），返回 {id,pos_x,pos_y}[]
+  //   centerSingle=true（一键整理）时，单株也居中；否则单株保留用户自己拖到的横向位置
+  function layoutBoard(board, members, r, centerSingle) {
+    const items = members
+      .map(m => ({ id: m.id, px: m.pos_x, ...measure(m) }))
+      .sort((a, b) => a.px - b.px);
+    const n = items.length;
+    if (!n) return [];
+    const bl = r.left + (board.x / 100) * r.width;
+    const boardW = (board.w / 100) * r.width;
+    const bt = r.top + (board.y / 100) * r.height;
+    const totalW = items.reduce((s, it) => s + it.w, 0);
+    let gap = n > 1 ? (boardW - totalW) / (n + 1) : 0;
+    if (gap < 3) gap = 3;
+    const contentW = totalW + gap * (n - 1);
+    let cursor = bl + (boardW - contentW) / 2;
+    const out = items.map(it => {
+      const cx = cursor + it.w / 2;
+      cursor += it.w + gap;
+      return {
+        id: it.id,
+        pos_x: clampN(((cx - r.left) / r.width) * 100, 0, 100),
+        pos_y: clampN(((bt - it.h / 2 + BOARD_SINK - r.top) / r.height) * 100, 0, 100),
+      };
+    });
+    // 单株且非整理：保留用户横向落点，只吸附纵向
+    if (n === 1 && !centerSingle) out[0].pos_x = clampN(items[0].px, 0, 100);
+    return out;
+  }
+
+  // 布局结果写回状态，仅返回真正变更的项（避免无谓写库）
+  function commitLayout(positions) {
+    const changed = positions.filter(pos => {
+      const p = plantsRef.current.find(x => x.id === pos.id);
+      return p && (Math.abs(p.pos_x - pos.pos_x) > 0.05 || Math.abs(p.pos_y - pos.pos_y) > 0.05);
+    });
+    if (!changed.length) return [];
+    setPlants(prev => prev.map(p => {
+      const c = changed.find(x => x.id === p.id);
+      return c ? { ...p, pos_x: c.pos_x, pos_y: c.pos_y } : p;
+    }));
+    return changed;
+  }
+
+  function persistPositions(changed, msg) {
+    Promise.all(changed.map(c => API.plants.update(c.id, { pos_x: c.pos_x, pos_y: c.pos_y })))
+      .then(() => notifySaved(msg || '位置已保存'))
+      .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
+  }
+
+  // 拖拽松手：吸附到最近托板并把该托板上的植物重新均匀排布
+  function snapAfterDrop(id) {
+    const r = canvasRef.current?.getBoundingClientRect();
+    const bs = boardsRef.current || [];
+    const list = plantsRef.current;
+    const dropped = list.find(p => p.id === id);
+    if (!r || !bs.length || !dropped) return { hit: false, positions: [] };
+    const hit = boardNearest(dropped, r, bs, true);
+    if (!hit) return { hit: false, positions: [] };
+    const m = measure(dropped);
+    const snapped = { ...dropped, pos_y: clampN(((hit.bt - m.h / 2 - r.top) / r.height) * 100, 0, 100) };
+    const withSnap = list.map(p => (p.id === id ? snapped : p));
+    const members = withSnap.filter(p => {
+      const nb = boardNearest(p, r, bs, true);
+      return nb && nb.b.id === hit.b.id;
+    });
+    return { hit: true, positions: layoutBoard(hit.b, members, r) };
+  }
+
+  // 一键整理：全部植物归入最近托板并均匀排布（migrating=旧数据首次重排，换提示文案）
+  function arrangeAll(migrating) {
+    const r = canvasRef.current?.getBoundingClientRect();
+    const bs = boardsRef.current || [];
+    if (!r || !bs.length || !plantsRef.current.length) return;
+    const groups = new Map();
+    for (const p of plantsRef.current) {
+      const nb = boardNearest(p, r, bs, false);
+      if (!nb) continue;
+      if (!groups.has(nb.b.id)) groups.set(nb.b.id, { board: nb.b, members: [] });
+      groups.get(nb.b.id).members.push(p);
+    }
+    const positions = [];
+    for (const g of groups.values()) positions.push(...layoutBoard(g.board, g.members, r, true));
+    const changed = commitLayout(positions);
+    if (changed.length) persistPositions(changed, migrating ? '已按悬浮托板重新排布' : '花架已整理');
+    else if (!migrating) toast.info('花架已经整整齐齐');
+  }
+
+  // 首次加载：把 boards 落地进 settings（旧数据从 layer_colors 迁移几何），
+  // 旧数据（此前无 boards）再按悬浮托板自动重排一次；两件事都只做一次
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current || loading || loadErr) return;
+    const st = settings || {};
+    const wasLegacy = !(Array.isArray(st.boards) && st.boards.length);
+    migratedRef.current = true;
+    setSettings(prev => (Array.isArray(prev.boards) && prev.boards.length ? prev : { ...prev, boards: resolveBoards(prev) }));
+    if (wasLegacy && plants.length) {
+      const t = setTimeout(() => arrangeAll(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [loading, loadErr, plants.length, settings]);
+
+  // ---- 托板交互：拖动移动 / 快捷增删改 ----
+  const onBoardMouseDown = (e, b) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedBoard(b.id);
+    setSelected(null);
+    setShowInfo(false);
+    const r = canvasRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const sx = e.clientX, sy = e.clientY, bx = b.x, by = b.y, bw = b.w;
+    let moved = false;
+    setBoardDragging(b.id);
+    const onMove = (ev) => {
+      const dx = ((ev.clientX - sx) / r.width) * 100;
+      const dy = ((ev.clientY - sy) / r.height) * 100;
+      if (Math.abs(dx) > 0.4 || Math.abs(dy) > 0.4) moved = true;
+      setBoards(list => list.map(x => x.id === b.id
+        ? { ...x, x: clampN(bx + dx, 1, 99 - bw), y: clampN(by + dy, 2, 95) }
+        : x));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setBoardDragging(null);
+      if (moved) notifySaved('托板位置已保存');
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const nudgeBoardWidth = (id, delta) => {
+    setBoards(list => list.map(b => {
+      if (b.id !== id) return b;
+      const w = clampN(b.w + delta, 16, 72);
+      return { ...b, w, x: Math.min(b.x, 100 - w - 1) };
+    }));
+  };
+
+  const setBoardColor = (id, color) => setBoards(list => list.map(b => (b.id === id ? { ...b, color } : b)));
+
+  const removeBoard = (id) => {
+    setBoards(list => (list.length <= 1 ? list : list.filter(b => b.id !== id)));
+    setSelectedBoard(null);
+  };
+
+  const addBoard = () => {
+    const id = 'bd' + uid();
+    setBoards(list => (list.length >= MAX_BOARDS ? list : [...list, { id, ...nextBoardSlot(list) }]));
+    setSelectedBoard(id);
+  };
 
   // 老图自动瘦身（自愈）：压缩功能上线前的大图（>400KB base64）首次加载后
   // 客户端 canvas 压成 WebP 存回 → image_ver+1 → URL 更新，之后每次打开都快。
@@ -314,6 +562,7 @@ export default function PlantingShelf({ onCountChange }) {
     if (e.button !== 0) return; // 只响应左键
     e.preventDefault();
     setSelected(plant); // 左键点选 → 显示四角缩放手柄
+    setSelectedBoard(null);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -344,13 +593,19 @@ export default function PlantingShelf({ onCountChange }) {
     };
     const onUp = () => {
       const id = draggingRef.current;
-      // 松手自动保存位置（没移动则跳过，避免无效写库）
+      // 松手：吸附到最近托板并重排（没移动则跳过，避免无效写库）
       if (id && hasMovedRef.current) {
-        const plant = plantsRef.current.find(p => p.id === id);
-        if (plant) {
-          API.plants.update(id, { pos_x: plant.pos_x, pos_y: plant.pos_y })
-            .then(() => notifySaved('位置已保存'))
-            .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
+        const res = snapAfterDrop(id);
+        if (res.hit) {
+          const changed = commitLayout(res.positions);
+          if (changed.length) persistPositions(changed, '已吸附到托板');
+        } else {
+          const plant = plantsRef.current.find(p => p.id === id);
+          if (plant) {
+            API.plants.update(id, { pos_x: plant.pos_x, pos_y: plant.pos_y })
+              .then(() => notifySaved('位置已保存'))
+              .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
+          }
         }
       }
       setDragging(null);
@@ -436,9 +691,10 @@ export default function PlantingShelf({ onCountChange }) {
     if (file && file.type.startsWith('image/')) handleFileSelect(file);
   };
 
-  // 画布点击（空白处）：无条件取消选中植物（隐藏四角缩放手柄）+ 关闭信息面板
+  // 画布点击（空白处）：取消选中植物（隐藏缩放/托板手柄）+ 关闭信息面板
   const onCanvasClick = () => {
     setSelected(null);
+    setSelectedBoard(null);
     setShowInfo(false);
   };
 
@@ -447,12 +703,22 @@ export default function PlantingShelf({ onCountChange }) {
     bg_type: 'solid',           // 'solid' | 'image'
     bg_color: '#FFFFFF',
     bg_image: '',                // base64
-    layer_colors: ['#B89F7D', '#9A7F5C', '#7C6445'], // 三层木板渐变 top→middle→bottom
     ...settings,
   }), [settings]);
 
   // 按层级排序
   const sortedPlants = useMemo(() => [...plants].sort((a, b) => (a.z_index || 0) - (b.z_index || 0)), [plants]);
+
+  // 选中的植物归属哪块托板（仅用于信息面板上的小标签）
+  const selBoardLabel = useMemo(() => {
+    if (!selected || !boards.length) return '';
+    let best = null, bestD = Infinity;
+    for (const b of boards) {
+      const d = Math.abs((selected.pos_y || 0) - b.y);
+      if (d < bestD) { bestD = d; best = b; }
+    }
+    return best && bestD <= 9 ? `托板 ${boards.findIndex(x => x.id === best.id) + 1}` : '';
+  }, [selected, boards]);
 
   return (
     <div className="planting-shelf-wrap relative h-full flex flex-col overflow-hidden">
@@ -494,18 +760,67 @@ export default function PlantingShelf({ onCountChange }) {
         onDragOver={onCanvasDragOver}
         onDrop={onCanvasDrop}>
 
-        {/* 三层木层板（独立层叠层 zIndex 4 > 植物层 2，永远盖住花盆底部） */}
-        {[28, 56, 82].map((top, i) => {
-          const c = s.layer_colors[i] || '#9A7F5C';
+        {/* 悬浮托板（概念 A）：不贴边、长短不一、左右错落、无立柱。
+            画在植物之上（zIndex 4 > 植物层 2），盖住花盆底部 → 形成"坐在板上"的错觉。
+            实木三明治：上缘高光 + 本体 + 下缘暗边 + 柔和落影；点板选中、拖动移位 */}
+        {boards.map((b) => {
+          const isSel = selectedBoard === b.id;
           return (
-            <div key={i} className="absolute left-0 right-0" style={{
-              top: `${top}%`, height: '8px', zIndex: 4,
-              background: `linear-gradient(180deg, ${c} 0%, ${c} 100%)`,
-              boxShadow: 'inset 0 1px 0 rgba(255,245,228,0.35), inset 0 -1px 0 rgba(0,0,0,0.12)',
-              borderRadius: '2px',
-            }} />
+            <div key={b.id}
+              className="shelf-board absolute select-none"
+              style={{
+                left: `${b.x}%`, top: `${b.y}%`, width: `${b.w}%`, height: BOARD_H,
+                zIndex: 4,
+                cursor: boardDragging === b.id ? 'grabbing' : 'grab',
+                borderRadius: '9px',
+                background: `linear-gradient(180deg, ${shade(b.color, 0.26)} 0%, ${b.color} 46%, ${shade(b.color, -0.16)} 100%)`,
+                boxShadow: isSel
+                  ? 'inset 0 1px 0 rgba(255,247,232,0.6), inset 0 -2px 3px rgba(0,0,0,0.22), 0 9px 15px rgba(58,38,18,0.20), 0 0 0 2px rgba(62,125,62,0.6)'
+                  : 'inset 0 1px 0 rgba(255,247,232,0.55), inset 0 -2px 3px rgba(0,0,0,0.2), 0 7px 13px rgba(58,38,18,0.15)',
+                transition: boardDragging === b.id ? 'none' : 'left .16s ease, top .16s ease, width .16s ease',
+              }}
+              onMouseDown={(e) => onBoardMouseDown(e, b)}
+              onClick={(e) => e.stopPropagation()}
+            />
           );
         })}
+
+        {/* 选中托板的快捷操作：缩短 / 加长 / 改色 / 删除 */}
+        {(() => {
+          const b = boards.find(x => x.id === selectedBoard);
+          if (!b) return null;
+          return (
+            <div className="absolute flex items-center gap-0.5 p-1"
+              style={{
+                left: `${b.x + b.w / 2}%`, top: `${b.y}%`,
+                transform: `translate(-50%, ${b.y < 12 ? '12px' : 'calc(-100% - 14px)'})`,
+                zIndex: 6,
+                background: 'var(--surface-card)', borderRadius: '10px',
+                border: '1px solid rgba(0,0,0,0.07)',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.14)',
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => nudgeBoardWidth(b.id, -4)} title="缩短托板"
+                className="w-6 h-6 rounded-md grid place-items-center text-[var(--text-2)] hover:bg-black/5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M5 12h14" /></svg>
+              </button>
+              <button onClick={() => nudgeBoardWidth(b.id, 4)} title="加长托板"
+                className="w-6 h-6 rounded-md grid place-items-center text-[var(--text-2)] hover:bg-black/5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              </button>
+              <label className="relative w-6 h-6 rounded-md grid place-items-center cursor-pointer hover:bg-black/5" title="托板颜色">
+                <span className="w-3.5 h-3.5 rounded-full border border-black/15" style={{ background: b.color }} />
+                <input type="color" value={b.color} onChange={(e) => setBoardColor(b.id, e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer" />
+              </label>
+              <button onClick={() => removeBoard(b.id)} disabled={boards.length <= 1} title="删除托板"
+                className="w-6 h-6 rounded-md grid place-items-center text-[var(--danger)] hover:bg-[rgba(var(--danger-rgb),0.08)] disabled:opacity-30">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
+              </button>
+            </div>
+          );
+        })()}
 
         {/* 蜜蜂（可拖拽） */}
         {[{ id: 'bee1', size: 28, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
@@ -525,16 +840,25 @@ export default function PlantingShelf({ onCountChange }) {
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 5 }}>
           <div className="flex items-baseline gap-2">
             <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">我的花架</span>
-            <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株 · 3 层</span>
+            <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株 · {boards.length} 块托板</span>
           </div>
-          <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
-            className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-            title="花架设置">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={(e) => { e.stopPropagation(); arrangeAll(false); }}
+              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
+              title="一键整理 · 把植物摆到托板上">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 4V2M15 10V8M11 6H9M21 6h-2M17.9 3.1l-1.4 1.4M17.9 8.9l-1.4-1.4M12.1 8.9l1.4-1.4M12.1 3.1l1.4 1.4M3 21l9-9" />
+              </svg>
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
+              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
+              title="花架设置">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* 自动保存轻提示（成功静默短暂显示，失败醒目常驻数秒） */}
@@ -560,6 +884,7 @@ export default function PlantingShelf({ onCountChange }) {
           const ws = waterStatus(plant);
           return (
             <div key={plant.id}
+              ref={(el) => { if (el) plantElsRef.current[plant.id] = el; }}
               className="absolute cursor-grab active:cursor-grabbing select-none"
               style={{
                 left: `${plant.pos_x}%`, top: `${plant.pos_y}%`,
@@ -695,6 +1020,7 @@ export default function PlantingShelf({ onCountChange }) {
         {showInfo && selected && (
           <InfoDrawer key={selected.id}
             plant={selected}
+            boardLabel={selBoardLabel}
             onSave={savePlant}
             onRemove={removePlant}
             onClose={() => { setShowInfo(false); setSelected(null); }}
@@ -707,6 +1033,11 @@ export default function PlantingShelf({ onCountChange }) {
             settings={settings}
             onChange={setSettings}
             bgInputRef={bgInputRef}
+            boards={boards}
+            onBoardsChange={setBoards}
+            onAddBoard={addBoard}
+            onRemoveBoard={removeBoard}
+            onArrange={() => arrangeAll(false)}
             onClose={() => setShowSettings(false)}
           />
         )}
@@ -787,7 +1118,7 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
   );
 }
 
-function InfoDrawer({ plant, onSave, onRemove, onClose }) {
+function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
   const [form, setForm] = useState({
     name: plant.name || '',
     planted_at: plant.planted_at || '',
@@ -883,7 +1214,7 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
                 className="text-[15px] font-semibold text-[var(--text-1)] bg-transparent outline-none border-b border-transparent focus:border-[#3E7D3E] transition leading-tight" />
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
                 style={{ color: '#3E7D3E', background: 'rgba(95,168,95,0.1)' }}>
-                L{Math.ceil((plant.pos_y || 0) / 33) || 1}
+                {boardLabel || '自由摆放'}
               </span>
             </div>
             {/* 已种植天数 + 种植日期（原生 date 胶囊，点击即弹系统日历） */}
@@ -973,20 +1304,14 @@ function InfoDrawer({ plant, onSave, onRemove, onClose }) {
 // ============================================================
 // SettingsDrawer — 花架设置面板（右上角齿轮）
 //   背景：纯色 / 上传图片
-//   层板颜色：每层独立色 + 一键统一
+//   悬浮托板：增删托板 / 改色 / 调宽 + 一键整理植物
 //   设置自动存 localStorage（实时预览）
 // ============================================================
 const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
-const PRESET_LAYER_COLORS = ['#B89F7D', '#9A7F5C', '#7C6445', '#C4A480', '#A68B6B', '#8A7050', '#8B6B4F', '#6B4E36'];
 
-function SettingsDrawer({ settings, onChange, bgInputRef, onClose }) {
+function SettingsDrawer({ settings, onChange, bgInputRef, boards, onBoardsChange, onAddBoard, onRemoveBoard, onArrange, onClose }) {
   const merge = (patch) => onChange({ ...settings, ...patch });
-  const updateLayer = (i, color) => {
-    const arr = [...(settings.layer_colors || ['#B89F7D', '#9A7F5C', '#7C6445'])];
-    arr[i] = color;
-    merge({ layer_colors: arr });
-  };
-  const unifyLayers = (color) => merge({ layer_colors: [color, color, color] });
+  const patchBoard = (id, patch) => onBoardsChange(list => list.map(b => (b.id === id ? { ...b, ...patch } : b)));
 
   return (
     <div onClick={(e) => e.stopPropagation()}
@@ -1052,48 +1377,46 @@ function SettingsDrawer({ settings, onChange, bgInputRef, onClose }) {
           )}
         </div>
 
-        {/* 层板颜色 */}
+        {/* 悬浮托板：增删 / 改色 / 调宽 */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase">层板颜色</div>
-            <div className="flex gap-1">
-              <button onClick={() => unifyLayers('#9A7F5C')} className="text-[9px] text-[#3E7D3E] font-bold hover:underline">默认</button>
-              <button onClick={() => unifyLayers('#888')} className="text-[9px] text-ink-500 font-bold hover:underline">统一灰</button>
-            </div>
+            <div className="text-[9px] font-bold text-ink-500 tracking-wide uppercase">悬浮托板 · {boards.length}/{MAX_BOARDS}</div>
+            <button onClick={onAddBoard} disabled={boards.length >= MAX_BOARDS}
+              className="text-[9px] text-[#3E7D3E] font-bold hover:underline disabled:opacity-40 disabled:no-underline">
+              + 添加托板
+            </button>
           </div>
 
-          {/* 每层独立 */}
-          <div className="space-y-1.5">
-            {[0, 1, 2].map(i => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-[10px] text-ink-700 w-8 flex-shrink-0">第 {i + 1} 层</span>
-                <input type="color" value={settings.layer_colors?.[i] || '#9A7F5C'}
-                  onChange={(e) => updateLayer(i, e.target.value)}
+          <div className="space-y-2">
+            {boards.map((b, i) => (
+              <div key={b.id} className="flex items-center gap-2">
+                <span className="text-[10px] text-ink-700 w-9 flex-shrink-0">第 {i + 1} 块</span>
+                <input type="color" value={b.color}
+                  onChange={(e) => patchBoard(b.id, { color: e.target.value })}
                   className="w-6 h-5 rounded border border-ink-100 cursor-pointer flex-shrink-0" />
-                <div className="relative flex-1 h-2 rounded-sm overflow-hidden">
-                  {/* 层板预览条 */}
-                  <div className="absolute inset-x-0 top-0 h-[1px]" style={{ background: 'rgba(255,245,228,0.5)' }} />
-                  <div className="absolute inset-x-0 bottom-0 h-[1px]" style={{ background: 'rgba(0,0,0,0.15)' }} />
-                  <div className="absolute inset-0" style={{ background: settings.layer_colors?.[i] || '#9A7F5C' }} />
-                </div>
-                <span className="text-[9px] text-ink-400 w-14 text-right font-mono">{(settings.layer_colors?.[i] || '#9A7F5C').toUpperCase()}</span>
+                <input type="range" min={16} max={72} value={Math.round(b.w)}
+                  onChange={(e) => {
+                    const w = Number(e.target.value);
+                    patchBoard(b.id, { w, x: Math.min(b.x, 100 - w - 1) });
+                  }}
+                  className="flex-1 h-1 accent-[#3E7D3E]" />
+                <span className="text-[9px] text-ink-400 w-7 text-right tabular-nums">{Math.round(b.w)}%</span>
+                <button onClick={() => onRemoveBoard(b.id)} disabled={boards.length <= 1} title="删除这块托板"
+                  className="text-ink-400 hover:text-[var(--danger)] disabled:opacity-30 flex-shrink-0">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
+                </button>
               </div>
             ))}
           </div>
 
-          {/* 色板快速选 */}
-          <div className="flex gap-1.5 mt-2 flex-wrap">
-            {PRESET_LAYER_COLORS.map(c => (
-              <button key={c} onClick={() => unifyLayers(c)}
-                title={`统一为 ${c}`}
-                className="w-5 h-5 rounded border border-ink-200 transition hover:scale-110"
-                style={{ background: c }} />
-            ))}
-          </div>
+          <button onClick={onArrange}
+            className="mt-2.5 w-full py-1.5 rounded-lg text-[10px] font-bold text-[#3E7D3E] border border-[rgba(95,168,95,0.35)] bg-[rgba(95,168,95,0.06)] hover:bg-[rgba(95,168,95,0.12)] transition">
+            一键整理植物到托板
+          </button>
         </div>
 
         {/* 重置 */}
-        <button onClick={() => onChange({ bg_type: 'solid', bg_color: '#FFFFFF', bg_image: '', layer_colors: ['#B89F7D', '#9A7F5C', '#7C6445'] })}
+        <button onClick={() => onChange({ bg_type: 'solid', bg_color: '#FFFFFF', bg_image: '', boards: DEFAULT_BOARDS.map(b => ({ ...b })) })}
           className="w-full py-1.5 rounded-lg text-[10px] font-bold text-ink-500 border border-ink-100 hover:bg-ink-50 transition">
           恢复默认
         </button>

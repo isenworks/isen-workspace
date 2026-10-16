@@ -200,6 +200,19 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const avatarRef = useRef(null);
+  const avatarMenuRef = useRef(null);
+  // 点击头像/菜单外任意位置关闭头像菜单（菜单内点击已被面板 stopPropagation 拦截）
+  useEffect(() => {
+    if (!showAvatarMenu) return;
+    const onDocClick = (e) => {
+      const t = e.target;
+      if (avatarRef.current?.contains(t) || avatarMenuRef.current?.contains(t)) return;
+      setShowAvatarMenu(false);
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [showAvatarMenu]);
   const [cropFile, setCropFile] = useState(null); // 选中待裁剪的原文件
   const [confirmLogout, setConfirmLogout] = useState(false); // 退出登录二次确认（无 onBeforeLogout 时的兜底）
 
@@ -367,6 +380,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
       <div className="sb-user-card">
         <div className="sb-user-row">
           <div
+            ref={avatarRef}
             className="sb-avatar"
             style={{ cursor: 'pointer', position: 'relative', overflow: 'visible',
               // 图片头像完全覆盖渐变底，避免 PNG 透明边缘/圆角亚像素漏出红橙圈
@@ -403,7 +417,7 @@ export default function Sidebar({ user, onLogout, onSettingsClick, onShortcutsCl
             onChange={handleAvatarChange}
           />
           {showAvatarMenu && (
-            <div style={{
+            <div ref={avatarMenuRef} style={{
               position: 'absolute', left: '0', top: '52px',
               background: 'var(--surface-card)', borderRadius: '12px',
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)',

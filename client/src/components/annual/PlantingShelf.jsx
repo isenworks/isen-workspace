@@ -1370,7 +1370,7 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
   const restoreColors = () => onBoardsChange(list => list.map((b, i) => ({ ...b, color: palette[i % palette.length] || b.color })));
   // 分段控件（对齐全站 .tab-group 视觉：外槽圆角方 + 选中胶囊）
   const segStyle = (on) => ({
-    padding: '4px 14px', fontSize: 13, fontWeight: on ? 600 : 500, borderRadius: 7,
+    padding: '3px 11px', fontSize: 12, fontWeight: on ? 600 : 500, borderRadius: 7,
     color: on ? '#fff' : 'var(--text-2)', background: on ? PLANT_GREEN : 'transparent',
     border: 'none', cursor: 'pointer', transition: 'all .2s',
     boxShadow: on ? '0 3px 8px rgba(62,125,62,0.25)' : 'none',
@@ -1393,7 +1393,13 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
         animation: 'drawer-slide-in 0.2s ease-out',
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
       }}>
-      <style>{`@keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }`}</style>
+      <style>{`@keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+        /* 托板宽度滑杆：细轨 + 小圆点（原生 thumb 过大） */
+        .bd-range { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: var(--ink-100); outline: none; cursor: pointer; }
+        .bd-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #3E7D3E; box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; }
+        .bd-range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--ink-100); }
+        .bd-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #3E7D3E; box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; }
+      `}</style>
 
       {/* 头部 */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -1491,7 +1497,7 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
                     const w = Number(e.target.value);
                     patchBoard(b.id, { w, x: Math.min(b.x, 100 - w - 1) });
                   }}
-                  className="flex-1 h-1 accent-[#3E7D3E]" />
+                  className="bd-range flex-1" />
                 <span className="w-9 text-right text-[11px] tabular-nums text-[var(--text-3)]">{Math.round(b.w)}%</span>
                 <button onClick={() => onRemoveBoard(b.id)} disabled={boards.length <= 1} title="删除这块托板"
                   className="w-6 h-6 rounded-md grid place-items-center flex-shrink-0 transition disabled:opacity-30 text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[rgba(var(--danger-rgb),0.08)]">

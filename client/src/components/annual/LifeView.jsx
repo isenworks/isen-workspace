@@ -199,6 +199,13 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
 
   /* ===== 双面板布局：左类目导航（筛选器）+ 右时间流（唯一主视图） ===== */
   const [lifeFilter, setLifeFilter] = useState(null); // null=全部 | 类目 key | 'birthday'=生日虚拟分类
+  // 左侧「种植」行 +：切到花架并递一个信号，让花架打开「添加植物」的文件选择
+  const [plantAddSignal, setPlantAddSignal] = useState(0);
+  const requestAddPlant = useCallback(() => {
+    setLifeFilter('planting');
+    setPlantAddSignal(s => s + 1);
+  }, []);
+  const consumePlantAdd = useCallback(() => setPlantAddSignal(0), []);
   // 生日数据（从 schedules API 获取，title 含"生日" + repeat_rule=yearly/lunar-yearly）
   const [birthdays, setBirthdays] = useState([]);
   const [bdLoading, setBdLoading] = useState(false);
@@ -689,8 +696,8 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     <span className="flex-1 truncate">{isBd ? '生日' : row.lb}</span>
                   </button>
                   <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{cnt}</span>
-                  <button onClick={() => isBd ? onBirthdayAdd?.() : onEntryAdd?.(row.key, row.lb)}
-                    title={isBd ? '新建生日' : `添加${row.lb}记录`}
+                  <button onClick={() => isBd ? onBirthdayAdd?.() : (isPlantRow(row) ? requestAddPlant() : onEntryAdd?.(row.key, row.lb))}
+                    title={isBd ? '新建生日' : isPlantRow(row) ? '添加植物' : `添加${row.lb}记录`}
                     className={`${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer`}
                     style={{ background: `${moduleRgba('life', 0.10)}`, color: 'var(--m-life)' }}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -706,7 +713,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       {/* 卡③ 时间流主视图（右侧全高卡，62%，唯一主视图） */}
       <div className="bg-white rounded-2xl border border-ink-100 p-4 min-w-0 flex flex-col overflow-hidden" style={rightStyle}>
             {isPlantRow(selFilterCat) ? (
-              <div className="flex-1 min-h-0 plant-host"><PlantingShelf onCountChange={syncPlantCount} /></div>
+              <div className="flex-1 min-h-0 plant-host"><PlantingShelf onCountChange={syncPlantCount} addSignal={plantAddSignal} onAddConsumed={consumePlantAdd} /></div>
             ) : lifeFilter === 'birthday' ? (
               bdCountdown.length === 0 ? (
                 <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-400">

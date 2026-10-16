@@ -223,7 +223,7 @@ function BFDrop({ pos, size, color, anim, onPosChange }) {
   );
 }
 
-export default function PlantingShelf({ onCountChange }) {
+export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsumed }) {
   const toast = useToast();
   // 触摸端长按植物 → 与右键同：打开信息编辑面板
   const lp = useLongPress();
@@ -260,7 +260,7 @@ export default function PlantingShelf({ onCountChange }) {
       return { ...st, boards: next };
     });
   }, []);
-  // 托板默认色板：把「当前这几块的颜色」记为默认色（新托板沿用 + 恢复默认还原）
+  // 托板默认色板：把「当前这几块的颜色」记为默认色（新托板沿用 + 「恢复托板颜色」还原）
   const boardPalette = Array.isArray(settings.board_default_colors) && settings.board_default_colors.length
     ? settings.board_default_colors : DEFAULT_BOARD_COLORS;
   const canvasRef = useRef(null);
@@ -270,6 +270,17 @@ export default function PlantingShelf({ onCountChange }) {
   const zCounter = useRef(1);
   const draggingRef = useRef(null);
   const plantsRef = useRef([]);
+  // 左侧「种植」行 + 触发：父组件把信号 +1，这里据此打开「添加植物」文件选择（用完即回 0）
+  const addFiredRef = useRef(false);
+  useEffect(() => {
+    if (addSignal > 0 && !addFiredRef.current) {
+      addFiredRef.current = true;
+      fileInputRef.current?.click();
+      if (typeof onAddConsumed === 'function') onAddConsumed();
+    } else if (addSignal === 0) {
+      addFiredRef.current = false;
+    }
+  }, [addSignal, onAddConsumed]);
   useEffect(() => { draggingRef.current = dragging; }, [dragging]);
   useEffect(() => { plantsRef.current = plants; }, [plants]);
   // toast 自动消失
@@ -306,7 +317,7 @@ export default function PlantingShelf({ onCountChange }) {
       .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
   }
 
-  // 恢复默认位置：把每株植物搬回「设为默认」时记录的位置（手动触发；平时不自动干预）
+  // 一键整理植物：把每株植物搬回「设为默认」时记录的位置（手动触发；平时不自动干预）
   function restoreDefault() {
     const map = settings.plant_default_pos || {};
     const positions = [];
@@ -315,7 +326,7 @@ export default function PlantingShelf({ onCountChange }) {
       if (d) positions.push({ id: p.id, pos_x: d.x, pos_y: d.y });
     }
     const changed = commitLayout(positions);
-    if (changed.length) persistPositions(changed, '已恢复默认位置');
+    if (changed.length) persistPositions(changed, '已一键整理');
     else toast.info('已在默认位置');
   }
 
@@ -778,13 +789,13 @@ export default function PlantingShelf({ onCountChange }) {
               title="添加植物 · 支持 PNG 透明图">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3E7D3E" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             </button>
-            {/* 恢复默认位置（把植物搬回设为默认时的位置） */}
+            {/* 一键整理植物（把植物搬回设为默认时的位置） */}
             <button onClick={(e) => { e.stopPropagation(); restoreDefault(); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-              title="恢复默认位置">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="1 4 1 10 7 10" />
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              title="一键整理植物">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4.5 19.5L13.5 10.5" />
+                <path d="M17 1.5L18.47 5.4L23 7.5L18.47 9.6L17 13.5L15.53 9.6L11 7.5L15.53 5.4Z" />
               </svg>
             </button>
             <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
@@ -1234,7 +1245,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
 // ============================================================
 // SettingsDrawer — 花架设置面板（右上角齿轮）
 //   背景：纯色 / 上传图片
-//   悬浮托板：增删托板 / 改色 / 调宽 + 恢复默认位置
+//   悬浮托板：增删托板 / 改色 / 调宽 + 一键整理植物
 //   设置自动存 localStorage（实时预览）
 // ============================================================
 const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
@@ -1342,14 +1353,14 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
 
           <button onClick={onArrange}
             className="mt-2.5 w-full py-1.5 rounded-lg text-[10px] font-bold text-[#3E7D3E] border border-[rgba(95,168,95,0.35)] bg-[rgba(95,168,95,0.06)] hover:bg-[rgba(95,168,95,0.12)] transition">
-            恢复默认位置
+            一键整理植物
           </button>
         </div>
 
-        {/* 重置：几何回到默认三块，颜色沿用「默认色板」 */}
-        <button onClick={() => onChange({ bg_type: 'solid', bg_color: '#FFFFFF', bg_image: '', boards: DEFAULT_BOARDS.map((b, i) => ({ ...b, color: palette[i] || b.color })) })}
+        {/* 恢复托板颜色：只把每块托板的颜色还原成默认色板，位置 / 宽度 / 背景保持不变 */}
+        <button onClick={() => onBoardsChange(list => list.map((b, i) => ({ ...b, color: palette[i % palette.length] || b.color })))}
           className="w-full py-1.5 rounded-lg text-[10px] font-bold text-ink-500 border border-ink-100 hover:bg-ink-50 transition">
-          恢复默认
+          恢复托板颜色
         </button>
       </div>
     </div>

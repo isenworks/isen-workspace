@@ -686,38 +686,36 @@ export default function InboxPage({ onCountChange }) {
     );
   };
 
+  // 头部卡只保留"记录输入"职能（标题 + 排版/筛选入口）；列表级控制（筛选 chips + 行序切换）随列表卡
   const renderHeader = () => (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
-        <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
-        <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
-          <button onClick={() => switchLayout('tri')} title="三分布局"
-            className="px-2 py-1 rounded-md transition-all flex items-center"
-            style={layout === 'tri' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
-            </svg>
-          </button>
-          <button onClick={() => switchLayout('duo')} title="二分布局"
-            className="px-2 py-1 rounded-md transition-all flex items-center"
-            style={layout === 'duo' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
-            </svg>
-          </button>
-        </div>
-        <div className="flex-1" />
-        {renderFilterPopover()}
-        {isDuo && (
-          <button onClick={() => setSelectedId(null)} title="新增记录"
-            className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-            style={{ background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-          </button>
-        )}
+    <div className="flex items-center gap-3">
+      <span className="w-[5px] h-[20px] rounded-full flex-shrink-0 self-center" style={{ background: 'var(--s-grad-bg)' }}></span>
+      <span className="text-[15.5px] font-bold text-ink-900 leading-none flex-shrink-0">小记</span>
+      <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+        <button onClick={() => switchLayout('tri')} title="三分布局"
+          className="px-2 py-1 rounded-md transition-all flex items-center"
+          style={layout === 'tri' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
+          </svg>
+        </button>
+        <button onClick={() => switchLayout('duo')} title="二分布局"
+          className="px-2 py-1 rounded-md transition-all flex items-center"
+          style={layout === 'duo' ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)' } : { color: 'var(--text-muted)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" />
+          </svg>
+        </button>
       </div>
-      {renderFilterChips()}
+      <div className="flex-1" />
+      {renderFilterPopover()}
+      {isDuo && (
+        <button onClick={() => setSelectedId(null)} title="新增记录"
+          className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+          style={{ background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        </button>
+      )}
     </div>
   );
 
@@ -740,6 +738,10 @@ export default function InboxPage({ onCountChange }) {
         </div>
       ) : (
         <div className={`glass-card rounded-2xl p-2.5 flex flex-col ${fill ? 'flex-1 min-h-0 overflow-y-auto nice-scroll' : ''}`}>
+          {/* 列表级工具行（筛选 chips + 行序切换）：sticky 顶部，列表内滚时控件常驻可见 */}
+          <div className="sticky top-0 z-10 -mx-2.5 px-4 pt-2 pb-2 bg-white/85 backdrop-blur-md border-b border-ink-100/60 rounded-t-2xl flex flex-wrap items-center gap-1.5">
+            {renderFilterChips()}
+          </div>
           {groups.map((g, gi) => (
             <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
               {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}

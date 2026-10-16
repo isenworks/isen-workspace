@@ -739,7 +739,7 @@ export default function InboxPage({ onCountChange }) {
           <div className="text-[13px] text-ink-400">所选标签下暂无小记</div>
         </div>
       ) : (
-        <div className={`glass-card rounded-2xl p-2.5 flex flex-col ${fill ? 'flex-1 min-h-0' : ''}`}>
+        <div className={`glass-card rounded-2xl p-2.5 flex flex-col ${fill ? 'flex-1 min-h-0 overflow-y-auto nice-scroll' : ''}`}>
           {groups.map((g, gi) => (
             <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
               {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}
@@ -785,7 +785,7 @@ export default function InboxPage({ onCountChange }) {
   const { leftStyle, rightStyle, bindRoot, bindDivider } = split;
 
   return (
-    <div {...bindRoot} className="split-root flex-1 min-w-0 w-full flex items-stretch">
+    <div {...bindRoot} className="split-root flex-1 min-w-0 min-h-0 w-full flex items-stretch">
       {isDuo ? (
         <>
           <div className="flex flex-col gap-3 min-w-0" style={leftStyle}>
@@ -795,7 +795,7 @@ export default function InboxPage({ onCountChange }) {
             {renderList(true)}
           </div>
           <SplitDivider bindDivider={bindDivider} />
-          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={rightStyle}>
+          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0 min-h-0 overflow-y-auto nice-scroll" style={rightStyle}>
             {renderEditPanel(false)}
           </div>
         </>
@@ -811,7 +811,7 @@ export default function InboxPage({ onCountChange }) {
             {renderList(true)}
           </div>
           <SplitDivider bindDivider={bindDivider} />
-          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0" style={rightStyle}>
+          <div className="glass-card rounded-2xl p-4 flex flex-col min-w-0 min-h-0 overflow-y-auto nice-scroll" style={rightStyle}>
             {renderEditPanel(true)}
           </div>
         </>

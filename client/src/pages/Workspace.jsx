@@ -629,7 +629,9 @@ export default function Workspace({ user: propUser }) {
           <AnnualPlan standalone={false} initialView={annualView} onViewChange={(v) => navigate('annual', v)} addRequest={annualAdd} />
         </div>
       ) : activeMenu === 'inbox' ? (
-        <InboxPage onCountChange={setInboxCount} />
+        <div className="flex-1 min-w-0 md:h-[calc(100vh-48px)] min-h-0 flex flex-col">
+          <InboxPage onCountChange={setInboxCount} />
+        </div>
       ) : activeMenu === 'knowledge' ? (
         <KnowledgeBasePage />
       ) : activeMenu === 'ai' ? (

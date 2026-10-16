@@ -575,7 +575,7 @@ export default function InboxPage({ onCountChange }) {
           <button
             onClick={() => switchRowOrder('content')}
             title="内容优先：标题在上，日期沉底为辅助行"
-            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
+            className="px-2.5 py-1 rounded-md text-[12px] leading-none transition-all"
             style={rowOrder === 'content'
               ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
               : { color: 'var(--text-muted)' }}
@@ -583,7 +583,7 @@ export default function InboxPage({ onCountChange }) {
           <button
             onClick={() => switchRowOrder('time')}
             title="时间优先：日期在上（日志式），标题在下"
-            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
+            className="px-2.5 py-1 rounded-md text-[12px] leading-none transition-all"
             style={rowOrder === 'time'
               ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
               : { color: 'var(--text-muted)' }}

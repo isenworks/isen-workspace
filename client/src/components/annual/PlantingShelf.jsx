@@ -270,17 +270,25 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const zCounter = useRef(1);
   const draggingRef = useRef(null);
   const plantsRef = useRef([]);
-  // 左侧「种植」行 + 触发：父组件把信号 +1，这里据此打开「添加植物」文件选择（用完即回 0）
+  // 「添加植物」面板：右上角 + / 拖图到画布 / 左侧「种植」行 + 都打开它
+  const [addOpen, setAddOpen] = useState(false);
+  const [addDraft, setAddDraft] = useState({ name: '新植物', image: '' });
+  const [addBusy, setAddBusy] = useState(false);
+  const openAdd = useCallback((image = '') => {
+    setAddDraft({ name: '新植物', image });
+    setAddOpen(true);
+  }, []);
+  // 左侧「种植」行 + 触发：父组件把信号 +1，这里打开面板（用完即回 0）
   const addFiredRef = useRef(false);
   useEffect(() => {
     if (addSignal > 0 && !addFiredRef.current) {
       addFiredRef.current = true;
-      fileInputRef.current?.click();
+      openAdd();
       if (typeof onAddConsumed === 'function') onAddConsumed();
     } else if (addSignal === 0) {
       addFiredRef.current = false;
     }
-  }, [addSignal, onAddConsumed]);
+  }, [addSignal, onAddConsumed, openAdd]);
   useEffect(() => { draggingRef.current = dragging; }, [dragging]);
   useEffect(() => { plantsRef.current = plants; }, [plants]);
   // toast 自动消失
@@ -458,9 +466,10 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   useEffect(() => { loadPlants(); }, [loadPlants]);
 
   // ---- 文件上传（跳过 upload 校验接口，base64 直接 create；入库前 canvas 压缩）----
-  const handleFileSelect = useCallback(async (file) => {
-    if (!file || !file.type.startsWith('image/')) return;
-    if (file.size > 8 * 1024 * 1024) { toast.warn('图片不能超过 8MB'); return; }
+  // 读取 + 压缩一张图片 → dataUrl（校验失败返回 null，不创建任何东西）
+  const prepareImage = useCallback(async (file) => {
+    if (!file || !file.type.startsWith('image/')) return null;
+    if (file.size > 8 * 1024 * 1024) { toast.warn('图片不能超过 8MB'); return null; }
     // 转 base64
     const reader = new FileReader();
     let dataUrl;
@@ -470,16 +479,30 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-    } catch (e) { toast.error('读取图片失败'); return; }
+    } catch (e) { toast.error('读取图片失败'); return null; }
     // 压缩（480px + WebP 保透明）：新图从源头就小，加载快
     dataUrl = await compressDataUrl(dataUrl, 480);
-    if (dataUrl.length > 3 * 1024 * 1024) { toast.warn('图片过大，请换一张'); return; }
-    // 直接创建植物，默认中心位置
+    if (dataUrl.length > 3 * 1024 * 1024) { toast.warn('图片过大，请换一张'); return null; }
+    return dataUrl;
+  }, [toast]);
+
+  const onFileInputChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const dataUrl = await prepareImage(file);
+    if (dataUrl) setAddDraft(d => ({ ...d, image: dataUrl }));
+  };
+
+  // 「添加植物」面板确认：按草稿创建植物（默认落在画布中上部）
+  const confirmAdd = async () => {
+    if (!addDraft.image) { toast.warn('请先选择植物图片'); return; }
     const z = zCounter.current++;
+    setAddBusy(true);
     try {
       const { plant } = await API.plants.create({
-        name: '新植物',
-        image: dataUrl,
+        name: addDraft.name.trim() || '新植物',
+        image: addDraft.image,
         pos_x: 50,
         pos_y: 30,
         z_index: z,
@@ -488,18 +511,14 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         last_watered: new Date().toISOString().slice(0, 10),
       });
       setPlants(prev => [...prev, plant]);
-      // 自动选中新植物
+      setAddOpen(false);
       setSelected(plant);
       setShowInfo(true);
     } catch (e) {
       toast.error('添加植物失败: ' + e.message + '\n请确认 Cloudflare Pages Functions 已部署最新版本');
+    } finally {
+      setAddBusy(false);
     }
-  }, [toast]);
-
-  const onFileInputChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
-    e.target.value = '';
   };
 
   // ---- 拖拽逻辑 ----
@@ -623,12 +642,15 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     setConfirmRemove(id);
   };
 
-  // ---- 画布拖拽上传 ----
+  // ---- 画布拖拽上传（拖图到画布 → 用该图预置「添加植物」面板）----
   const onCanvasDragOver = (e) => { e.preventDefault(); };
-  const onCanvasDrop = (e) => {
+  const onCanvasDrop = async (e) => {
     e.preventDefault();
     const file = e.dataTransfer?.files?.[0];
-    if (file && file.type.startsWith('image/')) handleFileSelect(file);
+    if (file && file.type.startsWith('image/')) {
+      const dataUrl = await prepareImage(file);
+      if (dataUrl) openAdd(dataUrl);
+    }
   };
 
   // 画布点击（空白处）：取消选中植物（隐藏缩放/托板手柄）+ 关闭信息面板
@@ -783,10 +805,10 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株</span>
           </div>
           <div className="flex items-center gap-1">
-            {/* 添加植物（原右下角 + 按钮整合到此） */}
-            <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            {/* 添加植物（打开「添加植物」面板） */}
+            <button onClick={(e) => { e.stopPropagation(); openAdd(); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-              title="添加植物 · 支持 PNG 透明图">
+              title="添加植物">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3E7D3E" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             </button>
             {/* 一键整理植物（把植物搬回设为默认时的位置） */}
@@ -956,6 +978,18 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
           onChange={onFileInputChange} />
 
+        {/* 添加植物面板（+ / 拖图 / 左侧「种植」行 + 触发） */}
+        {addOpen && (
+          <AddPlantDrawer
+            draft={addDraft}
+            busy={addBusy}
+            onNameChange={(v) => setAddDraft(d => ({ ...d, name: v }))}
+            onPickImage={() => fileInputRef.current?.click()}
+            onConfirm={confirmAdd}
+            onClose={() => setAddOpen(false)}
+          />
+        )}
+
         {/* 信息面板（右键抽屉） */}
         {showInfo && selected && (
           <InfoDrawer key={selected.id}
@@ -1005,6 +1039,82 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         onConfirm={() => { const id = confirmRemove; setConfirmRemove(null); doRemovePlant(id); }}
       />
     </div>
+  );
+}
+
+// ============================================================
+// AddPlantDrawer — 「添加植物」面板（从右侧滑入）
+//   名称可改 + 选一张图片（PNG 透明背景最佳）→ 添加
+// ============================================================
+function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onClose }) {
+  const canAdd = !!draft.image && !busy;
+  return (
+    <>
+      {/* 遮罩（不遮画布，仅阻止穿透） */}
+      <div className="absolute inset-0" style={{ zIndex: 10, pointerEvents: 'none' }} />
+
+      <div onClick={(e) => e.stopPropagation()}
+        className="absolute top-12 right-4 w-[320px] overflow-hidden"
+        style={{
+          zIndex: 11,
+          background: 'var(--surface-card)',
+          borderRadius: '16px',
+          border: '1px solid rgba(0,0,0,0.06)',
+          boxShadow: '0 20px 56px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
+          animation: 'drawer-slide-in 0.2s ease-out',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
+        }}>
+        {/* 页头 */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <span className="text-[13px] font-bold text-ink-900">添加植物</span>
+          <button onClick={onClose} title="关闭"
+            className="w-6 h-6 rounded-md grid place-items-center text-ink-400 hover:bg-ink-50 transition">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+
+        <div className="px-4 pb-4 flex flex-col gap-3">
+          {/* 图片选择 / 预览 */}
+          <div>
+            <div className="text-[11px] font-semibold text-ink-500 mb-1.5">植物图片</div>
+            <button type="button" onClick={onPickImage}
+              className="w-full h-[120px] rounded-xl border border-dashed grid place-items-center overflow-hidden transition hover:bg-ink-50"
+              style={{ borderColor: 'rgba(95,168,95,0.35)', background: 'rgba(95,168,95,0.04)' }}>
+              {draft.image ? (
+                <img src={draft.image} alt="预览" className="max-h-[104px] max-w-full object-contain" draggable={false} />
+              ) : (
+                <span className="flex flex-col items-center gap-1 text-[11px] text-ink-400">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
+                  点击选择图片（PNG 透明背景最佳）
+                </span>
+              )}
+            </button>
+            {draft.image && (
+              <button type="button" onClick={onPickImage}
+                className="mt-1.5 text-[10px] font-semibold text-ink-500 hover:text-ink-700 transition">重新选择图片</button>
+            )}
+          </div>
+
+          {/* 名称 */}
+          <div>
+            <div className="text-[11px] font-semibold text-ink-500 mb-1.5">名称</div>
+            <input value={draft.name} onChange={(e) => onNameChange(e.target.value)}
+              placeholder="新植物" maxLength={20}
+              className="w-full px-2.5 py-1.5 rounded-lg text-[12px] text-ink-900 outline-none transition"
+              style={{ background: 'rgba(120,120,128,0.06)', border: '1px solid rgba(0,0,0,0.08)' }} />
+          </div>
+
+          {/* 操作 */}
+          <div className="flex items-center gap-2 pt-0.5">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-ink-500 border border-ink-100 hover:bg-ink-50 transition">取消</button>
+            <button type="button" onClick={onConfirm} disabled={!canAdd}
+              className="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition disabled:opacity-40"
+              style={{ background: '#3E7D3E', color: '#fff' }}>{busy ? '添加中…' : '添加植物'}</button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 

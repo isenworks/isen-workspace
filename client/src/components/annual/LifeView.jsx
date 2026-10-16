@@ -199,10 +199,11 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
 
   /* ===== 双面板布局：左类目导航（筛选器）+ 右时间流（唯一主视图） ===== */
   const [lifeFilter, setLifeFilter] = useState(null); // null=全部 | 类目 key | 'birthday'=生日虚拟分类
-  // 左侧「种植」行 +：切到花架并递一个信号，让花架打开「添加植物」的文件选择
+  // 左侧「种植」行 +：切到花架并递一个信号，让花架打开「添加植物」面板
+  //   注意用 row.key（种植类目的 key 可能是 uid，不是字面量 'planting'），否则定位不到该类目
   const [plantAddSignal, setPlantAddSignal] = useState(0);
-  const requestAddPlant = useCallback(() => {
-    setLifeFilter('planting');
+  const requestAddPlant = useCallback((key) => {
+    setLifeFilter(key);
     setPlantAddSignal(s => s + 1);
   }, []);
   const consumePlantAdd = useCallback(() => setPlantAddSignal(0), []);
@@ -696,7 +697,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     <span className="flex-1 truncate">{isBd ? '生日' : row.lb}</span>
                   </button>
                   <span className={`text-[12px] tabular-nums ${active ? '' : 'text-ink-400'}`}>{cnt}</span>
-                  <button onClick={() => isBd ? onBirthdayAdd?.() : (isPlantRow(row) ? requestAddPlant() : onEntryAdd?.(row.key, row.lb))}
+                  <button onClick={() => isBd ? onBirthdayAdd?.() : (isPlantRow(row) ? requestAddPlant(row.key) : onEntryAdd?.(row.key, row.lb))}
                     title={isBd ? '新建生日' : isPlantRow(row) ? '添加植物' : `添加${row.lb}记录`}
                     className={`${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition inline-flex items-center justify-center w-[18px] h-[18px] rounded-md flex-shrink-0 cursor-pointer`}
                     style={{ background: `${moduleRgba('life', 0.10)}`, color: 'var(--m-life)' }}>

@@ -324,9 +324,9 @@ export default function InboxPage({ onCountChange }) {
     const firstLine = plainFirstLine(item.content);
     const timeFirst = rowOrder === 'time';
 
-    // 标题行（内容优先排版时是第一视觉，时间优先排版时沉底；选中行 font-medium 半档加粗标记当前焦点）
+    // 标题行（内容优先排版时是第一视觉，时间优先排版时沉底；选中态只动背景与标签色，不改文字形态）
     const titleLine = (
-      <div className={`text-[14px] leading-snug text-ink-900 truncate ${timeFirst ? 'mt-0.5' : ''} ${isSelected ? 'font-medium' : ''}`}>
+      <div className={`text-[14px] leading-snug text-ink-900 truncate ${timeFirst ? 'mt-0.5' : ''}`}>
         {(firstLine || '（空）').slice(0, 60)}
       </div>
     );

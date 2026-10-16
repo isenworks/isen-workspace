@@ -82,7 +82,6 @@ function dateDaysAgo(n) {
 //   x/y/w 均为画布百分比（x=左缘、y=顶面、w=宽度）；厚度固定 BOARD_H(px)；color=板色。
 //   板画在植物之上（zIndex 4 > 植物容器 2），盖住花盆底部 → 形成"坐在板上"的错觉。
 const BOARD_H = 16;
-const BOARD_SINK = 5;   // 植物底部下沉像素：让花盆底被托板盖住，形成"坐在板上"的错觉
 const MAX_BOARDS = 6;
 const DEFAULT_BOARD_COLORS = ['#A98C64', '#9A7F5C', '#8B6B4F'];
 // 默认三块：右(52%) / 左(6%) / 右(56%) —— 交替缩进，形成 Z 字节奏
@@ -110,8 +109,8 @@ function shade(hex, amt) {
   return `rgb(${ch(0)}, ${ch(2)}, ${ch(4)})`;
 }
 
-// 新增托板时补一个纵向空档 + 左右交替，尽量不压已有的板
-function nextBoardSlot(list) {
+// 新增托板时补一个纵向空档 + 左右交替，尽量不压已有的板；颜色取默认色板
+function nextBoardSlot(list, palette) {
   const ys = list.map(b => b.y);
   const cands = [16, 30, 44, 58, 72, 86];
   let y = cands[0], best = -1;
@@ -122,7 +121,8 @@ function nextBoardSlot(list) {
   const idx = list.length;
   const w = idx % 2 === 0 ? 36 : 42;
   const x = idx % 2 === 0 ? 8 : 56;
-  return { x: Math.min(x, 100 - w), y, w, color: DEFAULT_BOARD_COLORS[idx % DEFAULT_BOARD_COLORS.length] };
+  const pal = Array.isArray(palette) && palette.length ? palette : DEFAULT_BOARD_COLORS;
+  return { x: Math.min(x, 100 - w), y, w, color: pal[idx % pal.length] };
 }
 
 // ---- 蜜蜂 SVG ----
@@ -260,6 +260,9 @@ export default function PlantingShelf({ onCountChange }) {
       return { ...st, boards: next };
     });
   }, []);
+  // 托板默认色板：把「当前这几块的颜色」记为默认色（新托板沿用 + 恢复默认还原）
+  const boardPalette = Array.isArray(settings.board_default_colors) && settings.board_default_colors.length
+    ? settings.board_default_colors : DEFAULT_BOARD_COLORS;
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const bgInputRef = useRef(null);
@@ -267,11 +270,8 @@ export default function PlantingShelf({ onCountChange }) {
   const zCounter = useRef(1);
   const draggingRef = useRef(null);
   const plantsRef = useRef([]);
-  const boardsRef = useRef([]);      // 一键整理时读最新托板
-  const plantElsRef = useRef({});    // 植物 DOM 映射（实测宽高 → 一键整理排布）
   useEffect(() => { draggingRef.current = dragging; }, [dragging]);
   useEffect(() => { plantsRef.current = plants; }, [plants]);
-  useEffect(() => { boardsRef.current = boards; }, [boards]);
   // toast 自动消失
   useEffect(() => {
     if (!saveToast) return;
@@ -283,62 +283,8 @@ export default function PlantingShelf({ onCountChange }) {
   // settings 持久化
   useEffect(() => { localStorage.setItem('planting_shelf_settings', JSON.stringify(settings)); }, [settings]);
 
-  // ---- 悬浮托板几何 / 植物自动布局 ----
+  // ---- 悬浮托板几何 / 默认位置 ----
   const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
-
-  // 植物渲染尺寸：实测不到（图片未加载完）就按标称尺寸兜底，避免把植物摆到托板中线
-  function measure(plant) {
-    const el = plantElsRef.current[plant.id];
-    const ok = el && el.offsetWidth > 16 && el.offsetHeight > 16;
-    return {
-      w: ok ? el.offsetWidth : 130 * (plant.size || 1),
-      h: ok ? el.offsetHeight : 150 * (plant.size || 1),
-    };
-  }
-
-  // 距植物最近的一块托板（requireOverlap=true 时要求水平方向与托板有交集）
-  function boardNearest(plant, r, bs, requireOverlap) {
-    const { w, h } = measure(plant);
-    const cx = r.left + (plant.pos_x / 100) * r.width;
-    const bottom = r.top + (plant.pos_y / 100) * r.height + h / 2;
-    let best = null, bestD = Infinity;
-    for (const b of bs) {
-      const bl = r.left + (b.x / 100) * r.width;
-      const br = bl + (b.w / 100) * r.width;
-      const bt = r.top + (b.y / 100) * r.height;
-      if (requireOverlap && (cx < bl - w * 0.45 || cx > br + w * 0.45)) continue;
-      const d = Math.abs(bottom - bt);
-      if (d < bestD) { bestD = d; best = { b, bl, br, bt, w, h }; }
-    }
-    return best;
-  }
-
-  // 沿托板宽度均匀排布一组植物（按当前位置左→右排序；间距不足时收紧到 3px 允许轻微出板），返回 {id,pos_x,pos_y}[]
-  //   仅由「一键整理」手动触发；默认摆放时植物位置完全由用户决定，不自动干预
-  function layoutBoard(board, members, r) {
-    const items = members
-      .map(m => ({ id: m.id, px: m.pos_x, ...measure(m) }))
-      .sort((a, b) => a.px - b.px);
-    const n = items.length;
-    if (!n) return [];
-    const bl = r.left + (board.x / 100) * r.width;
-    const boardW = (board.w / 100) * r.width;
-    const bt = r.top + (board.y / 100) * r.height;
-    const totalW = items.reduce((s, it) => s + it.w, 0);
-    let gap = n > 1 ? (boardW - totalW) / (n + 1) : 0;
-    if (gap < 3) gap = 3;
-    const contentW = totalW + gap * (n - 1);
-    let cursor = bl + (boardW - contentW) / 2;
-    return items.map(it => {
-      const cx = cursor + it.w / 2;
-      cursor += it.w + gap;
-      return {
-        id: it.id,
-        pos_x: clampN(((cx - r.left) / r.width) * 100, 0, 100),
-        pos_y: clampN(((bt - it.h / 2 + BOARD_SINK - r.top) / r.height) * 100, 0, 100),
-      };
-    });
-  }
 
   // 布局结果写回状态，仅返回真正变更的项（避免无谓写库）
   function commitLayout(positions) {
@@ -360,24 +306,41 @@ export default function PlantingShelf({ onCountChange }) {
       .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
   }
 
-  // 一键整理：全部植物归入最近托板并均匀排布（手动触发，非自动）
-  function arrangeAll() {
-    const r = canvasRef.current?.getBoundingClientRect();
-    const bs = boardsRef.current || [];
-    if (!r || !bs.length || !plantsRef.current.length) return;
-    const groups = new Map();
-    for (const p of plantsRef.current) {
-      const nb = boardNearest(p, r, bs, false);
-      if (!nb) continue;
-      if (!groups.has(nb.b.id)) groups.set(nb.b.id, { board: nb.b, members: [] });
-      groups.get(nb.b.id).members.push(p);
-    }
+  // 恢复默认位置：把每株植物搬回「设为默认」时记录的位置（手动触发；平时不自动干预）
+  function restoreDefault() {
+    const map = settings.plant_default_pos || {};
     const positions = [];
-    for (const g of groups.values()) positions.push(...layoutBoard(g.board, g.members, r));
+    for (const p of plantsRef.current) {
+      const d = map[p.id];
+      if (d) positions.push({ id: p.id, pos_x: d.x, pos_y: d.y });
+    }
     const changed = commitLayout(positions);
-    if (changed.length) persistPositions(changed, '花架已整理');
-    else toast.info('花架已经整整齐齐');
+    if (changed.length) persistPositions(changed, '已恢复默认位置');
+    else toast.info('已在默认位置');
   }
+
+  // 首次见到某株植物：把它的当前位置记为「默认位置」（只补缺，不覆盖；之后拖动不影响默认值）
+  useEffect(() => {
+    if (!plants.length) return;
+    setSettings(prev => {
+      const map = prev.plant_default_pos || {};
+      let changed = false;
+      const next = { ...map };
+      for (const p of plants) {
+        if (!next[p.id]) { next[p.id] = { x: p.pos_x, y: p.pos_y }; changed = true; }
+      }
+      return changed ? { ...prev, plant_default_pos: next } : prev;
+    });
+  }, [plants]);
+
+  // 首次见到托板：把这几块的颜色记为「默认色板」（只补缺，不覆盖）
+  useEffect(() => {
+    if (!boards.length) return;
+    setSettings(prev => {
+      if (Array.isArray(prev.board_default_colors) && prev.board_default_colors.length) return prev;
+      return { ...prev, board_default_colors: boards.map(b => b.color) };
+    });
+  }, [boards]);
 
   // 首次加载：把 boards 落地进 settings（旧数据从 layer_colors 迁移几何），只做一次
   //   注意：不自动移动植物 —— 植物位置完全由用户决定
@@ -436,7 +399,7 @@ export default function PlantingShelf({ onCountChange }) {
 
   const addBoard = () => {
     const id = 'bd' + uid();
-    setBoards(list => (list.length >= MAX_BOARDS ? list : [...list, { id, ...nextBoardSlot(list) }]));
+    setBoards(list => (list.length >= MAX_BOARDS ? list : [...list, { id, ...nextBoardSlot(list, boardPalette) }]));
     setSelectedBoard(id);
   };
 
@@ -806,14 +769,22 @@ export default function PlantingShelf({ onCountChange }) {
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 5 }}>
           <div className="flex items-baseline gap-2">
             <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">我的花架</span>
-            <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株 · {boards.length} 块托板</span>
+            <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株</span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={(e) => { e.stopPropagation(); arrangeAll(); }}
+            {/* 添加植物（原右下角 + 按钮整合到此） */}
+            <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-              title="一键整理 · 把植物摆到托板上">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 4V2M15 10V8M11 6H9M21 6h-2M17.9 3.1l-1.4 1.4M17.9 8.9l-1.4-1.4M12.1 8.9l1.4-1.4M12.1 3.1l1.4 1.4M3 21l9-9" />
+              title="添加植物 · 支持 PNG 透明图">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3E7D3E" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+            {/* 恢复默认位置（把植物搬回设为默认时的位置） */}
+            <button onClick={(e) => { e.stopPropagation(); restoreDefault(); }}
+              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
+              title="恢复默认位置">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
               </svg>
             </button>
             <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
@@ -850,7 +821,6 @@ export default function PlantingShelf({ onCountChange }) {
           const ws = waterStatus(plant);
           return (
             <div key={plant.id}
-              ref={(el) => { if (el) plantElsRef.current[plant.id] = el; }}
               className="absolute cursor-grab active:cursor-grabbing select-none"
               style={{
                 left: `${plant.pos_x}%`, top: `${plant.pos_y}%`,
@@ -948,7 +918,7 @@ export default function PlantingShelf({ onCountChange }) {
             </svg>
             <div className="text-center">
               <div className="text-sm font-semibold text-ink-400">还没有植物</div>
-              <div className="text-[11px] mt-1 text-ink-300">点右下角 + 添加你的第一株植物</div>
+              <div className="text-[11px] mt-1 text-ink-300">点右上角 + 添加你的第一株植物</div>
               <div className="text-[10px] mt-0.5 text-ink-300">推荐上传透明背景 PNG</div>
             </div>
           </div>
@@ -972,13 +942,6 @@ export default function PlantingShelf({ onCountChange }) {
           </div>
         )}
 
-        {/* 右下角 + 按钮（小巧紧凑，不产生渐变） */}
-        <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-          className="absolute right-3 bottom-3 w-9 h-9 rounded-xl grid place-items-center transition hover:scale-105"
-          style={{ zIndex: 7, background: '#3E7D3E', color: 'var(--surface-card)', boxShadow: '0 2px 8px rgba(62,125,62,0.18)' }}
-          title="添加植物 · 支持 PNG 透明图">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-        </button>
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
           onChange={onFileInputChange} />
 
@@ -1000,10 +963,11 @@ export default function PlantingShelf({ onCountChange }) {
             onChange={setSettings}
             bgInputRef={bgInputRef}
             boards={boards}
+            boardPalette={boardPalette}
             onBoardsChange={setBoards}
             onAddBoard={addBoard}
             onRemoveBoard={removeBoard}
-            onArrange={() => arrangeAll()}
+            onArrange={() => restoreDefault()}
             onClose={() => setShowSettings(false)}
           />
         )}
@@ -1270,14 +1234,15 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
 // ============================================================
 // SettingsDrawer — 花架设置面板（右上角齿轮）
 //   背景：纯色 / 上传图片
-//   悬浮托板：增删托板 / 改色 / 调宽 + 一键整理植物
+//   悬浮托板：增删托板 / 改色 / 调宽 + 恢复默认位置
 //   设置自动存 localStorage（实时预览）
 // ============================================================
 const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
 
-function SettingsDrawer({ settings, onChange, bgInputRef, boards, onBoardsChange, onAddBoard, onRemoveBoard, onArrange, onClose }) {
+function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onArrange, onClose }) {
   const merge = (patch) => onChange({ ...settings, ...patch });
   const patchBoard = (id, patch) => onBoardsChange(list => list.map(b => (b.id === id ? { ...b, ...patch } : b)));
+  const palette = Array.isArray(boardPalette) && boardPalette.length ? boardPalette : DEFAULT_BOARD_COLORS;
 
   return (
     <div onClick={(e) => e.stopPropagation()}
@@ -1377,12 +1342,12 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, onBoardsChange
 
           <button onClick={onArrange}
             className="mt-2.5 w-full py-1.5 rounded-lg text-[10px] font-bold text-[#3E7D3E] border border-[rgba(95,168,95,0.35)] bg-[rgba(95,168,95,0.06)] hover:bg-[rgba(95,168,95,0.12)] transition">
-            一键整理植物到托板
+            恢复默认位置
           </button>
         </div>
 
-        {/* 重置 */}
-        <button onClick={() => onChange({ bg_type: 'solid', bg_color: '#FFFFFF', bg_image: '', boards: DEFAULT_BOARDS.map(b => ({ ...b })) })}
+        {/* 重置：几何回到默认三块，颜色沿用「默认色板」 */}
+        <button onClick={() => onChange({ bg_type: 'solid', bg_color: '#FFFFFF', bg_image: '', boards: DEFAULT_BOARDS.map((b, i) => ({ ...b, color: palette[i] || b.color })) })}
           className="w-full py-1.5 rounded-lg text-[10px] font-bold text-ink-500 border border-ink-100 hover:bg-ink-50 transition">
           恢复默认
         </button>

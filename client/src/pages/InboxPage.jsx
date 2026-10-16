@@ -331,7 +331,8 @@ export default function InboxPage({ onCountChange }) {
       </div>
     );
 
-    // 标签 chips：选中行展示各自颜色，未选中行统一浅灰（减少列表噪音，聚焦当前查看的记录）
+    // 标签 chips：选中行展示各自颜色，未选中行统一浅灰（文字 ink-500 是 10px 小字的可读性
+    // 下限(3.5:1)不再变浅；弱化靠底色——5% 雾底贴白，块感轻但不糊字）
     const chipCls = 'inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none flex-shrink-0';
     const chips = itemTags.map(t => (
       <span
@@ -339,7 +340,7 @@ export default function InboxPage({ onCountChange }) {
         className={chipCls}
         style={isSelected
           ? { color: t.color, background: hexToRgba(t.color, 0.10) }
-          : { color: 'var(--ink-500, #8e8e93)', background: 'rgba(120,120,128,0.08)' }}
+          : { color: 'var(--ink-500, #8e8e93)', background: 'rgba(120,120,128,0.05)' }}
       >{t.name}</span>
     ));
 

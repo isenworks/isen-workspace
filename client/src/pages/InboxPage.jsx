@@ -569,7 +569,9 @@ export default function InboxPage({ onCountChange }) {
 
     const chipBase = 'h-[24px] px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] leading-none transition-all select-none cursor-pointer';
     return (
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex items-start gap-1.5">
+        {/* chips 区：占剩余宽度、可折行 */}
+        <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
         {/* 全部：清空筛选（无标签语义，用主题色激活态） */}
         <button
           onClick={() => setFilterTagIds([])}
@@ -663,8 +665,10 @@ export default function InboxPage({ onCountChange }) {
             </>
           )}
         </div>
-        {/* 排版切换居最右：先筛选内容，再切换阅读方式 */}
-        <div className="ml-auto flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+        {/* chips 区结束 */}
+        </div>
+        {/* 排版切换贴卡片右缘（独立于 chips 折行） */}
+        <div className="flex-shrink-0 flex items-center p-[2px] rounded-lg" style={{ background: 'rgba(120,120,128,0.08)' }}>
           <button
             onClick={() => switchRowOrder('content')}
             title="内容优先：标题在上，日期沉底为辅助行"

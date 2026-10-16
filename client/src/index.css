@@ -1191,7 +1191,9 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 /* 卡片头「查看」箭头：hover 填充模块主题色（白图标） */
 .hp-more:hover { background: var(--hc) !important; color: #fff !important; }
 
-.hp-hb { display: flex; flex-direction: column; gap: 7px; flex: 1; justify-content: flex-start; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(120,120,128,0.28) transparent; padding-top: 2px; }
+/* padding-top/bottom: 给「今天」格子的 box-shadow 描边（1.5px 外扩）留出空间，
+   否则滚动容器（overflow-y:auto 会建立裁剪边界）在首/末行贴边时会把描边裁掉 */
+.hp-hb { display: flex; flex-direction: column; gap: 7px; flex: 1; justify-content: flex-start; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(120,120,128,0.28) transparent; padding: 2px 0 3px; }
 .hp-hb::-webkit-scrollbar { width: 4px; }
 .hp-hb::-webkit-scrollbar-thumb { background: rgba(120,120,128,0.28); border-radius: 999px; }
 .hp-hb::-webkit-scrollbar-track { background: transparent; }

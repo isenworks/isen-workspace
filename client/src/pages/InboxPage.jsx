@@ -11,6 +11,7 @@ import ScheduleForm from '../components/forms/ScheduleForm.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 
 const LS_LAYOUT_KEY = 'inbox_layout';
+const LS_ROW_ORDER_KEY = 'inbox_row_order'; // 列表行排版：'content' 标题优先 | 'time' 时间优先
 const LS_CHIPS_KEY = 'inbox_filter_chips'; // 快捷筛选位（默认「日记」「待办」之外用户添加的标签 id）
 
 // 预设标签颜色（新建标签时可选）
@@ -24,7 +25,7 @@ function parseDbTime(s) {
   return isNaN(d) ? null : d;
 }
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-/* ===== 列表行时间（首行日期锚点）：只显示「日 周X」=====
+/* ===== 列表行时间（元信息行日期锚点）：只显示「日 周X」=====
    月份由组头给出（往年组头带年份），行内保持短小；完整时间（含年月日时分）
    仍可通过 hover 提示查看（fmtTooltip → fmtFull）。 */
 function fmtDay(s) {
@@ -103,6 +104,15 @@ export default function InboxPage({ onCountChange }) {
     setLayout(next);
     try { localStorage.setItem(LS_LAYOUT_KEY, next); } catch {}
     if (next === 'duo') setSelectedId(null);
+  }
+
+  // ===== 列表行排版：'content' 标题优先（默认）｜'time' 时间优先 —— 纯展示偏好，本机记忆 =====
+  const [rowOrder, setRowOrder] = useState(() => {
+    try { return localStorage.getItem(LS_ROW_ORDER_KEY) === 'time' ? 'time' : 'content'; } catch { return 'content'; }
+  });
+  function switchRowOrder(next) {
+    setRowOrder(next);
+    try { localStorage.setItem(LS_ROW_ORDER_KEY, next); } catch {}
   }
 
   const loadItems = useCallback(async () => {
@@ -311,60 +321,72 @@ export default function InboxPage({ onCountChange }) {
     const catPickFor = menuFor && !!menu.cat;
     const dateEditFor = dateEdit?.id === item.id;
     const firstLine = plainFirstLine(item.content);
+    const timeFirst = rowOrder === 'time';
+
+    // 标题行（内容优先排版时是第一视觉，时间优先排版时沉底）
+    const titleLine = (
+      <div className="text-[14px] leading-snug text-ink-900 truncate">
+        {(firstLine || '（空）').slice(0, 60)}
+      </div>
+    );
+
+    // 元信息行：日期锚点（点击可改日期）+ 标签注脚（小号淡彩，从 chip 按钮退位为注脚）
+    const metaLine = (
+      <div className={`flex items-center gap-1.5 min-w-0 ${timeFirst ? '' : 'mt-[3px]'}`}>
+        {dateEditFor ? (
+          <input
+            type="date"
+            autoFocus
+            value={dateEdit.value}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => commitDateEdit(item, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setDateEdit(null);
+              if (e.key === 'Enter') commitDateEdit(item, dateEdit.value);
+            }}
+            onBlur={() => setDateEdit(null)}
+            className="flex-shrink-0 w-[112px] px-1 py-0.5 rounded-md text-[12px] tabular-nums border border-[rgba(var(--s-rgb),0.45)] bg-white text-ink-700 focus:outline-none focus:border-[var(--s-main)]"
+          />
+        ) : (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              const d = parseDbTime(item.created_at);
+              if (!d) return;
+              setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
+            }}
+            className="flex-shrink-0 text-[12px] font-semibold text-ink-500 tabular-nums cursor-pointer hover:text-ink-700 transition-colors whitespace-nowrap"
+            title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
+          >{fmtDay(item.created_at)}</span>
+        )}
+        {itemTags.length > 0 && <span className="flex-shrink-0 text-[11px] text-ink-200 select-none">·</span>}
+        {itemTags.map(t => (
+          <span
+            key={t.id}
+            className="px-1.5 rounded-[5px] text-[10.5px] font-medium leading-[17px] whitespace-nowrap select-none"
+            style={{ color: t.color, background: hexToRgba(t.color, 0.08) }}
+          >{t.name}</span>
+        ))}
+      </div>
+    );
+
     return (
       <div
         key={item.id}
         onClick={() => !menuFor && setSelectedId(item.id)}
-        className={`relative block px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+        className={`relative block px-2 py-2 rounded-xl transition-all cursor-pointer group ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
-        {/* 第一行：圆点 + 日期锚点（左）｜标签 + 菜单（右） */}
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="flex-shrink-0 w-[8px] h-[8px] rounded-full transition-colors"
-            style={isSelected ? { background: 'var(--s-main)' } : { background: 'rgba(var(--s-rgb),0.40)' }}
-          />
-          {dateEditFor ? (
-            <input
-              type="date"
-              autoFocus
-              value={dateEdit.value}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => commitDateEdit(item, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setDateEdit(null);
-                if (e.key === 'Enter') commitDateEdit(item, dateEdit.value);
-              }}
-              onBlur={() => setDateEdit(null)}
-              className="flex-shrink-0 w-[112px] px-1 py-0.5 rounded-md text-[12px] tabular-nums border border-[rgba(var(--s-rgb),0.45)] bg-white text-ink-700 focus:outline-none focus:border-[var(--s-main)]"
-            />
-          ) : (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                const d = parseDbTime(item.created_at);
-                if (!d) return;
-                setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
-              }}
-              className="flex-shrink-0 text-[12px] font-semibold text-ink-500 tabular-nums cursor-pointer hover:text-ink-700 transition-colors whitespace-nowrap"
-              title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
-            >{fmtDay(item.created_at)}</span>
-          )}
-          <span className="flex-1 min-w-0" />
-          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-            {itemTags.map(t => (
-              <span
-                key={t.id}
-                className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none flex-shrink-0"
-                style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
-              >{t.name}</span>
-            ))}
+        <div className="flex items-start gap-1.5">
+          <div className="flex-1 min-w-0">
+            {/* 排版可切换：内容优先 = 标题在上（flomo 式）｜时间优先 = 日期在上（日志式） */}
+            {timeFirst ? <>{metaLine}{titleLine}</> : <>{titleLine}{metaLine}</>}
           </div>
-          <div className="relative flex-shrink-0">
+          <div className="relative flex-shrink-0 -mt-px">
             <button
               onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}
               title={fmtTooltip(item.created_at)}
-              className="w-6 h-6 -mr-1 rounded-lg flex items-center justify-center text-ink-300 hover:text-ink-600 hover:bg-black/[0.04] transition-colors"
+              className="w-6 h-6 -mr-1 rounded-lg flex items-center justify-center text-ink-300/70 group-hover:text-ink-500 hover:!text-ink-700 hover:bg-black/[0.04] transition-colors"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
@@ -426,10 +448,6 @@ export default function InboxPage({ onCountChange }) {
               </>
             )}
           </div>
-        </div>
-        {/* 第二行：标题独占整行（缩进对齐日期文字起点：圆点 8px + 间距 8px） */}
-        <div className="mt-0.5 pl-4 text-[14px] leading-snug text-ink-900 truncate">
-          {(firstLine || '（空）').slice(0, 60)}
         </div>
       </div>
     );
@@ -615,6 +633,25 @@ export default function InboxPage({ onCountChange }) {
               </div>
             </>
           )}
+        </div>
+        {/* 排版切换：内容优先（标题在上）｜时间优先（日期在上）—— 纯展示偏好，本机记忆 */}
+        <div className="ml-auto flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+          <button
+            onClick={() => switchRowOrder('content')}
+            title="内容优先：标题在上，日期沉底为辅助行"
+            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
+            style={rowOrder === 'content'
+              ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
+              : { color: 'var(--text-muted)' }}
+          >内容</button>
+          <button
+            onClick={() => switchRowOrder('time')}
+            title="时间优先：日期在上（日志式），标题在下"
+            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
+            style={rowOrder === 'time'
+              ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
+              : { color: 'var(--text-muted)' }}
+          >时间</button>
         </div>
       </div>
     );

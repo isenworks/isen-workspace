@@ -570,6 +570,25 @@ export default function InboxPage({ onCountChange }) {
     const chipBase = 'h-[24px] px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] leading-none transition-all select-none cursor-pointer';
     return (
       <div className="flex flex-wrap items-center gap-1.5">
+        {/* 排版切换置于工具行最左：先选阅读方式，再筛选标签 */}
+        <div className="flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
+          <button
+            onClick={() => switchRowOrder('content')}
+            title="内容优先：标题在上，日期沉底为辅助行"
+            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
+            style={rowOrder === 'content'
+              ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
+              : { color: 'var(--text-muted)' }}
+          >内容</button>
+          <button
+            onClick={() => switchRowOrder('time')}
+            title="时间优先：日期在上（日志式），标题在下"
+            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
+            style={rowOrder === 'time'
+              ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
+              : { color: 'var(--text-muted)' }}
+          >时间</button>
+        </div>
         {/* 全部：清空筛选（无标签语义，用主题色激活态） */}
         <button
           onClick={() => setFilterTagIds([])}
@@ -663,25 +682,7 @@ export default function InboxPage({ onCountChange }) {
             </>
           )}
         </div>
-        {/* 排版切换：内容优先（标题在上）｜时间优先（日期在上）—— 纯展示偏好，本机记忆 */}
-        <div className="ml-auto flex items-center p-[2px] rounded-lg flex-shrink-0" style={{ background: 'rgba(120,120,128,0.08)' }}>
-          <button
-            onClick={() => switchRowOrder('content')}
-            title="内容优先：标题在上，日期沉底为辅助行"
-            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
-            style={rowOrder === 'content'
-              ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
-              : { color: 'var(--text-muted)' }}
-          >内容</button>
-          <button
-            onClick={() => switchRowOrder('time')}
-            title="时间优先：日期在上（日志式），标题在下"
-            className="px-2 py-1 rounded-md text-[11px] leading-none transition-all"
-            style={rowOrder === 'time'
-              ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
-              : { color: 'var(--text-muted)' }}
-          >时间</button>
-        </div>
+        {/* 排版切换已移至工具行最左（先选阅读方式，再筛选标签） */}
       </div>
     );
   };

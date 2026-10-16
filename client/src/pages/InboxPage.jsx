@@ -367,7 +367,7 @@ export default function InboxPage({ onCountChange }) {
           if (!d) return;
           setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
         }}
-        className={`flex-shrink-0 text-[12px] tabular-nums cursor-pointer whitespace-nowrap transition-colors ${timeFirst ? 'font-semibold text-ink-500 hover:text-ink-700' : 'text-ink-300 hover:text-ink-600'}`}
+        className={`flex-shrink-0 text-[12px] tabular-nums cursor-pointer whitespace-nowrap transition-all ${timeFirst ? 'font-semibold text-ink-900 hover:opacity-70' : 'text-ink-300 hover:text-ink-600'}`}
         title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
       >{fmtDay(item.created_at)}</span>
     );

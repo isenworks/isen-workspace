@@ -267,8 +267,8 @@ export default function PlantingShelf({ onCountChange }) {
   const zCounter = useRef(1);
   const draggingRef = useRef(null);
   const plantsRef = useRef([]);
-  const boardsRef = useRef([]);      // 拖拽植物松手吸附时读最新托板
-  const plantElsRef = useRef({});    // 植物 DOM 映射（实测宽高 → 吸附/自动排列）
+  const boardsRef = useRef([]);      // 一键整理时读最新托板
+  const plantElsRef = useRef({});    // 植物 DOM 映射（实测宽高 → 一键整理排布）
   useEffect(() => { draggingRef.current = dragging; }, [dragging]);
   useEffect(() => { plantsRef.current = plants; }, [plants]);
   useEffect(() => { boardsRef.current = boards; }, [boards]);
@@ -314,8 +314,8 @@ export default function PlantingShelf({ onCountChange }) {
   }
 
   // 沿托板宽度均匀排布一组植物（按当前位置左→右排序；间距不足时收紧到 3px 允许轻微出板），返回 {id,pos_x,pos_y}[]
-  //   centerSingle=true（一键整理）时，单株也居中；否则单株保留用户自己拖到的横向位置
-  function layoutBoard(board, members, r, centerSingle) {
+  //   仅由「一键整理」手动触发；默认摆放时植物位置完全由用户决定，不自动干预
+  function layoutBoard(board, members, r) {
     const items = members
       .map(m => ({ id: m.id, px: m.pos_x, ...measure(m) }))
       .sort((a, b) => a.px - b.px);
@@ -329,7 +329,7 @@ export default function PlantingShelf({ onCountChange }) {
     if (gap < 3) gap = 3;
     const contentW = totalW + gap * (n - 1);
     let cursor = bl + (boardW - contentW) / 2;
-    const out = items.map(it => {
+    return items.map(it => {
       const cx = cursor + it.w / 2;
       cursor += it.w + gap;
       return {
@@ -338,9 +338,6 @@ export default function PlantingShelf({ onCountChange }) {
         pos_y: clampN(((bt - it.h / 2 + BOARD_SINK - r.top) / r.height) * 100, 0, 100),
       };
     });
-    // 单株且非整理：保留用户横向落点，只吸附纵向
-    if (n === 1 && !centerSingle) out[0].pos_x = clampN(items[0].px, 0, 100);
-    return out;
   }
 
   // 布局结果写回状态，仅返回真正变更的项（避免无谓写库）
@@ -363,27 +360,8 @@ export default function PlantingShelf({ onCountChange }) {
       .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
   }
 
-  // 拖拽松手：吸附到最近托板并把该托板上的植物重新均匀排布
-  function snapAfterDrop(id) {
-    const r = canvasRef.current?.getBoundingClientRect();
-    const bs = boardsRef.current || [];
-    const list = plantsRef.current;
-    const dropped = list.find(p => p.id === id);
-    if (!r || !bs.length || !dropped) return { hit: false, positions: [] };
-    const hit = boardNearest(dropped, r, bs, true);
-    if (!hit) return { hit: false, positions: [] };
-    const m = measure(dropped);
-    const snapped = { ...dropped, pos_y: clampN(((hit.bt - m.h / 2 - r.top) / r.height) * 100, 0, 100) };
-    const withSnap = list.map(p => (p.id === id ? snapped : p));
-    const members = withSnap.filter(p => {
-      const nb = boardNearest(p, r, bs, true);
-      return nb && nb.b.id === hit.b.id;
-    });
-    return { hit: true, positions: layoutBoard(hit.b, members, r) };
-  }
-
-  // 一键整理：全部植物归入最近托板并均匀排布（migrating=旧数据首次重排，换提示文案）
-  function arrangeAll(migrating) {
+  // 一键整理：全部植物归入最近托板并均匀排布（手动触发，非自动）
+  function arrangeAll() {
     const r = canvasRef.current?.getBoundingClientRect();
     const bs = boardsRef.current || [];
     if (!r || !bs.length || !plantsRef.current.length) return;
@@ -395,26 +373,20 @@ export default function PlantingShelf({ onCountChange }) {
       groups.get(nb.b.id).members.push(p);
     }
     const positions = [];
-    for (const g of groups.values()) positions.push(...layoutBoard(g.board, g.members, r, true));
+    for (const g of groups.values()) positions.push(...layoutBoard(g.board, g.members, r));
     const changed = commitLayout(positions);
-    if (changed.length) persistPositions(changed, migrating ? '已按悬浮托板重新排布' : '花架已整理');
-    else if (!migrating) toast.info('花架已经整整齐齐');
+    if (changed.length) persistPositions(changed, '花架已整理');
+    else toast.info('花架已经整整齐齐');
   }
 
-  // 首次加载：把 boards 落地进 settings（旧数据从 layer_colors 迁移几何），
-  // 旧数据（此前无 boards）再按悬浮托板自动重排一次；两件事都只做一次
+  // 首次加载：把 boards 落地进 settings（旧数据从 layer_colors 迁移几何），只做一次
+  //   注意：不自动移动植物 —— 植物位置完全由用户决定
   const migratedRef = useRef(false);
   useEffect(() => {
-    if (migratedRef.current || loading || loadErr) return;
-    const st = settings || {};
-    const wasLegacy = !(Array.isArray(st.boards) && st.boards.length);
+    if (migratedRef.current) return;
     migratedRef.current = true;
     setSettings(prev => (Array.isArray(prev.boards) && prev.boards.length ? prev : { ...prev, boards: resolveBoards(prev) }));
-    if (wasLegacy && plants.length) {
-      const t = setTimeout(() => arrangeAll(true), 600);
-      return () => clearTimeout(t);
-    }
-  }, [loading, loadErr, plants.length, settings]);
+  }, []);
 
   // ---- 托板交互：拖动移动 / 快捷增删改 ----
   const onBoardMouseDown = (e, b) => {
@@ -593,19 +565,13 @@ export default function PlantingShelf({ onCountChange }) {
     };
     const onUp = () => {
       const id = draggingRef.current;
-      // 松手：吸附到最近托板并重排（没移动则跳过，避免无效写库）
+      // 松手就地保存位置（没移动则跳过，避免无效写库）；不做任何吸附/重排
       if (id && hasMovedRef.current) {
-        const res = snapAfterDrop(id);
-        if (res.hit) {
-          const changed = commitLayout(res.positions);
-          if (changed.length) persistPositions(changed, '已吸附到托板');
-        } else {
-          const plant = plantsRef.current.find(p => p.id === id);
-          if (plant) {
-            API.plants.update(id, { pos_x: plant.pos_x, pos_y: plant.pos_y })
-              .then(() => notifySaved('位置已保存'))
-              .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
-          }
+        const plant = plantsRef.current.find(p => p.id === id);
+        if (plant) {
+          API.plants.update(id, { pos_x: plant.pos_x, pos_y: plant.pos_y })
+            .then(() => notifySaved('位置已保存'))
+            .catch(() => notifySaveFail('位置保存失败，刷新后可能回退'));
         }
       }
       setDragging(null);
@@ -843,7 +809,7 @@ export default function PlantingShelf({ onCountChange }) {
             <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株 · {boards.length} 块托板</span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={(e) => { e.stopPropagation(); arrangeAll(false); }}
+            <button onClick={(e) => { e.stopPropagation(); arrangeAll(); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
               title="一键整理 · 把植物摆到托板上">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1037,7 +1003,7 @@ export default function PlantingShelf({ onCountChange }) {
             onBoardsChange={setBoards}
             onAddBoard={addBoard}
             onRemoveBoard={removeBoard}
-            onArrange={() => arrangeAll(false)}
+            onArrange={() => arrangeAll()}
             onClose={() => setShowSettings(false)}
           />
         )}

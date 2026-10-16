@@ -12,18 +12,23 @@ import { useLongPress } from '../useLongPress.js';
 import { uid } from './utils.js';
 
 // ---- 养护状态计算（浇水/施肥通用）----
-// 灰=无记录 / 绿=正常或今日已做 / 橙=临期(距周期≤2天) / 红=超期
-// 状态文案只做行动指引，周期数字不出现（避免与控制行的「周期」重复）
+// 灰=无记录 / 绿=正常或今日已做 / 橙=临期(距下次养护≤2天) / 红=超期
+// 下次养护日 = 上次日期 + 周期，按「剩余天数」给行动指引（今天/明天/后天…）
+// 周期数字不出现（避免与控制行的「周期」重复）
 function careStatus(last, cycle, unit) {
   if (!last) return { level: 'none', color: 'var(--text-3)', text: `还没有${unit}记录` };
   if (!cycle) return { level: 'none', color: 'var(--text-3)', text: `未设置${unit}周期` };
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const l = new Date(last); l.setHours(0, 0, 0, 0);
   const days = Math.round((today - l) / 86400000);
+  // 剩余天数 = 周期 - 距上次天数：0=今天到期，1=明天，2=后天，>2 顺延，<0=已超期
+  const remaining = cycle - days;
   if (days <= 0) return { level: 'done', color: '#3E7D3E', text: `今日已${unit}`, days };
-  if (days >= cycle) return { level: 'alert', color: 'var(--danger)', text: `已超期 ${days - cycle} 天`, days };
-  if (days >= cycle - 2) return { level: 'warn', color: 'var(--warning)', text: `建议今天${unit}`, days };
-  return { level: 'ok', color: '#3E7D3E', text: `${cycle - days} 天后${unit}`, days };
+  if (remaining < 0) return { level: 'alert', color: 'var(--danger)', text: `已超期 ${-remaining} 天`, days };
+  if (remaining === 0) return { level: 'warn', color: 'var(--warning)', text: `建议今天${unit}`, days };
+  if (remaining === 1) return { level: 'warn', color: 'var(--warning)', text: `建议明天${unit}`, days };
+  if (remaining === 2) return { level: 'warn', color: 'var(--warning)', text: `建议后天${unit}`, days };
+  return { level: 'ok', color: '#3E7D3E', text: `${remaining} 天后${unit}`, days };
 }
 
 // 画布角标只关心浇水超期

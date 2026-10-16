@@ -52,20 +52,42 @@ const IconSpinner = ({ className = 'w-5 h-5' }) => (
 
 /* ---------- 记住密码：本机 localStorage 自动填充 ----------
    仅存 base64（防肩窥/直接明文可读，非加密——个人自托管应用的合理取舍，用户明确要求）。
-   登出时保留凭据，下次进登录页自动填充（微信/飞书网页版同款行为）。 */
+   登出时保留凭据，下次进登录页自动填充（微信/飞书网页版同款行为）。
+   ⚠ 历史实现用了已废弃的 escape()/unescape()，在移动端 WebView 中常静默失败导致保存/读取均失效，
+     已改为 TextEncoder/TextDecoder 标准方案。 */
 const REMEMBER_KEY = 'pw_remember_cred';
+// UTF-8 JSON → base64（兼容中文密码，不依赖废弃的 escape/unescape）
+function encodeCred(mail, pwd) {
+  const json = JSON.stringify({ email: mail, password: pwd });
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function decodeCred(raw) {
+  const binary = atob(raw);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
 function readRemember() {
   try {
     const raw = localStorage.getItem(REMEMBER_KEY);
     if (!raw) return null;
-    return JSON.parse(decodeURIComponent(escape(atob(raw))));
-  } catch { return null; }
+    return decodeCred(raw);
+  } catch (e) {
+    // 旧版本（escape/unescape）写入的脏数据读不出时直接清掉，避免每次都失败
+    try { localStorage.removeItem(REMEMBER_KEY); } catch {}
+    return null;
+  }
 }
 function persistRemember(save, mail, pwd) {
   try {
-    if (save) localStorage.setItem(REMEMBER_KEY, btoa(unescape(encodeURIComponent(JSON.stringify({ email: mail, password: pwd })))));
+    if (save) localStorage.setItem(REMEMBER_KEY, encodeCred(mail, pwd));
     else localStorage.removeItem(REMEMBER_KEY);
-  } catch (_) {}
+  } catch (e) {
+    // 隐私模式下 localStorage 可能抛错，不影响登录流程
+  }
 }
 
 /* ---------- 字段级输入组件：标签 + 图标前缀 + 后缀按钮（如密码眼睛）+ 错误态 ---------- */
@@ -139,7 +161,8 @@ function Field({
 
 export default function Login() {
   const { login, register } = useAuth();
-  const savedCred = readRemember(); // 仅初始化读一次
+  // 惰性初始化：仅首次挂载读取一次已存凭据
+  const [savedCred] = useState(readRemember);
   const [mode, setMode] = useState('login');          // login / register / bootstrap
   const [email, setEmail] = useState(savedCred?.email || '');
   const [password, setPassword] = useState(savedCred?.password || '');

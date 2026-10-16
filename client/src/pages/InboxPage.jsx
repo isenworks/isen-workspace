@@ -24,15 +24,13 @@ function parseDbTime(s) {
   return isNaN(d) ? null : d;
 }
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-/* 列表行日期：当年省略年份（如 10-14 周三，省右侧空间，飞书/微信同款惯例）；
-   非当年自动带年份（如 2025-12-30 周二）——跨年后旧记录自然显示年份，年份信息不丢。
-   完整时间（含年份+时分）仍可通过行内 hover 提示查看（fmtTooltip → fmtFull）。 */
-function fmtDate(s) {
+/* ===== 列表行时间（置于标题左侧）：只显示「日 周X」=====
+   月份由组头给出（往年组头带年份），行内保持短小 + 定宽，标题起始列对齐；
+   完整时间（含年月日时分）仍可通过 hover 提示查看（fmtTooltip → fmtFull）。 */
+function fmtDay(s) {
   const d = parseDbTime(s);
   if (!d) return '';
-  const p = n => String(n).padStart(2, '0');
-  const md = `${p(d.getMonth() + 1)}-${p(d.getDate())} ${WEEKDAYS[d.getDay()]}`;
-  return d.getFullYear() === new Date().getFullYear() ? md : `${d.getFullYear()}-${md}`;
+  return `${d.getDate()} ${WEEKDAYS[d.getDay()]}`;
 }
 function fmtFull(s) {
   const d = parseDbTime(s);
@@ -62,17 +60,17 @@ function plainFirstLine(html) {
   return text;
 }
 
-function groupLabel(s) {
+/* ===== 分组：按自然月（今年「M月」，往年「YYYY年M月」），组序按月份倒序 =====
+   今天/昨天的细分交给行内「日 周X」承担，组头保持一层即可。 */
+function groupOf(s) {
   const d = parseDbTime(s);
-  if (!d) return '更早';
-  const now = new Date();
-  const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (sameDay(d, now)) return '今天';
-  const y = new Date(now); y.setDate(y.getDate() - 1);
-  if (sameDay(d, y)) return '昨天';
-  return '更早';
+  if (!d) return { k: -1, label: '更早' }; // 无效时间兜底，排最末
+  const k = d.getFullYear() * 12 + d.getMonth();
+  const label = d.getFullYear() === new Date().getFullYear()
+    ? `${d.getMonth() + 1}月`
+    : `${d.getFullYear()}年${d.getMonth() + 1}月`;
+  return { k, label };
 }
-const GROUP_ORDER = ['今天', '昨天', '更早'];
 
 const pad2 = n => String(n).padStart(2, '0');
 
@@ -199,7 +197,7 @@ export default function InboxPage({ onCountChange }) {
   }
 
   // ===== 修改记录日期：仅替换日期、保留原时分秒；本地时区选完换算回 UTC 存库 =====
-  // 改完乐观更新，列表的「今天/昨天/更早」分组即时随 created_at 重排
+  // 改完乐观更新，列表的月份分组即时随 created_at 重排
   async function commitDateEdit(item, dateStr) {
     setDateEdit(null);
     if (!dateStr) return;
@@ -291,11 +289,11 @@ export default function InboxPage({ onCountChange }) {
   if (filteredItems.length > 0) {
     const map = new Map();
     filteredItems.forEach(it => {
-      const g = groupLabel(it.created_at);
-      if (!map.has(g)) map.set(g, []);
-      map.get(g).push(it);
+      const g = groupOf(it.created_at);
+      if (!map.has(g.k)) map.set(g.k, { k: g.k, label: g.label, list: [] });
+      map.get(g.k).list.push(it);
     });
-    GROUP_ORDER.forEach(g => { if (map.has(g)) groups.push({ label: g, list: map.get(g) }); });
+    [...map.values()].sort((a, b) => b.k - a.k).forEach(g => groups.push(g)); // 最新月份在上
   }
 
   useEffect(() => {
@@ -329,18 +327,6 @@ export default function InboxPage({ onCountChange }) {
               : { background: firstTag ? hexToRgba(firstTag.color, 0.4) : 'rgba(var(--s-rgb),0.40)' }
             }
           />
-          <span className="text-[14px] leading-snug text-ink-900 truncate">
-            {(firstLine || '（空）').slice(0, 60)}
-          </span>
-        </div>
-        <div className="flex-shrink-0 flex items-center gap-1.5">
-          {itemTags.map(t => (
-            <span
-              key={t.id}
-              className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
-              style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
-            >{t.name}</span>
-          ))}
           {dateEditFor ? (
             <input
               type="date"
@@ -363,10 +349,22 @@ export default function InboxPage({ onCountChange }) {
                 if (!d) return;
                 setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
               }}
-              className="flex-shrink-0 text-[12px] text-ink-400 tabular-nums cursor-pointer hover:text-ink-700 transition-colors"
+              className="flex-shrink-0 w-[52px] text-[12px] text-ink-400 tabular-nums cursor-pointer hover:text-ink-700 transition-colors whitespace-nowrap"
               title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
-            >{fmtDate(item.created_at)}</span>
+            >{fmtDay(item.created_at)}</span>
           )}
+          <span className="text-[14px] leading-snug text-ink-900 truncate">
+            {(firstLine || '（空）').slice(0, 60)}
+          </span>
+        </div>
+        <div className="flex-shrink-0 flex items-center gap-1.5">
+          {itemTags.map(t => (
+            <span
+              key={t.id}
+              className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
+              style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
+            >{t.name}</span>
+          ))}
           <div className="relative flex-shrink-0">
             <button
               onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}

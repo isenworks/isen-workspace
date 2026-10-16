@@ -24,9 +24,9 @@ function parseDbTime(s) {
   return isNaN(d) ? null : d;
 }
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-/* ===== 列表行时间（置于标题左侧）：只显示「日 周X」=====
-   月份由组头给出（往年组头带年份），行内保持短小 + 定宽，标题起始列对齐；
-   完整时间（含年月日时分）仍可通过 hover 提示查看（fmtTooltip → fmtFull）。 */
+/* ===== 列表行时间（首行日期锚点）：只显示「日 周X」=====
+   月份由组头给出（往年组头带年份），行内保持短小；完整时间（含年月日时分）
+   仍可通过 hover 提示查看（fmtTooltip → fmtFull）。 */
 function fmtDay(s) {
   const d = parseDbTime(s);
   if (!d) return '';
@@ -306,7 +306,6 @@ export default function InboxPage({ onCountChange }) {
     const busy = busyIds.has(item.id);
     const isSelected = selectedId === item.id;
     const itemTags = tagsOfItem(item);
-    const firstTag = itemTags[0] || null;
     const selectedIds = parseItemTagIds(item).map(Number);
     const menuFor = menu?.id === item.id;
     const catPickFor = menuFor && !!menu.cat;
@@ -316,16 +315,14 @@ export default function InboxPage({ onCountChange }) {
       <div
         key={item.id}
         onClick={() => !menuFor && setSelectedId(item.id)}
-        className={`relative flex items-center justify-between gap-2 px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+        className={`relative block px-2 py-2 rounded-xl transition-all cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}
         style={isSelected ? { background: 'rgba(var(--s-rgb),0.08)' } : undefined}
       >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        {/* 第一行：圆点 + 日期锚点（左）｜标签 + 菜单（右） */}
+        <div className="flex items-center gap-2 min-w-0">
           <span
             className="flex-shrink-0 w-[8px] h-[8px] rounded-full transition-colors"
-            style={isSelected
-              ? { background: firstTag?.color || 'var(--s-main)' }
-              : { background: firstTag ? hexToRgba(firstTag.color, 0.4) : 'rgba(var(--s-rgb),0.40)' }
-            }
+            style={isSelected ? { background: 'var(--s-main)' } : { background: 'rgba(var(--s-rgb),0.40)' }}
           />
           {dateEditFor ? (
             <input
@@ -349,22 +346,20 @@ export default function InboxPage({ onCountChange }) {
                 if (!d) return;
                 setDateEdit({ id: item.id, value: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` });
               }}
-              className="flex-shrink-0 w-[52px] text-[12px] text-ink-400 tabular-nums cursor-pointer hover:text-ink-700 transition-colors whitespace-nowrap"
+              className="flex-shrink-0 text-[12px] font-semibold text-ink-500 tabular-nums cursor-pointer hover:text-ink-700 transition-colors whitespace-nowrap"
               title={`${fmtTooltip(item.created_at)} · 点击修改日期`}
             >{fmtDay(item.created_at)}</span>
           )}
-          <span className="text-[14px] leading-snug text-ink-900 truncate">
-            {(firstLine || '（空）').slice(0, 60)}
-          </span>
-        </div>
-        <div className="flex-shrink-0 flex items-center gap-1.5">
-          {itemTags.map(t => (
-            <span
-              key={t.id}
-              className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none"
-              style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
-            >{t.name}</span>
-          ))}
+          <span className="flex-1 min-w-0" />
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+            {itemTags.map(t => (
+              <span
+                key={t.id}
+                className="inline-flex items-center justify-center h-[20px] px-2 rounded-full text-[10px] font-semibold leading-none select-none flex-shrink-0"
+                style={{ color: t.color, background: hexToRgba(t.color, 0.10) }}
+              >{t.name}</span>
+            ))}
+          </div>
           <div className="relative flex-shrink-0">
             <button
               onClick={(e) => { e.stopPropagation(); setMenu(menuFor ? null : { id: item.id }); }}
@@ -431,6 +426,10 @@ export default function InboxPage({ onCountChange }) {
               </>
             )}
           </div>
+        </div>
+        {/* 第二行：标题独占整行（缩进对齐日期文字起点：圆点 8px + 间距 8px） */}
+        <div className="mt-0.5 pl-4 text-[14px] leading-snug text-ink-900 truncate">
+          {(firstLine || '（空）').slice(0, 60)}
         </div>
       </div>
     );
@@ -678,8 +677,9 @@ export default function InboxPage({ onCountChange }) {
           {groups.map((g, gi) => (
             <div key={g.label} className={gi > 0 ? 'mt-1' : ''}>
               {gi > 0 && <div className="border-t border-ink-100/70 pt-1 mt-1" />}
-              <div className="flex items-center gap-2 px-1.5 pt-1 pb-0.5">
-                <span className="text-[11px] font-semibold text-ink-400 tracking-wide">{g.label}</span>
+              <div className="flex items-baseline gap-2 px-1.5 pt-1 pb-0.5">
+                {/* 组头承担月份导航职能：12.5px semibold 接近标题但弱半档，保持层级 */}
+                <span className="text-[12.5px] font-semibold text-ink-500 tracking-wide">{g.label}</span>
                 <span className="text-[11px] text-ink-300 tabular-nums">{g.list.length}</span>
               </div>
               {g.list.map(renderRow)}

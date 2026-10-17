@@ -1260,7 +1260,7 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
         <span className="relative flex items-center gap-1.5 min-w-0 cursor-pointer">
           <span className="text-[11px] text-[var(--text-3)] font-medium flex-shrink-0">上次</span>
           <span className="text-[12px] font-semibold tabular-nums flex-shrink-0"
-            style={{ color: 'var(--text-1)', borderBottom: '1px dashed rgba(120,120,128,0.28)', paddingBottom: 2 }}>
+            style={{ color: 'var(--text-2)', borderBottom: '1px dashed rgba(120,120,128,0.28)', paddingBottom: 2 }}>
             {dotDate(last)}
           </span>
           <span className="w-6 h-6 grid place-items-center flex-shrink-0"
@@ -1372,7 +1372,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
               <span>天 ·</span>
               <span className="relative flex items-center gap-1 cursor-pointer">
                 <span className="text-[12px] font-semibold tabular-nums"
-                  style={{ color: 'var(--text-1)', borderBottom: '1px dashed rgba(120,120,128,0.28)', paddingBottom: 1 }}>
+                  style={{ color: 'var(--text-2)', borderBottom: '1px dashed rgba(120,120,128,0.28)', paddingBottom: 1 }}>
                   {dotDate(form.planted_at)}
                 </span>
                 <span className="w-5 h-5 grid place-items-center flex-shrink-0"
@@ -1427,14 +1427,14 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
           <div>
             <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">特性</div>
             <textarea value={form.traits} onChange={(e) => update('traits', e.target.value)} placeholder="喜温暖湿润，耐阴…" rows={2}
-              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
+              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.03)] rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
           </div>
 
           {/* 养护方法 */}
           <div>
             <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">养护方法</div>
             <textarea value={form.care_method} onChange={(e) => update('care_method', e.target.value)} placeholder="每周浇水 1 次…" rows={2}
-              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
+              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.03)] rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
           </div>
         </div>
 

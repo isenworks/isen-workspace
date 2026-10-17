@@ -1173,8 +1173,9 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
  * icon 状态 icon · status 状态对象 · doneToday 今日已打卡（复选框选中态）
  * last/cycle 及其 onChange 控制行参数 · markLabel/markColor 打卡标签与主色
  * 打卡用复选框语义：勾选 = 已做，再点一次 = 撤销（回退一个周期），故不再单独放撤销按钮
- * 卡片底色统一中性浅灰 rgba(120,120,128,0.06)，与下方「特性/养护方法」输入框同源；
- * 状态色只保留在状态文案与图标的颜色上，不再染卡片底 */
+ * 容器：一层无描边的 5% 中性底（原为 6% 底 + 内层白底描边字段，两层框边叠加显脏）。
+ * 字段不再是输入框，而是内联的「11px 灰标签 + 12px 深色值」；
+ * 可编辑性用虚线下划线 + 24px 圆角方形日历按钮表达，整组包在 label 里点标签也能改 */
 function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cycle, maxCycle, onLastChange, onCycleChange, markColor }) {
   /* 周期数字：允许「清空后重填」。受控 number 若直接接父级，一按删除就会被
      parseInt('') || 1 顶回 1，根本删不掉。故本地存一份编辑中的文本：输入时同步父级
@@ -1188,7 +1189,7 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
   };
 
   return (
-    <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(120,120,128,0.06)' }}>
+    <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(120,120,128,0.05)' }}>
       {/* 状态行：行动指引 + 打卡复选框 */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -1211,23 +1212,25 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
           <span className="text-[12px] font-semibold" style={{ color: doneToday ? markColor : 'var(--text-2)' }}>{markLabel}</span>
         </button>
       </div>
-      {/* 控制行：上次日期 + 周期天数。两个字段都按内容自适应宽度（不再 flex-1 拉伸），
-          日期不再被撑到容器右缘、数字不再居中留白，「7」与「天」之间只隔一个 4px 栅格 */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 rounded-lg" style={{ padding: '5px 9px', background: 'var(--surface-card)', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <span className="text-[10px] text-[var(--text-3)] font-medium flex-shrink-0">上次</span>
+      {/* 控制行：上次日期 + 周期天数。方案 B：字段不再套白底描边输入框，内联成
+          「灰标签 + 深色值」；日期靠 24px 圆角方形日历按钮 + 8px 间隙表达可点与可改，
+          周期靠虚线下划线表达可编辑。整组包在 label 里，点标签文字同样能聚焦到字段 */}
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex items-center gap-1.5 min-w-0 cursor-pointer">
+          <span className="text-[11px] text-[var(--text-3)] font-medium flex-shrink-0">上次</span>
           <input type="date" value={last} onChange={(e) => onLastChange(e.target.value)}
-            className="dp" title="修改上次日期" />
-        </div>
-        <div className="flex items-center gap-1 rounded-lg flex-shrink-0" style={{ padding: '5px 9px', background: 'var(--surface-card)', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <span className="text-[10px] text-[var(--text-3)] font-medium flex-shrink-0">周期</span>
+            className="dp dp-u" title="修改上次日期" />
+        </label>
+        <label className="flex items-center gap-1 flex-shrink-0 cursor-pointer">
+          <span className="text-[11px] text-[var(--text-3)] font-medium flex-shrink-0">周期</span>
           <input type="text" inputMode="numeric" value={cycleShown}
             onChange={(e) => editCycle(e.target.value)} onBlur={() => setCycleText(null)}
             className="text-[12px] text-center bg-transparent outline-none font-semibold tabular-nums"
-            style={{ color: markColor, width: `${Math.max(2, cycleShown.length)}ch` }}
+            style={{ color: markColor, width: `${Math.max(2, cycleShown.length)}ch`,
+              borderBottom: '1px dashed rgba(120,120,128,0.28)', paddingBottom: 2 }}
             title="周期天数，可清空后重新输入" />
-          <span className="text-[10px] text-[var(--text-3)] font-medium">天</span>
-        </div>
+          <span className="text-[11px] text-[var(--text-3)] font-medium">天</span>
+        </label>
       </div>
     </div>
   );
@@ -1287,22 +1290,32 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
           /* 原生日期输入内嵌化：去边框去底色，仅保留日历指示器暗示可点。
-             font:inherit 会继承抽屉 16px 且压不住 WebKit date 内部默认尺寸 → 显式锁 12px
-             宽度 = 10ch 日期文本 + 16px 指示器位（含 2px 余量），且不许被 flex 压扁：
-             少了指示器位或允许压缩，末位数字就会被裁掉（曾出现 2026/09/ 缺日） */
+             font:inherit 会继承抽屉 16px 且压不住 WebKit date 内部默认尺寸 → 显式锁 12px；
+             且不许被 flex 压扁：允许压缩时末位数字会被裁掉（曾出现 2026/09/ 缺日）
+             日期输入：宽度 = 10 位日期（10ch）+ 8px 间隙 + 24px 圆角方形图标 + 2px 余量。
+              宽度与指示器各自独立计算且强制留 8px 间隙——上一版把宽度算成「10ch + 图标宽」，
+              数字与图标零缝隙，iOS 的月/日/年子字段最小宽度略大于 ch 估算值时就压住图标 */
           .dp { appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
             font-family: inherit; font-size: 12px; font-weight: 400; padding: 0; margin: 0;
             color: var(--text-1); cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1.2; letter-spacing: -0.01em;
-            width: calc(10ch + 16px); flex-shrink: 0; }
+            width: calc(10ch + 34px); flex-shrink: 0; }
+          /* 养护卡内的日期：去框后字段只剩文本，可编辑性靠虚线下划线暗示 */
+          .dp.dp-u { padding-bottom: 2px; border-bottom: 1px dashed rgba(120,120,128,0.28); }
           /* WebKit 日期编辑区：与外层同字号（缺这条 Chrome 会用内部默认字号渲染数字） */
           .dp::-webkit-datetime-edit { padding: 0; font-size: 12px; font-weight: 400; }
           .dp::-webkit-datetime-edit-fields-wrapper { display: flex; font-size: 12px; font-weight: 400; }
           .dp::-webkit-datetime-edit-text { font-size: 12px; padding: 0; }
-          /* 日历指示器：14px 实尺（原来 12px 再 scale(0.7) 只有 8.4px 视觉，点起来也费劲） */
-          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .45; padding: 0; margin: 0;
-            width: 14px; height: 14px; flex-shrink: 0; }
-          /* 头部「种植日期」胶囊：自带 8px 左右内边距与描边，宽度额外补上这 16px */
-          .dp-capsule { width: calc(10ch + 32px); padding: 3px 8px; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; }
+          /* 日历指示器 = 24×24 圆角方形点击区（原来 14px 图标紧贴数字）：自带 8px 左外边距
+              与数字隔开，10% 中性底 + 7px 圆角，图标本体 14px 居中，热区即视觉尺寸 */
+          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .55; padding: 0; margin: 0 0 0 8px;
+            width: 24px; height: 24px; flex-shrink: 0; box-sizing: border-box; border-radius: 7px;
+            background-color: rgba(120,120,128,0.10);
+            background-size: 14px 14px; background-position: center; background-repeat: no-repeat; }
+          /* 头部「种植日期」：同样去框（原为白底 + 描边胶囊），只留内联文本 + 紧凑图标；
+              宽度 = 10ch + 6px 间隙 + 20px 图标 + 4px 余量（头部字号更小，图标收一档） */
+          .dp-capsule { padding: 0; border: none; background: transparent; border-radius: 0; width: calc(10ch + 30px); }
+          .dp-capsule::-webkit-calendar-picker-indicator { width: 20px; height: 20px; border-radius: 6px;
+            margin-left: 6px; background-size: 12px 12px; }
           /* Firefox：无指示器，纯文本即可 */
           .dp::-moz-dateedit, .dp::-moz-calendar-picker-indicator { font-size: 12px; }
         `}</style>
@@ -1326,7 +1339,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
                 {boardLabel || '自由摆放'}
               </span>
             </div>
-            {/* 已种植天数 + 种植日期（原生 date 胶囊，点击即弹系统日历） */}
+            {/* 已种植天数 + 种植日期：去框后与前后文字同排（原生 date 输入，点击即弹系统日历） */}
             <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: 'var(--text-3)' }}>
               <span>已种植</span>
               <span className="font-bold tabular-nums" style={{ color: '#238E3F' }}>{days}</span>

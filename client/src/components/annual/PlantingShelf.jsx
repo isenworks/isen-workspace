@@ -798,8 +798,8 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
 
-        {/* 顶部栏 */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 5 }}>
+        {/* 顶部栏（zIndex 7：常驻 chrome，须高于选中植物的置顶层 5 与托板工具条 6） */}
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 7 }}>
           <div className="flex items-baseline gap-2">
             <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">我的花架</span>
             <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株</span>
@@ -893,36 +893,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                     background: 'rgba(95,168,95,0.06)',
                   }} />
               )}
-              {/* 四角缩放手柄（选中时显示，对角拖动等比缩放） */}
-              {isSel && resizing !== plant.id && (
-                <>
-                  {[['nw', '-top-1.5 -left-1.5', 'nwse-resize'], ['ne', '-top-1.5 -right-1.5', 'nesw-resize'],
-                    ['sw', '-bottom-1.5 -left-1.5', 'nesw-resize'], ['se', '-bottom-1.5 -right-1.5', 'nwse-resize']].map(([corner, pos, cur]) => (
-                    <div key={corner}
-                      className={`absolute ${pos} w-2.5 h-2.5 rounded-full z-10`}
-                      title="拖动缩放"
-                      style={{
-                        background: 'var(--surface-card)',
-                        border: '2px solid #3E7D3E',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
-                        cursor: cur,
-                      }}
-                      onMouseDown={(e) => onResizeMouseDown(e, plant)} />
-                  ))}
-                </>
-              )}
-              {/* 名称气泡 */}
-              <div className="absolute left-1/2 -bottom-5 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
-                style={{
-                  background: isSel ? '#3E7D3E' : 'rgba(255,255,255,0.88)',
-                  color: isSel ? 'var(--surface-card)' : 'var(--ink-600)',
-                  opacity: isSel || dragging === plant.id ? 1 : 0,
-                  transition: 'opacity 0.15s',
-                  pointerEvents: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                }}>
-                {plant.name || '未命名'}
-              </div>
+              {/* 四角缩放手柄 + 名称气泡已移到「置顶层」（见下方 zIndex 5 区块）：
+                  它们原本贴着植物盒子边缘/底部，会被托板（zIndex 4）压住，
+                  而植物本体需要继续被托板遮挡，所以只能把这两样单独提层，不能整体提层 */}
               {/* 浇水超期角标 */}
               {ws?.level === 'alert' && (
                 <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center animate-pulse"
@@ -939,6 +912,67 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           );
         })}
         </div>
+
+        {/* 选中植物的「四角缩放手柄 + 名称气泡」置顶层：
+            zIndex 5 > 托板层 4，只把这两类交互信息提到托板之上；
+            植物本体仍留在 zIndex 2 层被托板遮挡（视觉上依旧"坐在板上"）。
+            盒子尺寸靠一个不可见的同款占位撑出，与下方植物完全同位同尺寸 →
+            手柄贴角、名称贴底，与植物不产生偏差；位置取 sortedPlants 实时值，
+            避免用 selected 快照导致拖动/缩放时置顶层滞后 */}
+        {(() => {
+          const p = selected ? sortedPlants.find(x => x.id === selected.id) : null;
+          if (!p) return null;
+          const size = p.size || 1;
+          return (
+            <div className="absolute"
+              style={{
+                left: `${p.pos_x}%`, top: `${p.pos_y}%`,
+                zIndex: 5, pointerEvents: 'none',
+                transform: 'translate(-50%, -50%)',
+                transition: dragging === p.id ? 'none' : 'transform 0.18s cubic-bezier(.34,1.56,.64,1)',
+              }}>
+              {/* 不可见占位：仅撑出与植物一致的盒子，供手柄/名称定位 */}
+              {p.image ? (
+                <img src={p.image} alt="" aria-hidden="true"
+                  className="block object-contain invisible"
+                  style={{ maxWidth: `${140 * size}px`, maxHeight: `${160 * size}px` }} />
+              ) : (
+                <div style={{ width: 64, height: 64 }} />
+              )}
+
+              {/* 四角缩放手柄（选中时显示，对角拖动等比缩放；缩放过程中隐藏） */}
+              {resizing !== p.id && (
+                <>
+                  {[['nw', '-top-1.5 -left-1.5', 'nwse-resize'], ['ne', '-top-1.5 -right-1.5', 'nesw-resize'],
+                    ['sw', '-bottom-1.5 -left-1.5', 'nesw-resize'], ['se', '-bottom-1.5 -right-1.5', 'nwse-resize']].map(([corner, pos, cur]) => (
+                    <div key={corner}
+                      className={`absolute ${pos} w-2.5 h-2.5 rounded-full`}
+                      title="拖动缩放"
+                      style={{
+                        background: 'var(--surface-card)',
+                        border: '2px solid #3E7D3E',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                        cursor: cur,
+                        pointerEvents: 'auto',
+                      }}
+                      onMouseDown={(e) => onResizeMouseDown(e, p)} />
+                  ))}
+                </>
+              )}
+
+              {/* 名称气泡 */}
+              <div className="absolute left-1/2 -bottom-5 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
+                style={{
+                  background: '#3E7D3E',
+                  color: 'var(--surface-card)',
+                  pointerEvents: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                }}>
+                {p.name || '未命名'}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 空状态 */}
         {plants.length === 0 && !loading && (

@@ -572,6 +572,53 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
         sel.addRange(r);
       }
       touch();
+      return;
+    }
+    // 复选列表内退格：拦截浏览器默认行为。圆点是 contenteditable=false 的独立元素
+    // （CSS user-modify: read-only），空复选行按退格浏览器不会删它 → 表现为「点删除没反应」。
+    // 光标落在圆点之后的行首时，把该行「退出列表」成普通行：复选框就地消失，文本保留。
+    // 该行是列表首项 → 整个列表外壳被普通行顶替；位于列表中部 → 拆成前后两段仍连续
+    if (e.key === 'Backspace' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const sel = window.getSelection();
+      if (!sel?.anchorNode) return;
+      const node = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+      const li = node?.closest?.('ul.qc-checklist > li');
+      const box = li?.querySelector(':scope > .qc-box');
+      if (!box) return;
+      // 只在「行首」接管：圆点之后到光标之间没有字符时才算行首，否则交给浏览器正常删字
+      let atLineStart = false;
+      try {
+        const r = document.createRange();
+        r.setStartAfter(box);
+        r.setEnd(sel.anchorNode, sel.anchorOffset);
+        atLineStart = r.toString() === '';
+      } catch { /* 光标落在圆点之前：range 非法，不接管 */ }
+      if (!atLineStart) return;
+      e.preventDefault();
+      const ul = li.parentElement;
+      const plain = document.createElement('div');
+      const clone = li.cloneNode(true);
+      clone.querySelectorAll('.qc-box').forEach(x => x.remove());
+      plain.innerHTML = clone.innerHTML.trim() || '<br>';
+      const items = [...ul.children];
+      const idx = items.indexOf(li);
+      const head = items.slice(0, idx);          // 本行之前的项：留在原列表
+      const tail = items.slice(idx + 1);         // 本行之后的项：移入新列表，保持列表连续
+      let ulTail = null;
+      if (tail.length) {
+        ulTail = document.createElement('ul');
+        ulTail.className = 'qc-checklist';
+        tail.forEach(n => ulTail.appendChild(n));
+      }
+      li.remove();
+      if (head.length) ul.after(plain); else ul.replaceWith(plain);
+      if (ulTail) plain.after(ulTail);
+      const r = document.createRange();
+      r.selectNodeContents(plain);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+      touch();
     }
   }
 

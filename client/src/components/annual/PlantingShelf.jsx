@@ -199,35 +199,52 @@ function Butterfly({ size = 34, color = '#FFB347' }) {
 // 7 个斑点 = 鞘翅前端中线旁 1 个 + 两侧各 3 个：这是「七星瓢虫」的识别符号，
 //   而瓢虫科里只有植食性的二十八星瓢虫是害虫，两者靠斑点数量与光泽区分。
 //   画错点数会被读成害虫，语义正好反掉，所以点数与高光都不是装饰。
-// 后翅复用蜜蜂翅的样式（半透明 + 扇动），只在飞行段显形，停落时收起 → 合拢成一个圆壳；
-//   不做鞘翅开合：24px 下看不清，反而会做出毛刺感，飞行/停落靠轨迹 + 高度差 + 后翅显隐区分
-function Ladybug({ size = 26 }) {
+// 飞行不另加白色后翅：张开并振动的是它自己的红色鞘翅（左右两片），这正是瓢虫起飞的样子；
+//   停落时两片合拢回整壳、振动停止。飞行态与停落态用同一条 26s 时间轴切可见性，
+//   避免「合拢的整壳」和「张开的两片」两种画法叠在一起互相穿帮。
+function Ladybug({ size = 20 }) {
+  const spotsL = [[7, 8.6, 1.7], [5.6, 12.8, 1.5], [8.8, 16.6, 1.4]];
+  const spotsR = [[17, 8.6, 1.7], [18.4, 12.8, 1.5], [15.2, 16.6, 1.4]];
   return (
     <svg width={size} height={size * 0.92} viewBox="0 0 24 22">
-      {/* 后翅（绘制在鞘翅之下，张开时从两侧探出） */}
-      <ellipse className="lady-hw" cx="8" cy="9" rx="7.5" ry="4.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      <ellipse className="lady-hw" cx="16" cy="9" rx="7.5" ry="4.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      {/* 鞘翅（合拢态） */}
-      <path d="M12 3.4 C6.6 3.5 3 7.4 3 12 C3 16.6 6.6 20.2 12 20.3 C17.4 20.2 21 16.6 21 12 C21 7.4 17.4 3.5 12 3.4 Z"
-        fill="#E4583F" />
-      <path d="M12 3.5 L12 20.3" fill="none" stroke="#7E2A1E" strokeWidth="0.7" />
-      <circle cx="12" cy="6.2" r="1.35" fill="#2E2823" />
-      <circle cx="7" cy="8.6" r="1.7" fill="#2E2823" />
-      <circle cx="17" cy="8.6" r="1.7" fill="#2E2823" />
-      <circle cx="5.6" cy="12.8" r="1.5" fill="#2E2823" />
-      <circle cx="18.4" cy="12.8" r="1.5" fill="#2E2823" />
-      <circle cx="8.8" cy="16.6" r="1.4" fill="#2E2823" />
-      <circle cx="15.2" cy="16.6" r="1.4" fill="#2E2823" />
-      {/* 高光：有光泽是捕食性瓢虫的识别特征 */}
-      <ellipse cx="9" cy="6.6" rx="2.4" ry="1.2" fill="var(--surface-card)" opacity="0.34" />
-      <ellipse cx="14.6" cy="6.4" rx="1.6" ry="0.85" fill="var(--surface-card)" opacity="0.22" />
-      {/* 头 + 复眼 + 触角 + 六足 */}
+      {/* 六足画在最底层：压在鞘翅之下，飞行时才不会用深色线条把红翅划花 */}
+      <path d="M5.8 9.6 L2.8 12.6 M5.4 13.4 L2.2 16.4 M5.9 16.8 L3.4 20.6 M18.2 9.6 L21.2 12.6 M18.6 13.4 L21.8 16.4 M18.1 16.8 L20.6 20.6"
+        fill="none" stroke="#2E2823" strokeWidth="0.7" strokeLinecap="round" />
+
+      {/* 腹部：飞行张开鞘翅时露出的深色底，避免两片之间出现空洞（收窄以免小尺寸糊成一团） */}
+      <ellipse cx="12" cy="12.4" rx="4.2" ry="6.6" fill="#4A3A32" />
+
+      {/* 飞行态：左右两片红色鞘翅，向外张开 + 高频振动 */}
+      <g className="lady-wings">
+        <g className="lady-wing-l">
+          <path d="M12 3.4 C6.6 3.5 3 7.4 3 12 C3 16.6 6.6 20.2 12 20.3 Z" fill="#E4583F" />
+          {spotsL.map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill="#2E2823" />)}
+          <ellipse cx="8.6" cy="7.8" rx="2.2" ry="1.05" fill="var(--surface-card)" opacity="0.3" />
+        </g>
+        <g className="lady-wing-r">
+          <path d="M12 3.4 C17.4 3.5 21 7.4 21 12 C21 16.6 17.4 20.2 12 20.3 Z" fill="#E4583F" />
+          {spotsR.map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill="#2E2823" />)}
+          <ellipse cx="15.4" cy="7.8" rx="2.2" ry="1.05" fill="var(--surface-card)" opacity="0.3" />
+        </g>
+      </g>
+
+      {/* 停落态：合拢的整壳（含小盾斑，共 7 个斑）+ 有光泽（捕食性瓢虫的识别特征） */}
+      <g className="lady-shell">
+        <path d="M12 3.4 C6.6 3.5 3 7.4 3 12 C3 16.6 6.6 20.2 12 20.3 C17.4 20.2 21 16.6 21 12 C21 7.4 17.4 3.5 12 3.4 Z"
+          fill="#E4583F" />
+        {/* 中缝用比壳稍深的红，而不是近黑的深褐：避免「头 + 顶斑 + 中缝」连成一条过重的暗竖带 */}
+        <path d="M12 3.9 L12 20.1" fill="none" stroke="#C04632" strokeWidth="0.55" />
+        <circle cx="12" cy="6.2" r="1.3" fill="#2E2823" />
+        {[...spotsL, ...spotsR].map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill="#2E2823" />)}
+        <ellipse cx="9" cy="6.6" rx="2.4" ry="1.2" fill="var(--surface-card)" opacity="0.32" />
+        <ellipse cx="14.6" cy="6.4" rx="1.6" ry="0.85" fill="var(--surface-card)" opacity="0.2" />
+      </g>
+
+      {/* 头 + 复眼 + 触角（两态都在），压在最上层 */}
       <ellipse cx="12" cy="3.3" rx="3.4" ry="2.1" fill="#2E2823" />
       <circle cx="10.6" cy="2.9" r="0.5" fill="var(--surface-card)" opacity="0.8" />
       <circle cx="13.4" cy="2.9" r="0.5" fill="var(--surface-card)" opacity="0.8" />
       <path d="M10.6 1.6 L9 0.4 M13.4 1.6 L15 0.4" fill="none" stroke="#2E2823" strokeWidth="0.7" strokeLinecap="round" />
-      <path d="M5.8 9.6 L2.8 12.6 M5.4 13.4 L2.2 16.4 M5.9 16.8 L3.4 20.6 M18.2 9.6 L21.2 12.6 M18.6 13.4 L21.8 16.4 M18.1 16.8 L20.6 20.6"
-        fill="none" stroke="#2E2823" strokeWidth="0.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -859,14 +876,27 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           94%  { transform: translate(-6px,-32px) rotate(-3deg); }
           100% { transform: translate(0,-26px) rotate(-4deg); }
         }
-        /* 瓢虫后翅：与飞行同一条 26s 时间轴（显隐），叠加蜂翅那套扇动（scaleY，互不冲突）；
-           停落段藏起后翅 → 合拢成一只圆壳瓢虫 */
-        .lady-hw { transform-origin: center; opacity: 0;
-          animation: wing-flap 0.16s ease-in-out infinite alternate, lady-hw-show 26s ease-in-out infinite; }
-        @keyframes lady-hw-show { 0%, 44% { opacity: 1; } 50%, 72% { opacity: 0; } 78%, 100% { opacity: 1; } }
+        /* 瓢虫飞行态：左右两片红色鞘翅向外张开并高频振动 —— 振动的就是它自己的鞘翅，
+           不另加白色后翅；停落段整壳合拢、振动停止 */
+        .lady-wing-l, .lady-wing-r { transform-box: fill-box; }
+        .lady-wing-l { transform-origin: 100% 12%; animation: lady-wing-l 0.11s ease-in-out infinite alternate; }
+        @keyframes lady-wing-l { from { transform: rotate(13deg); } to { transform: rotate(25deg); } }
+        .lady-wing-r { transform-origin: 0% 12%; animation: lady-wing-r 0.11s ease-in-out infinite alternate; }
+        @keyframes lady-wing-r { from { transform: rotate(-13deg); } to { transform: rotate(-25deg); } }
+        /* 飞行态 / 停落态切换（与 .lady-fly 同一条 26s 时间轴；step-end 让可见性整段保持，
+           不出现两套画法叠在一起的重影）：
+           0–47% 飞行（翅张、壳隐）→ 47–71% 停落（翅隐、壳显）→ 71–100% 飞行 */
+        .lady-wings { animation: lady-wings-vis 26s step-end infinite; }
+        @keyframes lady-wings-vis { 0% { visibility: visible; } 47% { visibility: hidden; } 71% { visibility: visible; } }
+        .lady-shell { visibility: hidden; animation: lady-shell-vis 26s step-end infinite; }
+        @keyframes lady-shell-vis { 0% { visibility: hidden; } 47% { visibility: visible; } 71% { visibility: hidden; } }
         @media (prefers-reduced-motion: reduce) {
-          .bee-wing, .bf-wing, .lady-hw,
-          .bee-fly-1, .bee-fly-2, .bee-fly-3, .bf-fly-1, .bf-fly-2, .lady-fly { animation: none !important; }
+          .bee-wing, .bf-wing,
+          .bee-fly-1, .bee-fly-2, .bee-fly-3, .bf-fly-1, .bf-fly-2, .lady-fly,
+          .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell { animation: none !important; }
+          /* 静止时收敛成一只合拢的瓢虫 */
+          .lady-wings { display: none; }
+          .lady-shell { visibility: visible; }
         }
       `}</style>
 
@@ -962,7 +992,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             ? { left: `${host.pos_x}%`, top: `${Math.max(5, Math.min(94, (host.pos_y || 0) - 7 * (host.size || 1)))}%` }
             : { left: '58%', top: '34%' };
           return (
-            <LadybugDrop size={26} anim="lady-fly" pos={s.lady1 || def}
+            <LadybugDrop size={20} anim="lady-fly" pos={s.lady1 || def}
               onPosChange={(np) => setSettings(st => ({ ...st, lady1: np }))} />
           );
         })()}

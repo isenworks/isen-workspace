@@ -11,19 +11,24 @@ import ConfirmDialog from '../ConfirmDialog.jsx';
 import { useLongPress } from '../useLongPress.js';
 import { uid } from './utils.js';
 
-// ---- 绿色（工作台 iOS accent.green 台阶：H≈145° 同色相，只降明度，饱和度高）----
-// 主色 #2DB24E  green-600：实底按钮 / 勾选框 / 缩放手柄 / focus 边框 / 滑块描边 / 顶栏图标 / 空状态叶片
-// 小字 #1B6E31  green-800：所有绿字（养护状态、种植天数、托板徽章、重试、上传图片、添加托板）+ 名称气泡底
+// ---- 绿色（工作台 iOS accent.green 700 单色，H≈136° 同色相，只降明度）----
+// 单色 #238E3F  green-700：一处到底 —— 实底按钮 / 勾选框 / 缩放手柄 / focus 边框 /
+//   滑块描边 / 顶栏图标 / 空状态叶片，以及所有绿字（养护状态、种植天数、托板徽章、
+//   名称气泡底、重试、上传图片、添加托板）
 // 浅色 #7ED6A0  green-300：空状态叶片高光
-// 铺垫 rgba(45,178,78,·)   半透明绿色铺垫：植物卡渐变、拖拽区虚线、托板徽章底、抽屉头像底
-// 深铺垫 rgba(27,110,49,·)  手柄与勾选框阴影、托板选中描边、保存提示底
-// 改色请全局替换以上 5 组值（含 Tailwind 任意值写法 focus:border-[#2DB24E]）
+// 铺垫 rgba(35,142,63,·)  同色半透明：植物卡渐变、拖拽区虚线、托板徽章底、抽屉头像底、
+//   手柄与勾选框阴影、托板选中描边、保存提示底
+// 为什么单色：green-700 白底 4.2:1，文字与控件共用一色仍然可读，于是不必再分
+//   「控件色 / 小字色」两层，正好回到工作台「每模块一色 + 10% 同色铺垫」的结构
+// 改色请全局替换以上 3 组值（含 Tailwind 任意值写法 focus:border-[#238E3F]）
 
 // ---- 养护状态计算（浇水/施肥通用）----
 // 灰=无记录 / 绿=正常或今日已做 / 橙=临期(距下次养护≤2天) / 红=超期
+// okColor 覆盖「正常 / 今日已做」这一档的色（浇水用默认绿，施肥传土色 #8B6B4F）；
+// 临期橙与超期红是通用告警色，两种养护共用，不随 okColor 变
 // 下次养护日 = 上次日期 + 周期，按「剩余天数」给行动指引（今天/明天/后天…）
 // 周期数字不出现（避免与控制行的「周期」重复）
-function careStatus(last, cycle, unit) {
+function careStatus(last, cycle, unit, okColor = '#238E3F') {
   if (!last) return { level: 'none', color: 'var(--text-3)', text: `还没有${unit}记录` };
   if (!cycle) return { level: 'none', color: 'var(--text-3)', text: `未设置${unit}周期` };
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -31,12 +36,12 @@ function careStatus(last, cycle, unit) {
   const days = Math.round((today - l) / 86400000);
   // 剩余天数 = 周期 - 距上次天数：0=今天到期，1=明天，2=后天，>2 顺延，<0=已超期
   const remaining = cycle - days;
-  if (days <= 0) return { level: 'done', color: '#1B6E31', text: `今日已${unit}`, days };
+  if (days <= 0) return { level: 'done', color: okColor, text: `今日已${unit}`, days };
   if (remaining < 0) return { level: 'alert', color: 'var(--danger)', text: `已超期 ${-remaining} 天`, days };
   if (remaining === 0) return { level: 'warn', color: 'var(--warning)', text: `建议今天${unit}`, days };
   if (remaining === 1) return { level: 'warn', color: 'var(--warning)', text: `建议明天${unit}`, days };
   if (remaining === 2) return { level: 'warn', color: 'var(--warning)', text: `建议后天${unit}`, days };
-  return { level: 'ok', color: '#1B6E31', text: `${remaining} 天后${unit}`, days };
+  return { level: 'ok', color: okColor, text: `${remaining} 天后${unit}`, days };
 }
 
 // 画布角标只关心浇水超期
@@ -745,7 +750,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                 borderRadius: '9px',
                 background: `linear-gradient(180deg, ${shade(b.color, 0.26)} 0%, ${b.color} 46%, ${shade(b.color, -0.16)} 100%)`,
                 boxShadow: isSel
-                  ? 'inset 0 1px 0 rgba(255,247,232,0.6), inset 0 -2px 3px rgba(0,0,0,0.22), 0 9px 15px rgba(58,38,18,0.20), 0 0 0 2px rgba(27,110,49,0.6)'
+                  ? 'inset 0 1px 0 rgba(255,247,232,0.6), inset 0 -2px 3px rgba(0,0,0,0.22), 0 9px 15px rgba(58,38,18,0.20), 0 0 0 2px rgba(35,142,63,0.6)'
                   : 'inset 0 1px 0 rgba(255,247,232,0.55), inset 0 -2px 3px rgba(0,0,0,0.2), 0 7px 13px rgba(58,38,18,0.15)',
                 transition: boardDragging === b.id ? 'none' : 'left .16s ease, top .16s ease, width .16s ease',
               }}
@@ -817,7 +822,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             <button onClick={(e) => { e.stopPropagation(); openAdd(); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
               title="添加植物">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DB24E" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#238E3F" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             </button>
             {/* 一键整理植物（把植物搬回设为默认时的位置） */}
             <button onClick={(e) => { e.stopPropagation(); restoreDefault(); }}
@@ -845,7 +850,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             className="absolute left-1/2 top-14 -translate-x-1/2 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap"
             style={{
               zIndex: 9,
-              background: saveToast.type === 'ok' ? 'rgba(27,110,49,0.94)' : 'rgba(var(--danger-rgb),0.96)',
+              background: saveToast.type === 'ok' ? 'rgba(35,142,63,0.94)' : 'rgba(var(--danger-rgb),0.96)',
               color: 'var(--surface-card)',
               boxShadow: '0 4px 14px rgba(0,0,0,0.16)',
               animation: 'toast-pop 0.18s ease-out',
@@ -877,7 +882,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
               {/* 绿色光晕 */}
               <div className="absolute pointer-events-none" style={{
                 inset: '-8px -8px -4px', borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(45,178,78,0.18), transparent 70%)',
+                background: 'radial-gradient(circle, rgba(35,142,63,0.18), transparent 70%)',
                 opacity: isSel || dragging === plant.id ? 1 : 0,
                 transition: 'opacity 0.2s',
               }} />
@@ -897,8 +902,8 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                 <div className="animate-pulse rounded-full"
                   style={{
                     width: 64, height: 64, pointerEvents: 'none',
-                    border: '2px dashed rgba(45,178,78,0.35)',
-                    background: 'rgba(45,178,78,0.06)',
+                    border: '2px dashed rgba(35,142,63,0.35)',
+                    background: 'rgba(35,142,63,0.06)',
                   }} />
               )}
               {/* 四角缩放手柄 + 名称气泡已移到「置顶层」（见下方 zIndex 5 区块）：
@@ -958,7 +963,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                       title="拖动缩放"
                       style={{
                         background: 'var(--surface-card)',
-                        border: '2px solid #2DB24E',
+                        border: '2px solid #238E3F',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
                         cursor: cur,
                         pointerEvents: 'auto',
@@ -971,7 +976,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
               {/* 名称气泡 */}
               <div className="absolute left-1/2 -bottom-5 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
                 style={{
-                  background: '#1B6E31',
+                  background: '#238E3F',
                   color: 'var(--surface-card)',
                   pointerEvents: 'none',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -987,9 +992,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-ink-500" style={{ zIndex: 3 }}>
             <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
               <ellipse cx="36" cy="52" rx="22" ry="12" fill="#E8D5C4" />
-              <path d="M36 48 C36 30 44 18 52 14 C50 28 44 40 36 48 Z" fill="#2DB24E" opacity="0.7" />
+              <path d="M36 48 C36 30 44 18 52 14 C50 28 44 40 36 48 Z" fill="#238E3F" opacity="0.7" />
               <path d="M36 48 C36 34 28 22 20 18 C22 32 28 44 36 48 Z" fill="#7ED6A0" opacity="0.7" />
-              <path d="M36 48 C36 36 36 22 36 8 C36 22 36 36 36 48 Z" fill="#2DB24E" opacity="0.6" />
+              <path d="M36 48 C36 36 36 22 36 8 C36 22 36 36 36 48 Z" fill="#238E3F" opacity="0.6" />
             </svg>
             <div className="text-center">
               <div className="text-sm font-semibold text-ink-400">还没有植物</div>
@@ -1011,7 +1016,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             <div className="text-[12px]" style={{ color: 'var(--danger)' }}>{loadErr}</div>
             <button onClick={loadPlants}
               className="text-[11px] font-semibold px-3 py-1 rounded-md transition active:scale-95"
-              style={{ color: '#1B6E31', background: 'rgba(45,178,78,0.12)', border: '1px solid rgba(45,178,78,0.25)' }}>
+              style={{ color: '#238E3F', background: 'rgba(35,142,63,0.12)', border: '1px solid rgba(35,142,63,0.25)' }}>
               重试
             </button>
           </div>
@@ -1120,7 +1125,7 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
             <div className="text-[11px] font-semibold text-ink-500 mb-1.5">植物图片</div>
             <button type="button" onClick={onPickImage}
               className="w-full h-[120px] rounded-xl border border-dashed grid place-items-center overflow-hidden transition hover:bg-ink-50"
-              style={{ borderColor: 'rgba(45,178,78,0.35)', background: 'rgba(45,178,78,0.04)' }}>
+              style={{ borderColor: 'rgba(35,142,63,0.35)', background: 'rgba(35,142,63,0.04)' }}>
               {draft.image ? (
                 <img src={draft.image} alt="预览" className="max-h-[104px] max-w-full object-contain" draggable={false} />
               ) : (
@@ -1151,7 +1156,7 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
               className="flex-1 py-1.5 rounded-lg text-[11px] font-bold text-ink-500 border border-ink-100 hover:bg-ink-50 transition">取消</button>
             <button type="button" onClick={onConfirm} disabled={!canAdd}
               className="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition disabled:opacity-40"
-              style={{ background: '#2DB24E', color: '#fff' }}>{busy ? '添加中…' : '添加植物'}</button>
+              style={{ background: '#238E3F', color: '#fff' }}>{busy ? '添加中…' : '添加植物'}</button>
           </div>
         </div>
       </div>
@@ -1235,7 +1240,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
   const today = new Date().toISOString().slice(0, 10);
   // 状态从 form 实时计算，编辑周期/日期时状态文案即时跟随
   const ws = careStatus(form.last_watered, form.water_cycle_days, '浇水');
-  const fs = careStatus(form.last_fertilized, form.fert_cycle_days, '施肥');
+  const fs = careStatus(form.last_fertilized, form.fert_cycle_days, '施肥', '#8B6B4F');
 
   // 打卡类动作：合并补丁并立即保存（无需点保存按钮）
   const commit = (patch) => {
@@ -1296,25 +1301,25 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
         <div className="flex items-start gap-3 pl-4 pr-5 pt-3.5 pb-3"
           style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <div className="w-12 h-12 rounded-xl grid place-items-center flex-shrink-0"
-            style={{ background: 'rgba(45,178,78,0.08)', border: '1px solid rgba(0,0,0,0.04)' }}>
+            style={{ background: 'rgba(35,142,63,0.08)', border: '1px solid rgba(0,0,0,0.04)' }}>
             {plant.image
               ? <img src={plant.image} alt="" className="w-8 h-8 object-contain" />
-              : <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(45,178,78,0.12)' }} />}
+              : <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(35,142,63,0.12)' }} />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <input value={form.name} onChange={(e) => update('name', e.target.value)}
                 placeholder="植物名称"
-                className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--text-1)] bg-transparent outline-none border-b border-transparent focus:border-[#2DB24E] transition leading-tight" />
+                className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--text-1)] bg-transparent outline-none border-b border-transparent focus:border-[#238E3F] transition leading-tight" />
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
-                style={{ color: '#1B6E31', background: 'rgba(45,178,78,0.1)' }}>
+                style={{ color: '#238E3F', background: 'rgba(35,142,63,0.1)' }}>
                 {boardLabel || '自由摆放'}
               </span>
             </div>
             {/* 已种植天数 + 种植日期（原生 date 胶囊，点击即弹系统日历） */}
             <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: 'var(--text-3)' }}>
               <span>已种植</span>
-              <span className="font-bold tabular-nums" style={{ color: '#1B6E31' }}>{days}</span>
+              <span className="font-bold tabular-nums" style={{ color: '#238E3F' }}>{days}</span>
               <span>天 ·</span>
               <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
                 className="dp rounded-lg" style={{ padding: '2px 7px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)' }}
@@ -1339,7 +1344,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
             maxCycle={90}
             onLastChange={(v) => update('last_watered', v)}
             onCycleChange={(v) => update('water_cycle_days', v)}
-            markColor={ws.level === 'alert' ? '#FF3B30' : ws.level === 'warn' ? '#FF9500' : '#1B6E31'}
+            markColor={ws.level === 'alert' ? '#FF3B30' : ws.level === 'warn' ? '#FF9500' : '#238E3F'}
           />
 
           {/* 施肥卡：同构（底色同样统一为中性浅灰，仅图标与主色区分） */}
@@ -1362,14 +1367,14 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
           <div>
             <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">特性</div>
             <textarea value={form.traits} onChange={(e) => update('traits', e.target.value)} placeholder="喜温暖湿润，耐阴…" rows={2}
-              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#2DB24E] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
+              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
           </div>
 
           {/* 养护方法 */}
           <div>
             <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">养护方法</div>
             <textarea value={form.care_method} onChange={(e) => update('care_method', e.target.value)} placeholder="每周浇水 1 次…" rows={2}
-              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#2DB24E] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
+              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.06)] rounded-lg px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
           </div>
         </div>
 
@@ -1382,7 +1387,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
           </button>
           <button onClick={handleSave} disabled={!dirty}
             className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition hover:brightness-95 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: '#2DB24E', color: 'var(--surface-card)', boxShadow: '0 2px 8px rgba(27,110,49,0.2)' }}>
+            style={{ background: '#238E3F', color: 'var(--surface-card)', boxShadow: '0 2px 8px rgba(35,142,63,0.2)' }}>
             保存
           </button>
         </div>
@@ -1399,7 +1404,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
 //   排版对齐工作台既有面板：15px 标题 / 11px 段标 / var(--text-*) 文本层级
 // ============================================================
 const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
-const PLANT_GREEN = '#2DB24E';
+const PLANT_GREEN = '#238E3F';
 
 function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onClose }) {
   const merge = (patch) => onChange({ ...settings, ...patch });
@@ -1413,7 +1418,7 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
     padding: '3px 11px', fontSize: 12, fontWeight: on ? 600 : 500, borderRadius: 7,
     color: on ? '#fff' : 'var(--text-2)', background: on ? PLANT_GREEN : 'transparent',
     border: 'none', cursor: 'pointer', transition: 'all .2s',
-    boxShadow: on ? '0 3px 8px rgba(27,110,49,0.25)' : 'none',
+    boxShadow: on ? '0 3px 8px rgba(35,142,63,0.25)' : 'none',
   });
   const swatchStyle = (active) => ({
     width: 22, height: 22, borderRadius: '50%', cursor: 'pointer',
@@ -1436,9 +1441,9 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
       <style>{`@keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
         /* 托板宽度滑杆：细轨 + 小圆点（原生 thumb 过大） */
         .bd-range { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: var(--ink-100); outline: none; cursor: pointer; }
-        .bd-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #2DB24E; box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; }
+        .bd-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #238E3F; box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; }
         .bd-range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--ink-100); }
-        .bd-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #2DB24E; box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; }
+        .bd-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #238E3F; box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; }
       `}</style>
 
       {/* 头部 */}
@@ -1482,7 +1487,7 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
             <div className="flex items-center gap-2">
               <button onClick={() => bgInputRef.current?.click()}
                 className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition"
-                style={{ color: '#1B6E31', border: `1px dashed ${PLANT_GREEN}`, background: 'rgba(45,178,78,0.06)' }}>
+                style={{ color: '#238E3F', border: `1px dashed ${PLANT_GREEN}`, background: 'rgba(35,142,63,0.06)' }}>
                 {settings.bg_image ? '更换图片' : '上传图片'}
               </button>
               {settings.bg_image && (
@@ -1510,7 +1515,7 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
           <div className="flex items-center gap-2 mb-2.5">
             <button onClick={onAddBoard} disabled={full}
               className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[12px] font-semibold transition disabled:opacity-40"
-              style={{ color: '#1B6E31', border: '1px solid rgba(45,178,78,0.35)', background: 'rgba(45,178,78,0.06)' }}>
+              style={{ color: '#238E3F', border: '1px solid rgba(35,142,63,0.35)', background: 'rgba(35,142,63,0.06)' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               添加托板
             </button>

@@ -1196,9 +1196,8 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
  * icon 状态 icon · status 状态对象 · doneToday 今日已打卡（复选框选中态）
  * last/cycle 及其 onChange 控制行参数 · markLabel/markColor 打卡标签与主色
  * 打卡用复选框语义：勾选 = 已做，再点一次 = 撤销（回退一个周期），故不再单独放撤销按钮
- * 容器：一层无描边的 5% 中性底（原为 6% 底 + 内层白底描边字段，两层框边叠加显脏）。
- * 字段不再是输入框，而是内联的「11px 灰标签 + 12px 深色值」；
- * 可编辑性用虚线下划线 + 24px 圆角方形日历按钮表达，整组包在 label 里点标签也能改 */
+ * 容器：一层无描边的 3% 中性底（原为 6% 底 + 内层白底描边字段，两层框边叠加显脏）。
+ * 3% 在白底上合成约 #FBFAFB，几乎看不出边界——近似「无框但保留成组」的中间态 */
 function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cycle, maxCycle, onLastChange, onCycleChange, markColor }) {
   /* 周期数字：允许「清空后重填」。受控 number 若直接接父级，一按删除就会被
      parseInt('') || 1 顶回 1，根本删不掉。故本地存一份编辑中的文本：输入时同步父级
@@ -1212,7 +1211,7 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
   };
 
   return (
-    <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(120,120,128,0.05)' }}>
+    <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(120,120,128,0.03)' }}>
       {/* 状态行：行动指引 + 打卡复选框 */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">

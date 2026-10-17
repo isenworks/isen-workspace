@@ -1176,6 +1176,17 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
  * 卡片底色统一中性浅灰 rgba(120,120,128,0.06)，与下方「特性/养护方法」输入框同源；
  * 状态色只保留在状态文案与图标的颜色上，不再染卡片底 */
 function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cycle, maxCycle, onLastChange, onCycleChange, markColor }) {
+  /* 周期数字：允许「清空后重填」。受控 number 若直接接父级，一按删除就会被
+     parseInt('') || 1 顶回 1，根本删不掉。故本地存一份编辑中的文本：输入时同步父级
+     （夹到 1..maxCycle 防止空/0 落库），失焦时丢掉草稿——回到父级里的有效值 */
+  const [cycleText, setCycleText] = useState(null);
+  const cycleShown = cycleText ?? String(cycle ?? '');
+  const editCycle = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 3);
+    setCycleText(digits);
+    if (digits !== '') onCycleChange(Math.max(1, Math.min(Number(digits), maxCycle)));
+  };
+
   return (
     <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(120,120,128,0.06)' }}>
       {/* 状态行：行动指引 + 打卡复选框 */}
@@ -1210,10 +1221,11 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
         </div>
         <div className="flex items-center gap-1 rounded-lg flex-shrink-0" style={{ padding: '5px 9px', background: 'var(--surface-card)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <span className="text-[10px] text-[var(--text-3)] font-medium flex-shrink-0">周期</span>
-          <input type="number" min={1} max={maxCycle} value={cycle}
-            onChange={(e) => onCycleChange(parseInt(e.target.value) || 1)}
-            className="dp-num text-[11px] text-center bg-transparent outline-none font-semibold tabular-nums"
-            style={{ color: markColor, width: `${Math.max(1, String(cycle ?? '').length)}ch` }} />
+          <input type="text" inputMode="numeric" value={cycleShown}
+            onChange={(e) => editCycle(e.target.value)} onBlur={() => setCycleText(null)}
+            className="text-[12px] text-center bg-transparent outline-none font-semibold tabular-nums"
+            style={{ color: markColor, width: `${Math.max(2, cycleShown.length)}ch` }}
+            title="周期天数，可清空后重新输入" />
           <span className="text-[10px] text-[var(--text-3)] font-medium">天</span>
         </div>
       </div>
@@ -1275,26 +1287,24 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
           /* 原生日期输入内嵌化：去边框去底色，仅保留日历指示器暗示可点。
-             font:inherit 会继承抽屉 16px 且压不住 WebKit date 内部默认尺寸 → 显式锁 10.5px */
+             font:inherit 会继承抽屉 16px 且压不住 WebKit date 内部默认尺寸 → 显式锁 12px
+             宽度 = 10ch 日期文本 + 16px 指示器位（含 2px 余量），且不许被 flex 压扁：
+             少了指示器位或允许压缩，末位数字就会被裁掉（曾出现 2026/09/ 缺日） */
           .dp { appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
-            font-family: inherit; font-size: 10.5px; font-weight: 400; padding: 0; margin: 0;
-            color: var(--text-1); cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1.15; letter-spacing: -0.01em; }
+            font-family: inherit; font-size: 12px; font-weight: 400; padding: 0; margin: 0;
+            color: var(--text-1); cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1.2; letter-spacing: -0.01em;
+            width: calc(10ch + 16px); flex-shrink: 0; }
           /* WebKit 日期编辑区：与外层同字号（缺这条 Chrome 会用内部默认字号渲染数字） */
-          .dp::-webkit-datetime-edit { padding: 0; font-size: 10.5px; font-weight: 400; }
-          .dp::-webkit-datetime-edit-fields-wrapper { font-size: 10.5px; font-weight: 400; }
-          .dp::-webkit-datetime-edit-text { font-size: 10.5px; padding: 0; }
-          /* 日历指示器：缩到 0.7 + 固定右侧留位，不再压住日期数字 */
-          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .38; padding: 0; margin: 0;
-            width: 12px; height: 12px; transform: scale(0.7); flex-shrink: 0; }
-          .dp::-webkit-datetime-edit-fields-wrapper { display: flex; }
-          /* 宽度贴合内容：10ch 日期文本 + 12px 日历指示器位。
-             原来 width:100% 会把指示器推到容器右缘，日期数字与图标之间留下几十 px 空隙 */
-          .dp { width: calc(10ch + 14px); }
-          /* 周期数字：隐藏数字输入的上下箭头，宽度由行内 style 按位数给（贴住「天」） */
-          .dp-num { appearance: textfield; -moz-appearance: textfield; }
-          .dp-num::-webkit-outer-spin-button, .dp-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+          .dp::-webkit-datetime-edit { padding: 0; font-size: 12px; font-weight: 400; }
+          .dp::-webkit-datetime-edit-fields-wrapper { display: flex; font-size: 12px; font-weight: 400; }
+          .dp::-webkit-datetime-edit-text { font-size: 12px; padding: 0; }
+          /* 日历指示器：14px 实尺（原来 12px 再 scale(0.7) 只有 8.4px 视觉，点起来也费劲） */
+          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .45; padding: 0; margin: 0;
+            width: 14px; height: 14px; flex-shrink: 0; }
+          /* 头部「种植日期」胶囊：自带 8px 左右内边距与描边，宽度额外补上这 16px */
+          .dp-capsule { width: calc(10ch + 32px); padding: 3px 8px; border: 1px solid rgba(0,0,0,0.06); border-radius: 8px; }
           /* Firefox：无指示器，纯文本即可 */
-          .dp::-moz-dateedit, .dp::-moz-calendar-picker-indicator { font-size: 10.5px; }
+          .dp::-moz-dateedit, .dp::-moz-calendar-picker-indicator { font-size: 12px; }
         `}</style>
 
         {/* 头部 */}
@@ -1322,8 +1332,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
               <span className="font-bold tabular-nums" style={{ color: '#238E3F' }}>{days}</span>
               <span>天 ·</span>
               <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-                className="dp rounded-lg" style={{ padding: '2px 7px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)' }}
-                title="修改种植日期" />
+                className="dp dp-capsule" title="修改种植日期" />
             </div>
           </div>
         </div>

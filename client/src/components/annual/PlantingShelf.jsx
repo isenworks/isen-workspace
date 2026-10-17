@@ -165,33 +165,35 @@ function nextBoardSlot(list, palette) {
 // 侧面朝左飞的姿态（与最初版本一致），但沿用与瓢虫统一的视觉语法：
 //   深色圆头 + 浅色眼点（侧视单眼）、0.7 细描边圆头触角/腿、平涂 + 一块 surface 高光；
 //   背部不翘黑线（触角明确长在头上）、圆屁股后挂小尖刺、翅膀搭在背上扇动
-function Bee({ size = 30 }) {
+// flip = 水平镜像成朝右飞（右侧的蜜蜂用），镜像走 g 变换，翅膀扇动动画不受影响
+function Bee({ size = 30, flip = false }) {
   const clipId = useId();
   const ink = '#2E2823';
   return (
     <svg width={size} height={size * 0.786} viewBox="0 0 28 22">
-      {/* 翅膀（半透明白 + 扇动），搭在背上，画在最底层 */}
-      <ellipse className="bee-wing" cx="12" cy="5.8" rx="6.2" ry="4" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      <ellipse className="bee-wing" cx="20" cy="6.2" rx="5.6" ry="3.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      {/* 尾刺与腿：画在身体之前，根部被盖住，只露出尖和末梢 */}
-      <path d="M23.8 12.4 L27 13.8 L23.8 15.2 Z" fill={ink} strokeLinejoin="round" />
-      <path d="M11.2 17.6 L10.2 20.6 M15.5 19.2 L14.8 21.5 M19.8 18.6 L19.4 21.2"
-        fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
-      {/* 身体：黄底横椭 + 三道纵纹（clip 进轮廓，条纹随外形收边） */}
-      <defs><clipPath id={clipId}><ellipse cx="16.5" cy="13.8" rx="8" ry="5.8" /></clipPath></defs>
-      <ellipse cx="16.5" cy="13.8" rx="8" ry="5.8" fill="#F5C724" />
-      <g clipPath={`url(#${clipId})`}>
-        <rect x="13.5" y="7" width="2" height="14" fill={ink} />
-        <rect x="17" y="7" width="2" height="14" fill={ink} />
-        <rect x="20.5" y="7" width="1.8" height="14" fill={ink} />
+      <g transform={flip ? 'translate(28 0) scale(-1 1)' : undefined}>
+        {/* 翅膀（半透明白 + 扇动），搭在背上，画在最底层 */}
+        <ellipse className="bee-wing" cx="12" cy="5.8" rx="6.2" ry="4" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+        <ellipse className="bee-wing" cx="20" cy="6.2" rx="5.6" ry="3.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+        {/* 尾刺与腿：画在身体之前，根部被盖住，只露出尖和末梢 */}
+        <path d="M23.8 12.4 L27 13.8 L23.8 15.2 Z" fill={ink} strokeLinejoin="round" />
+        <path d="M11.2 17.6 L10.2 20.6 M15.5 19.2 L14.8 21.5 M19.8 18.6 L19.4 21.2"
+          fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
+        {/* 身体：黄底横椭 + 两道纵纹（clip 进轮廓，条纹随外形收边） */}
+        <defs><clipPath id={clipId}><ellipse cx="16.5" cy="13.8" rx="8" ry="5.8" /></clipPath></defs>
+        <ellipse cx="16.5" cy="13.8" rx="8" ry="5.8" fill="#F5C724" />
+        <g clipPath={`url(#${clipId})`}>
+          <rect x="14.2" y="7" width="2" height="14" fill={ink} />
+          <rect x="18.6" y="7" width="2" height="14" fill={ink} />
+        </g>
+        {/* 高光：与瓢虫同款 surface 反光 */}
+        <ellipse cx="12.8" cy="10.2" rx="2" ry="0.9" fill="var(--surface-card)" opacity="0.3" />
+        {/* 深色圆头（朝左）+ 侧视单眼点 */}
+        <circle cx="7.5" cy="13" r="4.2" fill={ink} />
+        <circle cx="6.1" cy="12.2" r="0.6" fill="var(--surface-card)" opacity="0.8" />
+        {/* 触角：从头顶弯出，细描边圆头线 */}
+        <path d="M6.6 9.4 Q5.8 7.4 4.4 6.6 M8.6 9.2 Q9 7.2 10.2 6.2" fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
       </g>
-      {/* 高光：与瓢虫同款 surface 反光 */}
-      <ellipse cx="12.8" cy="10.2" rx="2" ry="0.9" fill="var(--surface-card)" opacity="0.3" />
-      {/* 深色圆头（朝左）+ 侧视单眼点 */}
-      <circle cx="7.5" cy="13" r="4.2" fill={ink} />
-      <circle cx="6.1" cy="12.2" r="0.6" fill="var(--surface-card)" opacity="0.8" />
-      {/* 触角：从头顶弯出，细描边圆头线 */}
-      <path d="M6.6 9.4 Q5.8 7.4 4.4 6.6 M8.6 9.2 Q9 7.2 10.2 6.2" fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -269,7 +271,7 @@ function Ladybug({ size = 20 }) {
 }
 
 // ---- 可拖拽的蜜蜂 ----
-function BeeDrop({ pos, size, anim, onPosChange }) {
+function BeeDrop({ pos, size, anim, flip, onPosChange }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
   useEffect(() => {
@@ -295,7 +297,7 @@ function BeeDrop({ pos, size, anim, onPosChange }) {
         const r = ref.current.getBoundingClientRect();
         setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
       }}>
-      <div className={anim}><Bee size={size} /></div>
+      <div className={anim}><Bee size={size} flip={flip} /></div>
     </div>
   );
 }
@@ -994,11 +996,11 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           );
         })()}
 
-        {/* 蜜蜂（可拖拽，三只） */}
-        {[{ id: 'bee1', size: 30, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
-          { id: 'bee2', size: 26, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } },
-          { id: 'bee3', size: 28, anim: 'bee-fly-3', pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
-          <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim}
+        {/* 蜜蜂（可拖拽，三只）：左边一只朝左飞，右边两只水平镜像成朝右飞 */}
+        {[{ id: 'bee1', size: 30, anim: 'bee-fly-1', flip: false, pos: s.bee1 || { left: '5%', top: '6%' } },
+          { id: 'bee2', size: 26, anim: 'bee-fly-2', flip: true, pos: s.bee2 || { left: '88%', top: '68%' } },
+          { id: 'bee3', size: 28, anim: 'bee-fly-3', flip: true, pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
+          <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim} flip={b.flip}
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
 

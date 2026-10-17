@@ -4,7 +4,7 @@
 //   功能：上传透明背景植物图 → 左键拖拽自由摆放 → 右键查看/编辑植物档案
 //   设计：胡桃木三层花架 + 纯白微暖墙面 + 蜜蜂蝴蝶氛围 + 绿色光晕 + 浇水提醒
 // ============================================================
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useId } from 'react';
 import { API } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmDialog from '../ConfirmDialog.jsx';
@@ -162,17 +162,40 @@ function nextBoardSlot(list, palette) {
 }
 
 // ---- 蜜蜂 SVG ----
-function Bee({ size = 28 }) {
+// 参考手绘贴纸风格重画：大圆头（点眼睛 + 微笑 + 粉腮红）+ 三道纹的圆身 + 圆屁股后挂一根小尖刺；
+// 触角长在头顶、末端各带圆点，细腿收在身体下缘；翅膀沿用原半透明白与扇动动画
+// 表情元素（眼 1.0 / 腮红 1.3 / 触角点 1.0）按 28px 实尺约 2px 设计，再小就糊了，所以蜜蜂整体放大一号
+function Bee({ size = 32 }) {
+  const clipId = useId();
+  const ink = 'var(--ink-600)';
   return (
     <svg width={size} height={size * 0.79} viewBox="0 0 28 22">
-      <ellipse className="bee-wing" cx="10" cy="6" rx="7" ry="5" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      <ellipse className="bee-wing" cx="18" cy="6" rx="7" ry="5" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      <ellipse cx="14" cy="14" rx="8" ry="6" fill="#F5C724" />
-      <rect x="10" y="10" width="2" height="8" fill="var(--ink-600)" />
-      <rect x="14" y="10" width="2" height="8" fill="var(--ink-600)" />
-      <rect x="18" y="11" width="1.5" height="6" fill="var(--ink-600)" />
-      <line x1="11" y1="8" x2="10" y2="4" stroke="var(--ink-600)" strokeWidth="1" />
-      <line x1="17" y1="8" x2="18" y2="4" stroke="var(--ink-600)" strokeWidth="1" />
+      {/* 翅膀（半透明白，扇动不变），画在身体后面 */}
+      <ellipse className="bee-wing" cx="13.8" cy="5.6" rx="5.6" ry="3.9" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+      <ellipse className="bee-wing" cx="20.6" cy="5.8" rx="5.2" ry="3.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+      {/* 尾刺与细腿：画在身体之前，根部被身体盖住，只露出尖和末梢 */}
+      <path d="M24.2 12.1 L27.4 13.4 L24.2 14.7 Z" fill={ink} strokeLinejoin="round" />
+      <path d="M12.5 17.1 Q11.4 19.6 10 20.9 M15.8 18.8 Q15.3 20.4 14.2 21.3 M19.4 18.9 Q19.9 20.5 19.2 21.6"
+        fill="none" stroke={ink} strokeWidth="0.8" strokeLinecap="round" />
+      {/* 身体：圆身 + 三道纹（clip 进轮廓，条纹随外形收边） */}
+      <defs><clipPath id={clipId}><ellipse cx="17.8" cy="13.4" rx="6.8" ry="5.6" /></clipPath></defs>
+      <ellipse cx="17.8" cy="13.4" rx="6.8" ry="5.6" fill="#F5C724" />
+      <g clipPath={`url(#${clipId})`}>
+        <rect x="13.8" y="6" width="2.2" height="15" fill={ink} />
+        <rect x="17.2" y="6" width="2.2" height="15" fill={ink} />
+        <rect x="20.6" y="6" width="2.2" height="15" fill={ink} />
+      </g>
+      {/* 大圆头压在身体左前：点眼 + 微笑 + 腮红 */}
+      <circle cx="7.6" cy="13.2" r="6" fill="#F5C724" />
+      <ellipse cx="3.7" cy="14.6" rx="1.3" ry="0.8" fill="#F6A9B8" opacity="0.85" />
+      <ellipse cx="11.4" cy="14.6" rx="1.3" ry="0.8" fill="#F6A9B8" opacity="0.85" />
+      <circle cx="5.4" cy="12.2" r="1" fill={ink} />
+      <circle cx="9.8" cy="12.2" r="1" fill={ink} />
+      <path d="M6.4 14.9 Q7.6 16 8.8 14.9" fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
+      {/* 触角：从头顶伸出，末端圆点 */}
+      <path d="M5.6 7.9 Q4.8 4.6 3.4 3.1 M9.4 7.7 Q10.3 4.5 11.2 2.9" fill="none" stroke={ink} strokeWidth="0.8" strokeLinecap="round" />
+      <circle cx="3.3" cy="2.9" r="1" fill={ink} />
+      <circle cx="11.35" cy="2.7" r="1" fill={ink} />
     </svg>
   );
 }
@@ -976,9 +999,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         })()}
 
         {/* 蜜蜂（可拖拽，三只） */}
-        {[{ id: 'bee1', size: 28, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
-          { id: 'bee2', size: 24, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } },
-          { id: 'bee3', size: 26, anim: 'bee-fly-3', pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
+        {[{ id: 'bee1', size: 32, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
+          { id: 'bee2', size: 28, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } },
+          { id: 'bee3', size: 30, anim: 'bee-fly-3', pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
           <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim}
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}

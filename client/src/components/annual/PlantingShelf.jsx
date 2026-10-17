@@ -1165,44 +1165,50 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
 // ============================================================
 
 /* 养护卡片（浇水/施肥同构）：
- * icon 状态 icon · status 状态对象 · doneToday 今日已打卡（按钮切换为撤销）
- * last/cycle 及其 onChange 控制行参数 · cardBg/cardBorder 卡片配色 · markColor 打卡按钮色 */
-function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cycle, maxCycle, onLastChange, onCycleChange, cardBg, cardBorder, markColor }) {
+ * icon 状态 icon · status 状态对象 · doneToday 今日已打卡（复选框选中态）
+ * last/cycle 及其 onChange 控制行参数 · markLabel/markColor 打卡标签与主色
+ * 打卡用复选框语义：勾选 = 已做，再点一次 = 撤销（回退一个周期），故不再单独放撤销按钮
+ * 卡片底色统一中性浅灰 rgba(120,120,128,0.06)，与下方「特性/养护方法」输入框同源；
+ * 状态色只保留在状态文案与图标的颜色上，不再染卡片底 */
+function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cycle, maxCycle, onLastChange, onCycleChange, markColor }) {
   return (
-    <div className="rounded-xl px-3 py-2.5" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
-      {/* 状态行：行动指引 + 打卡按钮（今日已做可撤销） */}
+    <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(120,120,128,0.06)' }}>
+      {/* 状态行：行动指引 + 打卡复选框 */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="flex-shrink-0" style={{ color: status.color }}>{icon}</span>
           <span className="text-[12px] font-semibold truncate" style={{ color: status.color }}>{status.text}</span>
         </div>
-        {doneToday ? (
-          <button onClick={onUndo} title="撤销今天的打卡，回退一个周期"
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition active:scale-95 flex-shrink-0"
-            style={{ color: 'var(--text-3)', background: 'rgba(120,120,128,0.08)', border: '1px solid rgba(120,120,128,0.16)' }}>
-            撤销
-          </button>
-        ) : (
-          <button onClick={onMark}
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition active:scale-95 flex-shrink-0"
-            style={{ color: 'var(--surface-card)', background: markColor, boxShadow: `0 1px 4px ${markColor}4D` }}>
-            ✓ {markLabel}
-          </button>
-        )}
+        <button onClick={doneToday ? onUndo : onMark}
+          title={doneToday ? '取消打卡，回退一个周期' : `标记今日已${markLabel}`}
+          className="flex items-center gap-1.5 py-1 pr-1 rounded-md transition active:scale-95 flex-shrink-0">
+          <span className="w-[15px] h-[15px] rounded-full grid place-items-center flex-shrink-0"
+            style={{
+              background: doneToday ? markColor : 'transparent',
+              border: `1.5px solid ${doneToday ? markColor : 'rgba(120,120,128,0.42)'}`,
+              boxShadow: doneToday ? `0 1px 3px ${markColor}4D` : 'none',
+            }}>
+            {doneToday && (
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+            )}
+          </span>
+          <span className="text-[12px] font-semibold" style={{ color: doneToday ? markColor : 'var(--text-2)' }}>{markLabel}</span>
+        </button>
       </div>
-      {/* 控制行：上次日期（可改）+ 周期天数（可改） */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-1.5 rounded-lg min-w-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
+      {/* 控制行：上次日期 + 周期天数。两个字段都按内容自适应宽度（不再 flex-1 拉伸），
+          日期不再被撑到容器右缘、数字不再居中留白，「7」与「天」之间只隔一个 4px 栅格 */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 rounded-lg" style={{ padding: '5px 9px', background: 'var(--surface-card)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <span className="text-[10px] text-[var(--text-3)] font-medium flex-shrink-0">上次</span>
           <input type="date" value={last} onChange={(e) => onLastChange(e.target.value)}
-            className="dp min-w-0 flex-1" title="修改上次日期" />
+            className="dp" title="修改上次日期" />
         </div>
-        <div className="flex items-center gap-1 rounded-lg flex-shrink-0" style={{ padding: '5px 10px', background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <div className="flex items-center gap-1 rounded-lg flex-shrink-0" style={{ padding: '5px 9px', background: 'var(--surface-card)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <span className="text-[10px] text-[var(--text-3)] font-medium flex-shrink-0">周期</span>
           <input type="number" min={1} max={maxCycle} value={cycle}
             onChange={(e) => onCycleChange(parseInt(e.target.value) || 1)}
-            className="w-8 text-[11px] text-center bg-transparent outline-none font-semibold tabular-nums"
-            style={{ color: markColor }} />
+            className="dp-num text-[11px] text-center bg-transparent outline-none font-semibold tabular-nums"
+            style={{ color: markColor, width: `${Math.max(1, String(cycle ?? '').length)}ch` }} />
           <span className="text-[10px] text-[var(--text-3)] font-medium">天</span>
         </div>
       </div>
@@ -1244,15 +1250,6 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
     setDirty(false);
   };
 
-  // 浇水卡配色随状态（绿/橙/红渐变）
-  const waterCard = ws.level === 'alert'
-    ? { bg: 'linear-gradient(135deg, rgba(var(--danger-rgb),0.08), rgba(var(--warning-rgb),0.05))', border: 'rgba(var(--danger-rgb),0.14)' }
-    : ws.level === 'warn'
-      ? { bg: 'linear-gradient(135deg, rgba(var(--warning-rgb),0.08), rgba(45,178,78,0.04))', border: 'rgba(var(--warning-rgb),0.14)' }
-      : ws.level === 'none'
-        ? { bg: 'rgba(120,120,128,0.05)', border: 'rgba(120,120,128,0.12)' }
-        : { bg: 'linear-gradient(135deg, rgba(45,178,78,0.08), rgba(45,178,78,0.02))', border: 'rgba(45,178,78,0.14)' };
-
   return (
     <>
       {/* 遮罩（不遮画布，仅阻止穿透） */}
@@ -1285,13 +1282,18 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
           .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .38; padding: 0; margin: 0;
             width: 12px; height: 12px; transform: scale(0.7); flex-shrink: 0; }
           .dp::-webkit-datetime-edit-fields-wrapper { display: flex; }
-          .dp:not(.dp-lg) { width: 100%; }
+          /* 宽度贴合内容：10ch 日期文本 + 12px 日历指示器位。
+             原来 width:100% 会把指示器推到容器右缘，日期数字与图标之间留下几十 px 空隙 */
+          .dp { width: calc(10ch + 14px); }
+          /* 周期数字：隐藏数字输入的上下箭头，宽度由行内 style 按位数给（贴住「天」） */
+          .dp-num { appearance: textfield; -moz-appearance: textfield; }
+          .dp-num::-webkit-outer-spin-button, .dp-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
           /* Firefox：无指示器，纯文本即可 */
           .dp::-moz-dateedit, .dp::-moz-calendar-picker-indicator { font-size: 10.5px; }
         `}</style>
 
         {/* 头部 */}
-        <div className="flex items-start gap-3 px-4 pt-3.5 pb-3"
+        <div className="flex items-start gap-3 pl-4 pr-5 pt-3.5 pb-3"
           style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <div className="w-12 h-12 rounded-xl grid place-items-center flex-shrink-0"
             style={{ background: 'rgba(45,178,78,0.08)', border: '1px solid rgba(0,0,0,0.04)' }}>
@@ -1303,7 +1305,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
             <div className="flex items-center gap-2">
               <input value={form.name} onChange={(e) => update('name', e.target.value)}
                 placeholder="植物名称"
-                className="text-[15px] font-semibold text-[var(--text-1)] bg-transparent outline-none border-b border-transparent focus:border-[#2DB24E] transition leading-tight" />
+                className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--text-1)] bg-transparent outline-none border-b border-transparent focus:border-[#2DB24E] transition leading-tight" />
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
                 style={{ color: '#1B6E31', background: 'rgba(45,178,78,0.1)' }}>
                 {boardLabel || '自由摆放'}
@@ -1315,7 +1317,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
               <span className="font-bold tabular-nums" style={{ color: '#1B6E31' }}>{days}</span>
               <span>天 ·</span>
               <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-                className="dp rounded-lg" style={{ width: 112, padding: '2px 8px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)' }}
+                className="dp rounded-lg" style={{ padding: '2px 7px', background: 'transparent', border: '1px solid rgba(0,0,0,0.06)' }}
                 title="修改种植日期" />
             </div>
           </div>
@@ -1329,7 +1331,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
             icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>}
             status={ws}
             doneToday={form.last_watered === today}
-            markLabel="已浇水"
+            markLabel="浇水"
             onMark={() => commit({ last_watered: today })}
             onUndo={() => commit({ last_watered: dateDaysAgo(form.water_cycle_days || 7) })}
             last={form.last_watered}
@@ -1337,17 +1339,15 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
             maxCycle={90}
             onLastChange={(v) => update('last_watered', v)}
             onCycleChange={(v) => update('water_cycle_days', v)}
-            cardBg={waterCard.bg}
-            cardBorder={waterCard.border}
             markColor={ws.level === 'alert' ? '#FF3B30' : ws.level === 'warn' ? '#FF9500' : '#1B6E31'}
           />
 
-          {/* 施肥卡：同构，暖土色固定配色 */}
+          {/* 施肥卡：同构（底色同样统一为中性浅灰，仅图标与主色区分） */}
           <CareCard
             icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z"/></svg>}
             status={fs}
             doneToday={form.last_fertilized === today}
-            markLabel="已施肥"
+            markLabel="施肥"
             onMark={() => commit({ last_fertilized: today })}
             onUndo={() => commit({ last_fertilized: dateDaysAgo(form.fert_cycle_days || 30) })}
             last={form.last_fertilized}
@@ -1355,8 +1355,6 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
             maxCycle={365}
             onLastChange={(v) => update('last_fertilized', v)}
             onCycleChange={(v) => update('fert_cycle_days', v)}
-            cardBg="linear-gradient(135deg, rgba(191,152,102,0.10), rgba(191,152,102,0.03))"
-            cardBorder="rgba(176,137,86,0.18)"
             markColor="#8B6B4F"
           />
 

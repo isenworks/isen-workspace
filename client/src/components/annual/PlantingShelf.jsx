@@ -172,9 +172,9 @@ function Bee({ size = 30, flip = false }) {
   return (
     <svg width={size} height={size * 0.786} viewBox="0 0 28 22">
       <g transform={flip ? 'translate(28 0) scale(-1 1)' : undefined}>
-        {/* 翅膀（半透明白 + 扇动），搭在背上，画在最底层 */}
-        <ellipse className="bee-wing" cx="12" cy="5.8" rx="6.2" ry="4" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-        <ellipse className="bee-wing" cx="20" cy="6.2" rx="5.6" ry="3.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+        {/* 翅膀（半透明白 + 扇动），搭在背上，画在最底层（ry 加高，圆润不扁） */}
+        <ellipse className="bee-wing" cx="12.4" cy="5.4" rx="6" ry="4.8" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+        <ellipse className="bee-wing" cx="20" cy="6" rx="5.4" ry="4.3" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
         {/* 尾刺与腿：画在身体之前，根部被盖住，只露出尖和末梢 */}
         <path d="M23.8 12.4 L27 13.8 L23.8 15.2 Z" fill={ink} strokeLinejoin="round" />
         <path d="M11.2 17.6 L10.2 20.6 M15.5 19.2 L14.8 21.5 M19.8 18.6 L19.4 21.2"

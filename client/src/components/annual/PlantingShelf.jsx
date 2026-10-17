@@ -279,6 +279,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef(null);
+  const addRef = useRef(null);
   const [confirmRemove, setConfirmRemove] = useState(null); // 待移除的植物 id
   // 托板：选中（显示手柄/删除）× 拖拽中
   const [selectedBoard, setSelectedBoard] = useState(null);
@@ -309,10 +310,10 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const plantsRef = useRef([]);
   // 「添加植物」面板：右上角 + / 拖图到画布 / 左侧「种植」行 + 都打开它
   const [addOpen, setAddOpen] = useState(false);
-  const [addDraft, setAddDraft] = useState({ name: '新植物', image: '' });
+  const [addDraft, setAddDraft] = useState({ name: '', image: '' });
   const [addBusy, setAddBusy] = useState(false);
   const openAdd = useCallback((image = '') => {
-    setAddDraft({ name: '新植物', image });
+    setAddDraft({ name: '', image });
     setAddOpen(true);
   }, []);
   // 左侧「种植」行 + 触发：父组件把信号 +1，这里打开面板（用完即回 0）
@@ -697,19 +698,24 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     setShowInfo(false);
   };
 
-  // 花架设置面板：点面板之外的任意地方都能关闭（顶部栏、画布、植物、托板、页面空白都算外部）。
-  // 面板自身内部的点击不算（含滑杆拖动、取色、上传按钮）；删除托板的确认弹窗虽然渲染在面板
-  // 之外，但它是从面板里弹出来的——弹窗打开期间直接停用监听，否则点弹窗会把后面的面板一起关掉。
-  // 用捕获阶段监听：面板内部各处理函数普遍 stopPropagation，冒泡阶段会被它们拦掉。
+  // 悬浮面板：点面板之外的任意地方都能关闭（顶部栏、画布、植物、托板、页面空白都算外部）。
+  // 设置面板与「添加植物」面板共用这一套判定：两者在花架里互斥（点另一个的触发按钮会先关掉
+  // 当前这个）。面板自身内部的点击不算（含滑杆拖动、取色、上传、名称输入），面板外各处理函数
+  // 又普遍 stopPropagation，所以放在捕获阶段监听，冒泡阶段会被它们拦掉。
+  // 删除植物确认弹窗虽然渲染在面板之外，但它是从面板里弹出来的——弹窗打开期间停用监听，
+  // 否则点弹窗会把后面的面板一起关掉。
   useEffect(() => {
-    if (!showSettings || confirmRemove != null) return;
+    if (confirmRemove != null) return;
+    if (!showSettings && !addOpen) return;
     const onDown = (e) => {
       if (settingsRef.current?.contains(e.target)) return;
+      if (addRef.current?.contains(e.target)) return;
       setShowSettings(false);
+      setAddOpen(false);
     };
     document.addEventListener('pointerdown', onDown, true);
     return () => document.removeEventListener('pointerdown', onDown, true);
-  }, [showSettings, confirmRemove]);
+  }, [showSettings, addOpen, confirmRemove]);
 
   // 默认 settings + 合并
   const s = useMemo(() => ({
@@ -1066,6 +1072,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         {/* 添加植物面板（+ / 拖图 / 左侧「种植」行 + 触发） */}
         {addOpen && (
           <AddPlantDrawer
+            rootRef={addRef}
             draft={addDraft}
             busy={addBusy}
             onNameChange={(v) => setAddDraft(d => ({ ...d, name: v }))}
@@ -1133,15 +1140,16 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
 //   居中而非贴右上角：它是从顶栏 + 号发起的创建流程（带遮罩、需连续输入），
 //   居中让它成为当前唯一的焦点；设置/信息面板则是挂在各自触发控件下的查看器，仍贴右
 //   动画随之由「右侧滑入」改成「顶部落下」，否则居中面板从右侧滑入会显得错位
+//   rootRef：供外层做「点面板外任意地方即关闭」的外部判定
 // ============================================================
-function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onClose }) {
+function AddPlantDrawer({ rootRef, draft, busy, onNameChange, onPickImage, onConfirm, onClose }) {
   const canAdd = !!draft.image && !busy;
   return (
     <>
       {/* 遮罩（不遮画布，仅阻止穿透） */}
       <div className="absolute inset-0" style={{ zIndex: 10, pointerEvents: 'none' }} />
 
-      <div onClick={(e) => e.stopPropagation()}
+      <div ref={rootRef} onClick={(e) => e.stopPropagation()}
         className="absolute top-12 inset-x-0 mx-auto w-[320px] max-w-[calc(100%-32px)] overflow-hidden"
         style={{
           zIndex: 11,
@@ -1188,8 +1196,8 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
           <div>
             <div className="text-[11px] font-semibold text-ink-500 mb-1.5">名称</div>
             <input value={draft.name} onChange={(e) => onNameChange(e.target.value)}
-              placeholder="新植物" maxLength={20}
-              className="w-full px-2.5 py-1.5 rounded-xl text-[12px] text-ink-900 outline-none transition border border-transparent focus:border-[#238E3F] bg-[rgba(120,120,128,0.03)] placeholder:text-[var(--ink-300)]" />
+              maxLength={20}
+              className="w-full px-2.5 py-1.5 rounded-lg text-[12px] text-ink-900 outline-none transition border border-transparent focus:border-[#238E3F] bg-[rgba(120,120,128,0.03)]" />
           </div>
 
           {/* 操作 */}

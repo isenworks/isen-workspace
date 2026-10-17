@@ -784,7 +784,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
     });
   };
   const onEntryAdd = (lifeKey, label) => setModal({ type: 'entry', initial: { lifeKey }, categoryLabel: label });
-  const onEntryEdit = (lifeKey, entryIdx, e) => setModal({ type: 'entry', initial: { ...e, lifeKey, entryIdx, id: e.id }, categoryLabel: lifeData[lifeKey]?.lb });
+  const onEntryEdit = (lifeKey, entryIdx, e) => setModal({ type: 'entry', initial: { ...e, lifeKey, entryIdx, id: e.id }, categoryLabel: lifeData.find(c => c.key === lifeKey)?.lb });
 
   // Modal 渲染
   const modalEl = modal && (() => {

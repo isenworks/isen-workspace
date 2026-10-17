@@ -108,6 +108,13 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* 标题：记录主体，置于首位，与 autoFocus / 校验顺序对齐 */}
+      <div>
+        <label style={LABEL_STYLE}>标题</label>
+        <input className="form-input" style={INPUT_STYLE}
+          value={form.t} onChange={e => set('t', e.target.value)} autoFocus />
+      </div>
+
       {/* ===== 类目选择器：新增态可选可新建；编辑态只读展示当前类目 ===== */}
       <div>
         {/* 标题行：左「类目」，右「+」新建（编辑态为只读提示） */}
@@ -189,11 +196,6 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
         )}
       </div>
 
-      <div>
-        <label style={LABEL_STYLE}>标题</label>
-        <input className="form-input" style={INPUT_STYLE}
-          value={form.t} onChange={e => set('t', e.target.value)} autoFocus />
-      </div>
       <div>
         <label style={LABEL_STYLE}>备注</label>
         <textarea className="form-input" style={{ ...INPUT_STYLE, minHeight: '60px', resize: 'vertical' }}

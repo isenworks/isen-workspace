@@ -278,6 +278,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const [loadErr, setLoadErr] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef(null);
   const [confirmRemove, setConfirmRemove] = useState(null); // 待移除的植物 id
   // 托板：选中（显示手柄/删除）× 拖拽中
   const [selectedBoard, setSelectedBoard] = useState(null);
@@ -696,6 +697,20 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     setShowInfo(false);
   };
 
+  // 花架设置面板：点面板之外的任意地方都能关闭（顶部栏、画布、植物、托板、页面空白都算外部）。
+  // 面板自身内部的点击不算（含滑杆拖动、取色、上传按钮）；删除托板的确认弹窗虽然渲染在面板
+  // 之外，但它是从面板里弹出来的——弹窗打开期间直接停用监听，否则点弹窗会把后面的面板一起关掉。
+  // 用捕获阶段监听：面板内部各处理函数普遍 stopPropagation，冒泡阶段会被它们拦掉。
+  useEffect(() => {
+    if (!showSettings || confirmRemove != null) return;
+    const onDown = (e) => {
+      if (settingsRef.current?.contains(e.target)) return;
+      setShowSettings(false);
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [showSettings, confirmRemove]);
+
   // 默认 settings + 合并
   const s = useMemo(() => ({
     bg_type: 'solid',           // 'solid' | 'image'
@@ -1074,6 +1089,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         {/* 设置面板 */}
         {showSettings && (
           <SettingsDrawer
+            rootRef={settingsRef}
             settings={settings}
             onChange={setSettings}
             bgInputRef={bgInputRef}
@@ -1446,11 +1462,12 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
 //   悬浮托板：增删托板 / 改色 / 调宽 / 恢复颜色
 //   设置自动存 localStorage（实时预览）
 //   排版对齐工作台既有面板：15px 标题 / 11px 段标 / var(--text-*) 文本层级
+//   rootRef：供外层做「点面板外任意地方即关闭」的外部判定
 // ============================================================
 const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
 const PLANT_GREEN = '#238E3F';
 
-function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onClose }) {
+function SettingsDrawer({ rootRef, settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onClose }) {
   const merge = (patch) => onChange({ ...settings, ...patch });
   const patchBoard = (id, patch) => onBoardsChange(list => list.map(b => (b.id === id ? { ...b, ...patch } : b)));
   const palette = Array.isArray(boardPalette) && boardPalette.length ? boardPalette : DEFAULT_BOARD_COLORS;
@@ -1471,7 +1488,7 @@ function SettingsDrawer({ settings, onChange, bgInputRef, boards, boardPalette, 
   });
 
   return (
-    <div onClick={(e) => e.stopPropagation()}
+    <div ref={rootRef} onClick={(e) => e.stopPropagation()}
       className="absolute top-12 right-4 w-[320px] overflow-hidden"
       style={{
         zIndex: 11,

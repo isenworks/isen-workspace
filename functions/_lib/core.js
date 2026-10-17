@@ -175,6 +175,32 @@ export function uid(env) {
 }
 
 // ------------------------------------------------------------
+// 登录凭证 Cookie（HttpOnly）：移动端 localStorage 单点存储的兜底通道
+//   背景：国产浏览器 / 内嵌 WebView 关闭时清 localStorage，token 只存 localStorage
+//   会导致「重开浏览器就要重新登录」（反复修不好的根因）。登录时服务端同时用
+//   Set-Cookie 下发 HttpOnly Cookie——不受 ITP 7 天脚本存储清理 / WebView 清
+//   storage 影响，浏览器重启仍保留；请求时无 X-Unlock-Token 头则由 Cookie 兜底。
+// ------------------------------------------------------------
+export const AUTH_COOKIE = 'pw_token';
+export function authTokenCookie(token) {
+  // Max-Age 1 年（无 JWT 过期设计，与 localStorage token 同生命周期；/auth/me 每次滑动续期）
+  return `${AUTH_COOKIE}=${token}; Path=/; Max-Age=31536000; Secure; HttpOnly; SameSite=Lax`;
+}
+export function clearAuthCookie() {
+  return `${AUTH_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax`;
+}
+// 从请求 Cookie 头解析指定 name（无 cookie 库依赖的手工解析）
+export function getCookie(request, name) {
+  const raw = request.headers.get('Cookie') || '';
+  for (const part of raw.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx <= 0) continue;
+    if (part.slice(0, idx).trim() === name) return part.slice(idx + 1).trim();
+  }
+  return '';
+}
+
+// ------------------------------------------------------------
 // 通用响应构造
 // ------------------------------------------------------------
 export function json(body, status = 200, headers = {}) {

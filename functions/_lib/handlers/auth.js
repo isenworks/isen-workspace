@@ -8,6 +8,7 @@ import {
   uid, json, dbFirst, dbRun, nowIso, EMAIL_RE, AUTH_FAIL,
   DEFAULT_USER_ID, ensureUsersTable,
   hashPassword, verifyPassword, signToken, safeUser,
+  authTokenCookie,
 } from '../core.js';
 
 // auth.bootstrapOwner：一次性创建 owner 账号（id=DEFAULT_USER_ID）
@@ -57,7 +58,7 @@ export async function handleAuthBootstrapOwner(env, body) {
   } catch (_) {}
 
   const token = await signToken(owner.id, env);
-  return json({ ok: true, user: safeUser(owner), token });
+  return json({ ok: true, user: safeUser(owner), token }, 200, { 'Set-Cookie': authTokenCookie(token) });
 }
 
 // auth.register：用户注册（校验 ethan_invite_codes 表中的一次性邀请码）
@@ -108,7 +109,7 @@ export async function handleAuthRegister(env, body) {
 
   const user = await dbFirst(env.DB, `SELECT * FROM ethan_users WHERE id = ?`, [newId]);
   const token = await signToken(user.id, env);
-  return json({ ok: true, user: safeUser(user), token });
+  return json({ ok: true, user: safeUser(user), token }, 200, { 'Set-Cookie': authTokenCookie(token) });
 }
 
 // auth.login：邮箱 + 密码登录，返回 HMAC token
@@ -163,7 +164,8 @@ export async function handleAuthLogin(env, body, method, currentUser) {
     } catch (_) {}
 
     const token = await signToken(row.id, env);
-    return json({ ok: true, token, user: safeUser(row) }, 200);
+    // Set-Cookie：HttpOnly 凭证 Cookie（移动端 localStorage 被清后的会话兜底）
+    return json({ ok: true, token, user: safeUser(row) }, 200, { 'Set-Cookie': authTokenCookie(token) });
   } catch (e) {
     return json({ error: String(e.message || e) }, 500);
   }

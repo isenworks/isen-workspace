@@ -48,16 +48,19 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(readCachedUser);
   const [loading, setLoading] = useState(true);
 
-  // 启动态：根据 token 调 /auth/me 校验后端用户是否仍存在
-  //   - 有缓存 user 且有 token → 调 /auth/me 核对后端用户是否仍存在
-  //   - 没有 token 或 me 返回 null → 清空，user=null 进入登录页
+  // 启动态：调 /auth/me 校验后端用户是否仍存在
+  //   双通道凭证（根治移动端「重开浏览器就掉登录」）：
+  //   - 首选 X-Unlock-Token 头（localStorage 里的 token）
+  //   - localStorage 没了（移动端浏览器/WebView 关闭时被清）→ 同源请求自动携带
+  //     登录时服务端 Set-Cookie 的 HttpOnly Cookie（pw_token），服务端兜底认证
+  //   - me 成功会回传 token → client.me() 重建 localStorage，静默恢复会话
+  //   因此这里不再因「本地无 token」直接判死，始终调一次 /auth/me
   useEffect(() => {
     let mounted = true;
     // 清理旧版本遗留的解锁标记（新体系不再使用）
     try { localStorage.removeItem(UNLOCKED_KEY); } catch (_) {}
 
     (async () => {
-      const token = readToken();
       let cached = readCachedUser();
       // 防御：老版本 pw_user 可能没有 is_owner 字段（迁移遗留），强制去后端拉一次 /auth/me 补齐
       //       避免出现"明明是 owner，但本地缓存缺字段 → 设置弹窗看不到 invites/users"的情况
@@ -69,12 +72,6 @@ export function AuthProvider({ children }) {
           cached = normalized;
           writeCachedUser(normalized);
         }
-      }
-      if (!token) {
-        // 没有有效 token：不允许"默认进入"（多用户体系强制登录）
-        writeCachedUser(null);
-        if (mounted) { setUser(null); setLoading(false); }
-        return;
       }
       try {
         const me = await API.auth.me();
@@ -90,7 +87,7 @@ export function AuthProvider({ children }) {
         }
       } catch (err) {
         // 网络/超时/5xx 等非认证错误：保留登录态（乐观恢复会话，飞书/Notion 同款策略）。
-        //   之前这里「catch 一切错误都清 token」是移动端频繁掉登录的根因：
+        //   之前这里「catch 一切错误都清 token」是移动端频繁掉登录的根因之一：
         //   弱网下 /auth/me 超时（fetchPages 抛 TypeError，无 status）被误判为认证失效，
         //   手机每次弱网启动都被强制重新登录。真正的 token 失效由 client.js 统一处理
         //   （401 → 清存储 + 广播 pw:auth-expired → 下方监听器置空用户），不会走到这里。
@@ -145,8 +142,9 @@ export function AuthProvider({ children }) {
     return normalized;
   }, []);
 
-  // 登出
+  // 登出（必须走服务端清 HttpOnly Cookie，否则重开浏览器会被 Cookie 自动登回）
   const logout = useCallback(async () => {
+    try { await API.auth.logout(); } catch (_) {}
     writeCachedUser(null);
     writeToken('');
     setUser(null);

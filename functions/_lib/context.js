@@ -1,7 +1,7 @@
 // ============================================================
 // 请求上下文解析：从 X-Unlock-Token 解析当前用户，挂到 env 上供 handler 取用
 // ============================================================
-import { ensureUsersTable, verifyToken, dbFirst } from './core.js';
+import { ensureUsersTable, verifyToken, dbFirst, AUTH_COOKIE, getCookie } from './core.js';
 
 // 白名单：无需登录即可访问的接口
 export const PUBLIC_PATHS = new Set([
@@ -32,8 +32,10 @@ export async function resolveUser({ request, env }) {
   // 1) 确保 ethan_users 表存在（懒迁移，任何请求都能触发）
   try { await ensureUsersTable(env); } catch (_) {}
 
-  // 2) 从 X-Unlock-Token 取 HMAC token 并解析
-  const rawToken = request.headers.get('X-Unlock-Token') || url.searchParams.get('unlock') || '';
+  // 2) 取 HMAC token：X-Unlock-Token 头 → ?unlock= 查询参数 → HttpOnly Cookie（pw_token）兜底
+  //    Cookie 兜底是移动端会话恢复的关键：浏览器清掉 localStorage（token 单点存储丢失）后，
+  //    同源 fetch 默认仍会携带 Cookie，用户无感续登
+  const rawToken = request.headers.get('X-Unlock-Token') || url.searchParams.get('unlock') || getCookie(request, AUTH_COOKIE) || '';
   let curUserId = null;
   let currentUser = null;
   if (rawToken) {

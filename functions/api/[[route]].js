@@ -11,7 +11,7 @@
 // 路由分发：本文件只负责 path/method → handler 的映射，
 //   具体业务逻辑见 _lib/handlers/*.js，共享工具见 _lib/core.js，鉴权上下文见 _lib/context.js
 // ============================================================
-import { json, safeUser } from '../_lib/core.js';
+import { json, safeUser, signToken, authTokenCookie, clearAuthCookie } from '../_lib/core.js';
 import { resolveUser, isPublicPath } from '../_lib/context.js';
 import {
   handleAuthBootstrapOwner,
@@ -87,14 +87,20 @@ export async function onRequest(context) {
     if (path === '/api/auth/register' && method === 'POST') return handleAuthRegister(env, body);
     if (path === '/api/auth/login' && (method === 'POST' || method === 'GET')) return handleAuthLogin(env, body, method, currentUser);
     if (path === '/api/auth/me' && method === 'GET') {
-      if (!currentUser) return json({ user: null });
-      return json({ user: safeUser(currentUser) });
+      if (!currentUser) return json({ user: null }, 200, { 'Set-Cookie': clearAuthCookie() });
+      // 已登录（header token 或 Cookie 兜底均可）：
+      //   - 回传 token：客户端据此重建 localStorage（移动端 localStorage 被清后的静默续登）
+      //   - 重设 Cookie：每次启动滑动续期 1 年
+      const token = await signToken(currentUser.id, env);
+      return json({ user: safeUser(currentUser), token }, 200, { 'Set-Cookie': authTokenCookie(token) });
     }
     if (path === '/api/auth/unlock' && method === 'POST') {
       // 旧接口兼容：尝试 password 作为账号密码登录
       return handleAuthLogin(env, { email: '', password: body?.password || '' }, 'POST', currentUser);
     }
-    if (path === '/api/auth/logout' && method === 'POST') return json({ ok: true });
+    // 登出：清 HttpOnly 凭证 Cookie（前端会同时清 localStorage；若漏掉服务端这步，
+    // Cookie 仍有效会导致「登出后重开又被自动登入」）
+    if (path === '/api/auth/logout' && method === 'POST') return json({ ok: true }, 200, { 'Set-Cookie': clearAuthCookie() });
     // 更新当前用户资料（头像上传 / 恢复默认头像 / 改用户名）
     if (path === '/api/auth/updateMe' && method === 'POST') return handleAuthUpdateMe(env, body, currentUser);
 

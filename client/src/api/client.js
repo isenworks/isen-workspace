@@ -130,8 +130,15 @@ export const API = {
     },
     async me() {
       const res = await fetchPages('/auth/me', {}, 'GET');
-      if (res?.user) localStorage.setItem('pw_user', JSON.stringify(res.user));
-      else { localStorage.removeItem('pw_user'); localStorage.removeItem('pw_unlock_token'); }
+      if (res?.user) {
+        localStorage.setItem('pw_user', JSON.stringify(res.user));
+        // token 回传：localStorage 被移动端浏览器清掉后，靠 HttpOnly Cookie 兜底
+        // 认证成功时，这里把 token 重新写回 localStorage（会话自愈）
+        if (res?.token) localStorage.setItem('pw_unlock_token', String(res.token));
+      } else {
+        localStorage.removeItem('pw_user');
+        localStorage.removeItem('pw_unlock_token');
+      }
       return res;
     },
     async updateMe({ avatar }) {
@@ -156,6 +163,9 @@ export const API = {
       return { avatar: dataUrl };
     },
     async logout() {
+      // 必须先通知服务端清 HttpOnly 凭证 Cookie（pw_token）：
+      // 只清 localStorage 的话 Cookie 仍有效，重开浏览器会被自动登回
+      try { await fetchPages('/auth/logout', {}); } catch (_) {}
       localStorage.removeItem('pw_user');
       localStorage.removeItem('pw_unlock_token');
       return { ok: true };

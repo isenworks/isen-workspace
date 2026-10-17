@@ -139,10 +139,13 @@ functions/api/[[route]].js           # 薄路由
        └─ 调用 core.js 的 dbAll/dbFirst/dbRun + uid(env) 访问 D1
 ```
 
-### 前端鉴权状态
+### 前端鉴权状态（双通道凭证，排查"移动端掉登录"先读）
 
-* `client/src/context/AuthContext.jsx`：启动时调 `/api/auth/me` 校验 token，缓存到 `localStorage.pw_user` + `pw_unlock_token`
-
+* `client/src/context/AuthContext.jsx`：启动时**始终**调 `/api/auth/me`（不因本地无 token 提前判死），缓存到 `localStorage.pw_user` + `pw_unlock_token`
+* 凭证双通道（2026-12 根治移动端"重开浏览器就掉登录"）：
+  * 首选 `X-Unlock-Token` 头（localStorage 里的 token）
+  * 兜底 HttpOnly Cookie `pw_token`：登录/注册/bootstrapOwner 时服务端 `Set-Cookie`（1 年，`/auth/me` 每次滑动续期）。移动端浏览器/WebView 关闭清 localStorage 后，同源 fetch 自动带 Cookie，服务端（`context.js` resolveUser）兜底认证并回传 token → 前端重建 localStorage，静默续登。**切勿移除 Cookie 兜底或把 me() 改回"无本地 token 直接进登录页"**
+  * 登出必须走 `API.auth.logout()`（先 POST `/api/auth/logout` 清服务端 Cookie，再清 localStorage），只清本地会被 Cookie 自动登回
 * `client/src/api/client.js`：`fetchPages()` 统一包装，401 自动清 token + 触发 `pw:auth-expired` 事件
 
 ### cloudKV 同步协议（结构化数据多设备同步）

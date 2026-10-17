@@ -208,8 +208,11 @@ export default function Login() {
     const count = Math.max(1, tabs.length);
     const idx = Math.min(tabIdx, count - 1);
     return {
-      width: `${100 / count}%`,
-      transform: `translateX(${idx * 100}%)`,
+      // 修复：容器（灰色胶囊）带 p-1(4px×2) 内边距，宽度必须按「扣除内边距后的内容区」
+      // 等分，否则白胶囊比格子宽 8px —— 首格左边只剩 4px（与灰胶囊左缘贴边）、
+      // 末格向右溢出 4px（戳出灰胶囊右缘）。配合 span 上的 left-1 精确对齐每个格子。
+      width: `calc((100% - 8px) / ${count})`,
+      transform: `translateX(${idx * 100}%)`, // translateX % 相对自身宽度 = 恰好一格
       transitionDuration: '260ms',
     };
   }, [tabs.length, tabIdx]);
@@ -371,10 +374,10 @@ export default function Login() {
                 className="relative mb-7 grid rounded-full bg-ink-50 p-1 text-[14px]"
                 style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
               >
-                {/* 选中滑块：绝对定位白胶囊，transform 滑过去 */}
+                {/* 选中滑块：绝对定位白胶囊，transform 滑过去（left-1 对齐容器 p-1 内边距） */}
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-1 rounded-full bg-white shadow-[0_1px_2px_rgba(15,31,28,0.06),0_2px_8px_rgba(15,31,28,0.08)]"
+                  className="pointer-events-none absolute left-1 inset-y-1 rounded-full bg-white shadow-[0_1px_2px_rgba(15,31,28,0.06),0_2px_8px_rgba(15,31,28,0.08)]"
                   style={{
                     ...tabStyle,
                     transitionTimingFunction: 'cubic-bezier(.2,.8,.2,1)',

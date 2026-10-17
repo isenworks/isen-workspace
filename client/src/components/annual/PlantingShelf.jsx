@@ -373,6 +373,80 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
   );
 }
 
+// ---- 熟睡的小狗 SVG ----
+// 方案 A（极简扁平贴纸）：奶油色团身 + 浅棕垂耳 + 墨褐细线，
+//   与蜜蜂/瓢虫同一套视觉语法（墨色 #2E2823、圆头线、平涂 + 一块高光）。
+//   团成一整颗豆形蜷睡 —— 脸长在身体左下弧面上（没有单独凸出的吻部），
+//   下巴枕在前爪上，尾巴沿身前绕过来、尾尖收进前爪底下，Zz 缓慢上浮
+function SleepingDog({ size = 64 }) {
+  const ink = '#2E2823';
+  return (
+    <svg width={size} height={size * 0.75} viewBox="0 0 80 60">
+      {/* 地面软阴影 */}
+      <ellipse cx="39" cy="55" rx="28" ry="3.2" fill="rgba(0,0,0,0.10)" />
+      {/* 尾巴：先画，根被身体盖住；外缘压出身体轮廓 2-3 个单位才读得出，
+          与耳朵同色呼应，尾尖收到前爪下方露出一截 */}
+      <path d="M27 50.8 C29 53.8 35 55.2 41 54.8 C48 54.3 53.5 51.8 56.5 44.5 C54 49.5 48.5 52.2 42 52.6 C36.5 52.9 31 52.2 28.6 50.6 C27.6 50.2 26.9 50.1 27 50.8 Z"
+        fill="#C89B6B" stroke={ink} strokeWidth="0.95" strokeLinejoin="round" />
+      {/* 身体：一整颗圆润的豆形 */}
+      <ellipse cx="42" cy="32" rx="26" ry="20" fill="#F4E9D6" stroke={ink} strokeWidth="1.2" />
+      {/* 背部高光 */}
+      <ellipse cx="55" cy="19" rx="4" ry="1.5" fill="var(--surface-card)" opacity="0.35" />
+      {/* 睡脸（左下弧面）：两道闭眼弧 + 小黑鼻 + 嘴角 */}
+      <path d="M21 32 Q23.5 34.5 26 32 M30 33 Q32.5 35.5 35 33.5" fill="none" stroke={ink} strokeWidth="0.9" strokeLinecap="round" />
+      <ellipse cx="23" cy="37.2" rx="1.8" ry="1.4" fill={ink} />
+      <path d="M23 39.2 Q24.5 40.6 26.5 40.2" fill="none" stroke={ink} strokeWidth="0.8" strokeLinecap="round" />
+      {/* 垂耳：从头顶搭下来的大水滴 */}
+      <path d="M32 12 C40 8.5 48 11 48.5 19 C49 26 45 31.5 38.5 32 C33 32.2 30 27.5 30.5 20.5 C30.8 16.5 31 13.5 32 12 Z"
+        fill="#C89B6B" stroke={ink} strokeWidth="1.1" strokeLinejoin="round" />
+      {/* 前爪：下巴底下交叉收着（盖住尾尖） */}
+      <rect x="20.5" y="45" width="9.5" height="5" rx="2.5" fill="#F4E9D6" stroke={ink} strokeWidth="0.95" />
+      <rect x="30.5" y="45.8" width="9.5" height="5" rx="2.5" fill="#F4E9D6" stroke={ink} strokeWidth="0.95" />
+      {/* Z z（上浮渐隐） */}
+      <g className="dog-zz">
+        <path d="M14 12 h4.2 l-4.2 4.8 h4.2" fill="none" stroke={ink} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" opacity="0.45" />
+        <path d="M20 5.5 h3.4 l-3.4 4 h3.4" fill="none" stroke={ink} strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" opacity="0.28" />
+      </g>
+    </svg>
+  );
+}
+
+// ---- 可拖拽的睡狗 ----
+// 与蜂蝶同一套拖拽逻辑；呼吸动画挂在带命中区的内层，拖动期间暂停起伏
+function DogDrop({ pos, size, onPosChange }) {
+  const ref = useRef(null);
+  const [drag, setDrag] = useState(null);
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e) => {
+      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
+      if (!canvas) return;
+      const r = canvas.getBoundingClientRect();
+      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
+      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
+      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
+    };
+    const onUp = () => setDrag(null);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [drag, onPosChange]);
+  return (
+    <div className="absolute pointer-events-none"
+      style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
+      <div ref={ref} className="dog-breathe pointer-events-auto cursor-grab active:cursor-grabbing"
+        style={{ animationPlayState: drag ? 'paused' : 'running' }}
+        onMouseDown={(e) => {
+          e.stopPropagation(); e.preventDefault();
+          const r = ref.current.getBoundingClientRect();
+          setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
+        }}>
+        <SleepingDog size={size} />
+      </div>
+    </div>
+  );
+}
+
 export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsumed }) {
   const toast = useToast();
   // 触摸端长按植物 → 与右键同：打开信息编辑面板
@@ -910,10 +984,16 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         @keyframes lady-wings-vis { 0% { visibility: visible; } 47% { visibility: hidden; } 71% { visibility: visible; } }
         .lady-shell { visibility: hidden; animation: lady-shell-vis 26s step-end infinite; }
         @keyframes lady-shell-vis { 0% { visibility: hidden; } 47% { visibility: visible; } 71% { visibility: hidden; } }
+        /* 睡狗：整只极轻微呼吸起伏（绕脚底鼓收，不漂移）+ Zz 缓慢上浮渐隐 */
+        .dog-breathe { transform-box: fill-box; transform-origin: 50% 100%; animation: dog-breathe 2.8s ease-in-out infinite; }
+        @keyframes dog-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.035); } }
+        .dog-zz { transform-box: fill-box; animation: dog-zz 3.2s ease-in-out infinite; }
+        @keyframes dog-zz { 0% { opacity: 0; transform: translate(0, 3px); } 30% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(0, -3px); } }
         @media (prefers-reduced-motion: reduce) {
           .bee-wing, .bf-wing,
           .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .lady-fly,
-          .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell { animation: none !important; }
+          .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell,
+          .dog-breathe, .dog-zz { animation: none !important; }
           /* 静止时收敛成一只合拢的瓢虫 */
           .lady-wings { display: none; }
           .lady-shell { visibility: visible; }
@@ -1022,6 +1102,10 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           <BFDrop key={b.id} id={b.id} pos={b.pos} size={b.size} color={b.color} anim={b.anim}
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
+
+        {/* 熟睡的小狗（可拖拽）：趴在花架左下角，极轻微呼吸起伏 + Zz 上浮；拖过之后位置手动为准 */}
+        <DogDrop size={64} pos={s.dog || { left: '4%', top: '84%' }}
+          onPosChange={(np) => setSettings(st => ({ ...st, dog: np }))} />
 
         {/* 顶部栏（zIndex 7：常驻 chrome，须高于选中植物的置顶层 5 与托板工具条 6） */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 7 }}>

@@ -162,40 +162,40 @@ function nextBoardSlot(list, palette) {
 }
 
 // ---- 蜜蜂 SVG ----
-// 参考手绘贴纸风格重画：大圆头（点眼睛 + 微笑 + 粉腮红）+ 三道纹的圆身 + 圆屁股后挂一根小尖刺；
-// 触角长在头顶、末端各带圆点，细腿收在身体下缘；翅膀沿用原半透明白与扇动动画
-// 表情元素（眼 1.0 / 腮红 1.3 / 触角点 1.0）按 28px 实尺约 2px 设计，再小就糊了，所以蜜蜂整体放大一号
-function Bee({ size = 32 }) {
+// 与瓢虫/蝴蝶同一套视觉语法，四条一致性约定：
+//   朝向 —— 三种小昆虫都是「头朝上」的俯视构图（瓢虫头在上、蝴蝶身体竖直）；
+//   头部 —— 深色圆头 + 两粒浅色眼点，与瓢虫头部完全同款，不加表情/腮红（贴纸风与手绘昆虫风冲突）；
+//   线条 —— 触角/腿都是 0.7 细描边圆头线，身体平涂无描边；
+//   质感 —— 平涂 + 一块 surface 高光。
+// 保留此前修正：背部不翘黑线（触角长在头上）、圆屁股后挂小尖刺、翅膀沿用半透明白扇动
+function Bee({ size = 30 }) {
   const clipId = useId();
-  const ink = 'var(--ink-600)';
+  const ink = '#2E2823';
   return (
-    <svg width={size} height={size * 0.79} viewBox="0 0 28 22">
-      {/* 翅膀（半透明白，扇动不变），画在身体后面 */}
-      <ellipse className="bee-wing" cx="13.8" cy="5.6" rx="5.6" ry="3.9" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      <ellipse className="bee-wing" cx="20.6" cy="5.8" rx="5.2" ry="3.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      {/* 尾刺与细腿：画在身体之前，根部被身体盖住，只露出尖和末梢 */}
-      <path d="M24.2 12.1 L27.4 13.4 L24.2 14.7 Z" fill={ink} strokeLinejoin="round" />
-      <path d="M12.5 17.1 Q11.4 19.6 10 20.9 M15.8 18.8 Q15.3 20.4 14.2 21.3 M19.4 18.9 Q19.9 20.5 19.2 21.6"
-        fill="none" stroke={ink} strokeWidth="0.8" strokeLinecap="round" />
-      {/* 身体：圆身 + 三道纹（clip 进轮廓，条纹随外形收边） */}
-      <defs><clipPath id={clipId}><ellipse cx="17.8" cy="13.4" rx="6.8" ry="5.6" /></clipPath></defs>
-      <ellipse cx="17.8" cy="13.4" rx="6.8" ry="5.6" fill="#F5C724" />
+    <svg width={size} height={size * 0.958} viewBox="0 0 24 23">
+      {/* 翅膀（半透明白 + 扇动，与蝴蝶同一套），画在最底层 */}
+      <ellipse className="bee-wing" cx="6.9" cy="9.6" rx="4" ry="5.8" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+      <ellipse className="bee-wing" cx="17.1" cy="9.6" rx="4" ry="5.8" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+      {/* 尾刺与腿：画在身体之前，根部被盖住，只露出尖和末梢 */}
+      <path d="M10.8 19.4 L12 22 L13.2 19.4 Z" fill={ink} strokeLinejoin="round" />
+      <path d="M8.6 12.4 L5.2 14.8 M8.4 16.8 L4.9 18.9 M15.4 12.4 L18.8 14.8 M15.6 16.8 L19.1 18.9"
+        fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
+      {/* 身体：黄底圆肚 + 三道横纹（clip 进轮廓，条纹随外形收边） */}
+      <defs><clipPath id={clipId}><ellipse cx="12" cy="14.6" rx="6.6" ry="5.8" /></clipPath></defs>
+      <ellipse cx="12" cy="14.6" rx="6.6" ry="5.8" fill="#F5C724" />
       <g clipPath={`url(#${clipId})`}>
-        <rect x="13.8" y="6" width="2.2" height="15" fill={ink} />
-        <rect x="17.2" y="6" width="2.2" height="15" fill={ink} />
-        <rect x="20.6" y="6" width="2.2" height="15" fill={ink} />
+        <rect x="4" y="11.9" width="16" height="1.7" fill={ink} />
+        <rect x="4" y="15.1" width="16" height="1.7" fill={ink} />
+        <rect x="4" y="18" width="16" height="1.5" fill={ink} />
       </g>
-      {/* 大圆头压在身体左前：点眼 + 微笑 + 腮红 */}
-      <circle cx="7.6" cy="13.2" r="6" fill="#F5C724" />
-      <ellipse cx="3.7" cy="14.6" rx="1.3" ry="0.8" fill="#F6A9B8" opacity="0.85" />
-      <ellipse cx="11.4" cy="14.6" rx="1.3" ry="0.8" fill="#F6A9B8" opacity="0.85" />
-      <circle cx="5.4" cy="12.2" r="1" fill={ink} />
-      <circle cx="9.8" cy="12.2" r="1" fill={ink} />
-      <path d="M6.4 14.9 Q7.6 16 8.8 14.9" fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
-      {/* 触角：从头顶伸出，末端圆点 */}
-      <path d="M5.6 7.9 Q4.8 4.6 3.4 3.1 M9.4 7.7 Q10.3 4.5 11.2 2.9" fill="none" stroke={ink} strokeWidth="0.8" strokeLinecap="round" />
-      <circle cx="3.3" cy="2.9" r="1" fill={ink} />
-      <circle cx="11.35" cy="2.7" r="1" fill={ink} />
+      {/* 高光：与瓢虫同款 surface 反光 */}
+      <ellipse cx="9.4" cy="10.6" rx="1.7" ry="0.85" fill="var(--surface-card)" opacity="0.3" />
+      {/* 深色圆头 + 浅色眼点：与瓢虫头部同款，压在身体上沿 */}
+      <circle cx="12" cy="5.6" r="3.5" fill={ink} />
+      <circle cx="10.8" cy="5" r="0.5" fill="var(--surface-card)" opacity="0.8" />
+      <circle cx="13.2" cy="5" r="0.5" fill="var(--surface-card)" opacity="0.8" />
+      {/* 触角：细描边圆头线，从头顶弯出，与瓢虫同款 */}
+      <path d="M10.9 2.8 Q9.9 1.2 8.5 0.7 M13.1 2.8 Q14.1 1.2 15.5 0.7" fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -858,8 +858,8 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   return (
     <div className="planting-shelf-wrap relative h-full flex flex-col overflow-hidden">
       <style>{`
-        /* 蜜蜂翅膀扇动 */
-        .bee-wing { transform-origin: center; animation: wing-flap 0.15s ease-in-out infinite alternate; }
+        /* 蜜蜂翅膀扇动（transform-box 让每片翅绕自身中心收拢，不朝画布中心漂移） */
+        .bee-wing { transform-box: fill-box; transform-origin: center; animation: wing-flap 0.15s ease-in-out infinite alternate; }
         @keyframes wing-flap { 0% { transform: scaleY(1); } 100% { transform: scaleY(0.3); } }
         /* 自动保存提示弹出 */
         @keyframes toast-pop { 0% { opacity: 0; transform: translate(-50%, -4px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
@@ -999,9 +999,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         })()}
 
         {/* 蜜蜂（可拖拽，三只） */}
-        {[{ id: 'bee1', size: 32, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
-          { id: 'bee2', size: 28, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } },
-          { id: 'bee3', size: 30, anim: 'bee-fly-3', pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
+        {[{ id: 'bee1', size: 30, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
+          { id: 'bee2', size: 26, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } },
+          { id: 'bee3', size: 28, anim: 'bee-fly-3', pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
           <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim}
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}

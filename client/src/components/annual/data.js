@@ -280,7 +280,7 @@ export const LIFE = [
     { t:'Sony WH-1000XM5 耳机', n:'降噪封神，通勤必带', d:'7.05' },
     { t:'露营折叠椅', n:'周末去公园躺着很舒服', d:'6.18' },
   ]},
-  { key:'planting', lb:'种植', color:'#8AAC4A', entries:[ /* matcha green — 与花架抹茶绿统一 */
+  { key:'planting', lb:'种植', color:'#2DB24E', entries:[ /* 工作台绿 accent.green-600 — 与花架主色统一 */
   ]},
 ];
 

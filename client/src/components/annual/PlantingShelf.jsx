@@ -195,6 +195,43 @@ function Butterfly({ size = 34, color = '#FFB347' }) {
   );
 }
 
+// ---- 瓢虫 SVG（七星瓢虫）----
+// 7 个斑点 = 鞘翅前端中线旁 1 个 + 两侧各 3 个：这是「七星瓢虫」的识别符号，
+//   而瓢虫科里只有植食性的二十八星瓢虫是害虫，两者靠斑点数量与光泽区分。
+//   画错点数会被读成害虫，语义正好反掉，所以点数与高光都不是装饰。
+// 后翅复用蜜蜂翅的样式（半透明 + 扇动），只在飞行段显形，停落时收起 → 合拢成一个圆壳；
+//   不做鞘翅开合：24px 下看不清，反而会做出毛刺感，飞行/停落靠轨迹 + 高度差 + 后翅显隐区分
+function Ladybug({ size = 26 }) {
+  return (
+    <svg width={size} height={size * 0.92} viewBox="0 0 24 22">
+      {/* 后翅（绘制在鞘翅之下，张开时从两侧探出） */}
+      <ellipse className="lady-hw" cx="8" cy="9" rx="7.5" ry="4.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+      <ellipse className="lady-hw" cx="16" cy="9" rx="7.5" ry="4.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+      {/* 鞘翅（合拢态） */}
+      <path d="M12 3.4 C6.6 3.5 3 7.4 3 12 C3 16.6 6.6 20.2 12 20.3 C17.4 20.2 21 16.6 21 12 C21 7.4 17.4 3.5 12 3.4 Z"
+        fill="#E4583F" />
+      <path d="M12 3.5 L12 20.3" fill="none" stroke="#7E2A1E" strokeWidth="0.7" />
+      <circle cx="12" cy="6.2" r="1.35" fill="#2E2823" />
+      <circle cx="7" cy="8.6" r="1.7" fill="#2E2823" />
+      <circle cx="17" cy="8.6" r="1.7" fill="#2E2823" />
+      <circle cx="5.6" cy="12.8" r="1.5" fill="#2E2823" />
+      <circle cx="18.4" cy="12.8" r="1.5" fill="#2E2823" />
+      <circle cx="8.8" cy="16.6" r="1.4" fill="#2E2823" />
+      <circle cx="15.2" cy="16.6" r="1.4" fill="#2E2823" />
+      {/* 高光：有光泽是捕食性瓢虫的识别特征 */}
+      <ellipse cx="9" cy="6.6" rx="2.4" ry="1.2" fill="var(--surface-card)" opacity="0.34" />
+      <ellipse cx="14.6" cy="6.4" rx="1.6" ry="0.85" fill="var(--surface-card)" opacity="0.22" />
+      {/* 头 + 复眼 + 触角 + 六足 */}
+      <ellipse cx="12" cy="3.3" rx="3.4" ry="2.1" fill="#2E2823" />
+      <circle cx="10.6" cy="2.9" r="0.5" fill="var(--surface-card)" opacity="0.8" />
+      <circle cx="13.4" cy="2.9" r="0.5" fill="var(--surface-card)" opacity="0.8" />
+      <path d="M10.6 1.6 L9 0.4 M13.4 1.6 L15 0.4" fill="none" stroke="#2E2823" strokeWidth="0.7" strokeLinecap="round" />
+      <path d="M5.8 9.6 L2.8 12.6 M5.4 13.4 L2.2 16.4 M5.9 16.8 L3.4 20.6 M18.2 9.6 L21.2 12.6 M18.6 13.4 L21.8 16.4 M18.1 16.8 L20.6 20.6"
+        fill="none" stroke="#2E2823" strokeWidth="0.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // ---- 可拖拽的蜜蜂 ----
 function BeeDrop({ pos, size, anim, onPosChange }) {
   const ref = useRef(null);
@@ -255,6 +292,45 @@ function BFDrop({ pos, size, color, anim, onPosChange }) {
         setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
       }}>
       <div className={anim}><Butterfly size={size} color={color} /></div>
+    </div>
+  );
+}
+
+// ---- 可拖拽的瓢虫 ----
+// 与蜂蝶同一套拖拽逻辑，两处不同：
+//   1. 命中区挂在「带飞行动画的内层」上 —— 瓢虫大部分时间悬在落点上方 40px 左右，
+//      挂在静止的外层会出现"看得见却点不到、点得到的地方又没有虫"
+//   2. 拖动期间暂停飞行动画，虫身才会严格跟着指针走；松手后从暂停处续飞
+function LadybugDrop({ pos, size, anim, onPosChange }) {
+  const ref = useRef(null);
+  const [drag, setDrag] = useState(null);
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e) => {
+      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
+      if (!canvas) return;
+      const r = canvas.getBoundingClientRect();
+      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
+      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
+      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
+    };
+    const onUp = () => setDrag(null);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [drag, onPosChange]);
+  return (
+    <div className="absolute pointer-events-none"
+      style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
+      <div ref={ref} className={`${anim} pointer-events-auto cursor-grab active:cursor-grabbing`}
+        style={{ animationPlayState: drag ? 'paused' : 'running' }}
+        onMouseDown={(e) => {
+          e.stopPropagation(); e.preventDefault();
+          const r = ref.current.getBoundingClientRect();
+          setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
+        }}>
+        <Ladybug size={size} />
+      </div>
     </div>
   );
 }
@@ -761,8 +837,36 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         @keyframes bf-fly-1 { 0%{transform:translate(0,0)} 25%{transform:translate(-30px,-25px) rotate(-8deg)} 50%{transform:translate(50px,-15px) rotate(5deg)} 75%{transform:translate(20px,25px) rotate(-3deg)} 100%{transform:translate(0,0)} }
         .bf-fly-2 { animation: bf-fly-2 22s ease-in-out infinite; }
         @keyframes bf-fly-2 { 0%{transform:translate(0,0)} 30%{transform:translate(40px,-20px) rotate(6deg)} 60%{transform:translate(-20px,15px) rotate(-4deg)} 100%{transform:translate(0,0)} }
+        .bee-fly-3 { animation: bee-fly-3 20s ease-in-out infinite; }
+        @keyframes bee-fly-3 { 0%{transform:translate(0,0) rotate(3deg)} 30%{transform:translate(-34px,18px) rotate(-7deg)} 55%{transform:translate(-10px,-24px) rotate(6deg)} 80%{transform:translate(26px,12px) rotate(-4deg)} 100%{transform:translate(0,0) rotate(3deg)} }
+        /* 瓢虫：空中飞约 18s → 落在叶子上停约 4s → 再次起飞（26s 一轮，首尾同帧无缝循环）
+           48% 处 translate(0,0) = 落在基准位置（叶丛），也是它停下来的位置 */
+        .lady-fly { animation: lady-fly 26s ease-in-out infinite; }
+        @keyframes lady-fly {
+          0%   { transform: translate(0,-26px) rotate(-4deg); }
+          6%   { transform: translate(18px,-40px) rotate(6deg); }
+          14%  { transform: translate(-14px,-46px) rotate(-6deg); }
+          22%  { transform: translate(26px,-34px) rotate(8deg); }
+          30%  { transform: translate(-20px,-44px) rotate(-5deg); }
+          36%  { transform: translate(6px,-30px) rotate(3deg); }
+          44%  { transform: translate(2px,-10px) rotate(-1deg); }
+          48%  { transform: translate(0,0) rotate(0deg); }
+          52%  { transform: translate(0,-1px) rotate(0deg); }
+          68%  { transform: translate(0,-1px) rotate(0deg); }
+          74%  { transform: translate(0,-4px) rotate(-2deg); }
+          80%  { transform: translate(-6px,-22px) rotate(-6deg); }
+          88%  { transform: translate(14px,-38px) rotate(5deg); }
+          94%  { transform: translate(-6px,-32px) rotate(-3deg); }
+          100% { transform: translate(0,-26px) rotate(-4deg); }
+        }
+        /* 瓢虫后翅：与飞行同一条 26s 时间轴（显隐），叠加蜂翅那套扇动（scaleY，互不冲突）；
+           停落段藏起后翅 → 合拢成一只圆壳瓢虫 */
+        .lady-hw { transform-origin: center; opacity: 0;
+          animation: wing-flap 0.16s ease-in-out infinite alternate, lady-hw-show 26s ease-in-out infinite; }
+        @keyframes lady-hw-show { 0%, 44% { opacity: 1; } 50%, 72% { opacity: 0; } 78%, 100% { opacity: 1; } }
         @media (prefers-reduced-motion: reduce) {
-          .bee-wing, .bf-wing, .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2 { animation: none !important; }
+          .bee-wing, .bf-wing, .lady-hw,
+          .bee-fly-1, .bee-fly-2, .bee-fly-3, .bf-fly-1, .bf-fly-2, .lady-fly { animation: none !important; }
         }
       `}</style>
 
@@ -841,12 +945,27 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           );
         })()}
 
-        {/* 蜜蜂（可拖拽） */}
+        {/* 蜜蜂（可拖拽，三只） */}
         {[{ id: 'bee1', size: 28, anim: 'bee-fly-1', pos: s.bee1 || { left: '5%', top: '6%' } },
-          { id: 'bee2', size: 24, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } }].map(b => (
+          { id: 'bee2', size: 24, anim: 'bee-fly-2', pos: s.bee2 || { left: '88%', top: '68%' } },
+          { id: 'bee3', size: 26, anim: 'bee-fly-3', pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
           <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim}
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
+
+        {/* 瓢虫（可拖拽）：空中盘旋 → 落在叶子上停一会 → 再次起飞。
+            它的基准位置就是「落点」，默认取最靠后那株植物的叶丛（pos_y 上移 7%×尺寸 ≈ 叶丛中部）；
+            手动拖过之后以手动位置为准，不再跟随植物 */}
+        {(() => {
+          const host = sortedPlants[0];
+          const def = host
+            ? { left: `${host.pos_x}%`, top: `${Math.max(5, Math.min(94, (host.pos_y || 0) - 7 * (host.size || 1)))}%` }
+            : { left: '58%', top: '34%' };
+          return (
+            <LadybugDrop size={26} anim="lady-fly" pos={s.lady1 || def}
+              onPosChange={(np) => setSettings(st => ({ ...st, lady1: np }))} />
+          );
+        })()}
 
         {/* 蝴蝶（可拖拽） */}
         {[{ id: 'bf1', size: 34, color: '#FFB347', anim: 'bf-fly-1', pos: s.bf1 || { left: '88%', top: '28%' } },

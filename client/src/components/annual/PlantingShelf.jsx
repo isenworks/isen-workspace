@@ -162,40 +162,36 @@ function nextBoardSlot(list, palette) {
 }
 
 // ---- 蜜蜂 SVG ----
-// 与瓢虫/蝴蝶同一套视觉语法，四条一致性约定：
-//   朝向 —— 三种小昆虫都是「头朝上」的俯视构图（瓢虫头在上、蝴蝶身体竖直）；
-//   头部 —— 深色圆头 + 两粒浅色眼点，与瓢虫头部完全同款，不加表情/腮红（贴纸风与手绘昆虫风冲突）；
-//   线条 —— 触角/腿都是 0.7 细描边圆头线，身体平涂无描边；
-//   质感 —— 平涂 + 一块 surface 高光。
-// 保留此前修正：背部不翘黑线（触角长在头上）、圆屁股后挂小尖刺、翅膀沿用半透明白扇动
+// 侧面朝左飞的姿态（与最初版本一致），但沿用与瓢虫统一的视觉语法：
+//   深色圆头 + 浅色眼点（侧视单眼）、0.7 细描边圆头触角/腿、平涂 + 一块 surface 高光；
+//   背部不翘黑线（触角明确长在头上）、圆屁股后挂小尖刺、翅膀搭在背上扇动
 function Bee({ size = 30 }) {
   const clipId = useId();
   const ink = '#2E2823';
   return (
-    <svg width={size} height={size * 0.958} viewBox="0 0 24 23">
-      {/* 翅膀（半透明白 + 扇动，与蝴蝶同一套），画在最底层 */}
-      <ellipse className="bee-wing" cx="6.9" cy="9.6" rx="4" ry="5.8" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
-      <ellipse className="bee-wing" cx="17.1" cy="9.6" rx="4" ry="5.8" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+    <svg width={size} height={size * 0.786} viewBox="0 0 28 22">
+      {/* 翅膀（半透明白 + 扇动），搭在背上，画在最底层 */}
+      <ellipse className="bee-wing" cx="12" cy="5.8" rx="6.2" ry="4" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
+      <ellipse className="bee-wing" cx="20" cy="6.2" rx="5.6" ry="3.6" fill="rgba(255,255,255,0.7)" stroke="#ddd" strokeWidth="0.5" />
       {/* 尾刺与腿：画在身体之前，根部被盖住，只露出尖和末梢 */}
-      <path d="M10.8 19.4 L12 22 L13.2 19.4 Z" fill={ink} strokeLinejoin="round" />
-      <path d="M8.6 12.4 L5.2 14.8 M8.4 16.8 L4.9 18.9 M15.4 12.4 L18.8 14.8 M15.6 16.8 L19.1 18.9"
+      <path d="M23.8 12.4 L27 13.8 L23.8 15.2 Z" fill={ink} strokeLinejoin="round" />
+      <path d="M11.2 17.6 L10.2 20.6 M15.5 19.2 L14.8 21.5 M19.8 18.6 L19.4 21.2"
         fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
-      {/* 身体：黄底圆肚 + 三道横纹（clip 进轮廓，条纹随外形收边） */}
-      <defs><clipPath id={clipId}><ellipse cx="12" cy="14.6" rx="6.6" ry="5.8" /></clipPath></defs>
-      <ellipse cx="12" cy="14.6" rx="6.6" ry="5.8" fill="#F5C724" />
+      {/* 身体：黄底横椭 + 三道纵纹（clip 进轮廓，条纹随外形收边） */}
+      <defs><clipPath id={clipId}><ellipse cx="16.5" cy="13.8" rx="8" ry="5.8" /></clipPath></defs>
+      <ellipse cx="16.5" cy="13.8" rx="8" ry="5.8" fill="#F5C724" />
       <g clipPath={`url(#${clipId})`}>
-        <rect x="4" y="11.9" width="16" height="1.7" fill={ink} />
-        <rect x="4" y="15.1" width="16" height="1.7" fill={ink} />
-        <rect x="4" y="18" width="16" height="1.5" fill={ink} />
+        <rect x="13.5" y="7" width="2" height="14" fill={ink} />
+        <rect x="17" y="7" width="2" height="14" fill={ink} />
+        <rect x="20.5" y="7" width="1.8" height="14" fill={ink} />
       </g>
       {/* 高光：与瓢虫同款 surface 反光 */}
-      <ellipse cx="9.4" cy="10.6" rx="1.7" ry="0.85" fill="var(--surface-card)" opacity="0.3" />
-      {/* 深色圆头 + 浅色眼点：与瓢虫头部同款，压在身体上沿 */}
-      <circle cx="12" cy="5.6" r="3.5" fill={ink} />
-      <circle cx="10.8" cy="5" r="0.5" fill="var(--surface-card)" opacity="0.8" />
-      <circle cx="13.2" cy="5" r="0.5" fill="var(--surface-card)" opacity="0.8" />
-      {/* 触角：细描边圆头线，从头顶弯出，与瓢虫同款 */}
-      <path d="M10.9 2.8 Q9.9 1.2 8.5 0.7 M13.1 2.8 Q14.1 1.2 15.5 0.7" fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
+      <ellipse cx="12.8" cy="10.2" rx="2" ry="0.9" fill="var(--surface-card)" opacity="0.3" />
+      {/* 深色圆头（朝左）+ 侧视单眼点 */}
+      <circle cx="7.5" cy="13" r="4.2" fill={ink} />
+      <circle cx="6.1" cy="12.2" r="0.6" fill="var(--surface-card)" opacity="0.8" />
+      {/* 触角：从头顶弯出，细描边圆头线 */}
+      <path d="M6.6 9.4 Q5.8 7.4 4.4 6.6 M8.6 9.2 Q9 7.2 10.2 6.2" fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
     </svg>
   );
 }

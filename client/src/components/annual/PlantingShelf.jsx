@@ -875,8 +875,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         @keyframes bf-fly-1 { 0%{transform:translate(0,0)} 25%{transform:translate(-30px,-25px) rotate(-8deg)} 50%{transform:translate(50px,-15px) rotate(5deg)} 75%{transform:translate(20px,25px) rotate(-3deg)} 100%{transform:translate(0,0)} }
         .bf-fly-2 { animation: bf-fly-2 22s ease-in-out infinite; }
         @keyframes bf-fly-2 { 0%{transform:translate(0,0)} 30%{transform:translate(40px,-20px) rotate(6deg)} 60%{transform:translate(-20px,15px) rotate(-4deg)} 100%{transform:translate(0,0)} }
-        .bee-fly-3 { animation: bee-fly-3 20s ease-in-out infinite; }
-        @keyframes bee-fly-3 { 0%{transform:translate(0,0) rotate(3deg)} 30%{transform:translate(-34px,18px) rotate(-7deg)} 55%{transform:translate(-10px,-24px) rotate(6deg)} 80%{transform:translate(26px,12px) rotate(-4deg)} 100%{transform:translate(0,0) rotate(3deg)} }
+        .bee-fly-2 { animation: bee-fly-2 26s ease-in-out infinite; }
         /* 瓢虫：空中飞约 18s → 落在叶子上停约 4s → 再次起飞（26s 一轮，首尾同帧无缝循环）
            48% 处 translate(0,0) = 落在基准位置（叶丛），也是它停下来的位置 */
         .lady-fly { animation: lady-fly 26s ease-in-out infinite; }
@@ -913,7 +912,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         @keyframes lady-shell-vis { 0% { visibility: hidden; } 47% { visibility: visible; } 71% { visibility: hidden; } }
         @media (prefers-reduced-motion: reduce) {
           .bee-wing, .bf-wing,
-          .bee-fly-1, .bee-fly-2, .bee-fly-3, .bf-fly-1, .bf-fly-2, .lady-fly,
+          .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .lady-fly,
           .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell { animation: none !important; }
           /* 静止时收敛成一只合拢的瓢虫 */
           .lady-wings { display: none; }
@@ -996,10 +995,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           );
         })()}
 
-        {/* 蜜蜂（可拖拽，三只）：左边一只朝左飞，右边两只水平镜像成朝右飞 */}
+        {/* 蜜蜂（可拖拽，两只）：左边一只朝左飞，右边一只水平镜像成朝右飞 */}
         {[{ id: 'bee1', size: 30, anim: 'bee-fly-1', flip: false, pos: s.bee1 || { left: '5%', top: '6%' } },
-          { id: 'bee2', size: 26, anim: 'bee-fly-2', flip: true, pos: s.bee2 || { left: '88%', top: '68%' } },
-          { id: 'bee3', size: 28, anim: 'bee-fly-3', flip: true, pos: s.bee3 || { left: '46%', top: '78%' } }].map(b => (
+          { id: 'bee2', size: 26, anim: 'bee-fly-2', flip: true, pos: s.bee2 || { left: '88%', top: '68%' } }].map(b => (
           <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim} flip={b.flip}
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}

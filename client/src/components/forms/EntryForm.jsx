@@ -212,14 +212,12 @@ export default function EntryForm({ initial, categoryLabel, onSaved, onCancel, o
       <div>
         <label style={LABEL_STYLE}>标题</label>
         <input className="form-input" style={INPUT_STYLE}
-          value={form.t} onChange={e => set('t', e.target.value)}
-          placeholder="例如：给妈妈打电话 30 分钟" autoFocus />
+          value={form.t} onChange={e => set('t', e.target.value)} autoFocus />
       </div>
       <div>
         <label style={LABEL_STYLE}>备注</label>
         <textarea className="form-input" style={{ ...INPUT_STYLE, minHeight: '60px', resize: 'vertical' }}
-          value={form.n} onChange={e => set('n', e.target.value)}
-          placeholder="记下让你印象深刻的细节..." />
+          value={form.n} onChange={e => set('n', e.target.value)} />
       </div>
       {/* 日期 · 开始日期 + 结束日期（旅游等多天记录用；复用工作台 ScheduleForm 双列设计） */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

@@ -1128,8 +1128,11 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
 }
 
 // ============================================================
-// AddPlantDrawer — 「添加植物」面板（从右侧滑入）
+// AddPlantDrawer — 「添加植物」面板（花架页面水平居中）
 //   名称可改 + 选一张图片（PNG 透明背景最佳）→ 添加
+//   居中而非贴右上角：它是从顶栏 + 号发起的创建流程（带遮罩、需连续输入），
+//   居中让它成为当前唯一的焦点；设置/信息面板则是挂在各自触发控件下的查看器，仍贴右
+//   动画随之由「右侧滑入」改成「顶部落下」，否则居中面板从右侧滑入会显得错位
 // ============================================================
 function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onClose }) {
   const canAdd = !!draft.image && !busy;
@@ -1139,16 +1142,17 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
       <div className="absolute inset-0" style={{ zIndex: 10, pointerEvents: 'none' }} />
 
       <div onClick={(e) => e.stopPropagation()}
-        className="absolute top-12 right-4 w-[320px] overflow-hidden"
+        className="absolute top-12 inset-x-0 mx-auto w-[320px] max-w-[calc(100%-32px)] overflow-hidden"
         style={{
           zIndex: 11,
           background: 'var(--surface-card)',
           borderRadius: '16px',
           border: '1px solid rgba(0,0,0,0.06)',
           boxShadow: '0 20px 56px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
-          animation: 'drawer-slide-in 0.2s ease-out',
+          animation: 'sheet-drop-in 0.2s ease-out',
           fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
         }}>
+        <style>{`@keyframes sheet-drop-in { 0% { opacity: 0; transform: translateY(-8px); } 100% { opacity: 1; transform: translateY(0); } }`}</style>
         {/* 页头 */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <span className="text-[13px] font-bold text-ink-900">添加植物</span>
@@ -1185,8 +1189,7 @@ function AddPlantDrawer({ draft, busy, onNameChange, onPickImage, onConfirm, onC
             <div className="text-[11px] font-semibold text-ink-500 mb-1.5">名称</div>
             <input value={draft.name} onChange={(e) => onNameChange(e.target.value)}
               placeholder="新植物" maxLength={20}
-              className="w-full px-2.5 py-1.5 rounded-lg text-[12px] text-ink-900 outline-none transition"
-              style={{ background: 'rgba(120,120,128,0.06)', border: '1px solid rgba(0,0,0,0.08)' }} />
+              className="w-full px-2.5 py-1.5 rounded-xl text-[12px] text-ink-900 outline-none transition border border-transparent focus:border-[#238E3F] bg-[rgba(120,120,128,0.03)] placeholder:text-[var(--ink-300)]" />
           </div>
 
           {/* 操作 */}

@@ -44,6 +44,29 @@ function careStatus(last, cycle, unit, okColor = '#238E3F') {
   return { level: 'ok', color: okColor, text: `${remaining} 天后${unit}`, days };
 }
 
+// 日期显示统一成点号格式（2026-09-01 → 2026.09.01）；空值给占位符
+function dotDate(d) {
+  return typeof d === 'string' && d.length === 10 ? d.replace(/-/g, '.') : '—';
+}
+
+// 日历图标：与工作台左侧导航栏（Sidebar ICONS.calendar）同一套视觉语言，两处日期共用
+function CalendarGlyph({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+// 桌面端点击日期输入不会自动弹出日历（只有指示器会），故主动调一次 showPicker；
+// 不支持时静默降级，移动端原生点击即弹系统日历的行为不受影响
+function openNativePicker(e) {
+  try { e.currentTarget.showPicker?.(); } catch { /* 旧浏览器/受限上下文：忽略 */ }
+}
+
 // 画布角标只关心浇水超期
 function waterStatus(plant) {
   const s = careStatus(plant.last_watered, plant.water_cycle_days, '浇水');
@@ -1213,14 +1236,27 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
         </button>
       </div>
       {/* 控制行：上次日期 + 周期天数。方案 B：字段不再套白底描边输入框，内联成
-          「灰标签 + 深色值」；日期靠 24px 圆角方形日历按钮 + 8px 间隙表达可点与可改，
-          周期靠虚线下划线表达可编辑。整组包在 label 里，点标签文字同样能聚焦到字段 */}
+          「灰标签 + 深色值」；日期用点号格式 + 工作台同源日历图标，周期用虚线下划线表达可编辑 */}
       <div className="flex items-center justify-between gap-3">
-        <label className="flex items-center gap-1.5 min-w-0 cursor-pointer">
+        {/* 上次日期：可视层是自绘的点号日期 + 24px 圆角方形日历图标；
+            上面盖一层 opacity-0 的原生 date input —— 点击直接落在它身上弹系统日历。
+            宽度不再靠 ch 估算（此前 10ch 在 iOS 上仍差几 px，末位数字被裁），也不受内部
+            月/日/年子字段最小宽度影响 */}
+        <span className="relative flex items-center gap-1.5 min-w-0 cursor-pointer">
           <span className="text-[11px] text-[var(--text-3)] font-medium flex-shrink-0">上次</span>
+          <span className="text-[12px] font-semibold tabular-nums flex-shrink-0"
+            style={{ color: 'var(--text-1)', borderBottom: '1px dashed rgba(120,120,128,0.28)', paddingBottom: 2 }}>
+            {dotDate(last)}
+          </span>
+          <span className="w-6 h-6 grid place-items-center flex-shrink-0"
+            style={{ borderRadius: 7, background: 'rgba(120,120,128,0.10)', color: 'var(--text-3)' }}>
+            <CalendarGlyph />
+          </span>
           <input type="date" value={last} onChange={(e) => onLastChange(e.target.value)}
-            className="dp dp-u" title="修改上次日期" />
-        </label>
+            onClick={openNativePicker}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            title="修改上次日期" aria-label={`修改上次${markLabel}日期`} />
+        </span>
         <label className="flex items-center gap-1 flex-shrink-0 cursor-pointer">
           <span className="text-[11px] text-[var(--text-3)] font-medium flex-shrink-0">周期</span>
           <input type="text" inputMode="numeric" value={cycleShown}
@@ -1289,35 +1325,9 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
         }}>
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-          /* 原生日期输入内嵌化：去边框去底色，仅保留日历指示器暗示可点。
-             font:inherit 会继承抽屉 16px 且压不住 WebKit date 内部默认尺寸 → 显式锁 12px；
-             且不许被 flex 压扁：允许压缩时末位数字会被裁掉（曾出现 2026/09/ 缺日）
-             日期输入：宽度 = 10 位日期（10ch）+ 8px 间隙 + 24px 圆角方形图标 + 2px 余量。
-              宽度与指示器各自独立计算且强制留 8px 间隙——上一版把宽度算成「10ch + 图标宽」，
-              数字与图标零缝隙，iOS 的月/日/年子字段最小宽度略大于 ch 估算值时就压住图标 */
-          .dp { appearance: none; -webkit-appearance: none; background: transparent; border: none; outline: none;
-            font-family: inherit; font-size: 12px; font-weight: 400; padding: 0; margin: 0;
-            color: var(--text-1); cursor: pointer; font-variant-numeric: tabular-nums; line-height: 1.2; letter-spacing: -0.01em;
-            width: calc(10ch + 34px); flex-shrink: 0; }
-          /* 养护卡内的日期：去框后字段只剩文本，可编辑性靠虚线下划线暗示 */
-          .dp.dp-u { padding-bottom: 2px; border-bottom: 1px dashed rgba(120,120,128,0.28); }
-          /* WebKit 日期编辑区：与外层同字号（缺这条 Chrome 会用内部默认字号渲染数字） */
-          .dp::-webkit-datetime-edit { padding: 0; font-size: 12px; font-weight: 400; }
-          .dp::-webkit-datetime-edit-fields-wrapper { display: flex; font-size: 12px; font-weight: 400; }
-          .dp::-webkit-datetime-edit-text { font-size: 12px; padding: 0; }
-          /* 日历指示器 = 24×24 圆角方形点击区（原来 14px 图标紧贴数字）：自带 8px 左外边距
-              与数字隔开，10% 中性底 + 7px 圆角，图标本体 14px 居中，热区即视觉尺寸 */
-          .dp::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .55; padding: 0; margin: 0 0 0 8px;
-            width: 24px; height: 24px; flex-shrink: 0; box-sizing: border-box; border-radius: 7px;
-            background-color: rgba(120,120,128,0.10);
-            background-size: 14px 14px; background-position: center; background-repeat: no-repeat; }
-          /* 头部「种植日期」：同样去框（原为白底 + 描边胶囊），只留内联文本 + 紧凑图标；
-              宽度 = 10ch + 6px 间隙 + 20px 图标 + 4px 余量（头部字号更小，图标收一档） */
-          .dp-capsule { padding: 0; border: none; background: transparent; border-radius: 0; width: calc(10ch + 30px); }
-          .dp-capsule::-webkit-calendar-picker-indicator { width: 20px; height: 20px; border-radius: 6px;
-            margin-left: 6px; background-size: 12px 12px; }
-          /* Firefox：无指示器，纯文本即可 */
-          .dp::-moz-dateedit, .dp::-moz-calendar-picker-indicator { font-size: 12px; }
+          /* 日期输入改为「自绘点号文本 + 24px 圆角方形日历图标 + 透明原生 date 覆盖层」，
+             原 .dp 系列样式（宽度按 ch 估算、指示器尺寸）已整体删除：
+             ch 估算在 iOS 上差几 px 会裁掉末位数字，指示器也无法做成工作台同源图标 */
         `}</style>
 
         {/* 头部 */}
@@ -1339,13 +1349,26 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
                 {boardLabel || '自由摆放'}
               </span>
             </div>
-            {/* 已种植天数 + 种植日期：去框后与前后文字同排（原生 date 输入，点击即弹系统日历） */}
-            <div className="flex items-center gap-1 mt-1.5 text-[11px]" style={{ color: 'var(--text-3)' }}>
+            {/* 已种植天数 + 种植日期：日期与养护卡同构（点号格式 + 同源日历图标 +
+                透明原生 date 覆盖层），点整块即弹系统日历 */}
+            <div className="flex items-center gap-1.5 mt-1.5 text-[11px]" style={{ color: 'var(--text-3)' }}>
               <span>已种植</span>
               <span className="font-bold tabular-nums" style={{ color: '#238E3F' }}>{days}</span>
               <span>天 ·</span>
-              <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
-                className="dp dp-capsule" title="修改种植日期" />
+              <span className="relative flex items-center gap-1 cursor-pointer">
+                <span className="text-[12px] font-semibold tabular-nums"
+                  style={{ color: 'var(--text-1)', borderBottom: '1px dashed rgba(120,120,128,0.28)', paddingBottom: 1 }}>
+                  {dotDate(form.planted_at)}
+                </span>
+                <span className="w-5 h-5 grid place-items-center flex-shrink-0"
+                  style={{ borderRadius: 6, background: 'rgba(120,120,128,0.10)', color: 'var(--text-3)' }}>
+                  <CalendarGlyph size={11} />
+                </span>
+                <input type="date" value={form.planted_at} onChange={(e) => update('planted_at', e.target.value)}
+                  onClick={openNativePicker}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  title="修改种植日期" aria-label="修改种植日期" />
+              </span>
             </div>
           </div>
         </div>
@@ -1366,10 +1389,10 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
             maxCycle={90}
             onLastChange={(v) => update('last_watered', v)}
             onCycleChange={(v) => update('water_cycle_days', v)}
-            markColor={ws.level === 'alert' ? '#FF3B30' : ws.level === 'warn' ? '#FF9500' : '#238E3F'}
+            markColor="#238E3F"
           />
 
-          {/* 施肥卡：同构（底色同样统一为中性浅灰，仅图标与主色区分） */}
+          {/* 施肥卡：同构，仅图标与主色区分（土色 #8B6B4F，与状态文案的正常档同色） */}
           <CareCard
             icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z"/></svg>}
             status={fs}

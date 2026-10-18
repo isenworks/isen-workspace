@@ -10,6 +10,7 @@ import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmDialog from '../ConfirmDialog.jsx';
 import { useLongPress } from '../useLongPress.js';
 import { uid } from './utils.js';
+import catLying from '../../assets/cat-lying.png';
 
 // ---- 绿色（工作台 iOS accent.green 700 单色，H≈136° 同色相，只降明度）----
 // 单色 #238E3F  green-700：一处到底 —— 实底按钮 / 勾选框 / 缩放手柄 / focus 边框 /
@@ -442,6 +443,45 @@ function DogDrop({ pos, size, onPosChange }) {
           setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
         }}>
         <SleepingDog size={size} />
+      </div>
+    </div>
+  );
+}
+
+// ---- 可拖拽的睡猫 ----
+// V6 生成图（去掉木板后的透明底 PNG，assets/cat-lying.png），非矢量。
+//   与睡狗同一套拖拽逻辑；呼吸动画挂在带命中区的内层，拖动期间暂停起伏。
+//   猫身横卧、底边平直，默认摆在托板顶面上，按百分比定位持久化到 localStorage。
+function CatDrop({ pos, size, onPosChange }) {
+  const ref = useRef(null);
+  const [drag, setDrag] = useState(null);
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e) => {
+      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
+      if (!canvas) return;
+      const r = canvas.getBoundingClientRect();
+      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
+      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
+      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
+    };
+    const onUp = () => setDrag(null);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [drag, onPosChange]);
+  return (
+    <div className="absolute pointer-events-none"
+      style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
+      <div ref={ref} className="cat-breathe pointer-events-auto cursor-grab active:cursor-grabbing"
+        style={{ animationPlayState: drag ? 'paused' : 'running' }}
+        onMouseDown={(e) => {
+          e.stopPropagation(); e.preventDefault();
+          const r = ref.current.getBoundingClientRect();
+          setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
+        }}>
+        <img src={catLying} alt="" width={size} draggable={false}
+          style={{ display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
       </div>
     </div>
   );
@@ -989,11 +1029,13 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         @keyframes dog-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.035); } }
         .dog-zz { transform-box: fill-box; animation: dog-zz 3.2s ease-in-out infinite; }
         @keyframes dog-zz { 0% { opacity: 0; transform: translate(0, 3px); } 30% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(0, -3px); } }
+        /* 睡猫：整只极轻微呼吸起伏（绕底边中心鼓收，不漂移），与睡狗同一套呼吸节奏 */
+        .cat-breathe { transform-origin: 50% 100%; animation: dog-breathe 3.4s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
           .bee-wing, .bf-wing,
           .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .lady-fly,
           .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell,
-          .dog-breathe, .dog-zz { animation: none !important; }
+          .dog-breathe, .dog-zz, .cat-breathe { animation: none !important; }
           /* 静止时收敛成一只合拢的瓢虫 */
           .lady-wings { display: none; }
           .lady-shell { visibility: visible; }
@@ -1106,6 +1148,10 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         {/* 熟睡的小狗（可拖拽）：趴在花架左下角，极轻微呼吸起伏 + Zz 上浮；拖过之后位置手动为准 */}
         <DogDrop size={64} pos={s.dog || { left: '4%', top: '84%' }}
           onPosChange={(np) => setSettings(st => ({ ...st, dog: np }))} />
+
+        {/* 睡猫（可拖拽）：卧在第二层托板上，极轻微呼吸起伏；拖过之后位置手动为准 */}
+        <CatDrop size={104} pos={s.cat || { left: '27%', top: '45%' }}
+          onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))} />
 
         {/* 顶部栏（zIndex 7：常驻 chrome，须高于选中植物的置顶层 5 与托板工具条 6） */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 7 }}>

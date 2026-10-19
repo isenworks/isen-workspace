@@ -1090,6 +1090,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       right: rightCss || 0,
                       backgroundImage: 'linear-gradient(90deg, rgba(142,142,147,0.08) 0%, transparent 65%)',
                       borderRadius: 'min(12px, 50%)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onManageFixedSchedules?.();
                     }}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -1097,7 +1102,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       onManageFixedSchedules?.();
                     }}
                     {...lp.bind(() => onManageFixedSchedules?.())}
-                    title="固定日程 · 右键/长按管理"
+                    title="固定日程 · 点击管理"
                   >
                     <div className="tl-event-line" style={{ background: 'rgba(142,142,147,0.35)' }} />
                     <div className="tl-event-content" style={{ gap: '8px' }}>
@@ -1283,7 +1288,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                 const borderColor = getBorderColor(s);
                 const done = !!s.is_done;
                 return (
-                  <div key={s.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row" style={{background: rowBg}}>
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl task-row"
+                    style={{ background: rowBg, cursor: 'pointer' }}
+                    onClick={() => onEdit?.(s)}
+                    title="点击编辑事项"
+                  >
                     <input
                       type="checkbox"
                       className={square ? 'cb-square' : 'cb-round'}

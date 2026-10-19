@@ -372,6 +372,9 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
 // V6 生成图（去掉木板后的透明底 PNG，assets/cat-lying.png），非矢量。
 //   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画挂在带命中区的内层，拖动期间暂停起伏。
 //   猫身横卧、底边平直，默认摆在托板顶面上，按百分比定位持久化到 localStorage。
+//   圆垫子：内联 SVG 画在猫身后（同属一个拖拽单元，随猫一起移动；不参与呼吸起伏）。
+//   尺寸按猫身宽度换算（1.25× 猫身），用 bottom 负百分比锚在下缘——猫图中只有左侧前爪
+//   垂到画面底部，故垫子要够宽才能在猫身两侧露出来，圆垫的形状才读得出来。
 function CatDrop({ pos, size, onPosChange }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
@@ -390,18 +393,41 @@ function CatDrop({ pos, size, onPosChange }) {
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [drag, onPosChange]);
+  const cushionW = Math.round(size * 1.25);
   return (
     <div className="absolute pointer-events-none"
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
-      <div ref={ref} className="cat-breathe pointer-events-auto cursor-grab active:cursor-grabbing"
-        style={{ animationPlayState: drag ? 'paused' : 'running' }}
+      <div ref={ref} className="relative pointer-events-auto cursor-grab active:cursor-grabbing"
         onMouseDown={(e) => {
           e.stopPropagation(); e.preventDefault();
           const r = ref.current.getBoundingClientRect();
           setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
         }}>
-        <img src={catLying} alt="" width={size} draggable={false}
-          style={{ display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
+        {/* 圆垫子：顶面 / 前缘厚度 / 内圈缝线 / 接地柔影；先绘故在猫身后 */}
+        <svg width={cushionW} height={cushionW * 72 / 140} viewBox="0 0 140 72"
+          className="absolute left-1/2 pointer-events-none"
+          style={{ bottom: '-20%', transform: 'translateX(-50%)', display: 'block' }}>
+          <defs>
+            <radialGradient id="catCushionShade">
+              <stop offset="0" stopColor="#000" stopOpacity="0.20" />
+              <stop offset="0.55" stopColor="#000" stopOpacity="0.10" />
+              <stop offset="1" stopColor="#000" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="catCushionTop" x1="0.18" y1="0.05" x2="0.82" y2="1">
+              <stop offset="0" stopColor="#C97C4A" />
+              <stop offset="1" stopColor="#AD5F33" />
+            </linearGradient>
+          </defs>
+          <ellipse cx="70" cy="62" rx="64" ry="8.6" fill="url(#catCushionShade)" />
+          <ellipse cx="70" cy="40" rx="70" ry="19" fill="#8F4A26" />
+          <ellipse cx="70" cy="34.5" rx="70" ry="19" fill="url(#catCushionTop)" />
+          <ellipse cx="70" cy="34.5" rx="62" ry="16.5" fill="none"
+            stroke="#F4E6D2" strokeWidth="1.4" strokeDasharray="3 3" opacity="0.8" />
+        </svg>
+        <div className="cat-breathe relative" style={{ animationPlayState: drag ? 'paused' : 'running' }}>
+          <img src={catLying} alt="" width={size} draggable={false}
+            style={{ display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
+        </div>
       </div>
     </div>
   );

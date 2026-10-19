@@ -693,6 +693,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const addRef = useRef(null);
   const infoRef = useRef(null);
   const archiveRef = useRef(null);
+  // 顶部栏「纵向三点」菜单：添加植物 / 归档箱 / 花架设置 三个入口收进这里
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const [confirmArchive, setConfirmArchive] = useState(null); // 待归档的植物 id
   // 托板：选中（显示手柄/删除）× 拖拽中
   const [selectedBoard, setSelectedBoard] = useState(null);
@@ -1169,8 +1172,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   };
 
   // 悬浮面板：点面板之外的任意地方都能关闭（顶部栏、画布、植物、托板、页面空白都算外部）。
-  // 信息面板 / 设置面板 / 「添加植物」面板 / 归档箱共用这一套判定：四者在花架里互斥（打开一个
-  // 会先关掉另一个）。面板自身内部的点击不算（含滑杆拖动、取色、上传、名称输入、时间轴、编辑记录），
+  // 信息面板 / 设置面板 / 「添加植物」面板 / 归档箱 / 顶部栏「纵向三点」菜单共用这一套判定：
+  // 前四者在花架里互斥（打开一个会先关掉另一个），菜单是瞬时控件，点外部即收。
+  // 面板自身内部的点击不算（含滑杆拖动、取色、上传、名称输入、时间轴、编辑记录），
   // 面板外各处理函数又普遍 stopPropagation，所以放在捕获阶段监听，冒泡阶段会被它们拦掉。
   // 这正是网格 / 列表视图下信息面板此前关不掉的原因：那两个视图没有画布点击兜底，
   // 而信息面板当时没接入这套判定（只有设置 / 添加两个面板接了）。
@@ -1178,20 +1182,22 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   // 否则点弹窗会把后面的面板一起关掉。
   useEffect(() => {
     if (confirmArchive != null) return;
-    if (!showSettings && !addOpen && !showInfo && !showArchive) return;
+    if (!showSettings && !addOpen && !showInfo && !showArchive && !menuOpen) return;
     const onDown = (e) => {
       if (infoRef.current?.contains(e.target)) return;
       if (archiveRef.current?.contains(e.target)) return;
       if (settingsRef.current?.contains(e.target)) return;
       if (addRef.current?.contains(e.target)) return;
+      if (menuRef.current?.contains(e.target)) return;
       setShowSettings(false);
       setAddOpen(false);
       setShowArchive(false);
+      setMenuOpen(false);
       if (showInfo) { setShowInfo(false); setSelected(null); }
     };
     document.addEventListener('pointerdown', onDown, true);
     return () => document.removeEventListener('pointerdown', onDown, true);
-  }, [showSettings, addOpen, showInfo, showArchive, confirmArchive]);
+  }, [showSettings, addOpen, showInfo, showArchive, menuOpen, confirmArchive]);
 
   // 默认 settings + 合并
   const s = useMemo(() => ({
@@ -1434,40 +1440,59 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                 );
               })}
             </div>
-            {/* 添加植物（打开「添加植物」面板） */}
-            <button onClick={(e) => { e.stopPropagation(); openAdd(); }}
-              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-              title="添加植物">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#238E3F" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-            </button>
-            {/* 一键整理植物（仅花架视图有意义：把植物搬回设为默认时的位置） */}
-            {view === 'shelf' && (
-              <button onClick={(e) => { e.stopPropagation(); restoreDefault(); }}
+            {/* 「纵向三点」菜单：把 添加植物 / 归档箱 / 花架设置 三个入口收进来，
+                顶部栏只留「视图切换 + ⋮」两个控件，窄屏不再拥挤。
+                「一键整理」不属于高频操作，已移入设置面板的「布局」段。 */}
+            <div className="relative" ref={menuRef}>
+              <button onClick={(e) => {
+                e.stopPropagation();
+                const next = !menuOpen;
+                setMenuOpen(next);
+                // 展开菜单时先收起其它面板：顶部栏自身是 zIndex 7 的层叠上下文，
+                // 菜单再高也压不过详情面板（10）/ 设置面板（11），互斥展示最干净
+                if (next) {
+                  setShowSettings(false); setAddOpen(false); setShowArchive(false);
+                  setShowInfo(false); setSelected(null);
+                }
+              }}
                 className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-                title="一键整理植物">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4.5 19.5L13.5 10.5" />
-                  <path d="M17 1.5L18.47 5.4L23 7.5L18.47 9.6L17 13.5L15.53 9.6L11 7.5L15.53 5.4Z" />
+                style={{ background: menuOpen ? 'rgba(120,120,128,0.12)' : 'transparent' }}
+                title="更多操作">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={menuOpen ? '#238E3F' : 'var(--text-muted)'} strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
                 </svg>
               </button>
-            )}
-            <button onClick={(e) => { e.stopPropagation(); openArchive(); }}
-              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-              title="归档箱（查看已归档植物，可恢复）">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="20" height="5" x="2" y="3" rx="1" />
-                <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
-                <path d="M10 12h4" />
-              </svg>
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
-              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-              title="花架设置">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 top-9 p-1"
+                  style={{
+                    zIndex: 12, width: 176,
+                    background: 'var(--surface-card)',
+                    borderRadius: 12,
+                    border: '1px solid rgba(0,0,0,0.07)',
+                    boxShadow: '0 14px 38px rgba(0,0,0,0.13), 0 3px 10px rgba(0,0,0,0.05)',
+                    animation: 'menu-pop 0.14s ease-out',
+                  }}>
+                  <style>{`@keyframes menu-pop { 0% { opacity: 0; transform: translateY(-4px) scale(0.98); } 100% { opacity: 1; transform: none; } }`}</style>
+                  {[
+                    { id: 'add', label: '添加植物', color: '#238E3F', run: openAdd, icon: <path d="M12 5v14M5 12h14" /> },
+                    { id: 'archive', label: '归档箱', color: 'var(--text-2)', run: openArchive, icon: (<><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></>) },
+                    { id: 'settings', label: '花架设置', color: 'var(--text-2)', run: () => setShowSettings(true), icon: (<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></>) },
+                  ].map((it) => (
+                    <button key={it.id}
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); it.run(); }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-left transition hover:bg-black/[0.05]"
+                      style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={it.color}
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                        {it.icon}
+                      </svg>
+                      <span className="text-[12.5px] font-medium" style={{ color: 'var(--text-1)' }}>{it.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1711,6 +1736,8 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onBoardsChange={setBoards}
             onAddBoard={addBoard}
             onRemoveBoard={removeBoard}
+            onTidy={restoreDefault}
+            isShelf={view === 'shelf'}
             onClose={() => setShowSettings(false)}
           />
         )}
@@ -2611,6 +2638,7 @@ function ArchiveDrawer({ rootRef, items, loading, onRestore, onClose }) {
 // SettingsDrawer — 花架设置面板（右上角齿轮）
 //   背景：纯色 / 上传图片
 //   悬浮托板：增删托板 / 改色 / 调宽 / 恢复颜色
+//   布局：一键整理植物（原顶部栏低频按钮，收进设置）
 //   设置自动存 localStorage（实时预览）
 //   排版对齐工作台既有面板：15px 标题 / 11px 段标 / var(--text-*) 文本层级
 //   rootRef：供外层做「点面板外任意地方即关闭」的外部判定
@@ -2618,7 +2646,7 @@ function ArchiveDrawer({ rootRef, items, loading, onRestore, onClose }) {
 const PRESET_BG_COLORS = ['#FFFFFF', '#FBFBF9', '#F6F5F1', '#FDFBF3', '#F5F0E8', '#EFECE4', '#F0F4E8', '#E8F0E0'];
 const PLANT_GREEN = '#238E3F';
 
-function SettingsDrawer({ rootRef, settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onClose }) {
+function SettingsDrawer({ rootRef, settings, onChange, bgInputRef, boards, boardPalette, onBoardsChange, onAddBoard, onRemoveBoard, onTidy, isShelf, onClose }) {
   const merge = (patch) => onChange({ ...settings, ...patch });
   const patchBoard = (id, patch) => onBoardsChange(list => list.map(b => (b.id === id ? { ...b, ...patch } : b)));
   const palette = Array.isArray(boardPalette) && boardPalette.length ? boardPalette : DEFAULT_BOARD_COLORS;
@@ -2762,6 +2790,23 @@ function SettingsDrawer({ rootRef, settings, onChange, bgInputRef, boards, board
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* 布局：一键整理植物（低频操作，从顶部栏收进来；位置只在花架视图生效，故非花架时禁用） */}
+        <div>
+          <div className="text-[11px] font-semibold tracking-wide text-[var(--text-3)] mb-2">布局</div>
+          <button onClick={onTidy} disabled={!isShelf}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold transition disabled:opacity-40"
+            style={{ color: PLANT_GREEN, border: '1px solid rgba(35,142,63,0.35)', background: 'rgba(35,142,63,0.06)' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4.5 19.5L13.5 10.5" />
+              <path d="M17 1.5L18.47 5.4L23 7.5L18.47 9.6L17 13.5L15.53 9.6L11 7.5L15.53 5.4Z" />
+            </svg>
+            一键整理植物
+          </button>
+          <div className="mt-1.5 text-[10.5px] leading-relaxed" style={{ color: 'var(--text-3)' }}>
+            {isShelf ? '把植物搬回各自的默认位置' : '仅在花架视图可用：位置只在花架里生效'}
           </div>
         </div>
       </div>

@@ -314,11 +314,15 @@ export const API = {
   // 种植花架（生活页 · 种植类目）：图片 base64 存后端，CRUD 对齐其他模块
   plants: {
     // list 只回元数据（秒开）；image 按 id+ver 单独拉取，ver 变则 URL 变（浏览器缓存友好）
-    async list() { return fetchPages('/plants/list', {}, 'GET'); },
+    //   archived 传 true 时只回已归档（归档箱），缺省只回在架植物
+    async list(archived) { return fetchPages(`/plants/list${archived ? '?archived=1' : ''}`, {}, 'GET'); },
     async image(id, ver) { return fetchPages(`/plants/image?id=${id}&v=${ver || 0}`, {}, 'GET'); },
     async create(data) { return fetchPages('/plants/create', data); },
     async update(id, data) { return fetchPages('/plants/update', { id, ...data }); },
     async remove(id) { return fetchPages('/plants/remove', { id }); },
+    // 归档 / 恢复：归档走 update 的 archived 位（stamp 传客户端本地时间，保证归档日期与用户时钟一致）
+    async archive(id, stamp) { return fetchPages('/plants/update', { id, archived: true, archived_at: stamp || '' }); },
+    async restore(id) { return fetchPages('/plants/update', { id, archived: false }); },
     async upload(dataUrl) { return fetchPages('/plants/upload', { file: dataUrl }); },
     // 养护记录（plant_care_logs）：时间轴是事实来源，last_watered/last_fertilized 为其派生缓存
     //   careLogs 传 kind 可按动作筛选；carePhoto 按 id+ver 拉单张照片（可空，形如 { image: null }）

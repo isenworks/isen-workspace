@@ -409,39 +409,48 @@ function CatDrop({ pos, size, onPosChange }) {
 
 // ============================================================
 // 养护动作：语义色 + 图标（统一 24×24 视框 / 2px 圆头描边）
-//   图标选型（设计稿方案 C 的落地）：
-//     · 浇水沿用「水滴」（Lucide droplet）—— 主流开源库里都没有「浇水壶」字形，水滴是零成本的最优解
-//     · 施肥 / 打药 / 拍照 / 修剪 复用开源字形（Lucide sprout / spray-can / camera / scissors）
-//     · 15px 细线在小体积下发灰 → 配同色 chip 圆角底承载，是小尺寸辨识度的主要手段
+//   图标选型（全部来自 Lucide，线宽 2 与原库一致）：
+//     · 浇水 = droplets（交叠水滴）—— 比单滴更明确「水」，且是 Lucide 原生字形
+//     · 施肥 = flask-conical（锥形瓶）—— 与「打药」的喷雾罐区分开：一个补营养、一个除虫
+//     · 打药 = spray-can / 拍照 = camera / 修剪 = scissors
+//     · 小体积（12–15px）细线易发灰 → 配同色 chip 圆角底承载，是小尺寸辨识度的主要手段
+//   语义色：水=蓝、肥=土棕、药=紫、拍照=主绿、修剪=红（与土棕/蓝错开色相，一眼可辨）
 // ============================================================
 const ACTIONS = {
   water:     { label: '浇水', color: '#2E86DE', soft: 'rgba(46,134,222,0.10)' },
   fertilize: { label: '施肥', color: '#8B6B4F', soft: 'rgba(139,107,79,0.10)' },
-  spray:     { label: '打药', color: '#D99A2B', soft: 'rgba(217,154,43,0.10)' },
+  spray:     { label: '打药', color: '#7E57C2', soft: 'rgba(126,87,194,0.10)' },
   photo:     { label: '拍照', color: '#238E3F', soft: 'rgba(35,142,63,0.10)' },
-  prune:     { label: '修剪', color: '#9D5CDB', soft: 'rgba(157,92,219,0.10)' },
+  prune:     { label: '修剪', color: '#CF5A55', soft: 'rgba(207,90,85,0.10)' },
 };
 // 界面里启用的动作（后端还支持换盆；未列入 = 暂不在 UI 暴露）
 const ACTION_KINDS = ['water', 'fertilize', 'spray', 'photo', 'prune'];
 
 const ACTION_PATHS = {
-  water: <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />,
-  fertilize: (<>
-    <path d="M7 20h10" />
-    <path d="M10 20c5.5-2.5.8-6.4 3-10" />
-    <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
-    <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z" />
+  // Lucide droplets
+  water: (<>
+    <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z" />
+    <path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97" />
   </>),
+  // Lucide flask-conical
+  fertilize: (<>
+    <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" />
+    <path d="M6.453 15h11.094" />
+    <path d="M8.5 2h7" />
+  </>),
+  // Lucide spray-can
   spray: (<>
     <path d="M3 3h.01" /><path d="M7 5h.01" /><path d="M11 7h.01" /><path d="M3 7h.01" /><path d="M7 9h.01" /><path d="M3 11h.01" />
     <rect width="4" height="4" x="15" y="5" />
     <path d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2" />
     <path d="m13 14 8-2" /><path d="m13 19 8-2" />
   </>),
+  // Lucide camera
   photo: (<>
     <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
     <circle cx="12" cy="13" r="3" />
   </>),
+  // Lucide scissors
   prune: (<>
     <circle cx="6" cy="6" r="3" /><path d="M8.12 8.12 12 12" /><path d="M20 4 8.12 15.88" /><circle cx="6" cy="18" r="3" /><path d="M14.8 14.8 20 20" />
   </>),
@@ -676,9 +685,15 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const [loadErr, setLoadErr] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  // 归档箱：只在打开时拉取（不进首屏请求）；已归档植物不在花架显示，可随时恢复
+  const [showArchive, setShowArchive] = useState(false);
+  const [archived, setArchived] = useState([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
   const settingsRef = useRef(null);
   const addRef = useRef(null);
-  const [confirmRemove, setConfirmRemove] = useState(null); // 待移除的植物 id
+  const infoRef = useRef(null);
+  const archiveRef = useRef(null);
+  const [confirmArchive, setConfirmArchive] = useState(null); // 待归档的植物 id
   // 托板：选中（显示手柄/删除）× 拖拽中
   const [selectedBoard, setSelectedBoard] = useState(null);
   const [boardDragging, setBoardDragging] = useState(null);
@@ -1069,19 +1084,53 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     } catch (e) { toast.error('保存失败: ' + e.message); }
   };
 
-  // ---- 删除植物 ----
-  const doRemovePlant = async (id) => {
+  // ---- 归档植物（不再硬删）：写 archived_at → 从花架移出，养护记录完整保留 ----
+  const doArchivePlant = async (id) => {
     try {
-      await API.plants.remove(id);
+      await API.plants.archive(id, nowStamp());
       setPlants(prev => prev.filter(p => p.id !== id));
       setShowInfo(false);
       setSelected(null);
-    } catch (e) { toast.error('删除失败: ' + e.message); }
+      toast.success('已归档，可在顶部「归档」中恢复');
+    } catch (e) { toast.error('归档失败: ' + e.message); }
   };
 
-  const removePlant = (id) => {
-    setConfirmRemove(id);
+  const archivePlant = (id) => {
+    setConfirmArchive(id);
   };
+
+  // ---- 归档箱：打开时才拉取（元数据先行，图片并行补载，与花架同套路）----
+  const loadArchived = useCallback(async () => {
+    setArchivedLoading(true);
+    try {
+      const res = await API.plants.list(true);
+      const list = res?.plants || [];
+      setArchived(list);
+      list.filter(p => p.has_image && !p.image).forEach(p => {
+        API.plants.image(p.id, p.image_ver).then(r => {
+          if (!r?.image) return;
+          setArchived(prev => prev.map(q => q.id === p.id ? { ...q, image: r.image } : q));
+        }).catch(() => { /* 单株失败不影响其他 */ });
+      });
+    } catch (e) {
+      toast.error('归档加载失败: ' + e.message);
+    } finally { setArchivedLoading(false); }
+  }, [toast]);
+
+  const openArchive = useCallback(() => { setShowArchive(true); loadArchived(); }, [loadArchived]);
+
+  // ---- 恢复：清空 archived_at → 回到花架（接口回传整株，含图片，直接挂上）----
+  const restorePlant = useCallback(async (id) => {
+    try {
+      const { plant } = await API.plants.restore(id);
+      setArchived(prev => prev.filter(p => p.id !== id));
+      if (plant) {
+        setPlants(prev => [...prev, plant]);
+        zCounter.current = Math.max(zCounter.current, (plant.z_index || 0) + 1);
+      }
+      toast.success('已恢复');
+    } catch (e) { toast.error('恢复失败: ' + e.message); }
+  }, [toast]);
 
   // 养护记录写入后，后端回传更新过的植物（last_* 派生缓存已按记录重算）→ 同步进列表与抽屉快照
   const patchPlant = useCallback((updated) => {
@@ -1120,23 +1169,29 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   };
 
   // 悬浮面板：点面板之外的任意地方都能关闭（顶部栏、画布、植物、托板、页面空白都算外部）。
-  // 设置面板与「添加植物」面板共用这一套判定：两者在花架里互斥（点另一个的触发按钮会先关掉
-  // 当前这个）。面板自身内部的点击不算（含滑杆拖动、取色、上传、名称输入），面板外各处理函数
-  // 又普遍 stopPropagation，所以放在捕获阶段监听，冒泡阶段会被它们拦掉。
-  // 删除植物确认弹窗虽然渲染在面板之外，但它是从面板里弹出来的——弹窗打开期间停用监听，
+  // 信息面板 / 设置面板 / 「添加植物」面板 / 归档箱共用这一套判定：四者在花架里互斥（打开一个
+  // 会先关掉另一个）。面板自身内部的点击不算（含滑杆拖动、取色、上传、名称输入、时间轴、编辑记录），
+  // 面板外各处理函数又普遍 stopPropagation，所以放在捕获阶段监听，冒泡阶段会被它们拦掉。
+  // 这正是网格 / 列表视图下信息面板此前关不掉的原因：那两个视图没有画布点击兜底，
+  // 而信息面板当时没接入这套判定（只有设置 / 添加两个面板接了）。
+  // 删除记录 / 归档确认弹窗虽然渲染在面板之外，但它是从面板里弹出来的——弹窗打开期间停用监听，
   // 否则点弹窗会把后面的面板一起关掉。
   useEffect(() => {
-    if (confirmRemove != null) return;
-    if (!showSettings && !addOpen) return;
+    if (confirmArchive != null) return;
+    if (!showSettings && !addOpen && !showInfo && !showArchive) return;
     const onDown = (e) => {
+      if (infoRef.current?.contains(e.target)) return;
+      if (archiveRef.current?.contains(e.target)) return;
       if (settingsRef.current?.contains(e.target)) return;
       if (addRef.current?.contains(e.target)) return;
       setShowSettings(false);
       setAddOpen(false);
+      setShowArchive(false);
+      if (showInfo) { setShowInfo(false); setSelected(null); }
     };
     document.addEventListener('pointerdown', onDown, true);
     return () => document.removeEventListener('pointerdown', onDown, true);
-  }, [showSettings, addOpen, confirmRemove]);
+  }, [showSettings, addOpen, showInfo, showArchive, confirmArchive]);
 
   // 默认 settings + 合并
   const s = useMemo(() => ({
@@ -1396,6 +1451,15 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                 </svg>
               </button>
             )}
+            <button onClick={(e) => { e.stopPropagation(); openArchive(); }}
+              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
+              title="归档箱（查看已归档植物，可恢复）">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="5" x="2" y="3" rx="1" />
+                <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+                <path d="M10 12h4" />
+              </svg>
+            </button>
             <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
               title="花架设置">
@@ -1611,15 +1675,27 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           />
         )}
 
-        {/* 信息面板（右键抽屉） */}
+        {/* 信息面板（右键 / 网格·列表点卡片）：顶部栏与画布空白处点击均可关闭 */}
         {showInfo && selected && (
           <InfoDrawer key={selected.id}
+            rootRef={infoRef}
             plant={selected}
             boardLabel={selBoardLabel}
             onSave={savePlant}
-            onRemove={removePlant}
+            onArchive={archivePlant}
             onPatch={patchPlant}
             onClose={() => { setShowInfo(false); setSelected(null); }}
+          />
+        )}
+
+        {/* 归档箱：已归档植物一览 + 单株恢复 */}
+        {showArchive && (
+          <ArchiveDrawer
+            rootRef={archiveRef}
+            items={archived}
+            loading={archivedLoading}
+            onRestore={restorePlant}
+            onClose={() => setShowArchive(false)}
           />
         )}
 
@@ -1651,14 +1727,14 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           }} />
       </div>
 
+      {/* 归档确认：非破坏性操作，确认键沿用主题色（不用危险红） */}
       <ConfirmDialog
-        open={confirmRemove != null}
-        danger
-        title="移除确认"
-        message="确认移除这株植物？"
-        confirmText="移除"
-        onCancel={() => setConfirmRemove(null)}
-        onConfirm={() => { const id = confirmRemove; setConfirmRemove(null); doRemovePlant(id); }}
+        open={confirmArchive != null}
+        title="归档确认"
+        message="归档后不在花架显示，养护记录完整保留；可在顶部「归档」中随时恢复。"
+        confirmText="归档"
+        onCancel={() => setConfirmArchive(null)}
+        onConfirm={() => { const id = confirmArchive; setConfirmArchive(null); doArchivePlant(id); }}
       />
     </div>
   );
@@ -1858,8 +1934,9 @@ function CareThumb({ id, ver = 0, size = 48, onOpen }) {
 //     由后端按「同类记录最新一条」重算后回传
 //   · 撤销 = 删掉最近一条同类记录；补录允许选过去时间，不允许未来
 //   · 时间轴是事实来源；旧数据由后端在首次拉取时自动补一条，避免一进来是空的
+//   · rootRef：供外层做「点面板外任意地方即关闭」的外部判定（花架 / 网格 / 列表三种视图都生效）
 // ============================================================
-function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose, onPatch }) {
+function InfoDrawer({ rootRef, plant, boardLabel, onSave, onArchive, onClose, onPatch }) {
   const toast = useToast();
   const [tab, setTab] = useState('logs');
   const [form, setForm] = useState({
@@ -2044,7 +2121,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose, onPatch }) {
       <div className="absolute inset-0" style={{ zIndex: 8, pointerEvents: 'none' }} />
 
       {/* 抽屉卡片（360px：撑开时间轴的日期列与内容） */}
-      <div onClick={(e) => e.stopPropagation()}
+      <div ref={rootRef} onClick={(e) => e.stopPropagation()}
         className="absolute top-12 right-4 w-[360px] max-w-[calc(100%-32px)] flex flex-col overflow-hidden"
         style={{
           zIndex: 10,
@@ -2312,7 +2389,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose, onPatch }) {
                 提醒由养护记录自动派生：打卡会写一条记录；改周期只影响「下次时间」，不改历史。
               </div>
               <CareCard
-                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>}
+                icon={<ActionIcon kind="water" size={15} color={ws.color} />}
                 status={ws}
                 doneToday={form.last_watered === today}
                 markLabel="浇水"
@@ -2326,7 +2403,7 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose, onPatch }) {
                 markColor="#238E3F"
               />
               <CareCard
-                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z"/></svg>}
+                icon={<ActionIcon kind="fertilize" size={15} color={fs.color} />}
                 status={fs}
                 doneToday={form.last_fertilized === today}
                 markLabel="施肥"
@@ -2401,12 +2478,12 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose, onPatch }) {
           </div>
         )}
 
-        {/* 底部操作 */}
+        {/* 底部操作：归档 = 中性色（非破坏性，可恢复），与主色「保存」区分 */}
         <div className="flex gap-2 px-4 pt-2.5 pb-3.5 flex-shrink-0">
-          <button onClick={() => onRemove(plant.id)}
-            className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition hover:brightness-95 active:scale-[0.98]"
-            style={{ background: 'rgba(var(--danger-rgb),0.06)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.1)' }}>
-            移除
+          <button onClick={() => onArchive(plant.id)}
+            className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition hover:brightness-[0.97] active:scale-[0.98]"
+            style={{ background: 'rgba(120,120,128,0.10)', color: 'var(--text-2)', border: '1px solid rgba(0,0,0,0.06)' }}>
+            归档
           </button>
           <button onClick={handleSave} disabled={!dirty}
             className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition hover:brightness-95 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
@@ -2422,6 +2499,109 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose, onPatch }) {
             <img src={lightbox} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
           </div>
         )}
+      </div>
+    </>
+  );
+}
+
+// ============================================================
+// ArchiveDrawer — 归档箱（顶部栏「归档」按钮）
+//   已归档植物一览：归档日期 + 单株恢复（回到花架原位置）
+//   与信息面板同尺寸（360px）与同进出动画，视觉上是它的「兄弟面板」
+//   rootRef：供外层做「点面板外任意地方即关闭」的外部判定
+// ============================================================
+function ArchiveDrawer({ rootRef, items, loading, onRestore, onClose }) {
+  return (
+    <>
+      {/* 遮罩（不遮画布，仅阻止穿透） */}
+      <div className="absolute inset-0" style={{ zIndex: 8, pointerEvents: 'none' }} />
+
+      <div ref={rootRef} onClick={(e) => e.stopPropagation()}
+        className="absolute top-12 right-4 w-[360px] max-w-[calc(100%-32px)] flex flex-col overflow-hidden"
+        style={{
+          zIndex: 10,
+          maxHeight: 'calc(100% - 64px)',
+          background: 'var(--surface-card)',
+          borderRadius: '16px',
+          border: '1px solid rgba(0,0,0,0.06)',
+          boxShadow: '0 20px 56px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
+          animation: 'drawer-slide-in 0.2s ease-out',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
+        }}>
+        <style>{`
+          @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+        `}</style>
+
+        {/* 头部：标题 + 容量说明 + 关闭 */}
+        <div className="flex items-center gap-2.5 pl-4 pr-3 pt-3.5 pb-3 flex-shrink-0"
+          style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <span className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(120,120,128,0.10)', color: 'var(--text-2)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="5" x="2" y="3" rx="1" />
+              <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+              <path d="M10 12h4" />
+            </svg>
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-semibold leading-tight" style={{ color: 'var(--text-1)' }}>归档</div>
+            <div className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-3)' }}>
+              {loading ? '正在加载…' : (items.length ? `已归档 ${items.length} 株` : '暂无归档植物')}
+            </div>
+          </div>
+          <button onClick={onClose} title="关闭"
+            className="w-7 h-7 grid place-items-center rounded-lg transition hover:bg-black/5"
+            style={{ color: 'var(--text-3)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* 列表 */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2.5">
+          {loading ? (
+            <div className="py-8 text-center text-[12px]" style={{ color: 'var(--text-3)' }}>正在加载…</div>
+          ) : items.length === 0 ? (
+            <div className="py-8 text-center">
+              <div className="text-[12px]" style={{ color: 'var(--text-3)' }}>还没有归档的植物</div>
+              <div className="mt-1 text-[10.5px]" style={{ color: 'var(--text-3)' }}>
+                在植物详情里点「归档」，就会收纳到这里
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {items.map((p) => (
+                <div key={p.id} className="flex items-center gap-2.5 px-2 py-2 rounded-xl"
+                  style={{ background: 'rgba(120,120,128,0.035)' }}>
+                  <span className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0"
+                    style={{ background: 'rgba(35,142,63,0.06)' }}>
+                    {p.image
+                      ? <img src={p.image} alt="" className="w-7 h-7 object-contain" draggable={false} />
+                      : <span className="w-5 h-5 rounded-full" style={{ background: 'rgba(120,120,128,0.14)' }} />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold truncate" style={{ color: 'var(--text-1)' }}>{p.name || '未命名'}</span>
+                    <span className="block text-[10.5px] mt-0.5 tabular-nums" style={{ color: 'var(--text-3)' }}>
+                      归档于 {relativeDay(p.archived_at) || stampDate(p.archived_at)}
+                    </span>
+                  </span>
+                  <button onClick={() => onRestore(p.id)}
+                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition active:scale-95"
+                    style={{ color: '#238E3F', background: 'rgba(35,142,63,0.10)' }}>
+                    恢复
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 底部说明：归档语义（非删除） */}
+        <div className="px-4 py-2.5 flex-shrink-0 text-[10.5px] leading-relaxed"
+          style={{ borderTop: '1px solid rgba(0,0,0,0.06)', color: 'var(--text-3)' }}>
+          归档保留全部养护记录，恢复后回到花架原位置。
+        </div>
       </div>
     </>
   );

@@ -52,6 +52,10 @@ export async function ensurePlantsTable(env) {
     try {
       await env.DB.prepare(`ALTER TABLE plants ADD COLUMN image_ver INTEGER DEFAULT 0`).run();
     } catch { /* 列已存在 */ }
+    // 归档时间（NULL = 在架；有值 = 已归档，不在花架显示，可随时恢复）
+    try {
+      await env.DB.prepare(`ALTER TABLE plants ADD COLUMN archived_at TEXT`).run();
+    } catch { /* 列已存在 */ }
     _plantsTableReady = true;
   } catch (e) {
     // 忽略表创建错误（可能并发）
@@ -76,13 +80,16 @@ function safeStr(v, fallback = '') {
 }
 
 // 列表只回元数据（不含 image 大字段，响应从数 MB 降到几 KB，花架秒开）
+// archived=1 → 只回已归档（归档箱）；缺省 → 只回在架植物
 export async function handlePlantsList(env, qOrBody) {
   await ensurePlantsTable(env);
+  const archived = String((qOrBody || {}).archived || '') === '1';
   const r = await env.DB.prepare(
     `SELECT id, name, pos_x, pos_y, z_index, planted_at, traits, care_method,
             water_cycle_days, last_watered, fert_cycle_days, last_fertilized, size,
-            COALESCE(image_ver, 0) AS image_ver, (image IS NOT NULL) AS has_image
-     FROM plants WHERE user_id = ? ORDER BY z_index ASC, id ASC`
+            COALESCE(image_ver, 0) AS image_ver, (image IS NOT NULL) AS has_image, archived_at
+     FROM plants WHERE user_id = ? AND archived_at IS ${archived ? 'NOT NULL' : 'NULL'}
+     ORDER BY ${archived ? 'archived_at DESC, ' : ''}z_index ASC, id ASC`
   ).bind(uid(env)).all();
   return json({ plants: r.results || [] });
 }
@@ -169,6 +176,14 @@ export async function handlePlantsUpdate(env, body) {
   push('fert_cycle_days', b.fert_cycle_days, v => Number(v) || 30);
   push('last_fertilized', b.last_fertilized, v => v ? safeStr(v) : null);
   push('size', b.size, v => clampSize(v));
+  // 归档 / 恢复：archived=true → 记归档时间（可用 archived_at 指定，缺省取服务器时间）；
+  // archived=false → 清空（回到花架）。归档不动养护记录，恢复后历史完整
+  if (b.archived !== undefined) {
+    sets.push('archived_at');
+    vals.push(b.archived
+      ? safeStr(b.archived_at) || new Date().toISOString().slice(0, 19).replace('T', ' ')
+      : null);
+  }
 
   if (sets.length === 0) return json({ plant: existing });
 

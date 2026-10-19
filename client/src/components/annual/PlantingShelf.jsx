@@ -693,7 +693,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const addRef = useRef(null);
   const infoRef = useRef(null);
   const archiveRef = useRef(null);
-  // 顶部栏「纵向三点」菜单：添加植物 / 归档箱 / 花架设置 三个入口收进这里
+  // 顶部栏「纵向三点」菜单：添加植物 / 归档植物 / 花架设置 三个入口收进这里
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const [confirmArchive, setConfirmArchive] = useState(null); // 待归档的植物 id
@@ -1094,7 +1094,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
       setPlants(prev => prev.filter(p => p.id !== id));
       setShowInfo(false);
       setSelected(null);
-      toast.success('已归档，可在顶部「归档」中恢复');
+      toast.success('已归档，可在右上角「更多」→「归档植物」中恢复');
     } catch (e) { toast.error('归档失败: ' + e.message); }
   };
 
@@ -1440,7 +1440,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                 );
               })}
             </div>
-            {/* 「纵向三点」菜单：把 添加植物 / 归档箱 / 花架设置 三个入口收进来，
+            {/* 「纵向三点」菜单：把 添加植物 / 归档植物 / 花架设置 三个入口收进来，
                 顶部栏只留「视图切换 + ⋮」两个控件，窄屏不再拥挤。
                 「一键整理」不属于高频操作，已移入设置面板的「布局」段。 */}
             <div className="relative" ref={menuRef}>
@@ -1475,8 +1475,8 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                   }}>
                   <style>{`@keyframes menu-pop { 0% { opacity: 0; transform: translateY(-4px) scale(0.98); } 100% { opacity: 1; transform: none; } }`}</style>
                   {[
-                    { id: 'add', label: '添加植物', color: '#238E3F', run: openAdd, icon: <path d="M12 5v14M5 12h14" /> },
-                    { id: 'archive', label: '归档箱', color: 'var(--text-2)', run: openArchive, icon: (<><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></>) },
+                    { id: 'add', label: '添加植物', color: 'var(--text-2)', run: openAdd, icon: <path d="M12 5v14M5 12h14" /> },
+                    { id: 'archive', label: '归档植物', color: 'var(--text-2)', run: openArchive, icon: (<><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></>) },
                     { id: 'settings', label: '花架设置', color: 'var(--text-2)', run: () => setShowSettings(true), icon: (<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></>) },
                   ].map((it) => (
                     <button key={it.id}
@@ -1758,7 +1758,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
       <ConfirmDialog
         open={confirmArchive != null}
         title="归档确认"
-        message="归档后不在花架显示，养护记录完整保留；可在顶部「归档」中随时恢复。"
+        message="归档后不在花架显示，养护记录完整保留；可在右上角「更多」→「归档植物」中随时恢复。"
         confirmText="归档"
         onCancel={() => setConfirmArchive(null)}
         onConfirm={() => { const id = confirmArchive; setConfirmArchive(null); doArchivePlant(id); }}
@@ -2532,7 +2532,7 @@ function InfoDrawer({ rootRef, plant, boardLabel, onSave, onArchive, onClose, on
 }
 
 // ============================================================
-// ArchiveDrawer — 归档箱（顶部栏「归档」按钮）
+// ArchiveDrawer — 归档箱（顶部栏「⋮」→「归档植物」）
 //   已归档植物一览：归档日期 + 单株恢复（回到花架原位置）
 //   与信息面板同尺寸（360px）与同进出动画，视觉上是它的「兄弟面板」
 //   rootRef：供外层做「点面板外任意地方即关闭」的外部判定

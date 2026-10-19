@@ -373,8 +373,8 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
 //   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画挂在带命中区的内层，拖动期间暂停起伏。
 //   猫身横卧、底边平直，默认摆在托板顶面上，按百分比定位持久化到 localStorage。
 //   圆垫子：内联 SVG 画在猫身后（同属一个拖拽单元，随猫一起移动；不参与呼吸起伏）。
-//   尺寸按猫身宽度换算（1.25× 猫身），用 bottom 负百分比锚在下缘——猫图中只有左侧前爪
-//   垂到画面底部，故垫子要够宽才能在猫身两侧露出来，圆垫的形状才读得出来。
+//   单层垫面、无厚度；尺寸按猫身宽度换算（1.25× 猫身），用 bottom 负百分比锚在下缘——
+//   猫图中只有左侧前爪垂到画面底部，故垫子要够宽才能在猫身两侧露出来，圆垫的形状才读得出来。
 function CatDrop({ pos, size, onPosChange }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
@@ -403,23 +403,20 @@ function CatDrop({ pos, size, onPosChange }) {
           const r = ref.current.getBoundingClientRect();
           setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
         }}>
-        {/* 圆垫子：顶面 / 前缘厚度 / 内圈缝线 / 接地柔影；先绘故在猫身后 */}
+        {/* 圆垫子：单层垫面 + 内圈缝线 + 贴边接地柔影；先绘故在猫身后。
+            柔影不另画一团大灰晕（会显得脱地），而是把垫面椭圆「下移 2 / 两侧放宽 1.5」
+            叠一层 11% 黑 + 更外面一层 5% 黑，只露出贴着垫边的一圈，充当接地阴影。 */}
         <svg width={cushionW} height={cushionW * 72 / 140} viewBox="0 0 140 72"
           className="absolute left-1/2 pointer-events-none"
           style={{ bottom: '-20%', transform: 'translateX(-50%)', display: 'block' }}>
           <defs>
-            <radialGradient id="catCushionShade">
-              <stop offset="0" stopColor="#000" stopOpacity="0.20" />
-              <stop offset="0.55" stopColor="#000" stopOpacity="0.10" />
-              <stop offset="1" stopColor="#000" stopOpacity="0" />
-            </radialGradient>
             <linearGradient id="catCushionTop" x1="0.18" y1="0.05" x2="0.82" y2="1">
               <stop offset="0" stopColor="#C97C4A" />
               <stop offset="1" stopColor="#AD5F33" />
             </linearGradient>
           </defs>
-          <ellipse cx="70" cy="62" rx="64" ry="8.6" fill="url(#catCushionShade)" />
-          <ellipse cx="70" cy="40" rx="70" ry="19" fill="#8F4A26" />
+          <ellipse cx="70" cy="39.5" rx="76" ry="20" fill="#000" opacity="0.05" />
+          <ellipse cx="70" cy="36.8" rx="71.5" ry="19.4" fill="#000" opacity="0.11" />
           <ellipse cx="70" cy="34.5" rx="70" ry="19" fill="url(#catCushionTop)" />
           <ellipse cx="70" cy="34.5" rx="62" ry="16.5" fill="none"
             stroke="#F4E6D2" strokeWidth="1.4" strokeDasharray="3 3" opacity="0.8" />

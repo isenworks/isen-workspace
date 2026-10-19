@@ -1929,7 +1929,7 @@ function CareThumb({ id, ver = 0, size = 48, onOpen }) {
 }
 
 // ============================================================
-// InfoDrawer — 植物详情抽屉：养护记录（默认页）/ 提醒 / 植物简介
+// InfoDrawer — 植物详情抽屉：记录（默认页）/ 提醒 / 简介
 //   · 「记录即打卡」：打卡写一条 plant_care_logs，last_watered / last_fertilized
 //     由后端按「同类记录最新一条」重算后回传
 //   · 撤销 = 删掉最近一条同类记录；补录允许选过去时间，不允许未来
@@ -2180,9 +2180,9 @@ function InfoDrawer({ rootRef, plant, boardLabel, onSave, onArchive, onClose, on
           </div>
         </div>
 
-        {/* 标签页：养护记录（默认）/ 提醒 / 植物简介 */}
+        {/* 标签页：记录（默认）/ 提醒 / 简介 —— 三个两字标签，等宽节奏，扫读更快 */}
         <div className="flex px-2 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          {[['logs', '养护记录'], ['remind', '提醒'], ['info', '植物简介']].map(([id, label]) => {
+          {[['logs', '记录'], ['remind', '提醒'], ['info', '简介']].map(([id, label]) => {
             const on = tab === id;
             return (
               <button key={id} onClick={() => { setTab(id); closeEditor(); }}

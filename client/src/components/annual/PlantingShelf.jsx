@@ -1074,7 +1074,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         {/* 顶部栏（zIndex 7：常驻 chrome，须高于选中植物的置顶层 5 与托板工具条 6） */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 7 }}>
           <div className="flex items-baseline gap-2">
-            <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">我的花架</span>
+            <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">我的植物</span>
             <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株</span>
           </div>
           <div className="flex items-center gap-1">

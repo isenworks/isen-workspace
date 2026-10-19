@@ -66,6 +66,7 @@ import { handleBirthdayMigrate, handleMigrate } from '../_lib/handlers/migrate.j
 import { handleHeroUpload, handleHeroImg, handleHeroDelete } from '../_lib/handlers/hero.js';
 import {
   handlePlantsList, handlePlantsCreate, handlePlantsUpdate, handlePlantsRemove, handlePlantsUpload, handlePlantsImage,
+  handleCareLogsList, handleCareLogCreate, handleCareLogUpdate, handleCareLogRemove, handleCarePhoto,
 } from '../_lib/handlers/plants.js';
 
 export async function onRequest(context) {
@@ -277,6 +278,14 @@ export async function onRequest(context) {
     if (path === '/api/plants/update' && method === 'POST') return handlePlantsUpdate(env, body);
     if (path === '/api/plants/remove' && method === 'POST') return handlePlantsRemove(env, body);
     if (path === '/api/plants/upload' && method === 'POST') return handlePlantsUpload(env, body);
+
+    // 养护记录（plant_care_logs）：list 兼容 GET/POST；记录增删改 + 单张照片拉取
+    if (path === '/api/plants/careLogs' && (method === 'GET' || method === 'POST')) return handleCareLogsList(env, qOrBody);
+    if (path === '/api/plants/careLog/create' && method === 'POST') return handleCareLogCreate(env, body);
+    if (path === '/api/plants/careLog/update' && method === 'POST') return handleCareLogUpdate(env, body);
+    if (path === '/api/plants/careLog/remove' && method === 'POST') return handleCareLogRemove(env, body);
+    // 单张记录照片（URL 带 ver，可长缓存）
+    if (path === '/api/plants/carePhoto' && (method === 'GET' || method === 'POST')) return handleCarePhoto(env, qOrBody);
 
     // 404
     return json({ error: 'Not Found: ' + method + ' ' + path }, 404);

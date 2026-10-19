@@ -108,12 +108,6 @@ function compressDataUrl(dataUrl, maxDim = 480) {
   });
 }
 
-// N 天前的日期串（撤销打卡时回退一个周期用）
-function dateDaysAgo(n) {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
-
 // ---- 悬浮托板（boards）----
 //   「概念 A：悬浮托板」的落地模型：板不贴边、长短不一、左右错位，无立柱。
 //   x/y/w 均为画布百分比（x=左缘、y=顶面、w=宽度）；厚度固定 BOARD_H(px)；color=板色。
@@ -413,6 +407,256 @@ function CatDrop({ pos, size, onPosChange }) {
   );
 }
 
+// ============================================================
+// 养护动作：语义色 + 图标（统一 24×24 视框 / 2px 圆头描边）
+//   图标选型（设计稿方案 C 的落地）：
+//     · 浇水沿用「水滴」（Lucide droplet）—— 主流开源库里都没有「浇水壶」字形，水滴是零成本的最优解
+//     · 施肥 / 打药 / 拍照 / 修剪 复用开源字形（Lucide sprout / spray-can / camera / scissors）
+//     · 15px 细线在小体积下发灰 → 配同色 chip 圆角底承载，是小尺寸辨识度的主要手段
+// ============================================================
+const ACTIONS = {
+  water:     { label: '浇水', color: '#2E86DE', soft: 'rgba(46,134,222,0.10)' },
+  fertilize: { label: '施肥', color: '#8B6B4F', soft: 'rgba(139,107,79,0.10)' },
+  spray:     { label: '打药', color: '#D99A2B', soft: 'rgba(217,154,43,0.10)' },
+  photo:     { label: '拍照', color: '#238E3F', soft: 'rgba(35,142,63,0.10)' },
+  prune:     { label: '修剪', color: '#9D5CDB', soft: 'rgba(157,92,219,0.10)' },
+};
+// 界面里启用的动作（后端还支持换盆；未列入 = 暂不在 UI 暴露）
+const ACTION_KINDS = ['water', 'fertilize', 'spray', 'photo', 'prune'];
+
+const ACTION_PATHS = {
+  water: <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />,
+  fertilize: (<>
+    <path d="M7 20h10" />
+    <path d="M10 20c5.5-2.5.8-6.4 3-10" />
+    <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
+    <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z" />
+  </>),
+  spray: (<>
+    <path d="M3 3h.01" /><path d="M7 5h.01" /><path d="M11 7h.01" /><path d="M3 7h.01" /><path d="M7 9h.01" /><path d="M3 11h.01" />
+    <rect width="4" height="4" x="15" y="5" />
+    <path d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2" />
+    <path d="m13 14 8-2" /><path d="m13 19 8-2" />
+  </>),
+  photo: (<>
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+    <circle cx="12" cy="13" r="3" />
+  </>),
+  prune: (<>
+    <circle cx="6" cy="6" r="3" /><path d="M8.12 8.12 12 12" /><path d="M20 4 8.12 15.88" /><circle cx="6" cy="18" r="3" /><path d="M14.8 14.8 20 20" />
+  </>),
+};
+
+// color 可覆盖描边色：实底按钮上（如快捷记录条）需要白色描边，其余沿用动作语义色
+function ActionIcon({ kind, size = 16, color }) {
+  const a = ACTIONS[kind];
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color || (a ? a.color : 'currentColor')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true" focusable="false">{ACTION_PATHS[kind]}</svg>
+  );
+}
+
+// 动作 chip：同色 8% 底 + 图标（小尺寸下的主要辨识手段）
+function ActionChip({ kind, size = 20, iconSize = 13, title }) {
+  const a = ACTIONS[kind];
+  if (!a) return null;
+  return (
+    <span className="inline-grid place-items-center flex-shrink-0" title={title || a.label}
+      style={{ width: size, height: size, borderRadius: 6, background: a.soft }}>
+      <ActionIcon kind={kind} size={iconSize} />
+    </span>
+  );
+}
+
+// 视图切换图标（花架 / 网格 / 列表）
+function ViewIcon({ id, size = 14 }) {
+  const paths = {
+    shelf: (<>
+      <path d="M12 10a6 6 0 0 0-6-6H3v2a6 6 0 0 0 6 6h3" />
+      <path d="M12 14a6 6 0 0 1 6-6h3v1a6 6 0 0 1-6 6h-3" />
+      <path d="M12 20V10" />
+    </>),
+    grid: (<>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+    </>),
+    list: (<>
+      <path d="M3 6h.01M3 12h.01M3 18h.01" />
+      <path d="M8 6h13M8 12h13M8 18h13" />
+    </>),
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{paths[id]}</svg>
+  );
+}
+
+// ---- 时间戳：'YYYY-MM-DD HH:mm'（与后端 normHappenedAt 同格式，可直接字符串排序）----
+function nowStamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+const stampDate = (s) => String(s || '').slice(0, 10);
+const stampTime = (s) => String(s || '').slice(11, 16);
+
+// 距上次养护的天数（无记录 / 非法值 → Infinity）
+function daysSince(dateStr) {
+  if (!dateStr) return Infinity;
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr); d.setHours(0, 0, 0, 0);
+  if (Number.isNaN(d.getTime())) return Infinity;
+  return Math.round((t - d) / 86400000);
+}
+
+// 下一次该做的动作：浇水 / 施肥里「剩余天数」更小者（无记录的一类排在后面）
+function nextCare(plant) {
+  const mk = (kind, last, cycle) => {
+    const d = daysSince(last);
+    return { kind, cycle, remain: Number.isFinite(d) ? cycle - d : null };
+  };
+  const w = mk('water', plant.last_watered, plant.water_cycle_days || 7);
+  const f = mk('fertilize', plant.last_fertilized, plant.fert_cycle_days || 30);
+  const cand = [w, f].filter((x) => x.remain !== null);
+  if (!cand.length) return w;
+  cand.sort((a, b) => a.remain - b.remain);
+  return cand[0];
+}
+
+// 剩余天数 → 文案（与 careStatus 同口径）
+function remainText(remain) {
+  if (remain === null) return '暂无记录';
+  if (remain < 0) return `超期 ${-remain} 天`;
+  if (remain === 0) return '今天';
+  if (remain === 1) return '明天';
+  if (remain === 2) return '后天';
+  return `${remain} 天后`;
+}
+
+// 相对日：今天 / 昨天 / N 天前
+function relativeDay(dateStr) {
+  const d = daysSince(dateStr);
+  if (!Number.isFinite(d)) return '';
+  if (d === 0) return '今天';
+  if (d === 1) return '昨天';
+  if (d === 2) return '前天';
+  return `${d} 天前`;
+}
+
+// 列表 / 网格里按「紧急度」升序（无记录的排最后）
+function sortByUrgency(list) {
+  return [...list].sort((a, b) => {
+    const ra = nextCare(a).remain, rb = nextCare(b).remain;
+    if (ra === null && rb === null) return 0;
+    if (ra === null) return 1;
+    if (rb === null) return -1;
+    return ra - rb;
+  });
+}
+
+// ---- 紧急度：下一次该做的动作 + 文案 + 配色（网格 / 列表共用）----
+// 越临期越暖：今天/超期用告警色，未到期沿用该动作的语义色，无记录回灰
+function urgencyPill(plant) {
+  const n = nextCare(plant);
+  const a = ACTIONS[n.kind] || ACTIONS.water;
+  const remain = n.remain;
+  if (remain === null) {
+    return { ...n, a, color: 'var(--text-3)', bg: 'rgba(120,120,128,0.10)', text: '暂无记录', ratio: 0 };
+  }
+  const ratio = Math.max(0, Math.min(1, (n.cycle - remain) / (n.cycle || 1)));
+  if (remain < 0) return { ...n, a, color: 'var(--danger)', bg: 'rgba(var(--danger-rgb),0.10)', text: `超期 ${-remain} 天`, ratio };
+  if (remain === 0) return { ...n, a, color: 'var(--warning)', bg: 'rgba(217,154,43,0.14)', text: '今天', ratio };
+  return { ...n, a, color: a.color, bg: a.soft, text: `${remain} 天后`, ratio };
+}
+
+// 网格视图：卡片墙，默认按「离该浇水还有几天」升序（越急越靠前）；
+// 不显示摆放位置与装饰物 —— 这里回答的是「谁该浇水了」
+function GridView({ plants, onOpen }) {
+  const list = sortByUrgency(plants);
+  return (
+    <div className="absolute inset-0 overflow-y-auto" style={{ zIndex: 2, padding: '56px 16px 16px' }}>
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))' }}>
+        {list.map((p) => {
+          const u = urgencyPill(p);
+          return (
+            <button key={p.id} onClick={() => onOpen(p)}
+              className="text-left rounded-2xl overflow-hidden transition active:scale-[0.98]"
+              style={{ background: 'var(--surface-card)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <div className="aspect-square grid place-items-center" style={{ background: 'rgba(35,142,63,0.045)' }}>
+                {p.image
+                  ? <img src={p.image} alt="" className="w-[74%] h-[74%] object-contain" draggable={false} />
+                  : <span className="w-9 h-9 rounded-full" style={{ background: 'rgba(35,142,63,0.12)' }} />}
+              </div>
+              <div className="px-2.5 pt-2 pb-2.5">
+                <div className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-1)' }}>{p.name || '未命名'}</div>
+                <div className="mt-1.5 mb-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold"
+                  style={{ color: u.color, background: u.bg }}>
+                  <ActionIcon kind={u.kind} size={11} color={u.color} />{u.text}
+                </div>
+                <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(120,120,128,0.14)' }}>
+                  <i className="block h-full rounded-full transition-all"
+                    style={{ width: `${Math.round(u.ratio * 100)}%`, background: u.color }} />
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 列表视图：紧凑单行，字段全露出，右侧直接给动作按钮 —— 回答「每株的周期各是多少」
+function ListView({ plants, onOpen, onQuick }) {
+  const list = sortByUrgency(plants);
+  return (
+    <div className="absolute inset-0 overflow-y-auto" style={{ zIndex: 2, padding: '56px 16px 16px' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-card)', border: '1px solid rgba(0,0,0,0.06)' }}>
+        {list.map((p, i) => {
+          const u = urgencyPill(p);
+          const last = u.kind === 'water' ? p.last_watered : p.last_fertilized;
+          const since = daysSince(last);
+          return (
+            <div key={p.id} className="flex items-center gap-2.5 px-3 py-2.5"
+              style={{ borderTop: i ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+              <button onClick={() => onOpen(p)} className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
+                <span className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0" style={{ background: 'rgba(35,142,63,0.06)' }}>
+                  {p.image
+                    ? <img src={p.image} alt="" className="w-7 h-7 object-contain" draggable={false} />
+                    : <span className="w-5 h-5 rounded-full" style={{ background: 'rgba(35,142,63,0.14)' }} />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-1)' }}>{p.name || '未命名'}</span>
+                    <span className="flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold"
+                      style={{ color: u.color, background: u.bg }}>
+                      <ActionIcon kind={u.kind} size={11} color={u.color} />{u.text}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-2 text-[11px] min-w-0" style={{ color: 'var(--text-3)' }}>
+                    {p.traits ? <span className="truncate">{p.traits}</span> : null}
+                    <span className="tabular-nums flex-shrink-0">
+                      {Number.isFinite(since) ? `上次${u.a.label} ${relativeDay(last)}` : `暂无${u.a.label}记录`}
+                    </span>
+                  </span>
+                </span>
+              </button>
+              <button onClick={() => onQuick(p, u.kind)}
+                className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition active:scale-95"
+                style={{ color: u.a.color, background: u.a.soft }}>
+                {u.a.label}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsumed }) {
   const toast = useToast();
   // 触摸端长按植物 → 与右键同：打开信息编辑面板
@@ -493,6 +737,11 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   const notifySaveFail = (msg) => setSaveToast({ type: 'fail', msg });
   // settings 持久化
   useEffect(() => { localStorage.setItem('planting_shelf_settings', JSON.stringify(settings)); }, [settings]);
+
+  // ---- 视图切换（花架 / 网格 / 列表）：三视图共用同一份数据，仅呈现方式不同；
+  //      选择存进 settings（localStorage），下次打开保持上次的选择 ----
+  const view = settings.view_mode || 'shelf';
+  const setView = useCallback((v) => setSettings(st => ({ ...st, view_mode: v })), []);
 
   // ---- 悬浮托板几何 / 默认位置 ----
   const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -834,6 +1083,24 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     setConfirmRemove(id);
   };
 
+  // 养护记录写入后，后端回传更新过的植物（last_* 派生缓存已按记录重算）→ 同步进列表与抽屉快照
+  const patchPlant = useCallback((updated) => {
+    if (!updated || !updated.id) return;
+    setPlants(prev => prev.map(p => (p.id === updated.id ? { ...p, ...updated } : p)));
+    setSelected(prev => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+  }, []);
+
+  // 网格 / 列表视图的「一键记录」：直接建一条记录（= 打卡），派生缓存随之更新
+  const quickRecord = useCallback(async (plant, kind) => {
+    try {
+      const { plant: updated } = await API.plants.careLogCreate({ plant_id: plant.id, kind, happened_at: nowStamp() });
+      patchPlant(updated);
+      toast.success(`${(ACTIONS[kind] || {}).label || '养护'}已记录`);
+    } catch (e) {
+      toast.error('记录失败: ' + e.message);
+    }
+  }, [patchPlant, toast]);
+
   // ---- 画布拖拽上传（拖图到画布 → 用该图预置「添加植物」面板）----
   const onCanvasDragOver = (e) => { e.preventDefault(); };
   const onCanvasDrop = async (e) => {
@@ -881,6 +1148,15 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
 
   // 按层级排序
   const sortedPlants = useMemo(() => [...plants].sort((a, b) => (a.z_index || 0) - (b.z_index || 0)), [plants]);
+
+  // 顶部栏顺带显示的「待浇水」株数（超期 + 临期）：把最该看的数字提到第一眼
+  const dueWater = useMemo(() => plants.filter((p) => {
+    const lv = careStatus(p.last_watered, p.water_cycle_days, '浇水').level;
+    return lv === 'alert' || lv === 'warn';
+  }).length, [plants]);
+
+  // 网格 / 列表点卡片 → 打开详情抽屉（与右键同路径）
+  const openPlant = useCallback((p) => { setSelected(p); setShowInfo(true); }, []);
 
   // 选中的植物归属哪块托板（仅用于信息面板上的小标签）
   const selBoardLabel = useMemo(() => {
@@ -973,9 +1249,13 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           backgroundPosition: s.bg_type === 'image' ? 'center' : 'auto',
           backgroundColor: s.bg_type === 'solid' ? s.bg_color : undefined,
         }}
-        onClick={onCanvasClick}
-        onDragOver={onCanvasDragOver}
-        onDrop={onCanvasDrop}>
+        onClick={view === 'shelf' ? onCanvasClick : undefined}
+        onDragOver={view === 'shelf' ? onCanvasDragOver : undefined}
+        onDrop={view === 'shelf' ? onCanvasDrop : undefined}>
+
+        {/* ---- 以下为「花架」视图专属层：托板 / 装饰物 / 植物摆放 / 选中态 ----
+            网格与列表视图不渲染这些（装饰物只属于花架视图），避免数据视图被干扰 */}
+        {view === 'shelf' && (<>
 
         {/* 悬浮托板（概念 A）：不贴边、长短不一、左右错落、无立柱。
             画在植物之上（zIndex 4 > 植物层 2），盖住花盆底部 → 形成"坐在板上"的错觉。
@@ -1070,29 +1350,52 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         {/* 睡猫（可拖拽）：卧在第二层托板上，极轻微呼吸起伏；拖过之后位置手动为准 */}
         <CatDrop size={104} pos={s.cat || { left: '27%', top: '45%' }}
           onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))} />
+        </>)}
 
         {/* 顶部栏（zIndex 7：常驻 chrome，须高于选中植物的置顶层 5 与托板工具条 6） */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style={{ zIndex: 7 }}>
           <div className="flex items-baseline gap-2">
             <span className="text-[15px] font-semibold text-[var(--text-1)] tracking-tight">我的植物</span>
-            <span className="text-[12px] text-[var(--text-3)]">{plants.length} 株</span>
+            <span className="text-[12px] text-[var(--text-3)]">
+              {plants.length} 株{dueWater > 0 ? ` · ${dueWater} 株待浇水` : ''}
+            </span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {/* 视图切换：花架 / 网格 / 列表（窄屏折叠为纯图标） */}
+            <div className="inline-flex" style={{ background: 'rgba(120,120,128,0.12)', borderRadius: 9, padding: 2 }}>
+              {[['shelf', '花架'], ['grid', '网格'], ['list', '列表']].map(([id, label]) => {
+                const on = view === id;
+                return (
+                  <button key={id} onClick={(e) => { e.stopPropagation(); setView(id); }} title={label}
+                    className="flex items-center gap-1 transition"
+                    style={{
+                      padding: '3px 8px', fontSize: 12, fontWeight: on ? 600 : 500, borderRadius: 7,
+                      color: on ? '#fff' : 'var(--text-2)', background: on ? '#238E3F' : 'transparent',
+                      border: 'none', cursor: 'pointer', transition: 'all .2s',
+                    }}>
+                    <ViewIcon id={id} />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
             {/* 添加植物（打开「添加植物」面板） */}
             <button onClick={(e) => { e.stopPropagation(); openAdd(); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
               title="添加植物">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#238E3F" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             </button>
-            {/* 一键整理植物（把植物搬回设为默认时的位置） */}
-            <button onClick={(e) => { e.stopPropagation(); restoreDefault(); }}
-              className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
-              title="一键整理植物">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4.5 19.5L13.5 10.5" />
-                <path d="M17 1.5L18.47 5.4L23 7.5L18.47 9.6L17 13.5L15.53 9.6L11 7.5L15.53 5.4Z" />
-              </svg>
-            </button>
+            {/* 一键整理植物（仅花架视图有意义：把植物搬回设为默认时的位置） */}
+            {view === 'shelf' && (
+              <button onClick={(e) => { e.stopPropagation(); restoreDefault(); }}
+                className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
+                title="一键整理植物">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4.5 19.5L13.5 10.5" />
+                  <path d="M17 1.5L18.47 5.4L23 7.5L18.47 9.6L17 13.5L15.53 9.6L11 7.5L15.53 5.4Z" />
+                </svg>
+              </button>
+            )}
             <button onClick={(e) => { e.stopPropagation(); setShowSettings(true); }}
               className="w-7 h-7 rounded-lg grid place-items-center transition hover:bg-black/5"
               title="花架设置">
@@ -1119,6 +1422,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           </div>
         )}
 
+        {view === 'shelf' && (<>
         {/* 植物们（独立层叠上下文 zIndex 2 < 木板层 4：无论 z_index 多大都在木板之下，
             植物间相互层叠用排序索引，容器 pointer-events:none 透传画布点击） */}
         <div className="absolute inset-0" style={{ zIndex: 2, pointerEvents: 'none' }}>
@@ -1246,6 +1550,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             </div>
           );
         })()}
+        </>)}
 
         {/* 空状态 */}
         {plants.length === 0 && !loading && (
@@ -1282,6 +1587,14 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           </div>
         )}
 
+        {/* 网格 / 列表视图：与花架共用同一份数据，仅呈现方式不同（位置在此不可编辑） */}
+        {view === 'grid' && plants.length > 0 && (
+          <GridView plants={plants} onOpen={openPlant} onQuick={quickRecord} />
+        )}
+        {view === 'list' && plants.length > 0 && (
+          <ListView plants={plants} onOpen={openPlant} onQuick={quickRecord} />
+        )}
+
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
           onChange={onFileInputChange} />
 
@@ -1305,6 +1618,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             boardLabel={selBoardLabel}
             onSave={savePlant}
             onRemove={removePlant}
+            onPatch={patchPlant}
             onClose={() => { setShowInfo(false); setSelected(null); }}
           />
         )}
@@ -1514,7 +1828,40 @@ function CareCard({ icon, status, doneToday, markLabel, onMark, onUndo, last, cy
   );
 }
 
-function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
+// ---- 记录照片缩略图：列表只回照片 id，图片按 id+ver 单独拉取（可长缓存、按需加载）----
+function CareThumb({ id, ver = 0, size = 48, onOpen }) {
+  const [src, setSrc] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    API.plants.carePhoto(id, ver)
+      .then((r) => { if (!alive) return; if (r && r.image) setSrc(r.image); else setFailed(true); })
+      .catch(() => { if (alive) setFailed(true); });
+    return () => { alive = false; };
+  }, [id, ver]);
+  return (
+    <button type="button" onClick={() => src && onOpen && onOpen(src)} title="查看大图"
+      className="rounded-lg overflow-hidden flex-shrink-0 grid place-items-center transition active:scale-95"
+      style={{ width: size, height: size, background: 'rgba(120,120,128,0.10)' }}>
+      {src
+        ? <img src={src} alt="" className="w-full h-full object-cover" />
+        : failed
+          ? <span className="text-[12px]" style={{ color: 'var(--text-3)' }}>—</span>
+          : <span className="w-full h-full animate-pulse" style={{ background: 'rgba(120,120,128,0.12)' }} />}
+    </button>
+  );
+}
+
+// ============================================================
+// InfoDrawer — 植物详情抽屉：养护记录（默认页）/ 提醒 / 植物简介
+//   · 「记录即打卡」：打卡写一条 plant_care_logs，last_watered / last_fertilized
+//     由后端按「同类记录最新一条」重算后回传
+//   · 撤销 = 删掉最近一条同类记录；补录允许选过去时间，不允许未来
+//   · 时间轴是事实来源；旧数据由后端在首次拉取时自动补一条，避免一进来是空的
+// ============================================================
+function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose, onPatch }) {
+  const toast = useToast();
+  const [tab, setTab] = useState('logs');
   const [form, setForm] = useState({
     name: plant.name || '',
     planted_at: plant.planted_at || '',
@@ -1527,37 +1874,181 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
   });
   const [dirty, setDirty] = useState(false);
 
+  // ---- 养护记录状态 ----
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [busy, setBusy] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [lastDone, setLastDone] = useState(null);   // 刚记录的那条 → 提供「撤销」
+  const [editor, setEditor] = useState(null);       // 补录 / 编辑：{mode,kind,id,happened_at,note,kept,added}
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
+  const photoInputRef = useRef(null);
+
   const update = (field, val) => { setForm(f => ({ ...f, [field]: val })); setDirty(true); };
+
+  // 后端回传的植物带重算过的 last_* → 同步进抽屉表单与父级列表
+  const syncLast = useCallback((fields) => {
+    setForm(f => ({ ...f, ...fields }));
+    if (onPatch) onPatch({ id: plant.id, ...fields });
+  }, [onPatch, plant.id]);
+
+  const loadLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const r = await API.plants.careLogs(plant.id);
+      setLogs(Array.isArray(r.logs) ? r.logs : []);
+    } catch (e) {
+      toast.error('养护记录加载失败: ' + e.message);
+    } finally { setLogsLoading(false); }
+  }, [plant.id, toast]);
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  // ---- 记录即打卡：写一条日志；派生缓存由后端重算 ----
+  const record = useCallback(async (kind) => {
+    setBusy(true);
+    try {
+      const { log, plant: p } = await API.plants.careLogCreate({ plant_id: plant.id, kind, happened_at: nowStamp() });
+      if (log) setLogs(prev => [log, ...prev]);
+      if (p) syncLast({ last_watered: p.last_watered || '', last_fertilized: p.last_fertilized || '' });
+      setLastDone({ kind, logId: log && log.id });
+      toast.success(`${(ACTIONS[kind] || {}).label || '养护'}已记录`);
+    } catch (e) {
+      toast.error('记录失败: ' + e.message);
+    } finally { setBusy(false); }
+  }, [plant.id, syncLast, toast]);
+
+  // ---- 撤销：删掉最近一条同类记录（后端按剩余记录回滚 last_*）----
+  const undo = useCallback(async (kind) => {
+    const target = kind
+      ? logs.find(l => l.kind === kind)
+      : (lastDone && logs.find(l => l.id === lastDone.logId));
+    if (!target) return;
+    setBusy(true);
+    try {
+      const { plant: p } = await API.plants.careLogRemove(target.id);
+      setLogs(prev => prev.filter(l => l.id !== target.id));
+      if (p) syncLast({ last_watered: p.last_watered || '', last_fertilized: p.last_fertilized || '' });
+      setLastDone(null);
+      toast.info('已撤销');
+    } catch (e) {
+      toast.error('撤销失败: ' + e.message);
+    } finally { setBusy(false); }
+  }, [logs, lastDone, syncLast, toast]);
+
+  // ---- 补录 / 编辑面板 ----
+  const primaryKind = nextCare({
+    ...plant,
+    water_cycle_days: form.water_cycle_days, last_watered: form.last_watered,
+    fert_cycle_days: form.fert_cycle_days, last_fertilized: form.last_fertilized,
+  }).kind;
+
+  const openCreate = (kind) => {
+    setConfirmDel(false);
+    setEditor({ mode: 'create', kind: kind || primaryKind, happened_at: nowStamp().replace(' ', 'T'), note: '', kept: [], added: [] });
+  };
+  const openEdit = (log) => {
+    setConfirmDel(false);
+    setEditor({
+      mode: 'edit', kind: log.kind, id: log.id,
+      happened_at: String(log.happened_at || '').replace(' ', 'T'),
+      note: log.note || '', kept: (log.photos || []).slice(), added: [],
+    });
+  };
+  const closeEditor = () => { setEditor(null); setConfirmDel(false); };
+
+  const pickPhotos = async (files) => {
+    const picked = [];
+    for (const f of Array.from(files || [])) {
+      const dataUrl = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); });
+      try { picked.push(await compressDataUrl(dataUrl, 480)); } catch { /* 跳过压缩失败的 */ }
+    }
+    setEditor(e => e ? { ...e, added: [...e.added, ...picked].slice(0, Math.max(0, 9 - e.kept.length)) } : e);
+  };
+
+  const saveEditor = async () => {
+    if (!editor) return;
+    setBusy(true);
+    try {
+      if (editor.mode === 'create') {
+        const { log, plant: p } = await API.plants.careLogCreate({
+          plant_id: plant.id, kind: editor.kind,
+          happened_at: String(editor.happened_at || '').replace('T', ' '),
+          note: editor.note, photos: editor.added,
+        });
+        if (log) setLogs(prev => [log, ...prev]);
+        if (p) syncLast({ last_watered: p.last_watered || '', last_fertilized: p.last_fertilized || '' });
+        toast.success('已补录');
+      } else {
+        const original = logs.find(l => l.id === editor.id);
+        const removed = ((original && original.photos) || []).filter(pid => !editor.kept.includes(pid));
+        const { log } = await API.plants.careLogUpdate(editor.id, {
+          happened_at: String(editor.happened_at || '').replace('T', ' '),
+          note: editor.note,
+          add_photos: editor.added,
+          remove_photo_ids: removed,
+        });
+        if (log) {
+          const nextLogs = logs.map(l => (l.id === log.id ? log : l));
+          setLogs(nextLogs);
+          // 改了发生时间 → 该类型的派生缓存可能变化，按本地记录重算（与后端同口径：取最大日期）
+          if (log.kind === 'water' || log.kind === 'fertilize') {
+            const dates = nextLogs.filter(l => l.kind === log.kind).map(l => stampDate(l.happened_at)).sort();
+            const col = log.kind === 'water' ? 'last_watered' : 'last_fertilized';
+            syncLast({ [col]: dates.length ? dates[dates.length - 1] : '' });
+          }
+        }
+        toast.success('记录已更新');
+      }
+      closeEditor();
+    } catch (e) {
+      toast.error('保存失败: ' + e.message);
+    } finally { setBusy(false); }
+  };
+
+  const removeLog = async (id) => {
+    setBusy(true);
+    try {
+      const { plant: p } = await API.plants.careLogRemove(id);
+      setLogs(prev => prev.filter(l => l.id !== id));
+      if (p) syncLast({ last_watered: p.last_watered || '', last_fertilized: p.last_fertilized || '' });
+      setLastDone(null);
+      closeEditor();
+      toast.info('记录已删除');
+    } catch (e) {
+      toast.error('删除失败: ' + e.message);
+    } finally { setBusy(false); }
+  };
 
   const days = plantedDays(form.planted_at);
   const today = new Date().toISOString().slice(0, 10);
+  const nowLocal = nowStamp().replace(' ', 'T');
   // 状态从 form 实时计算，编辑周期/日期时状态文案即时跟随
   const ws = careStatus(form.last_watered, form.water_cycle_days, '浇水');
   const fs = careStatus(form.last_fertilized, form.fert_cycle_days, '施肥', '#8B6B4F');
-
-  // 打卡类动作：合并补丁并立即保存（无需点保存按钮）
-  const commit = (patch) => {
-    const next = { ...form, ...patch };
-    setForm(next);
-    onSave(next);
-    setDirty(false);
-  };
+  // 提醒徽标 = 待浇水 / 待施肥（临期或超期）
+  const dueCount = [ws, fs].filter(s => s.level === 'alert' || s.level === 'warn').length;
+  const nextA = ACTIONS[primaryKind] || ACTIONS.water;
 
   const handleSave = () => {
     onSave(form);
     setDirty(false);
   };
 
+  const shownLogs = filter === 'all' ? logs : logs.filter(l => l.kind === filter);
+
   return (
     <>
       {/* 遮罩（不遮画布，仅阻止穿透） */}
       <div className="absolute inset-0" style={{ zIndex: 8, pointerEvents: 'none' }} />
 
-      {/* 抽屉卡片 */}
+      {/* 抽屉卡片（360px：撑开时间轴的日期列与内容） */}
       <div onClick={(e) => e.stopPropagation()}
-        className="absolute top-12 right-4 w-[320px] overflow-hidden"
+        className="absolute top-12 right-4 w-[360px] max-w-[calc(100%-32px)] flex flex-col overflow-hidden"
         style={{
           zIndex: 10,
+          maxHeight: 'calc(100% - 64px)',
           background: 'var(--surface-card)',
           borderRadius: '16px',
           border: '1px solid rgba(0,0,0,0.06)',
@@ -1567,13 +2058,10 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
         }}>
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-          /* 日期输入改为「自绘点号文本 + 24px 圆角方形日历图标 + 透明原生 date 覆盖层」，
-             原 .dp 系列样式（宽度按 ch 估算、指示器尺寸）已整体删除：
-             ch 估算在 iOS 上差几 px 会裁掉末位数字，指示器也无法做成工作台同源图标 */
         `}</style>
 
         {/* 头部 */}
-        <div className="flex items-start gap-3 pl-4 pr-5 pt-3.5 pb-3"
+        <div className="flex items-start gap-3 pl-4 pr-5 pt-3.5 pb-3 flex-shrink-0"
           style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <div className="w-12 h-12 rounded-xl grid place-items-center flex-shrink-0"
             style={{ background: 'rgba(35,142,63,0.08)', border: '1px solid rgba(0,0,0,0.04)' }}>
@@ -1615,58 +2103,306 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
           </div>
         </div>
 
-        {/* 内容 */}
-        <div className="px-4 py-3 flex flex-col gap-2.5">
-
-          {/* 浇水卡：状态行（行动指引）+ 控制行（上次日期/周期，均可改）+ 打卡/撤销 */}
-          <CareCard
-            icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>}
-            status={ws}
-            doneToday={form.last_watered === today}
-            markLabel="浇水"
-            onMark={() => commit({ last_watered: today })}
-            onUndo={() => commit({ last_watered: dateDaysAgo(form.water_cycle_days || 7) })}
-            last={form.last_watered}
-            cycle={form.water_cycle_days}
-            maxCycle={90}
-            onLastChange={(v) => update('last_watered', v)}
-            onCycleChange={(v) => update('water_cycle_days', v)}
-            markColor="#238E3F"
-          />
-
-          {/* 施肥卡：同构，仅图标与主色区分（土色 #8B6B4F，与状态文案的正常档同色） */}
-          <CareCard
-            icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z"/></svg>}
-            status={fs}
-            doneToday={form.last_fertilized === today}
-            markLabel="施肥"
-            onMark={() => commit({ last_fertilized: today })}
-            onUndo={() => commit({ last_fertilized: dateDaysAgo(form.fert_cycle_days || 30) })}
-            last={form.last_fertilized}
-            cycle={form.fert_cycle_days}
-            maxCycle={365}
-            onLastChange={(v) => update('last_fertilized', v)}
-            onCycleChange={(v) => update('fert_cycle_days', v)}
-            markColor="#8B6B4F"
-          />
-
-          {/* 特性 */}
-          <div>
-            <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">特性</div>
-            <textarea value={form.traits} onChange={(e) => update('traits', e.target.value)} placeholder="喜温暖湿润，耐阴…" rows={2}
-              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.03)] rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
-          </div>
-
-          {/* 养护方法 */}
-          <div>
-            <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">养护方法</div>
-            <textarea value={form.care_method} onChange={(e) => update('care_method', e.target.value)} placeholder="每周浇水 1 次…" rows={2}
-              className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.03)] rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
-          </div>
+        {/* 标签页：养护记录（默认）/ 提醒 / 植物简介 */}
+        <div className="flex px-2 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          {[['logs', '养护记录'], ['remind', '提醒'], ['info', '植物简介']].map(([id, label]) => {
+            const on = tab === id;
+            return (
+              <button key={id} onClick={() => { setTab(id); closeEditor(); }}
+                className="relative px-3 py-2 text-[12.5px] transition"
+                style={{ color: on ? 'var(--text-1)' : 'var(--text-3)', fontWeight: on ? 600 : 500 }}>
+                {label}
+                {id === 'remind' && dueCount > 0 && (
+                  <span className="ml-1 inline-grid place-items-center px-1 rounded-full text-[10px] font-bold align-middle"
+                    style={{ minWidth: 15, height: 15, background: 'var(--danger)', color: '#fff' }}>{dueCount}</span>
+                )}
+                {on && <span className="absolute left-2 right-2 -bottom-px h-[2px] rounded-full" style={{ background: '#238E3F' }} />}
+              </button>
+            );
+          })}
         </div>
 
+        {/* 内容 */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
+
+          {/* ---- 养护记录 ---- */}
+          {tab === 'logs' && (editor ? (
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-semibold" style={{ color: 'var(--text-1)' }}>
+                  {editor.mode === 'create' ? '补录一次记录' : '编辑记录'}
+                </span>
+                <button onClick={closeEditor} className="ml-auto text-[11.5px] font-semibold" style={{ color: 'var(--text-3)' }}>取消</button>
+              </div>
+
+              {/* 动作类型：补录可选；编辑固定（要改类型请删除后重记） */}
+              {editor.mode === 'create' ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {ACTION_KINDS.map(k => {
+                    const on = editor.kind === k;
+                    return (
+                      <button key={k} onClick={() => setEditor(s => ({ ...s, kind: k }))}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11.5px] font-semibold transition"
+                        style={{ color: on ? '#fff' : ACTIONS[k].color, background: on ? ACTIONS[k].color : ACTIONS[k].soft }}>
+                        <ActionIcon kind={k} size={12} color={on ? '#fff' : undefined} />{ACTIONS[k].label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <ActionChip kind={editor.kind} size={22} iconSize={14} />
+                  <span className="text-[12.5px] font-semibold" style={{ color: 'var(--text-1)' }}>{(ACTIONS[editor.kind] || {}).label}</span>
+                  <span className="ml-auto text-[10.5px]" style={{ color: 'var(--text-3)' }}>类型不可改</span>
+                </div>
+              )}
+
+              {/* 时间（不允许未来） */}
+              <label className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer"
+                style={{ background: 'rgba(120,120,128,0.05)' }}>
+                <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--text-3)' }}>时间</span>
+                <input type="datetime-local" value={editor.happened_at} max={nowLocal}
+                  onChange={(e) => setEditor(s => ({ ...s, happened_at: e.target.value }))}
+                  className="flex-1 min-w-0 bg-transparent outline-none text-[12.5px] font-semibold tabular-nums"
+                  style={{ color: 'var(--text-1)' }} />
+              </label>
+
+              {/* 备注 */}
+              <textarea value={editor.note} onChange={(e) => setEditor(s => ({ ...s, note: e.target.value }))} rows={2}
+                placeholder="备注：浇透，托盘不留积水…"
+                className="w-full text-[13px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.03)] rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
+
+              {/* 照片（单条最多 9 张） */}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[11px] font-semibold tracking-wide" style={{ color: 'var(--text-3)' }}>照片</span>
+                  <span className="text-[10.5px]" style={{ color: 'var(--text-3)' }}>最多 9 张</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {editor.kept.map(pid => (
+                    <div key={pid} className="relative">
+                      <CareThumb id={pid} size={52} onOpen={setLightbox} />
+                      <button onClick={() => setEditor(s => ({ ...s, kept: s.kept.filter(x => x !== pid) }))}
+                        title="移除这张"
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full grid place-items-center text-[10px] font-bold leading-none"
+                        style={{ background: 'var(--danger)', color: '#fff' }}>×</button>
+                    </div>
+                  ))}
+                  {editor.added.map((src, i) => (
+                    <div key={`n${i}`} className="relative">
+                      <button onClick={() => setLightbox(src)} className="rounded-lg overflow-hidden block"
+                        style={{ width: 52, height: 52 }}>
+                        <img src={src} alt="" className="w-full h-full object-cover" />
+                      </button>
+                      <button onClick={() => setEditor(s => ({ ...s, added: s.added.filter((_, j) => j !== i) }))}
+                        title="移除这张"
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full grid place-items-center text-[10px] font-bold leading-none"
+                        style={{ background: 'var(--danger)', color: '#fff' }}>×</button>
+                    </div>
+                  ))}
+                  {(editor.kept.length + editor.added.length) < 9 && (
+                    <button onClick={() => photoInputRef.current?.click()} title="添加照片"
+                      className="w-[52px] h-[52px] rounded-lg grid place-items-center transition hover:brightness-95"
+                      style={{ background: 'rgba(120,120,128,0.08)', color: 'var(--text-3)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                    </button>
+                  )}
+                </div>
+                <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
+                  onChange={(e) => { pickPhotos(e.target.files); e.target.value = ''; }} />
+              </div>
+
+              <div className="flex gap-2 pt-0.5">
+                {editor.mode === 'edit' && (
+                  <button onClick={() => (confirmDel ? removeLog(editor.id) : setConfirmDel(true))} disabled={busy}
+                    className="px-3 py-2.5 rounded-lg text-[12px] font-semibold transition active:scale-[0.98] disabled:opacity-50"
+                    style={{ background: 'rgba(var(--danger-rgb),0.06)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.12)' }}>
+                    {confirmDel ? '确认删除' : '删除'}
+                  </button>
+                )}
+                <button onClick={saveEditor} disabled={busy}
+                  className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: '#238E3F', color: 'var(--surface-card)', boxShadow: '0 2px 8px rgba(35,142,63,0.2)' }}>
+                  {editor.mode === 'create' ? '补录' : '保存'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* 类型筛选 chips */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {[['all', '全部'], ...ACTION_KINDS.map(k => [k, ACTIONS[k].label])].map(([id, label]) => {
+                  const on = filter === id;
+                  return (
+                    <button key={id} onClick={() => setFilter(id)}
+                      className="px-2 py-1 rounded-full text-[11.5px] font-semibold transition"
+                      style={{ color: on ? '#fff' : 'var(--text-2)', background: on ? '#238E3F' : 'rgba(120,120,128,0.10)' }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 时间轴：一条记录一行，左日期 / 中轴色点 / 右内容 */}
+              {logsLoading ? (
+                <div className="py-8 text-center text-[12px]" style={{ color: 'var(--text-3)' }}>正在加载记录…</div>
+              ) : shownLogs.length === 0 ? (
+                <div className="py-8 text-center">
+                  <div className="text-[12px]" style={{ color: 'var(--text-3)' }}>还没有养护记录</div>
+                  <button onClick={() => openCreate('water')} className="mt-2 text-[12.5px] font-semibold" style={{ color: '#238E3F' }}>
+                    记录第一次浇水 →
+                  </button>
+                  <div className="mt-1 text-[10.5px]" style={{ color: 'var(--text-3)' }}>
+                    按周期大概每 {form.water_cycle_days || 7} 天一次
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {shownLogs.map((l) => {
+                    const a = ACTIONS[l.kind] || { label: l.kind, color: 'var(--text-3)', soft: 'rgba(120,120,128,0.10)' };
+                    const nPhotos = (l.photos || []).length;
+                    return (
+                      <div key={l.id} className="flex gap-2.5">
+                        <div className="w-[52px] flex-shrink-0 pt-1 text-right">
+                          <div className="text-[11.5px] font-semibold leading-tight" style={{ color: 'var(--text-2)' }}>{relativeDay(l.happened_at)}</div>
+                          <div className="text-[10px] tabular-nums" style={{ color: 'var(--text-3)' }}>{stampDate(l.happened_at).slice(5)}</div>
+                        </div>
+                        <div className="relative w-3 flex-shrink-0">
+                          <span className="absolute left-1/2 -translate-x-1/2 top-2.5 bottom-0 w-px" style={{ background: 'rgba(120,120,128,0.16)' }} />
+                          <span className="absolute left-1/2 -translate-x-1/2 top-[7px] w-2 h-2 rounded-full"
+                            style={{ background: a.color, boxShadow: '0 0 0 3px var(--surface-card)' }} />
+                        </div>
+                        <div className="flex-1 min-w-0 pb-3">
+                          <div className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(120,120,128,0.035)' }}>
+                            <div className="flex items-center gap-1.5">
+                              <ActionChip kind={l.kind} size={20} iconSize={13} />
+                              <span className="text-[12.5px] font-semibold" style={{ color: 'var(--text-1)' }}>{a.label}</span>
+                              <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-3)' }}>
+                                {stampTime(l.happened_at)}{nPhotos ? ` · ${nPhotos} 张` : ''}
+                              </span>
+                              <button onClick={() => openEdit(l)} title="编辑记录"
+                                className="ml-auto w-5 h-5 grid place-items-center rounded-md transition hover:bg-black/5"
+                                style={{ color: 'var(--text-3)' }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                                  <path d="m15 5 4 4" />
+                                </svg>
+                              </button>
+                            </div>
+                            {l.note ? <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: 'var(--text-2)' }}>{l.note}</p> : null}
+                            {nPhotos ? (
+                              <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                                {l.photos.map(pid => <CareThumb key={pid} id={pid} size={48} onOpen={setLightbox} />)}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          ))}
+
+          {/* ---- 提醒（由记录派生）---- */}
+          {tab === 'remind' && (
+            <div className="flex flex-col gap-2.5">
+              <div className="text-[10.5px] leading-relaxed" style={{ color: 'var(--text-3)' }}>
+                提醒由养护记录自动派生：打卡会写一条记录；改周期只影响「下次时间」，不改历史。
+              </div>
+              <CareCard
+                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>}
+                status={ws}
+                doneToday={form.last_watered === today}
+                markLabel="浇水"
+                onMark={() => record('water')}
+                onUndo={() => undo('water')}
+                last={form.last_watered}
+                cycle={form.water_cycle_days}
+                maxCycle={90}
+                onLastChange={(v) => update('last_watered', v)}
+                onCycleChange={(v) => update('water_cycle_days', v)}
+                markColor="#238E3F"
+              />
+              <CareCard
+                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.5-4 1.5-4.9 2z"/></svg>}
+                status={fs}
+                doneToday={form.last_fertilized === today}
+                markLabel="施肥"
+                onMark={() => record('fertilize')}
+                onUndo={() => undo('fertilize')}
+                last={form.last_fertilized}
+                cycle={form.fert_cycle_days}
+                maxCycle={365}
+                onLastChange={(v) => update('last_fertilized', v)}
+                onCycleChange={(v) => update('fert_cycle_days', v)}
+                markColor="#8B6B4F"
+              />
+            </div>
+          )}
+
+          {/* ---- 植物简介 ---- */}
+          {tab === 'info' && (
+            <div className="flex flex-col gap-2.5">
+              <div>
+                <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">特性</div>
+                <textarea value={form.traits} onChange={(e) => update('traits', e.target.value)} placeholder="喜温暖湿润，耐阴…" rows={3}
+                  className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.03)] rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
+              </div>
+              <div>
+                <div className="text-[11px] text-[var(--text-3)] mb-1.5 font-semibold tracking-wide">养护方法</div>
+                <textarea value={form.care_method} onChange={(e) => update('care_method', e.target.value)} placeholder="每周浇水 1 次…" rows={3}
+                  className="w-full text-[13.5px] text-[var(--text-1)] font-medium bg-[rgba(120,120,128,0.03)] rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#238E3F] resize-none leading-relaxed transition placeholder:text-[var(--ink-300)]" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 快捷记录条（养护记录页常驻）：主按钮 = 最临近要做的动作，一步完成 */}
+        {tab === 'logs' && !editor && (
+          <div className="px-4 pt-2 pb-1 flex-shrink-0" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+            {lastDone && (
+              <div className="flex items-center gap-2 mb-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(35,142,63,0.10)' }}>
+                <span className="text-[11.5px] font-semibold" style={{ color: '#238E3F' }}>
+                  {(ACTIONS[lastDone.kind] || {}).label}已记录
+                </span>
+                <button onClick={() => undo()} disabled={busy} className="ml-auto text-[11.5px] font-semibold underline" style={{ color: 'var(--text-2)' }}>撤销</button>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => record(primaryKind)} disabled={busy}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-semibold transition active:scale-95 disabled:opacity-60"
+                style={{ background: nextA.color, color: '#fff', boxShadow: `0 2px 10px ${nextA.color}33` }}>
+                <ActionIcon kind={primaryKind} size={15} color="#fff" />{nextA.label}
+              </button>
+              <button onClick={() => setSwapOpen(v => !v)}
+                className="px-2.5 py-2 rounded-xl text-[11.5px] font-semibold transition"
+                style={{ color: 'var(--text-2)', background: 'rgba(120,120,128,0.10)' }}>
+                {swapOpen ? '收起' : '切换动作'}
+              </button>
+              <button onClick={() => openCreate(null)}
+                className="ml-auto px-2.5 py-2 rounded-xl text-[11.5px] font-semibold transition"
+                style={{ color: '#238E3F', background: 'rgba(35,142,63,0.10)' }}>
+                ＋ 补录
+              </button>
+            </div>
+            {swapOpen && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {ACTION_KINDS.map(k => (
+                  <button key={k} onClick={() => { setSwapOpen(false); record(k); }} disabled={busy}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11.5px] font-semibold transition active:scale-95 disabled:opacity-60"
+                    style={{ color: ACTIONS[k].color, background: ACTIONS[k].soft }}>
+                    <ActionIcon kind={k} size={12} />{ACTIONS[k].label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 底部操作 */}
-        <div className="flex gap-2 px-4 pb-3.5">
+        <div className="flex gap-2 px-4 pt-2.5 pb-3.5 flex-shrink-0">
           <button onClick={() => onRemove(plant.id)}
             className="flex-1 py-2.5 rounded-lg text-[12px] font-semibold transition hover:brightness-95 active:scale-[0.98]"
             style={{ background: 'rgba(var(--danger-rgb),0.06)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.1)' }}>
@@ -1678,6 +2414,14 @@ function InfoDrawer({ plant, boardLabel, onSave, onRemove, onClose }) {
             保存
           </button>
         </div>
+
+        {/* 大图查看（成长日记） */}
+        {lightbox && (
+          <div className="absolute inset-0 grid place-items-center p-5" onClick={() => setLightbox(null)}
+            style={{ zIndex: 20, background: 'rgba(0,0,0,0.72)' }}>
+            <img src={lightbox} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
+          </div>
+        )}
       </div>
     </>
   );

@@ -320,6 +320,16 @@ export const API = {
     async update(id, data) { return fetchPages('/plants/update', { id, ...data }); },
     async remove(id) { return fetchPages('/plants/remove', { id }); },
     async upload(dataUrl) { return fetchPages('/plants/upload', { file: dataUrl }); },
+    // 养护记录（plant_care_logs）：时间轴是事实来源，last_watered/last_fertilized 为其派生缓存
+    //   careLogs 传 kind 可按动作筛选；carePhoto 按 id+ver 拉单张照片（可空，形如 { image: null }）
+    async careLogs(plantId, kind) {
+      const q = `/plants/careLogs?plant_id=${plantId}${kind ? `&kind=${kind}` : ''}`;
+      return fetchPages(q, {}, 'GET');
+    },
+    async careLogCreate(data) { return fetchPages('/plants/careLog/create', data); },
+    async careLogUpdate(id, data) { return fetchPages('/plants/careLog/update', { id, ...data }); },
+    async careLogRemove(id) { return fetchPages('/plants/careLog/remove', { id }); },
+    async carePhoto(id, ver) { return fetchPages(`/plants/carePhoto?id=${id}&v=${ver || 0}`, {}, 'GET'); },
   },
 
   // GitHub PAT 托管 + AI 推送授权（仅 owner，后端锁定 1429000825@qq.com）

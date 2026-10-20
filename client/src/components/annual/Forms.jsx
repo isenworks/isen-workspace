@@ -247,9 +247,9 @@ export function RiskBreakdownForm({ kr, goal, riskInfo, existingActions, onSave,
               display: 'flex', alignItems: 'flex-start', gap: 9,
             }}>
               <input
-                type="checkbox" checked={!!a.done}
+                type="checkbox" className="cb-round" checked={!!a.done}
                 onChange={() => setActions(prev => prev.map(x => x.id === a.id ? { ...x, done: !x.done } : x))}
-                style={{ width: 16, height: 16, marginTop: 1, accentColor: 'var(--danger)', flexShrink: 0 }}
+                style={{ '--cb-color': 'var(--danger)' }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{

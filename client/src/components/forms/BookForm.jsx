@@ -695,11 +695,7 @@ function ActionsTab({ form, addAction, updateAction, removeAction, actionCount, 
                   display: 'grid', placeItems: 'center',
                   cursor: 'pointer', transition: 'all .15s',
                 }}>
-                {a.done && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--surface-card)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                )}
+                {a.done && <span className="cb-tick" aria-hidden="true" />}
               </div>
 
               {/* 行动文本 */}

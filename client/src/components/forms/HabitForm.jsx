@@ -271,9 +271,9 @@ export default function HabitForm({ initial, onSaved, onCancel }) {
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-1)' }}>
                 <input
                   type="checkbox"
+                  className="cb-round"
                   checked={form.auto_log}
                   onChange={e => set('auto_log', e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--s-main)' }}
                 />
                 打卡时自动弹出日志记录
               </label>

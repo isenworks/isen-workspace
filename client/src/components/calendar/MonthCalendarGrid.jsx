@@ -143,11 +143,7 @@ export default function MonthCalendarGrid({
             : 'none',
         }}
       >
-        {done && (
-          <svg width="7" height="9" viewBox="0 0 8 10" fill="none">
-            <path d="M1 4.5L3.5 7L7 1.5" stroke="var(--surface-card)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        )}
+        {done && <span className="cb-tick" aria-hidden="true" />}
         {failed && (
           <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
             <path d="M1.5 1.5L6.5 6.5M6.5 1.5L1.5 6.5" stroke="var(--danger)" strokeWidth="1.6" strokeLinecap="round"/>

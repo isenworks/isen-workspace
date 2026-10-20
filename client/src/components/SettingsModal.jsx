@@ -1593,7 +1593,7 @@ function RestoreSection() {
             display: 'flex', alignItems: 'center', gap: '8px', margin: '14px 0',
             fontSize: '12px', color: 'var(--text-2)', cursor: 'pointer',
           }}>
-            <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} style={{ width: '16px', height: '16px' }} />
+            <input type="checkbox" className="cb-round" checked={acked} onChange={(e) => setAcked(e.target.checked)} style={{ '--cb-color': 'var(--danger)' }} />
             我已知晓会覆盖当前全部数据
           </label>
 

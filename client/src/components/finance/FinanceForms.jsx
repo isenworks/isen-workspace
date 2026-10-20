@@ -718,8 +718,8 @@ export function FinanceAccountForm({ initial, onSaved, onCancel, onDelete }) {
         </div>
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-1)', cursor: 'pointer' }}>
-        <input type="checkbox" checked={includeInNetWorth} onChange={e => setIncludeInNetWorth(e.target.checked)}
-          style={{ width: '16px', height: '16px', accentColor: 'var(--m-finance)' }} />
+        <input type="checkbox" className="cb-round" checked={includeInNetWorth} onChange={e => setIncludeInNetWorth(e.target.checked)}
+          style={{ '--cb-color': 'var(--m-finance)' }} />
         计入净资产
       </label>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>

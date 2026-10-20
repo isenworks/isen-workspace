@@ -577,17 +577,7 @@ export default function FocusPanel({
                             tabIndex={0}
                             onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') handleToggle(e); }}
                           >
-                            {task.done && (
-                              <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
-                                <path
-                                  d="M1 4.5L3.5 7L7 1.5"
-                                  stroke="var(--surface-card)"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            )}
+                            {task.done && <span className="cb-tick" aria-hidden="true" />}
                             {task.is_failed && !task.done && (
                               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                                 <path

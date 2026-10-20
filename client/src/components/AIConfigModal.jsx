@@ -171,7 +171,7 @@ export default function AIConfigModal({ open, onClose }) {
           type="checkbox"
           checked={enableTools}
           onChange={(e) => setEnableTools(e.target.checked)}
-          className="w-[15px] h-[15px] rounded accent-[var(--s-main)]"
+          className="cb-round"
         />
         <span className="text-[12.5px] font-medium text-ink-900">启用 Agent 工具调用</span>
         <span className="text-[11px] text-ink-400">允许 AI 查询 / 创建工作台数据</span>

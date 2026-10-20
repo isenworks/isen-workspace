@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { hexToRgba } from '../utils/color.js';
 
 /* ============================================================
  * QuickCapture · 小记输入框（新建与编辑统一同构）
@@ -610,6 +611,8 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
 
   // 可选标签（父级下发，新建/管理统一走「管理标签」面板）
   const tagList = tags || [];
+  // 已勾选标签（底栏回显，按勾选顺序；标签被删则自动剔除）
+  const selectedTags = tagIds.map(id => tagList.find(t => Number(t.id) === id)).filter(Boolean);
 
   function toggleTag(id) {
     const n = Number(id);
@@ -766,6 +769,13 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
 
       {bare ? (
         <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">
+          {selectedTags.map(t => (
+            <span key={t.id} className="flex items-center gap-1 h-[20px] pl-1.5 pr-2 rounded-md text-[11.5px] font-medium whitespace-nowrap"
+              style={{ background: hexToRgba(t.color, 0.13), color: t.color }}>
+              <span className="w-[5px] h-[5px] rounded-full" style={{ background: t.color }} />
+              {t.name}
+            </span>
+          ))}
           <div className="flex-1" />
           {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
@@ -779,6 +789,13 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         </div>
       ) : (
         <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+          {selectedTags.map(t => (
+            <span key={t.id} className="flex items-center gap-1 h-[20px] pl-1.5 pr-2 rounded-md text-[11.5px] font-medium whitespace-nowrap"
+              style={{ background: hexToRgba(t.color, 0.13), color: t.color }}>
+              <span className="w-[5px] h-[5px] rounded-full" style={{ background: t.color }} />
+              {t.name}
+            </span>
+          ))}
           <div className="flex-1" />
           {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}

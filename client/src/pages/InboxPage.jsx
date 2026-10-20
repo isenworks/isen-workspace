@@ -13,6 +13,7 @@ import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 const LS_LAYOUT_KEY = 'inbox_layout';
 const LS_ROW_ORDER_KEY = 'inbox_row_order'; // 列表行排版：'content' 标题优先 | 'time' 时间优先
 const LS_CHIPS_KEY = 'inbox_filter_chips'; // 快捷筛选位（默认「日记」「待办」之外用户添加的标签 id）
+const LS_FILTER_KEY = 'inbox_filter_tags'; // 上次筛选的标签 id（本机记忆，进入页面自动恢复）
 
 // 预设标签颜色（新建标签时可选）
 const TAG_COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#8E8E93'];
@@ -84,7 +85,9 @@ export default function InboxPage({ onCountChange }) {
   const [selectedId, setSelectedId] = useState(null);
   const [menu, setMenu] = useState(null); // { id, cat }
   const [detail, setDetail] = useState(null);
-  const [filterTagIds, setFilterTagIds] = useState([]); // 多选，空数组=全部
+  const [filterTagIds, setFilterTagIds] = useState(() => { // 多选，空数组=全部；首屏恢复上次筛选
+    try { return JSON.parse(localStorage.getItem(LS_FILTER_KEY) || '[]').map(Number).filter(n => !Number.isNaN(n)); } catch { return []; }
+  });
   const [filterPopover, setFilterPopover] = useState(false);
   const [chipMenu, setChipMenu] = useState(false); // 「+」快捷位管理菜单
   const [extraChipIds, setExtraChipIds] = useState(() => {
@@ -115,6 +118,11 @@ export default function InboxPage({ onCountChange }) {
     setRowOrder(next);
     try { localStorage.setItem(LS_ROW_ORDER_KEY, next); } catch {}
   }
+
+  // 筛选标签即选即存：下次进入收集箱自动回到上次筛选状态
+  useEffect(() => {
+    try { localStorage.setItem(LS_FILTER_KEY, JSON.stringify(filterTagIds)); } catch {}
+  }, [filterTagIds]);
 
   const loadItems = useCallback(async () => {
     try {

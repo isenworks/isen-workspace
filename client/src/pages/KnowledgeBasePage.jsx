@@ -10,7 +10,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import SearchPopover from '../components/SearchPopover.jsx';
 import {
   IconPlus, IconPen, IconLink, IconImport, IconBook, IconMarkdown,
-  IconFolder, IconFile, IconTrash, IconX, IconDots, IconArrowUpRight,
+  IconFolder, IconFile, IconTrash, IconX, IconDots, IconArrowUpRight, IconCheck,
 } from '../components/aiIcons.jsx';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import { store } from '../utils/store.js';
@@ -207,7 +207,7 @@ export default function KnowledgeBasePage() {
   }, []);
 
   const flashSaved = () => {
-    setSavedFlash('✓ 已保存');
+    setSavedFlash('已保存');
     if (saveHintTimer.current) clearTimeout(saveHintTimer.current);
     saveHintTimer.current = setTimeout(() => setSavedFlash(''), 1500);
   };
@@ -900,14 +900,14 @@ export default function KnowledgeBasePage() {
                       className="kb-inline kb-prose flex-1 min-h-0 overflow-y-auto px-0.5 py-3"
                     />
 
-                    {/* 底栏：字数 + 保存状态（未保存 / ✓ 已保存 / 保存时间）+ 保存 */}
+                    {/* 底栏：字数 + 保存状态（未保存 / 已保存 / 保存时间）+ 保存 */}
                     <div className="flex items-center gap-2 px-1.5 py-1.5 border-t border-ink-100 flex-shrink-0">
                       <span className="text-[11px] text-ink-300 tabular-nums">{charCount} 字</span>
                       <span className="flex-1" />
                       {dirty
                         ? <span className="text-[11.5px] text-ink-300">未保存</span>
                         : savedFlash
-                          ? <span className="text-[11.5px] font-medium" style={{ color: 'var(--s-main)' }}>{savedFlash}</span>
+                          ? <span className="text-[11.5px] font-medium inline-flex items-center gap-1" style={{ color: 'var(--s-main)' }}><IconCheck size={12} strokeWidth={2.5} />{savedFlash}</span>
                           : selectedDoc?.updatedAt
                             ? <span className="text-[11px] text-ink-400 tabular-nums">{fmtSavedTime(selectedDoc.updatedAt)}</span>
                             : null}

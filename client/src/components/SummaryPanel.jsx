@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { API } from '../api/client.js';
 import { calcDurationMin, formatDuration } from '../utils/date.js';
 import { syncKey, cloudPush } from '../utils/cloudKV.js';
+import { IconCheck } from './aiIcons.jsx';
 
 function getWeekNumber(dateStr) {
   if (!dateStr) return 1;
@@ -1204,7 +1205,9 @@ export default function SummaryPanel({
             : savedTime
               ? (
                 <>
-                  <span style={{ color: 'var(--success)', fontWeight: '600' }}>✓ 已保存</span>
+                  <span style={{ color: 'var(--success)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <IconCheck size={12} strokeWidth={2.5} />已保存
+                  </span>
                   <span>· {String(savedTime.getHours()).padStart(2, '0')}:{String(savedTime.getMinutes()).padStart(2, '0')}</span>
                 </>
               )

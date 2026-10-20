@@ -144,7 +144,7 @@ function signatureFontClass(s) {
 const MAJOR_FESTIVALS = new Set(['元旦', '除夕', '春节', '元宵节', '情人节', '妇女节', '植树节', '清明节', '劳动节', '青年节', '母亲节', '儿童节', '父亲节', '端午节', '建党节', '建军节', '七夕节', '教师节', '中秋节', '国庆节', '重阳节', '万圣节', '感恩节', '圣诞节']);
 
 /* 卡片头：模块色竖条 + 标题 + 右侧自定义动作位 + 查看入口（右上箭头） */
-function CardHead({ moduleKey, title, sub, onClick, action }) {
+function CardHead({ moduleKey, title, sub, onClick, action, extra }) {
   const color = moduleKey ? modColor(moduleKey) : 'var(--s-main)';
   return (
     <div className="flex items-center justify-between mb-3">
@@ -152,6 +152,7 @@ function CardHead({ moduleKey, title, sub, onClick, action }) {
         <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }} />
         <span className="text-[15px] font-bold text-ink-900 truncate">{title}</span>
         {sub ? <span className="text-[11px] text-ink-400 flex-shrink-0">{sub}</span> : null}
+        {extra}
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {action}
@@ -567,7 +568,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr && !s.is_goal), [sched, todayStr]);
   const todayDone = todayItems.filter(s => s.is_done).length;
   const todayPct = pct(todayDone, todayItems.length);
-  /* 今日全部事项按时间升序（全天排最后） + 今日节日（与月历同源、白名单过滤） */
+  /* 今日全部事项按时间升序（全天排最后）；今日节日（与月历同源、白名单过滤）
+   * 只作为卡片头徽标展示——节日不可勾选，混进事项列表会破坏进度语义与空态 */
   const todaySorted = useMemo(() => [...todayItems]
     .sort((a, b) => String(a.start_time || '99:99').localeCompare(String(b.start_time || '99:99'))), [todayItems]);
   const todayFestivals = useMemo(() => {
@@ -1005,11 +1007,20 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
              md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满视口 */}
         <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
 
-          {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）+ 今日节日 ---- */}
+          {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）；节日见卡片头徽标 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead
               title="今日聚焦"
               sub={`${+todayStr.slice(5, 7)}.${+todayStr.slice(8, 10)}`}
+              extra={todayFestivals.length > 0 ? (
+                /* 节日是「展示性信息」而非可勾选事项：收进卡片头（与日期同属元信息区），
+                   不占列表行、不参与进度统计、不挤掉空态，且当天过节时依然一眼可见 */
+                <span
+                  className="text-[10px] font-bold rounded-full flex-shrink-0"
+                  style={{ color: 'var(--danger)', background: 'rgba(255,59,48,0.10)', padding: '1px 6px' }}
+                  title={`今天是${todayFestivals.join('、')}`}
+                >{todayFestivals.join(' · ')}</span>
+              ) : null}
               onClick={() => onNav?.('plan')}
               action={(
                 <button
@@ -1052,23 +1063,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                     </button>
                   </div>
                 ))}
-                {todayFestivals.map(f => (
-                  <div key={f} className="flex items-center gap-2 px-2 py-1.5 rounded-[12px] transition-colors hover:bg-[rgba(120,120,128,0.06)]">
-                    <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="var(--danger)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <path d="M5 5h12a2 2 0 0 1 2 2v7"/>
-                      <path d="M5 5v14a2 2 0 0 0 2 2h6"/>
-                      <path d="M5 10h15"/>
-                      <path d="M8 3v4M14 3v4"/>
-                      <path d="M17 21h-2"/>
-                      <path d="M19 17v-5"/>
-                      <path d="M17 19a2 2 0 0 0 2 2"/>
-                      <path d="M19 16l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3 1-2z"/>
-                    </svg>
-                    <span className="text-[14px] text-ink-800 truncate">{f}</span>
-                    <span className="text-[10px] font-bold ml-auto flex-shrink-0" style={{ color: 'var(--danger)' }}>今天 · 节日</span>
-                  </div>
-                ))}
-                {todaySorted.length === 0 && todayFestivals.length === 0 && (
+                {todaySorted.length === 0 && (
                   <div className="text-[12.5px] text-ink-400 text-center py-3">今天还没有安排</div>
                 )}
               </div>

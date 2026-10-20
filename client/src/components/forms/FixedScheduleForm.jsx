@@ -57,6 +57,19 @@ const BTN_PRIMARY = {
 
 const EMOJI_PRESETS = ['📌', '🍚', '🍱', '😴', '☕️', '🌙', '🚶', '🧘', '💪', '📖', '💧', '🍎'];
 
+/* 用户自己添加过的图标：本机记忆（与筛选位、布局偏好同一套 localStorage 惯例），
+   添加即收藏，右击移除；只存非预设的 emoji，最多 12 个，超出挤掉最旧的。 */
+const LS_CUSTOM_EMOJI = 'fixed_sched_custom_emojis';
+const MAX_CUSTOM_EMOJI = 12;
+function readCustomEmojis() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_CUSTOM_EMOJI) || '[]');
+    return Array.isArray(raw)
+      ? raw.filter(e => typeof e === 'string' && e && !EMOJI_PRESETS.includes(e)).slice(0, MAX_CUSTOM_EMOJI)
+      : [];
+  } catch { return []; }
+}
+
 /* ===== 自由图标（任意 emoji）=====
    预设只有 12 个，这里放开限制：用户点「＋」打开输入框，输入/粘贴任意 emoji 即可使用。
    pickEmoji 会把输入里第一个 emoji 取出来（按字素簇切分，天然支持 ZWJ 组合、肤色修饰、
@@ -94,14 +107,36 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false); // 「＋」自由输入面板开关
   const [customDraft, setCustomDraft] = useState('');  // 输入框原文（可能夹带文字）
+  const [customEmojis, setCustomEmojis] = useState(readCustomEmojis); // 已收藏的自定义图标
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   const durMin = calcDurationMin(form.start_time, form.end_time);
 
-  // 当前图标不在预设里 → 视为自定义，单独占一格显示（否则用户看不到、也改不回来）
+  // 当前图标不在预设里 → 视为自定义（遗留数据可能未收藏，并入展示清单，否则用户看不到、也改不回来）
   const customEmoji = EMOJI_PRESETS.includes(form.emoji) ? '' : (form.emoji || '');
+  const customTiles = customEmoji && !customEmojis.includes(customEmoji)
+    ? [customEmoji, ...customEmojis]
+    : customEmojis;
   const draftEmoji = pickEmoji(customDraft);
+
+  function writeCustomEmojis(next) {
+    setCustomEmojis(next);
+    try { localStorage.setItem(LS_CUSTOM_EMOJI, JSON.stringify(next)); } catch {}
+  }
+
+  // 添加即收藏：已收藏过的提到最前，超出上限挤掉最旧的
+  function collectEmoji(em) {
+    if (EMOJI_PRESETS.includes(em)) return;
+    writeCustomEmojis([em, ...customEmojis.filter(x => x !== em)].slice(0, MAX_CUSTOM_EMOJI));
+  }
+
+  // 右击移除收藏；若删的正是当前选中的图标，回落到默认图标，保证「删掉了」有可见反馈
+  function removeEmoji(em) {
+    writeCustomEmojis(customEmojis.filter(x => x !== em));
+    if (form.emoji === em) set('emoji', EMOJI_PRESETS[0]);
+    toast.info(`已移除图标 ${em}`);
+  }
 
   function toggleCustom() {
     if (customOpen) { setCustomOpen(false); return; }
@@ -113,6 +148,7 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
     const em = pickEmoji(customDraft);
     if (!em) return toast.warn('请先输入或粘贴一个 emoji');
     set('emoji', em);
+    collectEmoji(em);
     setCustomDraft('');
     setCustomOpen(false);
   }
@@ -202,21 +238,23 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
             );
           })}
 
-          {/* 自定义图标：当前 emoji 不在预设里时单独占一格，点它可再次修改 */}
-          {customEmoji && (
+          {/* 我的图标：自己添加过的 emoji（本机记忆）—— 点击使用，右击移除 */}
+          {customTiles.map(em => (
             <button
+              key={em}
               type="button"
-              onClick={toggleCustom}
-              title="自定义图标 · 点击修改"
-              style={iconTile(true)}
-            >{customEmoji}</button>
-          )}
+              onClick={() => set('emoji', em)}
+              onContextMenu={e => { e.preventDefault(); removeEmoji(em); }}
+              title="点击使用 · 右击移除"
+              style={iconTile(form.emoji === em)}
+            >{em}</button>
+          ))}
 
           {/* ＋：自由添加任意 emoji */}
           <button
             type="button"
             onClick={toggleCustom}
-            title="添加任意 emoji"
+            title="添加任意 emoji（自动收藏）"
             style={{ ...iconTile(customOpen, true), color: customOpen ? 'var(--s-main)' : 'var(--text-3)' }}
           >＋</button>
         </div>
@@ -257,7 +295,8 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
                 }}
               >使用</button>
             </div>
-            <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-3)', lineHeight: '1.5' }}>
+            <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-3)', lineHeight: '1.6' }}>
+              添加后自动收进「我的图标」（本机记忆，最多 {MAX_CUSTOM_EMOJI} 个），右击任一图标即可移除。<br />
               桌面端可先打开系统表情面板再选：Windows 按 <b>Win + .</b>，macOS 按 <b>⌘ + Ctrl + 空格</b>。
             </div>
           </div>

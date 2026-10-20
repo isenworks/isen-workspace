@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { moduleRgba } from '../../utils/color.js';
+import { IconCheck } from '../aiIcons.jsx';
 
 /* ============================================================
    FinanceView · 财务模块四行驾驶舱（攒钱目标 / 资产负债 / 本月收支 / 交易流水）
@@ -149,9 +150,9 @@ function GoalCard({ goal, onDetail, onEdit, onRemove, onDeposit }) {
           <span className="text-[11px] font-semibold text-ink-300">/</span>
           <span className="text-[12px] font-semibold text-ink-400 tabular-nums">{finFmt(target)}</span>
         </div>
-        {/* 还差行（达成后变绿色 ✓ 已达成） */}
+        {/* 还差行（达成后显示成功态） */}
         {isDone ? (
-          <span className="text-[10.5px] font-bold" style={{ color: GREEN }}>✓ 已达成</span>
+          <span className="text-[10.5px] font-bold inline-flex items-center gap-1" style={{ color: GREEN }}><IconCheck size={11} strokeWidth={2.6} />已达成</span>
         ) : (
           <span className="text-[10.5px] text-ink-400 tabular-nums">还差 {finFmt(remain)}</span>
         )}

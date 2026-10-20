@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { API } from '../api/client.js';
 import { calcDurationMin, formatDuration } from '../utils/date.js';
 import { syncKey, cloudPush } from '../utils/cloudKV.js';
-import { IconCheck } from './aiIcons.jsx';
+import { IconCheck, IconClock } from './aiIcons.jsx';
 
 function getWeekNumber(dateStr) {
   if (!dateStr) return 1;
@@ -1201,7 +1201,9 @@ export default function SummaryPanel({
       }}>
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '8px', alignItems: 'center' }}>
           {saving
-            ? <span style={{ color: 'var(--s-main)', fontWeight: '600' }}>⟳ 保存中…</span>
+            ? <span style={{ color: 'var(--s-main)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ display: 'inline-flex', animation: 'spin 1s linear infinite' }}><IconClock size={11} strokeWidth={2.5} /></span>保存中…
+              </span>
             : savedTime
               ? (
                 <>
@@ -1255,8 +1257,10 @@ export default function SummaryPanel({
               background: copied ? 'var(--success)' : 'var(--s-main)', color: 'var(--surface-card)',
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
-            {copied ? '✓ 已复制' : '复制 Markdown'}
+            {copied
+              ? <IconCheck size={12} strokeWidth={2.5} />
+              : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>}
+            {copied ? '已复制' : '复制 Markdown'}
           </button>
           <button
             onClick={handleManualSave}
@@ -1430,7 +1434,9 @@ export default function SummaryPanel({
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
         }}>
           <div style={{ fontSize: '11px', color: copied ? 'var(--success)' : 'var(--text-muted)', fontWeight: copied ? '600' : '400' }}>
-            {copied ? '✓ 已复制到剪贴板' : '点击复制即可粘贴到飞书 / Notion'}
+            {copied
+              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><IconCheck size={11} strokeWidth={2.6} />已复制到剪贴板</span>
+              : '点击复制即可粘贴到飞书 / Notion'}
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button

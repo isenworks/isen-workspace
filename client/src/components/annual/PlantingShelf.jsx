@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, useId } from 
 import { API } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmDialog from '../ConfirmDialog.jsx';
+import { IconCheck } from '../aiIcons.jsx';
 import { useLongPress } from '../useLongPress.js';
 import { uid } from './utils.js';
 import catLying from '../../assets/cat-lying.png';
@@ -1530,7 +1531,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
               boxShadow: '0 4px 14px rgba(0,0,0,0.16)',
               animation: 'toast-pop 0.18s ease-out',
             }}>
-            {saveToast.type === 'ok' ? `✓ ${saveToast.msg}` : saveToast.msg}
+            {saveToast.type === 'ok'
+              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconCheck size={12} strokeWidth={2.6} />{saveToast.msg}</span>
+              : saveToast.msg}
           </div>
         )}
 

@@ -6,6 +6,7 @@ import { moduleColor, moduleRgba, hexToRgba } from '../../utils/color.js'
 import Modal from '../Modal.jsx'
 import DualMarkerBar from '../DualMarkerBar.jsx'
 import { useLongPress } from '../useLongPress.js'
+import { IconCheck } from '../aiIcons.jsx'
 
 export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
@@ -602,7 +603,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
         {/* 已完成折叠单行组（所有已完成 KPI 合并一行） */}
         {done.length > 0 && (
           <div className="mt-3 px-3 py-2 rounded-lg bg-accent-green/[0.04] border border-accent-green/15 flex items-center gap-2 flex-wrap">
-            <span className="text-[10.5px] font-bold text-accent-green">✓ 已达成 KPI {done.length} 项：</span>
+            <span className="text-[10.5px] font-bold text-accent-green inline-flex items-center gap-1"><IconCheck size={11} strokeWidth={2.6} />已达成 KPI {done.length} 项：</span>
             {done.map(({ kr, i }) => (
               <span key={i} className="inline-flex items-center gap-1 text-[10.5px] text-ink-500 line-through font-medium px-1.5 py-0.5 rounded bg-ink-50">
                 {kr.t}

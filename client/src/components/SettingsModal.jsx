@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { THEMES, getAllThemes, getThemeKey, applyTheme, addCustomTheme, updateCustomTheme, deleteCustomTheme, saveThemeOrder, isValidHex } from '../utils/theme.js';
 import { MODULE_COLORS, getModuleColors, saveModuleColor, resetModuleColor, resetAllModuleColors, applyModuleColors, isValidHex as isValidModuleHex } from '../utils/moduleTheme.js';
 import { exportFullBackup, parseBackupFile, restoreFullBackup, TABLE_LABELS } from '../utils/backup.js';
+import { IconCheck } from './aiIcons.jsx';
 
 const ADMIN_EMAIL = '1429000825@qq.com';
 
@@ -744,8 +745,8 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
             width: '16px', height: '16px', borderRadius: '50%',
             background: previewMain, display: 'inline-flex',
             alignItems: 'center', justifyContent: 'center',
-            color: 'var(--surface-card)', fontSize: '10px', fontWeight: '700',
-          }}>✓</span>
+            color: 'var(--surface-card)',
+          }}><IconCheck size={11} strokeWidth={3} /></span>
         </div>
 
         {/* 按钮 */}
@@ -875,7 +876,9 @@ function AdminTab({
               padding: '5px 12px', borderRadius: '7px', background: 'var(--surface-card)',
               border: '1px solid var(--success)', color: 'var(--success)',
               fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-            }}>{copied === newCode ? '✓ 已复制' : '复制'}</button>
+            }}>{copied === newCode
+              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><IconCheck size={12} strokeWidth={2.6} />已复制</span>
+              : '复制'}</button>
           </div>
         )}
 
@@ -1289,7 +1292,9 @@ function GithubTab() {
                   padding: '10px 16px', borderRadius: '10px', border: 'none',
                   background: 'var(--s-main)', color: 'var(--surface-card)', fontWeight: 600, fontSize: '13px',
                   cursor: 'pointer', boxShadow: '0 1px 3px rgba(var(--s-rgb),0.28)',
-                }}>{copied ? '✓ 已复制，发给 AI 即可' : '复制推送指令发给 AI'}</button>
+                }}>{copied
+                  ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconCheck size={13} strokeWidth={2.6} />已复制，发给 AI 即可</span>
+                  : '复制推送指令发给 AI'}</button>
               </>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

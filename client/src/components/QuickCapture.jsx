@@ -10,6 +10,15 @@ import { hexToRgba } from '../utils/color.js';
  *  - 标签：使用小记独立标签（tags prop，可多选）；新建/管理复用「管理标签」面板
  * ============================================================ */
 
+// 保存成功勾：与工作台统一的 stroke 勾（viewBox 24 / currentColor / 圆角线帽），
+// 替代原来的「✓」字体字符——字符勾的字重与描边不受控，跨平台渲染还易变形
+const TickIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 // 解析小记的标签列表：优先 tag_ids（JSON 数组），兼容旧的单值 tag_id
 export function parseItemTagIds(it) {
   const raw = it?.tag_ids;
@@ -456,7 +465,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       }
       setSavedAt(r?.item?.updated_at || new Date().toISOString());
       draftRef.current = { content: '', plain: '' };
-      flash('✓ 已保存');
+      flash('已保存');
       if (!edit) onSaved?.(r?.item);
     } catch (e) {
       toast.error(e.message || '保存失败');
@@ -777,7 +786,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
             </span>
           ))}
           <div className="flex-1" />
-          {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
+          {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium inline-flex items-center gap-1"><TickIcon />{flashMsg}</span>}
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
           <button
             onClick={save}
@@ -797,7 +806,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
             </span>
           ))}
           <div className="flex-1" />
-          {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
+          {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium inline-flex items-center gap-1"><TickIcon />{flashMsg}</span>}
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
           <button
             onClick={save}

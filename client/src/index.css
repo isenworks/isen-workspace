@@ -178,6 +178,20 @@ body {
   border: none; transform: none;
 }
 
+/* 标签列表勾选（与工作台 .cb-round 同款：18px 圆 + 白勾；标签色填充由 style 覆盖）
+ * 用于标签行/筛选行的「选中」标记，避免各处再各写一套方框+✓ 字符。 */
+.tag-check {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid #d1d1d6; background: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background .2s, border-color .2s;
+}
+.tag-check.on::after {
+  content: ""; width: 4px; height: 8px;
+  border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px,-1px);
+}
+
 /* 勾选后弱化样式（习惯除外，习惯保持原色填充） */
 .task-row:has(input:checked),
 .timeline-row:has(input:checked):not(.habit-row) {

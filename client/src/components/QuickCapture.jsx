@@ -649,12 +649,9 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
                 style={{ color: on ? 'var(--text-1)' : 'var(--text-muted)', fontWeight: on ? 600 : 400 }}
               >{t.name}</span>
               <span
-                className="w-4 h-4 rounded-[5px] flex items-center justify-center text-[10px] text-white flex-shrink-0"
-                style={{
-                  background: on ? t.color : 'transparent',
-                  border: `1.5px solid ${on ? t.color : 'rgba(120,120,128,0.4)'}`,
-                }}
-              >{on ? '✓' : ''}</span>
+                className={`tag-check ${on ? 'on' : ''}`}
+                style={on ? { background: t.color, borderColor: t.color } : undefined}
+              />
             </button>
           );
         })}

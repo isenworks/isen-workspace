@@ -456,9 +456,10 @@ export default function InboxPage({ onCountChange }) {
                           >
                             <span className="flex-shrink-0 w-2 h-2 rounded-full" style={{ background: on ? t.color : hexToRgba(t.color, 0.35) }} />
                             <span className="whitespace-nowrap">{t.name}</span>
-                            <span className={`ml-auto flex-shrink-0 w-3.5 h-3.5 rounded-[4px] flex items-center justify-center text-[9px] leading-none ${on ? 'text-white' : 'border border-ink-200'}`}
-                              style={on ? { background: t.color } : undefined}
-                            >{on ? '✓' : ''}</span>
+                            <span
+                              className={`ml-auto tag-check ${on ? 'on' : ''}`}
+                              style={on ? { background: t.color, borderColor: t.color } : undefined}
+                            />
                           </button>
                         );
                       })}
@@ -523,7 +524,10 @@ export default function InboxPage({ onCountChange }) {
               >
                 <span className="w-2 h-2 rounded-full bg-ink-300" />
                 全部
-                {filterTagIds.length === 0 && <span className="ml-auto text-[var(--s-main)]">✓</span>}
+                <span
+                  className={`ml-auto tag-check ${filterTagIds.length === 0 ? 'on' : ''}`}
+                  style={filterTagIds.length === 0 ? { background: 'var(--s-main)', borderColor: 'var(--s-main)' } : undefined}
+                />
               </button>
               {tags.length > 0 && <div className="my-1 border-t border-ink-100/80" />}
               {tags.map(t => {
@@ -536,7 +540,10 @@ export default function InboxPage({ onCountChange }) {
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
                     <span className="flex-1 text-left">{t.name}</span>
-                    {on && <span style={{ color: t.color }}>✓</span>}
+                    <span
+                      className={`tag-check ${on ? 'on' : ''}`}
+                      style={on ? { background: t.color, borderColor: t.color } : undefined}
+                    />
                   </button>
                 );
               })}

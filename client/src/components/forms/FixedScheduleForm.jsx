@@ -57,6 +57,31 @@ const BTN_PRIMARY = {
 
 const EMOJI_PRESETS = ['📌', '🍚', '🍱', '😴', '☕️', '🌙', '🚶', '🧘', '💪', '📖', '💧', '🍎'];
 
+/* ===== 自由图标（任意 emoji）=====
+   预设只有 12 个，这里放开限制：用户点「＋」打开输入框，输入/粘贴任意 emoji 即可使用。
+   pickEmoji 会把输入里第一个 emoji 取出来（按字素簇切分，天然支持 ZWJ 组合、肤色修饰、
+   区域旗帜这类多码位 emoji，如 👨‍👩‍👧 / 👍🏻 / 🇨🇳），避免把多余文字一起存进数据库。 */
+const EMOJI_RE = /\p{Extended_Pictographic}|\p{Regional_Indicator}/u;
+function pickEmoji(text) {
+  const s = String(text || '').trim();
+  if (!s) return '';
+  const segs = typeof Intl !== 'undefined' && Intl.Segmenter
+    ? Array.from(new Intl.Segmenter('zh', { granularity: 'grapheme' }).segment(s), x => x.segment)
+    : Array.from(s);
+  return segs.find(g => EMOJI_RE.test(g)) || '';
+}
+
+const iconTile = (active, dashed) => ({
+  width: '34px', height: '34px',
+  borderRadius: '8px',
+  fontSize: '18px',
+  background: active ? 'rgba(var(--s-rgb),0.1)' : 'var(--surface-card)',
+  border: active ? '1.5px solid var(--s-main)' : (dashed ? '1px dashed var(--ink-300)' : '1px solid var(--ink-200)'),
+  cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  transition: 'all .15s',
+});
+
 export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
   const toast = useToast();
   const [form, setForm] = useState({
@@ -67,10 +92,30 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
   });
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false); // 「＋」自由输入面板开关
+  const [customDraft, setCustomDraft] = useState('');  // 输入框原文（可能夹带文字）
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   const durMin = calcDurationMin(form.start_time, form.end_time);
+
+  // 当前图标不在预设里 → 视为自定义，单独占一格显示（否则用户看不到、也改不回来）
+  const customEmoji = EMOJI_PRESETS.includes(form.emoji) ? '' : (form.emoji || '');
+  const draftEmoji = pickEmoji(customDraft);
+
+  function toggleCustom() {
+    if (customOpen) { setCustomOpen(false); return; }
+    setCustomDraft(customEmoji); // 再次打开时预填当前自定义图标，便于修改
+    setCustomOpen(true);
+  }
+
+  function applyCustom() {
+    const em = pickEmoji(customDraft);
+    if (!em) return toast.warn('请先输入或粘贴一个 emoji');
+    set('emoji', em);
+    setCustomDraft('');
+    setCustomOpen(false);
+  }
 
   // Ctrl+S 优先提交本表单（无表单打开时 Ctrl+S 才走全局同步）
   useFormSubmit(submit);
@@ -152,20 +197,71 @@ export default function FixedScheduleForm({ initial, onSaved, onCancel }) {
                 key={em}
                 type="button"
                 onClick={() => set('emoji', em)}
-                style={{
-                  width: '34px', height: '34px',
-                  borderRadius: '8px',
-                  fontSize: '18px',
-                  background: active ? 'rgba(var(--s-rgb),0.1)' : 'var(--surface-card)',
-                  border: active ? '1.5px solid var(--s-main)' : '1px solid var(--ink-200)',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all .15s',
-                }}
+                style={iconTile(active)}
               >{em}</button>
             );
           })}
+
+          {/* 自定义图标：当前 emoji 不在预设里时单独占一格，点它可再次修改 */}
+          {customEmoji && (
+            <button
+              type="button"
+              onClick={toggleCustom}
+              title="自定义图标 · 点击修改"
+              style={iconTile(true)}
+            >{customEmoji}</button>
+          )}
+
+          {/* ＋：自由添加任意 emoji */}
+          <button
+            type="button"
+            onClick={toggleCustom}
+            title="添加任意 emoji"
+            style={{ ...iconTile(customOpen, true), color: customOpen ? 'var(--s-main)' : 'var(--text-3)' }}
+          >＋</button>
         </div>
+
+        {customOpen && (
+          <div style={{
+            marginTop: '8px',
+            padding: '10px 12px',
+            borderRadius: '10px',
+            background: 'var(--surface-card)',
+            border: '1px solid var(--ink-200)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ ...iconTile(false), cursor: 'default', flexShrink: 0 }}>
+                {draftEmoji || <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>?</span>}
+              </div>
+              <input
+                className="form-input"
+                autoFocus
+                value={customDraft}
+                onChange={e => setCustomDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); applyCustom(); }
+                  else if (e.key === 'Escape') { e.stopPropagation(); setCustomOpen(false); }
+                }}
+                placeholder="粘贴或输入任意 emoji，如 🔥 💼 ✈️"
+                style={{ ...INPUT_STYLE, flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={applyCustom}
+                disabled={!draftEmoji}
+                style={{
+                  ...BTN_PRIMARY,
+                  flexShrink: 0,
+                  opacity: draftEmoji ? 1 : 0.45,
+                  cursor: draftEmoji ? 'pointer' : 'not-allowed',
+                }}
+              >使用</button>
+            </div>
+            <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-3)', lineHeight: '1.5' }}>
+              桌面端可先打开系统表情面板再选：Windows 按 <b>Win + .</b>，macOS 按 <b>⌘ + Ctrl + 空格</b>。
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

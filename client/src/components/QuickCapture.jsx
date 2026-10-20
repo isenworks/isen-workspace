@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
-import { hexToRgba } from '../utils/color.js';
 
 /* ============================================================
  * QuickCapture · 小记输入框（新建与编辑统一同构）
@@ -118,9 +117,10 @@ function normalizeListsIn(root) {
   });
 }
 
-export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageTags, autoFocus = true, placeholder, bare, edit, tags }) {
+export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFocus = true, placeholder, bare, edit, tags }) {
   const toast = useToast();
   const editorRef = useRef(null);
+  const tagPopRef = useRef(null);  // 标签浮层容器（含触发按钮），用于判定「点击外部」
   const [tagIds, setTagIds] = useState(() => parseItemTagIds(edit));
   const [showTags, setShowTags] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -155,6 +155,19 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
   useEffect(() => {
     if (autoFocus) editorRef.current?.focus();
   }, [autoFocus]);
+
+  // 标签浮层：点击浮层外任意处（失焦）或按 Esc 关闭；关闭时自动保存
+  useEffect(() => {
+    if (!showTags) return;
+    const onDocDown = (e) => { if (!tagPopRef.current?.contains(e.target)) closeTagPop(); };
+    const onKey = (e) => { if (e.key === 'Escape') closeTagPop(); };
+    document.addEventListener('mousedown', onDocDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [showTags]);
 
   useEffect(() => () => {
     if (flashTimer.current) clearTimeout(flashTimer.current);
@@ -484,33 +497,6 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     autoTimer.current = setTimeout(() => { autoTimer.current = null; autosaveRef.current?.(); }, 1000);
   }
 
-  // 分派
-  async function dispatch() {
-    const content = getContent();
-    if (!getPlainText() || busy) return;
-    setBusy(true);
-    try {
-      const id = edit?.id ?? activeIdRef.current;   // 复用自动落库的记录，避免重复创建
-      if (id) {
-        await API.inbox.update(id, { content, tag_ids: tagIds });
-        onUpdated?.();
-        onDispatch?.({ ...(edit || { id }), content, tag_ids: tagIds });
-      } else {
-        const r = await API.inbox.create({ content, tag_ids: tagIds });
-        activeIdRef.current = null;
-        editorRef.current.innerHTML = '';
-        draftRef.current = { content: '', plain: '' };
-        setTagIds([]);
-        onSaved?.();
-        onDispatch?.(r.item);
-      }
-    } catch (e) {
-      toast.error(e.message || '分派失败');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function onKeyDown(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
@@ -624,11 +610,6 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
 
   // 可选标签（父级下发，新建/管理统一走「管理标签」面板）
   const tagList = tags || [];
-  const tagMap = useMemo(() => new Map(tagList.map(t => [Number(t.id), t])), [tagList]);
-  const selectedTags = tagIds.map(id => tagMap.get(id)).filter(Boolean);
-  const tagLabel = selectedTags.length === 0
-    ? '标签'
-    : (selectedTags.length === 1 ? selectedTags[0].name : `${selectedTags[0].name} +${selectedTags.length - 1}`);
 
   function toggleTag(id) {
     const n = Number(id);
@@ -636,14 +617,60 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
     scheduleAutosave();
   }
 
-  const dispatchBtn = onDispatch && (
-    <button
-      onClick={dispatch}
-      disabled={busy || !getPlainText()}
-      title="转为日程"
-      className="text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors disabled:opacity-40"
-      style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-    >分派</button>
+  // 关闭标签浮层：失焦点击任意处即自动保存
+  function closeTagPop() {
+    setShowTags(false);
+    if (autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+    autosaveRef.current?.();
+  }
+
+  // 标签浮层：勾选式列表（多选），点浮层外任意处关闭并自动保存
+  const tagPopover = (
+    <div
+      className="absolute left-0 top-full mt-1.5 z-50 w-[236px] rounded-xl p-1.5 border border-ink-100/80"
+      style={{ background: 'var(--surface-card)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
+    >
+      <div className="px-1.5 pb-1 pt-0.5 text-[11px] font-semibold text-ink-400">
+        选择标签{tagIds.length > 0 ? `（已选 ${tagIds.length}）` : ''}
+      </div>
+      <div className="max-h-[240px] overflow-y-auto nice-scroll">
+        {tagList.map(t => {
+          const on = tagIds.includes(Number(t.id));
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => toggleTag(t.id)}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-[13px] hover:bg-ink-50 transition-colors"
+            >
+              <span className="w-[8px] h-[8px] rounded-full flex-shrink-0" style={{ background: t.color }} />
+              <span
+                className="flex-1 min-w-0 truncate"
+                style={{ color: on ? 'var(--text-1)' : 'var(--text-muted)', fontWeight: on ? 600 : 400 }}
+              >{t.name}</span>
+              <span
+                className="w-4 h-4 rounded-[5px] flex items-center justify-center text-[10px] text-white flex-shrink-0"
+                style={{
+                  background: on ? t.color : 'transparent',
+                  border: `1.5px solid ${on ? t.color : 'rgba(120,120,128,0.4)'}`,
+                }}
+              >{on ? '✓' : ''}</span>
+            </button>
+          );
+        })}
+        {tagList.length === 0 && (
+          <div className="px-2 py-2 text-[12px] text-ink-400">暂无标签</div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => { setShowTags(false); onManageTags?.(); }}
+        className="w-full flex items-center gap-1.5 px-2 py-1.5 mt-1 rounded-md text-[12px] text-ink-500 border-t border-ink-100/70 hover:text-ink-700 transition-colors"
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        管理标签
+      </button>
+    </div>
   );
 
   // 工具栏按钮
@@ -660,6 +687,26 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
 
   const toolbar = (
     <div className="flex items-center gap-0.5 px-1 py-1 rounded-lg bg-ink-50/70 border border-ink-100/80">
+      {/* 标签按钮（工具栏左侧）：点击展开勾选浮层 */}
+      <span ref={tagPopRef} className="relative flex items-center">
+        <button
+          type="button"
+          onClick={() => setShowTags(s => !s)}
+          title="标签"
+          className={`h-7 px-2 rounded-md flex items-center gap-1 text-[12px] font-medium transition-colors ${
+            showTags
+              ? 'bg-[rgba(var(--s-rgb),0.15)] text-[var(--s-main)]'
+              : tagIds.length
+                ? 'bg-[rgba(var(--s-rgb),0.1)] text-[var(--s-main)] hover:bg-[rgba(var(--s-rgb),0.15)]'
+                : 'text-ink-500 hover:bg-black/5 hover:text-ink-800'
+          }`}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+          标签{tagIds.length > 0 ? ` ${tagIds.length}` : ''}
+        </button>
+        {showTags && tagPopover}
+      </span>
+      <div className="w-px h-4 bg-ink-200 mx-1" />
       <ToolbarBtn title="标题1" onClick={() => exec('formatBlock', 'H1')}><span className="font-bold text-[13px]">H1</span></ToolbarBtn>
       <ToolbarBtn title="标题2" onClick={() => exec('formatBlock', 'H2')}><span className="font-bold text-[12px]">H2</span></ToolbarBtn>
       <ToolbarBtn title="正文" onClick={() => exec('formatBlock', 'P')}><span className="text-[12px]">正文</span></ToolbarBtn>
@@ -680,47 +727,6 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       <ToolbarBtn title="清除格式" onClick={() => exec('removeFormat')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
       </ToolbarBtn>
-    </div>
-  );
-
-  // 标签选择器（多选；新建/管理复用「管理标签」面板）
-  const tagPicker = (
-    <div>
-      <div className="text-[11px] font-semibold text-ink-400 mb-1.5 tracking-wide">
-        标签{tagIds.length > 0 ? `（已选 ${tagIds.length}）` : ''}
-      </div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {tagList.map(t => {
-          const on = tagIds.includes(Number(t.id));
-          return (
-            <button
-              key={t.id}
-              onClick={() => toggleTag(t.id)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] transition-all"
-              style={{
-                background: on ? hexToRgba(t.color, 0.14) : 'rgba(120,120,128,0.06)',
-                color: on ? t.color : 'var(--text-muted)',
-                border: `1px solid ${on ? hexToRgba(t.color, 0.55) : 'transparent'}`,
-                fontWeight: on ? 600 : 400,
-              }}
-            >
-              <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: t.color }} />
-              {t.name}
-              {on && <span className="text-[10px] leading-none">✓</span>}
-            </button>
-          );
-        })}
-        {tagList.length === 0 && (
-          <span className="text-[12px] text-ink-400">暂无标签</span>
-        )}
-        <button
-          onClick={() => onManageTags?.()}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] text-ink-500 border border-dashed border-ink-200 hover:border-ink-300 hover:text-ink-700 transition-colors"
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          管理标签
-        </button>
-      </div>
     </div>
   );
 
@@ -762,46 +768,20 @@ export default function QuickCapture({ onSaved, onUpdated, onDispatch, onManageT
       />
 
       {bare ? (
-        <>
-          {showTags && tagPicker}
-          <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">
-            <button
-              onClick={() => setShowTags(s => !s)}
-              className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
-              style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-            >
-              {showTags ? '收起' : (
-                <>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                  {tagLabel}
-                </>
-              )}
-            </button>
-            {dispatchBtn}
-            <div className="flex-1" />
-            {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
-            {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
-            <button
-              onClick={save}
-              disabled={busy || !getPlainText()}
-              title="保存（Ctrl+S）"
-              className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
-              style={{ background: 'var(--s-main)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
-            >{busy ? '保存中…' : '保存'}</button>
-          </div>
-        </>
+        <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">
+          <div className="flex-1" />
+          {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
+          {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
+          <button
+            onClick={save}
+            disabled={busy || !getPlainText()}
+            title="保存（Ctrl+S）"
+            className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
+            style={{ background: 'var(--s-main)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
+          >{busy ? '保存中…' : '保存'}</button>
+        </div>
       ) : (
         <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
-          <button
-            onClick={() => setShowTags(s => !s)}
-            className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors"
-            style={{ background: 'rgba(var(--s-rgb),0.1)', color: 'var(--s-main)' }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            {tagLabel}
-          </button>
-          {dispatchBtn}
-          {showTags && tagPicker}
           <div className="flex-1" />
           {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium">{flashMsg}</span>}
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}

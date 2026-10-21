@@ -851,11 +851,11 @@ function AdminTab({
   };
   /* ===== 表格栅格：列宽用 minmax(0,…) 才能让长邮箱在轨道内省略，
      否则 fr 的隐式最小宽度 = 内容宽度，长文本会把整列撑开并压到相邻列上。
-     时间/状态/操作用固定窄列 + 10px 列距，保证不出现横向滚动 ===== */
-  const INVITE_COLS = 'minmax(80px, 0.9fr) 84px minmax(0, 1.6fr) 90px 64px';
-  const INVITE_MIN_W = 520;
-  const USER_COLS = '30px minmax(0, 1.4fr) minmax(0, 1fr) 90px 64px 64px';
-  const USER_MIN_W = 540;
+     邀请码列宽贴内容（88px），多余空间全部让给邮箱列；状态/操作窄列居中 ===== */
+  const INVITE_COLS = '88px 76px minmax(0, 2.1fr) 90px 64px';
+  const INVITE_MIN_W = 500;
+  const USER_COLS = '30px minmax(0, 2fr) minmax(0, 1fr) 84px 64px 64px';
+  const USER_MIN_W = 520;
   const thRow = {
     display: 'grid', alignItems: 'center', columnGap: '10px',
     padding: '9px 16px', minHeight: '34px',
@@ -981,7 +981,7 @@ function AdminTab({
                 <div style={{ textAlign: 'center' }}>状态</div>
                 <div>使用人</div>
                 <div>创建时间</div>
-                <div style={{ textAlign: 'right' }}>操作</div>
+                <div style={{ textAlign: 'center' }}>操作</div>
               </div>
               {invites.map((c, i) => {
                 const isUsed = !!c.is_used;
@@ -1032,7 +1032,7 @@ function AdminTab({
                           })
                         : '—'}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
                       {!isUsed && !isDisabled
                         ? <button onClick={() => onDisable(c.id)} style={dangerBtn}>禁用</button>
                         : <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>—</span>}
@@ -1075,7 +1075,7 @@ function AdminTab({
                 <div>昵称 / 注册时间</div>
                 <div>最近登录</div>
                 <div style={{ textAlign: 'center' }}>状态</div>
-                <div style={{ textAlign: 'right' }}>操作</div>
+                <div style={{ textAlign: 'center' }}>操作</div>
               </div>
               {users.map((u, i) => {
                 const isOwner = ownerId && String(u.user_id || u.id) === String(ownerId);
@@ -1130,7 +1130,7 @@ function AdminTab({
                           ? <span style={pill(...PILL_DANGER)}>已禁用</span>
                           : <span style={pill(...PILL_OK)}>正常</span>}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
                       {isOwner
                         ? <button disabled style={disabledBtn} title="所有者账号不可被禁用">禁用</button>
                         : banned

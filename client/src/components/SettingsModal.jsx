@@ -33,12 +33,6 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
   const [confirmBan, setConfirmBan] = useState(null);
   const [copied, setCopied] = useState(null);
   const [adminLoading, setAdminLoading] = useState(true);
-  // D1 迁移
-  const [migrate, setMigrate] = useState({
-    habits: '', habit_logs: '', schedules: '', tasks: '', summaries: '', fixed_schedules: '',
-  });
-  const [migrateResult, setMigrateResult] = useState(null);
-  const [migrateBusy, setMigrateBusy] = useState(false);
 
   // 严格判定：只有 is_owner=true（或硬编码 ADMIN_EMAIL 兜底）才允许看到 invites/users Tab
   //  ❌ 不再用 IS_D1_BACKEND 做兜底（之前所有用户都会被错误判为管理员/或被意外漏掉）
@@ -125,31 +119,6 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
     finally { setBusy(false); }
   }
 
-  async function handleMigrateRun() {
-    setErr('');
-    setMigrateResult(null);
-    setMigrateBusy(true);
-    try {
-      const payload = {};
-      for (const [k, v] of Object.entries(migrate)) {
-        if (!v || !v.trim()) continue;
-        try {
-          payload[k] = JSON.parse(v);
-        } catch (e) {
-          throw new Error(`${k} JSON 解析失败：${e.message}`);
-        }
-      }
-      if (Object.keys(payload).length === 0) throw new Error('请至少粘贴 1 张表的 JSON 数据');
-      const r = await API.migrate.run(payload);
-      setMigrateResult(r);
-      toast.success('迁移完成！' + Object.entries(r.counts || {}).map(([k, v]) => `${k}=${v}`).join('，'));
-    } catch (e) {
-      setErr(friendlyError(e.message));
-    } finally {
-      setMigrateBusy(false);
-    }
-  }
-
   function copyCode(code) {
     const doCopy = (text) => {
       if (navigator.clipboard?.writeText) {
@@ -205,8 +174,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
       </>) },
     ] : []),
     {
-      key: isAdmin ? 'migrate' : 'backup',
-      label: isAdmin ? '备份与迁移' : '数据备份',
+      key: 'backup',
+      label: '数据备份',
       icon: navIcon(<>
         <ellipse cx="12" cy="5" rx="9" ry="3" />
         <path d="M3 5v14a9 3 0 0 0 18 0V5" /><path d="M3 12a9 3 0 0 0 18 0" />
@@ -264,7 +233,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
             <div className="set-title">设置</div>
             {SET_NAV.map(t => (
               <button key={t.key} className={`set-nav-btn${tab === t.key ? ' on' : ''}`}
-                onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }}>
+                onClick={() => { setTab(t.key); setNewCode(null); setErr(''); }}>
                 {t.icon}
                 {t.label}
               </button>
@@ -320,22 +289,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 />
               ) : tab === 'github' ? (
                 <GithubTab />
-              ) : tab === 'migrate' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                  <BackupSection />
-                  <div style={{ height: '1px', background: 'var(--ink-100)' }} />
-                  <RestoreSection />
-                  <div style={{ height: '1px', background: 'var(--ink-100)' }} />
-                  <MigrateTab
-                    value={migrate}
-                    onChange={setMigrate}
-                    busy={migrateBusy}
-                    result={migrateResult}
-                    onRun={handleMigrateRun}
-                  />
-                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <BackupSection />
                   <RestoreSection />
                 </div>
@@ -1726,101 +1681,6 @@ function RestoreSection() {
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-function MigrateTab({ value, onChange, busy, result, onRun }) {
-  const TABLES = [
-    { key: 'habits', label: '① ethan_habits（习惯，8 条）', placeholder: '粘贴从 Supabase 导出的 habits JSON 数组' },
-    { key: 'habit_logs', label: '② ethan_habit_logs（习惯打卡，109 条）', placeholder: '粘贴 habit_logs JSON 数组（7月 / 8月分段的可一次性合并粘贴）' },
-    { key: 'schedules', label: '③ ethan_schedules（日程，40 条）', placeholder: '粘贴 schedules JSON 数组' },
-    { key: 'summaries', label: '④ ethan_summaries（日记/复盘，18 条）', placeholder: '粘贴 summaries JSON 数组' },
-    { key: 'fixed_schedules', label: '⑤ ethan_fixed_schedules（固定日程，4 条）', placeholder: '粘贴 fixed_schedules JSON 数组' },
-  ];
-
-  const setField = (k, v) => onChange(prev => ({ ...prev, [k]: v }));
-  const hasAny = Object.values(value).some(s => s && s.trim());
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{
-        padding: '14px 16px', borderRadius: '10px', background: 'var(--warning-soft)',
-        border: '1px solid var(--warning-border)', fontSize: '13px', color: 'var(--warning-text)', lineHeight: 1.55,
-      }}>
-        <b>说明：</b>把之前从 Supabase SQL Editor 导出的 6 段 JSON，分别粘贴到下面对应的文本框中，
-        再点「一键迁移写入 D1」即可。若某表为空可以留空（不会覆盖已有数据）。
-        迁移使用 INSERT OR REPLACE，对相同主键数据为幂等操作，**重复点按钮不会重复写入**。
-      </div>
-
-      <div style={{ display: 'grid', gap: '12px' }}>
-        {TABLES.map(t => (
-          <div key={t.key}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: '6px',
-            }}>
-              <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-1)' }}>{t.label}</label>
-              {value[t.key] && (
-                <button onClick={() => setField(t.key, '')} style={{
-                  fontSize: '11px', color: 'var(--text-3)', background: 'none', border: 'none',
-                  cursor: 'pointer', textDecoration: 'underline',
-                }}>清空</button>
-              )}
-            </div>
-            <textarea
-              value={value[t.key]}
-              onChange={e => setField(t.key, e.target.value)}
-              placeholder={t.placeholder}
-              style={{
-                width: '100%', minHeight: '72px', padding: '10px 12px',
-                border: '1px solid var(--ink-100)', borderRadius: '10px',
-                fontFamily: 'SF Mono, Menlo, monospace', fontSize: '12px',
-                lineHeight: 1.5, resize: 'vertical', color: 'var(--text-1)',
-                background: 'var(--surface-sunken)', outline: 'none',
-              }}
-              onFocus={(e) => e.target.style.background = 'var(--surface-card)'}
-              onBlur={(e) => e.target.style.background = 'var(--surface-sunken)'}
-            />
-          </div>
-        ))}
-      </div>
-
-      {result && (
-        <div style={{
-          padding: '14px 16px', borderRadius: '10px', background: 'var(--success-soft)',
-          border: '1px solid var(--success)',
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--success)', marginBottom: '8px' }}>
-            ✅ 迁移成功（总 {result.total || 0} 条）
-          </div>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '6px 14px', fontSize: '12px', color: 'var(--text-2)',
-          }}>
-            {Object.entries(result.counts || {}).sort().map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-3)' }}>{k}</span>
-                <b style={{ color: 'var(--success)' }}>{v}</b>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '8px' }}>
-            下一步：刷新页面后进入工作台，验证精力页 8 个习惯、打卡热力图、任务/日程、复盘日记、固定日程都能正常显示。
-          </div>
-        </div>
-      )}
-
-      <button onClick={onRun} disabled={busy || !hasAny} style={{
-        padding: '13px 22px', borderRadius: '10px',
-        background: busy ? 'var(--ink-disabled)' : (!hasAny ? 'var(--brand-disabled)' : 'var(--s-main)'),
-        color: 'var(--surface-card)', border: 'none', fontWeight: '600', fontSize: '14px',
-        cursor: busy || !hasAny ? 'not-allowed' : 'pointer',
-        transition: 'all 0.15s',
-        boxShadow: busy || !hasAny ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.3)',
-      }}>
-        {busy ? '迁移中（写入 6 张表，约 10 秒）...' : '🚀 一键迁移写入 D1'}
-      </button>
     </div>
   );
 }

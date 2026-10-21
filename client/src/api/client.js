@@ -286,11 +286,7 @@ export const API = {
     async goalDeposit(data) { return fetchPages('/finance/goalDeposit', data); },
   },
 
-  migrate: {
-    async run(payload) { return fetchPages('/migrate', payload); },
-  },
-
-  // 全量数据导出（只读）：服务端按表返回当前用户全部业务数据，供「设置 → 备份与迁移」一键备份
+  // 全量数据导出（只读）：服务端按表返回当前用户全部业务数据，供「设置 → 数据备份」一键备份
   //   返回 { ok, exportedAt, userId, counts, tables, errors }
   backup: {
     async export() { return fetchPages('/backup/export', {}, 'GET'); },

@@ -167,6 +167,38 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
 
   if (!open) return null;
 
+  // 分区导航（图标 + 文字）。布局参考 DeepSeek 设置面板：左侧竖排菜单、激活项灰底圆角，
+  // 右侧为内容区 + 右上角关闭 —— 替代原顶部横排 Tab（分区分多后横排拥挤，标题也与内容纵向脱节）
+  const navIcon = (paths) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{paths}</svg>
+  );
+  const SET_NAV = [
+    { key: 'appearance', label: '外观', icon: navIcon(<>
+      <circle cx="13.5" cy="6.5" r="0.5" /><circle cx="17.5" cy="10.5" r="0.5" />
+      <circle cx="8.5" cy="7.5" r="0.5" /><circle cx="6.5" cy="12.5" r="0.5" />
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+    </>) },
+    ...(isAdmin ? [
+      { key: 'admin', label: '邀请与用户', icon: navIcon(<>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </>) },
+      { key: 'github', label: 'AI 推送授权', icon: navIcon(<>
+        <rect x="3" y="3" width="18" height="18" rx="4" />
+        <path d="M9.5 14.5l5-5" /><path d="M10.5 9.5h4v4" />
+      </>) },
+    ] : []),
+    {
+      key: isAdmin ? 'migrate' : 'backup',
+      label: isAdmin ? '备份与迁移' : '数据备份',
+      icon: navIcon(<>
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M3 5v14a9 3 0 0 0 18 0V5" /><path d="M3 12a9 3 0 0 0 18 0" />
+      </>),
+    },
+  ];
+
   return (
     <div style={{
       position: 'fixed', inset: 0,
@@ -174,92 +206,65 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 'var(--z-modal)'
     }} onClick={onClose}>
+      <style>{`
+        .set-body { display: flex; min-height: 0; }
+        .set-side { width: 172px; flex-shrink: 0; border-right: 1px solid var(--ink-100);
+          padding: 18px 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .set-title { font-size: 15px; font-weight: 600; color: var(--text-1); padding: 0 12px; margin-bottom: 10px; }
+        .set-nav-btn { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 12px;
+          border: none; border-radius: 9px; background: transparent; cursor: pointer;
+          font-size: 13.5px; color: var(--text-3); transition: all 0.15s; text-align: left; }
+        .set-nav-btn:hover { background: rgba(120,120,128,0.06); }
+        .set-nav-btn.on { background: rgba(120,120,128,0.10); color: var(--text-1); font-weight: 600; }
+        .set-main { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+        .set-head { padding: 16px 24px 10px; display: flex; align-items: center;
+          justify-content: space-between; flex-shrink: 0; }
+        .set-head-title { font-size: 15px; font-weight: 600; color: var(--text-1); }
+        .set-close { width: 28px; height: 28px; border-radius: 50%; border: none;
+          background: rgba(120,120,128,0.12); cursor: pointer; color: var(--text-3);
+          display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .set-content { padding: 2px 24px 24px; overflow-y: auto; flex: 1; min-height: 0; }
+        @media (max-width: 640px) {
+          .set-body { flex-direction: column; }
+          .set-side { width: auto; border-right: none; border-bottom: 1px solid var(--ink-100);
+            flex-direction: row; align-items: center; overflow-x: auto; padding: 12px 12px 8px; gap: 6px; }
+          .set-title { display: none; }
+          .set-nav-btn { width: auto; flex-shrink: 0; padding: 7px 12px; border-radius: 8px; }
+          .set-content { padding: 0 16px 20px; }
+        }
+      `}</style>
       <div style={{
-        background: 'var(--surface-card)', borderRadius: '14px', width: '680px', maxWidth: '94vw',
+        background: 'var(--surface-card)', borderRadius: '14px', width: '800px', maxWidth: '94vw',
         maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
       }} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{
-          padding: '18px 20px', borderBottom: '1px solid var(--ink-100)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>
-            </svg>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text-1)' }}>
-              系统设置
-            </h3>
-          </div>
-          <button onClick={onClose} style={{
-            width: '28px', height: '28px', borderRadius: '50%', border: 'none',
-            background: 'rgba(120,120,128,0.12)', cursor: 'pointer',
-            fontSize: '16px', color: 'var(--text-3)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.15s'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-
-        {!isAdmin && (
-          <>
-            {/* Tabs（非管理员：外观 + 数据备份） */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--ink-100)' }}>
-              {[{ key: 'appearance', label: '外观' }, { key: 'backup', label: '数据备份' }].map(t => (
-                <button key={t.key} onClick={() => setTab(t.key)} style={{
-                  flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
-                  cursor: 'pointer', fontSize: '14px',
-                  fontWeight: tab === t.key ? '600' : '400',
-                  color: tab === t.key ? 'var(--s-main)' : 'var(--text-3)',
-                  borderBottom: tab === t.key ? '2px solid var(--s-main)' : '2px solid transparent',
-                  transition: 'all 0.15s'
-                }}>{t.label}</button>
-              ))}
-            </div>
-            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
-              {tab === 'backup'
-                ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                    <BackupSection />
-                    <RestoreSection />
-                  </div>
-                )
-                : <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />}
-            </div>
-          </>
-        )}
-
-        {isAdmin && (
-          <>
-            {/* Tabs（4 Tab → 3 Tab：邀请码管理 + 用户管理 合并为「邀请与用户」） */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--ink-100)' }}>
-              {[
-                { key: 'appearance', label: '外观' },
-                { key: 'admin', label: '邀请与用户' },
-                { key: 'github', label: 'AI 推送授权' },
-                { key: 'migrate', label: '备份与迁移' },
-              ].filter(Boolean).map(t => (
-                <button key={t.key} onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }} style={{
-                  flex: 1, padding: '12px 20px', border: 'none', background: 'transparent',
-                  cursor: 'pointer', fontSize: '14px',
-                  fontWeight: tab === t.key ? '600' : '400',
-                  color: tab === t.key ? 'var(--s-main)' : 'var(--text-3)',
-                  borderBottom: tab === t.key ? '2px solid var(--s-main)' : '2px solid transparent',
-                  transition: 'all 0.15s'
-                }}>{t.label}</button>
-              ))}
+        <div className="set-body" style={{ flex: 1, minHeight: 0 }}>
+          {/* 左侧竖排导航（参考 DeepSeek 设置面板；激活项灰底圆角） */}
+          <aside className="set-side">
+            <div className="set-title">设置</div>
+            {SET_NAV.map(t => (
+              <button key={t.key} className={`set-nav-btn${tab === t.key ? ' on' : ''}`}
+                onClick={() => { setTab(t.key); setNewCode(null); setErr(''); setMigrateResult(null); }}>
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </aside>
+          <div className="set-main">
+            <div className="set-head">
+              <span className="set-head-title">{SET_NAV.find(t => t.key === tab)?.label || '设置'}</span>
+              <button className="set-close" onClick={onClose} aria-label="关闭设置">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
 
             {/* Error */}
             {err && (
               <div style={{ 
-                margin: '12px 20px 0', 
+                margin: '0 24px 12px',
                 padding: '10px 14px', 
                 fontSize: '13px', 
                 color: 'var(--danger)', 
@@ -275,8 +280,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
               </div>
             )}
 
-            {/* Tab content */}
-            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+            {/* 分区内容（备份/迁移两分区共用备份 + 恢复；管理员「备份与迁移」多一个迁移器） */}
+            <div className="set-content">
               {tab === 'appearance' ? (
                 <AppearanceTab themeKey={themeKey} onSelect={(k) => { applyTheme(k); setThemeKey(k); }} />
               ) : tab === 'admin' ? (
@@ -295,7 +300,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 />
               ) : tab === 'github' ? (
                 <GithubTab />
-              ) : (
+              ) : tab === 'migrate' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   <BackupSection />
                   <div style={{ height: '1px', background: 'var(--ink-100)' }} />
@@ -309,10 +314,15 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                     onRun={handleMigrateRun}
                   />
                 </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <BackupSection />
+                  <RestoreSection />
+                </div>
               )}
             </div>
-          </>
-        )}
+          </div>{/* /set-main */}
+        </div>{/* /set-body */}
 
         {/* Ban confirm dialog */}
         {confirmBan && (

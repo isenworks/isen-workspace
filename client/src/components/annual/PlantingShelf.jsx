@@ -404,9 +404,10 @@ function CatDrop({ pos, size, onPosChange }) {
           const r = ref.current.getBoundingClientRect();
           setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
         }}>
-        {/* 圆垫子：单层垫面 + 内圈缝线 + 贴边接地柔影；先绘故在猫身后。
-            柔影不另画一团大灰晕（会显得脱地），而是把垫面椭圆「下移 2 / 两侧放宽 1.5」
-            叠一层 11% 黑 + 更外面一层 5% 黑，只露出贴着垫边的一圈，充当接地阴影。 */}
+        {/* 圆垫子：单层垫面 + 内圈缝线 + 一层接地柔影；先绘故在猫身后。
+            接地影只用「一枚高斯模糊椭圆」：原先叠两枚硬边椭圆（5% + 11%）时，
+            半透明硬边会在垫子下缘叠出可见的阶梯色带，看起来像好几层阴影；
+            模糊后只有一层渐变，贴着垫边自然淡出，仍是「落地」而不是「悬空」。 */}
         <svg width={cushionW} height={cushionW * 72 / 140} viewBox="0 0 140 72"
           className="absolute left-1/2 pointer-events-none"
           style={{ bottom: '-20%', transform: 'translateX(-50%)', display: 'block' }}>
@@ -415,9 +416,13 @@ function CatDrop({ pos, size, onPosChange }) {
               <stop offset="0" stopColor="#C97C4A" />
               <stop offset="1" stopColor="#AD5F33" />
             </linearGradient>
+            {/* 模糊区域留足余量，避免柔影被 filter 边界切出硬边 */}
+            <filter id="catCushionShadow" x="-30%" y="-90%" width="160%" height="280%">
+              <feGaussianBlur stdDeviation="3.4" />
+            </filter>
           </defs>
-          <ellipse cx="70" cy="39.5" rx="76" ry="20" fill="#000" opacity="0.05" />
-          <ellipse cx="70" cy="36.8" rx="71.5" ry="19.4" fill="#000" opacity="0.11" />
+          <ellipse cx="70" cy="40" rx="68" ry="17.5" fill="#000" opacity="0.13"
+            filter="url(#catCushionShadow)" />
           <ellipse cx="70" cy="34.5" rx="70" ry="19" fill="url(#catCushionTop)" />
           <ellipse cx="70" cy="34.5" rx="62" ry="16.5" fill="none"
             stroke="#F4E6D2" strokeWidth="1.4" strokeDasharray="3 3" opacity="0.8" />

@@ -31,7 +31,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [confirmBan, setConfirmBan] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(null);
+  const [adminLoading, setAdminLoading] = useState(true);
   // D1 迁移
   const [migrate, setMigrate] = useState({
     habits: '', habit_logs: '', schedules: '', tasks: '', summaries: '', fixed_schedules: '',
@@ -45,10 +46,24 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
 
   useEffect(() => {
     if (open && isAdmin) {
-      loadInvites();
-      loadUsers();
+      setAdminLoading(true);
+      Promise.all([loadInvites(), loadUsers()])
+        .finally(() => setAdminLoading(false));
     }
   }, [open, isAdmin]);
+
+  // Esc 关闭：嵌套确认框（禁用用户）优先，其次整个设置面板
+  // （外观分区里主题编辑/删除确认在自己组件内监听，先注册先响应）
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => {
+      if (e.key !== 'Escape') return;
+      if (confirmBan) { setConfirmBan(null); return; }
+      onClose();
+    };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, confirmBan, onClose]);
 
   async function loadInvites() {
     try {
@@ -217,25 +232,31 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
         .set-nav-btn:hover { background: rgba(120,120,128,0.06); }
         .set-nav-btn.on { background: rgba(120,120,128,0.10); color: var(--text-1); font-weight: 600; }
         .set-main { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
-        .set-head { padding: 14px 20px 8px; display: flex; align-items: center;
+        .set-head { padding: 12px 24px 8px; display: flex; align-items: center;
           justify-content: flex-end; flex-shrink: 0; }
         .set-close { width: 28px; height: 28px; border-radius: 50%; border: none;
           background: rgba(120,120,128,0.12); cursor: pointer; color: var(--text-3);
           display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
         .set-content { padding: 2px 24px 24px; overflow-y: auto; flex: 1; min-height: 0; }
+        /* 弹入动效 + 输入焦点环（内联 border 需 !important 覆盖） */
+        @keyframes setIn { from { opacity: 0; transform: scale(.97) translateY(6px); } to { opacity: 1; transform: none; } }
+        .set-main input:focus, .set-main textarea:focus { border-color: var(--s-main) !important; }
+        @keyframes setSkel { 50% { opacity: .35; } }
+        .set-skel { height: 12px; border-radius: 6px; background: rgba(120,120,128,0.10); animation: setSkel 1.2s ease-in-out infinite; }
         @media (max-width: 640px) {
           .set-body { flex-direction: column; }
           .set-side { width: auto; border-right: none; border-bottom: 1px solid var(--ink-100);
             flex-direction: row; align-items: center; overflow-x: auto; padding: 12px 12px 8px; gap: 6px; }
           .set-title { display: none; }
           .set-nav-btn { width: auto; flex-shrink: 0; padding: 7px 12px; border-radius: 8px; }
+          .set-head { padding: 10px 16px 6px; }
           .set-content { padding: 0 16px 20px; }
         }
       `}</style>
       <div style={{
         background: 'var(--surface-card)', borderRadius: '14px', width: '880px', maxWidth: '94vw',
         maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)', animation: 'setIn .18s ease',
       }} onClick={(e) => e.stopPropagation()}>
         <div className="set-body" style={{ flex: 1, minHeight: 0 }}>
           {/* 左侧竖排导航（参考 DeepSeek 设置面板；激活项灰底圆角） */}
@@ -286,6 +307,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
                 <AdminTab
                   invites={invites}
                   users={users}
+                  loading={adminLoading}
                   newCode={newCode}
                   busy={busy}
                   copied={copied}
@@ -386,6 +408,17 @@ function AppearanceTab({ themeKey, onSelect }) {
   const [overKey, setOverKey] = useState(null);
 
   const refresh = () => setAllThemes(Object.values(getAllThemes()));
+
+  // Esc：主题编辑弹窗 / 删除确认优先关闭并拦截，避免冒泡把整个设置面板关掉
+  useEffect(() => {
+    const h = (e) => {
+      if (e.key !== 'Escape') return;
+      if (editing) { e.stopImmediatePropagation(); setEditing(null); }
+      else if (confirmDel) { e.stopImmediatePropagation(); setConfirmDel(null); }
+    };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [editing, confirmDel]);
 
   // 拖拽落点：把 dragKey 移动到 overKey 的位置，保存顺序并刷新
   const handleDrop = (e) => {
@@ -779,9 +812,22 @@ function ThemeEditorModal({ mode, initialHex, initialLabel, editKey, moduleKey, 
 }
 
 function AdminTab({
-  invites, users, newCode, busy, copied,
+  invites, users, loading, newCode, busy, copied,
   onCreate, onDisable, onCopy, onBan, onUnban, ownerId,
 }) {
+  // 加载骨架：避免首屏闪现「还没有邀请码」的错误空态
+  const SkelRows = () => (
+    <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {[0, 1, 2].map(i => (
+        <div key={i} style={{ display: 'flex', gap: '12px' }}>
+          <div className="set-skel" style={{ width: '18%' }} />
+          <div className="set-skel" style={{ width: '30%' }} />
+          <div className="set-skel" style={{ width: '14%' }} />
+          <div className="set-skel" style={{ width: '22%' }} />
+        </div>
+      ))}
+    </div>
+  );
   // ====== 共用：卡片外壳（每张"邀请码管理/注册用户"外框） ======
   const card = {
     border: '1px solid var(--ink-100)',
@@ -917,7 +963,9 @@ function AdminTab({
         )}
 
         {/* 表格头 + 行（5 列：邀请码 / 状态 / 使用人 / 创建时间 / 操作） */}
-        {invites.length === 0 ? (
+        {loading ? (
+          <SkelRows />
+        ) : invites.length === 0 ? (
           <div style={empty()}>
             <div style={{ fontSize: '28px', marginBottom: '6px' }}>🎟️</div>
             <div style={{ fontWeight: 500, color: 'var(--text-2)' }}>还没有邀请码</div>
@@ -1008,7 +1056,9 @@ function AdminTab({
           </div>
         </div>
 
-        {users.length === 0 ? (
+        {loading ? (
+          <SkelRows />
+        ) : users.length === 0 ? (
           <div style={empty()}>
             <div style={{ fontSize: '28px', marginBottom: '6px' }}>👥</div>
             <div style={{ fontWeight: 500, color: 'var(--text-2)' }}>还没有注册用户</div>

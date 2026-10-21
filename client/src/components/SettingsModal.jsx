@@ -793,50 +793,68 @@ function AdminTab({
   };
   const header = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '12px 16px', borderBottom: '1px solid var(--ink-100)',
+    padding: '14px 16px', minHeight: '56px', borderBottom: '1px solid var(--ink-100)',
     background: 'var(--surface-sunken)',
   };
   const title = { fontSize: '14px', fontWeight: '600', color: 'var(--text-1)' };
   const primaryBtn = {
-    padding: '8px 14px', borderRadius: '8px',
+    padding: '7px 14px', borderRadius: '8px',
     background: busy ? 'var(--ink-disabled)' : 'var(--s-main)',
     color: 'var(--surface-card)', border: 'none', fontWeight: '600', fontSize: '13px',
     cursor: busy ? 'not-allowed' : 'pointer',
     boxShadow: busy ? 'none' : '0 1px 3px rgba(var(--s-rgb),0.28)',
     transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: '6px',
   };
+  /* ===== 表格栅格：列宽用 minmax(0,…) 才能让长邮箱在轨道内省略，
+     否则 fr 的隐式最小宽度 = 内容宽度，长文本会把整列撑开并压到相邻列上 ===== */
+  const INVITE_COLS = 'minmax(84px, 0.9fr) 88px minmax(0, 1.6fr) 96px 84px';
+  const INVITE_MIN_W = 560;
+  const USER_COLS = '36px minmax(0, 1.5fr) minmax(0, 1fr) 96px 76px 84px';
+  const USER_MIN_W = 600;
   const thRow = {
-    display: 'grid', alignItems: 'center', justifyItems: 'center',
-    padding: '8px 16px',
-    fontSize: '12px', color: 'var(--text-3)', fontWeight: '500',
+    display: 'grid', alignItems: 'center', columnGap: '12px',
+    padding: '9px 16px', minHeight: '34px',
+    fontSize: '11.5px', color: 'var(--text-3)', fontWeight: '500',
     background: 'var(--surface-sunken)', borderBottom: '1px solid var(--hairline-faint)',
-    textAlign: 'center',
+    whiteSpace: 'nowrap',
   };
   const tr = {
-    display: 'grid', alignItems: 'center', justifyItems: 'center',
-    padding: '10px 16px',
+    display: 'grid', alignItems: 'center', columnGap: '12px',
+    padding: '10px 16px', minHeight: '48px',
     borderBottom: '1px solid var(--hairline-faint)',
     fontSize: '13px', color: 'var(--text-1)',
     transition: 'background .12s',
-    textAlign: 'center',
   };
-  const codeMono = { fontFamily: 'SF Mono, Menlo, Consolas, monospace', fontWeight: 600, letterSpacing: '0.04em' };
+  // 文本单元格：撑满轨道 + 单行省略（配合 minmax(0,…) 才生效）
+  const tdText = {
+    minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  };
+  const tdNum = { ...tdText, fontVariantNumeric: 'tabular-nums' };
+  const codeMono = {
+    fontFamily: 'SF Mono, Menlo, Consolas, monospace', fontWeight: 600, letterSpacing: '0.04em',
+    minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer',
+  };
   const pill = (color) => ({
-    display: 'inline-flex', alignItems: 'center',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     fontSize: '11px', fontWeight: 600, color: 'var(--surface-card)',
-    padding: '3px 10px', borderRadius: '999px', background: color,
+    padding: '3px 10px', borderRadius: '999px', background: color, whiteSpace: 'nowrap',
+    minWidth: '52px', boxSizing: 'border-box', // 统一徽章宽度：2 字/3 字状态纵向对齐
   });
-  const dangerBtn = {
-    padding: '5px 12px', borderRadius: '7px', border: 'none',
-    background: 'rgba(var(--danger-rgb),0.09)', color: 'var(--danger)',
-    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+  /* 操作按钮：两表统一高度/最小宽度，右端对齐后形成一条竖线 */
+  const actionBtn = {
+    height: '27px', minWidth: '56px', padding: '0 12px', borderRadius: '7px', border: 'none',
+    fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     transition: 'all 0.15s',
+  };
+  const dangerBtn = {
+    ...actionBtn,
+    background: 'rgba(var(--danger-rgb),0.09)', color: 'var(--danger)',
   };
   const successBtn = {
-    padding: '5px 12px', borderRadius: '7px', border: 'none',
+    ...actionBtn,
     background: 'rgba(var(--success-rgb),0.10)', color: 'var(--success)',
-    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-    transition: 'all 0.15s',
   };
   const disabledBtn = {
     ...dangerBtn,
@@ -847,7 +865,7 @@ function AdminTab({
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* ===========================================================
             上半卡片：邀请码管理（标题 + 生成按钮同栏）
            =========================================================== */}
@@ -902,51 +920,73 @@ function AdminTab({
             </div>
           </div>
         ) : (
-          <div>
-            <div style={{ ...thRow, gridTemplateColumns: '1.1fr 0.7fr 1.4fr 1fr 0.6fr' }}>
-              <div>邀请码</div>
-              <div>状态</div>
-              <div>使用人</div>
-              <div>创建时间</div>
-              <div>操作</div>
-            </div>
-            {invites.map(c => {
-              const isUsed = !!c.is_used;
-              const isDisabled = !!c.is_disabled;
-              const statusLabel = isDisabled ? '已禁用' : isUsed ? '已使用' : '未使用';
-              const statusColor = isDisabled ? 'var(--text-3)' : isUsed ? 'var(--s-main)' : 'var(--success)';
-              return (
-                <div
-                  key={c.id}
-                  style={{ ...tr, gridTemplateColumns: '1.1fr 0.7fr 1.4fr 1fr 0.6fr' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-sunken)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface-card)')}
-                >
-                  <code style={codeMono}>{c.code}</code>
-                  <div><span style={pill(statusColor)}>{statusLabel}</span></div>
-                  <div style={{
-                    fontSize: '12px', color: c.used_by_email ? 'var(--text-1)' : 'var(--ink-300)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {c.used_by_email || '—'}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
-                    {c.created_at
-                      ? new Date(c.created_at).toLocaleString('zh-CN', {
-                          month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-                        })
-                      : '—'}
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    {!isUsed && !isDisabled
-                      ? <button onClick={() => onDisable(c.id)} style={dangerBtn}>禁用</button>
-                      : isDisabled
-                        ? <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>—</span>
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: INVITE_MIN_W }}>
+              <div style={{ ...thRow, gridTemplateColumns: INVITE_COLS }}>
+                <div>邀请码</div>
+                <div style={{ textAlign: 'center' }}>状态</div>
+                <div>使用人</div>
+                <div>创建时间</div>
+                <div style={{ textAlign: 'right' }}>操作</div>
+              </div>
+              {invites.map((c, i) => {
+                const isUsed = !!c.is_used;
+                const isDisabled = !!c.is_disabled;
+                const statusLabel = isDisabled ? '已禁用' : isUsed ? '已使用' : '未使用';
+                const statusColor = isDisabled ? 'var(--text-3)' : isUsed ? 'var(--s-main)' : 'var(--success)';
+                const isLast = i === invites.length - 1;
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      ...tr,
+                      gridTemplateColumns: INVITE_COLS,
+                      borderBottom: isLast ? 'none' : tr.borderBottom,
+                      background: 'var(--surface-card)',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-sunken)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface-card)')}
+                  >
+                    {/* 邀请码本身是高频复制对象：点击即复制，成功后就地出现勾 */}
+                    <code
+                      onClick={() => onCopy(c.code)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCopy(c.code); } }}
+                      role="button"
+                      tabIndex={0}
+                      title={copied === c.code ? '已复制' : '点击复制邀请码'}
+                      style={{ ...codeMono, color: copied === c.code ? 'var(--success)' : 'var(--text-1)' }}
+                    >
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.code}</span>
+                      {copied === c.code && <IconCheck size={11} strokeWidth={2.8} />}
+                    </code>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={pill(statusColor)}>{statusLabel}</span>
+                    </div>
+                    <div
+                      style={{
+                        ...tdText, fontSize: '12.5px',
+                        color: c.used_by_email ? 'var(--text-1)' : 'var(--text-3)',
+                      }}
+                      title={c.used_by_email || ''}
+                    >
+                      {c.used_by_email || '—'}
+                    </div>
+                    <div style={{ ...tdNum, fontSize: '12.5px', color: 'var(--text-3)' }}>
+                      {c.created_at
+                        ? new Date(c.created_at).toLocaleString('zh-CN', {
+                            month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                          })
+                        : '—'}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      {!isUsed && !isDisabled
+                        ? <button onClick={() => onDisable(c.id)} style={dangerBtn}>禁用</button>
                         : <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>—</span>}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -971,78 +1011,80 @@ function AdminTab({
             </div>
           </div>
         ) : (
-          <div>
-            <div style={{ ...thRow, gridTemplateColumns: '36px 1.3fr 1fr 1fr 0.6fr 0.7fr' }}>
-              <div />
-              <div>账号</div>
-              <div>昵称 / 注册时间</div>
-              <div>最近登录</div>
-              <div>状态</div>
-              <div>操作</div>
-            </div>
-            {users.map(u => {
-              const isOwner = ownerId && String(u.user_id || u.id) === String(ownerId);
-              const banned = !!u.is_banned;
-              const initial = ((u.username || u.email || '?')[0] || '?').toUpperCase();
-              return (
-                <div
-                  key={u.user_id || u.id}
-                  style={{
-                    ...tr,
-                    gridTemplateColumns: '36px 1.3fr 1fr 1fr 0.6fr 0.7fr',
-                    background: banned ? 'rgba(var(--danger-rgb),0.04)' : 'var(--surface-card)',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = banned ? 'rgba(var(--danger-rgb),0.06)' : 'var(--surface-sunken)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = banned ? 'rgba(var(--danger-rgb),0.04)' : 'var(--surface-card)')}
-                >
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '999px',
-                    background: banned ? 'var(--text-3)' : 'var(--s-main)',
-                    color: 'var(--surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '12px', fontWeight: 700,
-                  }}>{initial}</div>
-                  <div style={{ minWidth: 0, width: '100%' }}>
-                    <span style={{
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
-                      fontWeight: 500, color: 'var(--text-1)',
-                    }}>{u.email}</span>
-                  </div>
-                  <div style={{ minWidth: 0, width: '100%', overflow: 'hidden', fontSize: '12px', color: 'var(--text-3)' }}>
-                    <div style={{ color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {u.username || '—'}
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: USER_MIN_W }}>
+              <div style={{ ...thRow, gridTemplateColumns: USER_COLS }}>
+                <div />
+                <div>账号</div>
+                <div>昵称 / 注册时间</div>
+                <div>最近登录</div>
+                <div style={{ textAlign: 'center' }}>状态</div>
+                <div style={{ textAlign: 'right' }}>操作</div>
+              </div>
+              {users.map((u, i) => {
+                const isOwner = ownerId && String(u.user_id || u.id) === String(ownerId);
+                const banned = !!u.is_banned;
+                const initial = ((u.username || u.email || '?')[0] || '?').toUpperCase();
+                const isLast = i === users.length - 1;
+                const rowBg = banned ? 'rgba(var(--danger-rgb),0.04)' : 'var(--surface-card)';
+                return (
+                  <div
+                    key={u.user_id || u.id}
+                    style={{
+                      ...tr,
+                      gridTemplateColumns: USER_COLS,
+                      borderBottom: isLast ? 'none' : tr.borderBottom,
+                      background: rowBg,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = banned ? 'rgba(var(--danger-rgb),0.06)' : 'var(--surface-sunken)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = rowBg)}
+                  >
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '999px',
+                      background: banned ? 'var(--text-3)' : 'var(--s-main)',
+                      color: 'var(--surface-card)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', fontWeight: 700, justifySelf: 'start',
+                    }}>{initial}</div>
+                    <div style={{ ...tdText, fontWeight: 500, color: 'var(--text-1)' }} title={u.email || ''}>
+                      {u.email}
                     </div>
-                    <div>
-                      {u.created_at
-                        ? new Date(u.created_at).toLocaleDateString('zh-CN', {
-                            year: 'numeric', month: '2-digit', day: '2-digit',
+                    <div style={{ ...tdText, fontSize: '12.5px', lineHeight: 1.45 }}>
+                      <div style={{ color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {u.username || '—'}
+                      </div>
+                      <div style={{ ...tdNum, color: 'var(--text-3)' }}>
+                        {u.created_at
+                          ? new Date(u.created_at).toLocaleDateString('zh-CN', {
+                              year: 'numeric', month: '2-digit', day: '2-digit',
+                            })
+                          : '—'}
+                      </div>
+                    </div>
+                    <div style={{ ...tdNum, fontSize: '12.5px', color: 'var(--text-3)' }}>
+                      {u.last_login
+                        ? new Date(u.last_login).toLocaleString('zh-CN', {
+                            month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
                           })
                         : '—'}
                     </div>
+                    <div style={{ textAlign: 'center' }}>
+                      {isOwner
+                        ? <span style={pill('var(--warning)')}>所有者</span>
+                        : banned
+                          ? <span style={pill('var(--danger)')}>已禁用</span>
+                          : <span style={pill('var(--success)')}>正常</span>}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      {isOwner
+                        ? <button disabled style={disabledBtn} title="所有者账号不可被禁用">禁用</button>
+                        : banned
+                          ? <button onClick={() => onUnban(u.user_id || u.id)} disabled={busy} style={successBtn}>解禁</button>
+                          : <button onClick={() => onBan(u.user_id || u.id)} disabled={busy} style={dangerBtn}>禁用</button>}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-3)', width: '100%' }}>
-                    {u.last_login
-                      ? new Date(u.last_login).toLocaleString('zh-CN', {
-                          month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-                        })
-                      : '—'}
-                  </div>
-                  <div>
-                    {isOwner
-                      ? <span style={pill('var(--warning)')}>所有者</span>
-                      : banned
-                        ? <span style={pill('var(--danger)')}>已禁用</span>
-                        : <span style={pill('var(--success)')}>正常</span>}
-                  </div>
-                  <div style={{ textAlign: 'center', width: '100%' }}>
-                    {isOwner
-                      ? <button disabled style={disabledBtn} title="所有者账号不可被禁用">禁用</button>
-                      : banned
-                        ? <button onClick={() => onUnban(u.user_id || u.id)} disabled={busy} style={successBtn}>解禁</button>
-                        : <button onClick={() => onBan(u.user_id || u.id)} disabled={busy} style={dangerBtn}>禁用</button>}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

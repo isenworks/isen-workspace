@@ -18,6 +18,9 @@ import { useLongPress } from '../components/useLongPress.js';
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
 const modColor = (k) => `var(--m-${k})`;
 const modRgba = (k, a) => `rgba(var(--m-${k}-rgb),${a})`;
+/* 日程行唯一键：重复事项会在同一范围里展开成多条同 id、不同 date 的实例，
+   只按 id 匹配会把「今天的勾选」落到别的日期实例上（或反向），必须带上 date */
+const rowKey = (s) => `${s.id}|${s.date || ''}`;
 
 /* Hero 渐变预设：Apple 系统色 · 相邻色相，中段不脏 */
 const HERO_GRADIENTS = {
@@ -463,44 +466,84 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   /* ===== 日程数据：本周一 ~ 未来 30 天（今日事项 / 本周关键 / 生日 / 后续事项） ===== */
   const [sched, setSched] = useState(null);
+  // 最新 sched 的同步引用：供异步列表响应做合并时读取（避免在 setState 更新函数里做副作用，
+  // StrictMode 下更新函数会被重复调用）
+  const schedRef = useRef(null);
+  useEffect(() => { schedRef.current = sched; }, [sched]);
   // 请求序号 + 在途复用：并发/重复触发（refreshKey 与 reload 广播）只保留最新结果，
   // 同范围请求在途时复用同一 Promise，避免移动端冷启动时的重复请求风暴
   const schedReqRef = useRef(0);
   const schedInflightRef = useRef(null);
-  // 勾选写入保护窗口：id -> { is_done, is_failed, doneAt|null }（doneAt=null 表示 update 仍在途）。
-  // 用途见 loadSched：防止「在途/刚完成的勾选写入」被更早执行的陈旧列表读整表回滚，
-  // 症状即「勾上 → 一会跳回未勾+进度归零 → 再一会又自动勾回」的三段翻转。
-  const schedWritesRef = useRef(new Map());
+
+  /* ===== 本地勾选意图（权威覆盖层） =====
+   * 症状：勾选后过一会跳回未勾 + 进度归零，再过一会又自己恢复。
+   * 原因：勾选是「乐观更新 + 异步写库」，而自动同步（切回前台 / 云 KV 拉取 / 轮询）会重拉整表；
+   *       D1 读副本有秒级延迟，若这次读命中的副本还没收到刚才的写入，就返回「写入前」的旧快照，
+   *       整表覆盖 sched → 打回未勾。等副本追上，下一次读又恢复已勾 —— 于是来回翻转。
+   * 对策：本机刚写下的值在窗口内**始终压过列表读**（key = id|date，精确到重复事项的单次实例）：
+   *   · 服务端读回一致 → 记 confirmedAt，再保留 60s（吸收副本延迟）后释放；
+   *   · 服务端读回不一致 → 用本地意图覆盖该行，不释放；
+   *   · 5 分钟内始终读不到一致值（写入其实没成功 / 被别处改掉）→ 放弃覆盖，回到服务端事实。
+   * 用 sessionStorage 跨刷新保留：移动端 WebView 重载、切页重挂载后也不会闪回旧状态。 */
+  const SCHED_INTENT_KEY = `sched_local_intent:${user?.id || 'anon'}`;
+  const schedWritesRef = useRef(null);
+  if (schedWritesRef.current === null) {
+    const map = new Map();
+    try {
+      const raw = JSON.parse(sessionStorage.getItem(SCHED_INTENT_KEY) || '{}');
+      const now = Date.now();
+      for (const [k, v] of Object.entries(raw)) {
+        if (v && now - Number(v.at || 0) < 5 * 60 * 1000) map.set(k, v);
+      }
+    } catch { /* 存储不可用则退化为纯内存 */ }
+    schedWritesRef.current = map;
+  }
+  const persistSchedWrites = useCallback(() => {
+    try {
+      const obj = {};
+      schedWritesRef.current.forEach((v, k) => { obj[k] = v; });
+      sessionStorage.setItem(SCHED_INTENT_KEY, JSON.stringify(obj));
+    } catch { /* ignore */ }
+  }, [SCHED_INTENT_KEY]);
+
   const loadSched = useCallback(() => {
     const from = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
     const inflight = schedInflightRef.current;
     if (inflight && inflight.from === from) return inflight.promise;
     const reqId = ++schedReqRef.current;
-    const fetchStart = Date.now();
     const promise = API.schedules.list({ from, to: addDaysISO(todayStr, 30) })
       .then(r => {
-        if (reqId !== schedReqRef.current) return;
+        if (reqId !== schedReqRef.current) return; // 已作废（期间发生过勾选写入/更新的请求）
         const list = r?.schedules || [];
         const writes = schedWritesRef.current;
-        if (writes.size === 0 || list.length === 0) { setSched(list); return; }
-        // 有本地勾选写入时逐条比对：写入晚于本次拉取发起（或仍在途）→ 服务端查询可能
-        // 早于写入执行而返回陈旧 is_done，用本地写入值覆盖该条；服务端值已一致、或写入
-        // 完成早于拉取起点 2s 以上（读必已包含该写入）→ 撤销保护。
-        setSched(prev => {
-          const byId = new Map(list.map(x => [String(x.id), x]));
-          for (const [id, w] of writes) {
-            if (w.doneAt != null && w.doneAt < fetchStart - 2000) { writes.delete(id); continue; }
-            const srv = byId.get(id);
-            if (srv && srv.is_done === w.is_done && !!srv.is_failed === !!w.is_failed) {
-              writes.delete(id); // 服务端已含本次写入，保护完成
-              continue;
-            }
-            const local = (prev || []).find(x => String(x.id) === id);
-            if (!srv && !local) { writes.delete(id); continue; } // 条目已被删除，不再保护
-            byId.set(id, { ...(srv || local), is_done: w.is_done, is_failed: w.is_failed });
+        if (!writes || writes.size === 0) { setSched(list); return; }
+        const byKey = new Map(list.map(x => [rowKey(x), x]));
+        const prev = schedRef.current || [];
+        const now = Date.now();
+        let changed = false;
+        for (const [k, w] of writes) {
+          const srv = byKey.get(k);
+          const same = srv
+            && !!srv.is_done === !!w.is_done
+            && !!srv.is_failed === !!w.is_failed;
+          if (same) {
+            // 服务端已含本次意图：保留 60s 兜底窗口后释放
+            if (!w.confirmedAt) { w.confirmedAt = now; changed = true; }
+            else if (now - w.confirmedAt > 60000) { writes.delete(k); changed = true; }
+            continue;
           }
-          return [...byId.values()];
-        });
+          if (now - Number(w.at || 0) > 5 * 60 * 1000) { writes.delete(k); changed = true; continue; }
+          const local = prev.find(x => rowKey(x) === k);
+          if (!srv && !local) { writes.delete(k); changed = true; continue; }
+          // 陈旧读：用本地意图覆盖这一行（其余行照常采用服务端数据）
+          byKey.set(k, {
+            ...(srv || local),
+            is_done: w.is_done ? 1 : 0,
+            is_failed: w.is_failed ? 1 : 0,
+          });
+        }
+        if (changed) persistSchedWrites();
+        setSched([...byKey.values()]);
       })
       // 读取失败（移动端网络抖动 / 8s 超时 / 非 JSON 兜底）：保留上一份数据，不清空已展示内容，
       // 修复「数据出现一会又消失」——只有成功响应才覆盖 sched
@@ -510,7 +553,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       if (schedInflightRef.current && schedInflightRef.current.promise === promise) schedInflightRef.current = null;
     });
     return promise;
-  }, [weekOffset, viewWeekStartStr, weekStartStr, todayStr]);
+  }, [weekOffset, viewWeekStartStr, weekStartStr, todayStr, persistSchedWrites]);
   useEffect(() => { loadSched(); }, [loadSched, syncSignal]);
 
   /* ===== 精力习惯（周打卡矩阵）：声明须在下方 store.subscribe effect 之前（其依赖本行的 refreshEnergy） ===== */
@@ -525,17 +568,24 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       if (!msg) return;
       if (msg.type === 'schedule_saved' && msg.schedule) {
         const s = msg.schedule;
+        const k = rowKey(s);
         setSched(prev => {
-          const idx = (prev || []).findIndex(x => String(x.id) === String(s.id));
-          const updated = {
-            ...s,
-            is_done: !!s.is_done,
-            is_goal: !!s.is_goal,
-            is_failed: !!s.is_failed,
-          };
-          if (idx < 0) return [...(prev || []), updated];
-          const copy = [...prev];
-          copy[idx] = { ...copy[idx], ...updated };
+          const list = prev || [];
+          const idx = list.findIndex(x => rowKey(x) === k);
+          if (idx < 0) {
+            if (!s.date) return list;
+            // 只合并当前加载范围内的行；且同一重复序列已有其它日期实例时不追加，
+            // 否则会凭空多出一条「今日事项」、把 0/1 进度算歪
+            const from = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
+            const to = addDaysISO(todayStr, 30);
+            if (s.date < from || s.date > to) return list;
+            if (list.some(x => String(x.id) === String(s.id))) return list;
+            return [...list, { ...s, is_done: !!s.is_done, is_goal: !!s.is_goal, is_failed: !!s.is_failed }];
+          }
+          const copy = [...list];
+          // 必须按 id + date 定位：重复事项同一 id 有多条日期实例，
+          // 只按 id 会把更新写到别的日期上（勾选「今天」却改了上周那一行）
+          copy[idx] = { ...copy[idx], ...s, is_done: !!s.is_done, is_goal: !!s.is_goal, is_failed: !!s.is_failed };
           return copy;
         });
       } else if (msg.type === 'schedule_deleted' && msg.schedule?.id != null) {
@@ -550,7 +600,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       }
     });
     return unsub;
-  }, [loadSched, refreshEnergy]);
+  }, [loadSched, refreshEnergy, weekOffset, viewWeekStartStr, weekStartStr, todayStr]);
 
   /* ===== 精力格子打卡：乐观覆盖 + API 持久化（与今日计划/习惯面板同接口，切页重新拉取即同步） ===== */
   const [habitTweaks, setHabitTweaks] = useState({});
@@ -627,23 +677,27 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   /* 勾选/取消关键事项（乐观更新 + API 持久化，与 KeyTasks 同款含重复事项 occurrence 处理） */
   const toggleWeekKey = async (s) => {
     const nextDone = !s.is_done;
-    setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: nextDone, is_failed: false } : x));
-    const wId = String(s.id);
-    schedWritesRef.current.set(wId, { is_done: nextDone, is_failed: false, doneAt: null });
+    const k = rowKey(s);
+    const apply = (done, failed) => setSched(prev => (prev || []).map(x => rowKey(x) === k
+      ? { ...x, is_done: done ? 1 : 0, is_failed: failed ? 1 : 0 }
+      : x));
+    apply(nextDone, false);
+    // 作废此刻仍在途的列表读（它们可能早于写入执行，返回的是旧快照）
+    schedReqRef.current++;
+    schedInflightRef.current = null;
+    schedWritesRef.current.set(k, { is_done: nextDone, is_failed: false, at: Date.now(), confirmedAt: 0 });
+    persistSchedWrites();
     try {
       const r = await API.schedules.update(s.id, { is_done: nextDone, is_failed: false, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
-      // 记录写入完成时刻（供 loadSched 识别陈旧读）；仅当本次写入仍是该条最新意图时生效，
-      // 防止快速连点时旧响应把新意图标成"已完成"
-      const w = schedWritesRef.current.get(wId);
-      if (w && w.is_done === nextDone && w.is_failed === false) w.doneAt = Date.now();
       // 广播勾选结果：日历"周月目标"面板等挂载中的监听方实时同步状态
       const saved = r?.schedule || { ...s, is_done: nextDone, is_failed: false };
       saved.is_done = nextDone;
       saved.is_failed = false;
       store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
     } catch {
-      schedWritesRef.current.delete(wId);
-      setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: !nextDone, is_failed: s.is_failed } : x));
+      schedWritesRef.current.delete(k);
+      persistSchedWrites();
+      apply(s.is_done, s.is_failed);
     }
   };
 
@@ -651,21 +705,26 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const markFailedWeekKey = async (s) => {
     const nextFailed = !s.is_failed;
     const nextDone = nextFailed ? false : !!s.is_done;
-    setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: nextFailed, is_done: nextDone } : x));
-    const wId = String(s.id);
-    schedWritesRef.current.set(wId, { is_done: nextDone, is_failed: nextFailed, doneAt: null });
+    const k = rowKey(s);
+    const apply = (done, failed) => setSched(prev => (prev || []).map(x => rowKey(x) === k
+      ? { ...x, is_failed: failed ? 1 : 0, is_done: done ? 1 : 0 }
+      : x));
+    apply(nextDone, nextFailed);
+    schedReqRef.current++;
+    schedInflightRef.current = null;
+    schedWritesRef.current.set(k, { is_done: nextDone, is_failed: nextFailed, at: Date.now(), confirmedAt: 0 });
+    persistSchedWrites();
     try {
       const r = await API.schedules.update(s.id, { is_failed: nextFailed, is_done: nextDone });
-      const w = schedWritesRef.current.get(wId);
-      if (w && w.is_failed === nextFailed && w.is_done === nextDone) w.doneAt = Date.now();
       // 广播"未达成"标记结果：日历"周月目标"面板等挂载中的监听方实时同步状态
       const saved = r?.schedule || { ...s, is_failed: nextFailed, is_done: nextDone };
       saved.is_failed = nextFailed;
       saved.is_done = nextDone;
       store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
     } catch {
-      schedWritesRef.current.delete(wId);
-      setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: s.is_failed, is_done: s.is_done } : x));
+      schedWritesRef.current.delete(k);
+      persistSchedWrites();
+      apply(s.is_done, s.is_failed);
     }
   };
 
@@ -1082,7 +1141,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
                 {todaySorted.map(s => (
                   <div
-                    key={s.id}
+                    key={rowKey(s)}
                     onContextMenu={e => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -1166,7 +1225,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
                 {weekKeys.map(s => (
                   <div
-                    key={s.id}
+                    key={rowKey(s)}
                     onContextMenu={e => {
                       e.preventDefault();
                       e.stopPropagation();

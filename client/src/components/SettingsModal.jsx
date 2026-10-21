@@ -217,9 +217,8 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
         .set-nav-btn:hover { background: rgba(120,120,128,0.06); }
         .set-nav-btn.on { background: rgba(120,120,128,0.10); color: var(--text-1); font-weight: 600; }
         .set-main { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
-        .set-head { padding: 16px 24px 10px; display: flex; align-items: center;
-          justify-content: space-between; flex-shrink: 0; }
-        .set-head-title { font-size: 15px; font-weight: 600; color: var(--text-1); }
+        .set-head { padding: 14px 20px 8px; display: flex; align-items: center;
+          justify-content: flex-end; flex-shrink: 0; }
         .set-close { width: 28px; height: 28px; border-radius: 50%; border: none;
           background: rgba(120,120,128,0.12); cursor: pointer; color: var(--text-3);
           display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
@@ -234,7 +233,7 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
         }
       `}</style>
       <div style={{
-        background: 'var(--surface-card)', borderRadius: '14px', width: '800px', maxWidth: '94vw',
+        background: 'var(--surface-card)', borderRadius: '14px', width: '880px', maxWidth: '94vw',
         maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
       }} onClick={(e) => e.stopPropagation()}>
@@ -252,7 +251,6 @@ export default function SettingsModal({ open, onClose, user: propUser }) {
           </aside>
           <div className="set-main">
             <div className="set-head">
-              <span className="set-head-title">{SET_NAV.find(t => t.key === tab)?.label || '设置'}</span>
               <button className="set-close" onClick={onClose} aria-label="关闭设置">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -806,20 +804,21 @@ function AdminTab({
     transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: '6px',
   };
   /* ===== 表格栅格：列宽用 minmax(0,…) 才能让长邮箱在轨道内省略，
-     否则 fr 的隐式最小宽度 = 内容宽度，长文本会把整列撑开并压到相邻列上 ===== */
-  const INVITE_COLS = 'minmax(84px, 0.9fr) 88px minmax(0, 1.6fr) 96px 84px';
-  const INVITE_MIN_W = 560;
-  const USER_COLS = '36px minmax(0, 1.5fr) minmax(0, 1fr) 96px 76px 84px';
-  const USER_MIN_W = 600;
+     否则 fr 的隐式最小宽度 = 内容宽度，长文本会把整列撑开并压到相邻列上。
+     时间/状态/操作用固定窄列 + 10px 列距，保证不出现横向滚动 ===== */
+  const INVITE_COLS = 'minmax(80px, 0.9fr) 84px minmax(0, 1.6fr) 90px 64px';
+  const INVITE_MIN_W = 520;
+  const USER_COLS = '30px minmax(0, 1.4fr) minmax(0, 1fr) 90px 64px 64px';
+  const USER_MIN_W = 540;
   const thRow = {
-    display: 'grid', alignItems: 'center', columnGap: '12px',
+    display: 'grid', alignItems: 'center', columnGap: '10px',
     padding: '9px 16px', minHeight: '34px',
     fontSize: '11.5px', color: 'var(--text-3)', fontWeight: '500',
     background: 'var(--surface-sunken)', borderBottom: '1px solid var(--hairline-faint)',
     whiteSpace: 'nowrap',
   };
   const tr = {
-    display: 'grid', alignItems: 'center', columnGap: '12px',
+    display: 'grid', alignItems: 'center', columnGap: '10px',
     padding: '10px 16px', minHeight: '48px',
     borderBottom: '1px solid var(--hairline-faint)',
     fontSize: '13px', color: 'var(--text-1)',
@@ -835,12 +834,19 @@ function AdminTab({
     minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
     display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer',
   };
-  const pill = (color) => ({
+  /* 状态徽章：浅底色 + 同系深字（软性徽章），替代原来的实心深色底——
+     表格一屏多枚徽章时，实心块视觉噪音大，浅底只在需要处轻提示 */
+  const pill = (softBg, textColor) => ({
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '11px', fontWeight: 600, color: 'var(--surface-card)',
-    padding: '3px 10px', borderRadius: '999px', background: color, whiteSpace: 'nowrap',
-    minWidth: '52px', boxSizing: 'border-box', // 统一徽章宽度：2 字/3 字状态纵向对齐
+    fontSize: '11px', fontWeight: 600, color: textColor,
+    padding: '2px 9px', borderRadius: '999px', background: softBg, whiteSpace: 'nowrap',
+    minWidth: '48px', boxSizing: 'border-box', lineHeight: '17px',
   });
+  const PILL_OK = ['rgba(var(--success-rgb),0.13)', 'var(--success)'];
+  const PILL_MAIN = ['rgba(var(--s-rgb),0.11)', 'var(--s-main)'];
+  const PILL_WARN = ['rgba(var(--warning-rgb),0.15)', 'var(--warning-text)'];
+  const PILL_DANGER = ['rgba(var(--danger-rgb),0.10)', 'var(--danger)'];
+  const PILL_GRAY = ['rgba(120,120,128,0.13)', 'var(--text-3)'];
   /* 操作按钮：两表统一高度/最小宽度，右端对齐后形成一条竖线 */
   const actionBtn = {
     height: '27px', minWidth: '56px', padding: '0 12px', borderRadius: '7px', border: 'none',
@@ -933,7 +939,7 @@ function AdminTab({
                 const isUsed = !!c.is_used;
                 const isDisabled = !!c.is_disabled;
                 const statusLabel = isDisabled ? '已禁用' : isUsed ? '已使用' : '未使用';
-                const statusColor = isDisabled ? 'var(--text-3)' : isUsed ? 'var(--s-main)' : 'var(--success)';
+                const statusPill = isDisabled ? PILL_GRAY : isUsed ? PILL_MAIN : PILL_OK;
                 const isLast = i === invites.length - 1;
                 return (
                   <div
@@ -960,7 +966,7 @@ function AdminTab({
                       {copied === c.code && <IconCheck size={11} strokeWidth={2.8} />}
                     </code>
                     <div style={{ textAlign: 'center' }}>
-                      <span style={pill(statusColor)}>{statusLabel}</span>
+                      <span style={pill(...statusPill)}>{statusLabel}</span>
                     </div>
                     <div
                       style={{
@@ -1069,10 +1075,10 @@ function AdminTab({
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       {isOwner
-                        ? <span style={pill('var(--warning)')}>所有者</span>
+                        ? <span style={pill(...PILL_WARN)}>所有者</span>
                         : banned
-                          ? <span style={pill('var(--danger)')}>已禁用</span>
-                          : <span style={pill('var(--success)')}>正常</span>}
+                          ? <span style={pill(...PILL_DANGER)}>已禁用</span>
+                          : <span style={pill(...PILL_OK)}>正常</span>}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                       {isOwner

@@ -467,13 +467,41 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   // 同范围请求在途时复用同一 Promise，避免移动端冷启动时的重复请求风暴
   const schedReqRef = useRef(0);
   const schedInflightRef = useRef(null);
+  // 勾选写入保护窗口：id -> { is_done, is_failed, doneAt|null }（doneAt=null 表示 update 仍在途）。
+  // 用途见 loadSched：防止「在途/刚完成的勾选写入」被更早执行的陈旧列表读整表回滚，
+  // 症状即「勾上 → 一会跳回未勾+进度归零 → 再一会又自动勾回」的三段翻转。
+  const schedWritesRef = useRef(new Map());
   const loadSched = useCallback(() => {
     const from = weekOffset < 0 ? viewWeekStartStr : weekStartStr;
     const inflight = schedInflightRef.current;
     if (inflight && inflight.from === from) return inflight.promise;
     const reqId = ++schedReqRef.current;
+    const fetchStart = Date.now();
     const promise = API.schedules.list({ from, to: addDaysISO(todayStr, 30) })
-      .then(r => { if (reqId === schedReqRef.current) setSched(r?.schedules || []); })
+      .then(r => {
+        if (reqId !== schedReqRef.current) return;
+        const list = r?.schedules || [];
+        const writes = schedWritesRef.current;
+        if (writes.size === 0 || list.length === 0) { setSched(list); return; }
+        // 有本地勾选写入时逐条比对：写入晚于本次拉取发起（或仍在途）→ 服务端查询可能
+        // 早于写入执行而返回陈旧 is_done，用本地写入值覆盖该条；服务端值已一致、或写入
+        // 完成早于拉取起点 2s 以上（读必已包含该写入）→ 撤销保护。
+        setSched(prev => {
+          const byId = new Map(list.map(x => [String(x.id), x]));
+          for (const [id, w] of writes) {
+            if (w.doneAt != null && w.doneAt < fetchStart - 2000) { writes.delete(id); continue; }
+            const srv = byId.get(id);
+            if (srv && srv.is_done === w.is_done && !!srv.is_failed === !!w.is_failed) {
+              writes.delete(id); // 服务端已含本次写入，保护完成
+              continue;
+            }
+            const local = (prev || []).find(x => String(x.id) === id);
+            if (!srv && !local) { writes.delete(id); continue; } // 条目已被删除，不再保护
+            byId.set(id, { ...(srv || local), is_done: w.is_done, is_failed: w.is_failed });
+          }
+          return [...byId.values()];
+        });
+      })
       // 读取失败（移动端网络抖动 / 8s 超时 / 非 JSON 兜底）：保留上一份数据，不清空已展示内容，
       // 修复「数据出现一会又消失」——只有成功响应才覆盖 sched
       .catch(() => {});
@@ -600,14 +628,21 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const toggleWeekKey = async (s) => {
     const nextDone = !s.is_done;
     setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: nextDone, is_failed: false } : x));
+    const wId = String(s.id);
+    schedWritesRef.current.set(wId, { is_done: nextDone, is_failed: false, doneAt: null });
     try {
       const r = await API.schedules.update(s.id, { is_done: nextDone, is_failed: false, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
+      // 记录写入完成时刻（供 loadSched 识别陈旧读）；仅当本次写入仍是该条最新意图时生效，
+      // 防止快速连点时旧响应把新意图标成"已完成"
+      const w = schedWritesRef.current.get(wId);
+      if (w && w.is_done === nextDone && w.is_failed === false) w.doneAt = Date.now();
       // 广播勾选结果：日历"周月目标"面板等挂载中的监听方实时同步状态
       const saved = r?.schedule || { ...s, is_done: nextDone, is_failed: false };
       saved.is_done = nextDone;
       saved.is_failed = false;
       store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
     } catch {
+      schedWritesRef.current.delete(wId);
       setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_done: !nextDone, is_failed: s.is_failed } : x));
     }
   };
@@ -617,14 +652,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     const nextFailed = !s.is_failed;
     const nextDone = nextFailed ? false : !!s.is_done;
     setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: nextFailed, is_done: nextDone } : x));
+    const wId = String(s.id);
+    schedWritesRef.current.set(wId, { is_done: nextDone, is_failed: nextFailed, doneAt: null });
     try {
       const r = await API.schedules.update(s.id, { is_failed: nextFailed, is_done: nextDone });
+      const w = schedWritesRef.current.get(wId);
+      if (w && w.is_failed === nextFailed && w.is_done === nextDone) w.doneAt = Date.now();
       // 广播"未达成"标记结果：日历"周月目标"面板等挂载中的监听方实时同步状态
       const saved = r?.schedule || { ...s, is_failed: nextFailed, is_done: nextDone };
       saved.is_failed = nextFailed;
       saved.is_done = nextDone;
       store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
     } catch {
+      schedWritesRef.current.delete(wId);
       setSched(prev => (prev || []).map(x => x.id === s.id ? { ...x, is_failed: s.is_failed, is_done: s.is_done } : x));
     }
   };

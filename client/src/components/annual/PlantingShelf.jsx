@@ -370,47 +370,7 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
   );
 }
 
-// ---- 宠物垫子（固定位置，独立 state，像浮板一样是布景元素）----
-//   胡桃木棕 family（#C4A278→#9A7F5C）与浮板同饱和度同色相，不抢不突兀。
-//   形状 = 圆角矩形；厚 = 木板三明治结构（上亮→面→下暗）+ 一层木纹纹理；
-//   缝线 = 一圈浅色虚线，是"软垫"而非"木板"的唯一语义标记。
-function PetCushion({ left, top, width, height }) {
-  return (
-    <div className="absolute pointer-events-none"
-      style={{
-        left: `${left}%`, top: `${top}%`,
-        width: `${width}%`, height: `${height}%`,
-        zIndex: 5,
-        transform: 'translate(-50%, 0)',
-      }}>
-      <svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none"
-        style={{ display: 'block', overflow: 'visible' }}>
-        <defs>
-          <linearGradient id="pcush_top" x1="0.5" y1="0" x2="0.5" y2="1">
-            <stop offset="0" stopColor="#D4B48C" />   {/* 上高光 */}
-            <stop offset="0.35" stopColor="#C4A278" /> {/* 面 */}
-            <stop offset="1" stopColor="#9A7F5C" />    {/* 下暗 */}
-          </linearGradient>
-          <filter id="pcush_shadow" x="-5%" y="-20%" width="110%" height="160%">
-            <feGaussianBlur stdDeviation="4" />
-          </filter>
-        </defs>
-        {/* 接地柔影：胡桃木同色系 */}
-        <rect x="2%" y="78%" width="96%" height="20%" rx="16" ry="8"
-          fill="#8B6B4F" opacity="0.22" filter="url(#pcush_shadow)" />
-        {/* 垫面本体 */}
-        <rect x="0" y="0" width="1000" height="100" rx="28" ry="28" fill="url(#pcush_top)" />
-        {/* 上缘高光条 */}
-        <rect x="3%" y="2%" width="94%" height="30%" rx="20" ry="12" fill="rgba(255,245,225,0.38)" />
-        {/* 内圈缝线：米黄虚线 — 软垫唯一语义标记 */}
-        <rect x="6%" y="6%" width="88%" height="88%" rx="22" ry="22"
-          fill="none" stroke="#E8D5B5" strokeWidth="2.6" strokeDasharray="9 6" opacity="0.9" />
-      </svg>
-    </div>
-  );
-}
-
-// ---- 可拖拽 + 可缩放的宠物（本体，不含垫子）----
+// ---- 可拖拽 + 可缩放的宠物（本体）----
 //   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画拖动/缩放期间暂停。
 //   选中时显示四角绿色缩放手柄（与植物手柄同款）。
 function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, onContextMenu, baseZ = 6 }) {
@@ -1502,14 +1462,9 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
 
-        {/* 宠物区：垫子（固定位置，独立 state）→ 宠物（可自由拖拽缩放 + 右键调图层）
+        {/* 宠物区：宠物（可自由拖拽缩放 + 右键调图层）
             baseZ 从 settings.pet_z_index 读：默认 cat=10, corgi=6（猫在狗上），
             右键浮动菜单位移/置顶/置底后持久化到 settings */}
-        {(() => {
-          const mat = s.pet_mat || { left: 30, top: 56, width: 28, height: 9 };
-          return <PetCushion left={mat.left} top={mat.top} width={mat.width} height={mat.height} />;
-        })()}
-        {/* 层级操作函数：基于 settings.pet_z_index 统一协调所有宠物 */}
         {(() => {
           // 所有宠物当前的 baseZ（从 settings 读，缺省给默认值）
           const allPetIds = ['cat', 'corgi'];

@@ -413,7 +413,7 @@ function PetCushion({ left, top, width, height }) {
 // ---- 可拖拽 + 可缩放的宠物（本体，不含垫子）----
 //   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画拖动/缩放期间暂停。
 //   选中时显示四角绿色缩放手柄（与植物手柄同款）。
-function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect }) {
+function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, baseZ = 6 }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
   const [resize, setResize] = useState(null);
@@ -456,7 +456,7 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
 
   return (
     <div className="absolute"
-      style={{ left: pos.left, top: pos.top, zIndex: selected ? 7 : 6, transform: 'translate(-50%,-50%)' }}>
+      style={{ left: pos.left, top: pos.top, zIndex: selected ? baseZ + 1 : baseZ, transform: 'translate(-50%,-50%)' }}>
       <div ref={ref} className="relative cursor-grab active:cursor-grabbing select-none"
         onMouseDown={(e) => {
           e.stopPropagation(); e.preventDefault(); onSelect?.();
@@ -1506,10 +1506,11 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           const mat = s.pet_mat || { left: 30, top: 56, width: 28, height: 9 };
           return <PetCushion left={mat.left} top={mat.top} width={mat.width} height={mat.height} />;
         })()}
-        {/* 猫 — 默认左 22% 上 48%（在垫子左半） */}
+        {/* 猫 — 默认左 22% 上 48%（在垫子左半）。baseZ=10 让猫始终压在柯基上面 */}
         <PetDrop
           id="cat"
           imgSrc={catLying}
+          baseZ={10}
           pos={s.cat || { left: '22%', top: '48%' }}
           size={Math.max(40, Math.min(320, s.cat_size || 100))}
           selected={selectedPetId === 'cat'}

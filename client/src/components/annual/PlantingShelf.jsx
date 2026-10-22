@@ -13,6 +13,7 @@ import { useLongPress } from '../useLongPress.js';
 import { uid } from './utils.js';
 import catLying from '../../assets/cat-lying.png';
 import corgiSleeping from '../../assets/corgi-sleeping.png';
+import petCushion from '../../assets/pet-cushion.png';
 
 // ---- 绿色（工作台 iOS accent.green 700 单色，H≈136° 同色相，只降明度）----
 // 单色 #238E3F  green-700：一处到底 —— 实底按钮 / 勾选框 / 缩放手柄 / focus 边框 /
@@ -373,7 +374,7 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
 // ---- 可拖拽 + 可缩放的宠物（本体）----
 //   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画拖动/缩放期间暂停。
 //   选中时显示四角绿色缩放手柄（与植物手柄同款）。
-function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, onContextMenu, baseZ = 6 }) {
+function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, onContextMenu, baseZ = 6, breathe = true, maxSize = 320 }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
   const [resize, setResize] = useState(null);
@@ -404,8 +405,8 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
     const startDist = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
     const onMove = (ev) => {
       const d = Math.hypot(ev.clientX - cx, ev.clientY - cy);
-      // size 单位是像素（默认 ~100px），下限 40px（迷你），上限 320px（巨型）
-      const ns = Math.max(40, Math.min(320, Math.round(startSize * (d / startDist))));
+      // size 单位是像素（宠物默认 ~100px），下限 40px（迷你），上限 maxSize（垫子可更大）
+      const ns = Math.max(40, Math.min(maxSize, Math.round(startSize * (d / startDist))));
       onSizeChange(Math.round(ns));
     };
     const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); setResize(null); };
@@ -426,7 +427,7 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
         }}
         onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
         {/* 呼吸起伏（拖动/缩放时暂停） */}
-        <div className="cat-breathe relative" style={{ animationPlayState: drag || resize ? 'paused' : 'running' }}>
+        <div className={(breathe ? 'cat-breathe ' : '') + 'relative'} style={{ animationPlayState: drag || resize ? 'paused' : 'running' }}>
           <img src={imgSrc} alt="" width={size} draggable={false}
             style={{ display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
         </div>
@@ -1462,15 +1463,15 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
 
-        {/* 宠物区：宠物（可自由拖拽缩放 + 右键调图层）
-            baseZ 从 settings.pet_z_index 读：默认 cat=10, corgi=6（猫在狗上），
+        {/* 宠物区：垫子 + 宠物（都可自由拖拽缩放 + 右键调图层）
+            baseZ 从 settings.pet_z_index 读：默认 mat=4（垫在最底）、corgi=6、cat=10（猫在狗上），
             右键浮动菜单位移/置顶/置底后持久化到 settings */}
         {(() => {
           // 所有宠物当前的 baseZ（从 settings 读，缺省给默认值）
-          const allPetIds = ['cat', 'corgi'];
-          const zMap = s.pet_z_index || { cat: 10, corgi: 6 };
-          const baseZOf = (id) => zMap[id] ?? (id === 'cat' ? 10 : 6);
-          const applyZ = (id, delta) => setSettings(st => ({ ...st, pet_z_index: { ...(st.pet_z_index || { cat: 10, corgi: 6 }), [id]: (baseZOf(id) + delta) } }));
+          const allPetIds = ['mat', 'cat', 'corgi'];
+          const zMap = s.pet_z_index || { mat: 4, cat: 10, corgi: 6 };
+          const baseZOf = (id) => zMap[id] ?? (id === 'cat' ? 10 : id === 'corgi' ? 6 : 4);
+          const applyZ = (id, delta) => setSettings(st => ({ ...st, pet_z_index: { ...(st.pet_z_index || { mat: 4, cat: 10, corgi: 6 }), [id]: (baseZOf(id) + delta) } }));
           const bringToFront = (id) => {
             const max = Math.max(...allPetIds.map(baseZOf));
             applyZ(id, max - baseZOf(id) + 2); // +2 确保比最大的还高
@@ -1501,6 +1502,21 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           ];
           return (
             <>
+              {/* 垫子（图片版）：垫在最底层，无呼吸动画，可拉得更宽（maxSize 560） */}
+              <PetDrop
+                id="mat"
+                imgSrc={petCushion}
+                breathe={false}
+                maxSize={560}
+                baseZ={baseZOf('mat')}
+                pos={s.mat || { left: '30%', top: '56%' }}
+                size={Math.max(40, Math.min(560, s.mat_size || 260))}
+                selected={selectedPetId === 'mat'}
+                onSelect={() => { setSelectedPetId('mat'); setSelected(null); }}
+                onPosChange={(np) => setSettings(st => ({ ...st, mat: np }))}
+                onSizeChange={(ns) => setSettings(st => ({ ...st, mat_size: ns }))}
+                onContextMenu={(e) => handleContextMenu('mat', e)}
+              />
               {/* 猫 */}
               <PetDrop
                 id="cat"
@@ -1542,7 +1558,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                 >
                   <div className="py-1.5 px-2 bg-white/95 backdrop-blur-md w-40">
                     <div className="px-2 py-1 text-[11px] text-[var(--text-3)] font-medium tracking-wide border-b border-gray-100/70 mb-0.5">
-                      图层 · {petMenu.id === 'cat' ? '小猫' : '柯基'}
+                      图层 · {petMenu.id === 'cat' ? '小猫' : petMenu.id === 'corgi' ? '柯基' : '垫子'}
                     </div>
                     {menuItems.map(item => (
                       <button

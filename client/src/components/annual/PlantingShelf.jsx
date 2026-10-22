@@ -438,12 +438,13 @@ function CatDrop({ pos, size, onPosChange }) {
 
 // ============================================================
 // 养护动作：语义色 + 图标（统一 24×24 视框 / 2px 圆头描边）
-//   图标选型（全部来自 Lucide，线宽 2 与原库一致）：
+//   图标选型（Lucide 线宽 2 与原库一致；换盆为自绘花盆，同规格）：
 //     · 浇水 = droplets（交叠水滴）—— 比单滴更明确「水」，且是 Lucide 原生字形
 //     · 施肥 = flask-conical（锥形瓶）—— 与「打药」的喷雾罐区分开：一个补营养、一个除虫
 //     · 打药 = spray-can / 拍照 = camera / 修剪 = scissors
+//     · 换盆 = 花盆带苗（陶土色）—— 盆沿 + 收边盆身 + 双叶新苗，自绘保持同线宽
 //     · 小体积（12–15px）细线易发灰 → 配同色 chip 圆角底承载，是小尺寸辨识度的主要手段
-//   语义色：水=蓝、肥=土棕、药=紫、拍照=主绿、修剪=红（与土棕/蓝错开色相，一眼可辨）
+//   语义色：水=蓝、肥=土棕、药=紫、拍照=主绿、修剪=红、换盆=陶土橙（色相互错，一眼可辨）
 // ============================================================
 const ACTIONS = {
   water:     { label: '浇水', color: '#2E86DE', soft: 'rgba(46,134,222,0.10)' },
@@ -451,9 +452,10 @@ const ACTIONS = {
   spray:     { label: '打药', color: '#7E57C2', soft: 'rgba(126,87,194,0.10)' },
   photo:     { label: '拍照', color: '#238E3F', soft: 'rgba(35,142,63,0.10)' },
   prune:     { label: '修剪', color: '#CF5A55', soft: 'rgba(207,90,85,0.10)' },
+  repot:     { label: '换盆', color: '#C46A2B', soft: 'rgba(196,106,43,0.10)' },
 };
-// 界面里启用的动作（后端还支持换盆；未列入 = 暂不在 UI 暴露）
-const ACTION_KINDS = ['water', 'fertilize', 'spray', 'photo', 'prune'];
+// 界面里启用的动作（与后端 CARE_KINDS 对齐）
+const ACTION_KINDS = ['water', 'fertilize', 'spray', 'photo', 'prune', 'repot'];
 
 const ACTION_PATHS = {
   // Lucide droplets
@@ -482,6 +484,15 @@ const ACTION_PATHS = {
   // Lucide scissors
   prune: (<>
     <circle cx="6" cy="6" r="3" /><path d="M8.12 8.12 12 12" /><path d="M20 4 8.12 15.88" /><circle cx="6" cy="18" r="3" /><path d="M14.8 14.8 20 20" />
+  </>),
+  // 花盆带苗（自绘，Lucide 规格）：盆沿 + 收边盆身 + 双叶新苗
+  repot: (<>
+    <path d="M5 9h14" />
+    <path d="M5 9v3M19 9v3" />
+    <path d="M6.5 12h11l-1.1 6.5a2.4 2.4 0 0 1-2.4 2h-4a2.4 2.4 0 0 1-2.4-2z" />
+    <path d="M12 9V6.5" />
+    <path d="M12 6.5c0-2 1.6-3.5 3.6-3.5 0 2-1.6 3.5-3.6 3.5z" />
+    <path d="M12 6.5c0-2-1.6-3.5-3.6-3.5 0 2 1.6 3.5 3.6 3.5z" />
   </>),
 };
 

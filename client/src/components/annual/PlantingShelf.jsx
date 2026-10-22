@@ -328,7 +328,8 @@ function BFDrop({ pos, size, color, anim, onPosChange }) {
         const r = ref.current.getBoundingClientRect();
         setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
       }}>
-      <div className={anim}><Butterfly size={size} color={color} /></div>
+      {/* bf-bob：身体颠簸与 0.4s 扑翼同周期相位锁定 —— 压翅时身体随之一颠 */}
+      <div className={anim}><div className="bf-bob"><Butterfly size={size} color={color} /></div></div>
     </div>
   );
 }
@@ -1307,20 +1308,26 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         .bf-wing { transform-origin: center; animation: b-wing 0.4s ease-in-out infinite alternate; }
         @keyframes b-wing { 0% { transform: scaleX(1); } 100% { transform: scaleX(0.6); } }
         /* 植物微摇（已移除：用户反馈不喜欢摇晃效果） */
-        /* 蜜蜂飞行 */
-        .bee-fly-1 { animation: bee-fly-1 14s ease-in-out infinite; }
-        @keyframes bee-fly-1 { 0%{transform:translate(0,0) rotate(-5deg)} 20%{transform:translate(40px,-20px) rotate(10deg)} 40%{transform:translate(80px,10px) rotate(-8deg)} 60%{transform:translate(30px,30px) rotate(5deg)} 80%{transform:translate(-20px,-15px) rotate(-12deg)} 100%{transform:translate(0,0) rotate(-5deg)} }
-        .bee-fly-2 { animation: bee-fly-2 16s ease-in-out infinite; }
-        @keyframes bee-fly-2 { 0%{transform:translate(0,0) rotate(5deg)} 25%{transform:translate(-30px,15px) rotate(-10deg)} 50%{transform:translate(50px,-10px) rotate(8deg)} 75%{transform:translate(10px,25px) rotate(-3deg)} 100%{transform:translate(0,0) rotate(5deg)} }
+        /* 蜜蜂/蝴蝶飞行 v2（动画师评审版）：
+           · base timing = linear —— 途经点只负责塑形，不再逐点急刹（昆虫悬飞永不停驻）
+           · rotate 逐点对齐飞行矢量：左朝向（bee1）抬头=正角，右朝向（镜像 bee2）反号；
+             蝴蝶顶视对称，rotate 只做侧倾 bank，跟随水平方向
+           · bee2 固定 26s，与 bee1(14s) 互质 —— 相位永不重复 */
+        .bee-fly-1 { animation: bee-fly-1 14s linear infinite; }
+        @keyframes bee-fly-1 { 0%{transform:translate(0,0) rotate(-5deg)} 20%{transform:translate(40px,-20px) rotate(10deg)} 40%{transform:translate(80px,10px) rotate(-8deg)} 60%{transform:translate(30px,30px) rotate(-6deg)} 80%{transform:translate(-20px,-15px) rotate(8deg)} 100%{transform:translate(0,0) rotate(-5deg)} }
+        .bee-fly-2 { animation: bee-fly-2 26s linear infinite; }
+        @keyframes bee-fly-2 { 0%{transform:translate(0,0) rotate(-5deg)} 25%{transform:translate(-30px,15px) rotate(5deg)} 50%{transform:translate(50px,-10px) rotate(-8deg)} 75%{transform:translate(10px,25px) rotate(6deg)} 100%{transform:translate(0,0) rotate(-5deg)} }
         /* 蝴蝶飞行 */
-        .bf-fly-1 { animation: bf-fly-1 18s ease-in-out infinite; }
-        @keyframes bf-fly-1 { 0%{transform:translate(0,0)} 25%{transform:translate(-30px,-25px) rotate(-8deg)} 50%{transform:translate(50px,-15px) rotate(5deg)} 75%{transform:translate(20px,25px) rotate(-3deg)} 100%{transform:translate(0,0)} }
-        .bf-fly-2 { animation: bf-fly-2 22s ease-in-out infinite; }
-        @keyframes bf-fly-2 { 0%{transform:translate(0,0)} 30%{transform:translate(40px,-20px) rotate(6deg)} 60%{transform:translate(-20px,15px) rotate(-4deg)} 100%{transform:translate(0,0)} }
-        .bee-fly-2 { animation: bee-fly-2 26s ease-in-out infinite; }
+        .bf-fly-1 { animation: bf-fly-1 18s linear infinite; }
+        @keyframes bf-fly-1 { 0%{transform:translate(0,0) rotate(0deg)} 25%{transform:translate(-30px,-25px) rotate(-8deg)} 50%{transform:translate(50px,-15px) rotate(5deg)} 75%{transform:translate(20px,25px) rotate(-6deg)} 100%{transform:translate(0,0) rotate(0deg)} }
+        .bf-fly-2 { animation: bf-fly-2 22s linear infinite; }
+        @keyframes bf-fly-2 { 0%{transform:translate(0,0) rotate(0deg)} 30%{transform:translate(40px,-20px) rotate(6deg)} 60%{transform:translate(-20px,15px) rotate(-4deg)} 100%{transform:translate(0,0) rotate(0deg)} }
+        /* 蝴蝶扑翼-身体耦合：与 b-wing(0.4s alternate) 同周期即相位锁定，压翅身体上升 1.5px */
+        .bf-bob { animation: bf-bob 0.4s ease-in-out infinite alternate; }
+        @keyframes bf-bob { 0% { transform: translateY(0); } 100% { transform: translateY(-1.5px); } }
         /* 瓢虫：空中飞约 18s → 落在叶子上停约 4s → 再次起飞（26s 一轮，首尾同帧无缝循环）
            48% 处 translate(0,0) = 落在基准位置（叶丛），也是它停下来的位置 */
-        .lady-fly { animation: lady-fly 26s ease-in-out infinite; }
+        .lady-fly { animation: lady-fly 26s linear infinite; }
         @keyframes lady-fly {
           0%   { transform: translate(0,-26px) rotate(-4deg); }
           6%   { transform: translate(18px,-40px) rotate(6deg); }
@@ -1328,16 +1335,20 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           22%  { transform: translate(26px,-34px) rotate(8deg); }
           30%  { transform: translate(-20px,-44px) rotate(-5deg); }
           36%  { transform: translate(6px,-30px) rotate(3deg); }
-          44%  { transform: translate(2px,-10px) rotate(-1deg); }
+          44%  { transform: translate(2px,-10px) rotate(-1deg); animation-timing-function: ease-out; }
           48%  { transform: translate(0,0) rotate(0deg); }
           52%  { transform: translate(0,-1px) rotate(0deg); }
-          68%  { transform: translate(0,-1px) rotate(0deg); }
-          74%  { transform: translate(0,-4px) rotate(-2deg); }
+          57%  { transform: translate(0,-1px) rotate(2.5deg); }
+          62%  { transform: translate(0,-1px) rotate(-2deg); }
+          68%  { transform: translate(0,-1px) rotate(0deg); animation-timing-function: ease-in; }
+          74%  { transform: translate(0,-4px) rotate(-2deg); animation-timing-function: ease-in; }
           80%  { transform: translate(-6px,-22px) rotate(-6deg); }
           88%  { transform: translate(14px,-38px) rotate(5deg); }
           94%  { transform: translate(-6px,-32px) rotate(-3deg); }
           100% { transform: translate(0,-26px) rotate(-4deg); }
         }
+        /* 缓动注记：飞行段 linear（不逐点刹车）；44% ease-out = 减速进站降落；
+           68%/74% ease-in = 蓄力后加速离场；52-68% 停落期两次 ±2° 张望微摆 */
         /* 瓢虫飞行态：左右两片红色鞘翅向外张开并高频振动 —— 振动的就是它自己的鞘翅，
            不另加白色后翅；停落段整壳合拢、振动停止 */
         .lady-wing-l, .lady-wing-r { transform-box: fill-box; }
@@ -1375,33 +1386,34 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         .sleep-z span:nth-child(1) { font-size: 9px;  left: 0px;  animation: z-drift-1 3.9s cubic-bezier(0.2, 0.7, 0.5, 1) infinite; }
         .sleep-z span:nth-child(2) { font-size: 13px; left: 5px;  animation: z-drift-2 4.4s cubic-bezier(0.2, 0.7, 0.5, 1) infinite 1.4s; }
         .sleep-z span:nth-child(3) { font-size: 17px; left: 11px; animation: z-drift-3 3.6s cubic-bezier(0.2, 0.7, 0.5, 1) infinite 2.7s; }
-        /* Z1 小·短线：几乎垂直上升，末端向左轻歪 */
+        /* Z1 小·短线：几乎垂直上升，末端向左轻歪。
+           退出段（75→100%）缩小(→0.8)+透明(0.35→0)+blur 溶解 —— 弱化消失，不再越飘越大 */
         @keyframes z-drift-1 {
           0%   { transform: translate(0, 8px) rotate(-6deg) scale(0.5); opacity: 0; filter: blur(0); }
           8%   { opacity: 0.9; }
           30%  { transform: translate(1px, -6px) rotate(-3deg) scale(0.85); animation-timing-function: ease-out; }
-          75%  { opacity: 0.55; }
-          100% { transform: translate(-4px, -32px) rotate(8deg) scale(1.2); opacity: 0; filter: blur(1px); }
+          75%  { transform: translate(-2px, -23px) rotate(3deg) scale(1); opacity: 0.35; }
+          100% { transform: translate(-4px, -32px) rotate(8deg) scale(0.8); opacity: 0; filter: blur(1px); }
         }
         /* Z2 中·中线：经典微右飘 */
         @keyframes z-drift-2 {
           0%   { transform: translate(0, 8px) rotate(-12deg) scale(0.5); opacity: 0; filter: blur(0); }
           8%   { opacity: 0.9; }
           30%  { transform: translate(3px, -7px) rotate(-6deg) scale(0.85); animation-timing-function: ease-out; }
-          75%  { opacity: 0.55; }
-          100% { transform: translate(10px, -34px) rotate(4deg) scale(1.2); opacity: 0; filter: blur(1px); }
+          75%  { transform: translate(7px, -24px) rotate(1deg) scale(1); opacity: 0.35; }
+          100% { transform: translate(10px, -34px) rotate(4deg) scale(0.8); opacity: 0; filter: blur(1px); }
         }
         /* Z3 大·长线：明显右歪，像深呼的一口 */
         @keyframes z-drift-3 {
           0%   { transform: translate(0, 8px) rotate(-8deg) scale(0.5); opacity: 0; filter: blur(0); }
           8%   { opacity: 0.9; }
           30%  { transform: translate(4px, -6px) rotate(-2deg) scale(0.85); animation-timing-function: ease-out; }
-          75%  { opacity: 0.55; }
-          100% { transform: translate(20px, -30px) rotate(16deg) scale(1.2); opacity: 0; filter: blur(1px); }
+          75%  { transform: translate(14px, -21px) rotate(9deg) scale(1); opacity: 0.35; }
+          100% { transform: translate(20px, -30px) rotate(16deg) scale(0.8); opacity: 0; filter: blur(1px); }
         }
         @media (prefers-reduced-motion: reduce) {
           .bee-wing, .bf-wing,
-          .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .lady-fly,
+          .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .bf-bob, .lady-fly,
           .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell,
           .cat-breathe, .pet-deep { animation: none !important; }
           .sleep-z { display: none; }

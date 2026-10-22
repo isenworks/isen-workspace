@@ -1588,10 +1588,33 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                   }}
                   className="rounded-lg shadow-2xl border border-gray-200/60 overflow-hidden"
                 >
-                  <div className="py-1.5 px-2 bg-white/95 backdrop-blur-md w-40">
-                    <div className="px-2 py-1 text-[11px] text-[var(--text-3)] font-medium tracking-wide border-b border-gray-100/70 mb-0.5">
-                      图层 · {petMenu.id === 'cat' ? '小猫' : petMenu.id === 'corgi' ? '柯基' : '垫子'}
-                    </div>
+                  <div className="py-1.5 px-2 bg-white/95 backdrop-blur-md w-44">
+                    {/* 标题行：垫子显示自定义名（settings.mat_name），垫子可点击 ✎ 进入重命名 */}
+                    {petMenu.mode === 'rename' ? (
+                      <div className="px-1 pt-0.5 pb-1">
+                        <input autoFocus defaultValue={s.mat_name || '垫子'}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { setSettings(st => ({ ...st, mat_name: e.target.value.trim() || '垫子' })); setPetMenu(null); }
+                            if (e.key === 'Escape') setPetMenu(null);
+                          }}
+                          onBlur={(e) => { setSettings(st => ({ ...st, mat_name: e.target.value.trim() || '垫子' })); setPetMenu(null); }}
+                          className="w-full text-[13px] px-2 py-1 rounded-md border-2 border-[#238E3F] outline-none bg-white text-[var(--text-1)]" />
+                        <div className="px-1 pt-1 text-[11px] text-[var(--text-3)]">回车保存 · Esc 取消</div>
+                      </div>
+                    ) : (
+                      <div className="px-2 py-1 flex items-center gap-1.5 border-b border-gray-100/70 mb-0.5">
+                        <span className="text-[11px] text-[var(--text-3)] font-medium tracking-wide">
+                          图层 · {petMenu.id === 'cat' ? '小猫' : petMenu.id === 'corgi' ? '柯基' : (s.mat_name || '垫子')}
+                        </span>
+                        {petMenu.id === 'mat' && (
+                          <button title="重命名"
+                            onClick={() => setPetMenu(m => ({ ...m, mode: 'rename' }))}
+                            className="ml-auto w-5 h-5 grid place-items-center rounded hover:bg-[var(--surface-hover)] text-[var(--text-3)]">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {menuItems.map(item => (
                       <button
                         key={item.label}
@@ -1602,22 +1625,25 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                         <span className="text-[var(--text-1)]">{item.label}</span>
                       </button>
                     ))}
-                    {/* 垫子专属：款式切换（旧款已归档在 assets，随时可切回） */}
+                    {/* 垫子专属：款式切换（圆形缩略图 + 当前款 ✓；旧款已归档在 assets，随时可切回） */}
                     {petMenu.id === 'mat' && (
                       <>
                         <div className="px-2 py-1 text-[11px] text-[var(--text-3)] font-medium tracking-wide border-t border-gray-100/70 mt-1 pt-1.5">
                           垫子款式
                         </div>
-                        {[['new', '花纹款（新）'], ['alt', '素色款（旧）']].map(([val, label]) => (
+                        {[['new', '素色款', petCushion], ['alt', '花纹款', petCushionAlt]].map(([val, label, img]) => (
                           <button
                             key={val}
                             onClick={() => { setSettings(st => ({ ...st, mat_style: val })); setPetMenu(null); }}
                             className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] rounded-md hover:bg-[var(--surface-hover)] transition-colors text-left"
                           >
-                            <span className="w-4 text-center text-[12px]" style={{ color: 'var(--accent-green, #238E3F)' }}>
-                              {(s.mat_style || 'new') === val ? '●' : ''}
+                            <span className="w-5 h-5 rounded-full overflow-hidden border border-black/10 shrink-0 bg-white">
+                              <img src={img} alt="" className="w-full h-full object-cover" />
                             </span>
                             <span className="text-[var(--text-1)]">{label}</span>
+                            <span className="ml-auto text-[12px]" style={{ color: '#238E3F' }}>
+                              {(s.mat_style || 'new') === val ? '✓' : ''}
+                            </span>
                           </button>
                         ))}
                       </>

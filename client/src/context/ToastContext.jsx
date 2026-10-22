@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 const ToastContext = createContext(null);
 
@@ -53,13 +53,16 @@ export function ToastProvider({ children }) {
     return id;
   }, [commit, dismiss]);
 
-  const api = {
+  /* api 必须 memo：toast 弹出/消失会让 Provider 重渲染，若每次生成新对象，
+     所有依赖 toast 的 useCallback/effect（如 loadLogs）都会重建并重新触发，
+     造成「操作成功后列表莫名重载一两次」的闪烁（2026-10 换盆记录踩坑修复） */
+  const api = useMemo(() => ({
     error: (msg, opts) => push('error', msg, opts),
     success: (msg, opts) => push('success', msg, opts),
     info: (msg, opts) => push('info', msg, opts),
     warn: (msg, opts) => push('warn', msg, opts),
     dismiss,
-  };
+  }), [push, dismiss]);
 
   return (
     <ToastContext.Provider value={api}>

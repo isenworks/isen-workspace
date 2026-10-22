@@ -1524,13 +1524,18 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             const min = Math.min(...allPetIds.map(baseZOf));
             applyZ(id, min - baseZOf(id) - 2); // -2 确保比最小的还低
           };
-          // 菜单处理
+          // 菜单处理 — 弹出前按菜单尺寸夹紧坐标：
+          // 右键点在屏幕下缘/右缘时，菜单会被截断在视口外，
+          // 所以先估算菜单宽高（约 176×196，略留余量），越界则向内收
+          const MENU_W = 176, MENU_H = 196, EDGE = 8;
           const handleContextMenu = (petId, e) => {
             e.preventDefault();
             e.stopPropagation();
             setSelectedPetId(petId);
             setSelected(null);
-            setPetMenu({ id: petId, x: e.clientX, y: e.clientY });
+            const x = Math.max(EDGE, Math.min(e.clientX, window.innerWidth - MENU_W - EDGE));
+            const y = Math.max(EDGE, Math.min(e.clientY, window.innerHeight - MENU_H - EDGE));
+            setPetMenu({ id: petId, x, y });
           };
           // 四个菜单项
           const menuItems = [

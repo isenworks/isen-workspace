@@ -444,7 +444,8 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
     const startDist = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
     const onMove = (ev) => {
       const d = Math.hypot(ev.clientX - cx, ev.clientY - cy);
-      const ns = Math.max(0.5, Math.min(2.5, startSize * (d / startDist)));
+      // size 单位是像素（默认 ~100px），下限 40px（迷你），上限 320px（巨型）
+      const ns = Math.max(40, Math.min(320, Math.round(startSize * (d / startDist))));
       onSizeChange(Math.round(ns));
     };
     const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); setResize(null); };
@@ -1510,7 +1511,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           id="cat"
           imgSrc={catLying}
           pos={s.cat || { left: '22%', top: '48%' }}
-          size={s.cat_size || 100}
+          size={Math.max(40, Math.min(320, s.cat_size || 100))}
           selected={selectedPetId === 'cat'}
           onSelect={() => { setSelectedPetId('cat'); setSelected(null); }}
           onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))}
@@ -1521,7 +1522,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           id="corgi"
           imgSrc={corgiSleeping}
           pos={s.corgi || { left: '38%', top: '48%' }}
-          size={s.corgi_size || 92}
+          size={Math.max(40, Math.min(320, s.corgi_size || 92))}
           selected={selectedPetId === 'corgi'}
           onSelect={() => { setSelectedPetId('corgi'); setSelected(null); }}
           onPosChange={(np) => setSettings(st => ({ ...st, corgi: np }))}

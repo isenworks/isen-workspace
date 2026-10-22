@@ -427,10 +427,11 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
           setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
         }}
         onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
-        {/* 呼吸起伏（拖动/缩放时暂停） */}
+        {/* 呼吸起伏（拖动/缩放时暂停）：div 主呼吸 3.4s，img 叠加 17s 深呼吸慢波 */}
         <div className={(breathe ? 'cat-breathe ' : '') + 'relative'} style={{ animationPlayState: drag || resize ? 'paused' : 'running' }}>
           <img src={imgSrc} alt="" width={size} draggable={false}
-            style={{ display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
+            className={breathe ? 'pet-deep' : undefined}
+            style={{ display: 'block', userSelect: 'none', pointerEvents: 'none', animationPlayState: drag || resize ? 'paused' : 'running' }} />
         </div>
         {/* 睡觉 Zzz：三只 Z 从头侧升起（sleeping 才显示） */}
         {sleeping && (
@@ -1349,33 +1350,58 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         @keyframes lady-wings-vis { 0% { visibility: visible; } 47% { visibility: hidden; } 71% { visibility: visible; } }
         .lady-shell { visibility: hidden; animation: lady-shell-vis 26s step-end infinite; }
         @keyframes lady-shell-vis { 0% { visibility: hidden; } 47% { visibility: visible; } 71% { visibility: hidden; } }
-        /* 睡猫：整只极轻微呼吸起伏（绕底边中心鼓收，不漂移） */
+        /* 睡猫：双层呼吸 —— 内层 3.4s 主呼吸（.cat-breathe）+ 外层 17s 慢波调制（.pet-deep）
+           两周期叠加 → 约 17s 出现一次明显深呼吸，其余是浅呼吸（不再是节拍器） */
         @keyframes pet-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.035); } }
         .cat-breathe { transform-origin: 50% 100%; animation: pet-breathe 3.4s ease-in-out infinite; }
-        /* 睡觉 Zzz：三只 Z 从宠物头侧依次升起，边升边变大变淡（漫画经典符号）。
-           同一条 3.9s 时间轴，delay 0/1.3/2.6 错峰 → 视觉上"一个接一个冒出来" */
-        .sleep-z { position: absolute; left: 2px; top: -14px; width: 0; height: 0; pointer-events: none; }
+        @keyframes pet-deep { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.006, 1.014); } }
+        .pet-deep { transform-origin: 50% 100%; animation: pet-deep 17s ease-in-out infinite; }
+        /* 睡觉 Zzz v2（动画师评审版）—— 核心是打破"复印感"：
+           · 三套独立路径/角度/周期（3.9/4.4/3.6s 互质错开）→ 相位永不重复，偶尔合拍再漂移
+           · 快进快出：8% 淡入到位 → 75% 前保持 → 尾部干脆消散（不再拖尾）
+           · 分段缓动：0→30% 快速呼出（基础 cubic-bezier），30% 起 ease-out 减速悬浮
+           · 尾部 filter: blur 0→1px 微溶解 —— "溶解"比"变淡"更梦幻
+           · 锚点 left:10%（头在图片 15-20% 处，不再贴左边缘） */
+        .sleep-z { position: absolute; left: 10%; top: -14px; width: 0; height: 0; pointer-events: none; }
         .sleep-z span {
           position: absolute; left: 0; bottom: 0;
           font-weight: 800; line-height: 1;
           font-family: ui-rounded, 'Nunito', 'PingFang SC', system-ui, sans-serif;
           color: #8E7D6B; opacity: 0;
-          animation: z-drift 3.9s ease-in-out infinite;
+          will-change: transform, opacity, filter;
         }
-        .sleep-z span:nth-child(1) { font-size: 9px;  left: 0px;  animation-delay: 0s; }
-        .sleep-z span:nth-child(2) { font-size: 13px; left: 6px;  animation-delay: 1.3s; }
-        .sleep-z span:nth-child(3) { font-size: 17px; left: 13px; animation-delay: 2.6s; }
-        @keyframes z-drift {
-          0%   { transform: translate(0, 8px) rotate(-10deg) scale(0.5); opacity: 0; }
-          20%  { opacity: 0.9; }
-          60%  { opacity: 0.5; }
-          100% { transform: translate(16px, -30px) rotate(12deg) scale(1.2); opacity: 0; }
+        .sleep-z span:nth-child(1) { font-size: 9px;  left: 0px;  animation: z-drift-1 3.9s cubic-bezier(0.2, 0.7, 0.5, 1) infinite; }
+        .sleep-z span:nth-child(2) { font-size: 13px; left: 5px;  animation: z-drift-2 4.4s cubic-bezier(0.2, 0.7, 0.5, 1) infinite 1.4s; }
+        .sleep-z span:nth-child(3) { font-size: 17px; left: 11px; animation: z-drift-3 3.6s cubic-bezier(0.2, 0.7, 0.5, 1) infinite 2.7s; }
+        /* Z1 小·短线：几乎垂直上升，末端向左轻歪 */
+        @keyframes z-drift-1 {
+          0%   { transform: translate(0, 8px) rotate(-6deg) scale(0.5); opacity: 0; filter: blur(0); }
+          8%   { opacity: 0.9; }
+          30%  { transform: translate(1px, -6px) rotate(-3deg) scale(0.85); animation-timing-function: ease-out; }
+          75%  { opacity: 0.55; }
+          100% { transform: translate(-4px, -32px) rotate(8deg) scale(1.2); opacity: 0; filter: blur(1px); }
+        }
+        /* Z2 中·中线：经典微右飘 */
+        @keyframes z-drift-2 {
+          0%   { transform: translate(0, 8px) rotate(-12deg) scale(0.5); opacity: 0; filter: blur(0); }
+          8%   { opacity: 0.9; }
+          30%  { transform: translate(3px, -7px) rotate(-6deg) scale(0.85); animation-timing-function: ease-out; }
+          75%  { opacity: 0.55; }
+          100% { transform: translate(10px, -34px) rotate(4deg) scale(1.2); opacity: 0; filter: blur(1px); }
+        }
+        /* Z3 大·长线：明显右歪，像深呼的一口 */
+        @keyframes z-drift-3 {
+          0%   { transform: translate(0, 8px) rotate(-8deg) scale(0.5); opacity: 0; filter: blur(0); }
+          8%   { opacity: 0.9; }
+          30%  { transform: translate(4px, -6px) rotate(-2deg) scale(0.85); animation-timing-function: ease-out; }
+          75%  { opacity: 0.55; }
+          100% { transform: translate(20px, -30px) rotate(16deg) scale(1.2); opacity: 0; filter: blur(1px); }
         }
         @media (prefers-reduced-motion: reduce) {
           .bee-wing, .bf-wing,
           .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .lady-fly,
           .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell,
-          .cat-breathe { animation: none !important; }
+          .cat-breathe, .pet-deep { animation: none !important; }
           .sleep-z { display: none; }
           /* 静止时收敛成一只合拢的瓢虫 */
           .lady-wings { display: none; }

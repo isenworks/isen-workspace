@@ -374,7 +374,7 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
 // ---- 可拖拽 + 可缩放的宠物（本体）----
 //   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画拖动/缩放期间暂停。
 //   选中时显示四角绿色缩放手柄（与植物手柄同款）。
-function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, onContextMenu, baseZ = 6, breathe = true, maxSize = 320 }) {
+function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, onContextMenu, baseZ = 6, breathe = true, maxSize = 320, sleeping = false }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
   const [resize, setResize] = useState(null);
@@ -431,6 +431,12 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
           <img src={imgSrc} alt="" width={size} draggable={false}
             style={{ display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
         </div>
+        {/* 睡觉 Zzz：三只 Z 从头侧升起（sleeping 才显示） */}
+        {sleeping && (
+          <div className="sleep-z" aria-hidden="true">
+            <span>z</span><span>z</span><span>z</span>
+          </div>
+        )}
         {/* 选中时的四角缩放手柄 */}
         {selected && resize !== id && (
           <>
@@ -1345,11 +1351,31 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         /* 睡猫：整只极轻微呼吸起伏（绕底边中心鼓收，不漂移） */
         @keyframes pet-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.035); } }
         .cat-breathe { transform-origin: 50% 100%; animation: pet-breathe 3.4s ease-in-out infinite; }
+        /* 睡觉 Zzz：三只 Z 从宠物头侧依次升起，边升边变大变淡（漫画经典符号）。
+           同一条 3.9s 时间轴，delay 0/1.3/2.6 错峰 → 视觉上"一个接一个冒出来" */
+        .sleep-z { position: absolute; left: 2px; top: -14px; width: 0; height: 0; pointer-events: none; }
+        .sleep-z span {
+          position: absolute; left: 0; bottom: 0;
+          font-weight: 800; line-height: 1;
+          font-family: ui-rounded, 'Nunito', 'PingFang SC', system-ui, sans-serif;
+          color: #8E7D6B; opacity: 0;
+          animation: z-drift 3.9s ease-in-out infinite;
+        }
+        .sleep-z span:nth-child(1) { font-size: 9px;  left: 0px;  animation-delay: 0s; }
+        .sleep-z span:nth-child(2) { font-size: 13px; left: 6px;  animation-delay: 1.3s; }
+        .sleep-z span:nth-child(3) { font-size: 17px; left: 13px; animation-delay: 2.6s; }
+        @keyframes z-drift {
+          0%   { transform: translate(0, 8px) rotate(-10deg) scale(0.5); opacity: 0; }
+          20%  { opacity: 0.9; }
+          60%  { opacity: 0.5; }
+          100% { transform: translate(16px, -30px) rotate(12deg) scale(1.2); opacity: 0; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .bee-wing, .bf-wing,
           .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .lady-fly,
           .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell,
           .cat-breathe { animation: none !important; }
+          .sleep-z { display: none; }
           /* 静止时收敛成一只合拢的瓢虫 */
           .lady-wings { display: none; }
           .lady-shell { visibility: visible; }
@@ -1521,6 +1547,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
               <PetDrop
                 id="cat"
                 imgSrc={catLying}
+                sleeping
                 baseZ={baseZOf('cat')}
                 pos={s.cat || { left: '22%', top: '48%' }}
                 size={Math.max(40, Math.min(320, s.cat_size || 100))}
@@ -1534,6 +1561,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
               <PetDrop
                 id="corgi"
                 imgSrc={corgiSleeping}
+                sleeping
                 baseZ={baseZOf('corgi')}
                 pos={s.corgi || { left: '38%', top: '48%' }}
                 size={Math.max(40, Math.min(320, s.corgi_size || 92))}

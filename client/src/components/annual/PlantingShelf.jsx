@@ -14,6 +14,7 @@ import { uid } from './utils.js';
 import catLying from '../../assets/cat-lying.png';
 import corgiSleeping from '../../assets/corgi-sleeping.png';
 import petCushion from '../../assets/pet-cushion.png';
+import petCushionAlt from '../../assets/pet-cushion-alt.png';
 
 // ---- 绿色（工作台 iOS accent.green 700 单色，H≈136° 同色相，只降明度）----
 // 单色 #238E3F  green-700：一处到底 —— 实底按钮 / 勾选框 / 缩放手柄 / focus 边框 /
@@ -1508,15 +1509,17 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           };
           // 菜单处理 — 弹出前按菜单尺寸夹紧坐标：
           // 右键点在屏幕下缘/右缘时，菜单会被截断在视口外，
-          // 所以先估算菜单宽高（约 176×196，略留余量），越界则向内收
-          const MENU_W = 176, MENU_H = 196, EDGE = 8;
+          // 垫子的菜单多一个「垫子款式」区（约 +78px），所以菜单高按对象区分
+          const MENU_W = 176, EDGE = 8;
+          const menuHOf = (petId) => petId === 'mat' ? 274 : 196;
           const handleContextMenu = (petId, e) => {
             e.preventDefault();
             e.stopPropagation();
             setSelectedPetId(petId);
             setSelected(null);
+            const mh = menuHOf(petId);
             const x = Math.max(EDGE, Math.min(e.clientX, window.innerWidth - MENU_W - EDGE));
-            const y = Math.max(EDGE, Math.min(e.clientY, window.innerHeight - MENU_H - EDGE));
+            const y = Math.max(EDGE, Math.min(e.clientY, window.innerHeight - mh - EDGE));
             setPetMenu({ id: petId, x, y });
           };
           // 四个菜单项
@@ -1528,10 +1531,11 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           ];
           return (
             <>
-              {/* 垫子（图片版）：垫在最底层，无呼吸动画，可拉得更宽（maxSize 560） */}
+              {/* 垫子（图片版）：垫在最底层，无呼吸动画，可拉得更宽（maxSize 560）
+                  款式由 settings.mat_style 决定：缺省/ 'new' = 新款，'alt' = 旧款（已归档可随时切回） */}
               <PetDrop
                 id="mat"
-                imgSrc={petCushion}
+                imgSrc={s.mat_style === 'alt' ? petCushionAlt : petCushion}
                 breathe={false}
                 maxSize={560}
                 baseZ={baseZOf('mat')}
@@ -1598,6 +1602,26 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
                         <span className="text-[var(--text-1)]">{item.label}</span>
                       </button>
                     ))}
+                    {/* 垫子专属：款式切换（旧款已归档在 assets，随时可切回） */}
+                    {petMenu.id === 'mat' && (
+                      <>
+                        <div className="px-2 py-1 text-[11px] text-[var(--text-3)] font-medium tracking-wide border-t border-gray-100/70 mt-1 pt-1.5">
+                          垫子款式
+                        </div>
+                        {[['new', '花纹款（新）'], ['alt', '素色款（旧）']].map(([val, label]) => (
+                          <button
+                            key={val}
+                            onClick={() => { setSettings(st => ({ ...st, mat_style: val })); setPetMenu(null); }}
+                            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] rounded-md hover:bg-[var(--surface-hover)] transition-colors text-left"
+                          >
+                            <span className="w-4 text-center text-[12px]" style={{ color: 'var(--accent-green, #238E3F)' }}>
+                              {(s.mat_style || 'new') === val ? '●' : ''}
+                            </span>
+                            <span className="text-[var(--text-1)]">{label}</span>
+                          </button>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
               )}

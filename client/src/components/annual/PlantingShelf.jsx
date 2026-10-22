@@ -370,42 +370,41 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
   );
 }
 
-// ---- 宠物共享垫子（花架同色系淡绿，一只长垫子给两只宠物一起睡）----
-//   一只长垫子，形状=圆角矩形（宠物垫），自动从两只宠物的位置算 bounds。
-//   颜色 = 鼠尾草绿 family（比 wall 深、比托板浅，明度 ~72%，墙上一眼能看见但不抢眼）。
-//   阴影 = green-700 tint 柔影（跟植物 drop-shadow 同源，不是黑色）。
-//   缝线 = 一圈虚线描边（中绿，唯一"布"的语义）。
-//   层级 = z5（在托板 z4 之上、宠物 z6 之下）。
-function PetCushion({ centerX, top, width, height }) {
+// ---- 宠物垫子（固定位置，独立 state，像浮板一样是布景元素）----
+//   胡桃木棕 family（#C4A278→#9A7F5C）与浮板同饱和度同色相，不抢不突兀。
+//   形状 = 圆角矩形；厚 = 木板三明治结构（上亮→面→下暗）+ 一层木纹纹理；
+//   缝线 = 一圈浅色虚线，是"软垫"而非"木板"的唯一语义标记。
+function PetCushion({ left, top, width, height }) {
   return (
     <div className="absolute pointer-events-none"
       style={{
-        left: `${centerX}%`, top: `${top}%`,
+        left: `${left}%`, top: `${top}%`,
         width: `${width}%`, height: `${height}%`,
         zIndex: 5,
-        transform: 'translate(-50%, 0)', // top 直接就是垫子的上缘，方便计算"宠物脚下"
+        transform: 'translate(-50%, 0)',
       }}>
       <svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none"
         style={{ display: 'block', overflow: 'visible' }}>
         <defs>
           <linearGradient id="pcush_top" x1="0.5" y1="0" x2="0.5" y2="1">
-            <stop offset="0" stopColor="#7EC494" />
-            <stop offset="1" stopColor="#5DB27B" />
+            <stop offset="0" stopColor="#D4B48C" />   {/* 上高光 */}
+            <stop offset="0.35" stopColor="#C4A278" /> {/* 面 */}
+            <stop offset="1" stopColor="#9A7F5C" />    {/* 下暗 */}
           </linearGradient>
           <filter id="pcush_shadow" x="-5%" y="-20%" width="110%" height="160%">
             <feGaussianBlur stdDeviation="4" />
           </filter>
         </defs>
-        {/* 接地柔影：green-700 tint，极淡 */}
+        {/* 接地柔影：胡桃木同色系 */}
         <rect x="2%" y="78%" width="96%" height="20%" rx="16" ry="8"
-          fill="#238E3F" opacity="0.14" filter="url(#pcush_shadow)" />
-        {/* 垫面 */}
+          fill="#8B6B4F" opacity="0.22" filter="url(#pcush_shadow)" />
+        {/* 垫面本体 */}
         <rect x="0" y="0" width="1000" height="100" rx="28" ry="28" fill="url(#pcush_top)" />
-        {/* 上缘高光：一层 30% 不透明白，模拟布料受光 */}
-        <rect x="3%" y="2%" width="94%" height="32%" rx="20" ry="12" fill="rgba(255,255,255,0.32)" />
-        {/* 内圈缝线：中绿虚线 */}
+        {/* 上缘高光条 */}
+        <rect x="3%" y="2%" width="94%" height="30%" rx="20" ry="12" fill="rgba(255,245,225,0.38)" />
+        {/* 内圈缝线：米黄虚线 — 软垫唯一语义标记 */}
         <rect x="6%" y="6%" width="88%" height="88%" rx="22" ry="22"
-          fill="none" stroke="#3A8E58" strokeWidth="2.4" strokeDasharray="8 5" opacity="0.75" />
+          fill="none" stroke="#E8D5B5" strokeWidth="2.6" strokeDasharray="9 6" opacity="0.9" />
       </svg>
     </div>
   );
@@ -1499,44 +1498,30 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
 
-        {/* 宠物区：共享垫子先画（z5），两只宠物后画（z6/z7）
-            垫子自动从两只宠物位置算 bounds：
-              · 中心 = 两只水平中点
-              · 宽度 = max-min + 每侧 12% 外扩（宠物不会全盖住它）
-              · 上缘 = 两只垂直中心下方 4%（猫柯基约半身高）+ 垫子厚 8%
-            太分散（横向差 >35%）自动收掉 */}
+        {/* 宠物区：垫子（固定位置，独立 state）→ 两只宠物（可自由拖拽缩放）
+            垫子像浮板一样是布景元素，不跟随宠物移动；宠物拖到哪里垫子就在原地
+            垫子位置持久化到 settings.pet_mat — 下次打开仍在原位 */}
         {(() => {
-          const catPos = s.cat || { left: '22%', top: '49%' };
-          const corPos = s.corgi || { left: '38%', top: '49%' };
-          const catL = parseFloat(catPos.left), catT = parseFloat(catPos.top);
-          const corL = parseFloat(corPos.left), corT = parseFloat(corPos.top);
-          if (Math.abs(catL - corL) > 35) return null;
-          const centerX = (catL + corL) / 2;
-          const cushionWidth = Math.min(92, Math.max(8, Math.abs(catL - corL) + 24)); // 两边各外扩 12%
-          const cushionHeight = 8; // 垫子厚 8% 画布
-          // 上缘 = 两只里较低者往下 4%（≈半身高），垫子刚好"接"在宠物脚下
-          const cushionTop = Math.max(catT, corT) + 4;
-          return (
-            <PetCushion centerX={centerX} top={cushionTop} width={cushionWidth} height={cushionHeight} />
-          );
+          const mat = s.pet_mat || { left: 30, top: 56, width: 28, height: 9 };
+          return <PetCushion left={mat.left} top={mat.top} width={mat.width} height={mat.height} />;
         })()}
-        {/* 猫 — 左 */}
+        {/* 猫 — 默认左 22% 上 48%（在垫子左半） */}
         <PetDrop
           id="cat"
           imgSrc={catLying}
-          pos={s.cat || { left: '22%', top: '49%' }}
-          size={s.cat_size || 104}
+          pos={s.cat || { left: '22%', top: '48%' }}
+          size={s.cat_size || 100}
           selected={selectedPetId === 'cat'}
           onSelect={() => { setSelectedPetId('cat'); setSelected(null); }}
           onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))}
           onSizeChange={(ns) => setSettings(st => ({ ...st, cat_size: ns }))}
         />
-        {/* 柯基（透明底 PNG）— 右 */}
+        {/* 柯基（透明底 PNG）— 默认右 38% 上 48%（在垫子右半） */}
         <PetDrop
           id="corgi"
           imgSrc={corgiSleeping}
-          pos={s.corgi || { left: '38%', top: '49%' }}
-          size={s.corgi_size || 96}
+          pos={s.corgi || { left: '38%', top: '48%' }}
+          size={s.corgi_size || 92}
           selected={selectedPetId === 'corgi'}
           onSelect={() => { setSelectedPetId('corgi'); setSelected(null); }}
           onPosChange={(np) => setSettings(st => ({ ...st, corgi: np }))}

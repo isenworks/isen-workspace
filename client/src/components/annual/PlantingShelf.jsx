@@ -2189,12 +2189,13 @@ function InfoDrawer({ rootRef, plant, boardLabel, onSave, onArchive, onClose, on
       {/* 遮罩（不遮画布，仅阻止穿透） */}
       <div className="absolute inset-0" style={{ zIndex: 8, pointerEvents: 'none' }} />
 
-      {/* 抽屉卡片（360px：撑开时间轴的日期列与内容） */}
+      {/* 抽屉卡片（360px：撑开时间轴的日期列与内容；固定高度 560px 上限，内容区滚动，
+          记录再多面板也不再被撑长，用右侧滑块上下查看） */}
       <div ref={rootRef} onClick={(e) => e.stopPropagation()}
         className="absolute top-12 right-4 w-[360px] max-w-[calc(100%-32px)] flex flex-col overflow-hidden"
         style={{
           zIndex: 10,
-          maxHeight: 'calc(100% - 64px)',
+          height: 'min(calc(100% - 64px), 560px)',
           background: 'var(--surface-card)',
           borderRadius: '16px',
           border: '1px solid rgba(0,0,0,0.06)',
@@ -2204,6 +2205,15 @@ function InfoDrawer({ rootRef, plant, boardLabel, onSave, onArchive, onClose, on
         }}>
         <style>{`
           @keyframes drawer-slide-in { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+          /* 内容区滚动滑块：常驻可见、可拖拽，替代默认细若发丝的样式 */
+          .drawer-scroll { scrollbar-width: thin; scrollbar-color: rgba(120,120,128,0.32) transparent; }
+          .drawer-scroll::-webkit-scrollbar { width: 10px; }
+          .drawer-scroll::-webkit-scrollbar-track { background: transparent; }
+          .drawer-scroll::-webkit-scrollbar-thumb {
+            background: rgba(120,120,128,0.32); border-radius: 999px;
+            border: 3px solid transparent; background-clip: content-box; min-height: 36px;
+          }
+          .drawer-scroll::-webkit-scrollbar-thumb:hover { background: rgba(120,120,128,0.5); border: 3px solid transparent; background-clip: content-box; }
         `}</style>
 
         {/* 头部 */}
@@ -2269,7 +2279,7 @@ function InfoDrawer({ rootRef, plant, boardLabel, onSave, onArchive, onClose, on
         </div>
 
         {/* 内容 */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
+        <div className="drawer-scroll flex-1 min-h-0 overflow-y-auto px-4 py-3">
 
           {/* ---- 养护记录 ---- */}
           {tab === 'logs' && (editor ? (
@@ -2278,7 +2288,11 @@ function InfoDrawer({ rootRef, plant, boardLabel, onSave, onArchive, onClose, on
                 <span className="text-[13px] font-semibold" style={{ color: 'var(--text-1)' }}>
                   {editor.mode === 'create' ? '补录一次记录' : '编辑记录'}
                 </span>
-                <button onClick={closeEditor} className="ml-auto text-[11.5px] font-semibold" style={{ color: 'var(--text-3)' }}>取消</button>
+                <button onClick={closeEditor} title="关闭编辑"
+                  className="ml-auto px-2.5 py-1 rounded-lg text-[11.5px] font-semibold transition hover:brightness-95 active:scale-95"
+                  style={{ color: 'var(--text-2)', background: 'rgba(120,120,128,0.08)', border: '1px solid rgba(120,120,128,0.28)' }}>
+                  取消
+                </button>
               </div>
 
               {/* 动作类型：补录可选；编辑固定（要改类型请删除后重记） */}

@@ -413,7 +413,7 @@ function PetCushion({ left, top, width, height }) {
 // ---- 可拖拽 + 可缩放的宠物（本体，不含垫子）----
 //   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画拖动/缩放期间暂停。
 //   选中时显示四角绿色缩放手柄（与植物手柄同款）。
-function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, baseZ = 6 }) {
+function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, onContextMenu, baseZ = 6 }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
   const [resize, setResize] = useState(null);
@@ -458,6 +458,7 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
     <div className="absolute"
       style={{ left: pos.left, top: pos.top, zIndex: selected ? baseZ + 1 : baseZ, transform: 'translate(-50%,-50%)' }}>
       <div ref={ref} className="relative cursor-grab active:cursor-grabbing select-none"
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu?.(e); }}
         onMouseDown={(e) => {
           e.stopPropagation(); e.preventDefault(); onSelect?.();
           const r = ref.current.getBoundingClientRect();
@@ -767,6 +768,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
   }, [plants.length, onCountChange]);
   const [selected, setSelected] = useState(null);
   const [selectedPetId, setSelectedPetId] = useState(null); // 宠物选中：cat / corgi / null
+  const [petMenu, setPetMenu] = useState(null); // { id, x, y } — 宠物右键图层面板，null 表示关闭
   const [dragging, setDragging] = useState(null);
   const [resizing, setResizing] = useState(null);
   // 自动保存反馈：成功短暂轻提示，失败醒目提示
@@ -1260,6 +1262,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     setSelectedPetId(null);
     setSelectedBoard(null);
     setShowInfo(false);
+    setPetMenu(null); // 画布空白点击 → 同时关闭宠物图层面板
   };
 
   // 悬浮面板：点面板之外的任意地方都能关闭（顶部栏、画布、植物、托板、页面空白都算外部）。
@@ -1499,36 +1502,104 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
 
-        {/* 宠物区：垫子（固定位置，独立 state）→ 两只宠物（可自由拖拽缩放）
-            垫子像浮板一样是布景元素，不跟随宠物移动；宠物拖到哪里垫子就在原地
-            垫子位置持久化到 settings.pet_mat — 下次打开仍在原位 */}
+        {/* 宠物区：垫子（固定位置，独立 state）→ 宠物（可自由拖拽缩放 + 右键调图层）
+            baseZ 从 settings.pet_z_index 读：默认 cat=10, corgi=6（猫在狗上），
+            右键浮动菜单位移/置顶/置底后持久化到 settings */}
         {(() => {
           const mat = s.pet_mat || { left: 30, top: 56, width: 28, height: 9 };
           return <PetCushion left={mat.left} top={mat.top} width={mat.width} height={mat.height} />;
         })()}
-        {/* 猫 — 默认左 22% 上 48%（在垫子左半）。baseZ=10 让猫始终压在柯基上面 */}
-        <PetDrop
-          id="cat"
-          imgSrc={catLying}
-          baseZ={10}
-          pos={s.cat || { left: '22%', top: '48%' }}
-          size={Math.max(40, Math.min(320, s.cat_size || 100))}
-          selected={selectedPetId === 'cat'}
-          onSelect={() => { setSelectedPetId('cat'); setSelected(null); }}
-          onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))}
-          onSizeChange={(ns) => setSettings(st => ({ ...st, cat_size: ns }))}
-        />
-        {/* 柯基（透明底 PNG）— 默认右 38% 上 48%（在垫子右半） */}
-        <PetDrop
-          id="corgi"
-          imgSrc={corgiSleeping}
-          pos={s.corgi || { left: '38%', top: '48%' }}
-          size={Math.max(40, Math.min(320, s.corgi_size || 92))}
-          selected={selectedPetId === 'corgi'}
-          onSelect={() => { setSelectedPetId('corgi'); setSelected(null); }}
-          onPosChange={(np) => setSettings(st => ({ ...st, corgi: np }))}
-          onSizeChange={(ns) => setSettings(st => ({ ...st, corgi_size: ns }))}
-        />
+        {/* 层级操作函数：基于 settings.pet_z_index 统一协调所有宠物 */}
+        {(() => {
+          // 所有宠物当前的 baseZ（从 settings 读，缺省给默认值）
+          const allPetIds = ['cat', 'corgi'];
+          const zMap = s.pet_z_index || { cat: 10, corgi: 6 };
+          const baseZOf = (id) => zMap[id] ?? (id === 'cat' ? 10 : 6);
+          const applyZ = (id, delta) => setSettings(st => ({ ...st, pet_z_index: { ...(st.pet_z_index || { cat: 10, corgi: 6 }), [id]: (baseZOf(id) + delta) } }));
+          const bringToFront = (id) => {
+            const max = Math.max(...allPetIds.map(baseZOf));
+            applyZ(id, max - baseZOf(id) + 2); // +2 确保比最大的还高
+          };
+          const sendToBack = (id) => {
+            const min = Math.min(...allPetIds.map(baseZOf));
+            applyZ(id, min - baseZOf(id) - 2); // -2 确保比最小的还低
+          };
+          // 菜单处理
+          const handleContextMenu = (petId, e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setSelectedPetId(petId);
+            setSelected(null);
+            setPetMenu({ id: petId, x: e.clientX, y: e.clientY });
+          };
+          // 四个菜单项
+          const menuItems = [
+            { label: '上移一层', icon: '↑', onClick: () => { applyZ(petMenu.id, 1); setPetMenu(null); } },
+            { label: '下移一层', icon: '↓', onClick: () => { applyZ(petMenu.id, -1); setPetMenu(null); } },
+            { label: '置于顶层', icon: '⇈', onClick: () => { bringToFront(petMenu.id); setPetMenu(null); } },
+            { label: '置于底层', icon: '⇊', onClick: () => { sendToBack(petMenu.id); setPetMenu(null); } },
+          ];
+          return (
+            <>
+              {/* 猫 */}
+              <PetDrop
+                id="cat"
+                imgSrc={catLying}
+                baseZ={baseZOf('cat')}
+                pos={s.cat || { left: '22%', top: '48%' }}
+                size={Math.max(40, Math.min(320, s.cat_size || 100))}
+                selected={selectedPetId === 'cat'}
+                onSelect={() => { setSelectedPetId('cat'); setSelected(null); }}
+                onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))}
+                onSizeChange={(ns) => setSettings(st => ({ ...st, cat_size: ns }))}
+                onContextMenu={(e) => handleContextMenu('cat', e)}
+              />
+              {/* 柯基 */}
+              <PetDrop
+                id="corgi"
+                imgSrc={corgiSleeping}
+                baseZ={baseZOf('corgi')}
+                pos={s.corgi || { left: '38%', top: '48%' }}
+                size={Math.max(40, Math.min(320, s.corgi_size || 92))}
+                selected={selectedPetId === 'corgi'}
+                onSelect={() => { setSelectedPetId('corgi'); setSelected(null); }}
+                onPosChange={(np) => setSettings(st => ({ ...st, corgi: np }))}
+                onSizeChange={(ns) => setSettings(st => ({ ...st, corgi_size: ns }))}
+                onContextMenu={(e) => handleContextMenu('corgi', e)}
+              />
+              {/* 宠物图层右键菜单 — 浮动在花架之上，点击菜单项后自动关闭 */}
+              {petMenu && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  style={{
+                    position: 'fixed',
+                    left: petMenu.x,
+                    top: petMenu.y,
+                    zIndex: 9999,
+                  }}
+                  className="rounded-lg shadow-2xl border border-gray-200/60 overflow-hidden"
+                >
+                  <div className="py-1.5 px-2 bg-white/95 backdrop-blur-md w-40">
+                    <div className="px-2 py-1 text-[11px] text-[var(--text-3)] font-medium tracking-wide border-b border-gray-100/70 mb-0.5">
+                      图层 · {petMenu.id === 'cat' ? '小猫' : '柯基'}
+                    </div>
+                    {menuItems.map(item => (
+                      <button
+                        key={item.label}
+                        onClick={item.onClick}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] rounded-md hover:bg-[var(--surface-hover)] transition-colors text-left"
+                      >
+                        <span className="text-[var(--text-3)] w-4 text-center text-[12px]">{item.icon}</span>
+                        <span className="text-[var(--text-1)]">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
         </>)}
 
         {/* 顶部栏（zIndex 7：常驻 chrome，须高于选中植物的置顶层 5 与托板工具条 6） */}

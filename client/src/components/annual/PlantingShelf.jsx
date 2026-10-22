@@ -433,9 +433,11 @@ function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, o
             className={breathe ? 'pet-deep' : undefined}
             style={{ display: 'block', userSelect: 'none', pointerEvents: 'none', animationPlayState: drag || resize ? 'paused' : 'running' }} />
         </div>
-        {/* 睡觉 Zzz：三只 Z 从头侧升起（sleeping 才显示） */}
+        {/* 睡觉 Zzz：三只 Z 从头侧升起（sleeping 才显示）。
+            容器整体 scale(size/100)：内部所有 px（锚点距离/字号/行程）按 100px 参照系调校，
+            宠物任意缩放下 Z 的悬浮高度与飞行比例恒定（min 0.6 防最小尺寸时 Z 小到不可读） */}
         {sleeping && (
-          <div className="sleep-z" aria-hidden="true">
+          <div className="sleep-z" aria-hidden="true" style={{ transform: `scale(${Math.max(0.6, size / 100)})` }}>
             <span>z</span><span>z</span><span>z</span>
           </div>
         )}

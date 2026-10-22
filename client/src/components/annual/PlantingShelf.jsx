@@ -206,8 +206,9 @@ function Butterfly({ size = 34, color = '#FFB347' }) {
       <ellipse className="bf-wing" cx="10" cy="22" rx="7" ry="5" fill={dark} opacity="0.75" />
       <ellipse className="bf-wing" cx="24" cy="14" rx="9" ry="7" fill={color} opacity="0.82" />
       <ellipse className="bf-wing" cx="24" cy="22" rx="7" ry="5" fill={dark} opacity="0.75" />
-      <circle cx="10" cy="12" r="2" fill="var(--surface-card)" opacity="0.6" />
-      <circle cx="24" cy="12" r="2" fill="var(--surface-card)" opacity="0.6" />
+      {/* 翅膀上的斑点：挂 bf-wing 类 → 与所在翅膀同变换，开合时严格贴合翅面 */}
+      <circle className="bf-wing" cx="10" cy="12" r="2" fill="var(--surface-card)" opacity="0.6" />
+      <circle className="bf-wing" cx="24" cy="12" r="2" fill="var(--surface-card)" opacity="0.6" />
       <ellipse cx="17" cy="18" rx="1.8" ry="8" fill="var(--ink-600)" />
       <path d="M16 10 q-2 -4 -4 -3" fill="none" stroke="var(--ink-600)" strokeWidth="1" />
       <path d="M18 10 q2 -4 4 -3" fill="none" stroke="var(--ink-600)" strokeWidth="1" />
@@ -269,10 +270,95 @@ function Ladybug({ size = 20 }) {
   );
 }
 
+// ---- 小昆虫通用：点选状态（点外面自动取消选中） ----
+function useBugSelect(ref) {
+  const [sel, setSel] = useState(false);
+  useEffect(() => {
+    if (!sel) return;
+    const away = (e) => { if (ref.current && !ref.current.contains(e.target)) setSel(false); };
+    window.addEventListener('pointerdown', away);
+    return () => window.removeEventListener('pointerdown', away);
+  }, [sel, ref]);
+  return [sel, setSel];
+}
+
+// ---- 小昆虫通用：动作右键菜单（飞行 / 停留），视觉与宠物右键菜单同语言 ----
+function BugMenu({ title, act, opts, onAct, x, y, onClose }) {
+  useEffect(() => {
+    const close = () => onClose();
+    const key = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('click', close);
+    window.addEventListener('contextmenu', close);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('contextmenu', close);
+      window.removeEventListener('keydown', key);
+    };
+  }, [onClose]);
+  const W = 150, H = 118, EDGE = 8;
+  const mx = Math.max(EDGE, Math.min(x, window.innerWidth - W - EDGE));
+  const my = Math.max(EDGE, Math.min(y, window.innerHeight - H - EDGE));
+  const list = opts || [['fly', '飞行', '绕圈'], ['rest', '停留', '轻扇翅']];
+  return (
+    <div className="fixed rounded-lg shadow-2xl border border-gray-200/60 overflow-hidden pointer-events-auto"
+      style={{ left: mx, top: my, width: W, zIndex: 9999 }}
+      onContextMenu={(e) => e.preventDefault()}>
+      <div className="py-1.5 px-2 bg-white/95 backdrop-blur-md">
+        <div className="px-2 py-1 text-[11px] text-[var(--text-3)] font-medium tracking-wide border-b border-gray-100/70 mb-0.5">
+          动作 · {title}
+        </div>
+        {list.map(([v, label, desc]) => (
+          <button key={v} onClick={() => onAct(v)}
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] rounded-md hover:bg-[var(--surface-hover)] transition-colors text-left">
+            <span className="text-[var(--text-3)] w-4 text-center text-[12px]">{act === v ? '✓' : ''}</span>
+            <span className="text-[var(--text-1)]">{label}</span>
+            <span className="ml-auto text-[10px] text-[var(--text-3)]">{desc}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---- 小昆虫通用：四角缩放手柄（与植物/宠物手柄同款，范围按昆虫收窄 14–90px） ----
+function BugHandles({ boxRef, size, min = 14, max = 90, onSizeChange, onStart, onDone }) {
+  const onMouseDown = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!boxRef.current) return;
+    const r = boxRef.current.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const startSize = size, startDist = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
+    onStart?.();
+    const onMove = (ev) => {
+      const d = Math.hypot(ev.clientX - cx, ev.clientY - cy);
+      onSizeChange(Math.max(min, Math.min(max, Math.round(startSize * (d / startDist)))));
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); onDone?.(); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+  return (
+    <>
+      {[['-top-1.5 -left-1.5', 'nwse-resize'], ['-top-1.5 -right-1.5', 'nesw-resize'],
+        ['-bottom-1.5 -left-1.5', 'nesw-resize'], ['-bottom-1.5 -right-1.5', 'nwse-resize']].map(([p, cur]) => (
+        <div key={p} className={`absolute ${p} w-2 h-2 rounded-full`}
+          style={{ background: 'var(--surface-card)', border: '2px solid #238E3F', boxShadow: '0 1px 4px rgba(0,0,0,0.25)', cursor: cur }}
+          onMouseDown={onMouseDown} />
+      ))}
+    </>
+  );
+}
+
 // ---- 可拖拽的蜜蜂 ----
-function BeeDrop({ pos, size, anim, flip, onPosChange }) {
+// act: 'fly' = 沿路径绕圈；'rest' = 原地轻扇翅（.pet-rest 把翅膀动画换成小幅度慢频版）
+function BeeDrop({ pos, size, anim, flip, act = 'fly', onPosChange, onSizeChange, onActChange }) {
   const ref = useRef(null);
+  const animRef = useRef(null);
   const [drag, setDrag] = useState(null);
+  const [sel, setSel] = useBugSelect(ref);
+  const [rsz, setRsz] = useState(false);
+  const [menu, setMenu] = useState(null);
   useEffect(() => {
     if (!drag) return;
     const onMove = (e) => {
@@ -289,22 +375,42 @@ function BeeDrop({ pos, size, anim, flip, onPosChange }) {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [drag, onPosChange]);
   return (
-    <div ref={ref} className="absolute cursor-grab active:cursor-grabbing"
+    <div ref={ref} className={'absolute cursor-grab active:cursor-grabbing' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
       onMouseDown={(e) => {
-        e.stopPropagation(); e.preventDefault();
+        e.stopPropagation(); e.preventDefault(); setSel(true);
         const r = ref.current.getBoundingClientRect();
         setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
-      }}>
-      <div className={anim}><Bee size={size} flip={flip} /></div>
+      }}
+      onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
+      {/* 飞行路径（fly）／停留时移除路径动画原地悬停；拖动/缩放期间暂停 */}
+      <div ref={animRef}
+        className={(act === 'rest' ? '' : anim + ' ') + 'relative'}
+        style={{ animationPlayState: drag || rsz ? 'paused' : 'running' }}>
+        <Bee size={size} flip={flip} />
+        {sel && (
+          <BugHandles boxRef={animRef} size={size}
+            onSizeChange={onSizeChange} onStart={() => setRsz(true)} onDone={() => setRsz(false)} />
+        )}
+      </div>
+      {menu && (
+        <BugMenu title="蜜蜂" act={act}
+          onAct={(v) => { onActChange?.(v); setMenu(null); }}
+          x={menu.x} y={menu.y} onClose={() => setMenu(null)} />
+      )}
     </div>
   );
 }
 
 // ---- 可拖拽的蝴蝶 ----
-function BFDrop({ pos, size, color, anim, onPosChange }) {
+// 与蜜蜂同一套交互；bf-bob 身体颠簸常开（停留态被 .pet-rest 换成 0.8s 柔和版）
+function BFDrop({ pos, size, color, anim, act = 'fly', onPosChange, onSizeChange, onActChange }) {
   const ref = useRef(null);
+  const animRef = useRef(null);
   const [drag, setDrag] = useState(null);
+  const [sel, setSel] = useBugSelect(ref);
+  const [rsz, setRsz] = useState(false);
+  const [menu, setMenu] = useState(null);
   useEffect(() => {
     if (!drag) return;
     const onMove = (e) => {
@@ -321,27 +427,45 @@ function BFDrop({ pos, size, color, anim, onPosChange }) {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [drag, onPosChange]);
   return (
-    <div ref={ref} className="absolute cursor-grab active:cursor-grabbing"
+    <div ref={ref} className={'absolute cursor-grab active:cursor-grabbing' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
       onMouseDown={(e) => {
-        e.stopPropagation(); e.preventDefault();
+        e.stopPropagation(); e.preventDefault(); setSel(true);
         const r = ref.current.getBoundingClientRect();
         setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
-      }}>
-      {/* bf-bob：身体颠簸与 0.4s 扑翼同周期相位锁定 —— 压翅时身体随之一颠 */}
-      <div className={anim}><div className="bf-bob"><Butterfly size={size} color={color} /></div></div>
+      }}
+      onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
+      <div ref={animRef}
+        className={(act === 'rest' ? '' : anim + ' ') + 'relative'}
+        style={{ animationPlayState: drag || rsz ? 'paused' : 'running' }}>
+        {/* bf-bob：身体颠簸与扑翼同周期相位锁定 —— 压翅时身体随之一颠 */}
+        <div className="bf-bob"><Butterfly size={size} color={color} /></div>
+        {sel && (
+          <BugHandles boxRef={animRef} size={size}
+            onSizeChange={onSizeChange} onStart={() => setRsz(true)} onDone={() => setRsz(false)} />
+        )}
+      </div>
+      {menu && (
+        <BugMenu title="蝴蝶" act={act}
+          onAct={(v) => { onActChange?.(v); setMenu(null); }}
+          x={menu.x} y={menu.y} onClose={() => setMenu(null)} />
+      )}
     </div>
   );
 }
 
 // ---- 可拖拽的瓢虫 ----
-// 与蜂蝶同一套拖拽逻辑，两处不同：
+// 与蜂蝶同一套拖拽逻辑，三处不同：
 //   1. 命中区挂在「带飞行动画的内层」上 —— 瓢虫大部分时间悬在落点上方 40px 左右，
 //      挂在静止的外层会出现"看得见却点不到、点得到的地方又没有虫"
 //   2. 拖动期间暂停飞行动画，虫身才会严格跟着指针走；松手后从暂停处续飞
-function LadybugDrop({ pos, size, anim, onPosChange }) {
+//   3. act='rest' 时飞行路径换成 lady-crawl（小范围爬动），鞘翅保持合拢不振动
+function LadybugDrop({ pos, size, anim, act = 'fly', onPosChange, onSizeChange, onActChange }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
+  const [sel, setSel] = useBugSelect(ref);
+  const [rsz, setRsz] = useState(false);
+  const [menu, setMenu] = useState(null);
   useEffect(() => {
     if (!drag) return;
     const onMove = (e) => {
@@ -358,17 +482,28 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [drag, onPosChange]);
   return (
-    <div className="absolute pointer-events-none"
+    <div className={'absolute pointer-events-none' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
-      <div ref={ref} className={`${anim} pointer-events-auto cursor-grab active:cursor-grabbing`}
-        style={{ animationPlayState: drag ? 'paused' : 'running' }}
+      <div ref={ref} className={(act === 'rest' ? 'lady-crawl' : anim) + ' pointer-events-auto cursor-grab active:cursor-grabbing'}
+        style={{ animationPlayState: drag || rsz ? 'paused' : 'running' }}
         onMouseDown={(e) => {
-          e.stopPropagation(); e.preventDefault();
+          e.stopPropagation(); e.preventDefault(); setSel(true);
           const r = ref.current.getBoundingClientRect();
           setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
-        }}>
+        }}
+        onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
         <Ladybug size={size} />
+        {sel && (
+          <BugHandles boxRef={ref} size={size}
+            onSizeChange={onSizeChange} onStart={() => setRsz(true)} onDone={() => setRsz(false)} />
+        )}
       </div>
+      {menu && (
+        <BugMenu title="七星瓢虫" act={act}
+          opts={[['fly', '飞行', '绕圈'], ['rest', '停留', '爬动']]}
+          onAct={(v) => { onActChange?.(v); setMenu(null); }}
+          x={menu.x} y={menu.y} onClose={() => setMenu(null)} />
+      )}
     </div>
   );
 }
@@ -1363,6 +1498,34 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         @keyframes lady-wings-vis { 0% { visibility: visible; } 47% { visibility: hidden; } 71% { visibility: visible; } }
         .lady-shell { visibility: hidden; animation: lady-shell-vis 26s step-end infinite; }
         @keyframes lady-shell-vis { 0% { visibility: hidden; } 47% { visibility: visible; } 71% { visibility: hidden; } }
+        /* ===== 停留态（.pet-rest，右键菜单切换）=====
+           · 蜜蜂：翅膀 0.15s/压到 0.3 → 0.55s/压到 0.72，慢频小幅扇动（悬停休憩感）
+           · 蝴蝶：翅膀 0.4s/合到 0.6 → 0.8s/合到 0.82，身体颠簸同步放慢放柔
+           · 瓢虫：不振动 —— 鞘翅整壳合拢常显、飞行翅组常隐，改走 lady-crawl 爬动路径 */
+        @keyframes wing-flap-soft { 0% { transform: scaleY(1); } 100% { transform: scaleY(0.72); } }
+        @keyframes b-wing-soft { 0% { transform: scaleX(1); } 100% { transform: scaleX(0.82); } }
+        @keyframes bf-bob-soft { 0% { transform: translateY(0); } 100% { transform: translateY(-0.8px); } }
+        .pet-rest .bee-wing { animation-name: wing-flap-soft; animation-duration: 0.55s; }
+        .pet-rest .bf-wing { animation-name: b-wing-soft; animation-duration: 0.8s; }
+        .pet-rest .bf-bob { animation-name: bf-bob-soft; animation-duration: 0.8s; }
+        .pet-rest .lady-wings { animation: none; visibility: hidden; }
+        .pet-rest .lady-shell { animation: none; visibility: visible; }
+        /* 停留态瓢虫：小范围爬动 —— 步进 + 短暂停顿（相近键对 = 驻留），总幅度 ±7px；
+           linear 底速 + 驻留键读起来是"走走停停"的爬行节奏 */
+        .lady-crawl { animation: lady-crawl 16s linear infinite; }
+        @keyframes lady-crawl {
+          0%   { transform: translate(0,0) rotate(0deg); }
+          10%  { transform: translate(6px,1px) rotate(4deg); }
+          16%  { transform: translate(7px,1px) rotate(4deg); }
+          26%  { transform: translate(3px,4px) rotate(-2deg); }
+          32%  { transform: translate(2px,5px) rotate(-2deg); }
+          44%  { transform: translate(-4px,3px) rotate(-5deg); }
+          50%  { transform: translate(-5px,2px) rotate(-5deg); }
+          62%  { transform: translate(-2px,-2px) rotate(2deg); }
+          74%  { transform: translate(2px,-1px) rotate(1deg); }
+          80%  { transform: translate(3px,0) rotate(0deg); }
+          100% { transform: translate(0,0) rotate(0deg); }
+        }
         /* 睡猫：双层呼吸 —— 内层 3.4s 主呼吸（.cat-breathe）+ 外层 17s 慢波调制（.pet-deep）
            两周期叠加 → 约 17s 出现一次明显深呼吸，其余是浅呼吸（不再是节拍器） */
         @keyframes pet-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.035); } }
@@ -1413,7 +1576,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
         }
         @media (prefers-reduced-motion: reduce) {
           .bee-wing, .bf-wing,
-          .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .bf-bob, .lady-fly,
+          .bee-fly-1, .bee-fly-2, .bf-fly-1, .bf-fly-2, .bf-bob, .lady-fly, .lady-crawl,
           .lady-wing-l, .lady-wing-r, .lady-wings, .lady-shell,
           .cat-breathe, .pet-deep { animation: none !important; }
           .sleep-z { display: none; }
@@ -1502,11 +1665,15 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
           );
         })()}
 
-        {/* 蜜蜂（可拖拽，两只）：左边一只朝左飞，右边一只水平镜像成朝右飞 */}
-        {[{ id: 'bee1', size: 30, anim: 'bee-fly-1', flip: false, pos: s.bee1 || { left: '5%', top: '6%' } },
-          { id: 'bee2', size: 26, anim: 'bee-fly-2', flip: true, pos: s.bee2 || { left: '88%', top: '68%' } }].map(b => (
-          <BeeDrop key={b.id} id={b.id} pos={b.pos} size={b.size} anim={b.anim} flip={b.flip}
-            onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
+        {/* 蜜蜂（可拖拽/缩放/右键切换动作，两只）：左边一只朝左飞，右边一只水平镜像成朝右飞；
+            尺寸（bee1_size 等）与动作（bee1_act: fly/rest）持久化到 settings */}
+        {[{ id: 'bee1', defSize: 30, anim: 'bee-fly-1', flip: false, pos: s.bee1 || { left: '5%', top: '6%' } },
+          { id: 'bee2', defSize: 26, anim: 'bee-fly-2', flip: true, pos: s.bee2 || { left: '88%', top: '68%' } }].map(b => (
+          <BeeDrop key={b.id} id={b.id} pos={b.pos} size={s[b.id + '_size'] ?? b.defSize} anim={b.anim} flip={b.flip}
+            act={s[b.id + '_act'] || 'fly'}
+            onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))}
+            onSizeChange={(ns) => setSettings(st => ({ ...st, [b.id + '_size']: ns }))}
+            onActChange={(nv) => setSettings(st => ({ ...st, [b.id + '_act']: nv }))} />
         ))}
 
         {/* 瓢虫（可拖拽）：空中盘旋 → 落在叶子上停一会 → 再次起飞。
@@ -1518,16 +1685,22 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             ? { left: `${host.pos_x}%`, top: `${Math.max(5, Math.min(94, (host.pos_y || 0) - 7 * (host.size || 1)))}%` }
             : { left: '58%', top: '34%' };
           return (
-            <LadybugDrop size={20} anim="lady-fly" pos={s.lady1 || def}
-              onPosChange={(np) => setSettings(st => ({ ...st, lady1: np }))} />
+            <LadybugDrop size={s.lady1_size ?? 20} anim="lady-fly" pos={s.lady1 || def}
+              act={s.lady1_act || 'fly'}
+              onPosChange={(np) => setSettings(st => ({ ...st, lady1: np }))}
+              onSizeChange={(ns) => setSettings(st => ({ ...st, lady1_size: ns }))}
+              onActChange={(nv) => setSettings(st => ({ ...st, lady1_act: nv }))} />
           );
         })()}
 
-        {/* 蝴蝶（可拖拽） */}
-        {[{ id: 'bf1', size: 34, color: '#FFB347', anim: 'bf-fly-1', pos: s.bf1 || { left: '88%', top: '28%' } },
-          { id: 'bf2', size: 26, color: '#C77DFF', anim: 'bf-fly-2', pos: s.bf2 || { left: '3%', top: '66%' } }].map(b => (
-          <BFDrop key={b.id} id={b.id} pos={b.pos} size={b.size} color={b.color} anim={b.anim}
-            onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
+        {/* 蝴蝶（可拖拽/缩放/右键切换动作） */}
+        {[{ id: 'bf1', defSize: 34, color: '#FFB347', anim: 'bf-fly-1', pos: s.bf1 || { left: '88%', top: '28%' } },
+          { id: 'bf2', defSize: 26, color: '#C77DFF', anim: 'bf-fly-2', pos: s.bf2 || { left: '3%', top: '66%' } }].map(b => (
+          <BFDrop key={b.id} id={b.id} pos={b.pos} size={s[b.id + '_size'] ?? b.defSize} color={b.color} anim={b.anim}
+            act={s[b.id + '_act'] || 'fly'}
+            onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))}
+            onSizeChange={(ns) => setSettings(st => ({ ...st, [b.id + '_size']: ns }))}
+            onActChange={(nv) => setSettings(st => ({ ...st, [b.id + '_act']: nv }))} />
         ))}
 
         {/* 宠物区：垫子 + 宠物（都可自由拖拽缩放 + 右键调图层）

@@ -12,6 +12,7 @@ import { IconCheck } from '../aiIcons.jsx';
 import { useLongPress } from '../useLongPress.js';
 import { uid } from './utils.js';
 import catLying from '../../assets/cat-lying.png';
+import corgiSleeping from '../../assets/corgi-sleeping.jpg';
 
 // ---- 绿色（工作台 iOS accent.green 700 单色，H≈136° 同色相，只降明度）----
 // 单色 #238E3F  green-700：一处到底 —— 实底按钮 / 勾选框 / 缩放手柄 / focus 边框 /
@@ -369,16 +370,17 @@ function LadybugDrop({ pos, size, anim, onPosChange }) {
   );
 }
 
-// ---- 可拖拽的睡猫 ----
-// V6 生成图（去掉木板后的透明底 PNG，assets/cat-lying.png），非矢量。
-//   与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画挂在带命中区的内层，拖动期间暂停起伏。
-//   猫身横卧、底边平直，默认摆在托板顶面上，按百分比定位持久化到 localStorage。
-//   圆垫子：内联 SVG 画在猫身后（同属一个拖拽单元，随猫一起移动；不参与呼吸起伏）。
-//   单层垫面、无厚度；尺寸按猫身宽度换算（1.25× 猫身），用 bottom 负百分比锚在下缘——
-//   猫图中只有左侧前爪垂到画面底部，故垫子要够宽才能在猫身两侧露出来，圆垫的形状才读得出来。
-function CatDrop({ pos, size, onPosChange }) {
+// ---- 可拖拽 + 可缩放的宠物（睡猫 / 柯基） ----
+// 与蜜蜂/蝴蝶同一套拖拽逻辑；呼吸动画挂在带命中区的内层，拖动期间暂停起伏。
+// 垫子：绿色渐变（匹配花架主题 green-700 / green-300），单层垫面 + 内圈缝线 + 一层接地柔影。
+// 尺寸按 pet 宽度换算（1.6× 宠物宽，让垫子在身体两侧明显露出来）。
+// 选中（点击）→ 显示四角缩放手柄；位置和大小都持久化到 settings（localStorage）。
+function PetDrop({ id, imgSrc, pos, size, onPosChange, onSizeChange, selected, onSelect, onDeselect }) {
   const ref = useRef(null);
   const [drag, setDrag] = useState(null);
+  const [resize, setResize] = useState(null);
+
+  // 拖拽移动（与 BeeDrop / 植物同逻辑）
   useEffect(() => {
     if (!drag) return;
     const onMove = (e) => {
@@ -394,43 +396,94 @@ function CatDrop({ pos, size, onPosChange }) {
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [drag, onPosChange]);
-  const cushionW = Math.round(size * 1.25);
+
+  // 四角拉伸缩放（对角拖动等比缩放，范围 0.5–2.5 倍）
+  const onResizeMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const box = ref.current;
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const startSize = size;
+    const startDist = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
+    const onMove = (ev) => {
+      const d = Math.hypot(ev.clientX - cx, ev.clientY - cy);
+      const ns = Math.max(0.5, Math.min(2.5, startSize * (d / startDist)));
+      onSizeChange(Math.round(ns));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setResize(null);
+    };
+    setResize(id);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const cushionW = Math.round(size * 1.6);
+  // 垫子 SVG id 必须唯一（同屏多只宠物）
+  const svgId = `petCushion_${id}`;
+  const gradId = `${svgId}_top`;
+  const shadowId = `${svgId}_shadow`;
+
   return (
-    <div className="absolute pointer-events-none"
-      style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
-      <div ref={ref} className="relative pointer-events-auto cursor-grab active:cursor-grabbing"
+    <div className="absolute"
+      style={{ left: pos.left, top: pos.top, zIndex: selected ? 7 : 6, transform: 'translate(-50%,-50%)' }}>
+      <div ref={ref} className="relative cursor-grab active:cursor-grabbing select-none"
         onMouseDown={(e) => {
           e.stopPropagation(); e.preventDefault();
+          onSelect?.();
           const r = ref.current.getBoundingClientRect();
           setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
-        }}>
-        {/* 圆垫子：单层垫面 + 内圈缝线 + 一层接地柔影；先绘故在猫身后。
-            接地影只用「一枚高斯模糊椭圆」：原先叠两枚硬边椭圆（5% + 11%）时，
-            半透明硬边会在垫子下缘叠出可见的阶梯色带，看起来像好几层阴影；
-            模糊后只有一层渐变，贴着垫边自然淡出，仍是「落地」而不是「悬空」。 */}
-        <svg width={cushionW} height={cushionW * 72 / 140} viewBox="0 0 140 72"
+        }}
+        onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
+        {/* 绿色圆垫子：green-700 同色系渐变 + 内圈缝线 + 接地柔影
+            先绘故在宠物身后；bottom 负百分比锚在下缘 */}
+        <svg width={cushionW} height={cushionW * 72 / 160} viewBox="0 0 160 72"
           className="absolute left-1/2 pointer-events-none"
-          style={{ bottom: '-20%', transform: 'translateX(-50%)', display: 'block' }}>
+          style={{ bottom: '-18%', transform: 'translateX(-50%)', display: 'block' }}>
           <defs>
-            <linearGradient id="catCushionTop" x1="0.18" y1="0.05" x2="0.82" y2="1">
-              <stop offset="0" stopColor="#C97C4A" />
-              <stop offset="1" stopColor="#AD5F33" />
+            <linearGradient id={gradId} x1="0.18" y1="0.05" x2="0.82" y2="1">
+              <stop offset="0" stopColor="#4DAF6A" />
+              <stop offset="1" stopColor="#1D7A35" />
             </linearGradient>
-            {/* 模糊区域留足余量，避免柔影被 filter 边界切出硬边 */}
-            <filter id="catCushionShadow" x="-30%" y="-90%" width="160%" height="280%">
+            <filter id={shadowId} x="-30%" y="-90%" width="160%" height="280%">
               <feGaussianBlur stdDeviation="3.4" />
             </filter>
           </defs>
-          <ellipse cx="70" cy="40" rx="68" ry="17.5" fill="#000" opacity="0.13"
-            filter="url(#catCushionShadow)" />
-          <ellipse cx="70" cy="34.5" rx="70" ry="19" fill="url(#catCushionTop)" />
-          <ellipse cx="70" cy="34.5" rx="62" ry="16.5" fill="none"
-            stroke="#F4E6D2" strokeWidth="1.4" strokeDasharray="3 3" opacity="0.8" />
+          <ellipse cx="80" cy="40" rx="78" ry="18" fill="#000" opacity="0.13"
+            filter={`url(#${shadowId})`} />
+          <ellipse cx="80" cy="35" rx="80" ry="20" fill={`url(#${gradId})`} />
+          <ellipse cx="80" cy="35" rx="71" ry="17" fill="none"
+            stroke="#B9E6C7" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.85" />
         </svg>
-        <div className="cat-breathe relative" style={{ animationPlayState: drag ? 'paused' : 'running' }}>
-          <img src={catLying} alt="" width={size} draggable={false}
+
+        {/* 宠物本体：呼吸起伏动画（拖动时暂停） */}
+        <div className="cat-breathe relative" style={{ animationPlayState: drag || resize ? 'paused' : 'running' }}>
+          <img src={imgSrc} alt="" width={size} draggable={false}
             style={{ display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
         </div>
+
+        {/* 选中时显示四角缩放手柄（仅未在缩放中显示，避免闪烁） */}
+        {selected && resize !== id && (
+          <>
+            {[['-top-1.5 -left-1.5', 'nwse-resize'], ['-top-1.5 -right-1.5', 'nesw-resize'],
+              ['-bottom-1.5 -left-1.5', 'nesw-resize'], ['-bottom-1.5 -right-1.5', 'nwse-resize']].map(([pos, cur]) => (
+              <div key={pos}
+                className={`absolute ${pos} w-2.5 h-2.5 rounded-full`}
+                style={{
+                  background: 'var(--surface-card)',
+                  border: '2px solid #238E3F',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                  cursor: cur,
+                }}
+                onMouseDown={onResizeMouseDown} />
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -717,6 +770,7 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     if (typeof onCountChange === 'function') onCountChange(plants.length);
   }, [plants.length, onCountChange]);
   const [selected, setSelected] = useState(null);
+  const [selectedPetId, setSelectedPetId] = useState(null); // 宠物选中：cat / corgi / null
   const [dragging, setDragging] = useState(null);
   const [resizing, setResizing] = useState(null);
   // 自动保存反馈：成功短暂轻提示，失败醒目提示
@@ -1204,9 +1258,10 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
     }
   };
 
-  // 画布点击（空白处）：取消选中植物（隐藏缩放/托板手柄）+ 关闭信息面板
+  // 画布点击（空白处）：取消选中植物（隐藏缩放/托板手柄）+ 取消宠物选中 + 关闭信息面板
   const onCanvasClick = () => {
     setSelected(null);
+    setSelectedPetId(null);
     setSelectedBoard(null);
     setShowInfo(false);
   };
@@ -1448,9 +1503,28 @@ export default function PlantingShelf({ onCountChange, addSignal = 0, onAddConsu
             onPosChange={(np) => setSettings(st => ({ ...st, [b.id]: np }))} />
         ))}
 
-        {/* 睡猫（可拖拽）：卧在第二层托板上，极轻微呼吸起伏；拖过之后位置手动为准 */}
-        <CatDrop size={104} pos={s.cat || { left: '27%', top: '45%' }}
-          onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))} />
+        {/* 宠物（可拖拽 + 可缩放）：睡猫 + 柯基，垫子已换成花架绿色
+            默认摆在第二层托板附近；点击显示四角缩放手柄，位置/尺寸持久化到 settings */}
+        <PetDrop
+          id="cat"
+          imgSrc={catLying}
+          pos={s.cat || { left: '20%', top: '48%' }}
+          size={s.cat_size || 104}
+          selected={selectedPetId === 'cat'}
+          onSelect={() => { setSelectedPetId('cat'); setSelected(null); }}
+          onPosChange={(np) => setSettings(st => ({ ...st, cat: np }))}
+          onSizeChange={(ns) => setSettings(st => ({ ...st, cat_size: ns }))}
+        />
+        <PetDrop
+          id="corgi"
+          imgSrc={corgiSleeping}
+          pos={s.corgi || { left: '36%', top: '48%' }}
+          size={s.corgi_size || 96}
+          selected={selectedPetId === 'corgi'}
+          onSelect={() => { setSelectedPetId('corgi'); setSelected(null); }}
+          onPosChange={(np) => setSettings(st => ({ ...st, corgi: np }))}
+          onSizeChange={(ns) => setSettings(st => ({ ...st, corgi_size: ns }))}
+        />
         </>)}
 
         {/* 顶部栏（zIndex 7：常驻 chrome，须高于选中植物的置顶层 5 与托板工具条 6） */}

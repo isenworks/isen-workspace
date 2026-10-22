@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { WorkspaceActionsProvider } from '../context/WorkspaceActionsContext.jsx';
@@ -21,25 +21,27 @@ import { store } from '../utils/store.js';
 import { syncCloudNow } from '../utils/cloudKV.js';
 import { useSplitRatio, SplitDivider } from '../components/useSplitRatio.jsx';
 import { parseRoute, buildRoute } from '../utils/route.js';
+import { lazyRetry } from '../utils/lazyRetry.js';
 
 // ===== 路由级 / 弹窗级懒加载：仅在对应菜单或弹窗打开时才拉取分块，减小首屏 JS =====
 // 注：CalendarPage 内含 lunar 农历库（大），懒加载后随「日历」菜单按需加载，不进首屏；
 //     日历为高频页面，挂载后空闲时后台预取分块（见组件内 warm 效果），首次点击即秒开
 //     HabitForm/BookForm/KrForm/MilestoneForm/AbilityForm 被 AnnualPlan 静态引用（随其加载），懒加载无收益故保留静态
-const CalendarPage = lazy(() => import('./CalendarPage.jsx'));
-const HomePage = lazy(() => import('./HomePage.jsx'));
-const RecycleBinPage = lazy(() => import('./RecycleBinPage.jsx'));
-const KnowledgeBasePage = lazy(() => import('./KnowledgeBasePage.jsx'));
-const AIAssistantPage = lazy(() => import('./AIAssistantPage.jsx'));
-const InboxPage = lazy(() => import('./InboxPage.jsx'));
-const ScheduleForm = lazy(() => import('../components/forms/ScheduleForm.jsx'));
-const FixedScheduleForm = lazy(() => import('../components/forms/FixedScheduleForm.jsx'));
-const FixedSchedulesPanel = lazy(() => import('../components/FixedSchedulesPanel.jsx'));
-const SummaryPanel = lazy(() => import('../components/SummaryPanel.jsx'));
-const QuickCapture = lazy(() => import('../components/QuickCapture.jsx'));
-const SettingsModal = lazy(() => import('../components/SettingsModal.jsx'));
-const ShortcutsModal = lazy(() => import('../components/ShortcutsModal.jsx'));
-const SearchPalette = lazy(() => import('../components/SearchPalette.jsx'));
+// 全部走 lazyRetry 包装：部署换 hash 后旧标签页拉不到旧分包时自动整页刷新自愈
+const CalendarPage = lazyRetry(() => import('./CalendarPage.jsx'));
+const HomePage = lazyRetry(() => import('./HomePage.jsx'));
+const RecycleBinPage = lazyRetry(() => import('./RecycleBinPage.jsx'));
+const KnowledgeBasePage = lazyRetry(() => import('./KnowledgeBasePage.jsx'));
+const AIAssistantPage = lazyRetry(() => import('./AIAssistantPage.jsx'));
+const InboxPage = lazyRetry(() => import('./InboxPage.jsx'));
+const ScheduleForm = lazyRetry(() => import('../components/forms/ScheduleForm.jsx'));
+const FixedScheduleForm = lazyRetry(() => import('../components/forms/FixedScheduleForm.jsx'));
+const FixedSchedulesPanel = lazyRetry(() => import('../components/FixedSchedulesPanel.jsx'));
+const SummaryPanel = lazyRetry(() => import('../components/SummaryPanel.jsx'));
+const QuickCapture = lazyRetry(() => import('../components/QuickCapture.jsx'));
+const SettingsModal = lazyRetry(() => import('../components/SettingsModal.jsx'));
+const ShortcutsModal = lazyRetry(() => import('../components/ShortcutsModal.jsx'));
+const SearchPalette = lazyRetry(() => import('../components/SearchPalette.jsx'));
 
 // 懒加载分块拉取时的占位
 const ChunkFallback = () => (
@@ -223,7 +225,7 @@ export default function Workspace({ user: propUser }) {
   // ===== 日历分块预取：高频页面，登录后空闲时后台拉取（含农历库），首次点击免「加载中」 =====
   // 与上方 lazy() 引用同一模块，预取后模块缓存命中，点击日历零网络等待
   useEffect(() => {
-    const warm = () => { import('./CalendarPage.jsx'); };
+    const warm = () => { import('./CalendarPage.jsx').catch(() => {}); }; // 预取失败静默（含部署换 hash 场景），点击时由 lazyRetry 自愈
     if (typeof window.requestIdleCallback === 'function') {
       const id = window.requestIdleCallback(warm, { timeout: 2000 });
       return () => window.cancelIdleCallback(id);

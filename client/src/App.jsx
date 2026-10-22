@@ -1,10 +1,11 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from './context/AuthContext.jsx';
 import Login from './pages/Login.jsx';
+import { lazyRetry } from './utils/lazyRetry.js';
 
 // 路由级懒加载：登录态下才拉取 Workspace 分块；#annual 预览路由按需拉取
-const Workspace = lazy(() => import('./pages/Workspace.jsx'));
-const AnnualPlan = lazy(() => import('./pages/AnnualPlan.jsx'));
+const Workspace = lazyRetry(() => import('./pages/Workspace.jsx'));
+const AnnualPlan = lazyRetry(() => import('./pages/AnnualPlan.jsx'));
 
 function FullScreenSpinner() {
   return (

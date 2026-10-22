@@ -5,6 +5,7 @@
 //   设计：胡桃木三层花架 + 纯白微暖墙面 + 蜜蜂蝴蝶氛围 + 绿色光晕 + 浇水提醒
 // ============================================================
 import React, { useState, useEffect, useRef, useCallback, useMemo, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { API } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import ConfirmDialog from '../ConfirmDialog.jsx';
@@ -282,6 +283,47 @@ function useBugSelect(ref) {
   return [sel, setSel];
 }
 
+// ---- 小昆虫通用交互：悬停冻结 + 3px 阈值拖拽 ----
+//   · 悬停：光标压到虫身上 → 冻结路径动画（飞虫停下来"看你"，右键也因此必然命中静止目标）
+//   · 点击：mousedown 只记录按压点，位移超过 3px 才进入拖拽 —— 单纯点击不会把虫带跑
+//   返回 { dragging, hover, bind }；paused = dragging||hover 由调用方并入动画暂停条件
+function useBugDrag(ref, onPosChange, onPress) {
+  const [hover, setHover] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const pressRef = useRef(null);
+  useEffect(() => {
+    const onMove = (e) => {
+      const p = pressRef.current;
+      if (!p) return;
+      if (!p.active) {
+        if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 3) return;
+        p.active = true; setDragging(true);
+      }
+      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
+      if (!canvas) return;
+      const r = canvas.getBoundingClientRect();
+      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - p.offX) / r.width) * 100));
+      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - p.offY) / r.height) * 100));
+      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
+    };
+    const onUp = () => { pressRef.current = null; setDragging(false); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [onPosChange, ref]);
+  const bind = {
+    onMouseDown: (e) => {
+      e.stopPropagation(); e.preventDefault();
+      onPress?.();
+      const r = ref.current.getBoundingClientRect();
+      pressRef.current = { x: e.clientX, y: e.clientY, offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 };
+    },
+    onMouseEnter: () => setHover(true),
+    onMouseLeave: () => setHover(false),
+  };
+  return { dragging, hover, bind };
+}
+
 // ---- 小昆虫通用：动作右键菜单（飞行 / 停留），视觉与宠物右键菜单同语言 ----
 function BugMenu({ title, act, opts, onAct, x, y, onClose }) {
   useEffect(() => {
@@ -300,7 +342,9 @@ function BugMenu({ title, act, opts, onAct, x, y, onClose }) {
   const mx = Math.max(EDGE, Math.min(x, window.innerWidth - W - EDGE));
   const my = Math.max(EDGE, Math.min(y, window.innerHeight - H - EDGE));
   const list = opts || [['fly', '飞行', '绕圈'], ['rest', '停留', '轻扇翅']];
-  return (
+  /* portal 到 body：虫子容器带 transform，fixed 菜单若留在容器内会被当作
+     「相对 transform 祖先定位」且被 zIndex 6 的层叠上下文困住 —— 菜单位置错乱还可能被顶栏盖住 */
+  return createPortal(
     <div className="fixed rounded-lg shadow-2xl border border-gray-200/60 overflow-hidden pointer-events-auto"
       style={{ left: mx, top: my, width: W, zIndex: 9999 }}
       onContextMenu={(e) => e.preventDefault()}>
@@ -317,7 +361,8 @@ function BugMenu({ title, act, opts, onAct, x, y, onClose }) {
           </button>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -352,41 +397,23 @@ function BugHandles({ boxRef, size, min = 14, max = 90, onSizeChange, onStart, o
 
 // ---- 可拖拽的蜜蜂 ----
 // act: 'fly' = 沿路径绕圈；'rest' = 原地轻扇翅（.pet-rest 把翅膀动画换成小幅度慢频版）
+// 悬停/选中/拖拽/缩放任一状态都冻结路径动画 —— 虫子静止才好右键和拉手柄
 function BeeDrop({ pos, size, anim, flip, act = 'fly', onPosChange, onSizeChange, onActChange }) {
   const ref = useRef(null);
   const animRef = useRef(null);
-  const [drag, setDrag] = useState(null);
   const [sel, setSel] = useBugSelect(ref);
   const [rsz, setRsz] = useState(false);
   const [menu, setMenu] = useState(null);
-  useEffect(() => {
-    if (!drag) return;
-    const onMove = (e) => {
-      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
-      if (!canvas) return;
-      const r = canvas.getBoundingClientRect();
-      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
-      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
-      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
-    };
-    const onUp = () => setDrag(null);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [drag, onPosChange]);
+  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true));
   return (
     <div ref={ref} className={'absolute cursor-grab active:cursor-grabbing' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
-      onMouseDown={(e) => {
-        e.stopPropagation(); e.preventDefault(); setSel(true);
-        const r = ref.current.getBoundingClientRect();
-        setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
-      }}
+      {...bind}
       onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
-      {/* 飞行路径（fly）／停留时移除路径动画原地悬停；拖动/缩放期间暂停 */}
+      {/* 飞行路径（fly）／停留时移除路径动画原地悬停；悬停/拖拽/缩放/选中期间暂停 */}
       <div ref={animRef}
         className={(act === 'rest' ? '' : anim + ' ') + 'relative'}
-        style={{ animationPlayState: drag || rsz ? 'paused' : 'running' }}>
+        style={{ animationPlayState: dragging || hover || rsz || sel ? 'paused' : 'running' }}>
         <Bee size={size} flip={flip} />
         {sel && (
           <BugHandles boxRef={animRef} size={size}
@@ -403,41 +430,22 @@ function BeeDrop({ pos, size, anim, flip, act = 'fly', onPosChange, onSizeChange
 }
 
 // ---- 可拖拽的蝴蝶 ----
-// 与蜜蜂同一套交互；bf-bob 身体颠簸常开（停留态被 .pet-rest 换成 0.8s 柔和版）
+// 与蜜蜂同一套交互（悬停冻结/阈值拖拽/右键动作）；bf-bob 身体颠簸常开（停留态被 .pet-rest 换成 0.8s 柔和版）
 function BFDrop({ pos, size, color, anim, act = 'fly', onPosChange, onSizeChange, onActChange }) {
   const ref = useRef(null);
   const animRef = useRef(null);
-  const [drag, setDrag] = useState(null);
   const [sel, setSel] = useBugSelect(ref);
   const [rsz, setRsz] = useState(false);
   const [menu, setMenu] = useState(null);
-  useEffect(() => {
-    if (!drag) return;
-    const onMove = (e) => {
-      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
-      if (!canvas) return;
-      const r = canvas.getBoundingClientRect();
-      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
-      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
-      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
-    };
-    const onUp = () => setDrag(null);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [drag, onPosChange]);
+  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true));
   return (
     <div ref={ref} className={'absolute cursor-grab active:cursor-grabbing' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
-      onMouseDown={(e) => {
-        e.stopPropagation(); e.preventDefault(); setSel(true);
-        const r = ref.current.getBoundingClientRect();
-        setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
-      }}
+      {...bind}
       onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
       <div ref={animRef}
         className={(act === 'rest' ? '' : anim + ' ') + 'relative'}
-        style={{ animationPlayState: drag || rsz ? 'paused' : 'running' }}>
+        style={{ animationPlayState: dragging || hover || rsz || sel ? 'paused' : 'running' }}>
         {/* bf-bob：身体颠簸与扑翼同周期相位锁定 —— 压翅时身体随之一颠 */}
         <div className="bf-bob"><Butterfly size={size} color={color} /></div>
         {sel && (
@@ -455,42 +463,22 @@ function BFDrop({ pos, size, color, anim, act = 'fly', onPosChange, onSizeChange
 }
 
 // ---- 可拖拽的瓢虫 ----
-// 与蜂蝶同一套拖拽逻辑，三处不同：
+// 与蜂蝶同一套交互（悬停冻结/阈值拖拽/右键动作），两处不同：
 //   1. 命中区挂在「带飞行动画的内层」上 —— 瓢虫大部分时间悬在落点上方 40px 左右，
 //      挂在静止的外层会出现"看得见却点不到、点得到的地方又没有虫"
-//   2. 拖动期间暂停飞行动画，虫身才会严格跟着指针走；松手后从暂停处续飞
-//   3. act='rest' 时飞行路径换成 lady-crawl（小范围爬动），鞘翅保持合拢不振动
+//   2. act='rest' 时飞行路径换成 lady-crawl（小范围爬动），鞘翅保持合拢不振动
 function LadybugDrop({ pos, size, anim, act = 'fly', onPosChange, onSizeChange, onActChange }) {
   const ref = useRef(null);
-  const [drag, setDrag] = useState(null);
   const [sel, setSel] = useBugSelect(ref);
   const [rsz, setRsz] = useState(false);
   const [menu, setMenu] = useState(null);
-  useEffect(() => {
-    if (!drag) return;
-    const onMove = (e) => {
-      const canvas = ref.current?.closest('.planting-shelf-wrap > div');
-      if (!canvas) return;
-      const r = canvas.getBoundingClientRect();
-      const l = Math.max(0, Math.min(100, ((e.clientX - r.left - drag.offX) / r.width) * 100));
-      const t = Math.max(0, Math.min(100, ((e.clientY - r.top - drag.offY) / r.height) * 100));
-      onPosChange({ left: `${l.toFixed(1)}%`, top: `${t.toFixed(1)}%` });
-    };
-    const onUp = () => setDrag(null);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [drag, onPosChange]);
+  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true));
   return (
     <div className={'absolute pointer-events-none' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
-      <div ref={ref} className={(act === 'rest' ? 'lady-crawl' : anim) + ' pointer-events-auto cursor-grab active:cursor-grabbing'}
-        style={{ animationPlayState: drag || rsz ? 'paused' : 'running' }}
-        onMouseDown={(e) => {
-          e.stopPropagation(); e.preventDefault(); setSel(true);
-          const r = ref.current.getBoundingClientRect();
-          setDrag({ offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 });
-        }}
+      <div ref={ref} {...bind}
+        className={(act === 'rest' ? 'lady-crawl' : anim) + ' pointer-events-auto cursor-grab active:cursor-grabbing'}
+        style={{ animationPlayState: dragging || hover || rsz || sel ? 'paused' : 'running' }}
         onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
         <Ladybug size={size} />
         {sel && (

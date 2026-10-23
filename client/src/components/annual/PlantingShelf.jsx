@@ -283,19 +283,21 @@ function useBugSelect(ref) {
   return [sel, setSel];
 }
 
-// ---- 小昆虫通用交互：悬停冻结 + 3px 阈值拖拽 ----
+// ---- 小昆虫通用交互：悬停冻结 + 3px 阈值拖拽 + 右键开菜单 ----
 //   · 悬停：光标压到虫身上 → 冻结路径动画（飞虫停下来"看你"，右键也因此必然命中静止目标）
 //   · 点击：mousedown 只记录按压点，位移超过 3px 才进入拖拽 —— 单纯点击不会把虫带跑
+//   · 右键：用 pointerdown(button=2) 触发，不走 contextmenu —— 触发更早、
+//     拿到的是「按下瞬间」的光标坐标与目标，不受右键期间虫继续飞行影响
 //   返回 { dragging, hover, bind }；paused = dragging||hover 由调用方并入动画暂停条件
-function useBugDrag(ref, onPosChange, onPress) {
+function useBugDrag(ref, onPosChange, onPress, onMenu) {
   const [hover, setHover] = useState(false);
   const [dragging, setDragging] = useState(false);
   const pressRef = useRef(null);
   useEffect(() => {
     const onMove = (e) => {
       const p = pressRef.current;
-      if (!p) return;
-      if (!p.active) {
+      if (!p || !p.active) {
+        if (!p) return;
         if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 3) return;
         p.active = true; setDragging(true);
       }
@@ -313,11 +315,20 @@ function useBugDrag(ref, onPosChange, onPress) {
   }, [onPosChange, ref]);
   const bind = {
     onMouseDown: (e) => {
+      if (e.button !== 0) return; // 只有左键进入拖拽；右键交给下面的 pointerdown
       e.stopPropagation(); e.preventDefault();
       onPress?.();
       const r = ref.current.getBoundingClientRect();
       pressRef.current = { x: e.clientX, y: e.clientY, offX: e.clientX - r.left - r.width / 2, offY: e.clientY - r.top - r.height / 2 };
     },
+    onPointerDown: (e) => {
+      if (e.button !== 2) return;
+      e.stopPropagation(); e.preventDefault();
+      onPress?.();
+      onMenu?.({ x: e.clientX, y: e.clientY });
+    },
+    // 仍保留：抑制原生右键菜单（真正的开菜单在 pointerdown）
+    onContextMenu: (e) => { e.preventDefault(); e.stopPropagation(); },
     onMouseEnter: () => setHover(true),
     onMouseLeave: () => setHover(false),
   };
@@ -326,16 +337,28 @@ function useBugDrag(ref, onPosChange, onPress) {
 
 // ---- 小昆虫通用：动作右键菜单（飞行 / 停留），视觉与宠物右键菜单同语言 ----
 function BugMenu({ title, act, opts, onAct, x, y, onClose }) {
+  const ref = useRef(null);
+  const shownAt = useRef(0);
+  /* 关闭监听（沿用 ScheduleContextMenu 的已验证做法）：
+     · 只监听 mousedown / scroll / Esc，不监听 contextmenu ——
+       打开菜单时 React 18 会同步 flush effect，同一枚 contextmenu 冒泡到 window 时
+       会立刻命中新挂的监听器，导致"菜单闪开即关"（表现为右键毫无反应）
+     · 350ms 守卫：右键手势自身的 pointerdown/mousedown 属于同一次点击，忽略 */
   useEffect(() => {
-    const close = () => onClose();
-    const key = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('click', close);
-    window.addEventListener('contextmenu', close);
-    window.addEventListener('keydown', key);
+    shownAt.current = Date.now();
+    const onDown = (e) => {
+      if (Date.now() - shownAt.current < 350) return;
+      if (!ref.current || !ref.current.contains(e.target)) onClose();
+    };
+    const onScroll = () => onClose();
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('scroll', onScroll, true);
+    document.addEventListener('keydown', onKey);
     return () => {
-      window.removeEventListener('click', close);
-      window.removeEventListener('contextmenu', close);
-      window.removeEventListener('keydown', key);
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
   const W = 150, H = 118, EDGE = 8;
@@ -345,7 +368,7 @@ function BugMenu({ title, act, opts, onAct, x, y, onClose }) {
   /* portal 到 body：虫子容器带 transform，fixed 菜单若留在容器内会被当作
      「相对 transform 祖先定位」且被 zIndex 6 的层叠上下文困住 —— 菜单位置错乱还可能被顶栏盖住 */
   return createPortal(
-    <div className="fixed rounded-lg shadow-2xl border border-gray-200/60 overflow-hidden pointer-events-auto"
+    <div ref={ref} className="fixed rounded-lg shadow-2xl border border-gray-200/60 overflow-hidden pointer-events-auto"
       style={{ left: mx, top: my, width: W, zIndex: 9999 }}
       onContextMenu={(e) => e.preventDefault()}>
       <div className="py-1.5 px-2 bg-white/95 backdrop-blur-md">
@@ -404,12 +427,11 @@ function BeeDrop({ pos, size, anim, flip, act = 'fly', onPosChange, onSizeChange
   const [sel, setSel] = useBugSelect(ref);
   const [rsz, setRsz] = useState(false);
   const [menu, setMenu] = useState(null);
-  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true));
+  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true), setMenu);
   return (
     <div ref={ref} className={'absolute cursor-grab active:cursor-grabbing' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
-      {...bind}
-      onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
+      {...bind}>
       {/* 飞行路径（fly）／停留时移除路径动画原地悬停；悬停/拖拽/缩放/选中期间暂停 */}
       <div ref={animRef}
         className={(act === 'rest' ? '' : anim + ' ') + 'relative'}
@@ -437,12 +459,11 @@ function BFDrop({ pos, size, color, anim, act = 'fly', onPosChange, onSizeChange
   const [sel, setSel] = useBugSelect(ref);
   const [rsz, setRsz] = useState(false);
   const [menu, setMenu] = useState(null);
-  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true));
+  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true), setMenu);
   return (
     <div ref={ref} className={'absolute cursor-grab active:cursor-grabbing' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}
-      {...bind}
-      onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
+      {...bind}>
       <div ref={animRef}
         className={(act === 'rest' ? '' : anim + ' ') + 'relative'}
         style={{ animationPlayState: dragging || hover || rsz || sel ? 'paused' : 'running' }}>
@@ -472,14 +493,13 @@ function LadybugDrop({ pos, size, anim, act = 'fly', onPosChange, onSizeChange, 
   const [sel, setSel] = useBugSelect(ref);
   const [rsz, setRsz] = useState(false);
   const [menu, setMenu] = useState(null);
-  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true));
+  const { dragging, hover, bind } = useBugDrag(ref, onPosChange, () => setSel(true), setMenu);
   return (
     <div className={'absolute pointer-events-none' + (act === 'rest' ? ' pet-rest' : '')}
       style={{ left: pos.left, top: pos.top, zIndex: 6, transform: 'translate(-50%,-50%)' }}>
       <div ref={ref} {...bind}
         className={(act === 'rest' ? 'lady-crawl' : anim) + ' pointer-events-auto cursor-grab active:cursor-grabbing'}
-        style={{ animationPlayState: dragging || hover || rsz || sel ? 'paused' : 'running' }}
-        onContextMenu={(e) => { e.preventDefault(); setSel(true); setMenu({ x: e.clientX, y: e.clientY }); }}>
+        style={{ animationPlayState: dragging || hover || rsz || sel ? 'paused' : 'running' }}>
         <Ladybug size={size} />
         {sel && (
           <BugHandles boxRef={ref} size={size}

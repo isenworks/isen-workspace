@@ -216,7 +216,7 @@ export default function InboxPage({ onCountChange }) {
   }
 
   // ===== 修改记录日期：仅替换日期、保留原时分秒；本地时区选完换算回 UTC 存库 =====
-  // 改完乐观更新，列表的月份分组即时随 created_at 重排
+  // 改完乐观更新，月份分组与组内行序都随 created_at 即时重排
   async function commitDateEdit(item, dateStr) {
     setDateEdit(null);
     if (!dateStr) return;
@@ -312,6 +312,11 @@ export default function InboxPage({ onCountChange }) {
       if (!map.has(g.k)) map.set(g.k, { k: g.k, label: g.label, list: [] });
       map.get(g.k).list.push(it);
     });
+    /* 组内必须按日期排序，不能依赖后端返回顺序（ORDER BY id DESC 是「创建顺序」）：
+       否则行内把日期改早/改晚后，只会换月份组，同月内的位置仍是旧创建位置。
+       方向与月份组一致（最新在上），同一时刻用 id 兜底保证顺序稳定。 */
+    const t = (it) => { const d = parseDbTime(it.created_at); return d ? d.getTime() : -Infinity; };
+    map.forEach(g => g.list.sort((a, b) => t(b) - t(a) || (b.id - a.id)));
     [...map.values()].sort((a, b) => b.k - a.k).forEach(g => groups.push(g)); // 最新月份在上
   }
 

@@ -656,12 +656,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     return [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
   }, [todayStr]);
 
-  /* ===== 本周目标：仅展示目标（is_goal），当前周含逾期未完成；其他周严格限定该周范围内 ===== */
+  /* ===== 本周目标：仅展示目标（is_goal）。当前周 = 本周 7 天 + 逾期未完成（顺延补做）；
+     逾期已完成 / 已标记未完成的一律不回流——否则上周勾掉的目标会永远挂在本周列表里
+     （10/26 已完成的目标出现在 11.2-11.8 卡片 = 旧代码只有上界 s.date <= 周日的漏洞）。
+     查看其他周时严格限定该周范围内，不带任何顺延 ===== */
   const weekKeys = useMemo(() => (sched || [])
     .filter(s => {
       if (!s.is_goal) return false;
-      if (weekOffset === 0) return s.date <= viewWeekEndStr;
-      return s.date >= viewWeekStartStr && s.date <= viewWeekEndStr;
+      if (s.date >= viewWeekStartStr) return s.date <= viewWeekEndStr;
+      return weekOffset === 0 && !s.is_done && !s.is_failed;
     })
     .sort((a, b) => {
       // 状态分组优先：进行中 → 已完成 → 未完成(标记未完成)；同状态内按日期升序

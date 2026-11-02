@@ -129,6 +129,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   const [flashMsg, setFlashMsg] = useState('');
   const [savedAt, setSavedAt] = useState(edit?.updated_at || edit?.created_at || '');
   const [focused, setFocused] = useState(false);
+  const [count, setCount] = useState(0);              // 字数（不含空格与换行）
   const flashTimer = useRef(null);
   const autoTimer = useRef(null);                      // 输入防抖自动保存定时器
   const draftRef = useRef({ content: '', plain: '' }); // 最近一次输入（卸载兜底用）
@@ -150,6 +151,8 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     draftRef.current = { content: '', plain: '' };
     undoStack.current = [{ html: editorRef.current?.innerHTML || '', caret: 0 }];
     undoIdx.current = 0;
+    setCount(0);
+    syncCount();
     setTagIds(parseItemTagIds(edit));
     setSavedAt(edit?.updated_at || edit?.created_at || '');
   }, [edit?.id]);
@@ -202,6 +205,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     ed.innerHTML = snap.html;
     setCaretOffset(ed, snap.caret);
     draftRef.current = { content: snap.html, plain: (ed.innerText || '').trim() };
+    syncCount();
     scheduleAutosave();
   }
   function applyUndo() {
@@ -242,6 +246,10 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   function getPlainText() {
     return (editorRef.current?.innerText || '').trim();
   }
+  // 字数统计：只计可见字符（空格、换行不计），与「字数」语感一致
+  function syncCount() {
+    setCount((editorRef.current?.innerText || '').replace(/\s+/g, '').length);
+  }
 
   // 富文本操作
   function exec(cmd, val) {
@@ -254,6 +262,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   function touch() {
     pushUndo();
     draftRef.current = { content: getContent(), plain: getPlainText() };
+    syncCount();
     scheduleAutosave();
   }
 
@@ -743,6 +752,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         suppressContentEditableWarning
         onInput={() => {
           draftRef.current = { content: getContent(), plain: getPlainText() };
+          syncCount();
           // 输入快照防抖压栈（连续打字合并为一步 undo）
           if (undoTimer.current) clearTimeout(undoTimer.current);
           undoTimer.current = setTimeout(() => pushUndo(), 600);
@@ -770,6 +780,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
 
       {bare ? (
         <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] text-ink-400 tabular-nums select-none" title="字数（不含空格与换行）">{count} 字</span>
           {selectedTags.map(t => (
             <span key={t.id} className="flex items-center gap-1 h-[20px] pl-1.5 pr-2 rounded-md text-[11.5px] font-medium whitespace-nowrap"
               style={{ background: hexToRgba(t.color, 0.13), color: t.color }}>
@@ -790,6 +801,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         </div>
       ) : (
         <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] text-ink-400 tabular-nums select-none" title="字数（不含空格与换行）">{count} 字</span>
           {selectedTags.map(t => (
             <span key={t.id} className="flex items-center gap-1 h-[20px] pl-1.5 pr-2 rounded-md text-[11.5px] font-medium whitespace-nowrap"
               style={{ background: hexToRgba(t.color, 0.13), color: t.color }}>

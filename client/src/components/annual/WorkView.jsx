@@ -371,10 +371,16 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
           const p = pct(kr.v, kr.tgt);
           const isDone = kr.st === 'done' || p >= 100;
           const isBehind = p < gs.timePct && !isDone;
-          const pctWidth = Math.max(6, Math.min(100, p));
-          // 0% 时填充条仅 5% ≈ 5px 宽，高度 22px → 视觉上变成"小红圆点"而非进度条
-          // 给一个像素级 minWidth 保证始终是"胶囊"（最小高度/宽度比例 ≥ 1:1）
-          const minPxWidth = p === 0 ? 22 : Math.max(16, Math.round(22 * 0.7));
+          /* —— 漏斗口径（取代进度口径）——
+             基准 = 首层（最上层）的量（目标与实际取大者），条形长度 = 本层占首层的比例。
+             实心段 = 实际量占比；斜纹段 = 计划量占比的缺口（完成率 = 实心 / 本层计划长度），
+             与 DualMarkerBar 的「实际/计划」双标记语义一致，右侧 % 仍是该层完成率。 */
+          const funnelBase = Math.max(krs[0]?.v || 0, krs[0]?.tgt || 0, 1);
+          const solidW = Math.max(0, Math.min(100, (kr.v / funnelBase) * 100));
+          const planW = Math.max(0, Math.min(100, (kr.tgt / funnelBase) * 100));
+          const gapW = Math.max(0, planW - solidW);
+          // 实心段够宽（≥18%）时数值写在实心内，否则贴着右缘浮在斜纹上
+          const labelInside = solidW >= 18;
           const padNum = String(i + 1).padStart(2, '0');
           const nextKr = krs[i + 1];
           // 转化率：与知力页同算法（前一层实际量 > 0 才计算）
@@ -399,30 +405,39 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   </div>
                 </div>
 
-                {/* 中部：漏斗进度条（flex-1） — 计数填充条 → 胶囊（语义：数值色块，与知力/能力进度条统一） */}
+                {/* 中部：漏斗条（flex-1）— 长度=本层占首层比例（漏斗越往下越窄）
+                    实心=实际量占比，斜纹=计划量占比中尚未达成的缺口 */}
                 <div className="flex-1 flex items-center min-w-0">
-                  <div className="flex-1 h-[22px] rounded-full overflow-hidden bg-ink-50 relative" style={{ minWidth: '40px' }}>
-                    <div className="relative w-full h-full flex items-center">
-                      <div
-                        className="h-full rounded-full transition-all duration-500 flex items-center justify-start pl-2"
+                  <div className="flex-1 h-[22px] rounded-full overflow-hidden relative"
+                    style={{ minWidth: '40px', background: 'rgba(15,23,42,0.045)' }}
+                    title={`实际 ${kr.v}${kr.u} / 目标 ${kr.tgt}${kr.u} · 完成 ${p}% · 占首层 ${Math.round(solidW)}%`}>
+                    {/* 计划漏斗段（斜纹）：本层目标占首层比例（左端平接实心段，右端圆头） */}
+                    {gapW > 0 && (
+                      <div className="absolute left-0 top-0 h-full rounded-r-full transition-all duration-500"
                         style={{
-                          width: `${pctWidth}%`,
-                          minWidth: `${minPxWidth}px`,
+                          width: `${planW}%`,
+                          background: `repeating-linear-gradient(45deg, ${moduleRgba('work', 0.30)} 0, ${moduleRgba('work', 0.30)} 2px, transparent 2px, transparent 8px)`,
+                        }} />
+                    )}
+                    {/* 实际漏斗段（实心） */}
+                    {solidW > 0 && (
+                      <div
+                        className="absolute left-0 top-0 h-full transition-all duration-500"
+                        style={{
+                          width: `${solidW}%`,
+                          borderRadius: gapW > 0 ? '999px 0 0 999px' : 999,
                           background: isDone ? 'var(--success)' : COLOR,
                           boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${moduleRgba('work', 0.15)}`,
-                        }}>
-                        {p >= 15 && (
-                          <span className="text-[10px] font-bold text-white/90 tabular-nums">
-                            {kr.v}{kr.u}
-                          </span>
-                        )}
-                      </div>
-                      {p < 15 && (
-                        <span className="text-[10px] font-bold tabular-nums ml-1.5 flex-shrink-0" style={{ color: '#8a9491' }}>
-                          {kr.v}{kr.u}
-                        </span>
-                      )}
-                    </div>
+                        }} />
+                    )}
+                    {/* 数值：实心够宽写在实心内（白字），否则贴着实心右缘浮在斜纹上（灰字） */}
+                    <span
+                      className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums leading-none whitespace-nowrap"
+                      style={labelInside
+                        ? { left: 8, color: 'rgba(255,255,255,0.92)' }
+                        : { left: `calc(${solidW}% + 6px)`, color: '#8a9491' }}>
+                      {kr.v}{kr.u}
+                    </span>
                   </div>
                 </div>
 

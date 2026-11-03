@@ -392,8 +392,12 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
              还原为单一实心胶囊（不做斜纹缺口段），右侧 % 仍是本层完成率。 */
           const funnelBase = Math.max(krs[0]?.v || 0, krs[0]?.tgt || 0, 1);
           const solidW = Math.max(0, Math.min(100, (kr.v / funnelBase) * 100));
-          // 实心段够宽（≥18%）时数值写在实心内，否则贴着右缘外置
-          const labelInside = solidW >= 18;
+          /* 完成值统一写在色条左端（白字）：按文字实际长度估算色条最小长度，
+             数值很小的层「适度加长」到刚好容下数字，而不是把数字挤到条外变灰 */
+          const labelText = `${kr.v}${kr.u}`;
+          const labelPx = [...labelText].reduce((s, ch) => s + (/[\u4e00-\u9fff]/.test(ch) ? 10 : 6.2), 0);
+          const barMinPx = Math.max(34, Math.round(labelPx + 16));
+          const isEmpty = !(kr.v > 0);
           const padNum = String(i + 1).padStart(2, '0');
           const nextKr = krs[i + 1];
           // 转化率：与知力页同算法（前一层实际量 > 0 才计算）
@@ -404,17 +408,17 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
             <div key={i}>
               {/* KR 行：3 列 — 序号+标题+目标 | 漏斗进度条 | 删除(悬停) + 完成率% */}
               <div className="group flex items-center gap-2.5 py-2 rounded-lg hover:bg-surface-soft transition-colors">
-                {/* 左区：w-[128px] = 序号22 + gap + 标题+目标，连接线箭头在此区 justify-center 对准标题中心 */}
+                {/* 左区：w-[128px] = 序号22 + gap + 标题/目标；目标值右贴列边缘（与色条只隔 10px，
+                    所有层的目标数字因此形成一条竖向数字列，扫读时「目标 → 条形」一步到位） */}
                 <div className="w-[128px] flex items-center gap-2.5 flex-shrink-0 -mt-[1px]">
                   <span className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none flex-shrink-0"
                     style={{ color: RED }}>{padNum}</span>
-                  <div className="flex-1 min-w-0 truncate flex items-baseline gap-1">
-                    <div onClick={() => onKrEdit?.(goalIdx, i, kr)} title="点击编辑 KR" className="cursor-pointer group flex items-baseline gap-1.5 min-w-0">
-                      <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[var(--ink-700)]">{kr.t}</span>
-                      <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
-                        {kr.tgt}{kr.u}
-                      </span>
-                    </div>
+                  <div onClick={() => onKrEdit?.(goalIdx, i, kr)} title="点击编辑 KR"
+                    className="cursor-pointer group flex items-baseline justify-between gap-1.5 flex-1 min-w-0">
+                    <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[var(--ink-700)]">{kr.t}</span>
+                    <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
+                      {kr.tgt}{kr.u}
+                    </span>
                   </div>
                 </div>
 
@@ -423,22 +427,20 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   <div className="flex-1 h-[22px] rounded-full overflow-hidden relative"
                     style={{ minWidth: '40px', background: 'rgba(15,23,42,0.045)' }}
                     title={`实际 ${kr.v}${kr.u} / 目标 ${kr.tgt}${kr.u} · 完成 ${p}% · 占首层 ${Math.round(solidW)}%`}>
-                    {solidW > 0 && (
+                    {!isEmpty && (
                       <div
                         className="absolute left-0 top-0 h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${solidW}%`,
-                          minWidth: '8px',
+                          minWidth: `${barMinPx}px`,
                           background: isDone ? 'var(--success)' : COLOR,
                           boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${moduleRgba('work', 0.15)}`,
                         }} />
                     )}
-                    {/* 数值：实心够宽写在实心内（白字），否则贴着实心右缘外置（灰字） */}
+                    {/* 数值：统一在色条左端、白字（空值时才用灰字直接落在轨道上） */}
                     <span
                       className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums leading-none whitespace-nowrap"
-                      style={labelInside
-                        ? { left: 8, color: 'rgba(255,255,255,0.92)' }
-                        : { left: `calc(${solidW}% + 6px)`, color: '#8a9491' }}>
+                      style={{ left: 8, color: isEmpty ? '#8a9491' : 'rgba(255,255,255,0.92)' }}>
                       {kr.v}{kr.u}
                     </span>
                   </div>

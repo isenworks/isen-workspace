@@ -457,24 +457,33 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                 </span>
               </div>
 
-              {/* 连接线：3 列同构 — 箭头对准标题中心，转化率在漏斗条区居中（对齐知力页） */}
-              {nextKr && (() => (
-                <div className="flex items-center gap-2.5 py-1.5 text-[11px]">
-                  <div className="w-[128px] flex-shrink-0 flex items-center justify-center">
-                    <svg className="w-3 h-3" style={{ color: '#8a9491' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 5v14M5 12l7 7 7-7" />
-                    </svg>
+              {/* 连接线：3 列同构 — 箭头对准标题中心；转化率左对齐到色条内部完成值的 x 位置 */}
+              {nextKr && (() => {
+                // 参考值：按计划目标算的转化率（实际 vs 计划 双读法，与卡片顶部双标记同源）
+                const planConv = kr.tgt > 0 ? Math.round((nextKr.tgt / kr.tgt) * 100) : null;
+                return (
+                  <div className="flex items-center gap-2.5 py-1.5 text-[11px]">
+                    <div className="w-[128px] flex-shrink-0 flex items-center justify-center">
+                      <svg className="w-3 h-3" style={{ color: '#8a9491' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 5v14M5 12l7 7 7-7" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 flex items-center justify-start gap-1.5 pl-2 min-w-0">
+                      <span
+                        className="font-bold tabular-nums flex-shrink-0"
+                        style={{ color: lowConv ? RED_RISK : '#8a9491' }}>
+                        {conv ?? 0}%
+                      </span>
+                      {planConv !== null && (
+                        <span className="text-[10px] font-medium tabular-nums truncate" style={{ color: '#a8b0ad' }}>
+                          计划 {planConv}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-[48px] flex-shrink-0 invisible" aria-hidden="true"></div>
                   </div>
-                  <div className="flex-1 flex items-center justify-center min-w-0">
-                    <span
-                      className="font-bold tabular-nums"
-                      style={{ color: lowConv ? RED_RISK : '#8a9491' }}>
-                      {conv ?? 0}%
-                    </span>
-                  </div>
-                  <div className="w-[48px] flex-shrink-0 invisible" aria-hidden="true"></div>
-                </div>
-              ))()}
+                );
+              })()}
             </div>
           );
         })}

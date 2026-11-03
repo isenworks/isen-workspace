@@ -19,6 +19,17 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
   const [targetDraft, setTargetDraft] = useState('');
   // 联动状态：L2各月数据点击月份 → L3日历切换到对应月
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  // 打卡请求在途的格子（`habitId:day`）：同一格请求未回前忽略再次点击，避免并发切换打架
+  const pendingRef = useRef(new Set());
+  const [, setPendingTick] = useState(0);
+  const toggleDay = async (h, day, checked, dateStr) => {
+    if (!onAction || !h?.id) return;
+    const k = `${h.id}:${day}`;
+    if (pendingRef.current.has(k)) return;
+    pendingRef.current.add(k); setPendingTick(t => t + 1);
+    try { await onAction('toggleHabitDay', h, { date: dateStr, next: !checked }); }
+    finally { pendingRef.current.delete(k); setPendingTick(t => t + 1); }
+  };
   // ★ ② Card2「各月数据」折叠状态（默认折叠，只显示标题行）
   const [monthsCollapsed, setMonthsCollapsed] = useState(true);
   // 三卡标题：右键可编辑（usePersistentState 持久化，清空回落默认文案）
@@ -532,13 +543,21 @@ export function EnergyView({ realHabits, loading, onAction, onSetTarget }) {
                         ? 'ring-2 ring-accent-green/40 ring-offset-[1px]'
                         : 'ring-2 ring-ink-300/50 ring-offset-[1px]';
                     }
+                    const clickable = isPast && !!h.id && !!onAction;
+                    const isPending = clickable && pendingRef.current.has(`${h.id}:${day}`);
                     return (
                       <div key={day}
-                        title={`${selectedMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡' : !isPast ? ' · 未开始' : ' · 未打卡'}`}
+                        role={clickable ? 'button' : undefined}
+                        onClick={clickable
+                          ? () => toggleDay(h, day, checked, `${year}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+                          : undefined}
+                        title={`${selectedMonth}月${day}日 · ${h.label}${checked ? ' · 已打卡（点击取消）' : !isPast ? ' · 未开始' : ' · 未打卡（点击打卡）'}`}
                         className={[
                           'aspect-square rounded-md grid place-items-center',
-                          'text-[12px] tabular-nums leading-none transition-colors',
-                          cellBg, cellText, cellRing, cellBorder
+                          'text-[12px] tabular-nums leading-none transition duration-150',
+                          cellBg, cellText, cellRing, cellBorder,
+                          clickable ? 'cursor-pointer hover:opacity-80 active:scale-90' : '',
+                          isPending ? 'opacity-50' : ''
                         ].join(' ')}
                         style={cellColor ? { background: cellColor } : undefined}>
                         {day}

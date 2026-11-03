@@ -123,7 +123,31 @@ export function useEnergyHabits() {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  return { realHabits, loading, refresh, error: !loading && realHabits === null };
+  /* 单日打卡乐观更新：点击日历格子后先改本地（含写穿缓存），再请求后端；
+     失败由调用方回滚。所有消费 realHabits 的视图（年度卡/月条/日历）会同步刷新 */
+  const patchHabitDay = useCallback((habitId, dateStr, done) => {
+    setRealHabits(prev => {
+      if (!Array.isArray(prev)) return prev;
+      const m = parseInt(dateStr.slice(5, 7), 10);
+      const day = parseInt(dateStr.slice(8, 10), 10);
+      const next = prev.map(h => {
+        if (h.id !== habitId) return h;
+        const allDates = new Set(h.allDates || []);
+        const monthDates = {};
+        Object.entries(h.monthDates || {}).forEach(([k, v]) => { monthDates[k] = new Set(v); });
+        if (!monthDates[m]) monthDates[m] = new Set();
+        if (done) { allDates.add(dateStr); monthDates[m].add(day); }
+        else { allDates.delete(dateStr); monthDates[m].delete(day); }
+        const month = { ...(h.month || {}) };
+        month[m] = monthDates[m].size; // 该月打卡天数 = 实际日期集合大小
+        return { ...h, allDates: [...allDates].sort(), monthDates, month, val: allDates.size };
+      });
+      writeEnergyHabitsCache(next);
+      return next;
+    });
+  }, []);
+
+  return { realHabits, loading, refresh, patchHabitDay, error: !loading && realHabits === null };
 }
 
 /* ---------- 3. 视图数据计算 · Overview ---------- */

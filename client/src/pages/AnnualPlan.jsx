@@ -59,7 +59,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   }, [initialView]);
   const [toast, setToast] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const { realHabits, loading: energyLoading, refresh: refreshEnergy } = useEnergyHabits();
+  const { realHabits, loading: energyLoading, refresh: refreshEnergy, patchHabitDay } = useEnergyHabits();
 
   // 可变数据（localStorage 持久化）
   const [books, setBooks] = usePersistentState('annual_books_v12', () => BOOKS.map(b => ({ ...b, id: uid() })));
@@ -701,10 +701,19 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
   const closeModal = () => setModal(null);
 
   // 精力习惯编辑（打开 HabitForm）
-  const handleEnergyAction = useCallback(async (action, habit) => {
+  const handleEnergyAction = useCallback(async (action, habit, extra) => {
     if (action === 'addHabit') {
       // 新建精力类习惯
       setModal({ type: 'habit', initial: { growth_type: 'energy', accent_color: '#34C759' } });
+    }
+    // 打卡 / 取消：先本地乐观更新 → 再落库；失败回滚并提示
+    if (action === 'toggleHabitDay' && habit?.id && extra?.date) {
+      const { date, next: want } = extra;
+      patchHabitDay(habit.id, date, want);
+      return API.habits.toggle(habit.id, date, want).catch(e => {
+        patchHabitDay(habit.id, date, !want);
+        showToast('打卡失败：' + (e.message || '网络异常'));
+      });
     }
     if (action === 'editHabit' && habit) {
       const rawHabit = {
@@ -738,7 +747,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         onCancel: () => setConfirmDialog(null),
       });
     }
-  }, [refreshEnergy, showToast]);
+  }, [refreshEnergy, patchHabitDay, showToast]);
 
   // ---- CRUD 回调 ----
   const onBookAdd = () => setModal({ type: 'book' });

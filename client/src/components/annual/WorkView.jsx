@@ -8,6 +8,22 @@ import DualMarkerBar from '../DualMarkerBar.jsx'
 import { useLongPress } from '../useLongPress.js'
 import { IconCheck } from '../aiIcons.jsx'
 
+/* 行业基准转化率区间（冷投口径，社招）：按「本层 → 下一层」标题关键字匹配，
+   未命中则不显示（通用漏斗不会被套上招聘行业的基准） */
+const CONV_BENCHMARKS = [
+  { from: ['投递', '申请', '海投', '简历'], to: ['邀约', '初筛', '电话', '面试'], range: '8–15%' },
+  { from: ['邀约', '初筛', '电话'], to: ['一面', '初试', '面试'], range: '45–60%' },
+  { from: ['一面', '初试'], to: ['二面', '复试', '终面', '总监'], range: '40–55%' },
+  { from: ['二面', '复试', '终面', '总监'], to: ['offer', '录用', '意向'], range: '45–65%' },
+  { from: ['offer', '录用', '意向'], to: ['达标', '满意', '薪资', '入职'], range: '40–60%' },
+  { from: ['面试'], to: ['面试', 'offer', '录用'], range: '45–60%' },
+];
+const matchBenchmark = (fromTitle = '', toTitle = '') => {
+  const f = fromTitle.toLowerCase(), t = toTitle.toLowerCase();
+  const hit = CONV_BENCHMARKS.find(b => b.from.some(k => f.includes(k)) && b.to.some(k => t.includes(k)));
+  return hit ? hit.range : null;
+};
+
 export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
@@ -371,15 +387,12 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
           const p = pct(kr.v, kr.tgt);
           const isDone = kr.st === 'done' || p >= 100;
           const isBehind = p < gs.timePct && !isDone;
-          /* —— 漏斗口径（取代进度口径）——
+          /* —— 漏斗口径（条形长度，取代进度口径）——
              基准 = 首层（最上层）的量（目标与实际取大者），条形长度 = 本层占首层的比例。
-             实心段 = 实际量占比；斜纹段 = 计划量占比的缺口（完成率 = 实心 / 本层计划长度），
-             与 DualMarkerBar 的「实际/计划」双标记语义一致，右侧 % 仍是该层完成率。 */
+             还原为单一实心胶囊（不做斜纹缺口段），右侧 % 仍是本层完成率。 */
           const funnelBase = Math.max(krs[0]?.v || 0, krs[0]?.tgt || 0, 1);
           const solidW = Math.max(0, Math.min(100, (kr.v / funnelBase) * 100));
-          const planW = Math.max(0, Math.min(100, (kr.tgt / funnelBase) * 100));
-          const gapW = Math.max(0, planW - solidW);
-          // 实心段够宽（≥18%）时数值写在实心内，否则贴着右缘浮在斜纹上
+          // 实心段够宽（≥18%）时数值写在实心内，否则贴着右缘外置
           const labelInside = solidW >= 18;
           const padNum = String(i + 1).padStart(2, '0');
           const nextKr = krs[i + 1];
@@ -405,32 +418,22 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   </div>
                 </div>
 
-                {/* 中部：漏斗条（flex-1）— 长度=本层占首层比例（漏斗越往下越窄）
-                    实心=实际量占比，斜纹=计划量占比中尚未达成的缺口 */}
+                {/* 中部：漏斗条（flex-1）— 长度=本层占首层比例（漏斗越往下越窄），单一实心胶囊 */}
                 <div className="flex-1 flex items-center min-w-0">
                   <div className="flex-1 h-[22px] rounded-full overflow-hidden relative"
                     style={{ minWidth: '40px', background: 'rgba(15,23,42,0.045)' }}
                     title={`实际 ${kr.v}${kr.u} / 目标 ${kr.tgt}${kr.u} · 完成 ${p}% · 占首层 ${Math.round(solidW)}%`}>
-                    {/* 计划漏斗段（斜纹）：本层目标占首层比例（左端平接实心段，右端圆头） */}
-                    {gapW > 0 && (
-                      <div className="absolute left-0 top-0 h-full rounded-r-full transition-all duration-500"
-                        style={{
-                          width: `${planW}%`,
-                          background: `repeating-linear-gradient(45deg, ${moduleRgba('work', 0.30)} 0, ${moduleRgba('work', 0.30)} 2px, transparent 2px, transparent 8px)`,
-                        }} />
-                    )}
-                    {/* 实际漏斗段（实心） */}
                     {solidW > 0 && (
                       <div
-                        className="absolute left-0 top-0 h-full transition-all duration-500"
+                        className="absolute left-0 top-0 h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${solidW}%`,
-                          borderRadius: gapW > 0 ? '999px 0 0 999px' : 999,
+                          minWidth: '8px',
                           background: isDone ? 'var(--success)' : COLOR,
                           boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${moduleRgba('work', 0.15)}`,
                         }} />
                     )}
-                    {/* 数值：实心够宽写在实心内（白字），否则贴着实心右缘浮在斜纹上（灰字） */}
+                    {/* 数值：实心够宽写在实心内（白字），否则贴着实心右缘外置（灰字） */}
                     <span
                       className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums leading-none whitespace-nowrap"
                       style={labelInside
@@ -459,8 +462,8 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
 
               {/* 连接线：3 列同构 — 箭头对准标题中心；转化率左对齐到色条内部完成值的 x 位置 */}
               {nextKr && (() => {
-                // 参考值：按计划目标算的转化率（实际 vs 计划 双读法，与卡片顶部双标记同源）
-                const planConv = kr.tgt > 0 ? Math.round((nextKr.tgt / kr.tgt) * 100) : null;
+                // 参考值：该环节的行业基准转化率区间（关键字命中才显示）
+                const bench = matchBenchmark(kr.t, nextKr.t);
                 return (
                   <div className="flex items-center gap-2.5 py-1.5 text-[11px]">
                     <div className="w-[128px] flex-shrink-0 flex items-center justify-center">
@@ -474,9 +477,9 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                         style={{ color: lowConv ? RED_RISK : '#8a9491' }}>
                         {conv ?? 0}%
                       </span>
-                      {planConv !== null && (
+                      {bench && (
                         <span className="text-[10px] font-medium tabular-nums truncate" style={{ color: '#a8b0ad' }}>
-                          计划 {planConv}%
+                          基准 {bench}
                         </span>
                       )}
                     </div>

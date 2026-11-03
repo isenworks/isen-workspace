@@ -399,6 +399,11 @@ body {
   white-space: nowrap;
 }
 .tl-time-cell:first-child .tl-time-cell-label { top: 4px; }
+/* 当前小时的刻度：主题蓝（今天视图专用，对应顶部横条日历「今天」高亮） */
+.tl-time-cell-label.is-now {
+  color: var(--s-main, #007AFF);
+  font-weight: 700;
+}
 .tl-time-cell--end .tl-time-cell-label {
   /* 末尾 24:00 放在底部 */
   top: auto;

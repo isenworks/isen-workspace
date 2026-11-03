@@ -738,8 +738,8 @@ export default function Workspace({ user: propUser }) {
 
             <SplitDivider bindDivider={bindDivider} />
 
-            {/* 右栏：时间轴 / 总结面板 */}
-            <div className="flex-1 min-w-0" style={rightStyle}>
+            {/* 右栏：时间轴 / 总结面板（固定在视口高度内，时间线自身滚动） */}
+            <div className="flex-1 min-w-0 lg:sticky lg:top-6 lg:h-[calc(100dvh_-_150px)]" style={rightStyle}>
               {showSummary ? (
                 <div className="glass-card p-4 h-full flex flex-col">
                   <Suspense fallback={<ChunkFallback />}>

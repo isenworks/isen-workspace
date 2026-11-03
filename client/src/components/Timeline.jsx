@@ -66,6 +66,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
   const contentColRef = useRef(null);
+  // 时间线滚动容器（独立滚动 + 自动定位到当前时间）
+  const tlScrollRef = useRef(null);
+  const [nowMin, setNowMin] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); });
   // 拉伸进行中标记：避免手柄 mousedown 误触发方块整体 drag
   const isResizingRef = useRef(false);
   // 拉伸刚结束标记：mouseup 后浏览器会在方块上合成 click（mousedown/mouseup 公共祖先），
@@ -319,6 +322,40 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     const m = clamped % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
+
+  // —— 当前时间：仅「今天」视图生效 ——
+  // ① 时间线独立滚动，打开/切日时自动居中到此刻（与顶部横条日历 centerToday 同策略：raf + 300ms + 1000ms 重试，
+  //    覆盖移动端浏览器恢复旧滚动位置的时序）
+  // ② 当前小时的刻度数字变蓝（对应横条日历里「今天」的高亮）
+  const showNow = view === 'today' && isToday(date);
+  const nowHour = Math.floor(nowMin / 60);
+  useEffect(() => {
+    if (!showNow) return;
+    const centerNow = () => {
+      const cont = tlScrollRef.current;
+      if (!cont) return;
+      const n = new Date();
+      const y = (n.getHours() * 60 + n.getMinutes() - TL_BASE_MIN) * TL_PX_PER_MIN;
+      const maxTop = Math.max(0, cont.scrollHeight - cont.clientHeight);
+      const target = Math.min(maxTop, Math.max(0, y - cont.clientHeight * 0.4));
+      if (Math.abs(target - cont.scrollTop) < 2) return;
+      cont.scrollTo({ top: target, behavior: 'auto' });
+    };
+    const raf = requestAnimationFrame(centerNow);
+    const t1 = setTimeout(centerNow, 300);
+    const t2 = setTimeout(centerNow, 1000);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t1); clearTimeout(t2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showNow, date, refreshSignal, hasData]);
+
+  // 每分钟刷新 nowMin（蓝色刻度跟随整点变化）；不重排滚动位置，避免用户读到哪里被拉走
+  useEffect(() => {
+    if (!showNow) return;
+    const tick = () => { const n = new Date(); setNowMin(n.getHours() * 60 + n.getMinutes()); };
+    tick();
+    const timer = setInterval(tick, 60000);
+    return () => clearInterval(timer);
+  }, [showNow]);
 
   // === 拖拽功能：将重点事项拖入时间线 ===
   function handleDragOver(e) {
@@ -1001,7 +1038,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
           <div className="tl-time-col" style={{ height: TOTAL_HEIGHT }}>
             {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i).map((h) => (
               <div key={h} className="tl-time-cell">
-                <span className="tl-time-cell-label">{String(h).padStart(2, '0')}:00</span>
+                <span className={`tl-time-cell-label${showNow && h === nowHour ? ' is-now' : ''}`}>{String(h).padStart(2, '0')}:00</span>
               </div>
             ))}
             {/* 底部追加一个 24:00 标签，贴到最后一格底 */}
@@ -1470,8 +1507,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   return (
     <>
-    <div className="glass-card p-4 h-full">
-      <div className="flex items-center justify-between section-header gap-2">
+    <div className="glass-card p-4 h-full flex flex-col" style={{ maxHeight: 'calc(100dvh - 150px)' }}>
+      <div className="flex items-center justify-between section-header gap-2 flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <span className="section-accent" style={{background:'var(--s-main)'}}></span>
           <h3 className="section-title whitespace-nowrap">{titleText}</h3>
@@ -1537,7 +1574,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
         </div>
       </div>
 
-      <div className="overflow-visible">
+      {/* 滚动区：时间线独立上下滚动（overscroll-contain 阻断滚轮传给整页） */}
+      <div ref={tlScrollRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain pr-1">
         {loading && !hasData ? (
           <div className="space-y-4 pt-3 px-1">
             <div className="flex items-start gap-3">

@@ -772,6 +772,10 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
       ? { ...o, krs: o.krs.map((k, j) => j === krIdx ? { ...k, bench } : k) }
       : o));
   };
+  // 漏斗明细表：整表回写（每家公司一条，阶段累计后驱动各层实际量）
+  const onPipelineSave = (goalIdx, rows) => {
+    setWorkGoals(prev => prev.map((o, i) => i === goalIdx ? { ...o, pipeline: rows } : o));
+  };
   const onAbilityEdit = (abilityIdx) => {
     const a = abilities[abilityIdx]; if (!a) return;
     setModal({ type: 'ability', initial: { ...a, id: a.id } });
@@ -1141,6 +1145,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
         }} onStartAssessment={() => setModal({ type: 'ability_assess' })} />}
       {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit} onKrRemove={onKrRemove}
         onKrBench={onKrBench}
+        onPipelineSave={onPipelineSave}
         onGoalAdd={() => setModal({ type: 'work_goal' })}
         onGoalEdit={(goalIdx) => setModal({ type: 'work_goal', initial: { ...workGoals[goalIdx], goalIdx } })}
         onGoalRemove={onWorkGoalRemove}

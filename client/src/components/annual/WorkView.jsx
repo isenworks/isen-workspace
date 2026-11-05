@@ -7,6 +7,7 @@ import Modal from '../Modal.jsx'
 import DualMarkerBar from '../DualMarkerBar.jsx'
 import { useLongPress } from '../useLongPress.js'
 import { IconCheck } from '../aiIcons.jsx'
+import FunnelTableModal, { seedPipelineRows } from './FunnelTableModal.jsx'
 
 /* 行业基准转化率区间（冷投口径，社招）：按「本层 → 下一层」标题关键字匹配，
    未命中则不显示（通用漏斗不会被套上招聘行业的基准） */
@@ -60,7 +61,21 @@ function BenchTag({ value, onSave }) {
   );
 }
 
-export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
+/* 明细表存在时，每层实际量 = 停在该层及之后的公司数（累计口径）；
+   无明细表则沿用手填的实际量。 */
+const effectiveKrs = (o) => {
+  const krs = o.krs || [];
+  const rows = o.pipeline;
+  if (!Array.isArray(rows)) return krs;
+  const n = krs.length;
+  if (!n) return krs;
+  return krs.map((k, i) => ({
+    ...k,
+    v: rows.filter(r => Math.min(Math.max(r.stageIdx ?? 0, 0), n - 1) >= i).length,
+  }));
+};
+
+export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, onPipelineSave, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = 'var(--m-work)';
@@ -73,7 +88,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, 
   const goalStats = useMemo(() => {
     return dynWk.map((o, idx) => {
       const mode = inferMode(o, 'work');
-      const krs = o.krs || [];
+      const krs = effectiveKrs(o);
       const krPcts = krs.map(k => pct(k.v, k.tgt));
       // 🎯 event 范式：avgPct 直接看 status，不需要 KR 均值
       const avgPct = mode === 'event'
@@ -126,6 +141,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, 
   const [workTab, setWorkTab] = useState('active'); // 'active' | 'done' | 'shelf' — 书架风 Tab 3 项（标题右）
   const [detailGoal, setDetailGoal] = useState(null); // { o, gs, goalIdx } | null
   const [openDropIdx, setOpenDropIdx] = useState(null); // key → goal.id|title+idx+'@'+location (location: 'active'|'modal')
+  const [tableIdx, setTableIdx] = useState(null); // 打开数据表的目标下标
   // Header 标题：右击可编辑（持久化到 D1 userSettings）
   // 首屏闪默认标题的根因：自定义值靠异步 fetch D1 读回。修复：localStorage 写穿缓存，
   // 初始渲染同步读缓存 → 打开即显示自定义标题；D1 读回后再校准（处理换设备/清缓存场景）
@@ -407,7 +423,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, 
    * 子渲染器 #1：Funnel 漏斗（完全对齐知力页一体化漏斗：3 列行 + 连接线 + 关键瓶颈提示）
    * ============================================================ */
   const renderFunnelRows = (o, gs, goalIdx) => {
-    const krs = o.krs || [];
+    const krs = effectiveKrs(o);
     const COLOR = RED_DATA;
     // 空状态引导（对齐能力页 KR 空态）
     if (krs.length === 0) {
@@ -531,7 +547,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, 
   /* ===== 关键瓶颈提示 helper（独立于渲染器，用于放在卡片下方） ===== */
   // 计算相邻 KR 间转化率，找出最低的一环；适用于 funnel / dashboard / milestone 任何有 ≥2 个 KR 的模式
   const renderWorkBottleneck = (o, COLOR) => {
-    const krs = o.krs || [];
+    const krs = effectiveKrs(o);
     const conversions = [];
     for (let i = 0; i < krs.length - 1; i++) {
       const curr = krs[i], next = krs[i + 1];
@@ -887,6 +903,27 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, 
               <span className="opacity-70">{gs.krTotal}</span>
             </span>
           )}
+          {/* 🗄 数据表：仅在漏斗范式 + ≥2 层时出现（单次事件/里程碑无「层」概念） */}
+          {gs.mode === 'funnel' && gs.krTotal >= 2 && (
+            <button
+              onClick={() => {
+                const o = dynWk[goalIdx];
+                // 首开建表：按当前手填的实际量生成占位公司行，之后数字完全由明细推导
+                if (o && !Array.isArray(o.pipeline)) {
+                  onPipelineSave?.(goalIdx, seedPipelineRows(o.krs || []));
+                }
+                setTableIdx(goalIdx);
+              }}
+              className="w-7 h-7 rounded-lg grid place-items-center transition hover:brightness-110 active:scale-95 flex-shrink-0"
+              style={{ backgroundColor: `${moduleRgba('work', 0.07)}` }}
+              title="数据表 · 逐家公司增删改，漏斗自动更新">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={gs.color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <ellipse cx="12" cy="5" rx="7.5" ry="2.8"/>
+                <path d="M4.5 5v14c0 1.55 3.36 2.8 7.5 2.8s7.5-1.25 7.5-2.8V5"/>
+                <path d="M4.5 12c0 1.55 3.36 2.8 7.5 2.8s7.5-1.25 7.5-2.8"/>
+              </svg>
+            </button>
+          )}
           {/* ➕ 添加 KR：圆角方形 28×28 */}
           <button
             onClick={() => onKrAdd?.(goalIdx)}
@@ -1164,6 +1201,18 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, 
           </div>
         );
       })()}
+
+      {/* 漏斗数据表（独立弹层，按目标打开；增删改即时回写到 pipeline） */}
+      {tableIdx !== null && dynWk[tableIdx] && (
+        <FunnelTableModal
+          open
+          goalTitle={dynWk[tableIdx].title}
+          krs={dynWk[tableIdx].krs || []}
+          rows={dynWk[tableIdx].pipeline || []}
+          onChange={(rows) => onPipelineSave?.(tableIdx, rows)}
+          onClose={() => setTableIdx(null)}
+        />
+      )}
     </div>
   );
 }

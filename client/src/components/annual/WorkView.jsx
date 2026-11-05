@@ -394,7 +394,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
              因此各层大小关系保留（不会像纯像素下限那样被拉成一样长）。 */
           const funnelBase = Math.max(...krs.map(k => k.v || 0), 1);
           const solidW = Math.max(0, Math.min(100, (kr.v / funnelBase) * 100));
-          const labelText = `${kr.v}${kr.u}`;
+          const labelText = `${kr.v}/${kr.tgt}${kr.u}`;
           const labelPx = [...labelText].reduce((s, ch) => s + (/[\u4e00-\u9fff]/.test(ch) ? 10 : 6.2), 0);
           const stubPx = Math.max(30, Math.round(labelPx + 14));
           const ratio = solidW / 100;
@@ -408,19 +408,15 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
 
           return (
             <div key={i}>
-              {/* KR 行：3 列 — 序号+标题+目标 | 漏斗进度条 | 删除(悬停) + 完成率% */}
+              {/* KR 行：3 列 — 序号+标题 | 漏斗条（内含 实际/目标） | 删除(悬停) + 完成率 */}
               <div className="group flex items-center gap-2.5 py-2 rounded-lg hover:bg-surface-soft transition-colors">
-                {/* 左区：w-[128px] = 序号22 + gap + 标题/目标；目标值右贴列边缘（与色条只隔 10px，
-                    所有层的目标数字因此形成一条竖向数字列，扫读时「目标 → 条形」一步到位） */}
-                <div className="w-[128px] flex items-center gap-2.5 flex-shrink-0 -mt-[1px]">
+                {/* 左区：序号 + 标题（目标值已移入色条内，标题因此拿到完整宽度） */}
+                <div className="w-[104px] flex items-center gap-2.5 flex-shrink-0 -mt-[1px]">
                   <span className="text-[11px] font-bold tabular-nums w-[22px] text-right leading-none flex-shrink-0"
                     style={{ color: RED }}>{padNum}</span>
                   <div onClick={() => onKrEdit?.(goalIdx, i, kr)} title="点击编辑 KR"
-                    className="cursor-pointer group flex items-baseline justify-between gap-1.5 flex-1 min-w-0">
-                    <span className="text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[var(--ink-700)]">{kr.t}</span>
-                    <span className="text-[11px] font-extrabold text-ink-900 tabular-nums leading-none flex-shrink-0">
-                      {kr.tgt}{kr.u}
-                    </span>
+                    className="cursor-pointer group flex-1 min-w-0">
+                    <span className="block text-[13px] font-semibold truncate leading-none group-hover:text-ink-900 text-[var(--ink-700)]">{kr.t}</span>
                   </div>
                 </div>
 
@@ -438,11 +434,14 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                           boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${moduleRgba('work', 0.15)}`,
                         }} />
                     )}
-                    {/* 数值：统一在色条左端、白字（底座长度按文字宽度算，数字永远放得下） */}
+                    {/* 数值：实际/目标 写在条内左端；实际值主色，目标值为弱化的分母 */}
                     <span
                       className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums leading-none whitespace-nowrap"
-                      style={{ left: 8, color: isEmpty ? '#8a9491' : 'rgba(255,255,255,0.92)' }}>
-                      {kr.v}{kr.u}
+                      style={{ left: 8, color: isEmpty ? '#8a9491' : 'rgba(255,255,255,0.94)' }}>
+                      {kr.v}
+                      <span className="font-semibold" style={{ color: isEmpty ? '#a8b0ad' : 'rgba(255,255,255,0.62)' }}>
+                        /{kr.tgt}{kr.u}
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -456,27 +455,27 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
 
-                {/* 右侧：完成率 */}
-                <span className="text-[14px] font-extrabold tabular-nums leading-none w-[48px] text-right flex-shrink-0"
-                  style={{ color: isDone ? '#111827' : (isBehind ? RED_RISK : COLOR) }}>
-                  {p}<span className="text-[11px] font-bold">%</span>
+                {/* 右侧：完成率（小标签 + 数值，降低此前大号数字的视觉权重） */}
+                <span className="w-[84px] flex-shrink-0 flex items-baseline justify-end gap-1 leading-none">
+                  <span className="text-[9px] font-medium" style={{ color: '#a8b0ad' }}>完成率</span>
+                  <span className="text-[13px] font-extrabold tabular-nums"
+                    style={{ color: isDone ? '#111827' : (isBehind ? RED_RISK : COLOR) }}>
+                    {p}<span className="text-[10px] font-bold">%</span>
+                  </span>
                 </span>
               </div>
 
-              {/* 连接线：3 列同构 — 箭头对准标题中心；转化率左对齐到色条内部完成值的 x 位置 */}
+              {/* 层间说明：3 列同构 — 去掉装饰性箭头，只保留「转化率 + 基准」，与左侧数值对齐 */}
               {nextKr && (() => {
                 // 参考值：该环节的行业基准转化率区间（关键字命中才显示）
                 const bench = matchBenchmark(kr.t, nextKr.t);
                 return (
-                  <div className="flex items-center gap-2.5 py-1.5 text-[11px]">
-                    <div className="w-[128px] flex-shrink-0 flex items-center justify-center">
-                      <svg className="w-3 h-3" style={{ color: '#8a9491' }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 5v14M5 12l7 7 7-7" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 flex items-center justify-start gap-1.5 pl-2 min-w-0">
+                  <div className="flex items-center gap-2.5 py-1.5">
+                    <div className="w-[104px] flex-shrink-0" />
+                    <div className="flex-1 flex items-baseline justify-start gap-1.5 pl-2 min-w-0">
+                      <span className="text-[9px] font-medium flex-shrink-0" style={{ color: '#a8b0ad' }}>转化率</span>
                       <span
-                        className="font-bold tabular-nums flex-shrink-0"
+                        className="text-[11px] font-bold tabular-nums flex-shrink-0"
                         style={{ color: lowConv ? RED_RISK : '#8a9491' }}>
                         {conv ?? 0}%
                       </span>
@@ -486,7 +485,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                         </span>
                       )}
                     </div>
-                    <div className="w-[48px] flex-shrink-0 invisible" aria-hidden="true"></div>
+                    <div className="w-[84px] flex-shrink-0 invisible" aria-hidden="true"></div>
                   </div>
                 );
               })()}

@@ -766,6 +766,12 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
       onCancel: () => setConfirmDialog(null),
     });
   };
+  // 漏斗层间基准：直接落库到「发起层」的 KR 上（kr.bench），清空同样保存（显示为「—」）
+  const onKrBench = (workIdx, krIdx, bench) => {
+    setWorkGoals(prev => prev.map((o, i) => i === workIdx
+      ? { ...o, krs: o.krs.map((k, j) => j === krIdx ? { ...k, bench } : k) }
+      : o));
+  };
   const onAbilityEdit = (abilityIdx) => {
     const a = abilities[abilityIdx]; if (!a) return;
     setModal({ type: 'ability', initial: { ...a, id: a.id } });
@@ -1134,6 +1140,7 @@ export default function AnnualPlan({ standalone = true, initialView, onViewChang
           showToast('自评已更新');
         }} onStartAssessment={() => setModal({ type: 'ability_assess' })} />}
       {view === 'work'      && <WorkView     workGoals={workGoals} onKrAdd={onKrAdd} onKrEdit={onKrEdit} onKrRemove={onKrRemove}
+        onKrBench={onKrBench}
         onGoalAdd={() => setModal({ type: 'work_goal' })}
         onGoalEdit={(goalIdx) => setModal({ type: 'work_goal', initial: { ...workGoals[goalIdx], goalIdx } })}
         onGoalRemove={onWorkGoalRemove}

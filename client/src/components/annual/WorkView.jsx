@@ -24,7 +24,43 @@ const matchBenchmark = (fromTitle = '', toTitle = '') => {
   return hit ? hit.range : null;
 };
 
-export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
+/* 可编辑的基准标签：点击就地修改，Enter / 失焦保存，Esc 取消。
+   基准挂在「本层 KR」上（一对转化率属于发起层），存 kr.bench；
+   未手动设置（undefined）时回落到按标题关键字匹配的行业基准。 */
+function BenchTag({ value, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const begin = (e) => { e.stopPropagation(); setDraft(value || ''); setEditing(true); };
+  const commit = () => { onSave?.(draft.trim()); setEditing(false); };
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        placeholder="如 8–15%"
+        onChange={(e) => setDraft(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          if (e.key === 'Escape') { e.preventDefault(); setEditing(false); }
+        }}
+        className="w-[78px] flex-shrink-0 text-[10px] font-medium tabular-nums rounded px-1 py-[1px] outline-none bg-white border border-black/15"
+        style={{ color: '#6b7472' }} />
+    );
+  }
+  return (
+    <button
+      onClick={begin}
+      title="点击修改基准转化率"
+      className="text-[10px] font-medium tabular-nums truncate flex-shrink-0 transition-colors hover:text-ink-900"
+      style={{ color: '#a8b0ad' }}>
+      （基准{value || '—'}）
+    </button>
+  );
+}
+
+export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, onGoalAdd, onGoalEdit, onGoalRemove, onGoalMarkDone, onGoalShelf, onGoalUnarchive, onRiskTagClick, microActions }) {
   const dynWk = workGoals || WORK;
   const year = new Date().getFullYear();
   const RED = 'var(--m-work)';
@@ -465,10 +501,10 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                 </span>
               </div>
 
-              {/* 层间说明：3 列同构 — 去掉装饰性箭头，只保留「转化率 + 基准」，与左侧数值对齐 */}
+              {/* 层间说明：3 列同构 — 只保留「转化率 + 基准」，与左侧数值对齐 */}
               {nextKr && (() => {
-                // 参考值：该环节的行业基准转化率区间（关键字命中才显示）
-                const bench = matchBenchmark(kr.t, nextKr.t);
+                // 基准：优先用手动设置的值（kr.bench），否则按标题关键字匹配行业基准
+                const bench = kr.bench !== undefined ? kr.bench : matchBenchmark(kr.t, nextKr.t);
                 return (
                   <div className="flex items-center gap-2.5 py-1.5">
                     <div className="w-[104px] flex-shrink-0" />
@@ -479,11 +515,7 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                         style={{ color: lowConv ? RED_RISK : '#8a9491' }}>
                         {conv ?? 0}%
                       </span>
-                      {bench && (
-                        <span className="text-[10px] font-medium tabular-nums truncate" style={{ color: '#a8b0ad' }}>
-                          基准 {bench}
-                        </span>
-                      )}
+                      <BenchTag value={bench} onSave={(val) => onKrBench?.(goalIdx, i, val)} />
                     </div>
                     <div className="w-[84px] flex-shrink-0 invisible" aria-hidden="true"></div>
                   </div>

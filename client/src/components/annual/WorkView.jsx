@@ -388,13 +388,17 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
           const isDone = kr.st === 'done' || p >= 100;
           const isBehind = p < gs.timePct && !isDone;
           /* —— 漏斗口径 ——
-             基准 = 各层实际量的最大值（正常数据下即首层），首层为 100%，条形长度严格按数值比例收窄。
-             不要再用 max(目标, 实际) 或像素下限：前者让各层全部挤在 1%~7%，后者把
-             2 人和 6 人拉成一样长——两者都会让漏斗看起来"每层一样长"。 */
+             基准 = 各层实际量的最大值（正常数据下即首层），首层为 100%。
+             条形长度 = 「标签底座」+ 剩余长度按数值比例分配：
+             底座只负责把「1」这类极小值撑到刚够放下数字，剩余部分仍严格按比例，
+             因此各层大小关系保留（不会像纯像素下限那样被拉成一样长）。 */
           const funnelBase = Math.max(...krs.map(k => k.v || 0), 1);
           const solidW = Math.max(0, Math.min(100, (kr.v / funnelBase) * 100));
-          /* 数值：窄条容不下白字时改为条右侧灰字，宁可位置变、也不牺牲长度真实性 */
-          const labelInside = solidW >= 12;
+          const labelText = `${kr.v}${kr.u}`;
+          const labelPx = [...labelText].reduce((s, ch) => s + (/[\u4e00-\u9fff]/.test(ch) ? 10 : 6.2), 0);
+          const stubPx = Math.max(30, Math.round(labelPx + 14));
+          const ratio = solidW / 100;
+          const barWidth = `calc(${stubPx}px + ${solidW.toFixed(2)}% - ${(stubPx * ratio).toFixed(2)}px)`;
           const isEmpty = !(kr.v > 0);
           const padNum = String(i + 1).padStart(2, '0');
           const nextKr = krs[i + 1];
@@ -429,18 +433,15 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onGoalAdd, 
                       <div
                         className="absolute left-0 top-0 h-full rounded-full transition-all duration-500"
                         style={{
-                          width: `${solidW}%`,
-                          minWidth: '3px',
+                          width: barWidth,
                           background: isDone ? 'var(--success)' : COLOR,
                           boxShadow: isDone ? '0 1px 3px rgba(52,199,89,0.25)' : `0 1px 3px ${moduleRgba('work', 0.15)}`,
                         }} />
                     )}
-                    {/* 数值：条够宽 → 左端白字；窄条 → 条右缘外置灰字（长度必须保持比例，故不做加长） */}
+                    {/* 数值：统一在色条左端、白字（底座长度按文字宽度算，数字永远放得下） */}
                     <span
                       className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums leading-none whitespace-nowrap"
-                      style={labelInside && !isEmpty
-                        ? { left: 8, color: 'rgba(255,255,255,0.92)' }
-                        : { left: isEmpty ? 8 : `calc(${solidW}% + 6px)`, color: '#8a9491' }}>
+                      style={{ left: 8, color: isEmpty ? '#8a9491' : 'rgba(255,255,255,0.92)' }}>
                       {kr.v}{kr.u}
                     </span>
                   </div>

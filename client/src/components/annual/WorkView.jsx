@@ -904,12 +904,11 @@ export function WorkView({ workGoals, onKrAdd, onKrEdit, onKrRemove, onKrBench, 
             </span>
           )}
           {/* 🗄 数据表：仅在漏斗范式 + ≥2 层时出现（单次事件/里程碑无「层」概念） */}
-          {gs.mode === 'funnel' && gs.krTotal >= 2 && (
+          {inferMode(o, 'work') === 'funnel' && (o.krs || []).length >= 2 && (
             <button
               onClick={() => {
-                const o = dynWk[goalIdx];
                 // 首开建表：按当前手填的实际量生成占位公司行，之后数字完全由明细推导
-                if (o && !Array.isArray(o.pipeline)) {
+                if (!Array.isArray(o.pipeline)) {
                   onPipelineSave?.(goalIdx, seedPipelineRows(o.krs || []));
                 }
                 setTableIdx(goalIdx);

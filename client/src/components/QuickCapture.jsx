@@ -519,7 +519,115 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     autoTimer.current = setTimeout(() => { autoTimer.current = null; autosaveRef.current?.(); }, 1000);
   }
 
+  // ===== 列表缩进（Tab / Shift+Tab）=====
+  // 与飞书/Notion 同构：Tab 把当前项挂进上一项内部；Shift+Tab 退回上一层，
+  // 已在顶层则退出列表变成普通段落；支持框选多项批量缩进。
+  function listKindOf(list) {
+    if (!list || !/^(UL|OL)$/.test(list.tagName || '')) return null;
+    return `${list.tagName}${list.classList?.contains('qc-checklist') ? ':check' : ''}`;
+  }
+  function makeSameList(ref) {
+    const list = document.createElement(ref.tagName);
+    if (ref.classList?.contains('qc-checklist')) list.className = 'qc-checklist';
+    return list;
+  }
+
+  // 把 li 从列表摘成普通段落；原列表的前后项各自保留、顺序不变
+  function exitListItem(li) {
+    const list = li.parentElement;
+    if (!list) return null;
+    const plain = document.createElement('div');
+    const clone = li.cloneNode(true);
+    clone.querySelectorAll('.qc-box').forEach(x => x.remove());
+    plain.innerHTML = clone.innerHTML.trim() || '<br>';
+    const items = [...list.children];
+    const idx = items.indexOf(li);
+    const head = items.slice(0, idx);
+    const tail = items.slice(idx + 1);
+    let tailList = null;
+    if (tail.length) {
+      tailList = makeSameList(list);
+      tail.forEach(n => tailList.appendChild(n));
+    }
+    li.remove();
+    if (head.length) list.after(plain); else list.replaceWith(plain);
+    if (tailList) plain.after(tailList);
+    return plain;
+  }
+
+  // 挂到上一项内部；没有上一项返回 null（首项无法再缩进）
+  function indentLi(li) {
+    const prev = li.previousElementSibling;
+    if (!prev || prev.tagName !== 'LI') return null;
+    const list = li.parentElement;
+    const last = prev.lastElementChild;
+    let nested = last && listKindOf(last) === listKindOf(list) ? last : null;
+    if (!nested) {
+      nested = makeSameList(list);
+      prev.appendChild(nested);
+    }
+    nested.appendChild(li);
+    return li;
+  }
+
+  // 退回上一层；顶层则退出列表（返回最终承载光标的节点）
+  function outdentLi(li) {
+    const list = li.parentElement;
+    if (!list) return null;
+    const parentLi = list.parentElement;
+    if (!parentLi || parentLi.tagName !== 'LI') return exitListItem(li);
+    parentLi.after(li);
+    if (!list.children.length) list.remove();
+    return li;
+  }
+
+  function handleTab(shiftKey) {
+    const ed = editorRef.current;
+    const sel = window.getSelection();
+    if (!ed || !sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (!ed.contains(range.startContainer)) return;
+    const nodeToEl = n => (n ? (n.nodeType === 3 ? n.parentElement : n) : null);
+    const items = range.collapsed
+      ? [nodeToEl(range.startContainer)?.closest?.('li')].filter(Boolean)
+      : selectedBlocks(ed, range).filter(b => b.tagName === 'LI');
+    if (!items.length) return;
+    const offset = getCaretOffset(items[0]);
+    let caretEl = null;
+    items.forEach(li => {
+      const moved = shiftKey ? outdentLi(li) : indentLi(li);
+      if (li === items[0]) caretEl = moved;
+    });
+    if (range.collapsed && caretEl?.isConnected) setCaretOffset(caretEl, offset);
+    else if (!range.collapsed) {
+      const last = items[items.length - 1];
+      if (last.isConnected) focusBlockEnd(last);
+    }
+    touch();
+  }
+
+  // 粘贴统一转纯文本：网页/文档带进来的字体、颜色、外链结构会破坏小记样式
+  function onPaste(e) {
+    const dt = e.clipboardData;
+    if (!dt) return;
+    const text = dt.getData('text/plain');
+    e.preventDefault();
+    if (text) document.execCommand('insertText', false, text);
+    touch();
+  }
+
   function onKeyDown(e) {
+    // Tab / Shift+Tab：列表缩进；非列表处吞掉默认行为，避免焦点跳出编辑器
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      handleTab(e.shiftKey);
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (getPlainText()) save();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
       if (getPlainText()) save();
@@ -540,9 +648,29 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     // 有内容 → 新增未勾选复选行；空行 → 跳出列表转普通行（飞书/Notion 同款行为）
     if (e.key === 'Enter' && !e.shiftKey) {
       const sel = window.getSelection();
-      const li = sel?.anchorNode
-        ? (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode)?.closest?.('ul.qc-checklist > li')
+      const base = sel?.anchorNode
+        ? (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode)
         : null;
+      const anyLi = base?.closest?.('li');
+      if (!anyLi) return;
+      // 普通 / 有序列表：空项回车 → 先退一层，顶层则退出列表
+      // （原生行为会把空 li 留在列表里，列表永远结束不了）
+      if (!anyLi.parentElement?.classList?.contains('qc-checklist')) {
+        if (!anyLi.textContent.trim()) {
+          e.preventDefault();
+          const moved = outdentLi(anyLi);
+          if (moved) {
+            const r = document.createRange();
+            r.selectNodeContents(moved);
+            r.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(r);
+          }
+          touch();
+        }
+        return; // 非空 → 交给浏览器原生拆分
+      }
+      const li = anyLi.closest('ul.qc-checklist > li');
       if (!li) return;
       e.preventDefault();
       if (!li.textContent.trim()) {
@@ -604,6 +732,19 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       if (!atLineStart) return;
       e.preventDefault();
       const ul = li.parentElement;
+      // 嵌套复选框列表：行首退格先退一层，而不是直接跳出整个列表
+      if (ul.parentElement?.tagName === 'LI') {
+        const moved = outdentLi(li);
+        if (moved) {
+          const r = document.createRange();
+          r.setStart(moved, 1); // childNodes[0]=圆点(不可入)，1=文本起点
+          r.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+        touch();
+        return;
+      }
       const plain = document.createElement('div');
       const clone = li.cloneNode(true);
       clone.querySelectorAll('.qc-box').forEach(x => x.remove());
@@ -770,6 +911,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
           scheduleAutosave();
         }}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         onClick={onEditorClick}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}

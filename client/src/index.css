@@ -1276,6 +1276,10 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
  *   - 两条路径各自独立推导出「行盒中心」，故圆点与文字垂直居中是恒等式而非近似。
  *     （上一版 vertical-align:-0.5px 依赖 baseline 位置假设，PingFang 下实测偏上 4px，废弃） */
 .qc-editor ul.qc-checklist { list-style: none !important; padding-left: 0 !important; margin: 4px 0; }
+/* 嵌套列表（Tab 缩进）：复选框列表默认零左距，嵌套后要补回层级缩进；
+   父级 li 的悬挂缩进 text-indent 会继承，嵌套层清零避免错位 */
+.qc-editor li > ul.qc-checklist { padding-left: 24px !important; text-indent: 0; }
+.qc-editor li > ul, .qc-editor li > ol { text-indent: 0; margin: 2px 0; }
 .qc-editor ul.qc-checklist li {
   padding-left: 28px;
   text-indent: -28px; /* 悬挂缩进：圆点悬挂行首，换行后文字与首行文字对齐 */

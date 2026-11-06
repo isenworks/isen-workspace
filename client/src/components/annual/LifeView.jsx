@@ -10,6 +10,7 @@ import { API } from '../../api/client.js'
 import { useToast } from '../../context/ToastContext.jsx'
 import ConfirmDialog from '../ConfirmDialog.jsx'
 import lunarLib from '../../vendor/lunar.js';
+import { lunarDatesInYear, lunarMonthDayOf, nextLunarDate } from '../../utils/lunarBirthday.js';
 import EntryForm from '../forms/EntryForm.jsx'
 import PlantingShelf from './PlantingShelf.jsx'
 import { useLongPress } from '../useLongPress.js'
@@ -273,20 +274,29 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
       const parts = String(b.date || '').split('-');
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
-      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, passed: false, nextYear: today.getFullYear(), lunarText: lunarBadgeText(b) };
-      // 计算今年生日
-      let thisYearBd = new Date(today.getFullYear(), mo - 1, day);
-      thisYearBd.setHours(0, 0, 0, 0);
-      let nextBd = thisYearBd;
-      let passed = false;
-      if (nextBd < today) {
-        // 今年已过，算明年
-        nextBd = new Date(today.getFullYear() + 1, mo - 1, day);
-        passed = true;
+      const fallback = { ...b, name, mo, day, daysLeft: 9999, daysPassed: 0, passed: false, nextYear: today.getFullYear(), isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b) };
+      if (!mo || !day) return fallback;
+      let thisYearBd, nextBd;
+      if (b.repeat_rule === 'lunar-yearly') {
+        // 农历：必须按农历月日换算，直接用存储的公历月日会逐年漂错
+        const lunar = lunarMonthDayOf(b.date);
+        if (!lunar) return fallback;
+        nextBd = nextLunarDate(lunar.month, lunar.day, today);
+        if (!nextBd) return fallback;
+        // 本公历年内最近一次（可能一个公历年出现 0/1/2 次）
+        thisYearBd = lunarDatesInYear(lunar.month, lunar.day, today.getFullYear())
+          .map(x => new Date(today.getFullYear(), x.mo - 1, x.day))
+          .filter(d => d <= today)
+          .pop() || null;
+      } else {
+        thisYearBd = new Date(today.getFullYear(), mo - 1, day);
+        thisYearBd.setHours(0, 0, 0, 0);
+        nextBd = thisYearBd < today ? new Date(today.getFullYear() + 1, mo - 1, day) : thisYearBd;
       }
+      const passed = !!thisYearBd && thisYearBd.getTime() < nextBd.getTime();
       const daysLeft = Math.round((nextBd - today) / (1000 * 60 * 60 * 24));
       const daysPassed = passed ? Math.round((today - thisYearBd) / (1000 * 60 * 60 * 24)) : 0;
-      return { ...b, name, mo, day, daysLeft, daysPassed, passed, nextYear: nextBd.getFullYear(), isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b) };
+      return { ...b, name, mo: nextBd.getMonth() + 1, day: nextBd.getDate(), daysLeft, daysPassed, passed, nextYear: nextBd.getFullYear(), isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b) };
     }).sort((a, b) => a.daysLeft - b.daysLeft);
   }, [birthdays]);
 
@@ -303,38 +313,46 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   const [bdYear, setBdYear] = useState(new Date().getFullYear());
 
   /* 按日期视图：浏览年 bdYear 内各生日的「当次日期」。
-   * 语义与按人视图（下次生日）不同 —— 年份切换浏览的是日历年内所有人该年的生日：
+   * 语义与按人视图（下次生日）不同 —— 年份切换浏览的是「公历年内」所有人该年的生日：
    *   - 公历：直接用存储的月/日
-   *   - 农历：存储的是创建年的公历日期 → 先转回农历月日，再换算到浏览年（农历生日每年公历日期会漂移）
+   *   - 农历：存储的是创建年的公历日期 → 先转回农历月日，再在公历年 bdYear 内反查所有命中日期。
+   *     腊月/正月的生日会跨公历年，例如三姐（腊月初四）：
+   *       农历 2026 年腊月初四 = 2027-01-11，农历 2027 年腊月初四 = 2027-12-31，
+   *     所以 2027 页两条都要显示；个别年份（如 2028）一次都不落在该公历年则当年不显示。
    */
   const bdYearRows = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return birthdays.map(b => {
+    const rows = birthdays.flatMap(b => {
       const name = String(b.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || b.title;
       const parts = String(b.date || '').split('-');
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
-      const baseYear = parts[0] ? parseInt(parts[0], 10) : today.getFullYear();
-      if (!mo || !day) return { ...b, name, mo, day, daysLeft: 9999, daysPassed: 0, passed: false, isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b) };
-      let yMo = mo, yDay = day;
+      const base = { ...b, name, isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b) };
+      if (!mo || !day) return [{ ...base, mo, day, daysLeft: 9999, daysPassed: 0, passed: false }];
+
+      let dates;
       if (b.repeat_rule === 'lunar-yearly') {
-        try {
-          const lun = lunarLib.Solar.fromYmd(baseYear, mo, day).getLunar();
-          const solarY = lunarLib.Lunar.fromYmd(bdYear, lun.getMonth(), lun.getDay()).getSolar();
-          yMo = solarY.getMonth();
-          yDay = solarY.getDay();
-        } catch { /* 换算失败回退固定月日 */ }
+        const lunar = lunarMonthDayOf(b.date);
+        if (!lunar) return [{ ...base, mo, day, daysLeft: 9999, daysPassed: 0, passed: false }];
+        dates = lunarDatesInYear(lunar.month, lunar.day, bdYear);
+        if (!dates.length) return []; // 该公历年确实没有这次农历生日
+      } else {
+        dates = [{ mo, day }];
       }
-      const yBd = new Date(bdYear, yMo - 1, yDay);
-      yBd.setHours(0, 0, 0, 0);
-      const diff = Math.round((yBd - today) / (1000 * 60 * 60 * 24));
-      return {
-        ...b, name, mo: yMo, day: yDay,
-        daysLeft: diff, daysPassed: diff < 0 ? -diff : 0, passed: diff < 0,
-        isToday: diff === 0, isLunar: b.repeat_rule === 'lunar-yearly', lunarText: lunarBadgeText(b),
-      };
-    }).sort((a, b) => (a.mo - b.mo) || (a.day - b.day));
+
+      return dates.map(d => {
+        const yBd = new Date(bdYear, d.mo - 1, d.day);
+        yBd.setHours(0, 0, 0, 0);
+        const diff = Math.round((yBd - today) / (1000 * 60 * 60 * 24));
+        return {
+          ...base, mo: d.mo, day: d.day,
+          daysLeft: diff, daysPassed: diff < 0 ? -diff : 0, passed: diff < 0,
+          isToday: diff === 0,
+        };
+      });
+    });
+    return rows.sort((a, b) => (a.mo - b.mo) || (a.day - b.day));
   }, [birthdays, bdYear]);
   /* ===== 左侧分类手动排序：HTML5 拖拽，顺序持久化（含生日虚拟行；「全部分类」固定第一不参与） ===== */
   const allRowKeys = useMemo(() => ['birthday', ...dynLife.map(c => c.key)], [dynLife]);
@@ -798,7 +816,7 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     return flat.map(({ b, label }, idx) => {
                       const isLast = idx === flat.length - 1;
                       return (
-                        <div key={b.id || idx} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
+                        <div key={`${b.id || 'bd'}-${b.mo}-${b.day}`} className={`flex gap-2.5 cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
                           onClick={() => onBirthdayEdit?.(b)}
                           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect(); openBdMenuAt(b, rect.left, rect.bottom + 4); }}
                         {...lp.bind((pos) => openBdMenuAt(b, pos.clientX, pos.clientY))}>

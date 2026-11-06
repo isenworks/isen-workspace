@@ -11,6 +11,7 @@ import { catToModule } from '../utils/categoryMapping.js';
 import { CATEGORY_COLORS } from '../utils/uiConstants.js';
 import { CategoryIcon } from '../components/annual/ui.jsx';
 import lunarLib from '../vendor/lunar.js';
+import { lunarMonthDayOf, nextLunarDate } from '../utils/lunarBirthday.js';
 import PTag from '../components/PTag.jsx';
 import { useLongPress } from '../components/useLongPress.js';
 
@@ -822,9 +823,17 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       const mo = parts[1] ? parseInt(parts[1], 10) : 0;
       const day = parts[2] ? parseInt(parts[2], 10) : 0;
       if (!mo || !day) return;
-      const cand = yy => new Date(yy, mo - 1, day);
-      let next = cand(today.getFullYear());
-      if (next <= today) next = cand(today.getFullYear() + 1);
+      let next;
+      if (b.repeat_rule === 'lunar-yearly') {
+        // 农历生日必须按农历月日换算（腊月/正月会跨公历年，直接用月日会逐年漂错）
+        const lunar = lunarMonthDayOf(b.date);
+        next = lunar ? nextLunarDate(lunar.month, lunar.day, new Date(today.getTime() + 86400000)) : null;
+      } else {
+        const cand = yy => new Date(yy, mo - 1, day);
+        next = cand(today.getFullYear());
+        if (next <= today) next = cand(today.getFullYear() + 1);
+      }
+      if (!next) return;
       const daysLeft = Math.round((next - today) / 86400000);
       list.push({ key: `bd-${b.id}`, type: 'birthday', title: `${name}的生日`, date: toISODate(next), isLunar: b.repeat_rule === 'lunar-yearly', daysLeft });
     });

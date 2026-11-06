@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import lunarLib from '../../vendor/lunar.js';
+import { lunarMonthDayOf } from '../../utils/lunarBirthday.js';
 import ConfirmAlert from '../ConfirmAlert.jsx';
 
 /* ============================================================
@@ -72,8 +73,13 @@ function parseInitial(bd) {
   if (!bd) return null;
   const name = String(bd.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim();
   const parts = String(bd.date || '').split('-');
-  const mo = parts[1] ? parseInt(parts[1], 10) : 1;
-  const day = parts[2] ? parseInt(parts[2], 10) : 1;
+  let mo = parts[1] ? parseInt(parts[1], 10) : 1;
+  let day = parts[2] ? parseInt(parts[2], 10) : 1;
+  // 农历生日存的是「录入当年的公历日期」，直接回填会把公历月日当农历月日再保存一次（数据越改越偏）
+  if (bd.repeat_rule === 'lunar-yearly') {
+    const lunar = lunarMonthDayOf(bd.date);
+    if (lunar) { mo = Math.abs(lunar.month); day = lunar.day; }
+  }
   return {
     id: bd.id,
     name,

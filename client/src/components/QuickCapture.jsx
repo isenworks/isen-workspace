@@ -139,6 +139,8 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   const undoIdx = useRef(-1);
   const undoTimer = useRef(null); // 输入快照防抖（连续打字合并为一步）
   const activeIdRef = useRef(edit?.id ?? null);        // 当前记录 id：编辑=edit.id；新建首次自动保存后回填
+  const savingRef = useRef(null);                     // 进行中的保存 Promise（串行化，见 persist）
+  const queuedRef = useRef(null);                     // 保存期间合并的尾随保存 { manual }
   const tagIdsRef = useRef(tagIds);                    // 标签同步值（供异步自动保存读最新）
   tagIdsRef.current = tagIds;
 
@@ -182,8 +184,13 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     const d = draftRef.current;
     if (d.plain) {
       const payload = { content: d.content, tag_ids: tagIdsRef.current };
-      if (activeIdRef.current) API.inbox.update(activeIdRef.current, payload).catch(() => {});
-      else API.inbox.create(payload).catch(() => {});
+      const flush = () => {
+        if (activeIdRef.current) API.inbox.update(activeIdRef.current, payload).catch(() => {});
+        else API.inbox.create(payload).catch(() => {});
+      };
+      // 有请求正在飞：等它落地（activeIdRef 会被填上）后再补交，避免又 create 一条重复
+      if (savingRef.current) savingRef.current.finally(flush).catch(() => {});
+      else flush();
     }
   }, []);
 
@@ -446,59 +453,63 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     touch();
   }
 
-  // 手动保存：编辑态=更新，新建态=收录；都不清空编辑区，保持显示已保存内容
-  //  - 已自动落库的新建记录会复用同一 id，避免重复创建
-  //  - 新建时把记录回传给父级，父级可据此选中它（编辑区随之为「已保存」态）
-  async function save() {
+  // 保存串行化：同一时刻只允许一个落库请求在跑。
+  // 自动保存（防抖）、手动保存、标签浮层关闭、切页兜底 都可能同时触发；
+  // 并发时各自都看到「还没有 id」→ 各 create 一次 → 同一次编辑出现多条小记。
+  // 晚到的保存合并成一次「尾随保存」，等首个请求拿到 id 后再 update。
+  async function persist(manual) {
     const content = getContent();
-    if (!getPlainText() || busy) return;
-    setBusy(true);
+    if (!getPlainText()) return;
+    const targetId = edit?.id ?? activeIdRef.current;
+    let r;
+    if (targetId) {
+      r = await API.inbox.update(targetId, { content, tag_ids: tagIdsRef.current });
+      activeIdRef.current = targetId;
+      onUpdated?.();
+    } else {
+      r = await API.inbox.create({ content, tag_ids: tagIdsRef.current });
+      if (r?.item?.id != null) activeIdRef.current = r.item.id;
+      // 自动收录：刷新列表让左侧卡片立即出现
+      //  - 自动保存不带记录，避免父级选中后重挂打断光标
+      //  - 手动保存带回记录，父级选中它进入「编辑记录」态
+      // 请求期间又输入了新内容时不回传记录：父级选中会重挂编辑器，把新内容盖回旧版本
+      const dirty = draftRef.current.content !== content;
+      onSaved?.(manual && !dirty ? r?.item : undefined);
+    }
+    setSavedAt(r?.item?.updated_at || new Date().toISOString());
+    // 期间没有新输入才算已落库，否则保留草稿（尾随保存 / 卸载兜底会继续提交）
+    if (draftRef.current.content === content) draftRef.current = { content: '', plain: '' };
+    if (manual) flash('已保存');
+  }
+
+  // 手动保存：编辑态=更新，新建态=收录；不清空编辑区，保持显示已保存内容
+  async function save(manual = true) {
+    if (!getPlainText()) return;
+    if (savingRef.current) {
+      queuedRef.current = { manual: (queuedRef.current?.manual || manual) };
+      if (manual) setBusy(true);
+      return;
+    }
+    if (manual) setBusy(true);
+    const task = persist(manual);
+    savingRef.current = task;
     try {
-      const targetId = edit?.id ?? activeIdRef.current;
-      let r;
-      if (targetId) {
-        r = await API.inbox.update(targetId, { content, tag_ids: tagIds });
-        activeIdRef.current = targetId;
-        onUpdated?.();
-      } else {
-        r = await API.inbox.create({ content, tag_ids: tagIds });
-        activeIdRef.current = r?.item?.id ?? null;
-      }
-      setSavedAt(r?.item?.updated_at || new Date().toISOString());
-      draftRef.current = { content: '', plain: '' };
-      flash('已保存');
-      if (!edit) onSaved?.(r?.item);
+      await task;
     } catch (e) {
-      toast.error(e.message || '保存失败');
+      if (manual) toast.error(e.message || '保存失败');
     } finally {
-      setBusy(false);
+      savingRef.current = null;
+      if (manual) setBusy(false);
+      const q = queuedRef.current;
+      queuedRef.current = null;
+      // 尾随保存：此时 activeIdRef 已持有 id，只会 update，不会再 create
+      if (q) save(q.manual);
       requestAnimationFrame(() => editorRef.current?.focus());
     }
   }
 
-  // 自动保存（输入防抖触发）：编辑态直接更新；新建态首次落库后转为更新，避免重复创建
-  async function autosave() {
-    if (busy) return;
-    const content = getContent();
-    const plain = getPlainText();
-    if (!plain) return;
-    try {
-      if (edit?.id ?? activeIdRef.current) {
-        const id = edit?.id ?? activeIdRef.current;
-        const r = await API.inbox.update(id, { content, tag_ids: tagIdsRef.current });
-        setSavedAt(r?.item?.updated_at || new Date().toISOString());
-        onUpdated?.();
-      } else {
-        const r = await API.inbox.create({ content, tag_ids: tagIdsRef.current });
-        if (r?.item?.id != null) activeIdRef.current = r.item.id;
-        setSavedAt(r?.item?.updated_at || new Date().toISOString());
-        // 自动收录：刷新列表让左侧卡片立即出现（不带记录，避免自动选中重挂打断输入）
-        onSaved?.();
-      }
-      // 期间没有新输入则视为已落库，清掉草稿标记（卸载时不再重复提交）
-      if (draftRef.current.content === content) draftRef.current = { content: '', plain: '' };
-    } catch { /* 自动保存失败静默，保留手动「保存」兜底 */ }
-  }
+  // 自动保存（输入防抖触发）走同一条串行通道
+  function autosave() { return save(false); }
   const autosaveRef = useRef(autosave);
   autosaveRef.current = autosave;
 
@@ -792,7 +803,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
           {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium inline-flex items-center gap-1"><IconCheck size={13} strokeWidth={2.5} />{flashMsg}</span>}
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
           <button
-            onClick={save}
+            onClick={() => save()}
             disabled={busy || !getPlainText()}
             title="保存（Ctrl+S）"
             className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
@@ -813,7 +824,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
           {flashMsg && <span className="text-[12px] text-[color:var(--s-main)] font-medium inline-flex items-center gap-1"><IconCheck size={13} strokeWidth={2.5} />{flashMsg}</span>}
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
           <button
-            onClick={save}
+            onClick={() => save()}
             disabled={busy || !getPlainText()}
             title="保存（Ctrl+S）"
             className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"

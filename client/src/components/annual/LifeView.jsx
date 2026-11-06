@@ -311,6 +311,21 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
   const [bdView, setBdView] = usePersistentState('annual_life_bd_view', () => 'date');
   /* 按日期视图的浏览年份（默认当年；◀▶ 切换，不持久化避免停在旧年份） */
   const [bdYear, setBdYear] = useState(new Date().getFullYear());
+  /* 生日筛选：亲人 / 朋友 / 全部（默认全部；「日期」是切换到时间流视图） */
+  const [bdFilter, setBdFilter] = usePersistentState('annual_life_bd_filter', () => 'all');
+  /* 关系归属：按姓名存 friend / family；未记录的一律视为亲人 */
+  const [bdRelation, setBdRelation] = usePersistentState('annual_life_bd_relation', () => ({
+    拾柒: 'friend', 嘉澍: 'friend', 云峰: 'friend', 溪客: 'friend',
+  }));
+  const bdNameOf = (b) => String(b?.title || '').replace(/^🎂/, '').replace(/生日$/, '').trim() || String(b?.title || '');
+  const bdRelOf = (b) => (bdRelation?.[b?.name || bdNameOf(b)] === 'friend' ? 'friend' : 'family');
+  const bdFilterOn = (list) => (bdFilter === 'family' || bdFilter === 'friend' ? list.filter(b => bdRelOf(b) === bdFilter) : list);
+  /* 四个筛选组：亲人 / 朋友 / 全部（按人列表） + 日期（时间流） */
+  const BD_GROUPS = [['family', '亲人'], ['friend', '朋友'], ['all', '全部'], ['date', '日期']];
+  const pickBdGroup = (k) => {
+    if (k === 'date') { setBdView('date'); setBdFilter('all'); }
+    else { setBdView('person'); setBdFilter(k); }
+  };
 
   /* 按日期视图：浏览年 bdYear 内各生日的「当次日期」。
    * 语义与按人视图（下次生日）不同 —— 年份切换浏览的是「公历年内」所有人该年的生日：
@@ -354,6 +369,9 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     });
     return rows.sort((a, b) => (a.mo - b.mo) || (a.day - b.day));
   }, [birthdays, bdYear]);
+  /* 筛选后的列表：亲人 / 朋友 / 全部 */
+  const bdPersonList = useMemo(() => bdFilterOn(bdCountdown), [bdCountdown, bdFilter, bdRelation]);
+  const bdDateList = useMemo(() => bdFilterOn(bdYearRows), [bdYearRows, bdFilter, bdRelation]);
   /* ===== 左侧分类手动排序：HTML5 拖拽，顺序持久化（含生日虚拟行；「全部分类」固定第一不参与） ===== */
   const allRowKeys = useMemo(() => ['birthday', ...dynLife.map(c => c.key)], [dynLife]);
   const [rowOrder, setRowOrder] = usePersistentState('annual_life_rows_order', () => []);
@@ -402,15 +420,19 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
     }
     resetDrag();
   };
-  /* 生日视图切换控件（右卡顶部）：iOS segmented 风格，与日历表单重复分段控件同语言 */
+  /* 生日筛选组（右卡顶部）：亲人 / 朋友 / 全部（切到按人列表并筛选） + 日期（切到时间流）
+     iOS segmented 风格，与日历表单重复分段控件同语言 */
   const bdToggle = (
     <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[rgba(120,120,128,0.10)]">
-      {[['date', '按日期'], ['person', '按人']].map(([v, lb]) => (
-        <button key={v} onClick={() => setBdView(v)}
-          className={`px-2.5 py-1 text-[11px] font-bold rounded-[7px] transition cursor-pointer ${bdView === v ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'}`}>
-          {lb}
-        </button>
-      ))}
+      {BD_GROUPS.map(([v, lb]) => {
+        const active = v === 'date' ? bdView === 'date' : (bdView === 'person' && bdFilter === v);
+        return (
+          <button key={v} onClick={() => pickBdGroup(v)}
+            className={`px-2.5 py-1 text-[11px] font-bold rounded-[7px] transition cursor-pointer ${active ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-700'}`}>
+            {lb}
+          </button>
+        );
+      })}
     </div>
   );
   const [linkListPopup, setLinkListPopup] = useState(null); // { x, y } | null — 多链接时点击弹出选择面板
@@ -742,11 +764,16 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                 <React.Fragment>
                   {/* 按人视图 · 顶部：人数大字 + 视图切换（与按日期视图首年份行同构） */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{bdCountdown.length} 位</div>
+                    <div className="pl-3.5 text-[22px] font-extrabold text-ink-900 tabular-nums tracking-wide">{bdPersonList.length} 位</div>
                     {bdToggle}
                   </div>
                   <div className="flex flex-col gap-2.5">
-                    {bdCountdown.map((b, i) => (
+                    {bdPersonList.length === 0 && (
+                      <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-400">
+                        {bdFilter === 'friend' ? '还没有标记为朋友的人' : '还没有生日记录'}
+                      </div>
+                    )}
+                    {bdPersonList.map((b, i) => (
                       <div key={b.id || i}
                         className={`flex items-center gap-3 pl-2.5 pr-3 h-[52px] rounded-xl bg-[rgba(120,120,128,0.08)] hover:bg-[rgba(120,120,128,0.12)] transition cursor-pointer ${b.passed ? 'opacity-50' : ''}`}
                         onClick={() => onBirthdayEdit?.(b)}
@@ -804,9 +831,14 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
                     {bdToggle}
                   </div>
                   {/* 浏览年内时间流：按月升序分组；农历生日已换算到该年的公历日期 */}
+                  {bdDateList.length === 0 && (
+                    <div className="flex items-center justify-center py-8 rounded-xl border border-dashed border-ink-100 text-[12px] text-ink-400">
+                      {bdFilter === 'friend' ? '这一年没有标记为朋友的生日' : `这一年还没有生日（农历生日可能顺延到相邻公历年）`}
+                    </div>
+                  )}
                   {(() => {
                     const groups = [];
-                    bdYearRows.forEach(b => {
+                    bdDateList.forEach(b => {
                       const g = groups.find(x => x.mo === b.mo);
                       if (g) g.items.push(b);
                       else groups.push({ mo: b.mo, label: b.mo ? `${String(b.mo).padStart(2, '0')}月` : '无日期', items: [b] });
@@ -950,6 +982,14 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
         <div className="fixed inset-0 z-50" onClick={() => { if (Date.now() - bdMenuShownAt.current < 350) return; setBdMenu(null); }}>
           <div className="absolute glass-card p-1.5 flex flex-col gap-0.5 min-w-[120px]"
             style={{ left: bdMenu.x, top: bdMenu.y }}>
+            <button className="px-3 py-1.5 text-left text-sm rounded-md hover:bg-surface-soft transition"
+              onClick={() => {
+                const name = bdMenu.bd.name || bdNameOf(bdMenu.bd);
+                setBdRelation(prev => ({ ...(prev || {}), [name]: bdRelOf(bdMenu.bd) === 'friend' ? 'family' : 'friend' }));
+                setBdMenu(null);
+              }}>
+              {bdRelOf(bdMenu.bd) === 'friend' ? '设为亲人' : '设为朋友'}
+            </button>
             <button className="px-3 py-1.5 text-left text-sm rounded-md hover:bg-surface-soft transition"
               onClick={() => { onBirthdayEdit?.(bdMenu.bd); setBdMenu(null); }}>
               编辑

@@ -142,6 +142,42 @@ const LABEL_STYLE = {
   letterSpacing: '0.03em'
 };
 
+/* 标签行：左标题、右星期，把标签右侧的空白用起来，不额外占一行高度 */
+const LABEL_ROW_STYLE = {
+  ...LABEL_STYLE,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '6px',
+  minHeight: '15px',
+};
+
+const WEEK_CN = ['日', '一', '二', '三', '四', '五', '六'];
+
+/* 按本地时区解析 YYYY-MM-DD，避免 new Date('2026-11-14') 被当成 UTC 而错位一天 */
+function weekdayOf(v) {
+  if (!v) return '';
+  const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return '';
+  return WEEK_CN[new Date(y, m - 1, d).getDay()];
+}
+
+/* 星期徽标：随所选日期实时变化，未选日期时不占位 */
+function WeekTag({ date }) {
+  const w = weekdayOf(date);
+  if (!w) return null;
+  return (
+    <span
+      aria-label={`星期${w}`}
+      style={{
+        fontSize: '10px', fontWeight: '600', color: 'var(--text-1)',
+        background: 'rgba(120,120,128,0.12)', borderRadius: '999px',
+        padding: '1px 7px', letterSpacing: 0, lineHeight: '15px',
+      }}
+    >周{w}</span>
+  );
+}
+
 const BTN_GHOST = {
   padding: '6px 14px',
   borderRadius: '9px',
@@ -395,7 +431,10 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
       {/* 日期 · 开始日期 + 截止日期 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '-4px' }}>
         <div>
-          <label style={LABEL_STYLE}>开始日期</label>
+          <label style={LABEL_ROW_STYLE}>
+            <span>开始日期</span>
+            <WeekTag date={form.start_date} />
+          </label>
           <input
             className="form-input"
             style={INPUT_STYLE}
@@ -405,9 +444,12 @@ export default function ScheduleForm({ initial, defaultDate, onSaved, onCancel }
           />
         </div>
         <div>
-          <label style={LABEL_STYLE}>
-            截止日期
-            <span style={{ fontSize: '10px', fontWeight: '500', color: '#aeaeb2', marginLeft: '4px' }}>可选</span>
+          <label style={LABEL_ROW_STYLE}>
+            <span>
+              截止日期
+              <span style={{ fontSize: '10px', fontWeight: '500', color: '#aeaeb2', marginLeft: '4px' }}>可选</span>
+            </span>
+            <WeekTag date={form.end_date} />
           </label>
           <div style={{ position: 'relative' }}>
             <input

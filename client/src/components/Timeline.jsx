@@ -236,6 +236,13 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     });
   }
 
+  // 订阅回调只在挂载时建一次：直接捕获 load/loadFixed 会锁死首次的 range/date，
+  // 轮询 reload 时按首次日期拉数据，把当前日期的列表整个替换掉
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  const loadFixedRef = useRef(loadFixed);
+  loadFixedRef.current = loadFixed;
+
   useEffect(() => { load(); }, [range.from, range.to, date, refreshSignal]);
   useEffect(() => { loadFixed(); }, [refreshSignal]);
 
@@ -263,8 +270,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     } else if (patch.type === 'reload') {
       // 不调 onChange（refreshKey++）：reload 广播源都会同时 refresh()，叠加会让本轮数据被拉两遍
       cacheClear(cacheRef, 'tl:');
-      load();
-      loadFixed();
+      loadRef.current();
+      loadFixedRef.current();
     }
   }), []);
 

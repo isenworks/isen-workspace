@@ -110,6 +110,11 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     }).catch(e => { console.error(e); gate.done(); });
   }
 
+  // 订阅回调在挂载时建一次（[] 依赖），若直接捕获 load 会锁死首次渲染的 range：
+  // 切到 11.14 后，2 分钟轮询的 reload 仍按首次的「今天」拉数据 → 当天之外的事项被整个列表替换掉（消失）
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
   useEffect(() => { load(); }, [range.from, range.to, refreshSignal]);
 
   // 订阅 patch：其他面板 toggle / markFailed 时即时同步，无需重新 load
@@ -137,7 +142,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       // 不调 onChange（refreshKey++）：reload 广播源（自动同步/保存后刷新）都会同时 refresh()，
       // 这里再叠加会让本轮数据被拉两遍、面板连闪两次（"数据跳动"放大器）
       cacheClear(cacheRef, 'kt:');
-      load();
+      // 用最新一次渲染的 load（range 为当前选中日期），不能用首次渲染的闭包
+      loadRef.current();
     }
   }), []);
 

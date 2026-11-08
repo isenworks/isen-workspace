@@ -1266,12 +1266,13 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .qc-editor ul { list-style: disc; }
 .qc-editor ol { list-style: decimal; }
 /* 序号随层级递减（Tab 缩进后子级编号自动从 1 重排，并在这里做视觉降级）：
- *   一级 = 正文同色同号；二级 13px + --text-3；三级及更深 12px + --text-muted。
- *   缩进步长同时加大到 26px，让「序号列」本身也明显退一级，而不只是文字缩进。 */
+ *   一级 1.  正文同色同号；二级 a.  13px + --text-3；三级 i.  12px + --text-muted；四级回到 1.
+ *   缩进步长同时加大，让「序号列」本身也明显退一级，而不只是文字缩进。 */
 .qc-editor ol > li::marker { font-variant-numeric: tabular-nums; }
-.qc-editor li > ol { padding-left: 26px; }
+.qc-editor li > ol { padding-left: 26px; list-style: lower-alpha; }
 .qc-editor li > ol > li::marker { color: var(--text-3); font-size: 13px; }
-.qc-editor li > ol > li > ol { padding-left: 24px; }
+.qc-editor li > ol > li > ol { padding-left: 24px; list-style: lower-roman; }
+.qc-editor li > ol > li > ol > li > ol { list-style: decimal; }
 .qc-editor li > ol > li > ol > li::marker { color: var(--text-muted); font-size: 12px; }
 /* 无序列表同理：二级空心圆、三级方块，圆点颜色随层级变浅 */
 .qc-editor li > ul { list-style: circle; padding-left: 24px; }

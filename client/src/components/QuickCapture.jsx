@@ -326,10 +326,66 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       }
     }
 
-    const toParagraph = blocks.every(b => blockListType(b) === target);
-    const lastNew = convertBlocks(ed, blocks, toParagraph ? null : target);
+    // 选区若跨进某个列表项的嵌套子列表（如只框选了 3. 下面的 a./i.），
+    // 命中的子列表也要一起算进判断与转换；否则外层项被改成目标类型、
+    // 内层仍保持原序号，看起来就像「只改了 3.」
+    const nestedHit = [];
+    if (!range.collapsed) {
+      blocks.forEach(b => {
+        if (b.tagName !== 'LI') return;
+        b.querySelectorAll('li').forEach(li => {
+          try { if (range.intersectsNode(li)) nestedHit.push(li); } catch { /* ignore */ }
+        });
+      });
+    }
+    const toParagraph = blocks.every(b => blockListType(b) === target)
+      && nestedHit.every(li => blockListType(li) === target);
+    const finalTarget = toParagraph ? null : target;
+    if (!range.collapsed) blocks.forEach(b => retagNestedLists(b, range, finalTarget));
+    const lastNew = convertBlocks(ed, blocks, finalTarget);
     if (lastNew) focusBlockEnd(lastNew);
     touch();
+  }
+
+  // 把选中区域命中的嵌套子列表就地换成目标类型（target 为 null 时拍平成段落）。
+  // 只改列表标签、保留 li 与更深层结构；外层项随后整体转换时子树随之迁移。
+  function retagNestedLists(block, range, target) {
+    if (block.tagName !== 'LI') return;
+    const hit = list => { try { return range.intersectsNode(list); } catch { return false; } };
+    // 深层优先：内层换标签不影响外层是否命中
+    [...block.querySelectorAll('ul,ol')].filter(hit).reverse().forEach(list => {
+      if (target === null) {
+        const frag = document.createDocumentFragment();
+        [...list.children].forEach(li => {
+          if (li.tagName !== 'LI') return;
+          const clone = li.cloneNode(true);
+          clone.querySelectorAll('.qc-box').forEach(x => x.remove());
+          const div = document.createElement('div');
+          div.innerHTML = clone.innerHTML.trim() || '<br>';
+          frag.appendChild(div);
+        });
+        list.replaceWith(frag);
+        return;
+      }
+      const tag = target === 'checklist' ? 'UL' : target.toUpperCase();
+      const isCheck = target === 'checklist';
+      if (list.tagName === tag && list.classList.contains('qc-checklist') === isCheck) return;
+      const repl = document.createElement(tag);
+      if (isCheck) repl.className = 'qc-checklist';
+      while (list.firstChild) repl.appendChild(list.firstChild);
+      [...repl.children].forEach(li => {
+        if (li.tagName !== 'LI') return;
+        if (isCheck) {
+          li.setAttribute('data-checked', li.getAttribute('data-checked') || 'false');
+          if (!li.querySelector(':scope > .qc-box')) {
+            li.insertAdjacentHTML('afterbegin', '<span class="qc-box" contenteditable="false"></span>');
+          }
+        } else {
+          [...li.children].forEach(c => { if (c.classList?.contains('qc-box')) c.remove(); });
+        }
+      });
+      list.replaceWith(repl);
+    });
   }
 
   // 根级裸文本包一层 div（contenteditable 根下的裸文本没有块容器，统一成 div 块）

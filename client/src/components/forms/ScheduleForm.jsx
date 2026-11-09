@@ -9,6 +9,7 @@ import { useToast } from '../../context/ToastContext.jsx';
 import { reloadCategoryMapping } from '../../utils/categoryMapping.js';
 import { hexToRgba } from '../../utils/color.js';
 import { getModuleColors } from '../../utils/moduleTheme.js';
+import { P_META } from '../PTag.jsx';
 
 /* ============================================================
  * 分类管理 · 7 大内置模块 (精力/知力/能力/工作/生活/财务/其他)
@@ -41,12 +42,12 @@ function builtinCats() {
   }));
 }
 
-// 重要紧急程度选项（P0 最紧急；NULL=未设置）· P2 用 iOS 蓝 #007AFF（区别于知力主题色）
+// 重要紧急程度选项（P0 最紧急；NULL=未设置）· 色值与 PTag 同源，选中态与列表标签一致
 const PRIORITY_OPTS = [
-  { v: 0, label: 'P0', short: '紧急且重要',   color: 'var(--danger)', title: 'P0 · 紧急且重要' },
-  { v: 1, label: 'P1', short: '重要不紧急',   color: 'var(--warning)', title: 'P1 · 重要不紧急' },
-  { v: 2, label: 'P2', short: '紧急不重要',   color: 'var(--s-main)', title: 'P2 · 紧急不重要' },
-  { v: 3, label: 'P3', short: '不重要不紧急', color: 'var(--text-muted)', title: 'P3 · 不重要不紧急' },
+  { v: 0, label: 'P0', short: '紧急且重要',   color: P_META[0].color, title: 'P0 · 紧急且重要' },
+  { v: 1, label: 'P1', short: '重要不紧急',   color: P_META[1].color, title: 'P1 · 重要不紧急' },
+  { v: 2, label: 'P2', short: '紧急不重要',   color: P_META[2].color, title: 'P2 · 紧急不重要' },
+  { v: 3, label: 'P3', short: '不重要不紧急', color: P_META[3].color, title: 'P3 · 不重要不紧急' },
 ];
 
 const LS_KEY = 'schedule_cats_v1';
@@ -751,10 +752,10 @@ function CategoryPicker({ cats, value, onSelect, onManage, priority, onPriority 
         ))}
       </div>
 
-      {/* 重要紧急 · 标题与「类型」同款对齐，方块一行 2 个 */}
+      {/* 重要紧急 · 只保留 P0-P3 短标（语义见 hover title），一行 4 个等分 */}
       <div style={{ marginTop: '10px' }}>
         <label style={{ ...LABEL_STYLE, marginBottom: '5px' }}>重要紧急</label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
           {PRIORITY_OPTS.map(po => {
             const on = priority === po.v;
             return (
@@ -764,9 +765,9 @@ function CategoryPicker({ cats, value, onSelect, onManage, priority, onPriority 
                 onClick={() => onPriority(on ? null : po.v)}
                 title={po.title}
                 style={{
-                  padding: '7px 0',
+                  padding: '8px 0',
                   borderRadius: '9px',
-                  fontSize: '12px',
+                  fontSize: '12.5px',
                   fontWeight: '600',
                   background: on ? po.color : 'var(--surface-card)',
                   color: on ? 'var(--surface-card)' : '#636366',
@@ -776,7 +777,7 @@ function CategoryPicker({ cats, value, onSelect, onManage, priority, onPriority 
                   transition: 'all .15s',
                   whiteSpace: 'nowrap',
                 }}
-              >{po.label} · {po.short}</button>
+              >{po.label}</button>
             );
           })}
         </div>

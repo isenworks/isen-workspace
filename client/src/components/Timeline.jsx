@@ -9,6 +9,7 @@ import { syncKey, cloudPush } from '../utils/cloudKV.js';
 // 成长类型配色与推断逻辑：与 HabitsPanel/KeyTasks 统一来源（CSS 变量版，跟随模块主题色）
 import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useLongPress } from './useLongPress.js';
+import PTag from './PTag.jsx';
 
 const weekLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -1273,8 +1274,11 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       }}
                     />
                     <div className="tl-event-text" onClick={handleEdit}>
-                      <div className={`tl-event-title ${done ? 'done' : ''}`}>
-                        {item.emoji ? item.emoji + ' ' : ''}{item.title}
+                      <div className="tl-event-title-row">
+                        <div className={`tl-event-title ${done ? 'done' : ''}`}>
+                          {item.emoji ? item.emoji + ' ' : ''}{item.title}
+                        </div>
+                        <PTag p={item.priority} className="tl-prio" />
                       </div>
                       <div className="tl-event-sub">{displaySub}</div>
                     </div>
@@ -1353,8 +1357,9 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                       style={{ '--cb-color': doneColor, '--cb-border': done ? doneColor : borderColor }}
                       onClick={(e) => { e.stopPropagation(); toggleSchedule(s); }}
                     />
-                    <span className={`text-[14px] flex-1 ${done ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
-                      {s.title}
+                    <span className={`flex items-center gap-1.5 min-w-0 text-[14px] flex-1 ${done ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
+                      <span className="truncate">{s.title}</span>
+                      <PTag p={s.priority} />
                     </span>
                     <span className={`w-2 h-2 flex-shrink-0 ${square ? 'rounded-[2px]' : 'rounded-full'}`} style={{background: color}}></span>
                   </div>
@@ -1494,9 +1499,10 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                             toggleSchedule(item);
                           }}
                         />
-                        <div className="flex-1">
-                          <p className={`text-[14px] ${done ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
-                            {item.emoji ? item.emoji + ' ' : ''}{item.title}
+                        <div className="flex-1 min-w-0">
+                          <p className={`flex items-center gap-1.5 text-[14px] ${done ? 'text-[var(--text-3)] line-through' : 'text-[var(--text-1)]'}`}>
+                            <span className="truncate">{item.emoji ? item.emoji + ' ' : ''}{item.title}</span>
+                            <PTag p={item.priority} />
                           </p>
                           {timeLabel && (
                             <p className={`text-[12px] mt-0.5 ${done ? 'text-[#aeaeae]' : 'text-[var(--text-3)]'}`}>{timeLabel}</p>

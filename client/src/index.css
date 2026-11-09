@@ -485,6 +485,13 @@ body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tl-event-title.done { color: #8e8e93; text-decoration: line-through; }
+/* 标题行：标题可截断，P0-P3 标签固定不被压缩 */
+.tl-event-title-row {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.tl-event-title-row .tl-event-title { flex: 1 1 auto; min-width: 0; }
+/* 并排重叠列宽度紧张时优先保住标题，标签让位 */
+.tl-event--col .tl-prio { display: none; }
 .tl-event-sub {
   font-size: 12px; font-weight: 500; color: var(--text-3);
   letter-spacing: 0.01em; margin-top: 2px;

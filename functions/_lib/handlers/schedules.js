@@ -81,7 +81,7 @@ export async function handleSchedulesCreate(env, body) {
   const rule = REPEAT_RULES.includes(data.repeat_rule) ? data.repeat_rule : 'none';
   const prio = data.priority != null && Number(data.priority) >= 0 && Number(data.priority) <= 3 ? Number(data.priority) : null;
   const info = await env.DB.prepare(
-    `INSERT INTO ethan_schedules (user_id,title,date,start_date,end_date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule,priority,is_goal,is_failed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    `INSERT INTO ethan_schedules (user_id,title,date,start_date,end_date,start_time,end_time,duration_min,is_key,category,is_done,sort_order,repeat_rule,priority,is_goal,is_failed,subtasks,note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   )
     .bind(
       userId, data.title, dateCheck.value,
@@ -90,7 +90,9 @@ export async function handleSchedulesCreate(env, body) {
       data.duration_min != null ? Number(data.duration_min) : null,
       syncIsKey, finalCat, 0, toInt(data.sort_order, 0), rule, prio,
       data.is_goal ? 1 : 0,
-      data.is_failed ? 1 : 0
+      data.is_failed ? 1 : 0,
+      data.subtasks == null ? null : (typeof data.subtasks === 'string' ? data.subtasks : JSON.stringify(data.subtasks)),
+      data.note ? String(data.note) : null
     )
     .run();
   return json({ schedule: await dbFirst(env.DB, `SELECT * FROM ethan_schedules WHERE id=?`, [Number(info.meta.last_row_id)]) });
@@ -150,6 +152,16 @@ export async function handleSchedulesUpdate(env, body) {
     const p = body.priority == null ? null : (Number(body.priority) >= 0 && Number(body.priority) <= 3 ? Number(body.priority) : null);
     sets.push('priority=?');
     params.push(p);
+  }
+  // 二级任务拆解：接受数组或 JSON 字符串；null 表示清空
+  if (body.subtasks !== undefined) {
+    sets.push('subtasks=?');
+    params.push(body.subtasks == null ? null : (typeof body.subtasks === 'string' ? body.subtasks : JSON.stringify(body.subtasks)));
+  }
+  // 一级任务备注：空字符串等同清空
+  if (body.note !== undefined) {
+    sets.push('note=?');
+    params.push(body.note ? String(body.note) : null);
   }
   if (sets.length === 0) return json({ schedule: await dbFirst(env.DB, `SELECT * FROM ethan_schedules WHERE id=?`, [id]) });
   params.push(id);

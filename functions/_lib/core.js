@@ -610,4 +610,7 @@ export async function ensureScheduleRepeat(env) {
   try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN is_goal INTEGER DEFAULT 0`).run(); } catch (_) {}
   // 目标三态：is_failed=1 表示"已尝试但未达成"（如面试未通过），区别于 is_done=1 已达成
   try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN is_failed INTEGER DEFAULT 0`).run(); } catch (_) {}
+  // 二级任务拆解：JSON 数组 [{id,title,min,done}]；一级任务备注（完成情况 / 未完成原因）
+  try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN subtasks TEXT`).run(); } catch (_) {}
+  try { await env.DB.prepare(`ALTER TABLE ethan_schedules ADD COLUMN note TEXT`).run(); } catch (_) {}
 }

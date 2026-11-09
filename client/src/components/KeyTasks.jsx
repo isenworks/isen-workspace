@@ -41,6 +41,21 @@ function catOf(s) {
   return 3;
 }
 
+// 二级任务：数据库存 JSON 字符串，前端统一成数组；旧数据/脏数据一律回落空数组
+function parseSubtasks(v) {
+  if (Array.isArray(v)) return v;
+  if (!v) return [];
+  try {
+    const arr = JSON.parse(v);
+    return Array.isArray(arr) ? arr : [];
+  } catch (_) { return []; }
+}
+function normalizeSchedule(s) {
+  return { ...s, subtasks: parseSubtasks(s.subtasks), note: s.note || '' };
+}
+// 展开态是纯视图状态，只存本机，不进数据库/云端
+const KT_EXPAND_KEY = 'kt_expanded_v1';
+
 export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onNew, onChange }) {
   const toast = useToast();
   const { deleteScheduleConfirm, showContextMenu } = useWorkspaceActions();
@@ -52,6 +67,17 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   // sortBy: priority(按优先级 P0→P3) | time(按时间顺序)。默认按优先级
   const [sortBy, setSortBy] = useState('priority');
   const [confirmDel, setConfirmDel] = useState(null);
+  // 展开态（默认折叠） + 行内编辑态：正在加子任务 / 正在写备注
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      const arr = JSON.parse(localStorage.getItem(KT_EXPAND_KEY) || '[]');
+      return new Set(Array.isArray(arr) ? arr.map(String) : []);
+    } catch (_) { return new Set(); }
+  });
+  const [addingId, setAddingId] = useState(null);
+  const [subDraft, setSubDraft] = useState('');
+  const [noteEditId, setNoteEditId] = useState(null);
+  const [noteDraft, setNoteDraft] = useState('');
   const inFlightRef = useRef(null);
   const cacheRef = useRef(new Map());
   // 勾选编辑缓冲：`id|date` → 新 is_done
@@ -85,7 +111,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       // 后台静默刷新
       cachedLoad(cacheKey, async () => {
         const r = await API.schedules.list({ from: range.from, to: range.to });
-        return r.schedules.filter(s => isDisplayInKeyTasks(s));
+        return r.schedules.filter(s => isDisplayInKeyTasks(s)).map(normalizeSchedule);
       }, inFlightRef, cacheRef, CACHE_TTL).then(key => {
         setList(applyPendingToggles(key));
       }).catch(() => {});
@@ -99,6 +125,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
       const r = await API.schedules.list({ from: range.from, to: range.to });
       return r.schedules
         .filter(s => isDisplayInKeyTasks(s))
+        .map(normalizeSchedule)
         .sort((a, b) => {
           if (a.date !== b.date) return a.date.localeCompare(b.date);
           return (a.start_time || '99').localeCompare(b.start_time || '99');
@@ -131,6 +158,8 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
         if (patch.start_time !== undefined) next.start_time = patch.start_time;
         if (patch.end_time !== undefined) next.end_time = patch.end_time;
         if (patch.duration_min !== undefined) next.duration_min = patch.duration_min;
+        if (patch.note !== undefined) next.note = patch.note;
+        if (patch.subtasks !== undefined) next.subtasks = parseSubtasks(patch.subtasks);
         return next;
       };
       setList(ls => ls.map(x => matches(x) ? apply(x) : x));
@@ -176,6 +205,64 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     } else {
       setConfirmDel(s);
     }
+  }
+
+  /* —— 二级任务拆解 & 一级任务备注 —— */
+  const persistExpanded = (next) => {
+    setExpanded(next);
+    try { localStorage.setItem(KT_EXPAND_KEY, JSON.stringify([...next])); } catch (_) {}
+  };
+  const toggleExpand = (id) => {
+    const key = String(id);
+    const next = new Set(expanded);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    persistExpanded(next);
+    if (next.has(key)) { setAddingId(null); setSubDraft(''); }
+  };
+
+  // 先本地生效 + 广播，再落库；失败回滚靠 load() 拉回真实数据
+  async function saveSchedulePatch(s, patch) {
+    setList(ls => ls.map(x => String(x.id) === String(s.id) ? { ...x, ...patch } : x));
+    store.broadcast({ type: 'schedule', id: s.id, ...patch });
+    try {
+      await API.schedules.update(s.id, patch);
+    } catch (e) {
+      toast.error(e.message);
+      load();
+    }
+  }
+
+  function toggleSubtask(s, subId) {
+    const subs = (s.subtasks || []).map(x => x.id === subId ? { ...x, done: !x.done } : x);
+    saveSchedulePatch(s, { subtasks: subs });
+  }
+
+  function addSubtask(s, raw) {
+    const text = String(raw || '').trim();
+    if (!text) return;
+    // 「20 公司 + 岗位理解」→ 20min + 标题；不写时长也可以
+    const m = text.match(/^(\d{1,3})\s*[分m]?\s+(.+)$/i);
+    const min = m ? Number(m[1]) : null;
+    const title = m ? m[2].trim() : text;
+    if (!title) return;
+    const id = `st_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    saveSchedulePatch(s, { subtasks: [...(s.subtasks || []), { id, title, min, done: false }] });
+    setSubDraft('');
+  }
+
+  function removeSubtask(s, subId) {
+    saveSchedulePatch(s, { subtasks: (s.subtasks || []).filter(x => x.id !== subId) });
+  }
+
+  function openNote(s) {
+    setNoteEditId(String(s.id));
+    setNoteDraft(s.note || '');
+  }
+
+  function saveNote(s) {
+    const text = noteDraft.trim();
+    setNoteEditId(null);
+    saveSchedulePatch(s, { note: text });
   }
 
   function doRemove(s) {
@@ -356,64 +443,214 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     return txt;
   }
 
-  // 渲染单条 item
+  // 渲染单条 item（一级任务 + 二级任务拆解 + 备注）
   function renderItem(s) {
     const st = getStyle(s);
     const cat = catOf(s);
     const isHabitSchedule = cat === 4;
     const cbClass = 'cb-round'; // 全站完成标记统一圆形（与习惯打卡/主页卡片/时间线一致）
+    const subs = s.subtasks || [];
+    const subsDone = subs.filter(x => x.done).length;
+    const sid = String(s.id);
+    const isOpen = expanded.has(sid);
+    const isAdding = addingId === sid;
+    const isNoteOpen = noteEditId === sid;
+    const allSubsDone = subs.length > 0 && subsDone === subs.length;
+    const timeTxt = formatTime(s);
+    const openSubEditor = () => {
+      const next = new Set(expanded);
+      next.add(sid);
+      persistExpanded(next);
+      setAddingId(sid);
+      setSubDraft('');
+    };
     return (
-      <div
-        key={s.id}
-        className={`task-row rounded-xl px-3 py-1.5 flex items-center gap-3 group ${isHabitSchedule ? 'habit-row' : ''}`}
-        style={{background: st.bg, cursor: 'grab'}}
-        draggable
-        onDragStart={(e) => {
-          const data = {
-            title: s.title,
-            category: s.category || cat,
-            emoji: s.emoji,
-            duration_min: s.duration_min || 30,
-            isPreset: false,
-            scheduleId: s.id
-          };
-          e.dataTransfer.setData('application/json', JSON.stringify(data));
-          e.dataTransfer.effectAllowed = 'move';
-        }}
-        onClick={() => {
-          if (isHabitSchedule) return;
-          onEdit?.(s);
-        }}
-        {...lp.bind((pos) => showContextMenu?.(pos.clientX, pos.clientY, 'schedule', s.id, s))}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showContextMenu?.(e.clientX, e.clientY, 'schedule', s.id, s);
-        }}
-      >
-        <input
-          type="checkbox"
-          className={`${cbClass} ${s.is_failed && !s.is_done ? 'cb-failed' : ''}`}
-          checked={!!s.is_done}
-          onChange={() => {}}
-          style={{ '--cb-color': s.is_failed ? 'var(--m-work)' : st.doneColor, '--cb-border': s.is_failed ? 'var(--m-work)' : (s.is_done ? st.doneColor : st.borderColor) }}
-          onClick={(e) => { e.stopPropagation(); toggle(s); }}
-          title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
-        />
-        <div className="flex-1 min-w-0">
-          <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[var(--text-muted)] line-through' : s.is_failed ? 'text-[var(--m-work)] line-through' : 'text-[var(--text-1)]'}`}>
-            <span className="truncate">{s.title}</span>
-            <PTag p={s.priority} />
-          </p>
-          <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : s.is_failed ? 'text-[#FF3B30]/70' : 'text-[var(--text-muted)]'}`}>{formatTime(s)}</p>
+      <div key={s.id} className="kt-item">
+        <div
+          className={`task-row rounded-xl px-3 py-1.5 flex items-center gap-3 group ${isHabitSchedule ? 'habit-row' : ''}`}
+          style={{background: st.bg, cursor: 'grab'}}
+          draggable
+          onDragStart={(e) => {
+            const data = {
+              title: s.title,
+              category: s.category || cat,
+              emoji: s.emoji,
+              duration_min: s.duration_min || 30,
+              isPreset: false,
+              scheduleId: s.id
+            };
+            e.dataTransfer.setData('application/json', JSON.stringify(data));
+            e.dataTransfer.effectAllowed = 'move';
+          }}
+          onClick={() => {
+            if (isHabitSchedule) return;
+            onEdit?.(s);
+          }}
+          {...lp.bind((pos) => showContextMenu?.(pos.clientX, pos.clientY, 'schedule', s.id, s))}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu?.(e.clientX, e.clientY, 'schedule', s.id, s);
+          }}
+        >
+          <input
+            type="checkbox"
+            className={`${cbClass} ${s.is_failed && !s.is_done ? 'cb-failed' : ''}`}
+            checked={!!s.is_done}
+            onChange={() => {}}
+            style={{ '--cb-color': s.is_failed ? 'var(--m-work)' : st.doneColor, '--cb-border': s.is_failed ? 'var(--m-work)' : (s.is_done ? st.doneColor : st.borderColor) }}
+            onClick={(e) => { e.stopPropagation(); toggle(s); }}
+            title={s.is_done ? '左键取消完成 · 右键/长按菜单' : s.is_failed ? '左键标记完成 · 右键/长按菜单' : '左键标记完成 · 右键/长按菜单'}
+          />
+          <div className="flex-1 min-w-0">
+            <p className={`flex items-center gap-1.5 text-[14px] ${s.is_done ? 'text-[var(--text-muted)] line-through' : s.is_failed ? 'text-[var(--m-work)] line-through' : 'text-[var(--text-1)]'}`}>
+              <span className="truncate">{s.title}</span>
+              <PTag p={s.priority} />
+            </p>
+            <p className={`text-[12px] mt-0.5 ${s.is_done ? 'text-[#aeaeae]' : s.is_failed ? 'text-[#FF3B30]/70' : 'text-[var(--text-muted)]'}`}>
+              {timeTxt}
+              {subs.length > 0 && (
+                <span
+                  className={`tabular-nums ${timeTxt ? 'ml-1.5' : ''}`}
+                  style={{ color: allSubsDone ? st.doneColor : undefined }}
+                >· {subsDone}/{subs.length}</span>
+              )}
+            </p>
+            {s.note && !isNoteOpen && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); openNote(s); }}
+                className="mt-0.5 flex items-start gap-1 w-full text-left"
+                title="点击编辑备注"
+              >
+                <span className="text-[11px] leading-[16px] flex-shrink-0 text-[var(--text-muted)]">备注</span>
+                <span className="text-[12px] leading-[16px] truncate text-[var(--text-muted)]">{s.note}</span>
+              </button>
+            )}
+            {!s.note && !isNoteOpen && !isHabitSchedule && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); openNote(s); }}
+                className="mt-0.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--s-main)] opacity-0 group-hover:opacity-100 transition-opacity"
+              >+ 备注</button>
+            )}
+          </div>
+          {/* 展开/折叠：有子任务常驻箭头，无子任务悬停出现「+」拆解入口 */}
+          {subs.length > 0 || isOpen ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleExpand(s.id); }}
+              className="flex-shrink-0 w-5 h-5 -mr-0.5 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-black/5 transition-colors"
+              title={isOpen ? '收起子任务' : '展开子任务'}
+              aria-expanded={isOpen}
+            >
+              <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 12 12" fill="none">
+                <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); openSubEditor(); }}
+              className="flex-shrink-0 w-5 h-5 -mr-0.5 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="拆解为子任务"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+          {/* 小圆点始终保留原色 */}
+          <span className={`w-2 h-2 flex-shrink-0 self-center ${isHabitSchedule ? 'rounded-full' : 'rounded-[2px]'}`} style={{background: st.dotColor}}></span>
+          <button
+            onClick={(e) => { e.stopPropagation(); remove(s); }}
+            className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--m-work)] text-xs px-1"
+            title="删除"
+          >×</button>
         </div>
-        {/* 小圆点始终保留原色 */}
-        <span className={`w-2 h-2 flex-shrink-0 self-center ${isHabitSchedule ? 'rounded-full' : 'rounded-[2px]'}`} style={{background: st.dotColor}}></span>
-        <button
-          onClick={(e) => { e.stopPropagation(); remove(s); }}
-          className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--m-work)] text-xs px-1"
-          title="删除"
-        >×</button>
+
+        {/* 备注编辑：回车保存 / Esc 取消 */}
+        {isNoteOpen && (
+          <div className="px-3 pb-2" onClick={(e) => e.stopPropagation()}>
+            <textarea
+              autoFocus
+              rows={2}
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.nativeEvent?.isComposing) return;
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveNote(s); }
+                if (e.key === 'Escape') { e.preventDefault(); setNoteEditId(null); }
+              }}
+              placeholder="记录完成情况或未完成原因，如：今天没找到合适的公司"
+              className="w-full resize-none rounded-lg border bg-white/70 px-2 py-1.5 text-[12.5px] leading-[18px] outline-none focus:border-[color:var(--s-main)]"
+              style={{ borderColor: 'rgba(120,120,128,0.2)', color: 'var(--text-1)' }}
+            />
+            <div className="mt-1 flex items-center justify-end gap-2">
+              <button onClick={() => setNoteEditId(null)} className="text-[11px] px-2 py-0.5 rounded-md text-[var(--text-muted)] hover:bg-black/5">取消</button>
+              <button onClick={() => saveNote(s)} className="text-[11px] px-2.5 py-0.5 rounded-md font-medium text-white" style={{ background: 'var(--s-main)' }}>保存</button>
+            </div>
+          </div>
+        )}
+
+        {/* 二级任务：缩进 + 左侧竖线表达归属，不重复展示优先级/模块色 */}
+        {isOpen && (
+          <div
+            className="ml-[26px] mr-1 mb-1 pl-3 border-l"
+            style={{ borderColor: 'rgba(120,120,128,0.16)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {subs.map(sub => (
+              <div key={sub.id} className="group/sub flex items-center gap-2 py-[5px] rounded-md hover:bg-black/[0.03]">
+                <input
+                  type="checkbox"
+                  className="cb-round"
+                  checked={!!sub.done}
+                  onChange={() => {}}
+                  onClick={() => toggleSubtask(s, sub.id)}
+                  style={{ '--cb-color': st.doneColor, '--cb-border': sub.done ? st.doneColor : st.borderColor }}
+                  title={sub.done ? '取消完成' : '标记完成'}
+                />
+                <span className={`flex-1 min-w-0 truncate text-[13px] ${sub.done ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-1)]'}`}>{sub.title}</span>
+                {sub.min ? <span className="text-[11px] text-[var(--text-muted)] tabular-nums flex-shrink-0">{sub.min}min</span> : null}
+                <button
+                  onClick={() => removeSubtask(s, sub.id)}
+                  className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-muted)] hover:text-[var(--m-work)] text-[11px] px-0.5"
+                  title="删除子任务"
+                >×</button>
+              </div>
+            ))}
+            {isAdding ? (
+              <div className="flex items-center gap-2 py-[3px]">
+                <span className="w-[14px] h-[14px] rounded-[4px] border border-dashed flex-shrink-0" style={{ borderColor: 'var(--text-muted)' }}></span>
+                <input
+                  autoFocus
+                  value={subDraft}
+                  onChange={(e) => setSubDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.nativeEvent?.isComposing) return;
+                    if (e.key === 'Enter') { e.preventDefault(); addSubtask(s, subDraft); }
+                    if (e.key === 'Escape') { e.preventDefault(); setAddingId(null); setSubDraft(''); }
+                  }}
+                  onBlur={() => { if (!subDraft.trim()) setAddingId(null); }}
+                  placeholder="如 20 公司 + 岗位理解，回车继续"
+                  className="flex-1 min-w-0 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-muted)]"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => { setAddingId(sid); setSubDraft(''); }}
+                className="mt-0.5 flex items-center gap-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--s-main)] transition-colors"
+              >
+                <span className="text-[14px] leading-none">+</span> 添加子任务
+              </button>
+            )}
+            {allSubsDone && !s.is_done && (
+              <button
+                onClick={() => toggle(s)}
+                className="mt-1 text-[11px] font-medium text-[var(--s-main)] hover:underline"
+              >全部子任务已完成 · 标记主任务完成 →</button>
+            )}
+          </div>
+        )}
       </div>
     );
   }

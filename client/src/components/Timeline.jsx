@@ -252,11 +252,18 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
     if (patch.type === 'schedule' && patch.id !== undefined) {
       // patch.date 存在时仅更新该日期的实例（重复事项的虚拟实例按 id+date 定位）
       const matches = x => String(x.id) === String(patch.id) && (!patch.date || x.date === patch.date);
-      setSchedules(ss => ss.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x));
+      // 只覆盖 patch 里明确出现的状态字段，避免把 is_failed 等未传字段写成 undefined
+      const applyPatch = x => {
+        const next = { ...x };
+        if (patch.is_done !== undefined) next.is_done = patch.is_done;
+        if (patch.is_failed !== undefined) next.is_failed = patch.is_failed;
+        return next;
+      };
+      setSchedules(ss => ss.map(x => matches(x) ? applyPatch(x) : x));
       // 写穿缓存：任何面板（含本面板）的勾选同步进 2 分钟缓存，防止后续 load() 命中旧快照回退
       for (const ent of cacheRef.current.values()) {
         if (ent?.value && Array.isArray(ent.value.sched)) {
-          ent.value = { ...ent.value, sched: ent.value.sched.map(x => matches(x) ? { ...x, is_done: patch.is_done } : x) };
+          ent.value = { ...ent.value, sched: ent.value.sched.map(x => matches(x) ? applyPatch(x) : x) };
         }
       }
     } else if (patch.type === 'habit' && patch.id !== undefined) {
@@ -278,18 +285,20 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
 
   async function toggleSchedule(s) {
     const nextDone = s.is_done ? 0 : 1;
+    // 与 KeyTasks 同语义：勾选完成时清除「未完成」标记；取消勾选保留原状态
+    const nextFailed = nextDone ? false : !!s.is_failed;
     const pKey = `s|${s.id}|${s.date || ''}`;
-    setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: nextDone } : x));
-    store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: nextDone });
+    setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: nextDone, is_failed: nextFailed } : x));
+    store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: nextDone, is_failed: nextFailed });
     // 落库确认窗口兜底：登记本地编辑，load() 应用旧数据源前重放，防止覆盖
     pendingTogglesRef.current.set(pKey, nextDone);
     try {
       // 重复事项的虚拟实例：传 occurrence_date，后端把完成状态记到该日期（不影响整个序列）
-      await API.schedules.update(s.id, { is_done: nextDone, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
+      await API.schedules.update(s.id, { is_done: nextDone, is_failed: nextFailed, ...(s._repeat_occurrence ? { occurrence_date: s.date } : {}) });
     } catch (e) {
       pendingTogglesRef.current.delete(pKey);
-      setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done } : x));
-      store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done });
+      setSchedules(ss => ss.map(x => (x.id === s.id && x.date === s.date) ? { ...x, is_done: s.is_done, is_failed: s.is_failed } : x));
+      store.broadcast({ type: 'schedule', id: s.id, date: s.date, is_done: s.is_done, is_failed: s.is_failed });
       toast.error(e.message);
     }
   }
@@ -1178,10 +1187,14 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               }
 
               const cbClass = isSquareCheckbox ? 'cb-square' : 'cb-round';
-              const cbStyle = { '--cb-color': theme.doneColor, '--cb-border': done ? theme.doneColor : theme.borderColor };
+              // 三态：done 优先；failed（标记未完成且未勾选）用红色 ✕ 与红字删除线，和左栏重点事项保持一致
+              const failed = !item.isHabit && !!item.is_failed && !done;
+              const cbStyle = failed
+                ? { '--cb-color': '#FF3B30', '--cb-border': '#FF3B30' }
+                : { '--cb-color': theme.doneColor, '--cb-border': done ? theme.doneColor : theme.borderColor };
               const dotClass = isSquareCheckbox ? 'r2' : 'rfull';
               const dotColor = theme.color || theme.doneColor;
-              const lineColor = theme.lineColor || theme.color;
+              const lineColor = failed ? '#FF3B30' : (theme.lineColor || theme.color);
               const isCat4 = !item.isHabit && getCat(item) === 4;
               const handleEdit = (e) => {
                 e.stopPropagation();
@@ -1206,7 +1219,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               return (
                 <div
                   key={ev.id}
-                  className={`tl-event cat-${clsCat} ${done ? 'done' : ''} ${hPx < 48 ? 'compact' : ''} ${slim ? 'tl-event--col' : ''} ${hasBadge ? 'tl-event--badged' : ''}`}
+                  className={`tl-event cat-${clsCat} ${done ? 'done' : ''} ${failed ? 'failed' : ''} ${hPx < 48 ? 'compact' : ''} ${slim ? 'tl-event--col' : ''} ${hasBadge ? 'tl-event--badged' : ''}`}
                   style={{
                     top: `${displayTop}px`,
                     height: `${displayH}px`,
@@ -1263,7 +1276,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                   <div className="tl-event-content">
                     <input
                       type="checkbox"
-                      className={cbClass}
+                      className={`${cbClass} ${failed ? 'cb-failed' : ''}`}
                       checked={done}
                       onChange={() => {}}
                       style={cbStyle}
@@ -1275,7 +1288,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
                     />
                     <div className="tl-event-text" onClick={handleEdit}>
                       <div className="tl-event-title-row">
-                        <div className={`tl-event-title ${done ? 'done' : ''}`}>
+                        <div className={`tl-event-title ${done ? 'done' : ''} ${failed ? 'failed' : ''}`}>
                           {item.emoji ? item.emoji + ' ' : ''}{item.title}
                         </div>
                         <PTag p={item.priority} className="tl-prio" />

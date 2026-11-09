@@ -485,6 +485,9 @@ body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tl-event-title.done { color: #8e8e93; text-decoration: line-through; }
+/* 标记未完成（is_failed）：与左栏重点事项同语义 —— 红字删除线 + 红 ✕ + 红色左边条 */
+.tl-event-title.failed { color: #FF3B30; text-decoration: line-through; }
+.tl-event.failed .tl-event-sub { color: rgba(255,59,48,0.7); }
 /* 标题行：标题可截断，P0-P3 标签固定不被压缩 */
 .tl-event-title-row {
   display: flex; align-items: center; gap: 6px; min-width: 0;

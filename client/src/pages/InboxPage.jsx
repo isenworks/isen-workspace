@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
@@ -161,6 +161,14 @@ export default function InboxPage({ onCountChange }) {
     try { return JSON.parse(localStorage.getItem(LS_FILTER_KEY) || '[]').map(Number).filter(n => !Number.isNaN(n)); } catch { return []; }
   });
   const [filterPopover, setFilterPopover] = useState(false);
+  // ===== 导出面板：排序 / 范围 / 形式（本机记忆上次选择）=====
+  const [exportPop, setExportPop] = useState(false);
+  const [exportOrder, setExportOrder] = useState(() => {
+    try { return localStorage.getItem('inbox_export_order') === 'asc' ? 'asc' : 'desc'; } catch { return 'desc'; }
+  });
+  const [exportScope, setExportScope] = useState(() => {
+    try { return localStorage.getItem('inbox_export_scope') || 'all'; } catch { return 'all'; }
+  });
   const [chipMenu, setChipMenu] = useState(false); // 「+」快捷位管理菜单
   const [extraChipIds, setExtraChipIds] = useState(() => {
     try { return JSON.parse(localStorage.getItem(LS_CHIPS_KEY) || '[]').map(Number).filter(n => !Number.isNaN(n)); } catch { return []; }
@@ -235,23 +243,72 @@ export default function InboxPage({ onCountChange }) {
   // 一条小记的标签列表（多选）：tag_ids 优先，兼容旧的单值 tag_id
   const tagsOfItem = (it) => parseItemTagIds(it).map(id => tagMap.get(id)).filter(Boolean);
 
-  // 导出全部小记（与当前筛选无关）：Markdown 文件可直接导入飞书 / 语雀做备份
-  function exportAll() {
-    const list = [...(items || [])].sort((a, b) =>
-      String(b.created_at || '').localeCompare(String(a.created_at || '')));
-    if (!list.length) { toast.warn('还没有可导出的小记'); return; }
-    const md = exportMarkdown(list, tagMap);
+  // ===== 导出：范围（全部 / 某标签，与左侧筛选解耦）+ 时间正/倒序 =====
+  const tagCounts = useMemo(() => {
+    const m = new Map();
+    (items || []).forEach(it => parseItemTagIds(it).forEach(id => {
+      const n = Number(id);
+      m.set(n, (m.get(n) || 0) + 1);
+    }));
+    return m;
+  }, [items]);
+
+  const exportList = useMemo(() => {
+    const raw = exportScope === 'all' ? null : Number(exportScope);
+    // 记忆的标签可能已被删除 → 自动回退到「全部」，避免导出空文件
+    const scopeId = raw !== null && (tags || []).some(t => Number(t.id) === raw) ? raw : null;
+    const list = (items || []).filter(it => scopeId === null || parseItemTagIds(it).includes(scopeId));
+    return [...list].sort((a, b) => {
+      const x = String(a.created_at || ''), y = String(b.created_at || '');
+      return exportOrder === 'asc' ? x.localeCompare(y) : y.localeCompare(x);
+    });
+  }, [items, tags, exportScope, exportOrder]);
+
+  function chooseExportOrder(v) {
+    setExportOrder(v);
+    try { localStorage.setItem('inbox_export_order', v); } catch {}
+  }
+  function chooseExportScope(v) {
+    setExportScope(v);
+    try { localStorage.setItem('inbox_export_scope', v); } catch {}
+  }
+
+  // 复制 Markdown：备份到在线文档的主路径（粘贴即成分层列表）
+  async function copyMarkdown() {
+    if (!exportList.length) { toast.warn('当前范围内没有小记'); return; }
+    const md = exportMarkdown(exportList, tagMap);
+    try {
+      await navigator.clipboard.writeText(md);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = md;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch { ta.remove(); toast.error('复制失败，请改用下载'); return; }
+      ta.remove();
+    }
+    setExportPop(false);
+    toast.success(`已复制 ${exportList.length} 条小记`);
+  }
+
+  function downloadMarkdown() {
+    if (!exportList.length) { toast.warn('当前范围内没有小记'); return; }
+    const md = exportMarkdown(exportList, tagMap);
     const d = new Date();
     const stamp = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+    const scopeName = exportScope === 'all' ? '全部' : (tags.find(t => String(t.id) === String(exportScope))?.name || '全部');
     const url = URL.createObjectURL(new Blob([md], { type: 'text/markdown;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `小记备份-${stamp}.md`;
+    a.download = `小记备份-${scopeName}-${stamp}.md`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
-    toast.success(`已导出 ${list.length} 条小记`);
+    setExportPop(false);
+    toast.success(`已导出 ${exportList.length} 条小记`);
   }
 
   function markBusy(id, on) {
@@ -824,13 +881,72 @@ export default function InboxPage({ onCountChange }) {
       </div>
       <div className="flex-1" />
       {renderFilterPopover()}
-      <button onClick={exportAll} title="导出全部小记（Markdown，可导入飞书 / 语雀备份）"
-        className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:bg-black/5 active:scale-95"
-        style={{ color: 'var(--text-muted)' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" />
-        </svg>
-      </button>
+      <div className="relative flex-shrink-0">
+        <button onClick={() => setExportPop(v => !v)} title="导出小记（Markdown）"
+          className={`w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all ${exportPop ? 'bg-[rgba(var(--s-rgb),0.1)]' : 'hover:bg-black/5'}`}
+          style={{ color: exportPop ? 'var(--s-main)' : 'var(--text-muted)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" />
+          </svg>
+        </button>
+        {exportPop && (
+          <>
+            <div className="fixed inset-0 z-[var(--z-scrim)]" onClick={() => setExportPop(false)} />
+            <div className="absolute right-0 top-8 z-[var(--z-dropdown)] w-[268px] rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
+              <div className="px-3 pt-2.5 pb-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">导出小记</div>
+
+              {/* 排序 */}
+              <div className="px-3 pb-2.5">
+                <div className="flex items-center p-[2px] rounded-lg" style={{ background: 'rgba(120,120,128,0.08)' }}>
+                  {[['desc', '最新在前'], ['asc', '最早在前']].map(([v, label]) => (
+                    <button key={v} onClick={() => chooseExportOrder(v)}
+                      className="flex-1 h-[24px] rounded-md text-[12px] leading-none transition-all"
+                      style={exportOrder === v
+                        ? { background: 'var(--surface-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', color: 'var(--s-main)', fontWeight: 600 }
+                        : { color: 'var(--text-muted)' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 范围 */}
+              <div className="px-3 pb-1 text-[11px] font-semibold text-ink-400 tracking-wide">范围</div>
+              <div className="max-h-[180px] overflow-y-auto nice-scroll pb-1">
+                {[{ id: 'all', name: '全部', color: '#8E8E93', count: (items || []).length },
+                  ...(tags || []).map(t => ({ id: String(t.id), name: t.name, color: t.color, count: tagCounts.get(Number(t.id)) || 0 }))
+                ].map(t => {
+                  const on = String(exportScope) === String(t.id);
+                  return (
+                    <button key={t.id} onClick={() => chooseExportScope(t.id)}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[12.5px] transition-colors ${on ? 'text-ink-900 font-semibold bg-ink-50' : 'text-ink-700 hover:bg-ink-50'}`}>
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
+                      <span className="flex-1 text-left truncate">{t.name}</span>
+                      <span className="text-[11px] tabular-nums text-ink-400">{t.count}</span>
+                      <span className={`tag-check ${on ? 'on' : ''}`}
+                        style={on ? { background: t.color, borderColor: t.color } : undefined} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 形式 */}
+              <div className="px-3 py-2 border-t border-ink-100/80 flex items-center gap-2">
+                <span className="text-[11px] text-ink-400 tabular-nums flex-1">共 {exportList.length} 条</span>
+                <button onClick={downloadMarkdown} disabled={!exportList.length}
+                  className="h-[28px] px-2.5 rounded-lg border border-ink-200 text-[12px] text-ink-700 transition-colors hover:bg-ink-50 disabled:opacity-40 disabled:hover:bg-transparent">
+                  下载 .md
+                </button>
+                <button onClick={copyMarkdown} disabled={!exportList.length}
+                  className="h-[28px] px-3 rounded-lg text-[12px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+                  style={{ background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
+                  复制
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
       {isDuo && (
         <button onClick={() => setSelectedId(null)} title="新增记录"
           className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"

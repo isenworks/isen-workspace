@@ -49,7 +49,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
-  // sortBy: priority(按重要性) | time(按时间顺序)。默认按重要性
+  // sortBy: priority(按优先级 P0→P3) | time(按时间顺序)。默认按优先级
   const [sortBy, setSortBy] = useState('priority');
   const [confirmDel, setConfirmDel] = useState(null);
   const inFlightRef = useRef(null);
@@ -190,28 +190,37 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
   const done = list.filter(s => s.is_done).length;
 
   // ====== 排序函数 ======
-  // 优先级权重（越小越靠前）：1(工作) < 2(能力) < 7(知力) < 6(精力) < 5(生活) < 3(常规) < 4(习惯)
+  // 模块权重（同优先级时用）：1(工作) < 2(能力) < 7(知力) < 6(精力) < 5(生活) < 3(常规) < 4(习惯)
   const CAT_PRIORITY = { 1: 10, 2: 20, 7: 30, 6: 40, 5: 50, 3: 90, 4: 95 };
+  // P0-P3 权重：未设置优先级（null/''）排在 P3 之后，避免"没标"压过"已标"
+  const pRank = (s) => {
+    if (s.priority === null || s.priority === undefined || s.priority === '') return 4;
+    const n = Number(s.priority);
+    return Number.isFinite(n) ? n : 4;
+  };
   function sortByPriority(items) {
     return [...items].sort((a, b) => {
-      // 1) 重要性：按权重表排序，避免 cat 原始数字打乱预期顺序
-      //    注意：is_done 放在最后，勾选后不跨分类挪动位置
+      // 1) 优先级：P0 → P1 → P2 → P3 → 未设置（这才是"重要性"的第一语义）
+      const prA = pRank(a);
+      const prB = pRank(b);
+      if (prA !== prB) return prA - prB;
+      // 2) 同优先级：按模块权重（工作 > 能力 > 知力 …），保持原有的板块感
       const catA = catOf(a);
       const catB = catOf(b);
       const wA = CAT_PRIORITY[catA] ?? 99;
       const wB = CAT_PRIORITY[catB] ?? 99;
       if (wA !== wB) return wA - wB;
-      // 2) 同重要性：先按 date 升序（跨天事项不能只看 start_time）
+      // 3) 同模块：先按 date 升序（跨天事项不能只看 start_time）
       if (a.date !== b.date) return a.date.localeCompare(b.date);
-      // 3) 同天：按 start_time 升序(无时间排后面)
+      // 4) 同天：按 start_time 升序(无时间排后面)
       const ta = a.start_time || '99:99';
       const tb = b.start_time || '99:99';
       if (ta !== tb) return ta.localeCompare(tb);
-      // 4) 同分类同时间：未完成在前、已完成在后（视觉感受"位置不动"）
+      // 5) 同分类同时间：未完成在前、已完成在后（视觉感受"位置不动"）
       const doneA = a.is_done ? 1 : 0;
       const doneB = b.is_done ? 1 : 0;
       if (doneA !== doneB) return doneA - doneB;
-      // 5) 稳定兜底：ID 排序
+      // 6) 稳定兜底：ID 排序
       return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
   }
@@ -459,7 +468,7 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     );
   }
 
-  // === Today 视图：所有事项按 sortBy 控制排序，默认按重要性 ===
+  // === Today 视图：所有事项按 sortBy 控制排序，默认按优先级 ===
   function renderTodayView() {
     const todayList = list.filter(s => s.date === date);
     const sorted = applySort(todayList);
@@ -482,12 +491,12 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
             <div className="flex items-center gap-3">
               <span className="section-accent" style={{background:'var(--s-main)'}}></span>
               <h3 className="section-title">{titleText}</h3>
-              {/* 排序切换按钮：重要性(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
+              {/* 排序切换按钮：优先级(三色横线) / 时间(三条递减灰线)，去容器化图标按钮 */}
               <button
                 onClick={() => setSortBy(sortBy === 'priority' ? 'time' : 'priority')}
                 className="w-7 h-7 flex items-center justify-center rounded-[10px] text-[var(--text-muted)] hover:bg-[rgba(120,120,128,0.06)] active:bg-[rgba(120,120,128,0.12)] transition-colors"
-                title={sortBy === 'priority' ? '按重要性排序（点击切换为按时间）' : '按时间排序（点击切换为按重要性）'}
-                aria-label={sortBy === 'priority' ? '按重要性排序' : '按时间排序'}
+                title={sortBy === 'priority' ? '按优先级排序（P0→P3，点击切换为按时间）' : '按时间排序（点击切换为按优先级）'}
+                aria-label={sortBy === 'priority' ? '按优先级排序' : '按时间排序'}
               >
                 {sortBy === 'priority' ? (
                   <svg className="w-[15px] h-[15px]" viewBox="0 0 14 14" fill="none">

@@ -527,14 +527,19 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
                 <span className="text-[12px] leading-[16px] truncate text-[var(--text-muted)]">{s.note}</span>
               </button>
             )}
-            {!s.note && !isNoteOpen && !isHabitSchedule && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); openNote(s); }}
-                className="mt-0.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--s-main)] opacity-0 group-hover:opacity-100 transition-opacity"
-              >+ 备注</button>
-            )}
           </div>
+          {/* 无备注时悬停出现备注入口：不占位，避免空卡片被撑高 */}
+          {!s.note && !isNoteOpen && !isHabitSchedule && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openNote(s); }}
+              className="flex-shrink-0 w-5 h-5 -mr-0.5 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="添加备注"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                <path d="M8.4 1.9l1.7 1.7-5.9 5.9-2.3.6.6-2.3 5.9-5.9z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
           {/* 展开/折叠：有子任务常驻箭头，无子任务悬停出现「+」拆解入口 */}
           {subs.length > 0 || isOpen ? (
             <button

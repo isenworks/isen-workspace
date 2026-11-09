@@ -62,6 +62,78 @@ function plainFirstLine(html) {
   return text;
 }
 
+/* ===== 导出 Markdown：备份到飞书/语雀等在线文档时，列表层级、勾选态与粗斜体都不丢 ===== */
+function inlineToMd(node) {
+  let out = '';
+  node.childNodes.forEach(n => {
+    if (n.nodeType === 3) { out += n.textContent; return; }
+    if (n.nodeType !== 1) return;
+    if (n.classList?.contains('qc-box')) return; // 复选圆点是装饰元素，不进正文
+    const tag = n.tagName;
+    if (tag === 'BR') { out += '\n'; return; }
+    const inner = inlineToMd(n);
+    if (!inner) return;
+    if (tag === 'STRONG' || tag === 'B') out += `**${inner}**`;
+    else if (tag === 'EM' || tag === 'I') out += `*${inner}*`;
+    else if (tag === 'CODE') out += `\`${inner}\``;
+    else if (tag === 'DEL' || tag === 'S') out += `~~${inner}~~`;
+    else out += inner; // A / SPAN / U 等：备份只要文字
+  });
+  return out;
+}
+function listToMd(list, indent = '') {
+  return [...list.children].filter(li => li.tagName === 'LI').flatMap((li, i) => {
+    const box = list.tagName === 'UL'
+      ? (list.classList.contains('qc-checklist')
+        ? (li.getAttribute('data-checked') === 'true' ? '- [x] ' : '- [ ] ')
+        : '- ')
+      : `${i + 1}. `;
+    // 嵌套列表要独占行，先把它们从行内文本里摘出来
+    const clone = li.cloneNode(true);
+    const nested = [...clone.children].filter(c => /^(UL|OL)$/.test(c.tagName));
+    nested.forEach(n => n.remove());
+    const text = inlineToMd(clone).replace(/[ \t]+\n/g, '\n').trim();
+    const lines = [`${indent}${box}${text}`];
+    nested.forEach(n => lines.push(...listToMd(n, indent + '  ')));
+    return lines;
+  });
+}
+function htmlToMdBlocks(html) {
+  const root = document.createElement('div');
+  root.innerHTML = html || '';
+  const lines = [];
+  [...root.children].forEach(el => {
+    if (/^(UL|OL)$/.test(el.tagName)) { lines.push(...listToMd(el)); return; }
+    const h = el.tagName === 'H1' ? '# ' : el.tagName === 'H2' ? '## ' : el.tagName === 'H3' ? '### ' : '';
+    const text = inlineToMd(el).replace(/[ \t]+\n/g, '\n').trim();
+    if (text) lines.push(h + text);
+  });
+  return lines.join('\n');
+}
+function exportMarkdown(items, tagMap) {
+  const p = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const head = [
+    `# 小记备份 · ${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`,
+    '',
+    `共 ${items.length} 条 · 导出时间 ${p(now.getHours())}:${p(now.getMinutes())}`,
+    '',
+    '---',
+    '',
+  ];
+  const body = items.flatMap(it => {
+    const d = parseDbTime(it.created_at);
+    const when = d ? `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${WEEKDAYS[d.getDay()]} ${p(d.getHours())}:${p(d.getMinutes())}` : '';
+    const tagNames = parseItemTagIds(it).map(id => tagMap.get(id)?.name).filter(Boolean);
+    const lines = [`## ${when || '（无日期）'}`, ''];
+    if (tagNames.length) lines.push(tagNames.map(t => `#${t}`).join(' '), '');
+    const md = htmlToMdBlocks(it.content);
+    lines.push(md || '（空）', '', '---', '');
+    return lines;
+  });
+  return head.concat(body).join('\n');
+}
+
 /* ===== 分组：按自然月（今年「MM月」，往年「YYYY年MM月」，月份补零对齐），组序按月份倒序 =====
    今天/昨天的细分交给行内「M.DD 周X」承担，组头保持一层即可。 */
 function groupOf(s) {
@@ -162,6 +234,25 @@ export default function InboxPage({ onCountChange }) {
   const tagMap = new Map((tags || []).map(t => [t.id, t]));
   // 一条小记的标签列表（多选）：tag_ids 优先，兼容旧的单值 tag_id
   const tagsOfItem = (it) => parseItemTagIds(it).map(id => tagMap.get(id)).filter(Boolean);
+
+  // 导出全部小记（与当前筛选无关）：Markdown 文件可直接导入飞书 / 语雀做备份
+  function exportAll() {
+    const list = [...(items || [])].sort((a, b) =>
+      String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    if (!list.length) { toast.warn('还没有可导出的小记'); return; }
+    const md = exportMarkdown(list, tagMap);
+    const d = new Date();
+    const stamp = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+    const url = URL.createObjectURL(new Blob([md], { type: 'text/markdown;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `小记备份-${stamp}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    toast.success(`已导出 ${list.length} 条小记`);
+  }
 
   function markBusy(id, on) {
     setBusyIds(prev => {
@@ -733,6 +824,13 @@ export default function InboxPage({ onCountChange }) {
       </div>
       <div className="flex-1" />
       {renderFilterPopover()}
+      <button onClick={exportAll} title="导出全部小记（Markdown，可导入飞书 / 语雀备份）"
+        className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:bg-black/5 active:scale-95"
+        style={{ color: 'var(--text-muted)' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" />
+        </svg>
+      </button>
       {isDuo && (
         <button onClick={() => setSelectedId(null)} title="新增记录"
           className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"

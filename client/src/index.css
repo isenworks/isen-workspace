@@ -1081,6 +1081,25 @@ body {
   font-family: inherit;
   caret-color: var(--s-main);
 }
+/* 日期字段：星期紧贴日期值，排在日历图标左侧（图标绝对定位钉在最右，
+   否则 padding-right 会把原生图标一起往里推，和星期重叠） */
+.date-field { position: relative; }
+.date-field input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 10px;
+}
+.date-field .date-week {
+  position: absolute;
+  right: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+}
 .form-input::placeholder,
 .input::placeholder { color: #8e8e93; }
 .form-input:hover,

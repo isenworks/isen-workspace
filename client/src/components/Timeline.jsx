@@ -425,6 +425,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
             };
           }
         }
+        // 广播时间变更：左栏重点事项同一帧内同步，不必等 /schedules/list 往返
+        store.broadcast({ type: 'schedule', id: data.scheduleId, start_time: startTime, end_time: endTime, duration_min: actualDur });
         toast.success(`已移动到 ${startTime}`);
         onChange?.();
 
@@ -439,6 +441,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               ? { ...s, start_time: oldSched.start_time, end_time: oldSched.end_time, duration_min: oldSched.duration_min }
               : s
             ));
+            store.broadcast({ type: 'schedule', id: data.scheduleId, start_time: oldSched.start_time, end_time: oldSched.end_time, duration_min: oldSched.duration_min });
           }
           toast.error('移动失败，已恢复');
         });
@@ -551,6 +554,8 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               };
             }
           }
+          // 广播时间变更：左栏重点事项同一帧内同步，不必等 API 往返
+          store.broadcast({ type: 'schedule', id: item.id, ...updates });
           onChange?.();
 
           // 后台落库，失败时回滚
@@ -559,6 +564,7 @@ export default function Timeline({ date, view, range, refreshSignal, onEdit, onC
               ? { ...x, start_time: oldItem.start_time, end_time: oldItem.end_time, duration_min: oldItem.duration_min }
               : x
             ));
+            store.broadcast({ type: 'schedule', id: item.id, ...oldItem });
             toast.error('更新失败');
           });
         }

@@ -122,20 +122,23 @@ export default function KeyTasks({ date, view, range, refreshSignal, onEdit, onN
     if (patch.type === 'schedule' && patch.id !== undefined) {
       // patch.date 存在时仅更新该日期的实例（重复事项的虚拟实例按 id+date 定位）
       const matches = x => String(x.id) === String(patch.id) && (!patch.date || x.date === patch.date);
-      setList(ls => ls.map(x => matches(x) ? {
-        ...x,
-        is_done: patch.is_done !== undefined ? patch.is_done : x.is_done,
-        is_failed: patch.is_failed !== undefined ? patch.is_failed : x.is_failed,
-      } : x));
-      // 写穿缓存：任何面板（含本面板）的勾选同步进 2 分钟缓存，
-      // 防止后续 load() 命中 TTL 内旧快照导致复选框回退（broadcast 会送达发起方自身）
+      // 勾选与时间同走一条通道：时间线拖拽/拉伸后 Timeline 会带上新时间广播，
+      // 这里就地改，不再依赖 refresh → list 接口往返（左卡时间不再滞后）
+      const apply = (x) => {
+        const next = { ...x };
+        if (patch.is_done !== undefined) next.is_done = patch.is_done;
+        if (patch.is_failed !== undefined) next.is_failed = patch.is_failed;
+        if (patch.start_time !== undefined) next.start_time = patch.start_time;
+        if (patch.end_time !== undefined) next.end_time = patch.end_time;
+        if (patch.duration_min !== undefined) next.duration_min = patch.duration_min;
+        return next;
+      };
+      setList(ls => ls.map(x => matches(x) ? apply(x) : x));
+      // 写穿缓存：任何面板（含本面板）的勾选/时间同步进 2 分钟缓存，
+      // 防止后续 load() 命中 TTL 内旧快照导致回退（broadcast 会送达发起方自身）
       for (const ent of cacheRef.current.values()) {
         if (Array.isArray(ent?.value)) {
-          ent.value = ent.value.map(x => matches(x) ? {
-            ...x,
-            is_done: patch.is_done !== undefined ? patch.is_done : x.is_done,
-            is_failed: patch.is_failed !== undefined ? patch.is_failed : x.is_failed,
-          } : x);
+          ent.value = ent.value.map(x => matches(x) ? apply(x) : x);
         }
       }
     } else if (patch.type === 'reload') {

@@ -129,6 +129,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   const [flashMsg, setFlashMsg] = useState('');
   const [savedAt, setSavedAt] = useState(edit?.updated_at || edit?.created_at || '');
   const [focused, setFocused] = useState(false);
+  const [listMode, setListMode] = useState(null);      // 光标所在块的列表类型：'ul' | 'ol' | 'checklist' | null
   const [count, setCount] = useState(0);              // 字数（不含空格与换行）
   const flashTimer = useRef(null);
   const autoTimer = useRef(null);                      // 输入防抖自动保存定时器
@@ -162,6 +163,22 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   useEffect(() => {
     if (autoFocus) editorRef.current?.focus();
   }, [autoFocus]);
+
+  // 工具栏列表按钮的激活态：跟随光标所在块，与飞书一致
+  useEffect(() => {
+    if (!focused) { setListMode(null); return; }
+    const sync = () => {
+      const ed = editorRef.current;
+      const sel = window.getSelection();
+      if (!ed || !sel?.anchorNode || !ed.contains(sel.anchorNode)) { setListMode(null); return; }
+      const el = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+      const li = el?.closest?.('li');
+      setListMode(li ? blockListType(li) : null);
+    };
+    document.addEventListener('selectionchange', sync);
+    sync();
+    return () => document.removeEventListener('selectionchange', sync);
+  }, [focused]);
 
   // 标签浮层：点击浮层外任意处（失焦）或按 Esc 关闭；关闭时自动保存
   useEffect(() => {
@@ -616,11 +633,76 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     touch();
   }
 
+  // Markdown 快捷输入（飞书/语雀同款）：块首输入 - / * / 1. / [] / # 再敲空格，
+  // 直接把当前块转成对应列表或标题，省掉「选中 → 点工具栏」两步
+  function tryMarkdownShortcut(e) {
+    if (e.key !== ' ' || e.ctrlKey || e.metaKey || e.altKey) return false;
+    const ed = editorRef.current;
+    const sel = window.getSelection();
+    if (!ed || !sel || !sel.rangeCount || !sel.isCollapsed) return false;
+    const node = sel.anchorNode;
+    if (!node || node.nodeType !== 3) return false;
+    const block = node.parentElement?.closest?.('p,div,li,h1,h2,h3');
+    if (!block || block === ed || !ed.contains(block)) return false;
+    if (block.tagName === 'LI' || /^H[1-3]$/.test(block.tagName)) return false; // 已在列表/标题里不再转换
+    const offset = sel.anchorOffset;
+    const before = node.textContent.slice(0, offset);
+    // marker 前不能有任何内容（Range.toString 会忽略 <br>，空块行首也能正确触发）
+    const probe = document.createRange();
+    probe.selectNodeContents(block);
+    probe.setEnd(node, offset);
+    if (probe.toString() !== before) return false;
+
+    let target = null;
+    if (/^[-*+]$/.test(before)) target = 'ul';
+    else if (/^\d{1,3}[.)]$/.test(before)) target = 'ol';
+    else if (/^\[(\s|x|X)?\]$/.test(before)) target = 'checklist';
+    else if (/^#{1,2}$/.test(before)) target = 'h';
+    else return false;
+
+    e.preventDefault(); // 吞掉这次空格
+    const r = document.createRange();
+    r.setStart(node, 0);
+    r.setEnd(node, offset);
+    r.deleteContents();
+    if (target === 'h') {
+      document.execCommand('formatBlock', false, before.length === 2 ? 'H2' : 'H1');
+    } else {
+      const last = convertBlocks(ed, [block], target);
+      if (last) focusBlockEnd(last);
+    }
+    normalizeListsIn(ed);
+    touch();
+    return true;
+  }
+
   function onKeyDown(e) {
     // Tab / Shift+Tab：列表缩进；非列表处吞掉默认行为，避免焦点跳出编辑器
     if (e.key === 'Tab') {
       e.preventDefault();
       handleTab(e.shiftKey);
+      return;
+    }
+    if (tryMarkdownShortcut(e)) return;
+    // 空列表项退格：与回车同语义，先退一层、顶层退出列表（避免原生把空 li 留在列表里）
+    if (e.key === 'Backspace') {
+      const sel = window.getSelection();
+      const base = sel?.anchorNode
+        ? (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode)
+        : null;
+      const li = base?.closest?.('li');
+      if (li && !li.textContent.trim()) {
+        e.preventDefault();
+        const moved = outdentLi(li);
+        if (moved) {
+          const r = document.createRange();
+          r.selectNodeContents(moved);
+          r.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+        touch();
+      }
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -876,13 +958,13 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       <ToolbarBtn title="加粗 (Ctrl+B)" onClick={() => exec('bold')}><span className="font-bold">B</span></ToolbarBtn>
       <ToolbarBtn title="斜体 (Ctrl+I)" onClick={() => exec('italic')}><span className="italic">I</span></ToolbarBtn>
       <div className="w-px h-4 bg-ink-200 mx-1" />
-      <ToolbarBtn title="无序列表" onClick={() => applyListType('ul')}>
+      <ToolbarBtn title="无序列表" active={listMode === 'ul'} onClick={() => applyListType('ul')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>
       </ToolbarBtn>
-      <ToolbarBtn title="有序列表" onClick={() => applyListType('ol')}>
+      <ToolbarBtn title="有序列表" active={listMode === 'ol'} onClick={() => applyListType('ol')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4" strokeLinejoin="round"/><path d="M4 10h2" /><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" /></svg>
       </ToolbarBtn>
-      <ToolbarBtn title="复选框列表" onClick={() => applyListType('checklist')}>
+      <ToolbarBtn title="复选框列表" active={listMode === 'checklist'} onClick={() => applyListType('checklist')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><polyline points="8.4 12.3 11 14.9 15.6 9.9"/></svg>
       </ToolbarBtn>
       <div className="w-px h-4 bg-ink-200 mx-1" />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
@@ -161,6 +161,7 @@ export default function InboxPage({ onCountChange }) {
     try { return JSON.parse(localStorage.getItem(LS_FILTER_KEY) || '[]').map(Number).filter(n => !Number.isNaN(n)); } catch { return []; }
   });
   const [filterPopover, setFilterPopover] = useState(false);
+  const filterPopRef = useRef(null); // 筛选弹层容器：用于点击外部关闭
   // ===== 导出面板：排序 / 范围 / 形式（本机记忆上次选择）=====
   const [exportPop, setExportPop] = useState(false);
   const [exportOrder, setExportOrder] = useState(() => {
@@ -203,6 +204,18 @@ export default function InboxPage({ onCountChange }) {
   useEffect(() => {
     try { localStorage.setItem(LS_FILTER_KEY, JSON.stringify(filterTagIds)); } catch {}
   }, [filterTagIds]);
+
+  // 筛选弹层：点击弹层以外的任意位置即关闭
+  //（弹层位于带 backdrop-blur 的 sticky 标签栏内，backdrop-filter 会让 fixed 遮罩只覆盖标签栏，
+  //  导致点其他地方关不掉 —— 因此改用文档级监听，而非固定定位遮罩）
+  useEffect(() => {
+    if (!filterPopover) return;
+    const onDown = (e) => {
+      if (filterPopRef.current && !filterPopRef.current.contains(e.target)) setFilterPopover(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [filterPopover]);
 
   const loadItems = useCallback(async () => {
     try {
@@ -649,7 +662,7 @@ export default function InboxPage({ onCountChange }) {
     const activeTag = tags.find(t => t.id === filterTagIds[0]) || null;
     const isActive = filterTagIds.length > 0;
     return (
-      <div className="relative">
+      <div className="relative" ref={filterPopRef}>
         <button
           onClick={() => setFilterPopover(v => !v)}
           title={isActive ? `筛选：${filterTagIds.length} 个标签` : '筛选标签'}
@@ -676,8 +689,8 @@ export default function InboxPage({ onCountChange }) {
         </button>
         {filterPopover && (
           <>
-            <div className="fixed inset-0 z-[var(--z-scrim)]" onClick={() => setFilterPopover(false)} />
-            <div className="absolute right-0 top-8 z-[var(--z-dropdown)] w-[220px] py-1.5 rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
+            <div
+              className="absolute right-0 top-8 z-[var(--z-dropdown)] w-[220px] py-1.5 rounded-xl border border-ink-100 bg-white shadow-[0_12px_32px_rgba(0,0,0,0.14)] overflow-hidden">
               <div className="px-3 py-1.5 text-[11px] font-semibold text-ink-400 tracking-wide">筛选标签（可多选）</div>
               <button
                 onClick={() => setFilterTagIds([])}

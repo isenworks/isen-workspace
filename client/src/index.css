@@ -1322,6 +1322,60 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   animation: qc-spin 0.8s linear infinite;
 }
 @keyframes qc-spin { to { transform: rotate(360deg); } }
+/* ===== 图片选中态：四角缩放手柄 + 浮动工具条（参考腾讯文档/飞书） ===== */
+.qc-editor img.qc-img { cursor: pointer; }
+.qc-img-stage { position: absolute; z-index: 20; pointer-events: none; }
+.qc-img-frame {
+  position: absolute;
+  inset: -3px;
+  border: 1.5px solid var(--s-main);
+  border-radius: 9px;
+  pointer-events: none;
+}
+.qc-img-handle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--s-main);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  pointer-events: auto;
+  touch-action: none;
+}
+/* 透明热区，手指/鼠标更容易抓到手柄 */
+.qc-img-handle::after { content: ''; position: absolute; inset: -9px; }
+.qc-img-handle--nw { left: -8.5px; top: -8.5px; cursor: nwse-resize; }
+.qc-img-handle--ne { right: -8.5px; top: -8.5px; cursor: nesw-resize; }
+.qc-img-handle--sw { left: -8.5px; bottom: -8.5px; cursor: nesw-resize; }
+.qc-img-handle--se { right: -8.5px; bottom: -8.5px; cursor: nwse-resize; }
+.qc-img-tools {
+  position: absolute;
+  z-index: 21;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--surface-card);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  user-select: none;
+}
+.qc-img-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+.qc-img-btn:hover { background: rgba(0, 0, 0, 0.05); color: var(--text-1); }
+.qc-img-btn.on { background: rgba(var(--s-rgb), 0.14); color: var(--s-main); }
+.qc-img-btn--danger:hover { background: rgba(255, 59, 48, 0.1); color: #ff3b30; }
+.qc-img-sep { width: 1px; height: 16px; background: rgba(0, 0, 0, 0.08); margin: 0 2px; }
 .qc-editor ul, .qc-editor ol { margin: 4px 0; padding-left: 22px; }
 .qc-editor li { margin: 2px 0; }
 .qc-editor ul { list-style: disc; }

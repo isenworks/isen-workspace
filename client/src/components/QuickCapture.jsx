@@ -172,6 +172,11 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   const uploadingRef = useRef(0);                     // 进行中的图片上传数（>0 时暂停自动保存）
   const imgInputRef = useRef(null);                   // 工具栏「插入图片」隐藏文件框
   const savedRangeRef = useRef(null);                 // 选文件前记住的光标位置（文件框会抢焦点）
+  // ===== 图片选中 / 拖拽缩放（参考腾讯文档：点选出现四角手柄，等比缩放并持久化）=====
+  const wrapRef = useRef(null);                       // 编辑器外层（缩放手柄/工具条的定位基准）
+  const selImgRef = useRef(null);                     // 当前选中的图片节点
+  const [imgBox, setImgBox] = useState(null);         // 选中框：{ top, left, width, height }（相对 wrap）
+  const [previewSrc, setPreviewSrc] = useState('');   // 双击大图预览
   const flashTimer = useRef(null);
   const autoTimer = useRef(null);                      // 输入防抖自动保存定时器
   const draftRef = useRef({ content: '', plain: '' }); // 最近一次输入（卸载兜底用）
@@ -251,6 +256,35 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       else flush();
     }
   }, []);
+
+  // ===== 图片选中框跟随滚动 / 窗口尺寸变化；点击组件外部取消选中；预览层 Esc 关闭 =====
+  const hasImgSelection = !!imgBox;
+  useEffect(() => {
+    if (!hasImgSelection) return;
+    const onMove = () => syncImgBox();
+    window.addEventListener('scroll', onMove, true); // capture：编辑器内部滚动也能收到
+    window.addEventListener('resize', onMove);
+    return () => {
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('resize', onMove);
+    };
+  }, [hasImgSelection]);
+
+  useEffect(() => {
+    if (!hasImgSelection) return;
+    const onDown = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) clearImageSelection();
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [hasImgSelection]);
+
+  useEffect(() => {
+    if (!previewSrc) return;
+    const onKey = (e) => { if (e.key === 'Escape') setPreviewSrc(''); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [previewSrc]);
 
   // ===== 自管 undo/redo =====
   function pushUndo() {
@@ -565,7 +599,15 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   }
 
   // 点击圆点元素本体 → 切换勾选态（真实元素命中，不再依赖坐标区间判定）
+  // 点击图片本体 → 进入缩放选中态；点正文其他位置 → 取消选中
   function onEditorClick(e) {
+    const img = e.target?.closest?.('img.qc-img');
+    if (img) {
+      e.preventDefault();
+      selectImage(img);
+      return;
+    }
+    if (selImgRef.current) clearImageSelection();
     const box = e.target?.closest?.('.qc-box');
     if (!box) return;
     const li = box.closest('ul.qc-checklist > li');
@@ -796,6 +838,8 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     img.src = url;
     img.alt = '图片';
     img.setAttribute('loading', 'lazy');
+    img.setAttribute('draggable', 'false'); // 交给我们的点选/拖拽手柄，禁用原生图片拖拽
+    img.setAttribute('contenteditable', 'false');
     ph.replaceWith(img);
     if (!img.nextSibling) img.after(document.createElement('br')); // 尾部留一行，方便继续输入
     const ed = editorRef.current;
@@ -854,6 +898,92 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     addImages(files);
   }
 
+  // ===== 图片选中 / 四角拖拽缩放 / 对齐 / 大图预览 =====
+  // 选中框与手柄是编辑器的兄弟节点（不在 contentEditable 内），避免被写进正文 HTML
+  function syncImgBox() {
+    const img = selImgRef.current;
+    const wrap = wrapRef.current;
+    if (!img || !wrap || !img.isConnected) { setImgBox(null); return; }
+    const ir = img.getBoundingClientRect();
+    const wr = wrap.getBoundingClientRect();
+    setImgBox({ top: ir.top - wr.top, left: ir.left - wr.left, width: ir.width, height: ir.height });
+  }
+
+  function selectImage(img) {
+    if (img.getAttribute('draggable') !== 'false') img.setAttribute('draggable', 'false');
+    selImgRef.current = img;
+    syncImgBox();
+  }
+
+  function clearImageSelection() {
+    selImgRef.current = null;
+    setImgBox(null);
+  }
+
+  // 等比缩放：宽高按原比例；左侧手柄额外用 marginLeft 抵消，保证对侧角不动
+  function startImgResize(e, corner) {
+    const img = selImgRef.current;
+    const ed = editorRef.current;
+    if (!img || !ed) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const dirX = corner.endsWith('e') ? 1 : -1; // 右手柄向右变大，左手柄向左变大
+    const startX = e.clientX;
+    const startW = img.getBoundingClientRect().width;
+    const startML = parseFloat(getComputedStyle(img).marginLeft) || 0;
+    const maxW = Math.max(120, ed.clientWidth - 30); // 内容区宽度（左右内边距 14 + 边框）
+    const move = (ev) => {
+      const dx = ev.clientX - startX;
+      const nextW = Math.min(maxW, Math.max(80, startW + dx * dirX));
+      if (dirX === -1) {
+        const nextML = startML + (startW - nextW);
+        if (nextML < 0) return;
+        img.style.marginLeft = `${Math.round(nextML)}px`;
+        img.style.marginRight = 'auto';
+      }
+      img.style.width = `${Math.round(nextW)}px`;
+      img.style.height = 'auto';
+      syncImgBox();
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      document.body.style.userSelect = '';
+      syncImgBox();
+      touch(); // 缩放结果进 undo 栈并自动保存（width 以行内样式存进正文）
+    };
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  }
+
+  function setImgAlign(align) {
+    const img = selImgRef.current;
+    if (!img) return;
+    img.dataset.align = align;
+    img.style.marginLeft = align === 'left' ? '0' : 'auto';
+    img.style.marginRight = align === 'right' ? '0' : 'auto';
+    touch();
+    requestAnimationFrame(syncImgBox);
+  }
+
+  function removeSelectedImage() {
+    const img = selImgRef.current;
+    if (!img) return;
+    img.remove();
+    clearImageSelection();
+    touch();
+  }
+
+  function onEditorDoubleClick(e) {
+    const img = e.target?.closest?.('img.qc-img');
+    if (!img) return;
+    e.preventDefault();
+    setPreviewSrc(img.currentSrc || img.src);
+  }
+
   // Markdown 快捷输入（飞书/语雀同款）：块首输入 - / * / 1. / [] / # 再敲空格，
   // 直接把当前块转成对应列表或标题，省掉「选中 → 点工具栏」两步
   function tryMarkdownShortcut(e) {
@@ -898,6 +1028,16 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   }
 
   function onKeyDown(e) {
+    // 图片选中态：Delete/Backspace 删除，Esc 取消选中
+    if ((e.key === 'Backspace' || e.key === 'Delete') && selImgRef.current) {
+      e.preventDefault();
+      removeSelectedImage();
+      return;
+    }
+    if (e.key === 'Escape' && selImgRef.current) {
+      clearImageSelection();
+      return;
+    }
     // Tab / Shift+Tab：列表缩进；非列表处吞掉默认行为，避免焦点跳出编辑器
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -1211,46 +1351,105 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     </div>
   );
 
+  // 图片选中态：四角缩放手柄 + 浮动工具条（对齐 / 预览 / 删除）
+  const imgOverlay = imgBox && (
+    <>
+      <div className="qc-img-stage" style={{ top: imgBox.top, left: imgBox.left, width: imgBox.width, height: imgBox.height }}>
+        <span className="qc-img-frame" />
+        {['nw', 'ne', 'sw', 'se'].map(pos => (
+          <span key={pos} className={`qc-img-handle qc-img-handle--${pos}`} onPointerDown={(e) => startImgResize(e, pos)} />
+        ))}
+      </div>
+      <div
+        className="qc-img-tools"
+        style={{
+          top: imgBox.top > 44 ? imgBox.top - 40 : imgBox.top + imgBox.height + 10,
+          left: Math.max(0, Math.min(imgBox.left, (wrapRef.current?.clientWidth || imgBox.left + 220) - 172)),
+        }}
+      >
+        {[
+          ['left', '左对齐', <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="18" y2="18" /></>],
+          ['center', '居中', <><line x1="3" y1="6" x2="21" y2="6" /><line x1="6.5" y1="12" x2="17.5" y2="12" /><line x1="4.5" y1="18" x2="19.5" y2="18" /></>],
+          ['right', '右对齐', <><line x1="3" y1="6" x2="21" y2="6" /><line x1="10" y1="12" x2="21" y2="12" /><line x1="6" y1="18" x2="21" y2="18" /></>],
+        ].map(([v, title, icon]) => (
+          <button
+            key={v}
+            type="button"
+            title={title}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setImgAlign(v)}
+            className={`qc-img-btn ${(selImgRef.current?.dataset?.align || 'left') === v ? 'on' : ''}`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">{icon}</svg>
+          </button>
+        ))}
+        <span className="qc-img-sep" />
+        <button
+          type="button"
+          title="预览大图"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setPreviewSrc(selImgRef.current?.currentSrc || selImgRef.current?.src || '')}
+          className="qc-img-btn"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" /><circle cx="12" cy="12" r="2.6" /></svg>
+        </button>
+        <button
+          type="button"
+          title="删除图片"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={removeSelectedImage}
+          className="qc-img-btn qc-img-btn--danger"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v5M14 11v5" /></svg>
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className={bare ? 'flex-1 flex flex-col min-h-0 gap-3' : undefined}>
       {/* 工具栏 */}
       {toolbar}
 
-      {/* 富文本编辑区 */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={() => {
-          draftRef.current = { content: getContent(), plain: getPlainText() };
-          syncCount();
-          // 输入快照防抖压栈（连续打字合并为一步 undo）
-          if (undoTimer.current) clearTimeout(undoTimer.current);
-          undoTimer.current = setTimeout(() => pushUndo(), 600);
-          scheduleAutosave();
-        }}
-        onKeyDown={onKeyDown}
-        onPaste={onPaste}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        onClick={onEditorClick}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        data-placeholder={placeholder}
-        className={`qc-editor mx-[1.5px] outline-none rounded-[9px] transition-all ${bare ? 'flex-1 min-h-0 overflow-auto' : 'w-[calc(100%_-_3px)]'}`}
-        style={{
-          background: 'var(--surface-card)',
-          border: '1px solid transparent',
-          boxShadow: focused
-            ? '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1.5px rgba(var(--s-rgb),0.25)'
-            : '0 1px 4px rgba(0,0,0,0.08)',
-          padding: '12px 14px',
-          fontSize: '14px',
-          lineHeight: '22px',
-          color: 'var(--text-1)',
-          ...(bare ? {} : { minHeight: 200 }),
-        }}
-      />
+      {/* 富文本编辑区（外层承接图片选中框/手柄的绝对定位，选中框不会写进正文） */}
+      <div ref={wrapRef} className={`relative ${bare ? 'flex-1 min-h-0' : ''}`}>
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={() => {
+            draftRef.current = { content: getContent(), plain: getPlainText() };
+            syncCount();
+            // 输入快照防抖压栈（连续打字合并为一步 undo）
+            if (undoTimer.current) clearTimeout(undoTimer.current);
+            undoTimer.current = setTimeout(() => pushUndo(), 600);
+            scheduleAutosave();
+          }}
+          onKeyDown={onKeyDown}
+          onPaste={onPaste}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onClick={onEditorClick}
+          onDoubleClick={onEditorDoubleClick}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          data-placeholder={placeholder}
+          className={`qc-editor mx-[1.5px] outline-none rounded-[9px] transition-all ${bare ? 'h-full overflow-auto' : 'w-[calc(100%_-_3px)]'}`}
+          style={{
+            background: 'var(--surface-card)',
+            border: '1px solid transparent',
+            boxShadow: focused
+              ? '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1.5px rgba(var(--s-rgb),0.25)'
+              : '0 1px 4px rgba(0,0,0,0.08)',
+            padding: '12px 14px',
+            fontSize: '14px',
+            lineHeight: '22px',
+            color: 'var(--text-1)',
+            ...(bare ? {} : { minHeight: 200 }),
+          }}
+        />
+        {imgOverlay}
+      </div>
 
       {bare ? (
         <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">
@@ -1293,6 +1492,21 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
             className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
             style={{ background: 'var(--s-main)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
           >保存</button>
+        </div>
+      )}
+
+      {/* 大图预览（双击图片 / 工具条「预览」打开，点击任意处或 Esc 关闭） */}
+      {previewSrc && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-6 cursor-zoom-out"
+          onClick={() => setPreviewSrc('')}
+        >
+          <img
+            src={previewSrc}
+            alt="预览"
+            className="max-w-full max-h-full rounded-lg shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

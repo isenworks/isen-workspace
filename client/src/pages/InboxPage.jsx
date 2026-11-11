@@ -653,7 +653,7 @@ export default function InboxPage({ onCountChange }) {
         <button
           onClick={() => setFilterPopover(v => !v)}
           title={isActive ? `筛选：${filterTagIds.length} 个标签` : '筛选标签'}
-          className={`relative flex items-center gap-1 w-[32px] h-[24px] rounded-lg transition-all ${
+          className={`relative flex items-center gap-1 w-[28px] h-[24px] rounded-lg transition-all ${
             isActive
               ? 'hover:brightness-95'
               : 'hover:bg-black/[0.05] hover:text-ink-700'
@@ -835,6 +835,10 @@ export default function InboxPage({ onCountChange }) {
         </div>
         {/* chips 区结束 */}
         </div>
+        {/* 标签筛选入口（原头部按钮，整合到标签栏右端） */}
+        <div className="flex-shrink-0 flex items-center">
+          {renderFilterPopover()}
+        </div>
         {/* 排版切换贴卡片右缘（独立于 chips 折行） */}
         <div className="flex-shrink-0 flex items-center p-[2px] rounded-lg" style={{ background: 'rgba(120,120,128,0.08)' }}>
           <button
@@ -880,7 +884,6 @@ export default function InboxPage({ onCountChange }) {
         </button>
       </div>
       <div className="flex-1" />
-      {renderFilterPopover()}
       <div className="relative flex-shrink-0">
         <button onClick={() => setExportPop(v => !v)} title="导出小记（Markdown）"
           className={`w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all ${exportPop ? 'bg-[rgba(var(--s-rgb),0.1)]' : 'hover:bg-black/5'}`}

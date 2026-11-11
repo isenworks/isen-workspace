@@ -848,7 +848,7 @@ export default function FocusPanel({
             type="button"
             onClick={() => { onMarkFailed(contextMenu.task.id); setContextMenu(null); }}
             className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
-            style={{ color: contextMenu.task.is_failed ? 'var(--s-main)' : 'var(--text-1)' }}
+            style={{ color: contextMenu.task.is_failed ? 'var(--s-main)' : 'var(--warning)' }}
           >
             <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               {contextMenu.task.is_failed

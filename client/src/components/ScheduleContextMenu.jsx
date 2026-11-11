@@ -75,7 +75,7 @@ export default function ScheduleContextMenu({ menu, onAction, onClose }) {
       >✏️ 编辑</div>
       {menu.type === 'schedule' && menu.task && (
         <div
-          style={{ ...itemStyle, color: menu.task.is_failed ? 'var(--s-main)' : 'var(--text-1)' }}
+          style={{ ...itemStyle, color: menu.task.is_failed ? 'var(--s-main)' : 'var(--warning)' }}
           {...hover('rgba(120,120,128,0.08)')}
           onClick={() => onAction('markFailed')}
         >{menu.task.is_failed ? '↩ 取消未完成' : '✕ 标记未完成'}</div>

@@ -29,6 +29,9 @@ import {
   handleInboxTagsList, handleInboxTagCreate, handleInboxTagUpdate, handleInboxTagRemove,
 } from '../_lib/handlers/inbox.js';
 import {
+  handleInboxImageUpload, handleInboxImageFile, handleInboxImageDelete,
+} from '../_lib/handlers/inboxImages.js';
+import {
   handleSchedulesList, handleSchedulesGet, handleSchedulesCreate, handleSchedulesUpdate,
   handleSchedulesRemove, handleSchedulesSync,
 } from '../_lib/handlers/schedules.js';
@@ -135,6 +138,15 @@ export async function onRequest(context) {
     if (path === '/api/inbox/update' && method === 'POST') return handleInboxUpdate(env, body);
     if (path === '/api/inbox/process' && method === 'POST') return handleInboxProcess(env, body);
     if (path === '/api/inbox/remove' && method === 'POST') return handleInboxRemove(env, body);
+
+    // 小记图片（R2 对象存储，正文只存 URL）
+    if (path === '/api/inbox/image/upload' && method === 'POST') return handleInboxImageUpload(env, request);
+    if (path.startsWith('/api/inbox/image/file/') && method === 'GET') {
+      return handleInboxImageFile(env, path.slice('/api/inbox/image/file/'.length));
+    }
+    if (path.startsWith('/api/inbox/image/file/') && method === 'DELETE') {
+      return handleInboxImageDelete(env, path.slice('/api/inbox/image/file/'.length));
+    }
 
     // 小记标签（独立标签体系）
     if (path === '/api/inbox/tags' && (method === 'GET' || method === 'POST')) return handleInboxTagsList(env, qOrBody);

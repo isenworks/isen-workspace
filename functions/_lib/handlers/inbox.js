@@ -42,7 +42,8 @@ function tagColumns(ids) {
 
 export async function handleInboxCreate(env, body) {
   await ensureInboxTable(env);
-  const content = String(body?.content || '').slice(0, 10000);
+  // 50000：正文只存图片 URL（二进制在 R2），带多张图的富文本也远低于 D1 单值上限
+  const content = String(body?.content || '').slice(0, 50000);
   if (!content.trim()) return json({ error: '内容不能为空' }, 400);
   const cat = body?.category !== undefined && body?.category !== null && body?.category !== ''
     ? toInt(body.category, null) : null;
@@ -60,7 +61,7 @@ export async function handleInboxUpdate(env, body) {
   const sets = [];
   const params = [];
   if (typeof body.content === 'string') {
-    const content = body.content.slice(0, 10000);
+    const content = body.content.slice(0, 50000);
     if (!content.trim()) return json({ error: '内容不能为空' }, 400);
     sets.push('content=?');
     params.push(content);

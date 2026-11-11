@@ -119,6 +119,43 @@ function normalizeListsIn(root) {
   });
 }
 
+// ===== 图片：客户端压缩（长边 1600px / WebP 0.82）→ 单图 150–300KB，再传 R2 =====
+// 正文只存 /api/inbox/image/file/... 的 URL，二进制不进 D1/localStorage。
+async function compressImage(file) {
+  if (!/^image\//i.test(file.type)) return null;
+  if (file.type === 'image/svg+xml') return null; // 矢量图不能走 canvas，直接拒绝
+  const MAX_EDGE = 1600, QUALITY = 0.82;
+  let src;
+  try {
+    src = await createImageBitmap(file);
+  } catch {
+    src = await new Promise((res, rej) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => { URL.revokeObjectURL(url); res(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('图片解码失败')); };
+      img.src = url;
+    });
+  }
+  const w = src.width || src.naturalWidth;
+  const h = src.height || src.naturalHeight;
+  if (!w || !h) throw new Error('图片尺寸无效');
+  const scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+  const cw = Math.max(1, Math.round(w * scale));
+  const ch = Math.max(1, Math.round(h * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = cw;
+  canvas.height = ch;
+  canvas.getContext('2d').drawImage(src, 0, 0, cw, ch);
+  if (src.close) src.close();
+  const toBlob = (type) => new Promise(r => canvas.toBlob(r, type, QUALITY));
+  let blob = await toBlob('image/webp');
+  let ext = 'webp';
+  if (!blob) { blob = await toBlob('image/jpeg'); ext = 'jpg'; } // 旧 Safari 无 WebP 编码
+  if (!blob) throw new Error('图片压缩失败');
+  return { blob, name: `image.${ext}` };
+}
+
 export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFocus = true, placeholder, bare, edit, tags }) {
   const toast = useToast();
   const editorRef = useRef(null);
@@ -131,6 +168,10 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   const [focused, setFocused] = useState(false);
   const [listMode, setListMode] = useState(null);      // 光标所在块的列表类型：'ul' | 'ol' | 'checklist' | null
   const [count, setCount] = useState(0);              // 字数（不含空格与换行）
+  const [imgCount, setImgCount] = useState(0);        // 正文图片数（图片-only 小记也要能保存）
+  const uploadingRef = useRef(0);                     // 进行中的图片上传数（>0 时暂停自动保存）
+  const imgInputRef = useRef(null);                   // 工具栏「插入图片」隐藏文件框
+  const savedRangeRef = useRef(null);                 // 选文件前记住的光标位置（文件框会抢焦点）
   const flashTimer = useRef(null);
   const autoTimer = useRef(null);                      // 输入防抖自动保存定时器
   const draftRef = useRef({ content: '', plain: '' }); // 最近一次输入（卸载兜底用）
@@ -199,7 +240,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     if (undoTimer.current) clearTimeout(undoTimer.current);
     // 卸载时若有未保存内容，立即落库（fire-and-forget），避免切走丢失
     const d = draftRef.current;
-    if (d.plain) {
+    if (d.plain || /qc-img/.test(d.content)) {
       const payload = { content: d.content, tag_ids: tagIdsRef.current };
       const flush = () => {
         if (activeIdRef.current) API.inbox.update(activeIdRef.current, payload).catch(() => {});
@@ -270,9 +311,17 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   function getPlainText() {
     return (editorRef.current?.innerText || '').trim();
   }
+  // 有没有可保存的内容：文字或图片（图片-only 小记也是合法内容）
+  function hasContent() {
+    const ed = editorRef.current;
+    if (!ed) return false;
+    return !!(ed.innerText || '').trim() || !!ed.querySelector('img.qc-img');
+  }
   // 字数统计：只计可见字符（空格、换行不计），与「字数」语感一致
   function syncCount() {
-    setCount((editorRef.current?.innerText || '').replace(/\s+/g, '').length);
+    const ed = editorRef.current;
+    setCount((ed?.innerText || '').replace(/\s+/g, '').length);
+    setImgCount(ed?.querySelectorAll('img.qc-img').length || 0);
   }
 
   // 富文本操作
@@ -531,8 +580,10 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   // 并发时各自都看到「还没有 id」→ 各 create 一次 → 同一次编辑出现多条小记。
   // 晚到的保存合并成一次「尾随保存」，等首个请求拿到 id 后再 update。
   async function persist(manual) {
+    // 图片还在上传：正文里的占位不能落库，等 addImages 完成后的 touch 再触发保存
+    if (uploadingRef.current > 0) return;
     const content = getContent();
-    if (!getPlainText()) return;
+    if (!hasContent()) return;
     const targetId = edit?.id ?? activeIdRef.current;
     let r;
     if (targetId) {
@@ -557,7 +608,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
 
   // 手动保存：编辑态=更新，新建态=收录；不清空编辑区，保持显示已保存内容
   async function save(manual = true) {
-    if (!getPlainText()) return;
+    if (!hasContent()) return;
     if (savingRef.current) {
       queuedRef.current = { manual: (queuedRef.current?.manual || manual) };
       if (manual) setBusy(true);
@@ -679,14 +730,128 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     touch();
   }
 
+  // ===== 图片：粘贴 / 拖拽 / 工具栏插入（上传 R2，正文插入 URL） =====
+  // 文件选择框会抢走焦点，先记住当前光标，回来时还原插入点
+  function rememberCaret() {
+    const ed = editorRef.current;
+    const sel = window.getSelection();
+    if (ed && sel?.rangeCount && ed.contains(sel.anchorNode)) savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+  }
+
+  // 拖拽落点 → 光标（Chromium: caretRangeFromPoint；Firefox: caretPositionFromPoint）
+  function placeCaretAt(x, y) {
+    const ed = editorRef.current;
+    if (!ed) return;
+    let range = null;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(x, y);
+    } else if (document.caretPositionFromPoint) {
+      const p = document.caretPositionFromPoint(x, y);
+      if (p) {
+        range = document.createRange();
+        range.setStart(p.offsetNode, p.offset);
+        range.collapse(true);
+      }
+    }
+    if (range && ed.contains(range.startContainer)) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
+  // 在光标处插入「上传中」占位（不可编辑），返回占位节点
+  function insertImagePlaceholder() {
+    const ed = editorRef.current;
+    if (!ed) return null;
+    ed.focus();
+    const sel = window.getSelection();
+    let range = sel?.rangeCount && ed.contains(sel.anchorNode) ? sel.getRangeAt(0) : null;
+    if (!range && savedRangeRef.current && ed.contains(savedRangeRef.current.startContainer)) {
+      range = savedRangeRef.current;
+    }
+    if (!range) {
+      range = document.createRange();
+      range.selectNodeContents(ed);
+      range.collapse(false);
+    }
+    const ph = document.createElement('span');
+    ph.className = 'qc-img-ph';
+    ph.setAttribute('contenteditable', 'false');
+    ph.textContent = '图片上传中…';
+    range.deleteContents();
+    range.insertNode(ph);
+    const r = document.createRange();
+    r.setStartAfter(ph);
+    r.collapse(true);
+    if (sel) { sel.removeAllRanges(); sel.addRange(r); }
+    savedRangeRef.current = r.cloneRange();
+    return ph;
+  }
+
+  // 上传成功：占位 → 正文 <img>（只存 URL）
+  function finishImagePlaceholder(ph, url) {
+    const img = document.createElement('img');
+    img.className = 'qc-img';
+    img.src = url;
+    img.alt = '图片';
+    img.setAttribute('loading', 'lazy');
+    ph.replaceWith(img);
+    if (!img.nextSibling) img.after(document.createElement('br')); // 尾部留一行，方便继续输入
+    const ed = editorRef.current;
+    if (ed) syncCount();
+  }
+
+  // 依次压缩并上传（串行：保证多图顺序与占位一一对应）
+  async function addImages(fileList) {
+    const files = [...fileList].filter(f => f && /^image\//i.test(f.type));
+    if (!files.length || !editorRef.current) return;
+    for (const file of files) {
+      const ph = insertImagePlaceholder();
+      if (!ph) return;
+      uploadingRef.current += 1;
+      try {
+        const packed = await compressImage(file);
+        if (!packed) throw new Error('不支持该图片格式');
+        const r = await API.inbox.uploadImage(packed.blob, packed.name);
+        if (ph.isConnected) finishImagePlaceholder(ph, r.url);
+      } catch (e) {
+        ph.remove();
+        toast.error(e.message || '图片上传失败');
+      } finally {
+        uploadingRef.current -= 1;
+      }
+    }
+    touch(); // 全部落地后统一压 undo 快照 + 触发自动保存
+  }
+
   // 粘贴统一转纯文本：网页/文档带进来的字体、颜色、外链结构会破坏小记样式
+  // （但剪贴板里有图片时优先收图：截图工具粘贴的就是 image/* 文件）
   function onPaste(e) {
     const dt = e.clipboardData;
     if (!dt) return;
+    const imgs = [...(dt.files || [])].filter(f => /^image\//i.test(f.type));
+    if (imgs.length) {
+      e.preventDefault();
+      addImages(imgs);
+      return;
+    }
     const text = dt.getData('text/plain');
     e.preventDefault();
     if (text) document.execCommand('insertText', false, text);
     touch();
+  }
+
+  // 拖拽图片入编辑器：先定位落点再插入
+  function onDragOver(e) {
+    if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+  }
+  function onDrop(e) {
+    const files = [...(e.dataTransfer?.files || [])].filter(f => /^image\//i.test(f.type));
+    if (!files.length) return;
+    e.preventDefault();
+    placeCaretAt(e.clientX, e.clientY);
+    addImages(files);
   }
 
   // Markdown 快捷输入（飞书/语雀同款）：块首输入 - / * / 1. / [] / # 再敲空格，
@@ -763,12 +928,12 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
-      if (getPlainText()) save();
+      if (hasContent()) save();
       return;
     }
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
-      if (getPlainText()) save();
+      if (hasContent()) save();
       return;
     }
     // 自管 undo/redo：拦截原生撤销（DOM 直改后原生栈不可靠）
@@ -1027,6 +1192,22 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       <ToolbarBtn title="清除格式" onClick={() => exec('removeFormat')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
       </ToolbarBtn>
+      <div className="w-px h-4 bg-ink-200 mx-1" />
+      <ToolbarBtn title="插入图片（也可直接粘贴/拖入）" onClick={() => { rememberCaret(); imgInputRef.current?.click(); }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.8" cy="8.8" r="1.6"/><path d="m21 15.5-4.6-4.6L5 22"/></svg>
+      </ToolbarBtn>
+      <input
+        ref={imgInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const list = e.target.files;
+          if (list && list.length) addImages(list);
+          e.target.value = ''; // 允许重复选同一张
+        }}
+      />
     </div>
   );
 
@@ -1050,6 +1231,8 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         }}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
         onClick={onEditorClick}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
@@ -1084,7 +1267,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
           <button
             onClick={() => save()}
-            disabled={busy || !getPlainText()}
+            disabled={busy || (!count && !imgCount)}
             title="保存（Ctrl+S）"
             className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
             style={{ background: 'var(--s-main)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}
@@ -1105,7 +1288,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
           {!flashMsg && savedAt && <span className="text-[11px] text-ink-400">{fmtSavedTime(savedAt)}</span>}
           <button
             onClick={() => save()}
-            disabled={busy || !getPlainText()}
+            disabled={busy || (!count && !imgCount)}
             title="保存（Ctrl+S）"
             className="text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg transition-all disabled:opacity-40"
             style={{ background: 'var(--s-main)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}

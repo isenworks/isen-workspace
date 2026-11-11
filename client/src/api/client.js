@@ -195,6 +195,27 @@ export const API = {
     async tagCreate(data) { return fetchPages('/inbox/tag/create', data); },
     async tagUpdate(id, data) { return fetchPages('/inbox/tag/update', { id, ...data }); },
     async tagRemove(id) { return fetchPages('/inbox/tag/remove', { id }); },
+    // 小记图片：multipart 上传到 R2，返回 { key, url, size }；正文只存 url
+    //   fetchPages 固定走 JSON，这里单独 fetch（不设 Content-Type，交给浏览器带 boundary）
+    async uploadImage(blob, filename = 'image.webp') {
+      const fd = new FormData();
+      fd.append('file', blob, filename);
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 30000); // 大图上传给足 30s
+      try {
+        const res = await fetch('/api/inbox/image/upload', {
+          method: 'POST',
+          headers: { 'X-Unlock-Token': unlockToken() },
+          body: fd,
+          signal: ctl.signal,
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.url) throw new Error(data?.error || `图片上传失败 (${res.status})`);
+        return data;
+      } finally {
+        clearTimeout(timer);
+      }
+    },
   },
 
   habits: {

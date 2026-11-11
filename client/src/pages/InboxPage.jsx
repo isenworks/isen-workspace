@@ -59,11 +59,19 @@ function plainFirstLine(html) {
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const text = (tmp.innerText || tmp.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!text && tmp.querySelector('img')) return '[图片]'; // 图片-only 小记
   return text;
 }
 
 /* ===== 导出 Markdown：备份到飞书/语雀等在线文档时，列表层级、勾选态与粗斜体都不丢 ===== */
 function inlineToMd(node) {
+  // 图片：导出成 Markdown 图片语法（相对 URL 补成绝对地址，换环境也能打开）
+  if (node.nodeType === 1 && node.tagName === 'IMG') {
+    const src = node.getAttribute('src') || '';
+    if (!src) return '';
+    const abs = src.startsWith('/') ? location.origin + src : src;
+    return `\n\n![图片](${abs})\n\n`;
+  }
   let out = '';
   node.childNodes.forEach(n => {
     if (n.nodeType === 3) { out += n.textContent; return; }

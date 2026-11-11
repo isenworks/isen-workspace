@@ -1110,6 +1110,33 @@ function TagManagerModal({ open, tags, onClose, setTags, toast, startName }) {
   const [editing, setEditing] = useState(null); // { id?, name, color, _optimistic? }
   const [confirmDel, setConfirmDel] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [dragId, setDragId] = useState(null);       // 正在拖拽的标签
+  const [dragOverId, setDragOverId] = useState(null); // 拖到哪一行（用于插入位提示）
+
+  /* 拖拽排序：先把本地顺序改好，再按 0..n-1 批量写 sort_order。
+     失败整体回滚，避免只写成功一半导致下次刷新顺序错乱。 */
+  async function moveTag(fromId, toId) {
+    if (fromId == null || toId == null || fromId === toId) return;
+    const prev = tags;
+    const list = [...tags];
+    const from = list.findIndex(t => t.id === fromId);
+    const to = list.findIndex(t => t.id === toId);
+    if (from < 0 || to < 0) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    const next = list.map((t, i) => ({ ...t, sort_order: i }));
+    setTags(next);
+    try {
+      await Promise.all(
+        next
+          .filter((t, i) => prev.find(p => p.id === t.id)?.sort_order !== i)
+          .map(t => API.inbox.tagUpdate(t.id, { sort_order: t.sort_order }))
+      );
+    } catch (e) {
+      setTags(prev);
+      toast.error(e.message || '排序保存失败');
+    }
+  }
 
   useEffect(() => {
     if (!open) { setEditing(null); setConfirmDel(null); return; }
@@ -1132,10 +1159,12 @@ function TagManagerModal({ open, tags, onClose, setTags, toast, startName }) {
     const isNew = !editing.id;
     const placeholderId = isNew ? -Date.now() : editing.id;
     const prevTags = tags;
+    // 新建标签排到最后，而不是 sort_order=0 插到列表最前
+    const nextOrder = tags.length;
 
     // Optimistic: 先改本地 state
     if (isNew) {
-      setTags(prev => [...prev, { id: placeholderId, name, color: editing.color, sort_order: 0, _optimistic: true }]);
+      setTags(prev => [...prev, { id: placeholderId, name, color: editing.color, sort_order: nextOrder, _optimistic: true }]);
     } else {
       setTags(prev => prev.map(t => t.id === editing.id ? { ...t, name, color: editing.color } : t));
     }
@@ -1144,7 +1173,7 @@ function TagManagerModal({ open, tags, onClose, setTags, toast, startName }) {
     try {
       let result;
       if (isNew) {
-        result = await API.inbox.tagCreate({ name, color: editing.color });
+        result = await API.inbox.tagCreate({ name, color: editing.color, sort_order: nextOrder });
         // 用真实 id 替换 optimistic placeholder
         setTags(prev => prev.map(t => t.id === placeholderId ? result.tag : t));
         toast.success('已创建', { duration: 1000 });
@@ -1187,7 +1216,36 @@ function TagManagerModal({ open, tags, onClose, setTags, toast, startName }) {
       <div className="space-y-2">
         {tags.length === 0 && <div className="text-[13px] text-ink-400 text-center py-6">暂无标签，点击下方按钮新建</div>}
         {tags.map(t => (
-          <div key={t.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-ink-50 group">
+          <div
+            key={t.id}
+            draggable={!t._optimistic}
+            onDragStart={(e) => {
+              if (t._optimistic) return;
+              setDragId(t.id);
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', String(t.id));
+            }}
+            onDragOver={(e) => {
+              if (dragId == null || dragId === t.id) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              setDragOverId(t.id);
+            }}
+            onDragLeave={() => setDragOverId(prev => (prev === t.id ? null : prev))}
+            onDrop={(e) => {
+              e.preventDefault();
+              moveTag(dragId, t.id);
+              setDragId(null);
+              setDragOverId(null);
+            }}
+            onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+            className={`flex items-center gap-2 px-2 py-2 rounded-lg group transition-colors ${dragOverId === t.id && dragId !== t.id ? 'bg-ink-50' : 'hover:bg-ink-50'} ${dragId === t.id ? 'opacity-40' : ''}`}
+            style={dragOverId === t.id && dragId !== t.id ? { boxShadow: 'inset 0 2px 0 var(--s-main)' } : undefined}
+          >
+            <span
+              title="拖拽调整顺序"
+              className={`flex-shrink-0 w-4 text-center leading-none select-none text-ink-300 ${t._optimistic ? 'opacity-0' : 'cursor-grab active:cursor-grabbing group-hover:text-ink-500'}`}
+            >⠿</span>
             <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: t.color }} />
             <span className="text-[13.5px] text-ink-800 flex-1">{t.name}</span>
             <button onClick={() => startEdit(t)} className="text-[12px] text-ink-400 hover:text-ink-700 px-1.5 py-0.5">编辑</button>

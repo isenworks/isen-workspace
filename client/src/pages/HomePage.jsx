@@ -22,6 +22,17 @@ const modRgba = (k, a) => `rgba(var(--m-${k}-rgb),${a})`;
 /* 日程行唯一键：重复事项会在同一范围里展开成多条同 id、不同 date 的实例，
    只按 id 匹配会把「今天的勾选」落到别的日期实例上（或反向），必须带上 date */
 const rowKey = (s) => `${s.id}|${s.date || ''}`;
+/* 二级任务：D1 里存 JSON 字符串，前端统一成数组；脏数据一律回落空数组 */
+function parseSubtasks(v) {
+  if (Array.isArray(v)) return v;
+  if (!v) return [];
+  try {
+    const arr = JSON.parse(v);
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+/* 展开态是纯视图状态，只存本机（与重点事项卡一致，不进数据库） */
+const HP_EXPAND_KEY = 'hp_extras_expanded_v1';
 
 /* Hero 渐变预设：Apple 系统色 · 相邻色相，中段不脏 */
 const HERO_GRADIENTS = {
@@ -732,6 +743,243 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
+  /* ===== 今日聚焦 / 本周目标：备注 + 子任务拆解（与重点事项卡同款交互） =====
+     两卡共用一套状态与渲染，避免同一交互写两遍；行键带 date，重复事项互不串行 */
+  const [hpExpanded, setHpExpanded] = useState(() => {
+    try {
+      const arr = JSON.parse(localStorage.getItem(HP_EXPAND_KEY) || '[]');
+      return new Set(Array.isArray(arr) ? arr.map(String) : []);
+    } catch { return new Set(); }
+  });
+  const [hpAdding, setHpAdding] = useState(null);     // 正在加子任务的行键
+  const [hpSubDraft, setHpSubDraft] = useState('');
+  const [hpNoteEdit, setHpNoteEdit] = useState(null); // 正在写备注的行键
+  const [hpNoteDraft, setHpNoteDraft] = useState('');
+
+  const persistHpExpanded = (next) => {
+    setHpExpanded(next);
+    try { localStorage.setItem(HP_EXPAND_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+  };
+
+  // 乐观生效 + 广播（沿用重点事项卡的 patch 通道：只带变更字段，不覆盖其他视图的整行数据）
+  async function saveSchedPatch(s, patch) {
+    const k = rowKey(s);
+    setSched(prev => (prev || []).map(x => rowKey(x) === k ? { ...x, ...patch } : x));
+    store.broadcast({ type: 'schedule', id: s.id, date: s.date, ...patch });
+    try {
+      await API.schedules.update(s.id, patch);
+    } catch (e) {
+      toast.error(e.message || '保存失败');
+      loadSched();
+    }
+  }
+
+  function hpToggleSubs(s) {
+    const k = rowKey(s);
+    const next = new Set(hpExpanded);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    persistHpExpanded(next);
+    if (next.has(k)) { setHpAdding(null); setHpSubDraft(''); }
+  }
+
+  function hpAddSubtask(s, raw) {
+    const text = String(raw || '').trim();
+    if (!text) return;
+    // 「20 公司 + 岗位理解」→ 20min + 标题；不写时长也可以
+    const m = text.match(/^(\d{1,3})\s*[分m]?\s+(.+)$/i);
+    const min = m ? Number(m[1]) : null;
+    const title = m ? m[2].trim() : text;
+    if (!title) return;
+    const id = `st_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    saveSchedPatch(s, { subtasks: [...parseSubtasks(s.subtasks), { id, title, min, done: false }] });
+    setHpSubDraft('');
+  }
+
+  function hpOpenNote(s) {
+    setHpNoteEdit(rowKey(s));
+    setHpNoteDraft(s.note || '');
+  }
+
+  function hpSaveNote(s) {
+    setHpNoteEdit(null);
+    saveSchedPatch(s, { note: hpNoteDraft.trim() });
+  }
+
+  /* 单行渲染：勾选 + 标题 + 悬停操作（备注/拆解）+ 右侧元信息（时间或日期） */
+  function renderSchedRow(s, meta) {
+    const k = rowKey(s);
+    const subs = parseSubtasks(s.subtasks);
+    const subsDone = subs.filter(x => x.done).length;
+    const isOpen = hpExpanded.has(k);
+    const isAdding = hpAdding === k;
+    const isNoteOpen = hpNoteEdit === k;
+    const tone = CATEGORY_COLORS[Number(s.category)];
+    const allSubsDone = subs.length > 0 && subsDone === subs.length;
+    return (
+      <div key={k} className="flex flex-col">
+        <div
+          onContextMenu={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            showWkMenu(s, e.clientX, e.clientY);
+          }}
+          {...lp.bind((pos) => showWkMenu(s, pos.clientX, pos.clientY))}
+          className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
+        >
+          <TaskCheck s={s} onToggle={toggleWeekKey} />
+          <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-1.5 text-left min-w-0 flex-1" title="编辑事项">
+            <span className={`text-[14px] truncate ${
+              s.is_done ? 'text-ink-300 line-through' :
+              s.is_failed ? 'text-[var(--danger)] line-through' :
+              'text-ink-800'
+            }`}>{s.title || '（无标题）'}</span>
+            <PTag p={s.priority} />
+            {/* 子任务进度：有拆解时补一行元信息，一眼看出做到哪一步 */}
+            {subs.length > 0 && (
+              <span
+                className="text-[11px] flex-shrink-0 tabular-nums"
+                style={{ color: allSubsDone ? (tone?.doneColor || 'var(--s-main)') : 'var(--text-muted)' }}
+              >{subsDone}/{subs.length}</span>
+            )}
+          </button>
+          {/* 悬停操作：备注铅笔 / 拆解加号（有子任务时常驻展开箭头） */}
+          <span className="flex items-center gap-0.5 flex-shrink-0">
+            {!s.note && !isNoteOpen && (
+              <button
+                onClick={(e) => { e.stopPropagation(); hpOpenNote(s); }}
+                className="w-5 h-5 grid place-items-center rounded-md text-[var(--text-muted)] hover:bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="添加备注"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                  <path d="M8.4 1.9l1.7 1.7-5.9 5.9-2.3.6.6-2.3 5.9-5.9z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            {subs.length > 0 || isOpen ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); hpToggleSubs(s); }}
+                className="w-5 h-5 grid place-items-center rounded-md text-[var(--text-muted)] hover:bg-black/5 transition-colors"
+                title={isOpen ? '收起子任务' : '展开子任务'}
+                aria-expanded={isOpen}
+              >
+                <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const next = new Set(hpExpanded); next.add(k); persistHpExpanded(next);
+                  setHpAdding(k); setHpSubDraft('');
+                }}
+                className="w-5 h-5 grid place-items-center rounded-md text-[var(--text-muted)] hover:bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="拆解为子任务"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+          </span>
+          <span className={`text-[12px] flex-shrink-0 tabular-nums ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{meta}</span>
+        </div>
+
+        {/* 备注：有内容时展示（点击可改），无内容时不占位 */}
+        {s.note && !isNoteOpen && (
+          <div className="pl-[34px] pr-2">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); hpOpenNote(s); }}
+              className="mt-0.5 flex items-start gap-1 w-full text-left"
+              title="点击编辑备注"
+            >
+              <span className="text-[11px] leading-[16px] flex-shrink-0 text-[var(--text-muted)]">备注</span>
+              <span className="text-[12px] leading-[16px] truncate text-[var(--text-muted)]">{s.note}</span>
+            </button>
+          </div>
+        )}
+        {isNoteOpen && (
+          <div className="ml-8 mr-2 mb-1" onClick={(e) => e.stopPropagation()}>
+            <textarea
+              autoFocus
+              rows={2}
+              value={hpNoteDraft}
+              onChange={(e) => setHpNoteDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.nativeEvent?.isComposing) return;
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); hpSaveNote(s); }
+                if (e.key === 'Escape') { e.preventDefault(); setHpNoteEdit(null); }
+              }}
+              placeholder="记录完成情况或未完成原因"
+              className="w-full resize-none rounded-lg border bg-white/70 px-2 py-1.5 text-[12.5px] leading-[18px] outline-none focus:border-[color:var(--s-main)]"
+              style={{ borderColor: 'rgba(120,120,128,0.2)', color: 'var(--text-1)' }}
+            />
+            <div className="mt-1 flex items-center justify-end gap-2">
+              <button onClick={() => setHpNoteEdit(null)} className="text-[11px] px-2 py-0.5 rounded-md text-[var(--text-muted)] hover:bg-black/5">取消</button>
+              <button onClick={() => hpSaveNote(s)} className="text-[11px] px-2.5 py-0.5 rounded-md font-medium text-white" style={{ background: 'var(--s-main)' }}>保存</button>
+            </div>
+          </div>
+        )}
+
+        {/* 子任务：缩进 + 左侧竖线表达归属 */}
+        {isOpen && (
+          <div
+            className="ml-8 mr-1 mb-1 pl-3 border-l"
+            style={{ borderColor: 'rgba(120,120,128,0.16)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {subs.map(sub => (
+              <div key={sub.id} className="group/sub flex items-center gap-2 py-[5px] rounded-md hover:bg-black/[0.03]">
+                <input
+                  type="checkbox"
+                  className="cb-round"
+                  checked={!!sub.done}
+                  onChange={() => {}}
+                  onClick={() => saveSchedPatch(s, { subtasks: subs.map(x => x.id === sub.id ? { ...x, done: !x.done } : x) })}
+                  style={{ '--cb-color': tone?.doneColor || 'var(--s-main)', '--cb-border': sub.done ? (tone?.doneColor || 'var(--s-main)') : (tone?.borderColor || 'var(--s-main)') }}
+                  title={sub.done ? '取消完成' : '标记完成'}
+                />
+                <span className={`flex-1 min-w-0 truncate text-[13px] ${sub.done ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-1)]'}`}>{sub.title}</span>
+                {sub.min ? <span className="text-[11px] text-[var(--text-muted)] tabular-nums flex-shrink-0">{sub.min}min</span> : null}
+                <button
+                  onClick={() => saveSchedPatch(s, { subtasks: subs.filter(x => x.id !== sub.id) })}
+                  className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-muted)] hover:text-[var(--danger)] text-[11px] px-0.5"
+                  title="删除子任务"
+                >×</button>
+              </div>
+            ))}
+            {isAdding ? (
+              <div className="flex items-center gap-2 py-[3px]">
+                <span className="w-[14px] h-[14px] rounded-[4px] border border-dashed flex-shrink-0" style={{ borderColor: 'var(--text-muted)' }} />
+                <input
+                  autoFocus
+                  value={hpSubDraft}
+                  onChange={(e) => setHpSubDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.nativeEvent?.isComposing) return;
+                    if (e.key === 'Enter') { e.preventDefault(); hpAddSubtask(s, hpSubDraft); }
+                    if (e.key === 'Escape') { e.preventDefault(); setHpAdding(null); setHpSubDraft(''); }
+                  }}
+                  onBlur={() => { if (!hpSubDraft.trim()) setHpAdding(null); }}
+                  placeholder="如 20 公司 + 岗位理解，回车继续"
+                  className="flex-1 min-w-0 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-muted)]"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => { setHpAdding(k); setHpSubDraft(''); }}
+                className="mt-0.5 flex items-center gap-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--s-main)] transition-colors"
+              >
+                <span className="text-[14px] leading-none">+</span> 添加子任务
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   /* ===== 本周目标右键浮动菜单 + 删除确认 ===== */
   const [wkContextMenu, setWkContextMenu] = useState(null); // { x, y, task } | null
   const [wkConfirmDelete, setWkConfirmDelete] = useState(null); // { task } | null
@@ -1151,29 +1399,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               </div>
               <Bar value={todayPct} />
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
-                {todaySorted.map(s => (
-                  <div
-                    key={rowKey(s)}
-                    onContextMenu={e => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      showWkMenu(s, e.clientX, e.clientY);
-                    }}
-                    {...lp.bind((pos) => showWkMenu(s, pos.clientX, pos.clientY))}
-                    className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
-                  >
-                    <TaskCheck s={s} onToggle={toggleWeekKey} />
-                    <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
-                      <span className={`text-[14px] truncate ${
-                        s.is_done ? 'text-ink-300 line-through' :
-                        s.is_failed ? 'text-[var(--danger)] line-through' :
-                        'text-ink-800'
-                      }`}>{s.title || '（无标题）'}</span>
-                      <PTag p={s.priority} />
-                      <span className={`text-[12px] tabular-nums flex-shrink-0 ml-auto ${s.is_done ? 'text-ink-200' : 'text-ink-300'}`}>{s.start_time ? String(s.start_time).slice(0, 5) : '全天'}</span>
-                    </button>
-                  </div>
-                ))}
+                {todaySorted.map(s => renderSchedRow(s, s.start_time ? String(s.start_time).slice(0, 5) : '全天'))}
                 {todaySorted.length === 0 && (
                   <div className="text-[12.5px] text-ink-400 text-center py-3">今天还没有安排</div>
                 )}
@@ -1235,29 +1461,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               </div>
               <Bar value={pct(weekKeyDone, weekKeys.length)} />
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1.5 mt-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
-                {weekKeys.map(s => (
-                  <div
-                    key={rowKey(s)}
-                    onContextMenu={e => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      showWkMenu(s, e.clientX, e.clientY);
-                    }}
-                    {...lp.bind((pos) => showWkMenu(s, pos.clientX, pos.clientY))}
-                    className="flex items-center gap-2 group rounded-[12px] px-2 py-1.5 transition-colors hover:bg-[rgba(120,120,128,0.06)]"
-                  >
-                    <TaskCheck s={s} onToggle={toggleWeekKey} />
-                    <button onClick={() => (onEditSchedule ? onEditSchedule(s) : onNav?.('plan'))} className="flex items-center gap-2 text-left min-w-0 flex-1" title="编辑事项">
-                      <span className={`text-[14px] truncate ${
-                        s.is_done ? 'text-ink-300 line-through' :
-                        s.is_failed ? 'text-[var(--danger)] line-through' :
-                        'text-ink-800'
-                      }`}>{s.title}</span>
-                      <PTag p={s.priority} />
-                      <span className={`text-[12px] text-ink-300 flex-shrink-0 ml-auto tabular-nums`}>{String(s.date).slice(5).replace('-', '/')}</span>
-                    </button>
-                  </div>
-                ))}
+                {weekKeys.map(s => renderSchedRow(s, String(s.date).slice(5).replace('-', '/')))}
                 {weekKeys.length === 0 && (
                   <div className="text-[12.5px] text-ink-400 text-center py-3">本周暂无目标，点右上角 + 新建</div>
                 )}

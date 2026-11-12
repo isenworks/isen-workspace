@@ -221,7 +221,10 @@ export async function handleHabitsSetMissed(env, body) {
   const missed = body?.missed === false || body?.missed === 0 ? 0 : 1;
   const reasons = missed ? parseReasons(body?.reasons) : [];
   const note = missed ? String(body?.note || '').trim().slice(0, 200) : '';
-  const reasonsJson = missed ? JSON.stringify(reasons) : null;
+  // 原因与备注都为空 = 没有归因依据，按「未打卡」处理：
+  // 否则会留下 missed=1 的空记录，格子和统计都会一直算成未完成（用户清空原因后无法回到未打卡）。
+  const marked = missed && (reasons.length > 0 || !!note) ? 1 : 0;
+  const reasonsJson = marked ? JSON.stringify(reasons) : null;
 
   const existing = await dbFirst(
     env.DB,
@@ -235,9 +238,9 @@ export async function handleHabitsSetMissed(env, body) {
           SET missed=?, miss_reasons=?, miss_note=?,
               done=CASE WHEN ?=1 THEN 0 ELSE done END
         WHERE id=?`,
-      [missed, reasonsJson, note || null, missed, existing.id]
+      [marked, reasonsJson, note || null, marked, existing.id]
     );
-  } else if (missed) {
+  } else if (marked) {
     await dbRun(
       env.DB,
       `INSERT INTO ethan_habit_logs (habit_id,user_id,date,done,missed,miss_reasons,miss_note)
@@ -245,7 +248,7 @@ export async function handleHabitsSetMissed(env, body) {
       [habitId, userId, date, reasonsJson, note || null]
     );
   }
-  return json({ habit_id: habitId, date, missed: !!missed, reasons, note });
+  return json({ habit_id: habitId, date, missed: !!marked, reasons: marked ? reasons : [], note: marked ? note : '' });
 }
 
 // ---------------- habits.missed（按区间回读，供周矩阵三态与长期归因）
@@ -263,12 +266,15 @@ export async function handleHabitsMissed(env, q) {
     [uid(env), from, to]
   );
   return json({
-    records: rows.map((r) => ({
-      habit_id: r.habit_id,
-      date: r.date,
-      reasons: parseReasons(r.miss_reasons),
-      note: r.miss_note || '',
-    })),
+    records: rows
+      .map((r) => ({
+        habit_id: r.habit_id,
+        date: r.date,
+        reasons: parseReasons(r.miss_reasons),
+        note: r.miss_note || '',
+      }))
+      // 历史脏数据兜底：missed=1 但原因和备注都为空，等价于「未打卡」
+      .filter((r) => r.reasons.length > 0 || !!r.note),
   });
 }
 
@@ -298,7 +304,7 @@ export async function handleHabitsMissStats(env, q) {
   );
   const logs = await dbAll(
     env.DB,
-    `SELECT habit_id, date, done, missed, miss_reasons
+    `SELECT habit_id, date, done, missed, miss_reasons, miss_note
        FROM ethan_habit_logs
       WHERE user_id = ? AND date >= ? AND date <= ?`,
     [userId, from, to]
@@ -318,9 +324,11 @@ export async function handleHabitsMissStats(env, q) {
       day = addDaysISO(day);
       if (!log) { blank++; continue; }
       if (Number(log.done) === 1) { done++; continue; }
-      if (Number(log.missed) === 1) {
+      const rs = parseReasons(log.miss_reasons);
+      const note = String(log.miss_note || '').trim();
+      // missed=1 但既无原因也无备注 = 等价于未打卡（历史空记录也在这里归位）
+      if (Number(log.missed) === 1 && (rs.length > 0 || note)) {
         missed++;
-        const rs = parseReasons(log.miss_reasons);
         const key = rs[0] || '未注明';
         primary.set(key, (primary.get(key) || 0) + 1);
         rs.forEach((r) => reasonTotals.set(r, (reasonTotals.get(r) || 0) + 1));

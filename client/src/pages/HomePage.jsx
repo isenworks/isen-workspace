@@ -715,12 +715,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   async function saveMiss(missed) {
     const p = missPanel;
     if (!p || p.insight) return;
+    const note = missNote.trim();
+    // 原因与备注都清空 = 取消未完成标记，回到「未打卡」
+    const marked = !!missed && (missPick.length > 0 || !!note);
     setMissBusy(true);
     try {
-      await API.habits.setMissed(p.habit.id, p.date, missed ? 1 : 0, missPick, missNote.trim());
+      await API.habits.setMissed(p.habit.id, p.date, marked ? 1 : 0, missPick, note);
       setMissData(prev => {
         const next = { ...prev, [p.habit.id]: { ...(prev[p.habit.id] || {}) } };
-        if (missed) next[p.habit.id][p.date] = { reasons: missPick, note: missNote.trim() };
+        if (marked) next[p.habit.id][p.date] = { reasons: missPick, note };
         else delete next[p.habit.id][p.date];
         return next;
       });

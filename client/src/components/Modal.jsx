@@ -1,6 +1,6 @@
 import { useDialogA11y } from './useDialogA11y.js';
 
-export default function Modal({ open, onClose, title, children, footer, maxWidth }) {
+export default function Modal({ open, onClose, title, children, footer, maxWidth, headerExtra, headerRight }) {
   // 焦点陷阱 + 锁背景滚动 + Esc 关闭（hook 内部按 open 生效，须在提前 return 之前调用）
   const dialogRef = useDialogA11y(open, { onClose });
 
@@ -38,15 +38,21 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
       >
         {/* 标题栏 */}
         <div
-          className="flex items-center justify-between px-6 py-4"
+          className="flex items-center justify-between gap-3 px-6 py-4"
           style={{ borderBottom: '1px solid rgba(60,60,67,0.1)' }}
         >
-          <h3 className="text-[17px] font-semibold text-[var(--text-1)] tracking-tight">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-1)] text-2xl leading-none flex items-center justify-center w-9 h-9 -mr-1 shrink-0 rounded-full hover:bg-black/5 transition"
-            aria-label="关闭"
-          >×</button>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h3 className="text-[17px] font-semibold text-[var(--text-1)] tracking-tight truncate">{title}</h3>
+            {headerExtra}
+          </div>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {headerRight}
+            <button
+              onClick={onClose}
+              className="text-[var(--text-muted)] hover:text-[var(--text-1)] text-2xl leading-none flex items-center justify-center w-9 h-9 -mr-1 shrink-0 rounded-full hover:bg-black/5 transition"
+              aria-label="关闭"
+            >×</button>
+          </div>
         </div>
 
         {/* 主体 */}

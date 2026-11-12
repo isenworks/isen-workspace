@@ -6,14 +6,15 @@ import { today as getToday, addDays, startOfWeek, toISODate } from '../utils/dat
 
 // 配色与应用内打卡色一致；原因按出现频次依次取色
 const DONE_COLOR = '#34C759';
-const BLANK_COLOR = '#D1D1D6'; // 未打卡：实心浅灰，与原因色区分
+const BLANK_COLOR = '#AEAEB2'; // 未打卡：实心灰（配合白字，比浅灰略深一档）
 const UNKNOWN_COLOR = '#A2845E'; // 未注明原因：暖褐，避免与未打卡的灰混淆
 const REASON_COLORS = ['#FF9500', '#5AC8FA', '#AF52DE', '#FFCC00', '#FF2D55', '#00C7BE', '#5856D6'];
 const BAR_H = 116;
 const ARROW_BTN = 'w-[26px] h-[26px] rounded-lg grid place-items-center text-[var(--text-2)] hover:bg-black/5 disabled:opacity-25';
 
-// 段内数字用反色：浅色段（黄/黄绿）用深字，深色段用白字，保证 9px 也读得清
-function textOn(hex) {
+// 段内数字：未打卡固定白字；其余按底色亮度自动取反色，9px 也读得清
+function textOn(hex, forceWhite) {
+  if (forceWhite) return '#fff';
   const n = parseInt(hex.slice(1), 16);
   const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
   return (0.299 * r + 0.587 * g + 0.114 * b) > 186 ? 'rgba(0,0,0,0.66)' : '#fff';
@@ -170,8 +171,9 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
                     className="flex flex-col-reverse overflow-hidden"
                     style={{ width: 28, height: BAR_H, borderRadius: '5px 5px 2px 2px' }}
                   >
-                    {segs.map(s => {
+                    {segs.map((s, i) => {
                       const hPx = (s.n / total) * BAR_H;
+                      const isTop = i === segs.length - 1;
                       return (
                         <div
                           key={s.k}
@@ -180,13 +182,14 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
                           style={{
                             height: `${(s.n / total) * 100}%`,
                             background: s.c,
-                            boxShadow: s.k === 'done' ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.9)',
+                            // 只画段与段之间的分隔线；最顶部留空，否则白色分隔线会削平圆角
+                            boxShadow: i === 0 || isTop ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.9)',
                           }}
                         >
                           {hPx >= 13 && (
                             <span
                               className="text-[9px] font-semibold leading-none tabular-nums"
-                              style={{ color: textOn(s.c) }}
+                              style={{ color: textOn(s.c, s.k === 'blank') }}
                             >{s.n}</span>
                           )}
                         </div>

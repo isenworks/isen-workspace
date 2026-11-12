@@ -23,6 +23,7 @@ import {
   handleHabitsList, handleHabitsArchivedList, handleHabitsCreate, handleHabitsUpdate,
   handleHabitsReorder, handleHabitsArchive, handleHabitsRemove, handleHabitsToggle,
   handleHabitsLogSleep, handleHabitsLogCount, handleHabitsStats,
+  handleHabitsSetMissed, handleHabitsMissed,
 } from '../_lib/handlers/habits.js';
 import {
   handleInboxList, handleInboxCreate, handleInboxUpdate, handleInboxProcess, handleInboxRemove,
@@ -129,6 +130,9 @@ export async function onRequest(context) {
     if (path === '/api/habits/logSleep' && method === 'POST') return handleHabitsLogSleep(env, body);
     if (path === '/api/habits/logCount' && method === 'POST') return handleHabitsLogCount(env, body);
     if (path === '/api/habits/stats' && (method === 'GET' || method === 'POST')) return handleHabitsStats(env, qOrBody);
+    // 打卡三态：标记/取消「未完成」及原因回读
+    if (path === '/api/habits/setMissed' && method === 'POST') return handleHabitsSetMissed(env, body);
+    if (path === '/api/habits/missed' && (method === 'GET' || method === 'POST')) return handleHabitsMissed(env, qOrBody);
 
     // ------------------------------------------------------------
     // /api/inbox/*  — 收集箱（想法/备忘快速捕获，空了再分派）

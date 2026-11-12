@@ -228,6 +228,11 @@ export const API = {
     async logSleep(habitId, date, payload) { return fetchPages('/habits/logSleep', { habitId, date, ...payload }); },
     async logCount(habitId, date, payload) { return fetchPages('/habits/logCount', { habitId, date, ...payload }); },
     async stats(from, to) { return fetchPages('/habits/stats', { from, to }); },
+    // 打卡三态：missed=0 表示取消「未完成」标记
+    async setMissed(habitId, date, missed, reasons, note) {
+      return fetchPages('/habits/setMissed', { habitId, date, missed, reasons, note });
+    },
+    async missed(from, to) { return fetchPages('/habits/missed', { from, to }); },
     async archivedList() { return fetchPages('/habits/archivedList'); },
     async archive(id) { return fetchPages('/habits/archive', { id }); },
     async restore(id) { return fetchPages('/habits/restore', { id }); },

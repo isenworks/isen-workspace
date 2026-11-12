@@ -34,6 +34,49 @@ function parseSubtasks(v) {
 /* 展开态是纯视图状态，只存本机（与重点事项卡一致，不进数据库） */
 const HP_EXPAND_KEY = 'hp_extras_expanded_v1';
 
+/* ===== 习惯「未完成原因」预设：按习惯语义给默认值，自定义项记忆在本机 =====
+   预设只是录入加速器，最终存的是文本数组，统计不依赖预设表。 */
+const MISS_PRESETS = {
+  sleep: ['晚睡', '失眠', '加班太晚', '睡前刷手机', '早上赖床', '身体不适'],
+  exercise: ['加班', '太累', '天气不好', '身体不适', '没时间'],
+  water: ['忙忘了', '外出不便', '身体不适', '喝了别的东西'],
+  generic: ['加班', '太累', '忘了', '身体不适', '突发事件'],
+};
+function missPresetsOf(habit) {
+  const n = String(habit?.name || habit?.label || '');
+  if (/睡|作息|早起|早睡|sleep/i.test(n)) return MISS_PRESETS.sleep;
+  if (/运动|健身|跑步|游泳|workout|exercise|run/i.test(n)) return MISS_PRESETS.exercise;
+  if (/喝|水|water/i.test(n)) return MISS_PRESETS.water;
+  return MISS_PRESETS.generic;
+}
+const MISS_CUSTOM_KEY = 'habit_miss_presets_v1';
+function readCustomMissPresets(habitId) {
+  try {
+    const map = JSON.parse(localStorage.getItem(MISS_CUSTOM_KEY) || '{}');
+    const arr = map[String(habitId)];
+    return Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : [];
+  } catch { return []; }
+}
+function appendCustomMissPreset(habitId, text) {
+  const t = String(text || '').trim().slice(0, 20);
+  if (!t) return;
+  try {
+    const map = JSON.parse(localStorage.getItem(MISS_CUSTOM_KEY) || '{}');
+    const key = String(habitId);
+    const arr = Array.isArray(map[key]) ? map[key] : [];
+    map[key] = [...new Set([...arr, t])].slice(-8);
+    localStorage.setItem(MISS_CUSTOM_KEY, JSON.stringify(map));
+  } catch { /* 记忆失败不影响本次录入 */ }
+}
+/* 原因排行：未填原因的记录单独归为「未填写原因」，避免统计出现空洞 */
+function rankMissReasons(records) {
+  const m = new Map();
+  (records || []).forEach(r => {
+    (r.reasons?.length ? r.reasons : ['未填写原因']).forEach(t => m.set(t, (m.get(t) || 0) + 1));
+  });
+  return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([reason, count]) => ({ reason, count }));
+}
+
 /* Hero 渐变预设：Apple 系统色 · 相邻色相，中段不脏 */
 const HERO_GRADIENTS = {
   A: { name: '晴空',   css: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)', shadow: 'rgba(0,122,255,0.28)' },
@@ -625,6 +668,102 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
       refreshEnergy(); // 后台重拉年度统计，用真实数据覆盖乐观 tweaks
     } catch { apply(ok); }
   };
+
+  /* ===== 打卡三态：未完成 + 原因（右键/长按格子；行尾计数看长期归因） =====
+     三态互斥：完成=绿、未打卡=灰、已标记未完成=琥珀。原因文本数组落 D1，
+     统计不依赖预设，所以自定义原因也能正常聚合。 */
+  const [missData, setMissData] = useState({});      // { habitId: { date: { reasons, note } } }
+  const [missPanel, setMissPanel] = useState(null);  // { habit, date, x, y } | { habit, insight, x, y }
+  const [missPick, setMissPick] = useState([]);
+  const [missNote, setMissNote] = useState('');
+  const [missCustom, setMissCustom] = useState('');
+  const [missCustomOpen, setMissCustomOpen] = useState(false);
+  const [missCustoms, setMissCustoms] = useState([]);
+  const [missInsight, setMissInsight] = useState(null);
+  const [missBusy, setMissBusy] = useState(false);
+  const [missVersion, setMissVersion] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await API.habits.missed(weekDates[0], weekDates[6]);
+        if (cancelled) return;
+        const map = {};
+        (r.records || []).forEach(rec => {
+          if (!map[rec.habit_id]) map[rec.habit_id] = {};
+          map[rec.habit_id][rec.date] = { reasons: rec.reasons || [], note: rec.note || '' };
+        });
+        setMissData(map);
+      } catch { /* 归因数据失败不阻断打卡 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [weekDates, missVersion]);
+
+  function openMissPanel(h, d, x, y) {
+    const rec = missData[h.id]?.[d];
+    setMissPick(rec?.reasons || []);
+    setMissNote(rec?.note || '');
+    setMissCustom('');
+    setMissCustomOpen(false);
+    setMissCustoms(readCustomMissPresets(h.id));
+    setMissPanel({ habit: h, date: d, x, y });
+  }
+
+  async function saveMiss(missed) {
+    const p = missPanel;
+    if (!p || p.insight) return;
+    setMissBusy(true);
+    try {
+      await API.habits.setMissed(p.habit.id, p.date, missed ? 1 : 0, missPick, missNote.trim());
+      setMissData(prev => {
+        const next = { ...prev, [p.habit.id]: { ...(prev[p.habit.id] || {}) } };
+        if (missed) next[p.habit.id][p.date] = { reasons: missPick, note: missNote.trim() };
+        else delete next[p.habit.id][p.date];
+        return next;
+      });
+      setMissPanel(null);
+      refreshEnergy();
+      setMissVersion(v => v + 1); // 让三态与统计重新对齐（跨设备/跨页面一致）
+    } catch (e) {
+      toast.error(e.message || '保存失败');
+    } finally {
+      setMissBusy(false);
+    }
+  }
+
+  async function openMissInsight(h, x, y) {
+    setMissPanel({ habit: h, insight: true, x, y });
+    setMissInsight({ loading: true, records: [] });
+    try {
+      const r = await API.habits.missed(addDaysISO(todayStr, -29), todayStr);
+      setMissInsight({ loading: false, records: (r.records || []).filter(v => v.habit_id === h.id) });
+    } catch {
+      setMissInsight({ loading: false, records: [], error: true });
+    }
+  }
+
+  /* 面板贴边钳制：260 宽 + 上下留 8px，避免在屏幕右/下缘被裁掉 */
+  const missPanelPos = (() => {
+    if (!missPanel) return null;
+    const W = 264;
+    const H = missPanel.insight ? 300 : 330;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    return {
+      left: Math.max(8, Math.min(missPanel.x - 12, vw - W - 8)),
+      top: Math.max(8, Math.min(missPanel.y + 10, vh - H - 8)),
+    };
+  })();
+  const missHabit = missPanel?.habit || null;
+  const missHabitLabel = String(missHabit?.label || missHabit?.name || '习惯');
+  const missDayLabel = missPanel && !missPanel.insight && missPanel.date
+    ? `${Number(missPanel.date.slice(5, 7))}月${parseInt(missPanel.date.slice(8), 10)}日`
+    : '';
+  const missExisting = !!(missPanel && !missPanel.insight && missData[missPanel.habit.id]?.[missPanel.date]);
+  const missChips = missHabit ? [...new Set([...missPresetsOf(missHabit), ...missCustoms])] : [];
+  const missRank = missInsight ? rankMissReasons(missInsight.records) : [];
+  const missRankTop = missRank[0]?.count || 1;
 
   /* ===== 知力 / 能力 / 工作（与年度规划共享同一份 localStorage 数据） ===== */
   const [books] = usePersistentState('annual_books_v12', () => null);
@@ -1568,20 +1707,39 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                             const isTdy = d === todayStr;
                             const isFut = d > todayStr;
                             const ok = set.has(d);
+                            const miss = missData[h.id]?.[d];
                             return (
                               <button
                                 key={d}
                                 onClick={() => !isFut && toggleHabitCell(h, d, ok)}
                                 disabled={isFut}
-                                title={isFut ? '未来日期' : ok ? '取消打卡' : '打卡'}
-                                className={`hp-hcell hp-hcell-btn${ok ? ' ok' : ''}${isFut ? ' fut' : ''}${isTdy ? ' tdy' : ''}`}
+                                onContextMenu={e => {
+                                  if (isFut) return;
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  openMissPanel(h, d, e.clientX, e.clientY);
+                                }}
+                                {...lp.bind(pos => { if (!isFut) openMissPanel(h, d, pos.clientX, pos.clientY); })}
+                                title={
+                                  isFut ? '未来日期'
+                                    : miss ? `未完成：${miss.reasons.join('、') || '未写原因'}（右键修改）`
+                                    : ok ? '取消打卡（右键标记未完成）'
+                                    : '打卡（右键标记未完成）'
+                                }
+                                className={`hp-hcell hp-hcell-btn${ok ? ' ok' : ''}${miss && !ok ? ' missed' : ''}${isFut ? ' fut' : ''}${isTdy ? ' tdy' : ''}`}
                               >
                                 {parseInt(d.slice(8), 10)}
                               </button>
                             );
                           })}
                         </div>
-                        <span className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[20px] text-right" style={{ color: cnt >= 7 ? 'var(--m-energy)' : 'var(--text-muted)' }}>{cnt}/7</span>
+                        <button
+                          type="button"
+                          onClick={e => openMissInsight(h, e.clientX, e.clientY)}
+                          title="查看近 30 天未完成原因"
+                          className="text-[10px] font-bold tabular-nums flex-shrink-0 w-[20px] text-right hover:underline"
+                          style={{ color: cnt >= 7 ? 'var(--m-energy)' : 'var(--text-muted)' }}
+                        >{cnt}/7</button>
                       </div>
                     );
                   })}
@@ -1598,6 +1756,174 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               </div>
             )}
           </div>
+
+          {/* ===== 习惯未完成原因：右键/长按格子录入；行尾 x/7 看近 30 天归因 ===== */}
+          {missPanel && missPanelPos && (
+            <>
+              <div
+                className="fixed inset-0 z-[70]"
+                onPointerDown={() => setMissPanel(null)}
+                onContextMenu={e => { e.preventDefault(); setMissPanel(null); }}
+              />
+              <div
+                className="fixed z-[71] rounded-xl p-3"
+                style={{
+                  left: missPanelPos.left,
+                  top: missPanelPos.top,
+                  width: 264,
+                  background: 'var(--surface-card)',
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',
+                }}
+                onPointerDown={e => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold text-ink-800 truncate">{missHabitLabel}</div>
+                    <div className="text-[11px] text-[var(--text-muted)]">
+                      {missPanel.insight ? '近 30 天归因' : `${missDayLabel} · 未完成`}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMissPanel(null)}
+                    className="w-5 h-5 grid place-items-center rounded-md text-[var(--text-muted)] hover:bg-black/5 flex-shrink-0"
+                    title="关闭"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                  </button>
+                </div>
+
+                {missPanel.insight ? (
+                  missInsight?.loading ? (
+                    <div className="py-6 text-center text-[12px] text-[var(--text-muted)]">统计中…</div>
+                  ) : missInsight?.error ? (
+                    <div className="py-6 text-center text-[12px] text-[var(--text-muted)]">统计失败，稍后再试</div>
+                  ) : !missInsight?.records?.length ? (
+                    <div className="py-4 text-center text-[12px] text-[var(--text-muted)] leading-relaxed">
+                      近 30 天没有未完成记录<br />
+                      <span className="text-[11px]">右键或长按格子可记下原因</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-[11.5px] text-[var(--text-muted)] mb-2">共 {missInsight.records.length} 次未完成 · 按原因排序</div>
+                      <div className="flex flex-col gap-1.5">
+                        {missRank.slice(0, 5).map(({ reason, count }) => (
+                          <div key={reason} className="flex items-center gap-2">
+                            <span className="text-[11.5px] w-[70px] truncate text-ink-700" title={reason}>{reason}</span>
+                            <span className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: 'rgba(120,120,128,0.1)' }}>
+                              <span
+                                className="block h-full rounded-full"
+                                style={{ width: `${Math.max(6, Math.round((count / missRankTop) * 100))}%`, background: 'var(--warning)' }}
+                              />
+                            </span>
+                            <span className="text-[10.5px] tabular-nums text-[var(--text-muted)] w-[16px] text-right">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 mb-1 text-[11px] text-[var(--text-muted)]">最近未完成（点击补记原因）</div>
+                      <div className="flex flex-col">
+                        {missInsight.records.slice(0, 4).map(r => (
+                          <button
+                            key={r.date}
+                            type="button"
+                            onClick={e => openMissPanel(missHabit, r.date, e.clientX, e.clientY)}
+                            className="text-left text-[11.5px] py-[3px] truncate text-ink-600 hover:text-[var(--warning)]"
+                            title="点击补记/修改原因"
+                          >
+                            {r.date.slice(5).replace('-', '/')} · {r.reasons.join('、') || '未写原因'}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <div className="flex flex-wrap gap-1.5">
+                      {missChips.map(t => {
+                        const on = missPick.includes(t);
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setMissPick(on ? missPick.filter(x => x !== t) : [...missPick, t])}
+                            className="px-2 py-[3px] rounded-full text-[12px] transition-colors"
+                            style={on
+                              ? { background: 'rgba(255,149,0,0.16)', color: '#a85a00', border: '1px solid rgba(255,149,0,0.5)' }
+                              : { background: 'rgba(120,120,128,0.07)', color: 'var(--text-2)', border: '1px solid transparent' }}
+                          >{t}</button>
+                        );
+                      })}
+                      {missCustomOpen ? (
+                        <input
+                          autoFocus
+                          value={missCustom}
+                          onChange={e => setMissCustom(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.nativeEvent?.isComposing) return;
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const t = missCustom.trim();
+                              if (!t) return;
+                              appendCustomMissPreset(missHabit.id, t);
+                              setMissCustoms(readCustomMissPresets(missHabit.id));
+                              setMissPick(prev => (prev.includes(t) ? prev : [...prev, t]));
+                              setMissCustom('');
+                              setMissCustomOpen(false);
+                            }
+                            if (e.key === 'Escape') { setMissCustomOpen(false); setMissCustom(''); }
+                          }}
+                          placeholder="输入原因，回车添加"
+                          className="w-[118px] px-2 py-[3px] rounded-full text-[12px] outline-none"
+                          style={{ border: '1px solid rgba(255,149,0,0.5)', color: 'var(--text-1)' }}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setMissCustomOpen(true)}
+                          className="px-2 py-[3px] rounded-full text-[12px] text-[var(--text-muted)] hover:bg-black/5"
+                          style={{ border: '1px dashed rgba(120,120,128,0.32)' }}
+                        >+ 其他</button>
+                      )}
+                    </div>
+                    <input
+                      value={missNote}
+                      onChange={e => setMissNote(e.target.value)}
+                      placeholder="补充说明（可选）"
+                      className="mt-2 w-full rounded-lg px-2 py-1.5 text-[12px] outline-none"
+                      style={{ border: '1px solid rgba(120,120,128,0.2)', color: 'var(--text-1)' }}
+                    />
+                    <div className="mt-2.5 flex items-center justify-between gap-2">
+                      {missExisting ? (
+                        <button
+                          type="button"
+                          onClick={() => saveMiss(false)}
+                          disabled={missBusy}
+                          className="text-[11.5px] px-2 py-1 rounded-md text-[var(--text-muted)] hover:bg-black/5 disabled:opacity-50"
+                        >取消标记</button>
+                      ) : (
+                        <span className="text-[10.5px] text-[var(--text-muted)] leading-tight">选原因即标记为未完成</span>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setMissPanel(null)}
+                          className="text-[11.5px] px-2.5 py-1 rounded-md text-[var(--text-muted)] hover:bg-black/5"
+                        >取消</button>
+                        <button
+                          type="button"
+                          onClick={() => saveMiss(true)}
+                          disabled={missBusy}
+                          className="text-[11.5px] px-2.5 py-1 rounded-md font-medium text-white disabled:opacity-60"
+                          style={{ background: 'var(--warning)' }}
+                        >保存</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
 
           {/* ---- 知力：在读（主推书带封面） ---- */}
           <div className="glass-card p-4 flex flex-col">

@@ -185,9 +185,97 @@ export async function handleHabitsRemove(env, body) {
   return json({ ok: true });
 }
 
+// ---------------- 未完成原因（打卡三态：完成 / 未打卡 / 已标记未完成）
+//   missed=1 表示「确实没做到」，与「没有记录」区分开，才能做长期归因。
+//   列采用懒迁移：老库首次访问时补列，失败吞错（已存在即会抛错）。
+let _missColsReady = false;
+async function ensureHabitMissColumns(env) {
+  if (_missColsReady) return;
+  const ddl = [
+    `ALTER TABLE ethan_habit_logs ADD COLUMN missed INTEGER DEFAULT 0`,
+    `ALTER TABLE ethan_habit_logs ADD COLUMN miss_reasons TEXT`,
+    `ALTER TABLE ethan_habit_logs ADD COLUMN miss_note TEXT`,
+  ];
+  for (const sql of ddl) { try { await env.DB.prepare(sql).run(); } catch (_) {} }
+  _missColsReady = true;
+}
+
+function parseReasons(raw) {
+  if (Array.isArray(raw)) return raw.map(v => String(v).trim()).filter(Boolean).slice(0, 12);
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? parseReasons(arr) : [];
+  } catch { return []; }
+}
+
+// ---------------- habits.setMissed
+export async function handleHabitsSetMissed(env, body) {
+  const userId = uid(env);
+  await ensureHabitMissColumns(env);
+  const habitId = Number(body?.habit_id ?? body?.habitId ?? body?.id);
+  const dateCheck = validateDate(body?.date || getLocalDate());
+  if (!habitId) return json({ error: '缺少 habit_id' }, 400);
+  if (!dateCheck.valid) return json({ error: dateCheck.error }, 400);
+  const date = dateCheck.value;
+  const missed = body?.missed === false || body?.missed === 0 ? 0 : 1;
+  const reasons = missed ? parseReasons(body?.reasons) : [];
+  const note = missed ? String(body?.note || '').trim().slice(0, 200) : '';
+  const reasonsJson = missed ? JSON.stringify(reasons) : null;
+
+  const existing = await dbFirst(
+    env.DB,
+    `SELECT id FROM ethan_habit_logs WHERE habit_id=? AND user_id=? AND date=?`,
+    [habitId, userId, date]
+  );
+  if (existing) {
+    await dbRun(
+      env.DB,
+      `UPDATE ethan_habit_logs
+          SET missed=?, miss_reasons=?, miss_note=?,
+              done=CASE WHEN ?=1 THEN 0 ELSE done END
+        WHERE id=?`,
+      [missed, reasonsJson, note || null, missed, existing.id]
+    );
+  } else if (missed) {
+    await dbRun(
+      env.DB,
+      `INSERT INTO ethan_habit_logs (habit_id,user_id,date,done,missed,miss_reasons,miss_note)
+       VALUES (?,?,?,0,1,?,?)`,
+      [habitId, userId, date, reasonsJson, note || null]
+    );
+  }
+  return json({ habit_id: habitId, date, missed: !!missed, reasons, note });
+}
+
+// ---------------- habits.missed（按区间回读，供周矩阵三态与长期归因）
+export async function handleHabitsMissed(env, q) {
+  const { from, to } = q || {};
+  if (!from || !to) return json({ error: '缺少 from / to' }, 400);
+  await ensureHabitMissColumns(env);
+  const rows = await dbAll(
+    env.DB,
+    `SELECT habit_id, date, miss_reasons, miss_note
+       FROM ethan_habit_logs
+      WHERE user_id=? AND missed=1 AND date>=? AND date<=?
+      ORDER BY date DESC
+      LIMIT 500`,
+    [uid(env), from, to]
+  );
+  return json({
+    records: rows.map((r) => ({
+      habit_id: r.habit_id,
+      date: r.date,
+      reasons: parseReasons(r.miss_reasons),
+      note: r.miss_note || '',
+    })),
+  });
+}
+
 // ---------------- habits.toggle
 export async function handleHabitsToggle(env, body) {
   const userId = uid(env);
+  await ensureHabitMissColumns(env);
   const habitId = Number(body?.habit_id || body?.id);
   const dateRaw = body?.date || getLocalDate();
   const dateCheck = validateDate(dateRaw);
@@ -203,7 +291,16 @@ export async function handleHabitsToggle(env, body) {
   );
   if (existing) {
     const done = targetDone !== undefined ? targetDone : existing.done ? 0 : 1;
-    await dbRun(env.DB, `UPDATE ethan_habit_logs SET done = ? WHERE id = ?`, [done, existing.id]);
+    // 完成即覆盖「未完成」记录：三态互斥，避免同一格同时是绿和黄
+    if (done) {
+      await dbRun(
+        env.DB,
+        `UPDATE ethan_habit_logs SET done=1, missed=0, miss_reasons=NULL, miss_note=NULL WHERE id=?`,
+        [existing.id]
+      );
+    } else {
+      await dbRun(env.DB, `UPDATE ethan_habit_logs SET done=0 WHERE id=?`, [existing.id]);
+    }
     return json({ habit_id: habitId, date: today, done: !!done });
   }
   const wantDone = targetDone !== undefined ? targetDone : 1;

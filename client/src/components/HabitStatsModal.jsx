@@ -6,12 +6,11 @@ import { today as getToday, addDays, startOfWeek, toISODate } from '../utils/dat
 
 // 配色与应用内打卡色一致；原因按出现频次依次取色
 const DONE_COLOR = '#34C759';
-const UNKNOWN_COLOR = '#C7C7CC';
+const BLANK_COLOR = '#D1D1D6'; // 未打卡：实心浅灰，与原因色区分
+const UNKNOWN_COLOR = '#A2845E'; // 未注明原因：暖褐，避免与未打卡的灰混淆
 const REASON_COLORS = ['#FF9500', '#5AC8FA', '#AF52DE', '#FFCC00', '#FF2D55', '#00C7BE', '#5856D6'];
 const BAR_H = 116;
 const ARROW_BTN = 'w-[26px] h-[26px] rounded-lg grid place-items-center text-[var(--text-2)] hover:bg-black/5 disabled:opacity-25';
-
-const HATCH = { background: 'repeating-linear-gradient(135deg, #E5E5EA 0 4px, #F7F7F9 4px 8px)' };
 
 // 段内数字用反色：浅色段（黄/黄绿）用深字，深色段用白字，保证 9px 也读得清
 function textOn(hex) {
@@ -162,7 +161,7 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
               const segs = [
                 { k: 'done', n: h.done, c: DONE_COLOR, label: '已完成' },
                 ...(h.reasons || []).map(r => ({ k: `r-${r.name}`, n: r.count, c: colorOf.get(r.name) || UNKNOWN_COLOR, label: r.name })),
-                { k: 'blank', n: h.blank, c: null, label: '未打卡' },
+                { k: 'blank', n: h.blank, c: BLANK_COLOR, label: '未打卡' },
               ].filter(s => s.n > 0);
               const name = String(h.label || h.name || '习惯').replace(/\s+/g, '');
               return (
@@ -180,15 +179,14 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
                           className="flex items-center justify-center"
                           style={{
                             height: `${(s.n / total) * 100}%`,
-                            background: s.c || undefined,
-                            ...(s.c ? {} : HATCH),
+                            background: s.c,
                             boxShadow: s.k === 'done' ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.9)',
                           }}
                         >
                           {hPx >= 13 && (
                             <span
                               className="text-[9px] font-semibold leading-none tabular-nums"
-                              style={{ color: s.c ? textOn(s.c) : '#8E8E93' }}
+                              style={{ color: textOn(s.c) }}
                             >{s.n}</span>
                           )}
                         </div>
@@ -216,7 +214,7 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
             ))}
             {blankTotal > 0 && (
               <span className="flex items-center gap-1.5">
-                <i className="w-2 h-2 rounded-sm block" style={HATCH} />
+                <i className="w-2 h-2 rounded-sm block" style={{ background: BLANK_COLOR }} />
                 未打卡
               </span>
             )}

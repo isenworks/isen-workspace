@@ -82,8 +82,12 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
   const blankTotal = habits.reduce((s, h) => s + (h.blank || 0), 0);
   const reasonTotals = data?.reasonTotals || [];
   const topReason = reasonTotals[0];
+  // 完成率最低的习惯（habits 已按完成率升序，取第一个）
+  const lowest = habits[0];
+  const lowestName = lowest ? String(lowest.label || lowest.name || '').replace(/\s+/g, '') : '';
 
   const numCls = 'font-semibold tabular-nums text-[var(--text-1)]';
+  const nameCls = 'font-semibold text-[var(--text-1)]';
 
   return createPortal(
     <Modal
@@ -143,10 +147,13 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
             className="rounded-lg px-3 py-2 mb-3.5 text-[12px] leading-snug"
             style={{ background: 'rgba(255,149,0,0.07)', color: 'var(--text-2)' }}
           >
-            {missedTotal > 0 ? (
+            {missedTotal > 0 && lowest ? (
               <>
-                {range.label} <b className={numCls}>{missedTotal}</b> 天未完成
-                {topReason ? <>，<b className="font-semibold" style={{ color: 'var(--text-1)' }}>{topReason.name}</b> <b className={numCls}>{topReason.count}</b> 次最多</> : null}
+                {range.label} <b className={nameCls}>{lowestName}</b> 打卡率最低
+                <b className={numCls}> {lowest.done}/{lowest.total}</b>
+                {topReason
+                  ? <>，原因里 <b className={nameCls}>{topReason.name}</b> <b className={numCls}>{topReason.count}</b> 次最多</>
+                  : <>，未填写原因</>}
               </>
             ) : (
               <>{range.label}还没有未完成记录，右键打卡格可标记原因。</>

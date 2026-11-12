@@ -22,7 +22,7 @@ const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // 幂等路径判定：GET 天然幂等；POST 中以下列词结尾的接口是「读 / 覆盖式」语义，重发无副作用
-const IDEMPOTENT_POST = /\/(list|archivedList|stats|range|search|bootstrap|image|export|status|sync|upsert|reorder|archive|restore)$/;
+const IDEMPOTENT_POST = /\/(list|archivedList|stats|missStats|range|search|bootstrap|image|export|status|sync|upsert|reorder|archive|restore)$/;
 
 async function fetchPages(path, body = {}, method = 'POST') {
   const isGET = String(method).toUpperCase() === 'GET';
@@ -228,6 +228,10 @@ export const API = {
     async logSleep(habitId, date, payload) { return fetchPages('/habits/logSleep', { habitId, date, ...payload }); },
     async logCount(habitId, date, payload) { return fetchPages('/habits/logCount', { habitId, date, ...payload }); },
     async stats(from, to) { return fetchPages('/habits/stats', { from, to }); },
+    // 区间归因聚合：完成 / 未完成原因 / 未打卡 三态计数（堆叠柱状图）
+    async missStats(from, to, growthType) {
+      return fetchPages('/habits/missStats', { from, to, ...(growthType ? { growth_type: growthType } : {}) });
+    },
     // 打卡三态：missed=0 表示取消「未完成」标记
     async setMissed(habitId, date, missed, reasons, note) {
       return fetchPages('/habits/setMissed', { habitId, date, missed, reasons, note });

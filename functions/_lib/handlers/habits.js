@@ -3,7 +3,7 @@
 // ============================================================
 import {
   uid, json, dbAll, dbFirst, dbRun, toInt, toBoolInt,
-  getLocalDate, calcStreak, validateDate, recycleSnapshot,
+  getLocalDate, calcStreak, validateDate, recycleSnapshot, addDaysISO,
 } from '../core.js';
 
 // ---------------- habits.list
@@ -269,6 +269,90 @@ export async function handleHabitsMissed(env, q) {
       reasons: parseReasons(r.miss_reasons),
       note: r.miss_note || '',
     })),
+  });
+}
+
+// ---------------- habits.missStats（区间归因聚合）
+//   统一「7 天 = 完成 + 未完成(带原因) + 未打卡」口径，供堆叠柱状图使用：
+//   · reasons 只按主因（第一个原因）归入，保证每根柱子段之和 = 天数
+//   · reasonTotals 统计全部原因（含次因），用于「哪个原因最常出现」
+export async function handleHabitsMissStats(env, q) {
+  const userId = uid(env);
+  const fromCheck = validateDate((q || {}).from || '');
+  const toCheck = validateDate((q || {}).to || '');
+  if (!fromCheck.valid || !toCheck.valid) return json({ error: '缺少或无效的 from / to' }, 400);
+  const from = fromCheck.value;
+  const to = toCheck.value;
+  if (from > to) return json({ error: 'from 不能晚于 to' }, 400);
+  const days = Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 1;
+  if (days > 62) return json({ error: '区间过长（最多 62 天）' }, 400);
+
+  await ensureHabitMissColumns(env);
+  const growth = String((q || {}).growth_type || '').trim();
+  const habits = await dbAll(
+    env.DB,
+    `SELECT id, name, emoji, growth_type, accent_color FROM ethan_habits
+      WHERE user_id = ? AND archived = 0${growth ? ' AND growth_type = ?' : ''}
+      ORDER BY sort_order, id`,
+    growth ? [userId, growth] : [userId]
+  );
+  const logs = await dbAll(
+    env.DB,
+    `SELECT habit_id, date, done, missed, miss_reasons
+       FROM ethan_habit_logs
+      WHERE user_id = ? AND date >= ? AND date <= ?`,
+    [userId, from, to]
+  );
+  const logMap = new Map();
+  logs.forEach((l) => logMap.set(`${l.habit_id}|${l.date}`, l));
+
+  const reasonTotals = new Map();
+  const items = habits.map((h) => {
+    let done = 0;
+    let missed = 0;
+    let blank = 0;
+    const primary = new Map();
+    let day = from;
+    for (let i = 0; i < days; i++) {
+      const log = logMap.get(`${h.id}|${day}`);
+      day = addDaysISO(day);
+      if (!log) { blank++; continue; }
+      if (Number(log.done) === 1) { done++; continue; }
+      if (Number(log.missed) === 1) {
+        missed++;
+        const rs = parseReasons(log.miss_reasons);
+        const key = rs[0] || '未注明';
+        primary.set(key, (primary.get(key) || 0) + 1);
+        rs.forEach((r) => reasonTotals.set(r, (reasonTotals.get(r) || 0) + 1));
+        continue;
+      }
+      blank++; // 有记录但未达成（如计数型只完成一半）也归入「未打卡」
+    }
+    return {
+      id: h.id,
+      name: h.name,
+      label: h.name,
+      emoji: h.emoji || '',
+      growth_type: h.growth_type || 'energy',
+      accent_color: h.accent_color || '#34c759',
+      done,
+      missed,
+      blank,
+      total: days,
+      reasons: [...primary.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count),
+    };
+  });
+
+  return json({
+    from,
+    to,
+    days,
+    habits: items,
+    reasonTotals: [...reasonTotals.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count),
   });
 }
 

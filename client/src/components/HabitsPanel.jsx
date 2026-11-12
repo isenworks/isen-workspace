@@ -10,6 +10,7 @@ import { GROWTH_TYPES, inferGrowthType } from '../utils/uiConstants.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useWorkspaceActions } from '../context/WorkspaceActionsContext.jsx';
 import ConfirmAlert from './ConfirmAlert.jsx';
+import HabitStatsModal from './HabitStatsModal.jsx';
 import { useLongPress } from './useLongPress.js';
 
 // 精力状态（3档）— 颜色统一用 iOS 系统色，弹窗按钮与行内 chip 共用
@@ -60,6 +61,7 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
   const [overId, setOverId] = useState(null);
   const [sleepPopover, setSleepPopover] = useState(null);
   const [confirmArchive, setConfirmArchive] = useState(null);
+  const [statsOpen, setStatsOpen] = useState(false);
   // 习惯列表折叠（默认展开；记忆用户选择，下次进入沿用）
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('hp_collapsed') === '1'; } catch { return false; }
@@ -611,6 +613,14 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           </div>
           <span className="text-[11px] font-semibold px-3 rounded-full inline-flex items-center h-[26px] tabular-nums" style={{ background: 'rgba(var(--s-rgb),0.08)', color: 'var(--s-main)' }}><span className="font-extrabold">{done}</span><span className="opacity-50 mx-0.5">/</span>{habits.length}</span>
           <button
+            onClick={() => setStatsOpen(true)}
+            className="inline-flex items-center justify-center rounded-lg text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
+            style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
+            title="打卡数据"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6" /></svg>
+          </button>
+          <button
             onClick={() => openHabitModal?.(null)}
             className="inline-flex items-center justify-center rounded-lg text-xs w-[26px] h-[26px] transition hover:brightness-105 active:scale-[0.97] flex-shrink-0"
             style={{ background: 'rgba(var(--s-rgb),0.06)', color: 'var(--s-main)' }}
@@ -926,6 +936,12 @@ export default function HabitsPanel({ date, refreshSignal, onChange }) {
           onConfirm={() => { const h = confirmArchive; setConfirmArchive(null); doArchive(h); }}
         />
       )}
+
+      <HabitStatsModal
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        title="习惯 · 打卡数据"
+      />
     </>
   );
 }

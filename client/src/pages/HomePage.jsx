@@ -13,6 +13,7 @@ import { CategoryIcon } from '../components/annual/ui.jsx';
 import lunarLib from '../vendor/lunar.js';
 import { lunarMonthDayOf, nextLunarDate } from '../utils/lunarBirthday.js';
 import PTag from '../components/PTag.jsx';
+import HabitStatsModal from '../components/HabitStatsModal.jsx';
 import { useLongPress } from '../components/useLongPress.js';
 
 /* ============ 小工具 ============ */
@@ -659,6 +660,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
   /* ===== 精力格子打卡：乐观覆盖 + API 持久化（与今日计划/习惯面板同接口，切页重新拉取即同步） ===== */
   const [habitTweaks, setHabitTweaks] = useState({});
+  const [habitStatsOpen, setHabitStatsOpen] = useState(false);
   const toggleHabitCell = async (h, d, ok) => {
     const next = !ok;
     const apply = v => setHabitTweaks(p => ({ ...p, [h.id]: { ...(p[h.id] || {}), [d]: v } }));
@@ -1691,7 +1693,23 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">
-            <CardHead moduleKey="energy" title="精力" sub="本周打卡" onClick={() => onNav?.('annual', 'energy')} />
+            <CardHead
+              moduleKey="energy"
+              title="精力"
+              sub="本周打卡"
+              onClick={() => onNav?.('annual', 'energy')}
+              action={(
+                <button
+                  type="button"
+                  onClick={() => setHabitStatsOpen(true)}
+                  className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
+                  style={{ color: 'var(--m-energy)', background: 'rgba(var(--m-energy-rgb),0.08)', '--hc': 'var(--m-energy)' }}
+                  title="打卡数据"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 20V11M12 20V5M19 20v-6" /></svg>
+                </button>
+              )}
+            />
             {habitRows.length > 0 ? (
               <>
                 <div className="hp-hb">
@@ -1755,6 +1773,13 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
                 <span className="text-[11px] text-ink-300">去习惯面板创建睡眠、运动等打卡</span>
               </div>
             )}
+
+            <HabitStatsModal
+              open={habitStatsOpen}
+              onClose={() => setHabitStatsOpen(false)}
+              growthType="energy"
+              title="精力 · 打卡数据"
+            />
           </div>
 
           {/* ===== 习惯未完成原因：右键/长按格子录入；行尾 x/7 看近 30 天归因 ===== */}

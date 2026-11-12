@@ -81,7 +81,12 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
   const missedTotal = habits.reduce((s, h) => s + (h.missed || 0), 0);
   const blankTotal = habits.reduce((s, h) => s + (h.blank || 0), 0);
   const reasonTotals = data?.reasonTotals || [];
-  const topReason = reasonTotals[0];
+  // 并列最高：次数相同的都算「最多」，避免只挑一个造成误读
+  const topCount = reasonTotals[0]?.count || 0;
+  const topReasons = reasonTotals.filter(r => r.count === topCount);
+  const topLabel = topReasons.length > 3
+    ? `${topReasons.slice(0, 3).map(r => r.name).join('、')} 等 ${topReasons.length} 种`
+    : topReasons.map(r => r.name).join('、');
   // 完成率最低的习惯（habits 已按完成率升序，取第一个）
   const lowest = habits[0];
   const lowestName = lowest ? String(lowest.label || lowest.name || '').replace(/\s+/g, '') : '';
@@ -151,9 +156,13 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
               <>
                 {range.label} <b className={nameCls}>{lowestName}</b> 打卡率最低
                 <b className={numCls}> {lowest.done}/{lowest.total}</b>
-                {topReason
-                  ? <>，原因里 <b className={nameCls}>{topReason.name}</b> <b className={numCls}>{topReason.count}</b> 次最多</>
-                  : <>，未填写原因</>}
+                {topReasons.length > 1 ? (
+                  <>，原因里 <b className={nameCls}>{topLabel}</b> 各 <b className={numCls}>{topCount}</b> 次，并列最多</>
+                ) : topReasons.length === 1 ? (
+                  <>，原因里 <b className={nameCls}>{topLabel}</b> <b className={numCls}>{topCount}</b> 次最多</>
+                ) : (
+                  <>，未填写原因</>
+                )}
               </>
             ) : (
               <>{range.label}还没有未完成记录，右键打卡格可标记原因。</>

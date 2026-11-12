@@ -13,6 +13,13 @@ const ARROW_BTN = 'w-[26px] h-[26px] rounded-lg grid place-items-center text-[va
 
 const HATCH = { background: 'repeating-linear-gradient(135deg, #E5E5EA 0 4px, #F7F7F9 4px 8px)' };
 
+// 段内数字用反色：浅色段（黄/黄绿）用深字，深色段用白字，保证 9px 也读得清
+function textOn(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 186 ? 'rgba(0,0,0,0.66)' : '#fff';
+}
+
 function weekRange(offset) {
   const start = startOfWeek(addDays(getToday(), -offset * 7));
   const end = toISODate(addDays(start, 6));
@@ -72,7 +79,6 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
   }, [data]);
 
   const missedTotal = habits.reduce((s, h) => s + (h.missed || 0), 0);
-  const doneTotal = habits.reduce((s, h) => s + (h.done || 0), 0);
   const blankTotal = habits.reduce((s, h) => s + (h.blank || 0), 0);
   const reasonTotals = data?.reasonTotals || [];
   const topReason = reasonTotals[0];
@@ -165,18 +171,29 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
                     className="flex flex-col-reverse overflow-hidden"
                     style={{ width: 28, height: BAR_H, borderRadius: '5px 5px 2px 2px' }}
                   >
-                    {segs.map(s => (
-                      <div
-                        key={s.k}
-                        title={`${s.label} ${s.n} 天`}
-                        style={{
-                          height: `${(s.n / total) * 100}%`,
-                          background: s.c || undefined,
-                          ...(s.c ? {} : HATCH),
-                          boxShadow: s.k === 'done' ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.9)',
-                        }}
-                      />
-                    ))}
+                    {segs.map(s => {
+                      const hPx = (s.n / total) * BAR_H;
+                      return (
+                        <div
+                          key={s.k}
+                          title={`${s.label} ${s.n} 天`}
+                          className="flex items-center justify-center"
+                          style={{
+                            height: `${(s.n / total) * 100}%`,
+                            background: s.c || undefined,
+                            ...(s.c ? {} : HATCH),
+                            boxShadow: s.k === 'done' ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.9)',
+                          }}
+                        >
+                          {hPx >= 13 && (
+                            <span
+                              className="text-[9px] font-semibold leading-none tabular-nums"
+                              style={{ color: s.c ? textOn(s.c) : '#8E8E93' }}
+                            >{s.n}</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <span className="text-[11px] text-[var(--text-2)] max-w-[46px] truncate" title={name}>{name}</span>
                   <span className="text-[9.5px] text-ink-400 tabular-nums">{h.done}/{h.total}</span>
@@ -185,22 +202,22 @@ export default function HabitStatsModal({ open, onClose, growthType, title }) {
             })}
           </div>
 
-          {/* 图例即统计：直接带次数，替代独立的「原因次数」区 */}
-          <div className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 mt-3.5 text-[11px] text-ink-400">
+          {/* 纯色键：数字已放进柱内，这里只负责认颜色 */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1.5 mt-3 text-[10.5px] text-ink-400">
             <span className="flex items-center gap-1.5">
-              <i className="w-2.5 h-2.5 rounded-sm block" style={{ background: DONE_COLOR }} />
-              已完成 <b className={numCls}>{doneTotal}</b>
+              <i className="w-2 h-2 rounded-sm block" style={{ background: DONE_COLOR }} />
+              已完成
             </span>
             {reasonTotals.map(r => (
               <span key={r.name} className="flex items-center gap-1.5">
-                <i className="w-2.5 h-2.5 rounded-sm block" style={{ background: colorOf.get(r.name) || UNKNOWN_COLOR }} />
-                {r.name} <b className={numCls}>{r.count}</b>
+                <i className="w-2 h-2 rounded-sm block" style={{ background: colorOf.get(r.name) || UNKNOWN_COLOR }} />
+                {r.name}
               </span>
             ))}
             {blankTotal > 0 && (
               <span className="flex items-center gap-1.5">
-                <i className="w-2.5 h-2.5 rounded-sm block" style={HATCH} />
-                未打卡 <b className={numCls}>{blankTotal}</b>
+                <i className="w-2 h-2 rounded-sm block" style={HATCH} />
+                未打卡
               </span>
             )}
           </div>

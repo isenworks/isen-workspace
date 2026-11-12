@@ -1837,10 +1837,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
             style={{ color: 'var(--text-1)' }}
           >
+            {/* 与侧边栏「小记」导航同一图标，避免同一功能出现两种图形 */}
             <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11l5-5V5a2 2 0 0 0-2-2Z" />
-              <path d="M15 21v-4a2 2 0 0 1 2-2h4" />
-              <path d="M7 8h6M7 12h4" />
+              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
             </svg>
             移入小记
           </button>

@@ -163,6 +163,7 @@ export default function InboxPage({ onCountChange }) {
   const [tags, setTags] = useState([]);
   const [busyIds, setBusyIds] = useState(new Set());
   const [selectedId, setSelectedId] = useState(null);
+  const [newSeq, setNewSeq] = useState(0); // 新建记录的换新序号：即使已处于「新增」态，也能清空编辑器重开一条
   const [menu, setMenu] = useState(null); // { id, cat }
   const [detail, setDetail] = useState(null);
   const [filterTagIds, setFilterTagIds] = useState(() => { // 多选，空数组=全部；首屏恢复上次筛选
@@ -260,6 +261,11 @@ export default function InboxPage({ onCountChange }) {
   }, [loadItems]);
 
   const selected = (items || []).find(it => it.id === selectedId) || null;
+  // 新增记录：从编辑态切回新增，或已在新增态时清空编辑器重开一条（换 key 强制重挂载）
+  const startNewRecord = useCallback(() => {
+    setSelectedId(null);
+    setNewSeq(n => n + 1);
+  }, []);
   const tagMap = new Map((tags || []).map(t => [t.id, t]));
   // 一条小记的标签列表（多选）：tag_ids 优先，兼容旧的单值 tag_id
   const tagsOfItem = (it) => parseItemTagIds(it).map(id => tagMap.get(id)).filter(Boolean);
@@ -972,7 +978,7 @@ export default function InboxPage({ onCountChange }) {
         )}
       </div>
       {isDuo && (
-        <button onClick={() => setSelectedId(null)} title="新增记录"
+        <button onClick={startNewRecord} title="新增记录"
           className="flex-shrink-0 w-[24px] h-[24px] rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
           style={{ background: 'var(--s-grad-bg)', color: 'var(--surface-card)', boxShadow: '0 2px 6px rgba(var(--s-rgb),0.25)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
@@ -1044,7 +1050,7 @@ export default function InboxPage({ onCountChange }) {
         {selected ? (
           <QuickCapture key={selected.id} edit={selected} tags={tags} onUpdated={loadItems} onDispatch={openDetailFor} onManageTags={() => setTagManagerOpen(true)} bare />
         ) : (
-          <QuickCapture tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onManageTags={() => setTagManagerOpen(true)} bare />
+          <QuickCapture key={`new-${newSeq}`} tags={tags} onSaved={handleCaptureSaved} onDispatch={openDetailFor} onManageTags={() => setTagManagerOpen(true)} bare />
         )}
       </div>
     );

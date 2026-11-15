@@ -33,7 +33,7 @@ import {
   handleInboxImageUpload, handleInboxImageFile, handleInboxImageDelete,
 } from '../_lib/handlers/inboxImages.js';
 import {
-  handleRelationList, handleRelationLog, handleRelationPeriod,
+  handleRelationList, handleRelationLog, handleRelationPeriod, handleRelationTags,
 } from '../_lib/handlers/relation.js';
 import {
   handleSchedulesList, handleSchedulesGet, handleSchedulesCreate, handleSchedulesUpdate,
@@ -168,6 +168,7 @@ export async function onRequest(context) {
     if (path === '/api/relation/list' && (method === 'GET' || method === 'POST')) return handleRelationList(env, qOrBody);
     if (path === '/api/relation/log' && method === 'POST') return handleRelationLog(env, body);
     if (path === '/api/relation/period' && method === 'POST') return handleRelationPeriod(env, body);
+    if (path === '/api/relation/tags' && (method === 'GET' || method === 'POST')) return handleRelationTags(env, qOrBody);
 
     // ------------------------------------------------------------
     // /api/schedules/*

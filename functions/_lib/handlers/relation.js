@@ -8,6 +8,15 @@
 import { json, uid, dbAll, dbFirst, dbRun } from '../core.js';
 
 export const REL_TAGS = ['harmony', 'normal', 'friction', 'unwell'];
+// 首次使用时写入的默认标签（key 固定，改的是 label/color，统计口径不随改名漂移）
+const SEED_TAGS = [
+  { key: 'harmony', label: '融洽', color: '#34C759', sort: 1 },
+  { key: 'normal', label: '一般', color: '#FFCC00', sort: 2 },
+  { key: 'friction', label: '有摩擦', color: '#FF3B30', sort: 3 },
+  { key: 'unwell', label: '她不舒服', color: '#AF52DE', sort: 4 },
+];
+// 心情固定预设（记录用，不参与标签增删）
+export const REL_MOODS = ['happy', 'steady', 'low', 'irritable'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // 懒迁移：Worker isolate 内复用，避免每次请求都跑 DDL
@@ -21,11 +30,17 @@ export async function ensureRelationTables(env) {
       user_id TEXT NOT NULL,
       date TEXT NOT NULL,
       tag TEXT DEFAULT '',
+      mood TEXT DEFAULT '',
       note TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `).run();
+  // 老库补列：心情是后加的字段
+  const cols = await dbAll(env.DB, `PRAGMA table_info(ethan_relation_logs)`);
+  if (!cols.some(c => c.name === 'mood')) {
+    await env.DB.prepare(`ALTER TABLE ethan_relation_logs ADD COLUMN mood TEXT DEFAULT ''`).run();
+  }
   await env.DB.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_relation_logs_user_date ON ethan_relation_logs(user_id, date)`).run();
   await env.DB.prepare(`
     CREATE TABLE IF NOT EXISTS ethan_relation_periods (
@@ -37,7 +52,40 @@ export async function ensureRelationTables(env) {
     )
   `).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_relation_periods_user ON ethan_relation_periods(user_id, start_date)`).run();
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS ethan_relation_tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      label TEXT NOT NULL,
+      color TEXT DEFAULT '#8E8E93',
+      sort INTEGER DEFAULT 0,
+      UNIQUE(user_id, key)
+    )
+  `).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_relation_tags_user ON ethan_relation_tags(user_id, sort)`).run();
   _relationReady = true;
+}
+
+// 每个用户首次访问时灌默认标签（放在按用户查询的入口里，DDL 不关心用户）
+async function ensureRelationTags(env, userId) {
+  const row = await dbFirst(env.DB, `SELECT COUNT(*) AS n FROM ethan_relation_tags WHERE user_id = ?`, [userId]);
+  if (Number(row?.n) > 0) return;
+  for (const t of SEED_TAGS) {
+    await dbRun(
+      env.DB,
+      `INSERT OR IGNORE INTO ethan_relation_tags (user_id, key, label, color, sort) VALUES (?, ?, ?, ?, ?)`,
+      [userId, t.key, t.label, t.color, t.sort]
+    );
+  }
+}
+
+async function listTags(env, userId) {
+  return dbAll(
+    env.DB,
+    `SELECT key, label, color FROM ethan_relation_tags WHERE user_id = ? ORDER BY sort, id`,
+    [userId]
+  );
 }
 
 // ---------------- relation.list
@@ -45,12 +93,13 @@ export async function ensureRelationTables(env) {
 export async function handleRelationList(env, q) {
   await ensureRelationTables(env);
   const userId = uid(env);
+  await ensureRelationTags(env, userId);
   const from = DATE_RE.test(q?.from) ? q.from : '1970-01-01';
   const to = DATE_RE.test(q?.to) ? q.to : '2999-12-31';
 
   const logs = await dbAll(
     env.DB,
-    `SELECT date, tag, note FROM ethan_relation_logs
+    `SELECT date, tag, mood, note FROM ethan_relation_logs
       WHERE user_id = ? AND date >= ? AND date <= ?
       ORDER BY date`,
     [userId, from, to]
@@ -63,11 +112,56 @@ export async function handleRelationList(env, q) {
       ORDER BY start_date DESC`,
     [userId, to, from]
   );
-  return json({ logs, periods });
+  const tags = await listTags(env, userId);
+  return json({ logs, periods, tags });
+}
+
+// ---------------- relation.tags
+// 入参 { action: 'save'|'remove', key?, label?, color? }
+export async function handleRelationTags(env, body) {
+  await ensureRelationTables(env);
+  const userId = uid(env);
+  await ensureRelationTags(env, userId);
+  const action = String(body?.action || 'list');
+
+  if (action === 'list') return json({ tags: await listTags(env, userId) });
+
+  if (action === 'save') {
+    const label = String(body?.label || '').trim().slice(0, 12);
+    const color = /^#[0-9a-fA-F]{6}$/.test(String(body?.color || '')) ? body.color : '#8E8E93';
+    if (!label) return json({ error: '标签名不能为空' }, 400);
+    const key = String(body?.key || '').trim();
+    if (key) {
+      await dbRun(
+        env.DB,
+        `UPDATE ethan_relation_tags SET label = ?, color = ? WHERE user_id = ? AND key = ?`,
+        [label, color, userId, key]
+      );
+    } else {
+      const cnt = await dbFirst(env.DB, `SELECT COUNT(*) AS n FROM ethan_relation_tags WHERE user_id = ?`, [userId]);
+      const newKey = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+      await dbRun(
+        env.DB,
+        `INSERT INTO ethan_relation_tags (user_id, key, label, color, sort) VALUES (?, ?, ?, ?, ?)`,
+        [userId, newKey, label, color, Number(cnt?.n || 0) + 1]
+      );
+    }
+    return json({ ok: true, tags: await listTags(env, userId) });
+  }
+
+  if (action === 'remove') {
+    const key = String(body?.key || '');
+    if (!key) return json({ error: '缺少标签 key' }, 400);
+    await dbRun(env.DB, `DELETE FROM ethan_relation_tags WHERE user_id = ? AND key = ?`, [userId, key]);
+    // 历史记录保留原始 key：卡片按「已删除」灰标签展示，不静默丢数据
+    return json({ ok: true, tags: await listTags(env, userId) });
+  }
+
+  return json({ error: '未知操作' }, 400);
 }
 
 // ---------------- relation.log
-// 入参 { date, tag, note }；tag 为空且无备注 → 删除该天记录
+// 入参 { date, tag, mood, note }；三者皆空 → 删除该天记录
 export async function handleRelationLog(env, body) {
   await ensureRelationTables(env);
   const userId = uid(env);
@@ -75,22 +169,24 @@ export async function handleRelationLog(env, body) {
   if (!DATE_RE.test(date)) return json({ error: '日期格式不正确' }, 400);
 
   const tag = body?.tag == null ? '' : String(body.tag);
+  const mood = body?.mood == null ? '' : String(body.mood);
   const note = String(body?.note || '').slice(0, 1000);
-  if (tag && !REL_TAGS.includes(tag)) return json({ error: '无效的状态' }, 400);
+  if (mood && !REL_MOODS.includes(mood)) return json({ error: '无效的心情' }, 400);
 
-  if (!tag && !note) {
+  if (!tag && !mood && !note) {
     await dbRun(env.DB, `DELETE FROM ethan_relation_logs WHERE user_id = ? AND date = ?`, [userId, date]);
     return json({ ok: true, deleted: true });
   }
   await dbRun(
     env.DB,
-    `INSERT INTO ethan_relation_logs (user_id, date, tag, note, created_at, updated_at)
-     VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO ethan_relation_logs (user_id, date, tag, mood, note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(user_id, date) DO UPDATE SET
        tag = excluded.tag,
+       mood = excluded.mood,
        note = excluded.note,
        updated_at = datetime('now')`,
-    [userId, date, tag, note]
+    [userId, date, tag, mood, note]
   );
   return json({ ok: true });
 }

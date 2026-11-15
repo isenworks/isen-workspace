@@ -221,7 +221,8 @@ export const API = {
   // 关系记录：每天相处状态（一键）+ 经期区间（开始/结束）
   relation: {
     async list(from, to) { return fetchPages('/relation/list', { from, to }); },
-    async log(date, tag, note) { return fetchPages('/relation/log', { date, tag, note }); },
+    async log(date, tag, note, mood = '') { return fetchPages('/relation/log', { date, tag, note, mood }); },
+    async tags(action = 'list', extra) { return fetchPages('/relation/tags', { action, ...(extra || {}) }); },
     async period(action, date, extra) { return fetchPages('/relation/period', { action, date, ...(extra || {}) }); },
   },
 

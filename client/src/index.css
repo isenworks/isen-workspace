@@ -1611,3 +1611,6 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
   pointer-events: none;
 }
 
+/* 横向滚动但不显示滚动条（关系卡一行标签溢出时使用，避免 22px 行高被滚动条撑破） */
+.no-sb::-webkit-scrollbar { display: none; }
+.no-sb { scrollbar-width: none; -ms-overflow-style: none; }

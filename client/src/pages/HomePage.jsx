@@ -1479,10 +1479,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         )}
         </div>
 
-        {/* ========== 时间层：今日聚焦 / 本周目标 / 即将到来 / 关系（md 起 2×2，xl 起 4 等分） ==========
+        {/* ========== 时间层：今日聚焦 / 本周目标 / 即将到来（3 等分，md 起 3 列） ==========
              窄屏：auto-rows-auto —— 每张卡按各自内容自适应高度（不再被 auto-rows-fr 拉齐到最高卡）；
-             md 起恢复 auto-rows-fr 等高，配合 flex-1 撑满视口 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
+             md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满视口 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）；节日见卡片头徽标 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
@@ -1663,13 +1663,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               )}
             </div>
           </div>
-
-          {/* ---- 关系：每天 20 秒记录相处状态 + 经期区间；数据回看与周期设置见卡片头 ---- */}
-          <RelationCard onNav={onNav} />
         </div>
 
-        {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，lg 起 4 列） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4 md:min-h-[clamp(170px,26vh,248px)] md:shrink-0">
+        {/* ========== 成长层：精力 / 关系 / 知力 / 能力 / 工作（lg 3 列，xl 5 等分） ========== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 auto-rows-fr gap-4 md:min-h-[clamp(170px,26vh,248px)] md:shrink-0">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -1929,6 +1926,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               </div>
             </>
           )}
+
+          {/* ---- 关系：每天 20 秒记录相处 + 心情；与精力同属「每天的状态」，紧邻其右 ---- */}
+          <RelationCard onNav={onNav} />
 
           {/* ---- 知力：在读（主推书带封面） ---- */}
           <div className="glass-card p-4 flex flex-col">

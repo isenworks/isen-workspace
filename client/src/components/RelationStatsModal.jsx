@@ -4,7 +4,7 @@ import Modal from './Modal.jsx';
 import { API } from '../api/client.js';
 import { today as getToday, addDaysISO } from '../utils/date.js';
 import {
-  REL_TAGS, TAG_MAP, BLANK_COLOR, PHASES, phaseOf, cycleInfo, lastDays,
+  BLANK_COLOR, PHASES, phaseOf, cycleInfo, lastDays, resolveTags, tagOf,
 } from '../utils/relation.js';
 
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
@@ -43,6 +43,8 @@ export default function RelationStatsModal({ open, onClose }) {
 
   const logs = data?.logs || [];
   const periods = data?.periods || [];
+  const tagList = resolveTags(data?.tags);
+  const tagMap = useMemo(() => Object.fromEntries(tagList.map(t => [t.key, t])), [tagList]);
   const logMap = useMemo(() => {
     const m = new Map();
     logs.forEach(l => m.set(l.date, l));
@@ -106,7 +108,7 @@ export default function RelationStatsModal({ open, onClose }) {
               {band.map(d => {
                 const lg = logMap.get(d);
                 const isPeriod = phaseOf(d, periods) === 'period';
-                const color = lg?.tag ? (TAG_MAP[lg.tag]?.color || BLANK_COLOR) : BLANK_COLOR;
+                const color = lg?.tag ? tagOf(tagMap, lg.tag).color : BLANK_COLOR;
                 return (
                   <div key={d} className="flex-1 flex flex-col items-center gap-1" title={`${fmtMd(d)} 周${weekdayOf(d)}${lg?.note ? ` · ${lg.note}` : ''}`}>
                     <span
@@ -130,7 +132,7 @@ export default function RelationStatsModal({ open, onClose }) {
 
           {/* ---- 图例 ---- */}
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 mt-3 text-[10.5px] text-ink-400">
-            {REL_TAGS.map(t => (
+            {tagList.map(t => (
               <span key={t.key} className="flex items-center gap-1.5">
                 <i className="w-2 h-2 rounded-sm block" style={{ background: t.color }} />
                 {t.label}

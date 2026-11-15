@@ -4,12 +4,28 @@
 // ============================================================
 import { addDaysISO } from './date.js';
 
+// 默认标签：后端首次使用时写入 ethan_relation_tags，之后以接口返回为准（可增删改）
 export const REL_TAGS = [
   { key: 'harmony', label: '融洽', color: '#34C759' },
   { key: 'normal', label: '一般', color: '#FFCC00' },
   { key: 'friction', label: '有摩擦', color: '#FF3B30' },
   { key: 'unwell', label: '她不舒服', color: '#AF52DE' },
 ];
+
+// 心情预设（固定，不参与增删；记录用）
+export const MOODS = [
+  { key: 'happy', label: '开心', color: '#FF9500' },
+  { key: 'steady', label: '平稳', color: '#34C759' },
+  { key: 'low', label: '低落', color: '#5E5CE6' },
+  { key: 'irritable', label: '烦躁', color: '#FF3B30' },
+];
+export const MOOD_MAP = Object.fromEntries(MOODS.map(m => [m.key, m]));
+
+// 接口没返回标签时（老缓存 / 请求失败）退回默认四态，避免空白
+export const resolveTags = (tags) => (Array.isArray(tags) && tags.length ? tags : REL_TAGS);
+export const tagMapOf = (tags) => Object.fromEntries(resolveTags(tags).map(t => [t.key, t]));
+// 已删除的标签仍出现在历史记录里：给出中性占位，不隐藏、不改写数据
+export const tagOf = (map, key) => map[key] || { key, label: '已删除', color: '#C7C7CC' };
 
 export const TAG_MAP = Object.fromEntries(REL_TAGS.map(t => [t.key, t]));
 

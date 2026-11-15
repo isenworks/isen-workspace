@@ -33,6 +33,9 @@ import {
   handleInboxImageUpload, handleInboxImageFile, handleInboxImageDelete,
 } from '../_lib/handlers/inboxImages.js';
 import {
+  handleRelationList, handleRelationLog, handleRelationPeriod,
+} from '../_lib/handlers/relation.js';
+import {
   handleSchedulesList, handleSchedulesGet, handleSchedulesCreate, handleSchedulesUpdate,
   handleSchedulesRemove, handleSchedulesSync,
 } from '../_lib/handlers/schedules.js';
@@ -158,6 +161,13 @@ export async function onRequest(context) {
     if (path === '/api/inbox/tag/create' && method === 'POST') return handleInboxTagCreate(env, body);
     if (path === '/api/inbox/tag/update' && method === 'POST') return handleInboxTagUpdate(env, body);
     if (path === '/api/inbox/tag/remove' && method === 'POST') return handleInboxTagRemove(env, body);
+
+    // ------------------------------------------------------------
+    // /api/relation/*  — 关系记录（每天相处状态 + 经期区间）
+    // ------------------------------------------------------------
+    if (path === '/api/relation/list' && (method === 'GET' || method === 'POST')) return handleRelationList(env, qOrBody);
+    if (path === '/api/relation/log' && method === 'POST') return handleRelationLog(env, body);
+    if (path === '/api/relation/period' && method === 'POST') return handleRelationPeriod(env, body);
 
     // ------------------------------------------------------------
     // /api/schedules/*

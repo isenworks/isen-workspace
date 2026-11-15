@@ -14,6 +14,7 @@ import lunarLib from '../vendor/lunar.js';
 import { lunarMonthDayOf, nextLunarDate } from '../utils/lunarBirthday.js';
 import PTag from '../components/PTag.jsx';
 import HabitStatsModal from '../components/HabitStatsModal.jsx';
+import RelationCard from '../components/RelationCard.jsx';
 import { useLongPress } from '../components/useLongPress.js';
 
 /* ============ 小工具 ============ */
@@ -2078,6 +2079,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
         </div>
+
+        {/* ========== 生活层：关系（每天 20 秒记录相处状态 + 经期区间；回看走右上角数据入口） ========== */}
+        <RelationCard />
 
         {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ==========
             吸底渐隐须淡入当前画布色 --surface-canvas，才能与页面背景融为一体；

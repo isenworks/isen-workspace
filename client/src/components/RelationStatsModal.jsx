@@ -4,12 +4,15 @@ import Modal from './Modal.jsx';
 import { API } from '../api/client.js';
 import { today as getToday, addDaysISO } from '../utils/date.js';
 import {
-  BLANK_COLOR, PHASES, phaseOf, cycleInfo, lastDays, resolveTags, tagOf, MOODS, MOOD_MAP,
+  BLANK_COLOR, PHASES, phaseOf, cycleInfo, lastDays, resolveTags, tagOf, MOODS,
 } from '../utils/relation.js';
 
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 const fmtMd = s => `${Number(s.slice(5, 7))}.${s.slice(8, 10)}`;
 const weekdayOf = s => WEEK[new Date(`${s}T00:00:00`).getDay()];
+// 心情按「好 → 差」排成纵轴档位：开心在最上、烦躁在最下，折线高低即心情走向
+const MOOD_LEVEL = Object.fromEntries(MOODS.map((m, i) => [m.key, i]));
+const MOOD_STEP = MOODS.length - 1;
 
 /**
  * 关系 · 数据
@@ -81,6 +84,24 @@ export default function RelationStatsModal({ open, onClose }) {
   const moodMax = Math.max(0, ...moodRows.map(r => r.n));
   const moodTops = moodRows.filter(r => r.n > 0 && r.n === moodMax);
 
+  // 折线点：只看有心情的日子；空档不插值，间隔超过 3 天就断开，避免虚构走势
+  const trendPts = band.map((d, i) => {
+    const lg = logMap.get(d);
+    const lvl = lg?.mood && MOOD_LEVEL[lg.mood] != null ? MOOD_LEVEL[lg.mood] : -1;
+    return lvl < 0 ? null : { i, d, lvl, mood: MOODS[lvl] };
+  });
+  const trendSegs = [];
+  let seg = [];
+  for (const p of trendPts) {
+    if (!p) continue;
+    if (seg.length && p.i - seg[seg.length - 1].i > 3) {
+      if (seg.length > 1) trendSegs.push(seg);
+      seg = [];
+    }
+    seg.push(p);
+  }
+  if (seg.length > 1) trendSegs.push(seg);
+
   const parts = [];
   if (frictionTotal > 0) parts.push(`有摩擦 ${frictionTotal} 次，其中「${top.label}」${top.n} 次最集中`);
   if (moodTops.length === 1) parts.push(`心情以「${moodTops[0].label}」最多（${moodMax} 天）`);
@@ -113,33 +134,25 @@ export default function RelationStatsModal({ open, onClose }) {
         <div className="text-[12.5px] text-ink-400 py-6 text-center">加载中…</div>
       ) : (
         <>
-          {/* ---- 时间带：上下两块 = 相处 / 心情，同一日期列对齐，下方短横 = 经期 ---- */}
+          {/* ---- 时间带：颜色 = 当天相处状态，下方短横 = 经期 ---- */}
           <div className="rounded-xl p-3" style={{ background: 'var(--surface-muted)' }}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-ink-400">近 21 天</span>
+              <span className="text-[11px] text-ink-400">相处 · 近 21 天</span>
               <span className="text-[10.5px] text-ink-300">下划线 = 经期</span>
             </div>
             <div className="flex gap-1">
-              <div className="w-[20px] shrink-0 flex flex-col gap-[2px]">
-                <span className="h-5 leading-5 text-[9.5px] text-ink-400">相处</span>
-                <span className="h-5 leading-5 text-[9.5px] text-ink-400">心情</span>
-              </div>
               {band.map(d => {
                 const lg = logMap.get(d);
                 const tagColor = lg?.tag ? tagOf(tagMap, lg.tag).color : BLANK_COLOR;
-                const moodColor = lg?.mood && MOOD_MAP[lg.mood] ? MOOD_MAP[lg.mood].color : BLANK_COLOR;
                 const isPeriod = phaseOf(d, periods) === 'period';
                 const title = [
                   `${fmtMd(d)} 周${weekdayOf(d)}`,
                   `相处：${lg?.tag ? tagOf(tagMap, lg.tag).label : '未记录'}`,
-                  `心情：${lg?.mood && MOOD_MAP[lg.mood] ? MOOD_MAP[lg.mood].label : '未记录'}`,
-                  lg?.note ? `相处备注：${lg.note}` : '',
-                  lg?.mood_note ? `心情备注：${lg.mood_note}` : '',
+                  lg?.note ? `备注：${lg.note}` : '',
                 ].filter(Boolean).join(' · ');
                 return (
-                  <div key={d} className="flex-1 flex flex-col items-center gap-[2px]" title={title}>
-                    <span className="w-full h-5 rounded-[4px]" style={{ background: tagColor }} />
-                    <span className="w-full h-5 rounded-[4px]" style={{ background: moodColor }} />
+                  <div key={d} className="flex-1 flex flex-col items-center gap-[3px]" title={title}>
+                    <span className="w-full h-6 rounded-[4px]" style={{ background: tagColor }} />
                     <span className="w-full h-[3px] rounded-full" style={{ background: isPeriod ? 'var(--m-life)' : 'transparent' }} />
                     <span
                       className={`text-[9.5px] leading-[11px] tabular-nums ${d === todayStr ? 'font-bold text-[var(--m-life)]' : 'text-ink-300'}`}
@@ -154,79 +167,114 @@ export default function RelationStatsModal({ open, onClose }) {
             </div>
           </div>
 
-          {/* ---- 图例：两条记录轴各一行，与上方两行色块一一对应 ---- */}
-          <div className="flex flex-col gap-1.5 mt-3">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-ink-400">
-              <span className="w-[20px] shrink-0 text-[9.5px]">相处</span>
-              {tagList.map(t => (
-                <span key={t.key} className="flex items-center gap-1.5">
-                  <i className="w-2 h-2 rounded-sm block" style={{ background: t.color }} />
-                  {t.label}
-                </span>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-ink-400">
-              <span className="w-[20px] shrink-0 text-[9.5px]">心情</span>
-              {MOODS.map(m => (
-                <span key={m.key} className="flex items-center gap-1.5">
-                  <i className="w-2 h-2 rounded-sm block" style={{ background: m.color }} />
-                  {m.label}
-                </span>
-              ))}
-              <span className="flex items-center gap-1.5">
-                <i className="w-2 h-2 rounded-sm block" style={{ background: BLANK_COLOR }} />
-                未记录
+          {/* ---- 图例 ---- */}
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 mt-2.5 text-[10.5px] text-ink-400">
+            {tagList.map(t => (
+              <span key={t.key} className="flex items-center gap-1.5">
+                <i className="w-2 h-2 rounded-sm block" style={{ background: t.color }} />
+                {t.label}
               </span>
+            ))}
+            <span className="flex items-center gap-1.5">
+              <i className="w-2 h-2 rounded-sm block" style={{ background: BLANK_COLOR }} />
+              未记录
+            </span>
+          </div>
+
+          {/* ---- 心情走势：纵轴 4 档（上=开心 下=烦躁），空档不连线，不虚构连续 ---- */}
+          <div className="rounded-xl p-3 mt-3" style={{ background: 'var(--surface-muted)' }}>
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-[11px] text-ink-400">心情走势 · 近 21 天</span>
+              <span className="text-[10.5px] text-ink-300">{moodLogs.length ? `${moodLogs.length} 天有记录` : '还没有记录'}</span>
+            </div>
+            <div className="flex gap-1.5">
+              <div className="relative w-[26px] shrink-0 h-[78px]">
+                {MOODS.map((m, i) => (
+                  <span
+                    key={m.key}
+                    className="absolute left-0 text-[9px] leading-none text-ink-400"
+                    style={{ top: `calc(${(i / MOOD_STEP) * 100}% - 4px)` }}
+                  >{m.label}</span>
+                ))}
+              </div>
+              <div className="relative flex-1 h-[78px]">
+                {MOODS.map((m, i) => (
+                  <span
+                    key={m.key}
+                    className="absolute left-0 right-0 h-px"
+                    style={{ top: `${(i / MOOD_STEP) * 100}%`, background: 'rgba(120,120,128,0.1)' }}
+                  />
+                ))}
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {trendSegs.map((s, k) => (
+                    <polyline
+                      key={k}
+                      points={s.map(p => `${((p.i + 0.5) / band.length) * 100},${(p.lvl / MOOD_STEP) * 100}`).join(' ')}
+                      fill="none"
+                      stroke="rgba(175,82,222,0.5)"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ))}
+                </svg>
+                <div className="absolute inset-0 flex">
+                  {band.map((d, i) => (
+                    <div key={d} className="relative flex-1">
+                      {trendPts[i] ? (
+                        <span
+                          className="absolute w-[7px] h-[7px] rounded-full"
+                          style={{
+                            left: '50%',
+                            top: `${(trendPts[i].lvl / MOOD_STEP) * 100}%`,
+                            transform: 'translate(-50%,-50%)',
+                            background: trendPts[i].mood.color,
+                            boxShadow: '0 0 0 1.5px var(--surface-muted)',
+                          }}
+                          title={`${fmtMd(d)} · ${trendPts[i].mood.label}`}
+                        />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mt-1 text-[10px] text-ink-300" style={{ paddingLeft: 32 }}>
+              <span>{fmtMd(band[0])}</span>
+              <span>今天</span>
             </div>
           </div>
 
-          {/* ---- 相位统计：摩擦次数 ---- */}
+          {/* ---- 摩擦按周期阶段：四根小柱，替代四行文字 ---- */}
           <div className="mt-4">
             <div className="flex items-baseline justify-between mb-2">
-              <span className="text-[11px] text-ink-400">摩擦按周期阶段</span>
-              <span className="text-[10.5px] text-ink-300">次数</span>
+              <span className="text-[11px] text-ink-400">摩擦 · 按周期阶段</span>
+              <span className="text-[10.5px] text-ink-300">近 90 天 {frictionTotal} 次</span>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex items-end gap-2 h-[58px]">
+              {phaseRows.map(r => {
+                const on = r.n > 0 && r.n === top.n;
+                return (
+                  <div key={r.key} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
+                    <span className={`text-[10px] tabular-nums ${on ? 'font-bold text-ink-800' : 'text-ink-400'}`}>{r.n}</span>
+                    <span
+                      className="w-full max-w-[38px] rounded-t-[3px]"
+                      style={{
+                        height: r.n === 0 ? 2 : Math.max(5, (r.n / Math.max(1, top.n)) * 34),
+                        background: on ? 'var(--m-life)' : r.n > 0 ? 'rgba(var(--m-life-rgb),0.28)' : 'rgba(120,120,128,0.16)',
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 mt-1">
               {phaseRows.map(r => (
-                <div key={r.key} className="grid items-center gap-2" style={{ gridTemplateColumns: '76px 1fr 24px' }}>
-                  <span className={`text-[11px] ${r.n === top.n && r.n > 0 ? 'font-semibold text-ink-800' : 'text-ink-400'}`}>{r.label}</span>
-                  <span className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-muted)' }}>
-                    <span
-                      className="block h-full rounded-full"
-                      style={{
-                        width: `${r.pct}%`,
-                        background: r.n === top.n && r.n > 0 ? 'var(--m-life)' : 'rgba(120,120,128,0.28)',
-                      }}
-                    />
-                  </span>
-                  <span className="text-[11px] font-semibold tabular-nums text-right text-ink-800">{r.n}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ---- 心情分布：天数，条形取各自心情色，最多次数加粗 ---- */}
-          <div className="mt-4">
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="text-[11px] text-ink-400">心情分布</span>
-              <span className="text-[10.5px] text-ink-300">天数</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {moodRows.map(r => (
-                <div key={r.key} className="grid items-center gap-2" style={{ gridTemplateColumns: '76px 1fr 24px' }}>
-                  <span className={`text-[11px] ${r.n > 0 && r.n === moodMax ? 'font-semibold text-ink-800' : 'text-ink-400'}`}>{r.label}</span>
-                  <span className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-muted)' }}>
-                    <span
-                      className="block h-full rounded-full"
-                      style={{
-                        width: `${r.pct}%`,
-                        background: r.n > 0 ? r.color : 'transparent',
-                        opacity: r.n > 0 && r.n === moodMax ? 1 : 0.55,
-                      }}
-                    />
-                  </span>
-                  <span className="text-[11px] font-semibold tabular-nums text-right text-ink-800">{r.n}</span>
-                </div>
+                <span
+                  key={r.key}
+                  className={`flex-1 text-center text-[9.5px] ${r.n > 0 && r.n === top.n ? 'text-ink-800 font-semibold' : 'text-ink-400'}`}
+                >{r.label}</span>
               ))}
             </div>
           </div>

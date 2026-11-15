@@ -32,14 +32,18 @@ export async function ensureRelationTables(env) {
       tag TEXT DEFAULT '',
       mood TEXT DEFAULT '',
       note TEXT DEFAULT '',
+      mood_note TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `).run();
-  // 老库补列：心情是后加的字段
+  // 老库补列：心情及其原因是后加的字段
   const cols = await dbAll(env.DB, `PRAGMA table_info(ethan_relation_logs)`);
   if (!cols.some(c => c.name === 'mood')) {
     await env.DB.prepare(`ALTER TABLE ethan_relation_logs ADD COLUMN mood TEXT DEFAULT ''`).run();
+  }
+  if (!cols.some(c => c.name === 'mood_note')) {
+    await env.DB.prepare(`ALTER TABLE ethan_relation_logs ADD COLUMN mood_note TEXT DEFAULT ''`).run();
   }
   await env.DB.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_relation_logs_user_date ON ethan_relation_logs(user_id, date)`).run();
   await env.DB.prepare(`
@@ -99,7 +103,7 @@ export async function handleRelationList(env, q) {
 
   const logs = await dbAll(
     env.DB,
-    `SELECT date, tag, mood, note FROM ethan_relation_logs
+    `SELECT date, tag, mood, note, mood_note FROM ethan_relation_logs
       WHERE user_id = ? AND date >= ? AND date <= ?
       ORDER BY date`,
     [userId, from, to]
@@ -161,7 +165,7 @@ export async function handleRelationTags(env, body) {
 }
 
 // ---------------- relation.log
-// 入参 { date, tag, mood, note }；三者皆空 → 删除该天记录
+// 入参 { date, tag, mood, note, moodNote }；全部为空 → 删除该天记录
 export async function handleRelationLog(env, body) {
   await ensureRelationTables(env);
   const userId = uid(env);
@@ -171,22 +175,24 @@ export async function handleRelationLog(env, body) {
   const tag = body?.tag == null ? '' : String(body.tag);
   const mood = body?.mood == null ? '' : String(body.mood);
   const note = String(body?.note || '').slice(0, 1000);
+  const moodNote = String(body?.moodNote || '').slice(0, 1000);
   if (mood && !REL_MOODS.includes(mood)) return json({ error: '无效的心情' }, 400);
 
-  if (!tag && !mood && !note) {
+  if (!tag && !mood && !note && !moodNote) {
     await dbRun(env.DB, `DELETE FROM ethan_relation_logs WHERE user_id = ? AND date = ?`, [userId, date]);
     return json({ ok: true, deleted: true });
   }
   await dbRun(
     env.DB,
-    `INSERT INTO ethan_relation_logs (user_id, date, tag, mood, note, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO ethan_relation_logs (user_id, date, tag, mood, note, mood_note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(user_id, date) DO UPDATE SET
        tag = excluded.tag,
        mood = excluded.mood,
        note = excluded.note,
+       mood_note = excluded.mood_note,
        updated_at = datetime('now')`,
-    [userId, date, tag, mood, note]
+    [userId, date, tag, mood, note, moodNote]
   );
   return json({ ok: true });
 }

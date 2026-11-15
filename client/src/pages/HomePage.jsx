@@ -1665,8 +1665,8 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           </div>
         </div>
 
-        {/* ========== 成长层：精力 / 关系 / 知力 / 能力 / 工作（lg 3 列，xl 5 等分） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 auto-rows-fr gap-4 md:min-h-[clamp(170px,26vh,248px)] md:shrink-0">
+        {/* ========== 成长层：精力 / 知力 / 能力 / 工作（第一行 4 卡），关系（第二行通栏） ========== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4 md:min-h-[clamp(170px,26vh,248px)] md:shrink-0">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">
@@ -1927,9 +1927,6 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </>
           )}
 
-          {/* ---- 关系：每天 20 秒记录相处 + 心情；与精力同属「每天的状态」，紧邻其右 ---- */}
-          <RelationCard onNav={onNav} />
-
           {/* ---- 知力：在读（主推书带封面） ---- */}
           <div className="glass-card p-4 flex flex-col">
             <CardHead
@@ -2054,6 +2051,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               )}
             </div>
           </div>
+
+          {/* ---- 关系：第二行通栏；相处与心情各自带备注，头部有周期设置与打卡数据 ---- */}
+          <RelationCard onNav={onNav} />
         </div>
 
         {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ==========

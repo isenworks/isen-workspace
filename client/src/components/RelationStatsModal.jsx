@@ -4,15 +4,12 @@ import Modal from './Modal.jsx';
 import { API } from '../api/client.js';
 import { today as getToday, addDaysISO } from '../utils/date.js';
 import {
-  BLANK_COLOR, PHASES, phaseOf, cycleInfo, lastDays, resolveTags, tagOf, MOODS,
+  BLANK_COLOR, PHASES, phaseOf, cycleInfo, lastDays, resolveTags, resolveMoods, tagOf,
 } from '../utils/relation.js';
 
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 const fmtMd = s => `${Number(s.slice(5, 7))}.${s.slice(8, 10)}`;
 const weekdayOf = s => WEEK[new Date(`${s}T00:00:00`).getDay()];
-// 心情按「好 → 差」排成纵轴档位：开心在最上、烦躁在最下，折线高低即心情走向
-const MOOD_LEVEL = Object.fromEntries(MOODS.map((m, i) => [m.key, i]));
-const MOOD_STEP = MOODS.length - 1;
 
 /**
  * 关系 · 数据
@@ -47,6 +44,10 @@ export default function RelationStatsModal({ open, onClose }) {
   const logs = data?.logs || [];
   const periods = data?.periods || [];
   const tagList = resolveTags(data?.tags);
+  // 心情档位按用户自己的标签顺序排（上=最好 下=最差），改名/加档都不影响折线语义
+  const moodList = resolveMoods(data?.tags);
+  const moodStep = Math.max(1, moodList.length - 1);
+  const moodLevel = Object.fromEntries(moodList.map((m, i) => [m.key, i]));
   const tagMap = useMemo(() => Object.fromEntries(tagList.map(t => [t.key, t])), [tagList]);
   const logMap = useMemo(() => {
     const m = new Map();
@@ -75,20 +76,19 @@ export default function RelationStatsModal({ open, onClose }) {
 
   // 心情是并行的第二条记录轴：与相处标签同日不同维度，各算各的天数
   const moodLogs = useMemo(() => logs.filter(l => l.mood), [logs]);
-  const moodRows = useMemo(() => {
-    const counts = Object.fromEntries(MOODS.map(m => [m.key, 0]));
+  const moodRows = (() => {
+    const counts = Object.fromEntries(moodList.map(m => [m.key, 0]));
     moodLogs.forEach(l => { if (counts[l.mood] != null) counts[l.mood] += 1; });
-    const max = Math.max(1, ...MOODS.map(m => counts[m.key]));
-    return MOODS.map(m => ({ ...m, n: counts[m.key], pct: (counts[m.key] / max) * 100 }));
-  }, [moodLogs]);
+    return moodList.map(m => ({ ...m, n: counts[m.key] || 0 }));
+  })();
   const moodMax = Math.max(0, ...moodRows.map(r => r.n));
   const moodTops = moodRows.filter(r => r.n > 0 && r.n === moodMax);
 
   // 折线点：只看有心情的日子；空档不插值，间隔超过 3 天就断开，避免虚构走势
   const trendPts = band.map((d, i) => {
     const lg = logMap.get(d);
-    const lvl = lg?.mood && MOOD_LEVEL[lg.mood] != null ? MOOD_LEVEL[lg.mood] : -1;
-    return lvl < 0 ? null : { i, d, lvl, mood: MOODS[lvl] };
+    const lvl = lg?.mood && moodLevel[lg.mood] != null ? moodLevel[lg.mood] : -1;
+    return lvl < 0 ? null : { i, d, lvl, mood: moodList[lvl] };
   });
   const trendSegs = [];
   let seg = [];
@@ -188,28 +188,28 @@ export default function RelationStatsModal({ open, onClose }) {
               <span className="text-[11.5px] text-ink-300">{moodLogs.length ? `${moodLogs.length} 天有记录` : '还没有记录'}</span>
             </div>
             <div className="flex gap-1.5">
-              <div className="relative w-[30px] shrink-0 h-[92px]">
-                {MOODS.map((m, i) => (
+              <div className="relative w-[34px] shrink-0 h-[92px]">
+                {moodList.map((m, i) => (
                   <span
                     key={m.key}
                     className="absolute left-0 text-[11px] leading-none text-ink-400"
-                    style={{ top: `calc(${(i / MOOD_STEP) * 100}% - 5px)` }}
+                    style={{ top: `calc(${(i / moodStep) * 100}% - 5px)` }}
                   >{m.label}</span>
                 ))}
               </div>
               <div className="relative flex-1 h-[92px]">
-                {MOODS.map((m, i) => (
+                {moodList.map((m, i) => (
                   <span
                     key={m.key}
                     className="absolute left-0 right-0 h-px"
-                    style={{ top: `${(i / MOOD_STEP) * 100}%`, background: 'rgba(120,120,128,0.1)' }}
+                    style={{ top: `${(i / moodStep) * 100}%`, background: 'rgba(120,120,128,0.1)' }}
                   />
                 ))}
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                   {trendSegs.map((s, k) => (
                     <polyline
                       key={k}
-                      points={s.map(p => `${((p.i + 0.5) / band.length) * 100},${(p.lvl / MOOD_STEP) * 100}`).join(' ')}
+                      points={s.map(p => `${((p.i + 0.5) / band.length) * 100},${(p.lvl / moodStep) * 100}`).join(' ')}
                       fill="none"
                       stroke="rgba(175,82,222,0.5)"
                       strokeWidth="1.5"
@@ -227,7 +227,7 @@ export default function RelationStatsModal({ open, onClose }) {
                           className="absolute w-[8px] h-[8px] rounded-full"
                           style={{
                             left: '50%',
-                            top: `${(trendPts[i].lvl / MOOD_STEP) * 100}%`,
+                            top: `${(trendPts[i].lvl / moodStep) * 100}%`,
                             transform: 'translate(-50%,-50%)',
                             background: trendPts[i].mood.color,
                             boxShadow: '0 0 0 1.5px var(--surface-muted)',

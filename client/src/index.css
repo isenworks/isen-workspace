@@ -1306,7 +1306,7 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .rel-hcell.editable { cursor: pointer; }
 .rel-hcell.editable:active { transform: scale(0.9); }
 .rel-hcell.on { color: #fff; }
-.rel-hcell.tdy { box-shadow: 0 0 0 1.5px rgba(120, 120, 128, 0.45); }
+.rel-hcell.tdy { box-shadow: 0 0 0 1.5px var(--cell-ring, rgba(120, 120, 128, 0.45)); }
 /* 正在编辑的那一格（含历史回填）：用模块色描边标出「当前写入目标」 */
 .rel-hcell.sel { box-shadow: 0 0 0 1.5px var(--m-life); }
 .rel-hcell.fut { background: rgba(120, 120, 128, 0.06); color: #c7c7cc; }

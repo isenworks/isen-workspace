@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
 import { today as getToday, addDaysISO } from '../utils/date.js';
 import { hexToRgba } from '../utils/color.js';
-import { MOODS, cycleInfo, lastDays, resolveTags } from '../utils/relation.js';
+import { cycleInfo, lastDays, resolveMoods, resolveTags } from '../utils/relation.js';
 import CardHead from './CardHead.jsx';
 import RelationStatsModal from './RelationStatsModal.jsx';
 import RelationCycleModal from './RelationCycleModal.jsx';
@@ -60,6 +60,7 @@ export default function RelationCard({ onNav }) {
   const logByDate = useMemo(() => Object.fromEntries(logs.map(l => [l.date, l])), [logs]);
   const cycle = useMemo(() => cycleInfo(periods, todayStr), [periods, todayStr]);
   const tagList = useMemo(() => resolveTags(tags), [tags]);
+  const moodList = useMemo(() => resolveMoods(tags), [tags]);
   const activeDate = day || todayStr;
   const activeLog = logByDate[activeDate] || null;
 
@@ -141,7 +142,9 @@ export default function RelationCard({ onNav }) {
                 type="button"
                 onClick={() => openDay(d)}
                 className={`rel-hcell editable${isTdy ? ' tdy' : ''}${o ? ' on' : ''}${sel ? ' sel' : ''}`}
-                style={o ? { background: o.color } : undefined}
+                style={o
+                  ? { background: o.color, ...(isTdy ? { '--cell-ring': hexToRgba(o.color, 0.45) } : {}) }
+                  : undefined}
                 title={`${mdOf(d)} 周${weekdayOf(d)}${o ? ` · ${o.label}` : ' · 未记录'}${isTdy ? '（今天）' : '（点击记录）'}`}
               >{dayNo(d)}</button>
             );
@@ -264,7 +267,7 @@ export default function RelationCard({ onNav }) {
           name: '心情',
           valueKey: 'mood',
           noteField: 'mood_note',
-          options: MOODS,
+          options: moodList,
           placeholder: '心情的原因',
           emptyText: '未记录',
         })}
@@ -281,12 +284,12 @@ export default function RelationCard({ onNav }) {
           type="button"
           onClick={() => setTagOpen(true)}
           className="text-[10.5px] text-ink-300 hover:text-[var(--m-life)] transition"
-        >管理相处标签</button>
+        >管理标签</button>
       </div>
 
       <RelationStatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
       <RelationCycleModal open={cycleOpen} onClose={() => setCycleOpen(false)} onChanged={load} />
-      <RelationTagModal open={tagOpen} onClose={() => setTagOpen(false)} tags={tagList} onChanged={load} />
+      <RelationTagModal open={tagOpen} onClose={() => setTagOpen(false)} tags={tags} onChanged={load} />
     </div>
   );
 }

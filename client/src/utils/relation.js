@@ -12,7 +12,7 @@ export const REL_TAGS = [
   { key: 'unwell', label: '她不舒服', color: '#AF52DE' },
 ];
 
-// 心情预设（固定，不参与增删；记录用）
+// 心情预设（默认四档；与相处标签一样存在 ethan_relation_tags，可改名/换色/增删）
 export const MOODS = [
   { key: 'happy', label: '开心', color: '#FF9500' },
   { key: 'steady', label: '平稳', color: '#34C759' },
@@ -21,8 +21,17 @@ export const MOODS = [
 ];
 export const MOOD_MAP = Object.fromEntries(MOODS.map(m => [m.key, m]));
 
+const kindOf = t => (t?.kind === 'mood' ? 'mood' : 'tag');
+
 // 接口没返回标签时（老缓存 / 请求失败）退回默认四态，避免空白
-export const resolveTags = (tags) => (Array.isArray(tags) && tags.length ? tags : REL_TAGS);
+export const resolveTags = (tags) => {
+  const list = (Array.isArray(tags) ? tags : []).filter(t => kindOf(t) === 'tag');
+  return list.length ? list : REL_TAGS;
+};
+export const resolveMoods = (tags) => {
+  const list = (Array.isArray(tags) ? tags : []).filter(t => kindOf(t) === 'mood');
+  return list.length ? list : MOODS;
+};
 export const tagMapOf = (tags) => Object.fromEntries(resolveTags(tags).map(t => [t.key, t]));
 // 已删除的标签仍出现在历史记录里：给出中性占位，不隐藏、不改写数据
 export const tagOf = (map, key) => map[key] || { key, label: '已删除', color: '#C7C7CC' };

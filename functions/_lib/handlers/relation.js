@@ -15,8 +15,14 @@ const SEED_TAGS = [
   { key: 'friction', label: '有摩擦', color: '#FF3B30', sort: 3 },
   { key: 'unwell', label: '她不舒服', color: '#AF52DE', sort: 4 },
 ];
-// 心情固定预设（记录用，不参与标签增删）
+// 心情默认四档，与相处标签同样存在 ethan_relation_tags（kind='mood'），可改名/换色/增删
 export const REL_MOODS = ['happy', 'steady', 'low', 'irritable'];
+const SEED_MOODS = [
+  { key: 'happy', label: '开心', color: '#FF9500', sort: 1 },
+  { key: 'steady', label: '平稳', color: '#34C759', sort: 2 },
+  { key: 'low', label: '低落', color: '#5E5CE6', sort: 3 },
+  { key: 'irritable', label: '烦躁', color: '#FF3B30', sort: 4 },
+];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // 懒迁移：Worker isolate 内复用，避免每次请求都跑 DDL
@@ -63,33 +69,54 @@ export async function ensureRelationTables(env) {
       key TEXT NOT NULL,
       label TEXT NOT NULL,
       color TEXT DEFAULT '#8E8E93',
+      kind TEXT DEFAULT 'tag',
       sort INTEGER DEFAULT 0,
       UNIQUE(user_id, key)
     )
   `).run();
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_relation_tags_user ON ethan_relation_tags(user_id, sort)`).run();
+  // 老库补列：kind 区分「相处标签」与「心情标签」，历史数据默认归为相处
+  const tagCols = await dbAll(env.DB, `PRAGMA table_info(ethan_relation_tags)`);
+  if (!tagCols.some(c => c.name === 'kind')) {
+    await env.DB.prepare(`ALTER TABLE ethan_relation_tags ADD COLUMN kind TEXT DEFAULT 'tag'`).run();
+  }
   _relationReady = true;
 }
 
 // 每个用户首次访问时灌默认标签（放在按用户查询的入口里，DDL 不关心用户）
+// 相处与心情分别判断：老用户只有相处标签，会被补上心情四档
 async function ensureRelationTags(env, userId) {
-  const row = await dbFirst(env.DB, `SELECT COUNT(*) AS n FROM ethan_relation_tags WHERE user_id = ?`, [userId]);
-  if (Number(row?.n) > 0) return;
-  for (const t of SEED_TAGS) {
-    await dbRun(
+  for (const kind of ['tag', 'mood']) {
+    const row = await dbFirst(
       env.DB,
-      `INSERT OR IGNORE INTO ethan_relation_tags (user_id, key, label, color, sort) VALUES (?, ?, ?, ?, ?)`,
-      [userId, t.key, t.label, t.color, t.sort]
+      `SELECT COUNT(*) AS n FROM ethan_relation_tags WHERE user_id = ? AND kind = ?`,
+      [userId, kind]
     );
+    if (Number(row?.n) > 0) continue;
+    for (const t of (kind === 'mood' ? SEED_MOODS : SEED_TAGS)) {
+      await dbRun(
+        env.DB,
+        `INSERT OR IGNORE INTO ethan_relation_tags (user_id, kind, key, label, color, sort) VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, kind, t.key, t.label, t.color, t.sort]
+      );
+    }
   }
 }
 
 async function listTags(env, userId) {
   return dbAll(
     env.DB,
-    `SELECT key, label, color FROM ethan_relation_tags WHERE user_id = ? ORDER BY sort, id`,
+    `SELECT key, label, color, kind FROM ethan_relation_tags
+      WHERE user_id = ?
+      ORDER BY CASE kind WHEN 'mood' THEN 1 ELSE 0 END, sort, id`,
     [userId]
   );
+}
+
+// 心情可选值以用户自己的心情标签为准（删除过的心情不再允许写入新值）
+async function listMoodKeys(env, userId) {
+  const rows = await dbAll(env.DB, `SELECT key FROM ethan_relation_tags WHERE user_id = ? AND kind = 'mood'`, [userId]);
+  return rows.map(r => r.key);
 }
 
 // ---------------- relation.list
@@ -121,12 +148,13 @@ export async function handleRelationList(env, q) {
 }
 
 // ---------------- relation.tags
-// 入参 { action: 'save'|'remove', key?, label?, color? }
+// 入参 { action: 'save'|'remove', kind?: 'tag'|'mood', key?, label?, color? }
 export async function handleRelationTags(env, body) {
   await ensureRelationTables(env);
   const userId = uid(env);
   await ensureRelationTags(env, userId);
   const action = String(body?.action || 'list');
+  const kind = body?.kind === 'mood' ? 'mood' : 'tag';
 
   if (action === 'list') return json({ tags: await listTags(env, userId) });
 
@@ -138,16 +166,21 @@ export async function handleRelationTags(env, body) {
     if (key) {
       await dbRun(
         env.DB,
-        `UPDATE ethan_relation_tags SET label = ?, color = ? WHERE user_id = ? AND key = ?`,
-        [label, color, userId, key]
+        `UPDATE ethan_relation_tags SET label = ?, color = ? WHERE user_id = ? AND key = ? AND kind = ?`,
+        [label, color, userId, key, kind]
       );
     } else {
-      const cnt = await dbFirst(env.DB, `SELECT COUNT(*) AS n FROM ethan_relation_tags WHERE user_id = ?`, [userId]);
-      const newKey = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+      const cnt = await dbFirst(
+        env.DB,
+        `SELECT COUNT(*) AS n FROM ethan_relation_tags WHERE user_id = ? AND kind = ?`,
+        [userId, kind]
+      );
+      // 心情 key 带上 mood 前缀，避免与相处标签的 key 撞 UNIQUE(user_id, key)
+      const newKey = `${kind === 'mood' ? 'm' : 'c'}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
       await dbRun(
         env.DB,
-        `INSERT INTO ethan_relation_tags (user_id, key, label, color, sort) VALUES (?, ?, ?, ?, ?)`,
-        [userId, newKey, label, color, Number(cnt?.n || 0) + 1]
+        `INSERT INTO ethan_relation_tags (user_id, kind, key, label, color, sort) VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, kind, newKey, label, color, Number(cnt?.n || 0) + 1]
       );
     }
     return json({ ok: true, tags: await listTags(env, userId) });
@@ -156,7 +189,7 @@ export async function handleRelationTags(env, body) {
   if (action === 'remove') {
     const key = String(body?.key || '');
     if (!key) return json({ error: '缺少标签 key' }, 400);
-    await dbRun(env.DB, `DELETE FROM ethan_relation_tags WHERE user_id = ? AND key = ?`, [userId, key]);
+    await dbRun(env.DB, `DELETE FROM ethan_relation_tags WHERE user_id = ? AND key = ? AND kind = ?`, [userId, key, kind]);
     // 历史记录保留原始 key：卡片按「已删除」灰标签展示，不静默丢数据
     return json({ ok: true, tags: await listTags(env, userId) });
   }
@@ -169,6 +202,7 @@ export async function handleRelationTags(env, body) {
 export async function handleRelationLog(env, body) {
   await ensureRelationTables(env);
   const userId = uid(env);
+  await ensureRelationTags(env, userId);
   const date = String(body?.date || '');
   if (!DATE_RE.test(date)) return json({ error: '日期格式不正确' }, 400);
 
@@ -176,7 +210,11 @@ export async function handleRelationLog(env, body) {
   const mood = body?.mood == null ? '' : String(body.mood);
   const note = String(body?.note || '').slice(0, 1000);
   const moodNote = String(body?.moodNote || '').slice(0, 1000);
-  if (mood && !REL_MOODS.includes(mood)) return json({ error: '无效的心情' }, 400);
+  // 心情以用户维护的心情标签为准；已删除的旧心情允许原样回写，避免改备注时存不下来
+  if (mood && !(await listMoodKeys(env, userId)).includes(mood)) {
+    const cur = await dbFirst(env.DB, `SELECT mood FROM ethan_relation_logs WHERE user_id = ? AND date = ?`, [userId, date]);
+    if (mood !== (cur?.mood || '')) return json({ error: '无效的心情' }, 400);
+  }
 
   if (!tag && !mood && !note && !moodNote) {
     await dbRun(env.DB, `DELETE FROM ethan_relation_logs WHERE user_id = ? AND date = ?`, [userId, date]);

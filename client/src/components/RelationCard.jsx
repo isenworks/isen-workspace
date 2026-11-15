@@ -4,9 +4,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
 import { today as getToday, addDaysISO } from '../utils/date.js';
 import { hexToRgba } from '../utils/color.js';
-import {
-  MOODS, MOOD_MAP, BLANK_COLOR, cycleInfo, lastDays, resolveTags, tagOf,
-} from '../utils/relation.js';
+import { MOODS, cycleInfo, lastDays, resolveTags } from '../utils/relation.js';
 import CardHead from './CardHead.jsx';
 import RelationStatsModal from './RelationStatsModal.jsx';
 import RelationCycleModal from './RelationCycleModal.jsx';
@@ -15,13 +13,13 @@ import RelationTagModal from './RelationTagModal.jsx';
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 const weekdayOf = s => WEEK[new Date(`${s}T00:00:00`).getDay()];
 const mdOf = s => `${Number(s.slice(5, 7))}.${s.slice(8, 10)}`;
+const dayNo = s => parseInt(s.slice(8), 10);
 
 /**
- * 首页「关系」卡（成长层第二行通栏，与精力同属「每天的状态」）
- *   三栏并列：相处（标签 + 原因备注）｜心情（标签 + 原因备注）｜最近 7 天
- *   · 点一下即存，再点取消；相处与心情各自有独立备注，不互相覆盖
- *   · 相处标签可增删改（行尾「+」），改 label/color 不改 key，统计口径不漂移
- *   · 经期是区间：开始/结束/改日期/删除都在「周期设置」；数据面板入口与精力同款柱状图标
+ * 首页「关系」卡（成长层第二行通栏）
+ *   结构与精力卡对齐：每行 = 名称 + 7 个日期格 + 行内说明，格子同为 24px / 5px 圆角 / 10px 数字。
+ *   两行分别是「相处」「心情」，今天是可编辑格（点开在行内选标签），历史格只回看。
+ *   相处与心情各自有独立备注，不互相覆盖；经期区间与统计入口都在卡头。
  */
 export default function RelationCard({ onNav }) {
   const toast = useToast();
@@ -29,6 +27,7 @@ export default function RelationCard({ onNav }) {
   const [periods, setPeriods] = useState([]);
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [picker, setPicker] = useState(''); // '' | 'tag' | 'mood'
   const [editField, setEditField] = useState(''); // '' | 'note' | 'mood_note'
   const [draft, setDraft] = useState('');
   const [statsOpen, setStatsOpen] = useState(false);
@@ -45,7 +44,7 @@ export default function RelationCard({ onNav }) {
       setPeriods(r.periods || []);
       setTags(r.tags || []);
     } catch {
-      /* 静默：不打扰首页，下次进页面会再拉 */
+      /* 静默：首页不因关系数据失败而报错 */
     } finally {
       setLoading(false);
     }
@@ -56,11 +55,11 @@ export default function RelationCard({ onNav }) {
     if (msg?.type === 'reload') load();
   }), [load]);
 
-  const todayLog = useMemo(() => logs.find(l => l.date === todayStr) || null, [logs, todayStr]);
-  const cycle = useMemo(() => cycleInfo(periods, todayStr), [periods, todayStr]);
   const week = useMemo(() => lastDays(7, todayStr), [todayStr]);
+  const logByDate = useMemo(() => Object.fromEntries(logs.map(l => [l.date, l])), [logs]);
+  const cycle = useMemo(() => cycleInfo(periods, todayStr), [periods, todayStr]);
   const tagList = useMemo(() => resolveTags(tags), [tags]);
-  const tagMap = useMemo(() => Object.fromEntries(tagList.map(t => [t.key, t])), [tagList]);
+  const todayLog = logByDate[todayStr] || null;
 
   // 任意一项变更都提交「当天完整状态」，避免后写的字段把先写的冲掉
   async function patchToday(patch) {
@@ -84,10 +83,13 @@ export default function RelationCard({ onNav }) {
     }
   }
 
-  function toggleTag(key) { patchToday({ tag: todayLog?.tag === key ? '' : key }); }
-  function toggleMood(key) { patchToday({ mood: todayLog?.mood === key ? '' : key }); }
+  function pick(field, key) {
+    setPicker('');
+    patchToday({ [field]: todayLog?.[field] === key ? '' : key });
+  }
 
   function openEdit(field) {
+    setPicker('');
     setEditField(field);
     setDraft(todayLog?.[field] || '');
   }
@@ -100,48 +102,96 @@ export default function RelationCard({ onNav }) {
     patchToday({ [field]: v });
   }
 
-  // 一栏里的「标签 + 备注」块，相处与心情共用，只在文案与数据字段上不同
-  // 用普通渲染函数而非内部组件：内部组件每次渲染都是新类型，会导致输入框重挂载、输入丢焦点
-  function renderField({ label, chips, field, placeholder }) {
-    const value = todayLog?.[field] || '';
-    const editing = editField === field;
+  // 一行 = 名称 + 7 个日期格 + 行内状态/备注；tag/mood 共用，只是取色与文案不同
+  function renderRow({ name, valueKey, noteField, options, placeholder, emptyText }) {
+    const value = todayLog?.[valueKey] || '';
+    const cur = options.find(o => o.key === value);
+    const note = todayLog?.[noteField] || '';
+    const choosing = picker === valueKey;
+    const editing = editField === noteField;
     return (
-      <div className="flex flex-col min-w-0">
-        <div className="text-[10.5px] text-ink-400 mb-1.5">{label}</div>
-        {chips}
-        <div className="mt-2 min-w-0">
-          {editing ? (
-            <input
-              autoFocus
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') saveEdit(); }}
-              onBlur={saveEdit}
-              placeholder={placeholder}
-              maxLength={200}
-              className="w-full h-[24px] px-2 rounded-md text-[11.5px] text-ink-800 outline-none"
-              style={{ background: 'rgba(120,120,128,0.08)', border: '1px solid rgba(60,60,67,0.1)' }}
-            />
-          ) : (
+      <div className="rel-hrow" key={valueKey}>
+        <span className="rel-hname">{name}</span>
+        <div className="rel-hcells">
+          {week.map(d => {
+            const lg = logByDate[d];
+            const o = options.find(x => x.key === (lg?.[valueKey] || ''));
+            const isTdy = d === todayStr;
+            return (
+              <button
+                key={d}
+                type="button"
+                disabled={!isTdy}
+                onClick={() => setPicker(choosing ? '' : valueKey)}
+                className={`rel-hcell${isTdy ? ' editable tdy' : ''}${o ? ' on' : ''}`}
+                style={o ? { background: o.color } : undefined}
+                title={`${mdOf(d)} 周${weekdayOf(d)}${o ? ` · ${o.label}` : ' · 未记录'}${isTdy ? '（点击修改）' : ''}`}
+              >{dayNo(d)}</button>
+            );
+          })}
+        </div>
+
+        {choosing ? (
+          <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto no-sb">
+            {options.map(o => {
+              const on = value === o.key;
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => pick(valueKey, o.key)}
+                  className="rel-chip"
+                  style={on
+                    ? { color: o.color, background: hexToRgba(o.color, 0.14), border: `1px solid ${hexToRgba(o.color, 0.45)}` }
+                    : undefined}
+                >{o.label}</button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <button
               type="button"
-              onClick={() => openEdit(field)}
-              className="flex items-center gap-1.5 w-full min-w-0 text-[11.5px] text-ink-400 hover:text-ink-700 transition text-left"
-              title={value || placeholder}
-            >
-              <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 12 12" fill="none">
-                <path d="M8.4 1.9l1.7 1.7-5.9 5.9-2.3.6.6-2.3 5.9-5.9z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-              </svg>
-              <span className="truncate">{value || '添加备注'}</span>
-            </button>
-          )}
-        </div>
+              onClick={() => setPicker(valueKey)}
+              className="rel-val font-medium flex-shrink-0 rounded hover:opacity-70 transition"
+              style={{ color: cur?.color || 'var(--text-3)' }}
+              title="点击选择"
+            >{cur?.label || emptyText}</button>
+            {editing ? (
+              <input
+                autoFocus
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditField(''); }}
+                onBlur={saveEdit}
+                placeholder={placeholder}
+                maxLength={200}
+                className="rel-note-input flex-1 min-w-0"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => openEdit(noteField)}
+                className="rel-val text-ink-300 hover:text-ink-600 truncate text-left min-w-0 transition"
+                title={note || placeholder}
+              >{note || placeholder}</button>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => openEdit(noteField)}
+          className="w-[20px] h-[20px] flex-shrink-0 grid place-items-center rounded-md text-ink-300 hover:text-[var(--m-life)] transition"
+          title={note ? '修改备注' : '添加备注'}
+        >
+          <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+            <path d="M8.4 1.9l1.7 1.7-5.9 5.9-2.3.6.6-2.3 5.9-5.9z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
     );
   }
-
-  const chipCls = 'h-[22px] px-1.5 rounded-md text-[11px] font-medium transition active:scale-[0.97] whitespace-nowrap flex-shrink-0';
-  const chipOff = { color: 'var(--text-2)', background: 'transparent', border: '1px solid rgba(60,60,67,0.14)' };
 
   return (
     <div className="glass-card p-4 flex flex-col min-h-0 col-span-1 sm:col-span-2 lg:col-span-4">
@@ -175,101 +225,37 @@ export default function RelationCard({ onNav }) {
         )}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 flex-1 min-h-0">
-
-        {/* ---- 相处：标签 + 原因备注 ---- */}
-        {renderField({
-          label: '相处',
-          field: 'note',
-          placeholder: '今天发生了什么（写事件，不写评价）',
-          chips: (
-            <div className="flex items-center gap-1 min-w-0">
-              <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto no-sb">
-                {tagList.map(t => {
-                  const on = todayLog?.tag === t.key;
-                  return (
-                    <button
-                      key={t.key}
-                      type="button"
-                      onClick={() => toggleTag(t.key)}
-                      className={chipCls}
-                      style={on
-                        ? { color: t.color, background: hexToRgba(t.color, 0.14), border: `1px solid ${hexToRgba(t.color, 0.45)}` }
-                        : chipOff}
-                    >{t.label}</button>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                onClick={() => setTagOpen(true)}
-                className="w-[18px] h-[18px] rounded-md grid place-items-center flex-shrink-0 transition"
-                style={{ background: 'rgba(var(--m-life-rgb),0.08)', color: 'var(--m-life)' }}
-                title="管理相处标签"
-              >
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.6" viewBox="0 0 24 24" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-              </button>
-            </div>
-          ),
+      <div className="rel-hb">
+        {renderRow({
+          name: '相处',
+          valueKey: 'tag',
+          noteField: 'note',
+          options: tagList,
+          placeholder: '今天发生了什么',
+          emptyText: '未记录',
         })}
-
-        {/* ---- 心情：标签 + 原因备注（与相处独立存储，互不覆盖） ---- */}
-        {renderField({
-          label: '她的心情',
-          field: 'mood_note',
-          placeholder: '心情的原因，如「工作汇报被否」',
-          chips: (
-            <div className="flex items-center gap-1 min-w-0 overflow-x-auto no-sb">
-              {MOODS.map(m => {
-                const on = todayLog?.mood === m.key;
-                return (
-                  <button
-                    key={m.key}
-                    type="button"
-                    onClick={() => toggleMood(m.key)}
-                    className={chipCls}
-                    style={on
-                      ? { color: m.color, background: hexToRgba(m.color, 0.14), border: `1px solid ${hexToRgba(m.color, 0.45)}` }
-                      : chipOff}
-                  >{m.label}</button>
-                );
-              })}
-            </div>
-          ),
+        {renderRow({
+          name: '心情',
+          valueKey: 'mood',
+          noteField: 'mood_note',
+          options: MOODS,
+          placeholder: '心情的原因',
+          emptyText: '未记录',
         })}
+      </div>
 
-        {/* ---- 最近 7 天：只回看，不可点（避免和「今天」两套编辑入口打架） ---- */}
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10.5px] text-ink-400">最近 7 天</span>
-            <button
-              type="button"
-              onClick={() => onNav?.('inbox')}
-              className="text-[10.5px] text-ink-300 hover:text-[var(--m-life)] transition"
-              title="去小记写完整复盘"
-            >复盘</button>
-          </div>
-          <div className="flex items-center gap-1">
-            {week.map(d => {
-              const lg = logs.find(l => l.date === d);
-              const t = lg?.tag ? tagOf(tagMap, lg.tag) : null;
-              const moodLabel = lg?.mood ? MOOD_MAP[lg.mood]?.label : '';
-              return (
-                <div key={d} className="flex-1 min-w-0 flex flex-col items-center gap-1">
-                  <span
-                    className="w-full h-[20px] rounded-md block"
-                    style={{
-                      background: t ? t.color : BLANK_COLOR,
-                      boxShadow: d === todayStr ? '0 0 0 1.5px var(--surface-card), 0 0 0 2.5px var(--m-life)' : 'none',
-                    }}
-                    title={`${mdOf(d)} 周${weekdayOf(d)}${t ? ` · ${t.label}` : ''}${moodLabel ? ` · ${moodLabel}` : ''}`}
-                  />
-                  <span className="text-[9.5px] text-ink-300 leading-none">{weekdayOf(d)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <div className="flex items-center justify-between mt-1 pt-1.5" style={{ borderTop: '1px solid rgba(60,60,67,0.06)' }}>
+        <button
+          type="button"
+          onClick={() => onNav?.('inbox')}
+          className="text-[10.5px] text-ink-300 hover:text-[var(--m-life)] transition"
+          title="去小记写完整复盘"
+        >写复盘</button>
+        <button
+          type="button"
+          onClick={() => setTagOpen(true)}
+          className="text-[10.5px] text-ink-300 hover:text-[var(--m-life)] transition"
+        >管理相处标签</button>
       </div>
 
       <RelationStatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />

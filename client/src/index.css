@@ -1284,6 +1284,45 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .hp-hcell-btn:not(.fut):not(:disabled):hover { box-shadow: 0 0 0 1.5px rgba(52, 199, 89, 0.6); }
 .hp-hcell-btn:not(.fut):not(:disabled):active { transform: scale(0.9); }
 
+/* ===== 关系卡：两行打卡格子，尺寸与精力卡的 .hp-hcell 完全同规格 =====
+   用同一套 24px 高 / 5px 圆角 / 10px 数字，两卡并排时行高与格子大小视觉一致。
+   差异只在：格子上色取标签/心情色，右侧是「今日状态 + 备注」而不是 7 天计数。 */
+.rel-hb { display: flex; flex-direction: column; gap: 7px; flex: 1; padding: 2px 0 3px; }
+.rel-hrow { display: flex; align-items: center; gap: 6px; }
+.rel-hname {
+  font-size: 14px; font-weight: 400; color: #2a3431;
+  width: 40px; flex-shrink: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rel-hcells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3.5px; flex: 1; max-width: 290px; }
+.rel-hcell {
+  height: 24px; border-radius: 5px; border: 0; padding: 0;
+  display: grid; place-items: center; cursor: default;
+  font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: #a8a8ad; background: #ececef;
+  -webkit-appearance: none; appearance: none;
+  transition: transform .12s ease;
+}
+.rel-hcell.editable { cursor: pointer; }
+.rel-hcell.editable:active { transform: scale(0.9); }
+.rel-hcell.on { color: #fff; }
+.rel-hcell.tdy { box-shadow: 0 0 0 1.5px rgba(120, 120, 128, 0.45); }
+.rel-hcell.fut { background: rgba(120, 120, 128, 0.06); color: #c7c7cc; }
+.rel-val { font-size: 12px; line-height: 16px; }
+.rel-chip {
+  height: 22px; padding: 0 7px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+  border: 1px solid rgba(60, 60, 67, 0.14); background: transparent;
+  color: var(--text-2); cursor: pointer;
+  transition: transform .12s ease;
+}
+.rel-chip:active { transform: scale(0.97); }
+.rel-note-input {
+  height: 24px; border-radius: 6px; padding: 0 8px;
+  font-size: 11.5px; color: var(--text-1); outline: none;
+  background: rgba(120, 120, 128, 0.08); border: 1px solid rgba(60, 60, 67, 0.1);
+}
+
 /* ===== QuickCapture 富文本编辑器 ===== */
 .qc-editor:empty::before {
   content: attr(data-placeholder);

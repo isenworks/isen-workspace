@@ -1482,7 +1482,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         {/* ========== 时间层：今日聚焦 / 本周目标 / 即将到来（3 等分，md 起 3 列） ==========
              窄屏：auto-rows-auto —— 每张卡按各自内容自适应高度（不再被 auto-rows-fr 拉齐到最高卡）；
              md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满视口 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[clamp(200px,25vh,240px)]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）；节日见卡片头徽标 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
@@ -1666,7 +1666,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         </div>
 
         {/* ========== 成长层：精力 / 知力 / 能力 / 工作（第一行 4 卡），关系（第二行通栏） ========== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4 md:min-h-[clamp(170px,26vh,248px)] md:shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:grid-rows-[1fr_auto] md:min-h-[clamp(170px,26vh,248px)] md:shrink-0">
 
           {/* ---- 精力：周打卡矩阵（标题精简两字，行尾显示本周打卡次数） ---- */}
           <div className="glass-card p-4 flex flex-col">

@@ -85,7 +85,11 @@ function inlineToMd(node) {
     else if (tag === 'EM' || tag === 'I') out += `*${inner}*`;
     else if (tag === 'CODE') out += `\`${inner}\``;
     else if (tag === 'DEL' || tag === 'S') out += `~~${inner}~~`;
-    else out += inner; // A / SPAN / U 等：备份只要文字
+    else if (tag === 'A') {
+      const href = n.getAttribute('href') || '';
+      out += href ? `[${inner}](${href})` : inner;
+    }
+    else out += inner; // SPAN / U 等：备份只要文字
   });
   return out;
 }

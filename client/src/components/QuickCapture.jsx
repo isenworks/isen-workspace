@@ -601,6 +601,13 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   // 点击圆点元素本体 → 切换勾选态（真实元素命中，不再依赖坐标区间判定）
   // 点击图片本体 → 进入缩放选中态；点正文其他位置 → 取消选中
   function onEditorClick(e) {
+    // 点击正文里的链接直接新标签页打开；contenteditable 默认只落光标，不跳转
+    const link = e.target?.closest?.('a[href]');
+    if (link && editorRef.current?.contains(link)) {
+      e.preventDefault();
+      window.open(link.getAttribute('href'), '_blank', 'noopener,noreferrer');
+      return;
+    }
     const img = e.target?.closest?.('img.qc-img');
     if (img) {
       e.preventDefault();
@@ -882,7 +889,31 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     }
     const text = dt.getData('text/plain');
     e.preventDefault();
-    if (text) document.execCommand('insertText', false, text);
+    if (!text) return;
+    // 粘贴的整段内容就是一个链接 → 落成可点击的 <a>（与飞书一致），否则仍按纯文本插入
+    const t = text.trim();
+    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(t);
+    if (isUrl) {
+      const href = /^www\./i.test(t) ? `https://${t}` : t;
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = t;
+      // 用 Range 插入（不用 insertHTML）：iOS Safari 对 execCommand insertHTML 支持不稳
+      const sel = window.getSelection();
+      if (sel?.rangeCount) {
+        const r = sel.getRangeAt(0);
+        r.deleteContents();
+        r.insertNode(a);
+        r.setStartAfter(a);
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
+    } else {
+      document.execCommand('insertText', false, text);
+    }
     touch();
   }
 

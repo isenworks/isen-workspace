@@ -1294,6 +1294,15 @@ textarea.input { resize: vertical; line-height: 1.5; min-height: 60px; }
 .qc-editor h2 { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 6px 0 3px; }
 .qc-editor p { margin: 0 0 6px; }
 .qc-editor p:last-child { margin-bottom: 0; }
+/* 正文链接：与飞书一致，蓝字下划线、点击即开（点击拦截在 onEditorClick） */
+.qc-editor a {
+  color: var(--s-main);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  word-break: break-all;
+}
+.qc-editor a:hover { opacity: 0.8; }
 /* 正文图片：只存 URL（二进制在 R2），按容器宽度自适应 */
 .qc-editor img.qc-img {
   display: block;

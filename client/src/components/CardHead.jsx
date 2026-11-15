@@ -1,19 +1,20 @@
-// 卡片头：模块色竖条 + 标题 + 右侧自定义动作位 + 查看入口（右上箭头）
+// 卡片头：模块色竖条 + 标题 + 自定义动作位 + 查看入口（右上箭头）
 // 首页各卡片与「关系」卡共用，保证色条宽度 / 字号 / 动作按钮完全一致
+// inlineAction：动作按钮紧跟标题左侧排列（宽卡上仍与标题同处一簇），默认贴右
 const modColor = (k) => `var(--m-${k})`;
 const modRgba = (k, a) => `rgba(var(--m-${k}-rgb),${a})`;
 
-export default function CardHead({ moduleKey, title, sub, onClick, action, extra }) {
+export default function CardHead({ moduleKey, title, sub, onClick, action, extra, inlineAction }) {
   const color = moduleKey ? modColor(moduleKey) : 'var(--s-main)';
   return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2.5 min-w-0">
+    <div className="flex items-center mb-3 min-w-0">
+      <div className={`flex items-center gap-2.5 min-w-0${inlineAction ? '' : ' flex-1'}`}>
         <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }} />
         <span className="text-[15px] font-bold text-ink-900 truncate">{title}</span>
         {sub ? <span className="text-[11px] text-ink-400 flex-shrink-0">{sub}</span> : null}
         {extra}
       </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className={`flex items-center gap-1.5 flex-shrink-0${inlineAction ? ' ml-1.5' : ''}`}>
         {action}
         {onClick ? (
           <button

@@ -175,7 +175,7 @@ export default function RelationCard({ onNav }) {
             })}
           </div>
         ) : (
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => setPicker(valueKey)}
@@ -192,29 +192,28 @@ export default function RelationCard({ onNav }) {
                 onBlur={saveEdit}
                 placeholder={ph}
                 maxLength={200}
-                className="rel-note-input flex-1 min-w-0"
+                className="rel-note-input w-[180px] max-w-[44vw] flex-shrink"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => openEdit(noteField)}
-                className="rel-val text-ink-300 hover:text-ink-600 truncate text-left min-w-0 transition"
+                className="rel-val text-ink-300 hover:text-ink-600 truncate text-left transition max-w-[140px] sm:max-w-[260px]"
                 title={note || ph}
               >{note || ph}</button>
             )}
+            <button
+              type="button"
+              onClick={() => openEdit(noteField)}
+              className="w-[20px] h-[20px] flex-shrink-0 grid place-items-center rounded-md text-ink-300 hover:text-[var(--m-life)] transition"
+              title={note ? '修改备注' : '添加备注'}
+            >
+              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                <path d="M8.4 1.9l1.7 1.7-5.9 5.9-2.3.6.6-2.3 5.9-5.9z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         )}
-
-        <button
-          type="button"
-          onClick={() => openEdit(noteField)}
-          className="w-[20px] h-[20px] flex-shrink-0 grid place-items-center rounded-md text-ink-300 hover:text-[var(--m-life)] transition"
-          title={note ? '修改备注' : '添加备注'}
-        >
-          <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-            <path d="M8.4 1.9l1.7 1.7-5.9 5.9-2.3.6.6-2.3 5.9-5.9z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-          </svg>
-        </button>
       </div>
     );
   }
@@ -225,6 +224,7 @@ export default function RelationCard({ onNav }) {
         moduleKey="life"
         title="关系"
         sub={loading ? '加载中…' : cycle.label}
+        inlineAction
         action={(
           <>
             <button

@@ -30,6 +30,7 @@ export default function RelationCard({ onNav }) {
   const [picker, setPicker] = useState(''); // '' | 'tag' | 'mood'
   const [editField, setEditField] = useState(''); // '' | 'note' | 'mood_note'
   const [draft, setDraft] = useState('');
+  const [day, setDay] = useState(''); // 正在编辑的日期（点历史格子可回填）
   const [statsOpen, setStatsOpen] = useState(false);
   const [cycleOpen, setCycleOpen] = useState(false);
   const [tagOpen, setTagOpen] = useState(false);
@@ -59,24 +60,27 @@ export default function RelationCard({ onNav }) {
   const logByDate = useMemo(() => Object.fromEntries(logs.map(l => [l.date, l])), [logs]);
   const cycle = useMemo(() => cycleInfo(periods, todayStr), [periods, todayStr]);
   const tagList = useMemo(() => resolveTags(tags), [tags]);
-  const todayLog = logByDate[todayStr] || null;
+  const activeDate = day || todayStr;
+  const activeLog = logByDate[activeDate] || null;
 
-  // 任意一项变更都提交「当天完整状态」，避免后写的字段把先写的冲掉
-  async function patchToday(patch) {
+  // 任意一项变更都提交「该日完整状态」，避免后写的字段把先写的冲掉。
+  // date 默认今天；点历史格子后传入那一天，用于漏记回填。
+  async function patchDay(date, patch) {
+    const base = logByDate[date] || {};
     const next = {
-      tag: todayLog?.tag || '',
-      mood: todayLog?.mood || '',
-      note: todayLog?.note || '',
-      mood_note: todayLog?.mood_note || '',
+      tag: base.tag || '',
+      mood: base.mood || '',
+      note: base.note || '',
+      mood_note: base.mood_note || '',
       ...patch,
     };
     setLogs(prev => {
-      const rest = prev.filter(l => l.date !== todayStr);
+      const rest = prev.filter(l => l.date !== date);
       if (!next.tag && !next.mood && !next.note && !next.mood_note) return rest;
-      return [...rest, { date: todayStr, ...next }];
+      return [...rest, { date, ...next }];
     });
     try {
-      await API.relation.log(todayStr, next.tag, next.note, next.mood, next.mood_note);
+      await API.relation.log(date, next.tag, next.note, next.mood, next.mood_note);
     } catch (e) {
       toast.error(e.message || '保存失败');
       load();
@@ -84,31 +88,44 @@ export default function RelationCard({ onNav }) {
   }
 
   function pick(field, key) {
+    const cur = activeLog?.[field] || '';
     setPicker('');
-    patchToday({ [field]: todayLog?.[field] === key ? '' : key });
+    setDay('');
+    patchDay(activeDate, { [field]: cur === key ? '' : key });
   }
 
   function openEdit(field) {
     setPicker('');
     setEditField(field);
-    setDraft(todayLog?.[field] || '');
+    setDraft(activeLog?.[field] || '');
   }
   function saveEdit() {
     const field = editField;
     if (!field) return;
     const v = draft.trim();
     setEditField('');
-    if (v === (todayLog?.[field] || '')) return;
-    patchToday({ [field]: v });
+    const date = activeDate;
+    setDay('');
+    if (v === (logByDate[date]?.[field] || '')) return;
+    patchDay(date, { [field]: v });
   }
 
   // 一行 = 名称 + 7 个日期格 + 行内状态/备注；tag/mood 共用，只是取色与文案不同
   function renderRow({ name, valueKey, noteField, options, placeholder, emptyText }) {
-    const value = todayLog?.[valueKey] || '';
+    const value = activeLog?.[valueKey] || '';
     const cur = options.find(o => o.key === value);
-    const note = todayLog?.[noteField] || '';
+    const note = activeLog?.[noteField] || '';
     const choosing = picker === valueKey;
     const editing = editField === noteField;
+    const isHist = activeDate !== todayStr;
+    // 回填历史日期时把占位文案的「今天」换成「那天」，避免写成今天
+    const ph = isHist ? placeholder.replace('今天', '那天') : placeholder;
+    // 点格子 = 切到那一天：今天不额外标记，历史日期用 day 记住回填目标
+    function openDay(d) {
+      if (choosing && activeDate === d) { setPicker(''); setDay(''); return; }
+      setDay(d === todayStr ? '' : d);
+      setPicker(valueKey);
+    }
     return (
       <div className="rel-hrow" key={valueKey}>
         <span className="rel-hname">{name}</span>
@@ -117,19 +134,28 @@ export default function RelationCard({ onNav }) {
             const lg = logByDate[d];
             const o = options.find(x => x.key === (lg?.[valueKey] || ''));
             const isTdy = d === todayStr;
+            const sel = d === activeDate && (choosing || editing);
             return (
               <button
                 key={d}
                 type="button"
-                disabled={!isTdy}
-                onClick={() => setPicker(choosing ? '' : valueKey)}
-                className={`rel-hcell${isTdy ? ' editable tdy' : ''}${o ? ' on' : ''}`}
+                onClick={() => openDay(d)}
+                className={`rel-hcell editable${isTdy ? ' tdy' : ''}${o ? ' on' : ''}${sel ? ' sel' : ''}`}
                 style={o ? { background: o.color } : undefined}
-                title={`${mdOf(d)} 周${weekdayOf(d)}${o ? ` · ${o.label}` : ' · 未记录'}${isTdy ? '（点击修改）' : ''}`}
+                title={`${mdOf(d)} 周${weekdayOf(d)}${o ? ` · ${o.label}` : ' · 未记录'}${isTdy ? '（今天）' : '（点击记录）'}`}
               >{dayNo(d)}</button>
             );
           })}
         </div>
+
+        {isHist && (
+          <button
+            type="button"
+            onClick={() => { setPicker(''); setEditField(''); setDay(''); }}
+            className="rel-daychip"
+            title="回到今天"
+          >{mdOf(activeDate)}</button>
+        )}
 
         {choosing ? (
           <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto no-sb">
@@ -164,7 +190,7 @@ export default function RelationCard({ onNav }) {
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditField(''); }}
                 onBlur={saveEdit}
-                placeholder={placeholder}
+                placeholder={ph}
                 maxLength={200}
                 className="rel-note-input flex-1 min-w-0"
               />
@@ -173,8 +199,8 @@ export default function RelationCard({ onNav }) {
                 type="button"
                 onClick={() => openEdit(noteField)}
                 className="rel-val text-ink-300 hover:text-ink-600 truncate text-left min-w-0 transition"
-                title={note || placeholder}
-              >{note || placeholder}</button>
+                title={note || ph}
+              >{note || ph}</button>
             )}
           </div>
         )}
@@ -244,7 +270,7 @@ export default function RelationCard({ onNav }) {
         })}
       </div>
 
-      <div className="flex items-center justify-between mt-1 pt-1.5" style={{ borderTop: '1px solid rgba(60,60,67,0.06)' }}>
+      <div className="flex items-center gap-3 mt-1 pt-1.5" style={{ borderTop: '1px solid rgba(60,60,67,0.06)' }}>
         <button
           type="button"
           onClick={() => onNav?.('inbox')}

@@ -116,11 +116,11 @@ export default function RelationStatsModal({ open, onClose }) {
       onClose={onClose}
       title="关系 · 数据"
       maxWidth={520}
-      headerExtra={<span className="text-[11px] text-ink-400">{cycle.label}</span>}
+      headerExtra={<span className="text-[12.5px] text-ink-400">{cycle.label}</span>}
     >
       <div className="flex items-baseline justify-between gap-2 mb-3">
-        <span className="text-[11px] text-ink-400">近 90 天</span>
-        <span className="text-[12px] font-bold text-ink-800 tabular-nums">
+        <span className="text-[12.5px] text-ink-400">近 90 天</span>
+        <span className="text-[13px] font-bold text-ink-800 tabular-nums">
           记录 {recorded}/90 天 · 摩擦 {frictionTotal} 次 · 心情 {moodLogs.length} 天
         </span>
       </div>
@@ -137,8 +137,8 @@ export default function RelationStatsModal({ open, onClose }) {
           {/* ---- 时间带：颜色 = 当天相处状态，下方短横 = 经期 ---- */}
           <div className="rounded-xl p-3" style={{ background: 'var(--surface-muted)' }}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-ink-400">相处 · 近 21 天</span>
-              <span className="text-[10.5px] text-ink-300">下划线 = 经期</span>
+              <span className="text-[12.5px] text-ink-400">相处 · 近 21 天</span>
+              <span className="text-[11.5px] text-ink-300">下划线 = 经期</span>
             </div>
             <div className="flex gap-1">
               {band.map(d => {
@@ -155,28 +155,28 @@ export default function RelationStatsModal({ open, onClose }) {
                     <span className="w-full h-6 rounded-[4px]" style={{ background: tagColor }} />
                     <span className="w-full h-[3px] rounded-full" style={{ background: isPeriod ? 'var(--m-life)' : 'transparent' }} />
                     <span
-                      className={`text-[9.5px] leading-[11px] tabular-nums ${d === todayStr ? 'font-bold text-[var(--m-life)]' : 'text-ink-300'}`}
+                      className={`text-[11px] leading-[13px] tabular-nums ${d === todayStr ? 'font-bold text-[var(--m-life)]' : 'text-ink-300'}`}
                     >{Number(d.slice(8))}</span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex items-center justify-between mt-1 text-[10.5px] text-ink-400">
+            <div className="flex items-center justify-between mt-1.5 text-[11.5px] text-ink-400">
               <span>{fmtMd(band[0])}</span>
               <span>今天 {fmtMd(band[band.length - 1])}</span>
             </div>
           </div>
 
           {/* ---- 图例 ---- */}
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 mt-2.5 text-[10.5px] text-ink-400">
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 mt-2.5 text-[12px] text-ink-400">
             {tagList.map(t => (
               <span key={t.key} className="flex items-center gap-1.5">
-                <i className="w-2 h-2 rounded-sm block" style={{ background: t.color }} />
+                <i className="w-2.5 h-2.5 rounded-sm block" style={{ background: t.color }} />
                 {t.label}
               </span>
             ))}
             <span className="flex items-center gap-1.5">
-              <i className="w-2 h-2 rounded-sm block" style={{ background: BLANK_COLOR }} />
+              <i className="w-2.5 h-2.5 rounded-sm block" style={{ background: BLANK_COLOR }} />
               未记录
             </span>
           </div>
@@ -184,20 +184,20 @@ export default function RelationStatsModal({ open, onClose }) {
           {/* ---- 心情走势：纵轴 4 档（上=开心 下=烦躁），空档不连线，不虚构连续 ---- */}
           <div className="rounded-xl p-3 mt-3" style={{ background: 'var(--surface-muted)' }}>
             <div className="flex items-baseline justify-between mb-2">
-              <span className="text-[11px] text-ink-400">心情走势 · 近 21 天</span>
-              <span className="text-[10.5px] text-ink-300">{moodLogs.length ? `${moodLogs.length} 天有记录` : '还没有记录'}</span>
+              <span className="text-[12.5px] text-ink-400">心情走势 · 近 21 天</span>
+              <span className="text-[11.5px] text-ink-300">{moodLogs.length ? `${moodLogs.length} 天有记录` : '还没有记录'}</span>
             </div>
             <div className="flex gap-1.5">
-              <div className="relative w-[26px] shrink-0 h-[78px]">
+              <div className="relative w-[30px] shrink-0 h-[92px]">
                 {MOODS.map((m, i) => (
                   <span
                     key={m.key}
-                    className="absolute left-0 text-[9px] leading-none text-ink-400"
-                    style={{ top: `calc(${(i / MOOD_STEP) * 100}% - 4px)` }}
+                    className="absolute left-0 text-[11px] leading-none text-ink-400"
+                    style={{ top: `calc(${(i / MOOD_STEP) * 100}% - 5px)` }}
                   >{m.label}</span>
                 ))}
               </div>
-              <div className="relative flex-1 h-[78px]">
+              <div className="relative flex-1 h-[92px]">
                 {MOODS.map((m, i) => (
                   <span
                     key={m.key}
@@ -224,7 +224,7 @@ export default function RelationStatsModal({ open, onClose }) {
                     <div key={d} className="relative flex-1">
                       {trendPts[i] ? (
                         <span
-                          className="absolute w-[7px] h-[7px] rounded-full"
+                          className="absolute w-[8px] h-[8px] rounded-full"
                           style={{
                             left: '50%',
                             top: `${(trendPts[i].lvl / MOOD_STEP) * 100}%`,
@@ -240,7 +240,7 @@ export default function RelationStatsModal({ open, onClose }) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between mt-1 text-[10px] text-ink-300" style={{ paddingLeft: 32 }}>
+            <div className="flex items-center justify-between mt-1.5 text-[11px] text-ink-300" style={{ paddingLeft: 36 }}>
               <span>{fmtMd(band[0])}</span>
               <span>今天</span>
             </div>
@@ -249,19 +249,19 @@ export default function RelationStatsModal({ open, onClose }) {
           {/* ---- 摩擦按周期阶段：四根小柱，替代四行文字 ---- */}
           <div className="mt-4">
             <div className="flex items-baseline justify-between mb-2">
-              <span className="text-[11px] text-ink-400">摩擦 · 按周期阶段</span>
-              <span className="text-[10.5px] text-ink-300">近 90 天 {frictionTotal} 次</span>
+              <span className="text-[12.5px] text-ink-400">摩擦 · 按周期阶段</span>
+              <span className="text-[11.5px] text-ink-300">近 90 天 {frictionTotal} 次</span>
             </div>
-            <div className="flex items-end gap-2 h-[58px]">
+            <div className="flex items-end gap-2 h-[64px]">
               {phaseRows.map(r => {
                 const on = r.n > 0 && r.n === top.n;
                 return (
                   <div key={r.key} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
-                    <span className={`text-[10px] tabular-nums ${on ? 'font-bold text-ink-800' : 'text-ink-400'}`}>{r.n}</span>
+                    <span className={`text-[12px] tabular-nums ${on ? 'font-bold text-ink-800' : 'text-ink-400'}`}>{r.n}</span>
                     <span
                       className="w-full max-w-[38px] rounded-t-[3px]"
                       style={{
-                        height: r.n === 0 ? 2 : Math.max(5, (r.n / Math.max(1, top.n)) * 34),
+                        height: r.n === 0 ? 2 : Math.max(5, (r.n / Math.max(1, top.n)) * 36),
                         background: on ? 'var(--m-life)' : r.n > 0 ? 'rgba(var(--m-life-rgb),0.28)' : 'rgba(120,120,128,0.16)',
                       }}
                     />
@@ -269,18 +269,18 @@ export default function RelationStatsModal({ open, onClose }) {
                 );
               })}
             </div>
-            <div className="flex gap-2 mt-1">
+            <div className="flex gap-2 mt-1.5">
               {phaseRows.map(r => (
                 <span
                   key={r.key}
-                  className={`flex-1 text-center text-[9.5px] ${r.n > 0 && r.n === top.n ? 'text-ink-800 font-semibold' : 'text-ink-400'}`}
+                  className={`flex-1 text-center text-[11.5px] ${r.n > 0 && r.n === top.n ? 'text-ink-800 font-semibold' : 'text-ink-400'}`}
                 >{r.label}</span>
               ))}
             </div>
           </div>
 
           {/* ---- 结论 ---- */}
-          <div className="mt-4 rounded-lg px-3 py-2 text-[12px] leading-5" style={{ background: 'rgba(var(--m-life-rgb),0.08)', color: 'var(--text-1)' }}>
+          <div className="mt-4 rounded-lg px-3 py-2 text-[13.5px] leading-6" style={{ background: 'rgba(var(--m-life-rgb),0.08)', color: 'var(--text-1)' }}>
             {conclusion}
           </div>
         </>

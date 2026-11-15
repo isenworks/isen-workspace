@@ -83,7 +83,7 @@ export default function RelationStatsModal({ open, onClose }) {
       <div className="flex items-baseline justify-between gap-2 mb-3">
         <span className="text-[11px] text-ink-400">近 90 天</span>
         <span className="text-[12px] font-bold text-ink-800 tabular-nums">
-          记录 {recorded} 天 · 摩擦 {frictionTotal} 次
+          记录 {recorded}/90 天 · 摩擦 {frictionTotal} 次
         </span>
       </div>
 

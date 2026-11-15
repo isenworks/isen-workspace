@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { store } from '../utils/store.js';
@@ -9,6 +10,8 @@ import CardHead from './CardHead.jsx';
 import RelationStatsModal from './RelationStatsModal.jsx';
 import RelationCycleModal from './RelationCycleModal.jsx';
 import RelationTagModal from './RelationTagModal.jsx';
+import RelationDayModal from './RelationDayModal.jsx';
+import { useLongPress } from './useLongPress.js';
 
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 const weekdayOf = s => WEEK[new Date(`${s}T00:00:00`).getDay()];
@@ -28,9 +31,10 @@ export default function RelationCard({ onNav }) {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [picker, setPicker] = useState(''); // '' | 'tag' | 'mood'
-  const [editField, setEditField] = useState(''); // '' | 'note' | 'mood_note'
-  const [draft, setDraft] = useState('');
   const [day, setDay] = useState(''); // 正在编辑的日期（点历史格子可回填）
+  const [dlgDay, setDlgDay] = useState(''); // 单日记录弹窗（右击 / 长按格子）
+  const [tip, setTip] = useState(null); // 悬浮提示 { date, field, x, y }
+  const tipTimer = useRef(null);
   const [statsOpen, setStatsOpen] = useState(false);
   const [cycleOpen, setCycleOpen] = useState(false);
   const [tagOpen, setTagOpen] = useState(false);
@@ -95,33 +99,32 @@ export default function RelationCard({ onNav }) {
     patchDay(activeDate, { [field]: cur === key ? '' : key });
   }
 
-  function openEdit(field) {
-    setPicker('');
-    setEditField(field);
-    setDraft(activeLog?.[field] || '');
+  // 悬浮提示：延迟 180ms 出现，避免横扫整行时反复闪
+  function showTip(el, date, field) {
+    if (!el) return;
+    clearTimeout(tipTimer.current);
+    const r = el.getBoundingClientRect();
+    tipTimer.current = setTimeout(() => {
+      setTip({ date, field, x: r.left + r.width / 2, y: r.top, bottom: r.bottom });
+    }, 180);
   }
-  function saveEdit() {
-    const field = editField;
-    if (!field) return;
-    const v = draft.trim();
-    setEditField('');
-    const date = activeDate;
-    setDay('');
-    if (v === (logByDate[date]?.[field] || '')) return;
-    patchDay(date, { [field]: v });
+  function hideTip() {
+    clearTimeout(tipTimer.current);
+    setTip(null);
   }
 
-  // 一行 = 名称 + 7 个日期格 + 行内状态/备注；tag/mood 共用，只是取色与文案不同
-  function renderRow({ name, valueKey, noteField, options, placeholder, emptyText }) {
+  // 右击（桌面）/ 长按（触屏）= 打开当天的完整记录
+  const lp = useLongPress();
+  const openDayDialog = d => { hideTip(); setPicker(''); setDay(''); setDlgDay(d); };
+
+  // 一行 = 名称 + 7 个日期格 + 当天状态/备注；点格选标签，右击（长按）开单日记录
+  function renderRow({ name, valueKey, noteField, options, emptyText }) {
     const value = activeLog?.[valueKey] || '';
     const cur = options.find(o => o.key === value);
     const note = activeLog?.[noteField] || '';
     const choosing = picker === valueKey;
-    const editing = editField === noteField;
     const isHist = activeDate !== todayStr;
-    // 回填历史日期时把占位文案的「今天」换成「那天」，避免写成今天
-    const ph = isHist ? placeholder.replace('今天', '那天') : placeholder;
-    // 点格子 = 切到那一天：今天不额外标记，历史日期用 day 记住回填目标
+    // 点格子 = 切到那一天并展开标签；历史日期用 day 记住回填目标
     function openDay(d) {
       if (choosing && activeDate === d) { setPicker(''); setDay(''); return; }
       setDay(d === todayStr ? '' : d);
@@ -135,17 +138,21 @@ export default function RelationCard({ onNav }) {
             const lg = logByDate[d];
             const o = options.find(x => x.key === (lg?.[valueKey] || ''));
             const isTdy = d === todayStr;
-            const sel = d === activeDate && (choosing || editing);
+            const sel = d === activeDate && choosing;
             return (
               <button
                 key={d}
                 type="button"
                 onClick={() => openDay(d)}
+                {...lp.bind(() => openDayDialog(d))}
+                onContextMenu={e => { e.preventDefault(); openDayDialog(d); }}
+                onMouseEnter={e => showTip(e.currentTarget, d, valueKey)}
+                onMouseLeave={hideTip}
+                aria-label={`${mdOf(d)} 周${weekdayOf(d)}${o ? ` · ${o.label}` : ' · 未记录'}`}
                 className={`rel-hcell editable${isTdy ? ' tdy' : ''}${o ? ' on' : ''}${sel ? ' sel' : ''}`}
                 style={o
                   ? { background: o.color, ...(isTdy ? { '--cell-ring': hexToRgba(o.color, 0.45) } : {}) }
                   : undefined}
-                title={`${mdOf(d)} 周${weekdayOf(d)}${o ? ` · ${o.label}` : ' · 未记录'}${isTdy ? '（今天）' : '（点击记录）'}`}
               >{dayNo(d)}</button>
             );
           })}
@@ -154,7 +161,7 @@ export default function RelationCard({ onNav }) {
         {isHist && (
           <button
             type="button"
-            onClick={() => { setPicker(''); setEditField(''); setDay(''); }}
+            onClick={() => { setPicker(''); setDay(''); }}
             className="rel-daychip"
             title="回到今天"
           >{mdOf(activeDate)}</button>
@@ -186,35 +193,12 @@ export default function RelationCard({ onNav }) {
               style={{ color: cur?.color || 'var(--text-3)' }}
               title="点击选择"
             >{cur?.label || emptyText}</button>
-            {editing ? (
-              <input
-                autoFocus
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditField(''); }}
-                onBlur={saveEdit}
-                placeholder={ph}
-                maxLength={200}
-                className="rel-note-input w-[180px] max-w-[44vw] flex-shrink"
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => openEdit(noteField)}
-                className="rel-val text-ink-300 hover:text-ink-600 truncate text-left transition max-w-[140px] sm:max-w-[260px]"
-                title={note || ph}
-              >{note || ph}</button>
+            {note && (
+              <span
+                className="rel-val text-ink-300 truncate text-left min-w-0 max-w-[140px] sm:max-w-[280px]"
+                title={note}
+              >{note}</span>
             )}
-            <button
-              type="button"
-              onClick={() => openEdit(noteField)}
-              className="w-[20px] h-[20px] flex-shrink-0 grid place-items-center rounded-md text-ink-300 hover:text-[var(--m-life)] transition"
-              title={note ? '修改备注' : '添加备注'}
-            >
-              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                <path d="M8.4 1.9l1.7 1.7-5.9 5.9-2.3.6.6-2.3 5.9-5.9z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-              </svg>
-            </button>
           </div>
         )}
       </div>
@@ -260,7 +244,6 @@ export default function RelationCard({ onNav }) {
           valueKey: 'tag',
           noteField: 'note',
           options: tagList,
-          placeholder: '今天发生了什么',
           emptyText: '未记录',
         })}
         {renderRow({
@@ -268,7 +251,6 @@ export default function RelationCard({ onNav }) {
           valueKey: 'mood',
           noteField: 'mood_note',
           options: moodList,
-          placeholder: '心情的原因',
           emptyText: '未记录',
         })}
       </div>
@@ -285,11 +267,62 @@ export default function RelationCard({ onNav }) {
           onClick={() => setTagOpen(true)}
           className="text-[10.5px] text-ink-300 hover:text-[var(--m-life)] transition"
         >管理标签</button>
+        <span className="text-[10.5px] text-ink-300 sm:hidden">长按格子记备注</span>
+        <span className="hidden sm:inline text-[10.5px] text-ink-300">右击格子记备注</span>
       </div>
+
+      {/* 悬浮提示：日期 + 当天该行的状态与备注，最后一行教会右击编辑 */}
+      {tip && (() => {
+        const lg = logByDate[tip.date] || {};
+        const opts = tip.field === 'tag' ? tagList : moodList;
+        const o = opts.find(x => x.key === (lg[tip.field] || ''));
+        const note = tip.field === 'tag' ? lg.note : lg.mood_note;
+        const x = Math.min(Math.max(tip.x, 132), window.innerWidth - 132);
+        // 上方空间不足时翻到格子下方，避免被视口顶部裁掉
+        const below = tip.y < 130;
+        return createPortal(
+          <div
+            className={`fixed z-[1050] pointer-events-none popover-enter w-[240px] -translate-x-1/2${below ? '' : ' -translate-y-full'}`}
+            style={{ left: x, top: below ? tip.bottom + 8 : tip.y - 8 }}
+          >
+            <div
+              className="rounded-xl px-2.5 py-2 shadow-lg"
+              style={{ background: 'rgba(28,28,30,0.94)', color: '#fff' }}
+            >
+              <div className="flex items-center gap-1.5 text-[10.5px] opacity-70">
+                <span className="tabular-nums">{mdOf(tip.date)} 周{weekdayOf(tip.date)}</span>
+                {o && (
+                  <span className="flex items-center gap-1">
+                    <i className="w-1.5 h-1.5 rounded-full block" style={{ background: o.color }} />
+                    {o.label}
+                  </span>
+                )}
+              </div>
+              <div className="text-[12px] leading-4 mt-1 whitespace-normal break-words">
+                {note || <span className="opacity-50">还没有备注</span>}
+              </div>
+              <div className="text-[10px] opacity-45 mt-1">
+                <span className="sm:hidden">长按编辑</span>
+                <span className="hidden sm:inline">右击编辑</span>
+              </div>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
 
       <RelationStatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
       <RelationCycleModal open={cycleOpen} onClose={() => setCycleOpen(false)} onChanged={load} />
       <RelationTagModal open={tagOpen} onClose={() => setTagOpen(false)} tags={tags} onChanged={load} />
+      <RelationDayModal
+        open={!!dlgDay}
+        date={dlgDay || todayStr}
+        log={logByDate[dlgDay] || null}
+        tags={tagList}
+        moods={moodList}
+        onPatch={patchDay}
+        onClose={() => setDlgDay('')}
+      />
     </div>
   );
 }

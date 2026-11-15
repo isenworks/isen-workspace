@@ -118,10 +118,9 @@ export default function RelationCard({ onNav }) {
   const openDayDialog = d => { hideTip(); setPicker(''); setDay(''); setDlgDay(d); };
 
   // 一行 = 名称 + 7 个日期格 + 当天状态/备注；点格选标签，右击（长按）开单日记录
-  function renderRow({ name, valueKey, noteField, options, emptyText }) {
+  function renderRow({ name, valueKey, options, emptyText }) {
     const value = activeLog?.[valueKey] || '';
     const cur = options.find(o => o.key === value);
-    const note = activeLog?.[noteField] || '';
     const choosing = picker === valueKey;
     const isHist = activeDate !== todayStr;
     // 点格子 = 切到那一天并展开标签；历史日期用 day 记住回填目标
@@ -193,12 +192,6 @@ export default function RelationCard({ onNav }) {
               style={{ color: cur?.color || 'var(--text-3)' }}
               title="点击选择"
             >{cur?.label || emptyText}</button>
-            {note && (
-              <span
-                className="rel-val text-ink-300 truncate text-left min-w-0 max-w-[140px] sm:max-w-[280px]"
-                title={note}
-              >{note}</span>
-            )}
           </div>
         )}
       </div>
@@ -242,14 +235,12 @@ export default function RelationCard({ onNav }) {
         {renderRow({
           name: '相处',
           valueKey: 'tag',
-          noteField: 'note',
           options: tagList,
           emptyText: '未记录',
         })}
         {renderRow({
           name: '心情',
           valueKey: 'mood',
-          noteField: 'mood_note',
           options: moodList,
           emptyText: '未记录',
         })}
@@ -267,8 +258,6 @@ export default function RelationCard({ onNav }) {
           onClick={() => setTagOpen(true)}
           className="text-[10.5px] text-ink-300 hover:text-[var(--m-life)] transition"
         >管理标签</button>
-        <span className="text-[10.5px] text-ink-300 sm:hidden">长按格子记备注</span>
-        <span className="hidden sm:inline text-[10.5px] text-ink-300">右击格子记备注</span>
       </div>
 
       {/* 悬浮提示：日期 + 当天该行的状态与备注，最后一行教会右击编辑 */}

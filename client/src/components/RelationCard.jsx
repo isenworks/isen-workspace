@@ -117,6 +117,27 @@ export default function RelationCard({ onNav }) {
   const lp = useLongPress();
   const openDayDialog = d => { hideTip(); setPicker(''); setDay(''); setDlgDay(d); };
 
+  // 行内标签展开后，点卡片外任意位置或按 Esc 即收起（与本应用其他浮层同一套失焦关闭）
+  const bodyRef = useRef(null);
+  useEffect(() => {
+    if (!picker) return;
+    function onDown(e) {
+      if (bodyRef.current && !bodyRef.current.contains(e.target)) {
+        setPicker('');
+        setDay('');
+      }
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { setPicker(''); setDay(''); }
+    }
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [picker]);
+
   // 一行 = 名称 + 7 个日期格 + 当天状态/备注；点格选标签，右击（长按）开单日记录
   function renderRow({ name, valueKey, options, emptyText }) {
     const value = activeLog?.[valueKey] || '';
@@ -231,7 +252,7 @@ export default function RelationCard({ onNav }) {
         )}
       />
 
-      <div className="rel-hb">
+      <div className="rel-hb" ref={bodyRef}>
         {renderRow({
           name: '相处',
           valueKey: 'tag',

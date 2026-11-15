@@ -222,7 +222,7 @@ export const API = {
   relation: {
     async list(from, to) { return fetchPages('/relation/list', { from, to }); },
     async log(date, tag, note) { return fetchPages('/relation/log', { date, tag, note }); },
-    async period(action, date) { return fetchPages('/relation/period', { action, date }); },
+    async period(action, date, extra) { return fetchPages('/relation/period', { action, date, ...(extra || {}) }); },
   },
 
   habits: {

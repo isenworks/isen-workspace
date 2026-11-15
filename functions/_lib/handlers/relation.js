@@ -139,6 +139,43 @@ export async function handleRelationPeriod(env, body) {
     return json({ ok: true });
   }
 
+  if (action === 'create') {
+    // 手动补录一段（历史补记）：起止都可指定，结束可空（进行中）
+    const start = String(body?.start_date || '');
+    const endRaw = body?.end_date == null ? '' : String(body.end_date);
+    if (!DATE_RE.test(start)) return json({ error: '开始日期格式不正确' }, 400);
+    if (endRaw && !DATE_RE.test(endRaw)) return json({ error: '结束日期格式不正确' }, 400);
+    if (endRaw && endRaw < start) return json({ error: '结束日期不能早于开始日期' }, 400);
+    await dbRun(
+      env.DB,
+      `INSERT INTO ethan_relation_periods (user_id, start_date, end_date, created_at) VALUES (?, ?, ?, datetime('now'))`,
+      [userId, start, endRaw || null]
+    );
+    return json({ ok: true });
+  }
+
+  if (action === 'update') {
+    const id = Number(body?.id);
+    const start = String(body?.start_date || '');
+    const endRaw = body?.end_date == null ? '' : String(body.end_date);
+    if (!id || !DATE_RE.test(start)) return json({ error: '日期格式不正确' }, 400);
+    if (endRaw && !DATE_RE.test(endRaw)) return json({ error: '结束日期格式不正确' }, 400);
+    if (endRaw && endRaw < start) return json({ error: '结束日期不能早于开始日期' }, 400);
+    await dbRun(
+      env.DB,
+      `UPDATE ethan_relation_periods SET start_date = ?, end_date = ? WHERE id = ? AND user_id = ?`,
+      [start, endRaw || null, id, userId]
+    );
+    return json({ ok: true });
+  }
+
+  if (action === 'remove') {
+    const id = Number(body?.id);
+    if (!id) return json({ error: '缺少区间 id' }, 400);
+    await dbRun(env.DB, `DELETE FROM ethan_relation_periods WHERE id = ? AND user_id = ?`, [id, userId]);
+    return json({ ok: true });
+  }
+
   if (action === 'clear') {
     if (!open) return json({ ok: true, unchanged: true });
     await dbRun(env.DB, `DELETE FROM ethan_relation_periods WHERE id = ?`, [open.id]);

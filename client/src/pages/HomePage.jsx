@@ -14,13 +14,12 @@ import lunarLib from '../vendor/lunar.js';
 import { lunarMonthDayOf, nextLunarDate } from '../utils/lunarBirthday.js';
 import PTag from '../components/PTag.jsx';
 import HabitStatsModal from '../components/HabitStatsModal.jsx';
+import CardHead from '../components/CardHead.jsx';
 import RelationCard from '../components/RelationCard.jsx';
 import { useLongPress } from '../components/useLongPress.js';
 
 /* ============ 小工具 ============ */
 const pct = (v, t) => (Number(t) > 0 ? Math.max(0, Math.min(100, Math.round((Number(v) / Number(t)) * 100))) : 0);
-const modColor = (k) => `var(--m-${k})`;
-const modRgba = (k, a) => `rgba(var(--m-${k}-rgb),${a})`;
 /* 日程行唯一键：重复事项会在同一范围里展开成多条同 id、不同 date 的实例，
    只按 id 匹配会把「今天的勾选」落到别的日期实例上（或反向），必须带上 date */
 const rowKey = (s) => `${s.id}|${s.date || ''}`;
@@ -203,33 +202,7 @@ function signatureFontClass(s) {
 /* 重要节日白名单：lunar 库 getFestivals 会带出全民国防教育日这类小众纪念日，首页只展示大众节日 */
 const MAJOR_FESTIVALS = new Set(['元旦', '除夕', '春节', '元宵节', '情人节', '妇女节', '植树节', '清明节', '劳动节', '青年节', '母亲节', '儿童节', '父亲节', '端午节', '建党节', '建军节', '七夕节', '教师节', '中秋节', '国庆节', '重阳节', '万圣节', '感恩节', '圣诞节']);
 
-/* 卡片头：模块色竖条 + 标题 + 右侧自定义动作位 + 查看入口（右上箭头） */
-function CardHead({ moduleKey, title, sub, onClick, action, extra }) {
-  const color = moduleKey ? modColor(moduleKey) : 'var(--s-main)';
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <span className="w-[5px] h-[18px] rounded-full flex-shrink-0" style={{ background: color }} />
-        <span className="text-[15px] font-bold text-ink-900 truncate">{title}</span>
-        {sub ? <span className="text-[11px] text-ink-400 flex-shrink-0">{sub}</span> : null}
-        {extra}
-      </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        {action}
-        {onClick ? (
-          <button
-            onClick={onClick}
-            className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
-            style={{ color, background: moduleKey ? modRgba(moduleKey, 0.08) : 'rgba(var(--s-rgb),0.06)', '--hc': color }}
-            title="查看"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
+/* 卡片头统一由 components/CardHead.jsx 提供（首页 4 张卡与「关系」卡共用） */
 
 /* 细进度条 */
 function Bar({ value, color = 'var(--s-main)', h = '5px' }) {
@@ -1506,10 +1479,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
         )}
         </div>
 
-        {/* ========== 时间层：今日聚焦 / 本周目标 / 即将到来（3 等分，md 起 3 列） ==========
+        {/* ========== 时间层：今日聚焦 / 本周目标 / 即将到来 / 关系（md 起 2×2，xl 起 4 等分） ==========
              窄屏：auto-rows-auto —— 每张卡按各自内容自适应高度（不再被 auto-rows-fr 拉齐到最高卡）；
-             md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满视口 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
+             md 起恢复 auto-rows-fr 等高，配合 flex-1 撑满视口 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[190px]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）；节日见卡片头徽标 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
@@ -1690,6 +1663,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
               )}
             </div>
           </div>
+
+          {/* ---- 关系：每天 20 秒记录相处状态 + 经期区间；数据回看与周期设置见卡片头 ---- */}
+          <RelationCard onNav={onNav} />
         </div>
 
         {/* ========== 成长层：精力 / 知力 / 能力 / 工作（4 等分，lg 起 4 列） ========== */}
@@ -2079,9 +2055,6 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </div>
           </div>
         </div>
-
-        {/* ========== 生活层：关系（每天 20 秒记录相处状态 + 经期区间；回看走右上角数据入口） ========== */}
-        <RelationCard />
 
         {/* ========== 快捷操作：计划 → 捕获 → 复盘（无边药丸，sticky 吸底与侧边栏底端对齐） ==========
             吸底渐隐须淡入当前画布色 --surface-canvas，才能与页面背景融为一体；

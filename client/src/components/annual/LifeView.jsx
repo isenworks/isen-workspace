@@ -12,6 +12,7 @@ import ConfirmDialog from '../ConfirmDialog.jsx'
 import lunarLib from '../../vendor/lunar.js';
 import { lunarDatesInYear, lunarMonthDayOf, nextLunarDate } from '../../utils/lunarBirthday.js';
 import EntryForm from '../forms/EntryForm.jsx'
+import RelationLifeCard from '../RelationLifeCard.jsx'
 import PlantingShelf from './PlantingShelf.jsx'
 import { useLongPress } from '../useLongPress.js'
 
@@ -747,6 +748,9 @@ export function LifeView({ lifeData, onEntryAdd, onEntryEdit, onStartHighlights,
               );
             })}
         </div>
+
+        {/* 卡③ 关系 · 长期数据：记录率 / 摩擦次数 / 最集中阶段，点开是完整时间带 */}
+        <RelationLifeCard />
       </div>
 
       <SplitDivider bindDivider={bindDivider} />

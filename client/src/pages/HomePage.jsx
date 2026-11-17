@@ -1531,8 +1531,9 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
 
         {/* ========== 时间层：今日聚焦 / 本周目标 / 即将到来（3 等分，md 起 3 列） ==========
              窄屏：auto-rows-auto —— 每张卡按各自内容自适应高度（不再被 auto-rows-fr 拉齐到最高卡）；
-             md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满视口 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[clamp(200px,25vh,240px)]">
+             md 起恢复 auto-rows-fr 三卡等高，配合 flex-1 撑满剩余空间；
+             高度下限按「卡片头 + 进度条 + 3 条事项」校准，少于 3 条也要能一屏看完 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[clamp(252px,31vh,300px)]">
 
           {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）；节日见卡片头徽标 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">

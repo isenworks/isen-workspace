@@ -1174,6 +1174,56 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
+  /* 右键"移到明天"：把事项改期到明天（同一条记录，不产生副本）
+     只对单次事项开放：重复事项改 date 会把整个序列的锚点挪走，语义不对
+     移动 = 明天重做，所以顺手清掉未完成标记，避免明天一进来就是红的 */
+  const moveTaskToTomorrow = async (s) => {
+    const id = s?.id;
+    if (id == null) return;
+    const tomorrow = addDaysISO(todayStr, 1);
+    const next = { ...s, date: tomorrow, is_failed: 0 };
+    setSched(prev => (prev || []).map(x => String(x.id) === String(id) ? next : x));
+    try {
+      const r = await API.schedules.update(id, { date: tomorrow, is_failed: 0 });
+      const saved = { ...next, ...(r?.schedule || {}) };
+      store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
+      toast.success('已移到明天');
+    } catch (e) {
+      loadSched();
+      toast.error(e.message || '移到明天失败');
+    }
+  };
+
+  /* 右键"明天继续"：复制一份到明天，原事项留在今天
+     复制品是全新的一天任务 —— 勾选/未完成/拆解进度全部归零，重复规则不带过去 */
+  const continueTomorrow = async (s) => {
+    if (!s?.title) return toast.error('事项标题为空，无法复制');
+    const subs = parseSubtasks(s.subtasks).map(x => ({ ...x, done: false }));
+    try {
+      const r = await API.schedules.create({
+        title: s.title,
+        date: addDaysISO(todayStr, 1),
+        start_date: addDaysISO(todayStr, 1),
+        start_time: s.start_time || null,
+        end_time: s.end_time || null,
+        duration_min: s.duration_min != null ? Number(s.duration_min) : null,
+        category: s.category,
+        is_key: s.is_key ? 1 : 0,
+        is_goal: 0,
+        is_failed: 0,
+        priority: s.priority ?? null,
+        repeat_rule: 'none',
+        note: s.note || null,
+        subtasks: subs.length ? subs : null,
+      });
+      const saved = r?.schedule;
+      if (saved) store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'create', category: saved.category });
+      toast.success('已复制一条到明天');
+    } catch (e) {
+      toast.error(e.message || '复制到明天失败');
+    }
+  };
+
   /* ===== 即将到来：今日之后的事项（日程 + 生日 + 节日，30 天内），按日期升序滚动查看 ===== */
   const followUpList = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -2127,7 +2177,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
           className="hp-ctx-menu fixed z-[var(--z-popover)] select-none"
           style={{
             left: Math.min(wkContextMenu.x, window.innerWidth - 172),
-            top: Math.min(wkContextMenu.y, window.innerHeight - 170),
+            top: Math.min(wkContextMenu.y, window.innerHeight - 268),
             minWidth: 156,
             background: 'var(--surface-card)',
             borderRadius: '12px',
@@ -2150,6 +2200,34 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             </svg>
             {wkContextMenu.task.is_failed ? '取消未完成' : '标记未完成'}
           </button>
+          {/* 只给今日聚焦（非目标）的单次事项：重复事项改期会把整个序列锚点挪走 */}
+          {!wkContextMenu.task.is_goal && (wkContextMenu.task.repeat_rule || 'none') === 'none' && (
+            <button
+              type="button"
+              onClick={() => { moveTaskToTomorrow(wkContextMenu.task); setWkContextMenu(null); }}
+              className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
+              style={{ color: 'var(--text-1)' }}
+            >
+              <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+              移到明天
+            </button>
+          )}
+          {!wkContextMenu.task.is_goal && (
+            <button
+              type="button"
+              onClick={() => { continueTomorrow(wkContextMenu.task); setWkContextMenu(null); }}
+              className="w-full text-left px-3 py-2 rounded-[8px] text-[13px] font-medium transition-colors hover:bg-[rgba(120,120,128,0.08)] flex items-center gap-2"
+              style={{ color: 'var(--text-1)' }}
+            >
+              <svg className="w-[15px] h-[15px] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="11" height="11" rx="2.5" />
+                <path d="M5 15V5.5A2.5 2.5 0 0 1 7.5 3H17" />
+              </svg>
+              明天继续
+            </button>
+          )}
           <button
             type="button"
             onClick={() => { convertToTask(wkContextMenu.task); setWkContextMenu(null); }}

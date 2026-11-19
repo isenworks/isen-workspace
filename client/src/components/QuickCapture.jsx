@@ -168,10 +168,12 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   const [savedAt, setSavedAt] = useState(edit?.updated_at || edit?.created_at || '');
   const [focused, setFocused] = useState(false);
   const [linkMenu, setLinkMenu] = useState(null);      // 正文链接右键菜单：{ x, y, link }
+  const [linkRename, setLinkRename] = useState(null);  // 链接标题编辑浮层：{ x, y, link, value }
   const [listMode, setListMode] = useState(null);      // 光标所在块的列表类型：'ul' | 'ol' | 'checklist' | null
   const [count, setCount] = useState(0);              // 字数（不含空格与换行）
   const [imgCount, setImgCount] = useState(0);        // 正文图片数（图片-only 小记也要能保存）
   const uploadingRef = useRef(0);                     // 进行中的图片上传数（>0 时暂停自动保存）
+  const renameCancelledRef = useRef(false);           // 标题编辑被 Esc 取消时，屏蔽随后的 blur 保存
   const imgInputRef = useRef(null);                   // 工具栏「插入图片」隐藏文件框
   const savedRangeRef = useRef(null);                 // 选文件前记住的光标位置（文件框会抢焦点）
   // ===== 图片选中 / 拖拽缩放（参考腾讯文档：点选出现四角手柄，等比缩放并持久化）=====
@@ -634,6 +636,11 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     const href = link.getAttribute('href') || '';
     if (!href) return;
     if (mode === 'url') {
+      // 切走前把当前显示的文字记成标题，避免手动改过的标题在来回切换时丢失
+      if (link.dataset.mode !== 'url') {
+        const shown = String(link.textContent || '').trim();
+        if (shown && shown !== href) { link.dataset.title = shown; link.dataset.custom = '1'; }
+      }
       link.textContent = href;
       link.dataset.mode = 'url';
       touch();
@@ -650,6 +657,42 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     link.dataset.title = title;
     link.dataset.mode = 'title';
     link.textContent = title;
+    touch();
+  }
+
+  // 打开「编辑标题」浮层：预填当前展示文字（标题态），否则预填已抓到的标题
+  function openLinkRename() {
+    const link = linkMenu?.link;
+    if (!link) return;
+    const href = link.getAttribute('href') || '';
+    const shown = String(link.textContent || '').trim();
+    const base = link.dataset.mode === 'title' && shown !== href
+      ? shown
+      : String(link.dataset.title || '').trim();
+    setLinkRename({ x: linkMenu.x, y: linkMenu.y, link, value: base });
+    setLinkMenu(null);
+  }
+
+  // 保存自定义标题：留空则清掉自定义，回到自动抓取的标题
+  function saveLinkRename() {
+    const r = linkRename;
+    if (!r) return;
+    setLinkRename(null);
+    if (renameCancelledRef.current) { renameCancelledRef.current = false; return; }
+    const link = r.link;
+    if (!link?.isConnected) return;
+    const v = String(r.value || '').trim();
+    if (!v) {
+      link.dataset.custom = '';
+      delete link.dataset.title;
+      link.dataset.mode = 'url';
+      setLinkMode(link, 'title');
+      return;
+    }
+    link.dataset.custom = '1';
+    link.dataset.title = v;
+    link.dataset.mode = 'title';
+    link.textContent = v;
     touch();
   }
 
@@ -991,6 +1034,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       API.linkmeta.get(href).then(r => {
         const title = String(r?.title || '').trim();
         if (!title || !a.isConnected) return;
+        if (a.dataset.custom === '1') return; // 已手动改过标题，不再覆盖
         a.dataset.title = title;
         if (a.textContent.trim() === t) {
           a.textContent = title;
@@ -1578,8 +1622,8 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         const link = linkMenu.link;
         const href = link.getAttribute('href') || '';
         const mode = link.dataset.mode === 'title' ? 'title' : 'url';
-        const CW = 176, PAD = 8;
-        const CH = 4 * 32 + 12 + 8;
+        const CW = 180, PAD = 8;
+        const CH = 5 * 32 + 12 + 10;
         const x = Math.max(PAD, Math.min(linkMenu.x, window.innerWidth - CW - PAD));
         const y = Math.max(PAD, Math.min(linkMenu.y, window.innerHeight - CH - PAD));
         const item = { padding: '8px 10px', fontSize: '13px', lineHeight: '16px', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '9px', color: 'var(--text-1)' };
@@ -1598,6 +1642,10 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
             }}
             onContextMenu={ev => ev.preventDefault()}
           >
+            <div {...item} {...hov} onClick={openLinkRename}>
+              {ic(<><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17l-1 4z" /><path d="M14.5 6.5l3 3" /></>)}
+              <span>编辑标题…</span>
+            </div>
             <div {...item} {...hov} onClick={() => setLinkMode(link, 'title')}>
               {ic(<><path d="M4 7V4.5h16V7" /><path d="M12 4.5V19.5" /><path d="M8.5 19.5h7" /></>)}
               <span>显示标题</span>
@@ -1624,6 +1672,44 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
               {ic(<><path d="M13 5h6v6" /><path d="M19 5l-7.5 7.5" /><path d="M19 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5H10" /></>)}
               <span>打开链接</span>
             </div>
+          </div>
+        );
+      })(), document.body)}
+
+      {/* 链接标题编辑浮层：就地改展示文字（自定义标题），留空恢复自动标题 */}
+      {linkRename && createPortal((() => {
+        const W = 268, PAD = 8;
+        const left = Math.max(PAD, Math.min(linkRename.x, window.innerWidth - W - PAD));
+        const top = Math.max(PAD, Math.min(linkRename.y, window.innerHeight - 132 - PAD));
+        return (
+          <div
+            className="qc-linkmenu popover-enter"
+            style={{
+              position: 'fixed', left, top, width: `${W}px`, zIndex: 'var(--z-popover)', background: 'var(--surface-card)',
+              borderRadius: '10px', padding: '10px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)',
+            }}
+            onContextMenu={ev => ev.preventDefault()}
+          >
+            <div style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '6px' }}>链接标题</div>
+            <input
+              autoFocus
+              value={linkRename.value}
+              onChange={ev => setLinkRename(r => (r ? { ...r, value: ev.target.value } : r))}
+              onFocus={ev => ev.target.select()}
+              onKeyDown={ev => {
+                if (ev.key === 'Enter') { ev.preventDefault(); saveLinkRename(); }
+                if (ev.key === 'Escape') { ev.preventDefault(); renameCancelledRef.current = true; setLinkRename(null); }
+              }}
+              onBlur={saveLinkRename}
+              maxLength={80}
+              placeholder="留空则恢复自动抓取的标题"
+              style={{
+                width: '100%', height: '32px', borderRadius: '8px', padding: '0 10px', fontSize: '13px',
+                color: 'var(--text-1)', background: 'var(--surface-fill)', border: '1px solid transparent', outline: 'none',
+              }}
+            />
+            <div style={{ fontSize: '10.5px', color: 'var(--text-3)', marginTop: '7px' }}>Enter 保存 · Esc 取消</div>
           </div>
         );
       })(), document.body)}

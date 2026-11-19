@@ -1622,11 +1622,11 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         const link = linkMenu.link;
         const href = link.getAttribute('href') || '';
         const mode = link.dataset.mode === 'title' ? 'title' : 'url';
-        const CW = 180, PAD = 8;
+        const CW = 168, PAD = 8;
         const CH = 5 * 32 + 12 + 10;
         const x = Math.max(PAD, Math.min(linkMenu.x, window.innerWidth - CW - PAD));
         const y = Math.max(PAD, Math.min(linkMenu.y, window.innerHeight - CH - PAD));
-        const item = { padding: '8px 10px', fontSize: '13px', lineHeight: '16px', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '9px', color: 'var(--text-1)' };
+        const item = { padding: '8px 12px', fontSize: '13px', lineHeight: '16px', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-1)' };
         const hov = { onMouseEnter: ev => { ev.currentTarget.style.background = 'rgba(120,120,128,0.08)'; }, onMouseLeave: ev => { ev.currentTarget.style.background = 'transparent'; } };
         const ic = (d) => (
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-3)' }}>{d}</svg>
@@ -1642,23 +1642,23 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
             }}
             onContextMenu={ev => ev.preventDefault()}
           >
-            <div {...item} {...hov} onClick={openLinkRename}>
+            <div style={item} {...hov} onClick={openLinkRename}>
               {ic(<><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17l-1 4z" /><path d="M14.5 6.5l3 3" /></>)}
               <span>编辑标题…</span>
             </div>
-            <div {...item} {...hov} onClick={() => setLinkMode(link, 'title')}>
+            <div style={item} {...hov} onClick={() => setLinkMode(link, 'title')}>
               {ic(<><path d="M4 7V4.5h16V7" /><path d="M12 4.5V19.5" /><path d="M8.5 19.5h7" /></>)}
               <span>显示标题</span>
               {mode === 'title' ? tick : null}
             </div>
-            <div {...item} {...hov} onClick={() => setLinkMode(link, 'url')}>
+            <div style={item} {...hov} onClick={() => setLinkMode(link, 'url')}>
               {ic(<><path d="M10.5 13.5a4.5 4.5 0 0 0 6.4 0l2.3-2.3a4.5 4.5 0 0 0-6.4-6.4L11.5 6" /><path d="M13.5 10.5a4.5 4.5 0 0 0-6.4 0l-2.3 2.3a4.5 4.5 0 0 0 6.4 6.4L12.5 18" /></>)}
               <span>显示完整链接</span>
               {mode === 'url' ? tick : null}
             </div>
             <div style={{ height: 1, background: 'var(--ink-100)', margin: '4px 2px' }} />
             <div
-              {...item}
+              style={item}
               {...hov}
               onClick={() => {
                 try { navigator.clipboard.writeText(href); toast.success('链接已复制'); } catch { toast.error('复制失败'); }
@@ -1668,7 +1668,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
               {ic(<><rect x="9" y="9" width="11" height="11" rx="2.2" /><path d="M5 15V5.5A2.5 2.5 0 0 1 7.5 3H17" /></>)}
               <span>复制链接</span>
             </div>
-            <div {...item} {...hov} onClick={() => { window.open(href, '_blank', 'noopener,noreferrer'); setLinkMenu(null); }}>
+            <div style={item} {...hov} onClick={() => { window.open(href, '_blank', 'noopener,noreferrer'); setLinkMenu(null); }}>
               {ic(<><path d="M13 5h6v6" /><path d="M19 5l-7.5 7.5" /><path d="M19 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5H10" /></>)}
               <span>打开链接</span>
             </div>

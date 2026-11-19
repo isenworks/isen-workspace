@@ -2202,7 +2202,7 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
             {wkContextMenu.task.is_failed ? '取消未完成' : '标记未完成'}
           </button>
           {/* 只给今日聚焦（非目标）的单次事项：重复事项改期会把整个序列锚点挪走 */}
-          {!wkContextMenu.task.is_goal && (wkContextMenu.task.repeat_rule || 'none') === 'none' && (
+          {!wkContextMenu.task.is_goal && (wkContextMenu.task.repeat_rule || 'none') === 'none' && !wkContextMenu.task._repeat_occurrence && (
             <button
               type="button"
               onClick={() => { moveTaskToTomorrow(wkContextMenu.task); setWkContextMenu(null); }}

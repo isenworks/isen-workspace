@@ -441,6 +441,52 @@ export default function Workspace({ user: propUser }) {
       return;
     }
 
+    if (action === 'moveToTomorrow' && type === 'schedule') {
+      // 移到明天：同一条记录顺延一天（只对单次事项开放，重复事项在菜单层已隐藏）
+      const tomorrow = addDaysISO(task?.date || selectedDate, 1);
+      try {
+        await API.schedules.update(id, { date: tomorrow, is_failed: 0 });
+        store.broadcast({ type: 'reload' });
+        refresh();
+        toast.success('已移到明天');
+      } catch (e) { toast.error(e.message || '移到明天失败'); }
+      return;
+    }
+
+    if (action === 'continueTomorrow' && type === 'schedule') {
+      // 明天继续：复制一份到明天，原事项留在当天；勾选/拆解进度全部归零
+      const title = String(task?.title || '').trim();
+      if (!title) { toast.error('事项标题为空，无法复制'); return; }
+      const tomorrow = addDaysISO(task?.date || selectedDate, 1);
+      let subs = null;
+      try {
+        const arr = JSON.parse(task?.subtasks || '[]');
+        if (Array.isArray(arr) && arr.length) subs = arr.map(x => ({ ...x, done: false }));
+      } catch { /* 拆解数据损坏时不带拆解 */ }
+      try {
+        await API.schedules.create({
+          title,
+          date: tomorrow,
+          start_date: tomorrow,
+          start_time: task?.start_time || null,
+          end_time: task?.end_time || null,
+          duration_min: task?.duration_min != null ? Number(task.duration_min) : null,
+          category: task?.category,
+          is_key: task?.is_key ? 1 : 0,
+          is_goal: 0,
+          is_failed: 0,
+          priority: task?.priority ?? null,
+          repeat_rule: 'none',
+          note: task?.note || null,
+          subtasks: subs,
+        });
+        store.broadcast({ type: 'reload' });
+        refresh();
+        toast.success('已复制一条到明天');
+      } catch (e) { toast.error(e.message || '复制到明天失败'); }
+      return;
+    }
+
     if (action === 'moveToInbox' && type === 'schedule') {
       // 右键"移入小记"：事项标题作为小记内容，自动带上"待办"标签，然后删除原事项
       const title = String(task?.title || '').trim();

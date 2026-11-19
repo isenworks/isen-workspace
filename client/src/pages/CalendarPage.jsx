@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { today as getToday, fromISODate, startOfWeek, endOfWeek, toISODate, startOfMonth, endOfMonth } from '../utils/date.js';
+import { today as getToday, fromISODate, startOfWeek, endOfWeek, toISODate, startOfMonth, endOfMonth, addDaysISO } from '../utils/date.js';
 import { MODULES, keyToModule, catToModule } from '../utils/categoryMapping.js';
 import MonthCalendarGrid from '../components/calendar/MonthCalendarGrid.jsx';
 import FocusPanel from '../components/calendar/FocusPanel.jsx';
@@ -1414,6 +1414,56 @@ export default function CalendarPage({ onEditSchedule, onJumpToAnnualView }) {
         setTick(v => v + 1);
         toast.error(e.message);
       }
+      return;
+    }
+
+    if (action === 'moveToTomorrow') {
+      // 移到明天：真实记录顺延一天；合成事件（固定日程/生日等）没有后端载体，忽略
+      const isReal = ev.__origin === 'api' || (ev.id != null && /^\d+$/.test(String(ev.id)));
+      if (!isReal) { toast.error('该事项不支持改期'); return; }
+      const tomorrow = addDaysISO(ev.date || date, 1);
+      try {
+        const r = await API.schedules.update(ev.id, { date: tomorrow, is_failed: 0 });
+        const saved = r?.schedule;
+        if (saved) store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'update', category: saved.category });
+        else store.broadcast({ type: 'reload' });
+        toast.success('已移到明天');
+      } catch (e) { toast.error(e.message || '移到明天失败'); }
+      return;
+    }
+
+    if (action === 'continueTomorrow') {
+      // 明天继续：复制一份到明天，原事项不动；勾选/拆解进度归零、不带重复规则
+      const title = String(ev.title || '').trim();
+      if (!title) { toast.error('事项标题为空，无法复制'); return; }
+      const tomorrow = addDaysISO(ev.date || date, 1);
+      let subs = null;
+      try {
+        const arr = JSON.parse(ev.subtasks || '[]');
+        if (Array.isArray(arr) && arr.length) subs = arr.map(x => ({ ...x, done: false }));
+      } catch { /* 拆解数据损坏时不带拆解 */ }
+      try {
+        const r = await API.schedules.create({
+          title,
+          date: tomorrow,
+          start_date: tomorrow,
+          start_time: ev.start_time || null,
+          end_time: ev.end_time || null,
+          duration_min: ev.duration_min != null ? Number(ev.duration_min) : null,
+          category: ev.category,
+          is_key: ev.is_key ? 1 : 0,
+          is_goal: 0,
+          is_failed: 0,
+          priority: ev.priority ?? null,
+          repeat_rule: 'none',
+          note: ev.note || null,
+          subtasks: subs,
+        });
+        const saved = r?.schedule;
+        if (saved) store.broadcast({ type: 'schedule_saved', schedule: saved, action: 'create', category: saved.category });
+        else store.broadcast({ type: 'reload' });
+        toast.success('已复制一条到明天');
+      } catch (e) { toast.error(e.message || '复制到明天失败'); }
       return;
     }
 

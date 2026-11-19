@@ -5,11 +5,12 @@ import { useEffect, useRef } from 'react';
  * 菜单项与主页完全一致：编辑 / 标记未完成 / 移入小记 / 删除
  *
  * 动作由宿主 onAction(action) 实现（两页数据源不同，各自适配落库与状态同步）：
- *   'edit' | 'markFailed' | 'moveToInbox' | 'delete'
+ *   'edit' | 'markFailed' | 'moveToTomorrow' | 'continueTomorrow' | 'moveToInbox' | 'delete'
  *
  * menu: { x, y, type: 'schedule' | 'habit', task: {...} } | null
  *   - type='schedule' 且 task 存在 → 显示"标记未完成/取消未完成"（task.is_failed 三态）
  *   - type='habit' → 删除项文案为"归档"
+ *   - "移到明天 / 明天继续"只给非目标、单次事项：目标不属于某一天，重复事项改期会挪动整个序列锚点
  * ============================================================ */
 export default function ScheduleContextMenu({ menu, onAction, onClose }) {
   const ref = useRef(null);
@@ -39,8 +40,8 @@ export default function ScheduleContextMenu({ menu, onAction, onClose }) {
 
   if (!menu) return null;
 
-  // 定位钳制：菜单约 168×208，触碰/长按在屏幕右缘或下缘时回收进视口，避免被裁掉
-  const CW = 168, CH = 208, PAD = 8;
+  // 定位钳制：菜单约 176×272，触碰/长按在屏幕右缘或下缘时回收进视口，避免被裁掉
+  const CW = 176, CH = 272, PAD = 8;
   const vw = window.innerWidth, vh = window.innerHeight;
   const px = Math.max(PAD, Math.min(menu.x, vw - CW - PAD));
   const py = Math.max(PAD, Math.min(menu.y, vh - CH - PAD));
@@ -91,6 +92,28 @@ export default function ScheduleContextMenu({ menu, onAction, onClose }) {
             : icon(<><path d="M18 6 6 18M6 6l12 12" /></>)}
           {menu.task.is_failed ? '取消未完成' : '标记未完成'}
         </div>
+      )}
+      {menu.type === 'schedule' && menu.task && !menu.task.is_goal && (
+        <>
+          {(menu.task.repeat_rule || 'none') === 'none' && !menu.task._repeat_occurrence && (
+            <div
+              style={{ ...itemStyle, color: 'var(--text-1)' }}
+              {...hover('rgba(120,120,128,0.08)')}
+              onClick={() => onAction('moveToTomorrow')}
+            >
+              {icon(<><path d="M5 12h14M13 5l7 7-7 7" /></>)}
+              移到明天
+            </div>
+          )}
+          <div
+            style={{ ...itemStyle, color: 'var(--text-1)' }}
+            {...hover('rgba(120,120,128,0.08)')}
+            onClick={() => onAction('continueTomorrow')}
+          >
+            {icon(<><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5 15V5.5A2.5 2.5 0 0 1 7.5 3H17" /></>)}
+            明天继续
+          </div>
+        </>
       )}
       {menu.type === 'schedule' && (
         <div

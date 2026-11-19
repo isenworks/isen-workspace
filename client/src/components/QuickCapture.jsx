@@ -198,6 +198,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     if (editorRef.current) {
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
       normalizeListsIn(editorRef.current); // 修复历史数据里已存在的碎片复选列表
+      normalizeListItems();               // 清掉历史数据里列表项开头的空行（序号与文字分离）
     }
     draftRef.current = { content: '', plain: '' };
     undoStack.current = [{ html: editorRef.current?.innerHTML || '', caret: 0 }];
@@ -806,6 +807,26 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     parentLi.after(li);
     if (!list.children.length) list.remove();
     return li;
+  }
+
+  // 列表项开头的 <br>（图片后回车最容易产生）会把首行占成空行：
+  // 序号留在上一行、文字掉到下一行。首次输入时清掉，正文回到与序号同一行。
+  function normalizeListItems() {
+    const ed = editorRef.current;
+    if (!ed) return;
+    ed.querySelectorAll('li').forEach(li => {
+      for (;;) {
+        const first = li.firstChild;
+        if (first && first.nodeType === 3 && !first.nodeValue.trim()) { first.remove(); continue; }
+        if (first && first.nodeName === 'BR') {
+          // 只有 <br> 的空条目保留（撑住行高、否则无法继续输入）
+          if (!li.textContent.trim() && !li.querySelector('img')) break;
+          first.remove();
+          continue;
+        }
+        break;
+      }
+    });
   }
 
   function handleTab(shiftKey) {
@@ -1514,7 +1535,9 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
-          onInput={() => {
+          onInput={(e) => {
+            // 输入法组字期间不动 DOM，避免打断候选；落字后再清列表项多余首行
+            if (!e.nativeEvent?.isComposing) normalizeListItems();
             draftRef.current = { content: getContent(), plain: getPlainText() };
             syncCount();
             // 输入快照防抖压栈（连续打字合并为一步 undo）

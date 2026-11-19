@@ -276,6 +276,11 @@ export const API = {
     async all(q) { return fetchPages('/search/all', { q }); },
   },
 
+  // 网页标题抓取（浏览器跨域拿不到对方 HTML，由服务端代取并解析 og:title / title）
+  linkmeta: {
+    async get(url) { return fetchPages('/linkmeta', { url }); },
+  },
+
   // Hero 背景图 R2 对象存储（原图保留，支持无损重新取景）
   //   upload: multipart 上传文件，kind='src'（原图）|'out'（成品图），返回 { key, url, size }
   //   remove: 按 key 删除 R2 中的文件

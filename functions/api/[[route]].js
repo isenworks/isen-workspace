@@ -69,6 +69,7 @@ import {
 } from '../_lib/handlers/github.js';
 import { handleWereadSync, handleWereadSearch } from '../_lib/handlers/weread.js';
 import { handleCoverSearch, handleCoverProxy } from '../_lib/handlers/cover.js';
+import { handleLinkMeta } from '../_lib/handlers/linkMeta.js';
 import { handleBirthdayMigrate, handleMigrate } from '../_lib/handlers/migrate.js';
 import { handleHeroUpload, handleHeroImg, handleHeroDelete } from '../_lib/handlers/hero.js';
 import {
@@ -277,6 +278,11 @@ export async function onRequest(context) {
     // ------------------------------------------------------------
     if (path === '/api/cover/search' && method === 'GET') return handleCoverSearch(env, q);
     if (path === '/api/cover/proxy' && method === 'GET') return handleCoverProxy(env, q.url || '');
+
+    // ------------------------------------------------------------
+    // /api/linkmeta  — 抓取网页标题（小记粘贴链接后自动显示标题）
+    // ------------------------------------------------------------
+    if (path === '/api/linkmeta' && (method === 'GET' || method === 'POST')) return handleLinkMeta(env, q, body);
 
     // ------------------------------------------------------------
     // /api/birthday-migrate  — 一次性迁移：录入生日事项

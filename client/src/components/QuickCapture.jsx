@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { API } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { hexToRgba } from '../utils/color.js';
@@ -166,6 +167,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
   const [flashMsg, setFlashMsg] = useState('');
   const [savedAt, setSavedAt] = useState(edit?.updated_at || edit?.created_at || '');
   const [focused, setFocused] = useState(false);
+  const [linkMenu, setLinkMenu] = useState(null);      // 正文链接右键菜单：{ x, y, link }
   const [listMode, setListMode] = useState(null);      // 光标所在块的列表类型：'ul' | 'ol' | 'checklist' | null
   const [count, setCount] = useState(0);              // 字数（不含空格与换行）
   const [imgCount, setImgCount] = useState(0);        // 正文图片数（图片-only 小记也要能保存）
@@ -598,6 +600,58 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     sel.addRange(r);
   }
 
+  // ===== 正文链接右键菜单：在「标题」与「完整链接」之间切换展示形式 =====
+  // 链接以 <a href data-title data-mode> 存库：标题只抓一次，之后离线也能切换
+  useEffect(() => {
+    if (!linkMenu) return;
+    function onDown(e) {
+      if (e.target?.closest?.('.qc-linkmenu')) return;
+      setLinkMenu(null);
+    }
+    function onKey(e) { if (e.key === 'Escape') setLinkMenu(null); }
+    function onScroll() { setLinkMenu(null); }
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, [linkMenu]);
+
+  function onEditorContextMenu(e) {
+    const link = e.target?.closest?.('a[href]');
+    if (!link || !editorRef.current?.contains(link)) return; // 非链接：保留浏览器默认菜单
+    e.preventDefault();
+    setLinkMenu({ x: e.clientX, y: e.clientY, link });
+  }
+
+  // 切换展示形式；还没有标题时先抓一次，抓不到就提示并保持原样
+  async function setLinkMode(link, mode) {
+    setLinkMenu(null);
+    const href = link.getAttribute('href') || '';
+    if (!href) return;
+    if (mode === 'url') {
+      link.textContent = href;
+      link.dataset.mode = 'url';
+      touch();
+      return;
+    }
+    let title = String(link.dataset.title || '').trim();
+    if (!title) {
+      try {
+        const r = await API.linkmeta.get(href);
+        title = String(r?.title || '').trim();
+      } catch { /* 下面统一提示 */ }
+    }
+    if (!title) { toast.error('没能抓到网页标题，可保留完整链接'); return; }
+    link.dataset.title = title;
+    link.dataset.mode = 'title';
+    link.textContent = title;
+    touch();
+  }
+
   // 点击圆点元素本体 → 切换勾选态（真实元素命中，不再依赖坐标区间判定）
   // 点击图片本体 → 进入缩放选中态；点正文其他位置 → 取消选中
   function onEditorClick(e) {
@@ -900,6 +954,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       a.textContent = t;
+      a.dataset.mode = 'url';
       // 用 Range 插入（不用 insertHTML）：iOS Safari 对 execCommand insertHTML 支持不稳
       const sel = window.getSelection();
       if (sel?.rangeCount) {
@@ -911,6 +966,17 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         sel.removeAllRanges();
         sel.addRange(r);
       }
+      // 后台抓标题，成功且文字仍是裸链接时再替换，避免盖掉用户已改动的内容
+      API.linkmeta.get(href).then(r => {
+        const title = String(r?.title || '').trim();
+        if (!title || !a.isConnected) return;
+        a.dataset.title = title;
+        if (a.textContent.trim() === t) {
+          a.textContent = title;
+          a.dataset.mode = 'title';
+          touch();
+        }
+      }).catch(() => { /* 抓不到就保留链接原文，右键仍可手动切 */ });
     } else {
       document.execCommand('insertText', false, text);
     }
@@ -1461,6 +1527,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
           onDragOver={onDragOver}
           onDrop={onDrop}
           onClick={onEditorClick}
+          onContextMenu={onEditorContextMenu}
           onDoubleClick={onEditorDoubleClick}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -1481,6 +1548,68 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         />
         {imgOverlay}
       </div>
+
+      {/* 链接右键菜单：切换「标题 / 完整链接」、复制与打开 */}
+      {linkMenu && createPortal((() => {
+        const link = linkMenu.link;
+        const href = link.getAttribute('href') || '';
+        const mode = link.dataset.mode === 'title' ? 'title' : 'url';
+        const CW = 168, PAD = 8;
+        const rows = 4;
+        const CH = rows * 32 + 12;
+        const x = Math.max(PAD, Math.min(linkMenu.x, window.innerWidth - CW - PAD));
+        const y = Math.max(PAD, Math.min(linkMenu.y, window.innerHeight - CH - PAD));
+        const item = { padding: '8px 12px', fontSize: '13px', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-1)' };
+        const hov = { onMouseEnter: ev => { ev.currentTarget.style.background = 'rgba(120,120,128,0.08)'; }, onMouseLeave: ev => { ev.currentTarget.style.background = 'transparent'; } };
+        return (
+          <div
+            className="qc-linkmenu popover-enter"
+            style={{
+              position: 'fixed', left: x, top: y, zIndex: 'var(--z-popover)', background: 'var(--surface-card)',
+              borderRadius: '10px', padding: '6px', minWidth: `${CW}px`,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)',
+            }}
+            onContextMenu={ev => ev.preventDefault()}
+          >
+            <div
+              style={{ ...item, color: mode === 'title' ? 'var(--s-main)' : 'var(--text-1)' }}
+              {...hov}
+              onClick={() => setLinkMode(link, 'title')}
+            >
+              <span style={{ width: 15, flexShrink: 0, textAlign: 'center' }}>{mode === 'title' ? '✓' : ''}</span>
+              显示标题
+            </div>
+            <div
+              style={{ ...item, color: mode === 'url' ? 'var(--s-main)' : 'var(--text-1)' }}
+              {...hov}
+              onClick={() => setLinkMode(link, 'url')}
+            >
+              <span style={{ width: 15, flexShrink: 0, textAlign: 'center' }}>{mode === 'url' ? '✓' : ''}</span>
+              显示完整链接
+            </div>
+            <div style={{ height: 1, background: 'var(--ink-100)', margin: '4px 2px' }} />
+            <div
+              {...item}
+              {...hov}
+              onClick={() => {
+                try { navigator.clipboard.writeText(href); toast.success('链接已复制'); } catch { toast.error('复制失败'); }
+                setLinkMenu(null);
+              }}
+            >
+              <span style={{ width: 15, flexShrink: 0 }} />
+              复制链接
+            </div>
+            <div
+              {...item}
+              {...hov}
+              onClick={() => { window.open(href, '_blank', 'noopener,noreferrer'); setLinkMenu(null); }}
+            >
+              <span style={{ width: 15, flexShrink: 0 }} />
+              打开链接
+            </div>
+          </div>
+        );
+      })(), document.body)}
 
       {bare ? (
         <div className="mt-auto pt-3 border-t border-ink-100/80 flex items-center gap-1.5 flex-wrap">

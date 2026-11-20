@@ -198,7 +198,7 @@ export default function RelationCard({ onNav }) {
                   onClick={() => pick(valueKey, o.key)}
                   className="rel-chip"
                   style={on
-                    ? { color: o.color, background: hexToRgba(o.color, 0.14), border: `1px solid ${hexToRgba(o.color, 0.45)}` }
+                    ? { color: o.color, background: hexToRgba(o.color, 0.22), border: `1px solid ${hexToRgba(o.color, 0.55)}` }
                     : undefined}
                 >{o.label}</button>
               );

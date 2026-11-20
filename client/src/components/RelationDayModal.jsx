@@ -133,7 +133,7 @@ function Block({ title, options, value, onPick, note, onNote, onNoteBlur, placeh
               onClick={() => onPick(o.key)}
               className="h-6 px-2 rounded-md text-[11.5px] font-semibold transition active:scale-95"
               style={on
-                ? { color: o.color, background: hexToRgba(o.color, 0.14), border: `1px solid ${hexToRgba(o.color, 0.45)}` }
+                ? { color: o.color, background: hexToRgba(o.color, 0.22), border: `1px solid ${hexToRgba(o.color, 0.55)}` }
                 : { color: 'var(--text-2)', background: 'rgba(120,120,128,0.08)', border: '1px solid transparent' }}
             >{o.label}</button>
           );

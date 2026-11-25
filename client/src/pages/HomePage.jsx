@@ -272,6 +272,10 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
   const weekStart = useMemo(() => startOfWeek(new Date()), [todayStr]);
   const weekStartStr = toISODate(weekStart);
   const weekEndStr = toISODate(endOfWeek(new Date()));
+  /* 今日聚焦卡片：日切换偏移量（0 = 今天，-1 = 昨天，1 = 明天…） */
+  const [dayOffset, setDayOffset] = useState(0);
+  const viewDayStr = useMemo(() => addDaysISO(todayStr, dayOffset), [todayStr, dayOffset]);
+  const viewDayLabel = `${+viewDayStr.slice(5, 7)}.${+viewDayStr.slice(8, 10)}`;
   /* 本周目标卡片：周切换偏移量（0 = 当前周，-1 = 上周，1 = 下周…） */
   const [weekOffset, setWeekOffset] = useState(0);
   const viewWeekStartStr = useMemo(() => addDaysISO(weekStartStr, weekOffset * 7), [weekStartStr, weekOffset]);
@@ -772,19 +776,19 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     syncCloudNow().catch(() => {});
   }, []);
 
-  /* ===== 今日聚焦（排除 is_goal 目标事项：目标只归属本周目标/日历主线面板，不进当日列表与进度统计） ===== */
-  const todayItems = useMemo(() => (sched || []).filter(s => s.date === todayStr && !s.is_goal), [sched, todayStr]);
-  const todayDone = todayItems.filter(s => s.is_done).length;
-  const todayPct = pct(todayDone, todayItems.length);
-  /* 今日全部事项按时间升序（全天排最后）；今日节日（与月历同源、白名单过滤）
+  /* ===== 今日聚焦（可左右切到前后几天；排除 is_goal 目标事项：目标只归属本周目标/日历主线面板） ===== */
+  const dayItems = useMemo(() => (sched || []).filter(s => s.date === viewDayStr && !s.is_goal), [sched, viewDayStr]);
+  const dayDone = dayItems.filter(s => s.is_done).length;
+  const dayPct = pct(dayDone, dayItems.length);
+  /* 当日全部事项按时间升序（全天排最后）；当日节日（与月历同源、白名单过滤）
    * 只作为卡片头徽标展示——节日不可勾选，混进事项列表会破坏进度语义与空态 */
-  const todaySorted = useMemo(() => [...todayItems]
-    .sort((a, b) => String(a.start_time || '99:99').localeCompare(String(b.start_time || '99:99'))), [todayItems]);
-  const todayFestivals = useMemo(() => {
-    const [y, m, d] = todayStr.split('-').map(Number);
+  const daySorted = useMemo(() => [...dayItems]
+    .sort((a, b) => String(a.start_time || '99:99').localeCompare(String(b.start_time || '99:99'))), [dayItems]);
+  const dayFestivals = useMemo(() => {
+    const [y, m, d] = viewDayStr.split('-').map(Number);
     const solar = lunarLib.Solar.fromYmd(y, m, d);
     return [...solar.getLunar().getFestivals(), ...solar.getFestivals()].filter(f => MAJOR_FESTIVALS.has(f));
-  }, [todayStr]);
+  }, [viewDayStr]);
 
   /* ===== 本周目标：仅展示目标（is_goal）。当前周 = 本周 7 天 + 逾期未完成（顺延补做）；
      逾期已完成 / 已标记未完成的一律不回流——否则上周勾掉的目标会永远挂在本周列表里
@@ -1174,13 +1178,15 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
-  /* 右键"移到明天"：把事项改期到明天（同一条记录，不产生副本）
+  /* 右键"移到明天"：把事项改期到次日（同一条记录，不产生副本）
+     基准日取事项自身日期（今日聚焦切到昨天时，"明天"= 今天），目标事项固定以今天为基准
      只对单次事项开放：重复事项改 date 会把整个序列的锚点挪走，语义不对
      移动 = 明天重做，所以顺手清掉未完成标记，避免明天一进来就是红的 */
+  const nextDayOf = (s) => addDaysISO(s?.is_goal ? todayStr : (String(s?.date || '').slice(0, 10) || todayStr), 1);
   const moveTaskToTomorrow = async (s) => {
     const id = s?.id;
     if (id == null) return;
-    const tomorrow = addDaysISO(todayStr, 1);
+    const tomorrow = nextDayOf(s);
     const next = { ...s, date: tomorrow, is_failed: 0 };
     setSched(prev => (prev || []).map(x => String(x.id) === String(id) ? next : x));
     try {
@@ -1194,16 +1200,17 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
     }
   };
 
-  /* 右键"明天继续"：复制一份到明天，原事项留在今天
+  /* 右键"明天继续"：复制一份到次日，原事项留在当天
      复制品是全新的一天任务 —— 勾选/未完成/拆解进度全部归零，重复规则不带过去 */
   const continueTomorrow = async (s) => {
     if (!s?.title) return toast.error('事项标题为空，无法复制');
     const subs = parseSubtasks(s.subtasks).map(x => ({ ...x, done: false }));
+    const nextDay = nextDayOf(s);
     try {
       const r = await API.schedules.create({
         title: s.title,
-        date: addDaysISO(todayStr, 1),
-        start_date: addDaysISO(todayStr, 1),
+        date: nextDay,
+        start_date: nextDay,
         start_time: s.start_time || null,
         end_time: s.end_time || null,
         duration_min: s.duration_min != null ? Number(s.duration_min) : null,
@@ -1535,42 +1542,70 @@ export default function HomePage({ user, onNav, syncSignal = 0, onNewSchedule, o
              高度下限按「卡片头 + 进度条 + 3 条事项」校准，少于 3 条也要能一屏看完 */}
         <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto md:auto-rows-fr gap-4 md:flex-1 md:min-h-[clamp(252px,31vh,300px)]">
 
-          {/* ---- 今日聚焦：今日全部事项（按时间排序，可滚动勾选）；节日见卡片头徽标 ---- */}
+          {/* ---- 今日聚焦：当日全部事项（按时间排序，可滚动勾选）；右侧切前一天/后一天 ---- */}
           <div className="glass-card p-4 flex flex-col min-h-0 overflow-hidden">
             <CardHead
               title="今日聚焦"
-              sub={`${+todayStr.slice(5, 7)}.${+todayStr.slice(8, 10)}`}
-              extra={todayFestivals.length > 0 ? (
+              sub={viewDayLabel}
+              extra={dayFestivals.length > 0 ? (
                 /* 节日是「展示性信息」而非可勾选事项：收进卡片头（与日期同属元信息区），
                    不占列表行、不参与进度统计、不挤掉空态，且当天过节时依然一眼可见 */
                 <span
                   className="text-[10px] font-bold rounded-full flex-shrink-0"
                   style={{ color: 'var(--danger)', background: 'rgba(255,59,48,0.10)', padding: '1px 6px' }}
-                  title={`今天是${todayFestivals.join('、')}`}
-                >{todayFestivals.join(' · ')}</span>
+                  title={`当天是${dayFestivals.join('、')}`}
+                >{dayFestivals.join(' · ')}</span>
               ) : null}
               onClick={() => onNav?.('plan')}
               action={(
-                <button
-                  onClick={() => onNewSchedule?.({ date: todayStr })}
-                  className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95"
-                  style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
-                  title="新建今日事项"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setDayOffset(o => o - 1)}
+                    className="hp-more w-[24px] h-[24px] rounded-[7px] grid place-items-center flex-shrink-0 transition active:scale-90"
+                    style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                    title="前一天"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  {dayOffset !== 0 && (
+                    <button
+                      onClick={() => setDayOffset(0)}
+                      className="hp-more px-1.5 h-[24px] rounded-[7px] grid place-items-center flex-shrink-0 transition active:scale-90 text-[10px] font-bold"
+                      style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.1)', '--hc': 'var(--s-main)' }}
+                      title="回到今天"
+                    >
+                      今天
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setDayOffset(o => o + 1)}
+                    className="hp-more w-[24px] h-[24px] rounded-[7px] grid place-items-center flex-shrink-0 transition active:scale-90"
+                    style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                    title="后一天"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                  <button
+                    onClick={() => onNewSchedule?.({ date: viewDayStr })}
+                    className="hp-more w-[26px] h-[26px] rounded-lg grid place-items-center flex-shrink-0 transition active:scale-95 ml-0.5"
+                    style={{ color: 'var(--s-main)', background: 'rgba(var(--s-rgb),0.06)', '--hc': 'var(--s-main)' }}
+                    title={dayOffset === 0 ? '新建今日事项' : '新建当日事项'}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  </button>
+                </div>
               )}
             />
             <div className="flex flex-col gap-2 min-h-0 flex-1">
               <div className="flex items-baseline justify-between mb-0.5">
-                <span className="text-[11px] text-ink-400">今日进度</span>
-                <span className="text-[12px] font-bold text-ink-800 tabular-nums">{todayDone}/{todayItems.length}</span>
+                <span className="text-[11px] text-ink-400">{dayOffset === 0 ? '今日进度' : '当日进度'}</span>
+                <span className="text-[12px] font-bold text-ink-800 tabular-nums">{dayDone}/{dayItems.length}</span>
               </div>
-              <Bar value={todayPct} />
+              <Bar value={dayPct} />
               <div className="overflow-y-auto overflow-x-hidden nice-scroll pr-0.5 flex flex-col justify-start gap-1 mt-1 flex-1 min-h-0 max-h-[42vh] md:max-h-none">
-                {todaySorted.map(s => renderSchedRow(s, s.start_time ? String(s.start_time).slice(0, 5) : '全天'))}
-                {todaySorted.length === 0 && (
-                  <div className="text-[12.5px] text-ink-400 text-center py-3">今天还没有安排</div>
+                {daySorted.map(s => renderSchedRow(s, s.start_time ? String(s.start_time).slice(0, 5) : '全天'))}
+                {daySorted.length === 0 && (
+                  <div className="text-[12.5px] text-ink-400 text-center py-3">{dayOffset === 0 ? '今天还没有安排' : '这天还没有安排'}</div>
                 )}
               </div>
             </div>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>绿植适配度测评</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: radial-gradient(120% 90% at 50% 0%, #EAF5EA 0%, #F7FAF7 55%, #FFFFFF 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #1D2A20; padding: 24px;
+  }
+  .card {
+    width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 36px 28px;
+    box-shadow: 0 18px 50px rgba(31, 74, 43, 0.12), 0 2px 8px rgba(31, 74, 43, 0.06);
+    text-align: center;
+  }
+  .icon { width: 56px; height: 56px; margin: 0 auto 18px; border-radius: 16px; display: grid; place-items: center;
+    background: rgba(52, 199, 89, 0.12); }
+  h1 { font-size: 20px; margin: 0 0 8px; letter-spacing: 0.2px; }
+  p { font-size: 13.5px; line-height: 1.7; color: #6B7A70; margin: 0; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #34C759; margin-right: 6px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21V11" />
+        <path d="M12 11C12 7 9 5 5 5c0 4 3 6 7 6z" />
+        <path d="M12 13c0-3.3 2.7-5 6-5 0 3.3-2.7 5-6 5z" />
+      </svg>
+    </div>
+    <h1>绿植适配度测评</h1>
+    <p><span class="dot"></span>站点已就绪，测评工具即将上线</p>
+  </div>
+</body>
+</html>

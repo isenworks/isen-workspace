@@ -982,6 +982,21 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
         }
         if (imgs.length > 1) {
           const cols = String(Math.min(imgs.length, 4));
+          // 先清掉图片之间的换行/空白：否则 <br> 会强制断行，宽度再算也对不上
+          const sel = window.getSelection();
+          let caretLost = false;
+          let node = imgs[0].nextSibling;
+          while (node && node !== imgs[imgs.length - 1]) {
+            const next = node.nextSibling;
+            const gap = (node.nodeType === 3 && !node.nodeValue.trim())
+              || (node.nodeType === 1 && node.tagName === 'BR');
+            if (gap) {
+              if (sel?.anchorNode && (sel.anchorNode === node
+                || (node.nodeType === 1 && node.contains(sel.anchorNode)))) caretLost = true;
+              node.remove();
+            }
+            node = next;
+          }
           imgs.forEach(img => {
             img.dataset.row = cols;
             // 并排时统一按列宽排布，旧的单图宽度/对齐不能再生效
@@ -991,6 +1006,13 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
             img.style.marginRight = '';
             delete img.dataset.align;
           });
+          if (caretLost && sel) {
+            const r = document.createRange();
+            r.setStartAfter(imgs[imgs.length - 1]);
+            r.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(r);
+          }
         } else {
           delete imgs[0].dataset.row;
         }

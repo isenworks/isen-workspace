@@ -201,6 +201,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
       editorRef.current.innerHTML = edit ? String(edit.content || '') : '';
       normalizeListsIn(editorRef.current); // 修复历史数据里已存在的碎片复选列表
       normalizeListItems();               // 清掉历史数据里列表项开头的空行（序号与文字分离）
+      layoutImageRows(editorRef.current); // 历史记录里连续的多张图也按一行并排
     }
     draftRef.current = { content: '', plain: '' };
     undoStack.current = [{ html: editorRef.current?.innerHTML || '', caret: 0 }];
@@ -307,6 +308,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     const ed = editorRef.current;
     if (!ed || !snap) return;
     ed.innerHTML = snap.html;
+    layoutImageRows(ed);
     setCaretOffset(ed, snap.caret);
     draftRef.current = { content: snap.html, plain: (ed.innerText || '').trim() };
     syncCount();
@@ -956,6 +958,47 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     return ph;
   }
 
+  // 连续插入/粘贴的图片并排成一行（2～4 列）：只改属性与内联样式，不动节点，避免打断光标
+  // 图片之间只允许空白文本或 <br>，遇到文字/其它块即断开成新的一行
+  function layoutImageRows(ed) {
+    if (!ed) return;
+    const isFiller = n => (n.nodeType === 3 && !n.nodeValue.trim())
+      || (n.nodeType === 1 && n.tagName === 'BR');
+    const parents = new Set([ed]);
+    ed.querySelectorAll('img.qc-img').forEach(img => { if (img.parentElement) parents.add(img.parentElement); });
+    parents.forEach(parent => {
+      const kids = [...parent.childNodes];
+      let i = 0;
+      while (i < kids.length) {
+        const node = kids[i];
+        if (!(node.nodeType === 1 && node.matches?.('img.qc-img'))) { i += 1; continue; }
+        const imgs = [node];
+        let j = i + 1;
+        while (j < kids.length) {
+          const n = kids[j];
+          if (n.nodeType === 1 && n.matches?.('img.qc-img')) { imgs.push(n); j += 1; continue; }
+          if (isFiller(n)) { j += 1; continue; }
+          break;
+        }
+        if (imgs.length > 1) {
+          const cols = String(Math.min(imgs.length, 4));
+          imgs.forEach(img => {
+            img.dataset.row = cols;
+            // 并排时统一按列宽排布，旧的单图宽度/对齐不能再生效
+            img.style.width = '';
+            img.style.height = '';
+            img.style.marginLeft = '';
+            img.style.marginRight = '';
+            delete img.dataset.align;
+          });
+        } else {
+          delete imgs[0].dataset.row;
+        }
+        i = j;
+      }
+    });
+  }
+
   // 上传成功：占位 → 正文 <img>（只存 URL）
   function finishImagePlaceholder(ph, url) {
     const img = document.createElement('img');
@@ -968,7 +1011,10 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     ph.replaceWith(img);
     if (!img.nextSibling) img.after(document.createElement('br')); // 尾部留一行，方便继续输入
     const ed = editorRef.current;
-    if (ed) syncCount();
+    if (ed) {
+      layoutImageRows(ed);
+      syncCount();
+    }
   }
 
   // 依次压缩并上传（串行：保证多图顺序与占位一一对应）
@@ -1089,6 +1135,10 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     if (!img || !ed) return;
     e.preventDefault();
     e.stopPropagation();
+    // 并排的图片一旦手动缩放就退出并排（否则内联宽度会把整行撑破）
+    if (img.dataset.row) {
+      img.parentElement?.querySelectorAll?.('img.qc-img[data-row]').forEach(el => delete el.dataset.row);
+    }
     const dirX = corner.endsWith('e') ? 1 : -1; // 右手柄向右变大，左手柄向左变大
     const startX = e.clientX;
     const startW = img.getBoundingClientRect().width;
@@ -1136,6 +1186,7 @@ export default function QuickCapture({ onSaved, onUpdated, onManageTags, autoFoc
     if (!img) return;
     img.remove();
     clearImageSelection();
+    layoutImageRows(editorRef.current); // 删掉一张后，同组剩一张的恢复整宽
     touch();
   }
 
